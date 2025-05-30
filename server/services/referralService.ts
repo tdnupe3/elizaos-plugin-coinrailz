@@ -75,14 +75,14 @@ export class ReferralService {
     try {
       const user = await storage.getUser(userId);
       const referrals = await storage.getUserReferrals(userId);
-      const completedReferrals = referrals.filter(r => r.status === "completed");
+      const completedReferrals = referrals.filter((r: any) => r.status === "completed");
       
       return {
         referralCode: user?.referralCode,
         totalReferrals: user?.totalReferrals || 0,
         completedReferrals: completedReferrals.length,
         totalEarned: parseFloat(user?.referralBonus || "0"),
-        pendingReferrals: referrals.filter(r => r.status === "pending").length,
+        pendingReferrals: referrals.filter((r: any) => r.status === "pending").length,
         recentReferrals: referrals.slice(0, 5)
       };
     } catch (error) {

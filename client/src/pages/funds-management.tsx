@@ -272,12 +272,12 @@ export default function FundsManagement() {
                         )}
                       </div>
 
-                      <div className="bg-yellow-50 rounded-lg p-4">
+                      <div className="bg-slate-50 rounded-lg p-4">
                         <div className="flex items-center space-x-3">
-                          <Shield className="w-5 h-5 text-yellow-600" />
+                          <Shield className="w-5 h-5 text-slate-600" />
                           <div>
-                            <p className="font-medium text-yellow-900">Processing Time</p>
-                            <p className="text-sm text-yellow-700">Withdrawals typically take 1-3 business days</p>
+                            <p className="font-medium text-slate-900">Processing Time</p>
+                            <p className="text-sm text-slate-700">Withdrawals typically take 1-3 business days</p>
                           </div>
                         </div>
                       </div>

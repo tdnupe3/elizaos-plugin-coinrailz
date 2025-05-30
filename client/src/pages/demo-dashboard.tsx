@@ -35,13 +35,13 @@ const demoPrices = {
 
 function DemoModeHeader() {
   return (
-    <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-2">
+    <div className="bg-violet-50 border-b border-violet-200 px-4 py-2">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+          <Badge variant="outline" className="bg-violet-100 text-violet-800 border-violet-300">
             Demo Mode
           </Badge>
-          <span className="text-sm text-yellow-700">
+          <span className="text-sm text-violet-700">
             You're exploring Coin Railz with sample data
           </span>
         </div>
@@ -368,7 +368,7 @@ export default function DemoDashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-xl font-semibold text-neutral-800">Send Money (Demo)</CardTitle>
-                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                  <Badge variant="outline" className="bg-violet-100 text-violet-800 border-violet-300">
                     Preview Mode
                   </Badge>
                 </div>

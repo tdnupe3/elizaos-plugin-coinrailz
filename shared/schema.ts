@@ -36,6 +36,15 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   usdBalance: decimal("usd_balance", { precision: 10, scale: 2 }).default("0.00"),
   securityPin: varchar("security_pin", { length: 6 }),
+  kycStatus: varchar("kyc_status").default("pending"), // pending, verified, rejected
+  complianceLevel: varchar("compliance_level").default("basic"), // basic, enhanced, institutional
+  riskScore: integer("risk_score").default(0), // 0-100 risk assessment
+  sanctionsCheck: boolean("sanctions_check").default(false),
+  pepsCheck: boolean("peps_check").default(false),
+  dateOfBirth: varchar("date_of_birth"),
+  ssn: varchar("ssn"), // Encrypted in production
+  address: jsonb("address"), // Store address components
+  phoneNumber: varchar("phone_number"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -73,7 +82,54 @@ export const cryptoTransactions = pgTable("crypto_transactions", {
   pricePerCoin: decimal("price_per_coin", { precision: 10, scale: 2 }),
   totalValue: decimal("total_value", { precision: 10, scale: 2 }),
   status: varchar("status").default("completed"),
+  blockchainHash: varchar("blockchain_hash"),
+  blockchainAddress: varchar("blockchain_address"),
+  networkFee: decimal("network_fee", { precision: 10, scale: 2 }),
   createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Compliance and AML tracking
+export const complianceReports = pgTable("compliance_reports", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  reportType: varchar("report_type").notNull(), // SAR, CTR, FBAR
+  transactionId: integer("transaction_id"),
+  cryptoTransactionId: integer("crypto_transaction_id"),
+  riskScore: integer("risk_score").notNull(),
+  flaggedReasons: jsonb("flagged_reasons"), // Array of reason codes
+  iso20022MessageId: varchar("iso20022_message_id"),
+  filedWithAuthorities: boolean("filed_with_authorities").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// API Integration logs for audit trail
+export const apiIntegrationLogs = pgTable("api_integration_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  apiProvider: varchar("api_provider").notNull(), // PNC, CoinFlip, Zelle, etc.
+  endpoint: varchar("endpoint").notNull(),
+  requestId: varchar("request_id").notNull(),
+  requestData: jsonb("request_data"),
+  responseData: jsonb("response_data"),
+  statusCode: integer("status_code"),
+  iso20022MessageType: varchar("iso20022_message_type"), // pain.001, pain.002, etc.
+  complianceFlags: jsonb("compliance_flags"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// KYC verification records
+export const kycVerifications = pgTable("kyc_verifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  verificationType: varchar("verification_type").notNull(), // identity, address, income
+  provider: varchar("provider").notNull(), // Jumio, Onfido, manual
+  verificationId: varchar("verification_id"), // External provider ID
+  status: varchar("status").notNull(), // pending, verified, rejected, expired
+  documentType: varchar("document_type"), // passport, license, utility_bill
+  verificationData: jsonb("verification_data"), // Encrypted verification details
+  expiryDate: timestamp("expiry_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Relations

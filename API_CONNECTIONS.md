@@ -5,43 +5,72 @@
 ### 1. Payment Platform APIs (Send Money Feature)
 **Purpose**: Cross-platform P2P transfers between different payment services
 **Fee Structure**: $5 + 3% per transaction
+**Compliance**: ISO 20022 messaging standards, PCI DSS Level 1
 
-#### Required Integrations:
-- **Cash App API**: For Cash App username/phone transfers
-- **Venmo API**: For Venmo username transfers  
-- **PayPal API**: For PayPal email/username transfers
-- **Apple Pay API**: For Apple Pay transfers
-- **Google Pay API**: For Google Pay transfers
-- **Zelle API**: For Zelle email/phone transfers
+#### Primary Banking Partner: PNC Bank
+- **PNC Treasury Management API** (via Pinacle)
+  - Account validation and verification
+  - ACH processing and settlement
+  - Real-time payment rails (RTP/FedNow)
+  - Fraud monitoring and compliance
+  - ISO 20022 MX message format support
+
+#### Required P2P Integrations:
+- **Zelle API** (via PNC Bank partnership)
+  - Zelle Network API through PNC's banking rails
+  - Real-time person-to-person transfers
+  - Identity verification through Early Warning Services
+  - ISO 20022 compliant messaging (pain.001/pain.002)
+- **Venmo API** (PayPal Braintree API)
+- **Cash App API** (Square API - limited business access)
+- **PayPal API** (PayPal REST API)
+- **Apple Pay API** (Apple Pay Payment Processing)
+- **Google Pay API** (Google Pay API)
 
 #### Technical Implementation:
-- Each API requires OAuth authentication
-- Real-time balance checking before transactions
-- Transaction status webhooks for completion tracking
-- Dispute/refund handling capabilities
+- ISO 20022 MX message format compliance
+- Real-time transfer status tracking with standardized status codes
+- Enhanced Due Diligence (EDD) integration
+- AML/KYC compliance frameworks
+- PCI DSS Level 1 certification requirements
+- FFIEC guidelines adherence
+- OAuth 2.0 with PKCE for secure authentication
 
 ### 2. Cryptocurrency On/Off Ramp APIs
 **Purpose**: Fiat to crypto conversion and vice versa
 **Fee Structure**: 1.5% on-ramp, 2.5% off-ramp
+**Compliance**: ISO 20022 cryptocurrency transaction reporting, FinCEN BSA requirements
 
-#### Primary Options:
+#### Primary Partner: CoinFlip (White Label Solution)
+- **CoinFlip API** (In onboarding process)
+  - White-label crypto on/off ramp solution
+  - Integrated KYC/AML compliance
+  - Real-time crypto pricing and liquidity
+  - Multi-currency support (USD, major cryptocurrencies)
+  - ISO 20022 compliant transaction reporting
+  - FinCEN MSB registration compliance
+  - CFTC derivative compliance where applicable
+
+#### Secondary Options (Backup/Additional):
 - **Transak API**: 
   - KYC/AML compliance included
   - 100+ countries supported
-  - Multiple payment methods (cards, bank transfers)
-  - Real-time crypto pricing
+  - ISO 20022 reporting capabilities
+  - SWIFT messaging integration
 
 - **Ramp Network API**:
   - Instant fiat-to-crypto conversion
-  - Bank-grade security
+  - Bank-grade security with ISO 20022 compliance
   - Widget integration available
-  - Global coverage
+  - Global coverage with regulatory compliance
 
 #### Implementation Requirements:
-- User KYC verification flows
-- Real-time exchange rate feeds
-- Transaction monitoring for compliance
-- Multi-currency support
+- ISO 20022 camt.053/camt.054 message formats for crypto transactions
+- Enhanced Due Diligence (EDD) for crypto transactions
+- FATF Travel Rule compliance for crypto transfers >$1000
+- Real-time Suspicious Activity Report (SAR) generation
+- Blockchain transaction monitoring and analysis
+- Multi-currency support with cross-border compliance
 
 ### 3. DEX Aggregator APIs
 **Purpose**: Crypto-to-crypto swaps across multiple chains

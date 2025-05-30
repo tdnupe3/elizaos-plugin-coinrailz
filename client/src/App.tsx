@@ -12,6 +12,8 @@ import CryptoWallet from "@/pages/crypto-wallet";
 import TransactionHistory from "@/pages/transaction-history";
 import FundsManagement from "@/pages/funds-management";
 import DemoDashboard from "@/pages/demo-dashboard";
+import MainMenu from "@/pages/main-menu";
+import SwapPage from "@/pages/swap";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();

@@ -1,0 +1,50 @@
+Updated Replit Project Kickoff Prompt (for Fresh Start)
+Hi Replit AI,
+
+I’m Travis Kellogg. I’m starting a brand-new project called Money Railz here in Replit, and I need your help to build it from scratch. This is a fintech platform for seamless cross-platform peer-to-peer payments and crypto transactions.
+
+Key requirements:
+
+User Authentication
+
+Users can sign up, sign in, or continue as a guest (guest = limited features).
+
+Sign-up requires email/phone and verification.
+
+Main Menu Dashboard
+
+After login, users see four main options:
+a. Send Money: Send funds between different P2P platforms (Cash App, Venmo, PayPal, Apple Pay, Google Pay, Zelle).
+b. Buy (On-Ramp): Convert fiat to crypto, integrating with providers like Transak/Ramp.
+c. Sell (Off-Ramp): Convert crypto to fiat, integrating with Transak/Ramp.
+d. Swap (DEX Aggregator): Swap crypto tokens (default to Ethereum, add multi-chain later).
+
+Feature Flows
+
+Send Money: User picks sending method and username, enters recipient’s method/username, Money Railz acts as intermediary/float.
+
+On/Off Ramp: Use established partners’ APIs and compliance for KYC/AML.
+
+DEX Aggregator: Allow guest access, simple swap UI, multi-chain roadmap.
+
+Tech Stack
+
+Please recommend a stack suitable for rapid prototyping and cloud deployment on Replit (Node.js, React, etc. if you suggest).
+
+What I need:
+
+Scaffold the project structure with folders for frontend, backend, and config files.
+
+Set up user authentication flow as outlined above.
+
+Create UI mockups for the main screens (welcome, dashboard, send, buy, sell, swap).
+
+Suggest how to structure code/components/services for future integration with payment/crypto APIs.
+
+Advise on storing secrets and environment variables in Replit.
+
+Provide a clear step-by-step development plan for bringing each feature live.
+
+My goal is to get a functional MVP of Money Railz running on Replit, accessible via public URL, with a user flow as described above.
+
+Let me know if you need more context or want a sample user story or wireframe!

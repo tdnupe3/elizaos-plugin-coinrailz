@@ -62,6 +62,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newSenderBalance = (currentBalance - totalCost).toFixed(2);
       await storage.updateUserBalance(userId, newSenderBalance);
 
+      // Check if this is the user's first transaction and complete any pending referrals
+      const userTransactions = await storage.getUserTransactions(userId, 1);
+      if (userTransactions.length === 1) { // This is their first transaction
+        await referralService.completeReferral(userId);
+      }
+
       // Update recipient balance if they exist
       if (recipient) {
         const recipientBalance = parseFloat(recipient.usdBalance || "0");

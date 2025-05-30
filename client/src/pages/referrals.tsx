@@ -99,26 +99,42 @@ export default function Referrals() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Referral Program
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300">
-              🎉 Earn $5 for every friend you refer to Coin Railz! 🎉
+          <div className="text-center space-y-4">
+            <div className="flex items-center justify-center space-x-2">
+              <Sparkles className="h-8 w-8 text-purple-500 animate-pulse" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-emerald-600 bg-clip-text text-transparent">
+                Referral Program
+              </h1>
+              <Sparkles className="h-8 w-8 text-purple-500 animate-pulse" />
+            </div>
+            <p className="text-lg text-gray-600 dark:text-gray-300">
+              Earn $5 for every friend you refer to Coin Railz!
             </p>
+            <div className="flex items-center justify-center space-x-1 text-emerald-600">
+              <Star className="h-4 w-4 fill-current" />
+              <Star className="h-4 w-4 fill-current" />
+              <Star className="h-4 w-4 fill-current" />
+              <Star className="h-4 w-4 fill-current" />
+              <Star className="h-4 w-4 fill-current" />
+            </div>
           </div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-purple-200 dark:border-purple-700">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-2">
-                  <Users className="h-8 w-8 text-emerald-600" />
+                  <div className="relative">
+                    <Users className="h-8 w-8 text-purple-600" />
+                    {(stats as any)?.totalReferrals > 0 && (
+                      <Trophy className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1" />
+                    )}
+                  </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
                       Total Referrals
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
                       {(stats as any)?.totalReferrals || 0}
                     </p>
                   </div>
@@ -126,15 +142,20 @@ export default function Referrals() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900 dark:to-emerald-800 border-emerald-200 dark:border-emerald-700">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-2">
-                  <DollarSign className="h-8 w-8 text-emerald-600" />
+                  <div className="relative">
+                    <DollarSign className="h-8 w-8 text-emerald-600" />
+                    {(stats as any)?.totalEarned > 0 && (
+                      <Sparkles className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1 animate-pulse" />
+                    )}
+                  </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                       Total Earned
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
                       ${(stats as any)?.totalEarned?.toFixed(2) || "0.00"}
                     </p>
                   </div>
@@ -142,15 +163,15 @@ export default function Referrals() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 border-blue-200 dark:border-blue-700">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-2">
-                  <Gift className="h-8 w-8 text-emerald-600" />
+                  <Gift className="h-8 w-8 text-blue-600" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
                       Completed
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
                       {(stats as any)?.completedReferrals || 0}
                     </p>
                   </div>
@@ -158,15 +179,15 @@ export default function Referrals() {
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900 dark:to-orange-800 border-amber-200 dark:border-orange-700">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-2">
-                  <Clock className="h-8 w-8 text-amber-600" />
+                  <Clock className="h-8 w-8 text-amber-600 animate-spin" />
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                       Pending
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">
                       {(stats as any)?.pendingReferrals || 0}
                     </p>
                   </div>
@@ -214,8 +235,19 @@ export default function Referrals() {
                   <Button
                     onClick={() => generateCodeMutation.mutate()}
                     disabled={generateCodeMutation.isPending}
+                    className="bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-700 hover:to-emerald-700 text-white font-semibold px-6 py-2 rounded-lg transition-all duration-300 transform hover:scale-105"
                   >
-                    {generateCodeMutation.isPending ? "Generating..." : "Generate Referral Code"}
+                    {generateCodeMutation.isPending ? (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Gift className="h-4 w-4 mr-2" />
+                        Generate Referral Code
+                      </>
+                    )}
                   </Button>
                 </div>
               )}

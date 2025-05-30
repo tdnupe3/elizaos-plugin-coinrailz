@@ -6,6 +6,7 @@ import {
   complianceReports,
   apiIntegrationLogs,
   kycVerifications,
+  referrals,
   type User,
   type UpsertUser,
   type Transaction,
@@ -14,9 +15,11 @@ import {
   type InsertCryptoHolding,
   type CryptoTransaction,
   type InsertCryptoTransaction,
+  type Referral,
+  type InsertReferral,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, sum } from "drizzle-orm";
+import { eq, desc, and, or, sum, sql } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -46,6 +49,15 @@ export interface IStorage {
   createAPILog(log: any): Promise<any>;
   createKYCVerification(verification: any): Promise<any>;
   updateUserKYCStatus(userId: string, status: string): Promise<User>;
+  
+  // Referral operations
+  getUserByReferralCode(referralCode: string): Promise<User | undefined>;
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  getUserReferrals(userId: string): Promise<Referral[]>;
+  getPendingReferralByReferee(refereeId: string): Promise<Referral | undefined>;
+  updateReferralStatus(referralId: number, status: string): Promise<void>;
+  incrementUserReferralCount(userId: string): Promise<void>;
+  addReferralBonus(userId: string, amount: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -206,6 +218,64 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updatedUser;
+  }
+
+  // Referral operations
+  async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.referralCode, referralCode));
+    return user;
+  }
+
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    const [newReferral] = await db
+      .insert(referrals)
+      .values(referral)
+      .returning();
+    return newReferral;
+  }
+
+  async getUserReferrals(userId: string): Promise<Referral[]> {
+    return await db
+      .select()
+      .from(referrals)
+      .where(eq(referrals.referrerId, userId))
+      .orderBy(desc(referrals.createdAt));
+  }
+
+  async getPendingReferralByReferee(refereeId: string): Promise<Referral | undefined> {
+    const [referral] = await db
+      .select()
+      .from(referrals)
+      .where(and(eq(referrals.refereeId, refereeId), eq(referrals.status, "pending")));
+    return referral;
+  }
+
+  async updateReferralStatus(referralId: number, status: string): Promise<void> {
+    await db
+      .update(referrals)
+      .set({ 
+        status, 
+        completedAt: status === "completed" ? new Date() : undefined,
+        paidAt: status === "paid" ? new Date() : undefined 
+      })
+      .where(eq(referrals.id, referralId));
+  }
+
+  async incrementUserReferralCount(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ totalReferrals: sql`${users.totalReferrals} + 1` })
+      .where(eq(users.id, userId));
+  }
+
+  async addReferralBonus(userId: string, amount: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        referralBonus: sql`${users.referralBonus} + ${amount}`,
+        usdBalance: sql`${users.usdBalance} + ${amount}`
+      })
+      .where(eq(users.id, userId));
   }
 }
 

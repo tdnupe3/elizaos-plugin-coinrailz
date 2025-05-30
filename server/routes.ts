@@ -7,6 +7,8 @@ import { referralService } from "./services/referralService";
 import { EncryptionUtils } from "./utils/encryption";
 import { FeeCalculator } from "./utils/feeCalculator";
 import { ValidationUtils } from "./utils/validation";
+import { ErrorHandler } from "./utils/errorHandler";
+import { TransactionMonitor } from "./utils/transactionMonitor";
 import { sendMoneySchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -28,18 +30,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Send money route
   app.post('/api/send-money', isAuthenticated, async (req: any, res) => {
-    try {
+    const result = await ErrorHandler.executeWithErrorHandling(async () => {
       const validatedData = sendMoneySchema.parse(req.body);
       const userId = req.user.claims.sub;
       
+      // Check if user is blocked
+      const isBlocked = await TransactionMonitor.isUserBlocked(userId);
+      if (isBlocked) {
+        throw new Error('Account temporarily restricted. Please contact support.');
+      }
+
       // Get current user
       const currentUser = await storage.getUser(userId);
       if (!currentUser) {
-        return res.status(404).json({ message: "User not found" });
+        throw new Error('User not found');
       }
 
       // Validate and sanitize amounts
       const transferAmount = ValidationUtils.validateAmount(validatedData.amount);
+      
+      // Assess transaction risk
+      const riskAssessment = await TransactionMonitor.assessTransactionRisk(
+        userId, 
+        transferAmount, 
+        validatedData.toEmail
+      );
+
+      if (riskAssessment.riskLevel === 'blocked') {
+        throw new Error(riskAssessment.blockedReason || 'Transaction blocked by security screening');
+      }
+
       const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
       const totalCost = transferAmount + feeCalculation.fee;
 
@@ -51,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       if (!balanceCheck.isValid) {
-        return res.status(400).json({ message: balanceCheck.error || "Insufficient balance" });
+        throw new Error(balanceCheck.error || 'Insufficient balance');
       }
 
       // Check if recipient exists
@@ -95,17 +115,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      res.json({ 
-        success: true, 
+      return {
+        success: true,
         transaction,
-        message: "Payment sent successfully" 
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
-      }
-      console.error("Error sending money:", error);
-      res.status(500).json({ message: "Failed to send payment" });
+        message: "Payment sent successfully"
+      };
+    }, res, 'send money transaction');
+
+    if (result) {
+      res.json(result);
     }
   });
 

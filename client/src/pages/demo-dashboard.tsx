@@ -192,7 +192,12 @@ export default function DemoDashboard() {
               Welcome back, {user?.firstName}!
             </h1>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setLocation('/demo/history')}>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                onClick={() => setLocation('/demo/history')}
+              >
                 <History className="h-4 w-4 mr-1" />
                 History
               </Button>

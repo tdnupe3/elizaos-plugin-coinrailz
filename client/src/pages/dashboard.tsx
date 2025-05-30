@@ -21,7 +21,7 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2">
-            Welcome back, {(user as any)?.firstName || "User"}!
+            Welcome back, {user?.firstName || "User"}!
           </h1>
           <p className="text-neutral-500">Manage your payments and crypto portfolio</p>
         </div>

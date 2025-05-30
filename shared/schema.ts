@@ -249,6 +249,13 @@ export const withdrawFundsSchema = z.object({
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Extended user interface for frontend usage
+export interface AuthUser extends User {
+  isAuthenticated: boolean;
+  kycVerified: boolean;
+  complianceStatus: 'compliant' | 'pending' | 'flagged';
+}
 export type Transaction = typeof transactions.$inferSelect;
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type CryptoHolding = typeof cryptoHoldings.$inferSelect;

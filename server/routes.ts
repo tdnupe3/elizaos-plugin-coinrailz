@@ -2,8 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { p2pPlatformService } from "./services/p2pPlatformService";
-import { buyCryptoSchema, sellCryptoSchema, depositFundsSchema, withdrawFundsSchema } from "@shared/schema";
+import { sendMoneySchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -14,21 +13,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      let user = await storage.getUser(userId);
-      
-      // If user doesn't exist, create from auth claims
-      if (!user) {
-        const claims = req.user.claims;
-        user = await storage.upsertUser({
-          id: userId,
-          email: claims.email,
-          firstName: claims.first_name,
-          lastName: claims.last_name,
-          profileImageUrl: claims.profile_image_url,
-          usdBalance: "1000.00", // Demo balance for testing
-        });
-      }
-      
+      const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -36,102 +21,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Balance routes
-  app.get('/api/balance', isAuthenticated, async (req: any, res) => {
+  // Send money route
+  app.post('/api/send-money', isAuthenticated, async (req: any, res) => {
     try {
+      const validatedData = sendMoneySchema.parse(req.body);
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
+      
+      // Get current user
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json({ usdBalance: user.usdBalance });
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-      res.status(500).json({ message: "Failed to fetch balance" });
-    }
-  });
 
-  // P2P Platform Detection and Transaction routes
-  app.post('/api/p2p/detect-platforms', isAuthenticated, async (req: any, res) => {
-    try {
-      const { email, phoneNumber } = req.body;
+      const currentBalance = parseFloat(currentUser.usdBalance || "0");
+      const transferAmount = parseFloat(validatedData.amount);
+      const fee = transferAmount * 0.01; // 1% fee
+      const totalCost = transferAmount + fee;
 
-      if (!email && !phoneNumber) {
-        return res.status(400).json({ message: "Email or phone number required" });
+      // Check if user has sufficient balance
+      if (currentBalance < totalCost) {
+        return res.status(400).json({ message: "Insufficient balance" });
       }
 
-      const platforms = await p2pPlatformService.detectAvailablePlatforms({
-        email,
-        phoneNumber,
+      // Check if recipient exists
+      const recipient = await storage.getUserByEmail(validatedData.toEmail);
+      
+      // Create transaction
+      const transaction = await storage.createTransaction({
+        fromUserId: userId,
+        toUserId: recipient?.id || null,
+        toEmail: validatedData.toEmail,
+        amount: validatedData.amount,
+        message: validatedData.message,
+        transactionType: "send",
+        status: "completed",
       });
 
-      res.json({ platforms });
-    } catch (error) {
-      console.error("Platform detection error:", error);
-      res.status(500).json({ message: "Failed to detect platforms" });
-    }
-  });
+      // Update sender balance
+      const newSenderBalance = (currentBalance - totalCost).toFixed(2);
+      await storage.updateUserBalance(userId, newSenderBalance);
 
-  // Enhanced Send Money with Cross-Platform Support
-  app.post('/api/transactions/send', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const { toEmail, toPhoneNumber, amount, message, securityPin, selectedPlatform } = req.body;
-
-      // Validate input
-      if ((!toEmail && !toPhoneNumber) || !amount || !securityPin) {
-        return res.status(400).json({ message: "Missing required fields" });
-      }
-
-      const transferRequest = {
-        userId,
-        recipient: {
-          email: toEmail,
-          phoneNumber: toPhoneNumber,
-        },
-        amount: parseFloat(amount),
-        selectedPlatform,
-        message,
-        securityPin,
-      };
-
-      const result = await p2pPlatformService.initiateTransfer(transferRequest);
-
-      res.json({
-        success: true,
-        ...result,
-      });
-    } catch (error) {
-      console.error("Send money error:", error);
-      res.status(500).json({ 
-        message: error instanceof Error ? error.message : "Failed to send money" 
-      });
-    }
-  });
-
-  // Transaction Status Tracking
-  app.get('/api/transactions/:id/status', isAuthenticated, async (req: any, res) => {
-    try {
-      const { id } = req.params;
-      const status = await p2pPlatformService.getTransactionStatus(id);
-      res.json(status);
-    } catch (error) {
-      console.error("Transaction status error:", error);
-      res.status(500).json({ message: "Failed to get transaction status" });
-    }
-  });
-
-  // Transaction listing
-  app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const transactions = await storage.getUserTransactions(userId);
-      res.json(transactions);
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-      res.status(500).json({ message: "Failed to fetch transactions" });
-    }
-  });
+      // Update recipient balance if they exist
+      if (recipient) {
         const recipientBalance = parseFloat(recipient.usdBalance || "0");
         const newRecipientBalance = (recipientBalance + transferAmount).toFixed(2);
         await storage.updateUserBalance(recipient.id, newRecipientBalance);
@@ -162,6 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Transaction listing
   app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -174,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Crypto routes
+  // Crypto holdings
   app.get('/api/crypto/holdings', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -186,258 +118,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/crypto/buy', isAuthenticated, async (req: any, res) => {
+  // Crypto prices (mock data for now)
+  app.get('/api/crypto/prices', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const validatedData = buyCryptoSchema.parse(req.body);
-      
-      // Get user
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const purchaseAmount = parseFloat(validatedData.amount);
-      const pricePerCoin = parseFloat(validatedData.pricePerCoin);
-      const totalCost = purchaseAmount * pricePerCoin;
-
-      // Check balance
-      const currentBalance = parseFloat(user.usdBalance || "0");
-      if (currentBalance < totalCost) {
-        return res.status(400).json({ message: "Insufficient balance" });
-      }
-
-      // Check if user already has this crypto
-      const existingHoldings = await storage.getUserCryptoHoldings(userId);
-      const existingHolding = existingHoldings.find(h => h.coinSymbol === validatedData.coinSymbol);
-
-      if (existingHolding) {
-        // Update existing holding
-        const currentAmount = parseFloat(existingHolding.amount);
-        const newAmount = (currentAmount + purchaseAmount).toString();
-        await storage.updateCryptoHolding(userId, validatedData.coinSymbol, newAmount);
-      } else {
-        // Create new holding
-        await storage.createCryptoHolding({
-          userId,
-          coinSymbol: validatedData.coinSymbol,
-          coinName: validatedData.coinName,
-          amount: validatedData.amount,
-          averageBuyPrice: validatedData.pricePerCoin,
-        });
-      }
-
-      // Create crypto transaction
-      await storage.createCryptoTransaction({
-        userId,
-        coinSymbol: validatedData.coinSymbol,
-        transactionType: "buy",
-        amount: validatedData.amount,
-        pricePerCoin: validatedData.pricePerCoin,
-        totalValue: totalCost.toString(),
-        status: "completed",
-      });
-
-      // Update user balance
-      const newBalance = (currentBalance - totalCost).toFixed(2);
-      await storage.updateUserBalance(userId, newBalance);
-
-      res.json({ 
-        success: true, 
-        message: "Crypto purchase successful" 
-      });
+      // Mock crypto prices - replace with real API when credentials are available
+      const prices = {
+        BTC: { price: 43250, change: 2.5 },
+        ETH: { price: 2580, change: -1.2 },
+        ADA: { price: 0.48, change: 3.1 },
+        DOT: { price: 7.25, change: -0.8 }
+      };
+      res.json(prices);
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
-      }
-      console.error("Error buying crypto:", error);
-      res.status(500).json({ message: "Failed to purchase crypto" });
+      console.error("Error fetching crypto prices:", error);
+      res.status(500).json({ message: "Failed to fetch crypto prices" });
     }
-  });
-
-  app.get('/api/crypto/transactions', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const limit = parseInt(req.query.limit as string) || 10;
-      const transactions = await storage.getUserCryptoTransactions(userId, limit);
-      res.json(transactions);
-    } catch (error) {
-      console.error("Error fetching crypto transactions:", error);
-      res.status(500).json({ message: "Failed to fetch crypto transactions" });
-    }
-  });
-
-  // Sell crypto endpoint
-  app.post('/api/crypto/sell', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const validatedData = sellCryptoSchema.parse(req.body);
-      
-      // Get user and their crypto holdings
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const holdings = await storage.getUserCryptoHoldings(userId);
-      const holding = holdings.find(h => h.coinSymbol === validatedData.coinSymbol);
-      
-      if (!holding) {
-        return res.status(400).json({ message: "You don't own this cryptocurrency" });
-      }
-
-      const sellAmount = parseFloat(validatedData.amount);
-      const currentAmount = parseFloat(holding.amount);
-      
-      if (currentAmount < sellAmount) {
-        return res.status(400).json({ message: "Insufficient crypto balance" });
-      }
-
-      const pricePerCoin = parseFloat(validatedData.pricePerCoin);
-      const totalValue = sellAmount * pricePerCoin;
-
-      // Update crypto holding
-      const newAmount = (currentAmount - sellAmount).toString();
-      if (parseFloat(newAmount) > 0) {
-        await storage.updateCryptoHolding(userId, validatedData.coinSymbol, newAmount);
-      } else {
-        // Remove holding if amount becomes 0 (would need to implement this in storage)
-        await storage.updateCryptoHolding(userId, validatedData.coinSymbol, "0");
-      }
-
-      // Create crypto transaction
-      await storage.createCryptoTransaction({
-        userId,
-        coinSymbol: validatedData.coinSymbol,
-        transactionType: "sell",
-        amount: validatedData.amount,
-        pricePerCoin: validatedData.pricePerCoin,
-        totalValue: totalValue.toString(),
-        status: "completed",
-      });
-
-      // Update user USD balance
-      const currentBalance = parseFloat(user.usdBalance || "0");
-      const newBalance = (currentBalance + totalValue).toFixed(2);
-      await storage.updateUserBalance(userId, newBalance);
-
-      res.json({ 
-        success: true, 
-        message: "Crypto sold successfully",
-        usdReceived: totalValue.toFixed(2)
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
-      }
-      console.error("Error selling crypto:", error);
-      res.status(500).json({ message: "Failed to sell crypto" });
-    }
-  });
-
-  // Deposit funds endpoint
-  app.post('/api/funds/deposit', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const validatedData = depositFundsSchema.parse(req.body);
-      
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const depositAmount = parseFloat(validatedData.amount);
-      
-      // Create deposit transaction
-      await storage.createTransaction({
-        fromUserId: null,
-        toUserId: userId,
-        toEmail: user.email || "",
-        amount: validatedData.amount,
-        message: `Deposit via ${validatedData.paymentMethod.replace('_', ' ')}`,
-        transactionType: "deposit",
-        status: "completed",
-      });
-
-      // Update user balance
-      const currentBalance = parseFloat(user.usdBalance || "0");
-      const newBalance = (currentBalance + depositAmount).toFixed(2);
-      await storage.updateUserBalance(userId, newBalance);
-
-      res.json({ 
-        success: true, 
-        message: "Funds deposited successfully",
-        newBalance: newBalance
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
-      }
-      console.error("Error depositing funds:", error);
-      res.status(500).json({ message: "Failed to deposit funds" });
-    }
-  });
-
-  // Withdraw funds endpoint
-  app.post('/api/funds/withdraw', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const validatedData = withdrawFundsSchema.parse(req.body);
-      
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      const withdrawAmount = parseFloat(validatedData.amount);
-      const currentBalance = parseFloat(user.usdBalance || "0");
-      
-      if (currentBalance < withdrawAmount) {
-        return res.status(400).json({ message: "Insufficient balance" });
-      }
-
-      // Validate security PIN
-      if (user.securityPin && user.securityPin !== validatedData.securityPin) {
-        return res.status(400).json({ message: "Invalid security PIN" });
-      }
-
-      // Create withdrawal transaction
-      await storage.createTransaction({
-        fromUserId: userId,
-        toUserId: null,
-        toEmail: validatedData.bankAccount,
-        amount: validatedData.amount,
-        message: "Withdrawal to bank account",
-        transactionType: "withdrawal",
-        status: "completed",
-      });
-
-      // Update user balance
-      const newBalance = (currentBalance - withdrawAmount).toFixed(2);
-      await storage.updateUserBalance(userId, newBalance);
-
-      res.json({ 
-        success: true, 
-        message: "Withdrawal processed successfully",
-        newBalance: newBalance
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
-      }
-      console.error("Error withdrawing funds:", error);
-      res.status(500).json({ message: "Failed to process withdrawal" });
-    }
-  });
-
-  // Mock crypto prices endpoint (in real app would fetch from external API)
-  app.get('/api/crypto/prices', (req, res) => {
-    res.json({
-      BTC: { price: 45000, change: 5.2 },
-      ETH: { price: 3200, change: -2.1 },
-      ADA: { price: 0.85, change: 1.8 },
-      DOT: { price: 25.30, change: 3.4 },
-    });
   });
 
   const httpServer = createServer(app);

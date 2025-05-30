@@ -24,13 +24,19 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  
+  // Use database session store with improved error handling
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
     conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
+    createTableIfMissing: true,
     ttl: sessionTtl,
     tableName: "sessions",
+    errorLog: (error: any) => {
+      console.warn("Session store warning:", error.message);
+    }
   });
+  
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -38,7 +44,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
     },
   });

@@ -204,7 +204,7 @@ export default function DemoDashboard() {
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Portfolio Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          <Card className="bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Portfolio</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -215,7 +215,7 @@ export default function DemoDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">USD Wallet</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -226,7 +226,7 @@ export default function DemoDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Crypto Value</CardTitle>
               <Bitcoin className="h-4 w-4 text-muted-foreground" />
@@ -242,19 +242,19 @@ export default function DemoDashboard() {
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button className="h-20 flex flex-col gap-2" variant="outline">
+            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
               <Send className="h-6 w-6" />
               <span className="text-sm">Send Money</span>
             </Button>
-            <Button className="h-20 flex flex-col gap-2" variant="outline">
+            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
               <Download className="h-6 w-6" />
               <span className="text-sm">Buy Crypto</span>
             </Button>
-            <Button className="h-20 flex flex-col gap-2" variant="outline">
+            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
               <ArrowLeftRight className="h-6 w-6" />
               <span className="text-sm">Swap</span>
             </Button>
-            <Button className="h-20 flex flex-col gap-2" variant="outline">
+            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
               <Wallet className="h-6 w-6" />
               <span className="text-sm">Manage Funds</span>
             </Button>
@@ -263,7 +263,7 @@ export default function DemoDashboard() {
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card>
+          <Card className="bg-white">
             <CardHeader>
               <CardTitle>Recent Transactions</CardTitle>
             </CardHeader>
@@ -298,7 +298,7 @@ export default function DemoDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white">
             <CardHeader>
               <CardTitle>Crypto Holdings</CardTitle>
             </CardHeader>

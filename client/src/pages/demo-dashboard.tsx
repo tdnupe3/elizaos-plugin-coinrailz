@@ -1,430 +1,249 @@
-import { NavigationHeader } from "@/components/navigation-header";
-import { MobileNavigation } from "@/components/mobile-navigation";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Bitcoin, Send, Download, ArrowLeftRight, TrendingUp, TrendingDown, ArrowUp, ArrowDown } from "lucide-react";
+import { DollarSign, Bitcoin, Send, Download, ArrowLeftRight, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Wallet, History, Users, Home } from "lucide-react";
 import { useLocation } from "wouter";
+import { demoApi } from "@/lib/demoApiService";
 
-// Sample data for demo mode
-const demoUser = {
-  firstName: "Demo",
-  lastName: "User",
-  email: "demo@moneyrailz.com",
-  usdBalance: "2,847.50"
-};
-
-const demoCryptoHoldings = [
-  { id: 1, coinSymbol: "BTC", coinName: "Bitcoin", amount: "0.05673421", currentPrice: 45000 },
-  { id: 2, coinSymbol: "ETH", coinName: "Ethereum", amount: "1.23456789", currentPrice: 3200 },
-  { id: 3, coinSymbol: "ADA", coinName: "Cardano", amount: "2847.50000000", currentPrice: 0.85 },
-  { id: 4, coinSymbol: "DOT", coinName: "Polkadot", amount: "45.67890123", currentPrice: 25.30 },
-  { id: 5, coinSymbol: "USDC", coinName: "USD Coin", amount: "500.00000000", currentPrice: 1.00 }
-];
-
-const demoCryptoTransactions = [
-  { id: 1, type: "buy", coinSymbol: "BTC", amount: "0.02000000", price: 44500, date: "2025-01-29", total: 890.00 },
-  { id: 2, type: "sell", coinSymbol: "ETH", amount: "0.50000000", price: 3150, date: "2025-01-28", total: 1575.00 },
-  { id: 3, type: "buy", coinSymbol: "ADA", amount: "1000.00000000", price: 0.82, date: "2025-01-27", total: 820.00 },
-  { id: 4, type: "swap", fromCoin: "USDC", toCoin: "DOT", fromAmount: "1000.00", toAmount: "39.84", date: "2025-01-26" },
-  { id: 5, type: "buy", coinSymbol: "USDC", amount: "500.00000000", price: 1.00, date: "2025-01-25", total: 500.00 }
-];
-
-const demoTransactions = [
-  { id: 1, type: "receive", email: "john.doe@email.com", amount: "150.00", date: "2025-01-30", message: "Coffee payment", platform: "Zelle" },
-  { id: 2, type: "send", email: "sarah.smith@email.com", amount: "75.00", date: "2025-01-29", message: "Lunch split", platform: "PayPal" },
-  { id: 3, type: "receive", email: "alex.wilson@email.com", amount: "250.00", date: "2025-01-28", message: "Freelance work", platform: "Internal" },
-  { id: 4, type: "send", email: "mike.chen@email.com", amount: "320.50", date: "2025-01-27", message: "Rent payment", platform: "Zelle" },
-  { id: 5, type: "receive", email: "lisa.park@email.com", amount: "85.25", date: "2025-01-26", message: "Dinner split", platform: "CashApp" },
-  { id: 6, type: "send", email: "david.lee@email.com", amount: "45.00", date: "2025-01-25", message: "Uber ride share", platform: "PayPal" },
-  { id: 7, type: "receive", email: "emma.davis@email.com", amount: "500.00", date: "2025-01-24", message: "Project milestone", platform: "Internal" },
-  { id: 8, type: "send", email: "carlos.martinez@email.com", amount: "125.75", date: "2025-01-23", message: "Gym membership", platform: "Zelle" }
-];
-
-const demoPrices = {
-  BTC: { price: 45000, change: 5.2 },
-  ETH: { price: 3200, change: -2.1 },
-  ADA: { price: 0.85, change: 1.8 },
-  DOT: { price: 25.30, change: 3.4 }
-};
-
-function DemoModeHeader() {
-  return (
-    <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Badge variant="outline" className="bg-violet-100 text-violet-800 border-violet-300">
-            Demo Mode
-          </Badge>
-          <span className="text-sm text-violet-700">
-            You're exploring Coin Railz with sample data
-          </span>
-        </div>
-        <Button 
-          size="sm"
-          onClick={() => window.location.href = "/api/login"}
-          className="bg-blue-600 hover:bg-blue-700 text-white"
-        >
-          Sign Up for Real Account
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function DemoBalanceCards() {
+export default function DemoDashboard() {
   const [, setLocation] = useLocation();
+  const [user, setUser] = useState<any>(null);
+  const [walletBalances, setWalletBalances] = useState<any[]>([]);
+  const [cryptoHoldings, setCryptoHoldings] = useState<any[]>([]);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [cryptoPrices, setCryptoPrices] = useState<any>({});
+  const [loading, setLoading] = useState(true);
 
-  const formatCurrency = (amount: string | number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(typeof amount === 'string' ? parseFloat(amount.replace(',', '')) : amount);
-  };
+  useEffect(() => {
+    loadDemoData();
+  }, []);
 
-  const calculateCryptoValue = () => {
-    return demoCryptoHoldings.reduce((total, holding) => {
-      return total + (parseFloat(holding.amount) * holding.currentPrice);
-    }, 0);
-  };
+  const loadDemoData = async () => {
+    try {
+      const [userData, walletData, cryptoData, transactionData, pricesData] = await Promise.all([
+        demoApi.getUser(),
+        demoApi.getWalletBalances(),
+        demoApi.getCryptoHoldings(),
+        demoApi.getTransactions(),
+        demoApi.getCryptoPrices()
+      ]);
 
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      {/* Fiat Balance Card */}
-      <Card className="bg-white shadow-sm border border-neutral-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-neutral-800">USD Balance</h3>
-                <p className="text-sm text-neutral-500">Available funds</p>
-              </div>
-            </div>
-          </div>
-          <div className="mb-4">
-            <span className="text-3xl font-bold text-neutral-800">
-              {formatCurrency(demoUser.usdBalance)}
-            </span>
-          </div>
-          <div className="flex space-x-2">
-            <Button 
-              className="flex-1 bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
-              onClick={() => setLocation("/demo/funds?action=deposit")}
-            >
-              Add Money
-            </Button>
-            <Button 
-              variant="outline"
-              className="flex-1 text-sm font-medium"
-              onClick={() => setLocation("/demo/funds?action=withdraw")}
-            >
-              Withdraw
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Crypto Portfolio Card */}
-      <Card className="bg-white shadow-sm border border-neutral-200">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Bitcoin className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-neutral-800">Crypto Portfolio</h3>
-                <p className="text-sm text-neutral-500">Total value</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-green-600 font-medium">+12.5%</div>
-            </div>
-          </div>
-          <div className="mb-4">
-            <span className="text-3xl font-bold text-neutral-800">
-              {formatCurrency(calculateCryptoValue())}
-            </span>
-          </div>
-          <div className="flex space-x-2">
-            <Button 
-              className="flex-1 bg-purple-600 text-white hover:bg-purple-700 text-sm font-medium"
-              onClick={() => setLocation("/demo/crypto?action=buy")}
-            >
-              Buy Crypto
-            </Button>
-            <Button 
-              variant="outline"
-              className="flex-1 text-sm font-medium"
-              onClick={() => setLocation("/demo/crypto?action=sell")}
-            >
-              Sell
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Quick Actions Card */}
-      <Card className="bg-white shadow-sm border border-neutral-200">
-        <CardContent className="p-6">
-          <h3 className="font-semibold text-neutral-800 mb-4">Quick Actions</h3>
-          <div className="space-y-3">
-            <Button 
-              variant="ghost"
-              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-neutral-50 justify-start"
-              onClick={() => setLocation("/demo/send")}
-            >
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Send className="w-4 h-4 text-green-600" />
-              </div>
-              <span className="font-medium text-neutral-700">Send Money</span>
-            </Button>
-            <Button 
-              variant="ghost"
-              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-neutral-50 justify-start"
-            >
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Download className="w-4 h-4 text-blue-600" />
-              </div>
-              <span className="font-medium text-neutral-700">Request Payment</span>
-            </Button>
-            <Button 
-              variant="ghost"
-              className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-neutral-50 justify-start"
-              onClick={() => setLocation("/demo/crypto")}
-            >
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <ArrowLeftRight className="w-4 h-4 text-orange-600" />
-              </div>
-              <span className="font-medium text-neutral-700">Exchange Crypto</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function DemoRecentActivity() {
-  const [, setLocation] = useLocation();
-
-  const getTransactionIcon = (type: string) => {
-    switch (type) {
-      case "send":
-        return (
-          <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-            <ArrowUp className="w-4 h-4 text-red-500" />
-          </div>
-        );
-      case "receive":
-        return (
-          <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-            <ArrowDown className="w-4 h-4 text-green-500" />
-          </div>
-        );
-      default:
-        return (
-          <div className="w-10 h-10 bg-neutral-100 rounded-full flex items-center justify-center">
-            <ArrowUp className="w-4 h-4 text-neutral-500" />
-          </div>
-        );
+      setUser(userData);
+      setWalletBalances(walletData);
+      setCryptoHoldings(cryptoData);
+      setRecentTransactions(transactionData.slice(0, 5));
+      setCryptoPrices(pricesData);
+    } catch (error) {
+      console.error('Error loading demo data:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const formatCurrency = (amount: string) => {
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(parseFloat(amount));
+    }).format(num);
   };
 
-  return (
-    <Card className="bg-white shadow-sm border border-neutral-200">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-neutral-800">Recent Activity</CardTitle>
-          <Button 
-            variant="link" 
-            className="text-blue-600 text-sm font-medium p-0"
-            onClick={() => setLocation("/demo/history")}
-          >
-            View All
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {demoTransactions.slice(0, 3).map((transaction) => (
-            <div key={transaction.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-neutral-50 transition-colors">
-              {getTransactionIcon(transaction.type)}
-              <div className="flex-1">
-                <p className="font-medium text-neutral-800">
-                  {transaction.type === "send" ? "Sent to" : "Received from"} {transaction.email}
-                </p>
-                <p className="text-sm text-neutral-500">
-                  {transaction.date} • {transaction.platform}
-                </p>
-                <p className="text-xs text-neutral-400">
-                  {transaction.message}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className={`font-semibold ${
-                  transaction.type === "receive" ? "text-green-600" : "text-red-500"
-                }`}>
-                  {transaction.type === "receive" ? "+" : "-"}{formatCurrency(transaction.amount)}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+  const formatCrypto = (amount: string | number, decimals: number = 8) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return num.toFixed(decimals);
+  };
 
-function DemoCryptoHoldings() {
-  const [, setLocation] = useLocation();
+  const getChangeColor = (change: number) => {
+    return change >= 0 ? 'text-green-600' : 'text-red-600';
+  };
 
-  const getCoinIcon = (symbol: string) => {
-    const colors = {
-      BTC: "bg-orange-500",
-      ETH: "bg-blue-600",
-      ADA: "bg-blue-500",
-      DOT: "bg-pink-500",
-    };
+  const getChangeIcon = (change: number) => {
+    return change >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  };
 
+  const usdWallet = walletBalances.find(w => w.currency === 'USD');
+  const totalCryptoValue = cryptoHoldings.reduce((total, holding) => total + holding.value, 0);
+  const totalPortfolioValue = (usdWallet ? parseFloat(usdWallet.balance) : 0) + totalCryptoValue;
+
+  if (loading) {
     return (
-      <div className={`w-8 h-8 ${colors[symbol as keyof typeof colors] || "bg-neutral-500"} rounded-full flex items-center justify-center`}>
-        <Bitcoin className="w-4 h-4 text-white" />
+      <div className="h-screen flex items-center justify-center">
+        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
       </div>
     );
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
-
-  const getChangePercentage = (symbol: string) => {
-    return demoPrices[symbol as keyof typeof demoPrices]?.change || 0;
-  };
+  }
 
   return (
-    <Card className="bg-white shadow-sm border border-neutral-200">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-neutral-800">Crypto Holdings</CardTitle>
+    <div className="min-h-screen bg-gray-50">
+      {/* Demo Mode Header */}
+      <div className="bg-blue-600 text-white px-4 py-3">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge variant="secondary" className="bg-blue-500 text-white">
+              DEMO MODE
+            </Badge>
+            <span className="text-sm">Testing all features with sample data - no real transactions</span>
+          </div>
           <Button 
-            variant="link" 
-            className="text-purple-600 text-sm font-medium p-0"
-            onClick={() => setLocation("/demo/crypto")}
+            variant="outline" 
+            size="sm"
+            className="text-blue-600 bg-white hover:bg-gray-100"
+            onClick={() => setLocation('/')}
           >
-            Manage
+            <Home className="h-4 w-4 mr-1" />
+            Exit Demo
           </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {demoCryptoHoldings.map((holding) => {
-            const change = getChangePercentage(holding.coinSymbol);
-            const value = parseFloat(holding.amount) * holding.currentPrice;
-            
-            return (
-              <div key={holding.id} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  {getCoinIcon(holding.coinSymbol)}
-                  <div>
-                    <p className="font-medium text-neutral-800">{holding.coinName}</p>
-                    <p className="text-sm text-neutral-500">
-                      {parseFloat(holding.amount).toFixed(8)} {holding.coinSymbol}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-neutral-800">{formatCurrency(value)}</p>
-                  <div className={`text-sm flex items-center ${change > 0 ? "text-green-600" : "text-red-500"}`}>
-                    {change > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                    {Math.abs(change)}%
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+      </div>
 
-export default function DemoDashboard() {
-  return (
-    <div className="min-h-screen bg-gray-100">
-      <NavigationHeader isDemo={true} />
-      <DemoModeHeader />
-      <MobileNavigation />
-      
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
-        {/* Welcome Section */}
+      {/* Main Navigation */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-gray-900">
+              Welcome back, {user?.firstName}!
+            </h1>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setLocation('/demo/history')}>
+                <History className="h-4 w-4 mr-1" />
+                History
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        {/* Portfolio Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Portfolio</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(totalPortfolioValue)}</div>
+              <p className="text-xs text-muted-foreground">USD + Crypto</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">USD Wallet</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(usdWallet?.balance || 0)}</div>
+              <p className="text-xs text-muted-foreground">Available: {formatCurrency(usdWallet?.availableBalance || 0)}</p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Crypto Value</CardTitle>
+              <Bitcoin className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(totalCryptoValue)}</div>
+              <p className="text-xs text-muted-foreground">{cryptoHoldings.length} holdings</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2">
-            Welcome back, {demoUser.firstName}!
-          </h1>
-          <p className="text-neutral-500">Manage your payments and crypto portfolio</p>
-        </div>
-
-        <DemoBalanceCards />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <Card className="bg-white shadow-sm border border-neutral-200">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl font-semibold text-neutral-800">Send Money (Demo)</CardTitle>
-                  <Badge variant="outline" className="bg-violet-100 text-violet-800 border-violet-300">
-                    Preview Mode
-                  </Badge>
-                </div>
-                <p className="text-sm text-neutral-600 mt-2">
-                  Send money via Zelle, PayPal, Venmo, or Cash App. We automatically detect the best platform for each recipient.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                  <h4 className="font-medium text-blue-900 mb-2">How it works:</h4>
-                  <ul className="text-sm text-blue-800 space-y-1">
-                    <li>• Enter recipient's email or phone number</li>
-                    <li>• Choose amount and add optional message</li>
-                    <li>• We find the fastest, cheapest platform</li>
-                    <li>• Money arrives in minutes</li>
-                  </ul>
-                </div>
-                <div className="text-center py-4">
-                  <p className="text-neutral-600 mb-4">
-                    <strong>Demo Mode:</strong> Try entering "john@example.com" and "$25" to see the interface
-                  </p>
-                  <Button 
-                    onClick={() => window.location.href = "/api/login"}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    Sign Up to Send Real Money
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="space-y-6">
-            <DemoRecentActivity />
-            <DemoCryptoHoldings />
+          <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Button className="h-20 flex flex-col gap-2" variant="outline">
+              <Send className="h-6 w-6" />
+              <span className="text-sm">Send Money</span>
+            </Button>
+            <Button className="h-20 flex flex-col gap-2" variant="outline">
+              <Download className="h-6 w-6" />
+              <span className="text-sm">Buy Crypto</span>
+            </Button>
+            <Button className="h-20 flex flex-col gap-2" variant="outline">
+              <ArrowLeftRight className="h-6 w-6" />
+              <span className="text-sm">Swap</span>
+            </Button>
+            <Button className="h-20 flex flex-col gap-2" variant="outline">
+              <Wallet className="h-6 w-6" />
+              <span className="text-sm">Manage Funds</span>
+            </Button>
           </div>
         </div>
-      </main>
+
+        {/* Recent Activity */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {recentTransactions.map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {transaction.type === 'receive' ? (
+                        <ArrowDown className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <ArrowUp className="h-4 w-4 text-red-500" />
+                      )}
+                      <div>
+                        <p className="font-medium capitalize">{transaction.type}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {transaction.fromEmail || transaction.toEmail}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-medium ${
+                        transaction.type === 'receive' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transaction.type === 'receive' ? '+' : '-'}{formatCurrency(transaction.amount)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">{transaction.platform}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Crypto Holdings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {cryptoHoldings.slice(0, 5).map((holding) => (
+                  <div key={holding.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium">{holding.coinSymbol}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">{holding.coinName}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatCrypto(holding.amount)} {holding.coinSymbol}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium">{formatCurrency(holding.value)}</p>
+                      <div className={`flex items-center gap-1 text-xs ${getChangeColor(cryptoPrices[holding.coinSymbol]?.change || 0)}`}>
+                        {getChangeIcon(cryptoPrices[holding.coinSymbol]?.change || 0)}
+                        {Math.abs(cryptoPrices[holding.coinSymbol]?.change || 0).toFixed(1)}%
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

@@ -53,14 +53,6 @@ export default function SwapPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">DEX Aggregator</h1>
               <p className="text-gray-600 mt-1">Swap crypto tokens across multiple chains</p>
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-3">
-                <p className="text-sm text-emerald-800 font-medium">
-                  🏛️ ISO 20022 Compliant Swaps • Cross-Chain Compliance
-                </p>
-                <p className="text-xs text-emerald-600 mt-1">
-                  All swaps follow international financial messaging standards
-                </p>
-              </div>
             </div>
             <Button 
               variant="outline"
@@ -247,6 +239,15 @@ export default function SwapPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ISO Compliance Footer */}
+        <div className="mt-6 text-center">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 inline-block">
+            <p className="text-xs text-emerald-700 font-medium">
+              ISO 20022 Compliant Swaps • Cross-Chain Compliance
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

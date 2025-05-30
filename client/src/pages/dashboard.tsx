@@ -5,6 +5,7 @@ import { SendMoneyForm } from "@/components/send-money-form";
 import { RecentActivity } from "@/components/recent-activity";
 import { CryptoHoldings } from "@/components/crypto-holdings";
 import { SecurityBanner } from "@/components/security-banner";
+import { AdBanner } from "@/components/ad-banner";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
@@ -39,6 +40,8 @@ export default function Dashboard() {
 
         <SecurityBanner />
       </main>
+      
+      <AdBanner position="bottom" />
     </div>
   );
 }

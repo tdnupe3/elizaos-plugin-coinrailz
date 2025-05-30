@@ -154,14 +154,6 @@ export default function CryptoWallet() {
           </Button>
           <h1 className="text-2xl md:text-3xl font-bold text-neutral-800">Crypto Wallet</h1>
           <p className="text-neutral-500">Manage your cryptocurrency portfolio</p>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 mt-4">
-            <p className="text-sm text-emerald-800 font-medium">
-              🏛️ ISO 20022 Compliant Crypto Transactions • FATF Travel Rule Enabled
-            </p>
-            <p className="text-xs text-emerald-600 mt-1">
-              All crypto transactions follow global banking standards for compliance and security
-            </p>
-          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -354,6 +346,15 @@ export default function CryptoWallet() {
             </div>
           </div>
         </Tabs>
+        
+        {/* ISO Compliance Footer */}
+        <div className="mt-8 text-center">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 inline-block">
+            <p className="text-xs text-emerald-700 font-medium">
+              ISO 20022 Compliant Crypto Transactions • FATF Travel Rule Enabled
+            </p>
+          </div>
+        </div>
       </main>
     </div>
   );

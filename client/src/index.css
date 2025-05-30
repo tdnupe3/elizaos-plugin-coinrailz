@@ -77,12 +77,29 @@
     @apply ring-2 ring-blue-600 ring-offset-2;
   }
   
-  /* Ensure focus states use blue instead of yellow */
-  button:focus-visible,
-  input:focus,
-  select:focus,
-  textarea:focus {
-    @apply ring-blue-600 border-blue-600;
+  /* Force all interactive elements to use blue instead of yellow */
+  button, input, select, textarea, [role="button"], [tabindex] {
+    outline-color: #2563eb !important;
+    border-color: #e2e8f0;
+  }
+  
+  button:focus, button:focus-visible,
+  input:focus, input:focus-visible,
+  select:focus, select:focus-visible,
+  textarea:focus, textarea:focus-visible {
+    outline-color: #2563eb !important;
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 2px #2563eb !important;
+  }
+  
+  /* Override any default yellow ring colors */
+  .ring-yellow-400, .ring-yellow-500, .ring-amber-400, .ring-amber-500 {
+    --tw-ring-color: #2563eb !important;
+  }
+  
+  /* Force all border colors to use our scheme */
+  .border-yellow-400, .border-yellow-500, .border-amber-400, .border-amber-500 {
+    border-color: #e2e8f0 !important;
   }
 
   /* Custom scrollbar */

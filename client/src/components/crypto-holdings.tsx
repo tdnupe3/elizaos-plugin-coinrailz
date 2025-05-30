@@ -18,7 +18,7 @@ export function CryptoHoldings() {
 
   const getCoinIcon = (symbol: string) => {
     const colors = {
-      BTC: "bg-orange-500",
+      BTC: "bg-amber-500",
       ETH: "bg-blue-600",
       ADA: "bg-blue-500",
       DOT: "bg-pink-500",

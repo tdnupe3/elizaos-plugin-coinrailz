@@ -142,8 +142,8 @@ export function BalanceCards() {
               className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-neutral-50 justify-start"
               onClick={() => setLocation("/crypto")}
             >
-              <div className="w-8 h-8 bg-orange-100 rounded-lg flex items-center justify-center">
-                <ArrowLeftRight className="w-4 h-4 text-orange-600" />
+              <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+                <ArrowLeftRight className="w-4 h-4 text-violet-600" />
               </div>
               <span className="font-medium text-neutral-700">Exchange Crypto</span>
             </Button>

@@ -127,7 +127,7 @@ export default function Referrals() {
                   <div className="relative">
                     <Users className="h-8 w-8 text-purple-600" />
                     {(stats as any)?.totalReferrals > 0 && (
-                      <Trophy className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1" />
+                      <Trophy className="h-4 w-4 text-cyan-400 absolute -top-1 -right-1" />
                     )}
                   </div>
                   <div>
@@ -148,7 +148,7 @@ export default function Referrals() {
                   <div className="relative">
                     <DollarSign className="h-8 w-8 text-emerald-600" />
                     {(stats as any)?.totalEarned > 0 && (
-                      <Sparkles className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1 animate-pulse" />
+                      <Sparkles className="h-4 w-4 text-cyan-400 absolute -top-1 -right-1 animate-pulse" />
                     )}
                   </div>
                   <div>
@@ -179,15 +179,15 @@ export default function Referrals() {
               </CardContent>
             </Card>
 
-            <Card className="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900 dark:to-orange-800 border-amber-200 dark:border-orange-700">
+            <Card className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 border-slate-200 dark:border-slate-700">
               <CardContent className="p-6">
                 <div className="flex items-center space-x-2">
-                  <Clock className="h-8 w-8 text-amber-600 animate-spin" />
+                  <Clock className="h-8 w-8 text-slate-600 animate-pulse" />
                   <div>
-                    <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
                       Pending
                     </p>
-                    <p className="text-2xl font-bold text-amber-900 dark:text-amber-100">
+                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                       {(stats as any)?.pendingReferrals || 0}
                     </p>
                   </div>

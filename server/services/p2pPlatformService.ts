@@ -44,7 +44,7 @@ export class P2PPlatformService {
         platforms.push({
           platform: 'Zelle',
           available: zelleAvailable,
-          fee: 5.0, // $5 flat fee
+          fee: 0.01, // 1% fee
           estimatedTime: 'Instant',
           confidence: zelleAvailable ? 95 : 0,
         });
@@ -65,7 +65,7 @@ export class P2PPlatformService {
       platforms.push({
         platform: 'PayPal',
         available: paypalAvailable,
-        fee: 5.0 + (0.03 * 100), // $5 + 3%
+        fee: 0.01, // 1% fee
         estimatedTime: 'Instant',
         confidence: paypalAvailable ? 85 : 0,
       });
@@ -77,7 +77,7 @@ export class P2PPlatformService {
       platforms.push({
         platform: 'Cash App',
         available: cashAppAvailable,
-        fee: 5.0 + (0.03 * 100), // $5 + 3%
+        fee: 0.01, // 1% fee
         estimatedTime: '1-3 minutes',
         confidence: cashAppAvailable ? 75 : 0,
       });
@@ -214,10 +214,8 @@ export class P2PPlatformService {
     switch (platform) {
       case 'Coin Railz':
         return amount; // Free internal transfers
-      case 'Zelle':
-        return amount + 5.0; // $5 flat fee
       default:
-        return amount + 5.0 + (amount * 0.03); // $5 + 3%
+        return amount + (amount * 0.01); // 1% fee for all external platforms
     }
   }
 

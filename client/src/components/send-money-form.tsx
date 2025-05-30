@@ -124,10 +124,10 @@ export function SendMoneyForm() {
                 <div className="mt-4 space-y-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-emerald-700 font-medium">Total Cost:</span>
-                    <span className="text-emerald-700 font-semibold">${(parseFloat(form.watch("amount")) + parseFloat(form.watch("amount")) * 0.03 + 5).toFixed(2)}</span>
+                    <span className="text-emerald-700 font-semibold">${(parseFloat(form.watch("amount")) + parseFloat(form.watch("amount")) * 0.01).toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-gray-400">
-                    Includes $5 + 3% Coin Railz fee. See terms for details.
+                    Includes 1% Coin Railz fee. See terms for details.
                   </p>
                 </div>
               )}

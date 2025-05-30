@@ -126,11 +126,7 @@ export function EnhancedSendMoneyForm() {
       return amount; // Free internal transfers
     }
     
-    if (selectedPlatform === "Zelle") {
-      return amount + 5.0; // $5 flat fee
-    }
-    
-    return amount + 5.0 + (amount * 0.03); // $5 + 3% for other platforms
+    return amount + (amount * 0.01); // 1% fee for all external platforms
   };
 
   const getPlatformIcon = (platform: string) => {

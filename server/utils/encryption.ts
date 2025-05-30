@@ -1,43 +1,74 @@
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'dev-key-32-chars-long-please!!!';
-const ALGORITHM = 'aes-256-gcm';
-
 export class EncryptionUtils {
+  private static readonly ALGORITHM = 'aes-256-gcm';
+  private static readonly KEY_LENGTH = 32;
+  private static readonly IV_LENGTH = 16;
+  private static readonly TAG_LENGTH = 16;
+
+  private static getEncryptionKey(): Buffer {
+    const key = process.env.ENCRYPTION_KEY;
+    if (!key) {
+      throw new Error('ENCRYPTION_KEY environment variable is required');
+    }
+    return crypto.scryptSync(key, 'salt', this.KEY_LENGTH);
+  }
+
   static encrypt(text: string): string {
-    const iv = crypto.randomBytes(16);
-    const cipher = crypto.createCipher(ALGORITHM, ENCRYPTION_KEY);
-    
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    
-    return iv.toString('hex') + ':' + encrypted;
+    try {
+      const key = this.getEncryptionKey();
+      const iv = crypto.randomBytes(this.IV_LENGTH);
+      const cipher = crypto.createCipherGCM(this.ALGORITHM, key, iv);
+      
+      let encrypted = cipher.update(text, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      
+      const authTag = cipher.getAuthTag();
+      
+      return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+    } catch (error) {
+      console.error('Encryption failed:', error);
+      throw new Error('Failed to encrypt sensitive data');
+    }
   }
 
-  static decrypt(encryptedText: string): string {
-    const [ivHex, encrypted] = encryptedText.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const decipher = crypto.createDecipher(ALGORITHM, ENCRYPTION_KEY);
-    
-    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    
-    return decrypted;
+  static decrypt(encryptedData: string): string {
+    try {
+      const key = this.getEncryptionKey();
+      const parts = encryptedData.split(':');
+      
+      if (parts.length !== 3) {
+        throw new Error('Invalid encrypted data format');
+      }
+      
+      const iv = Buffer.from(parts[0], 'hex');
+      const authTag = Buffer.from(parts[1], 'hex');
+      const encrypted = parts[2];
+      
+      const decipher = crypto.createDecipherGCM(this.ALGORITHM, key, iv);
+      decipher.setAuthTag(authTag);
+      
+      let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      return decrypted;
+    } catch (error) {
+      console.error('Decryption failed:', error);
+      throw new Error('Failed to decrypt sensitive data');
+    }
   }
 
-  static hashPassword(password: string): string {
-    const salt = crypto.randomBytes(16).toString('hex');
-    const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-    return `${salt}:${hash}`;
+  static hash(data: string): string {
+    return crypto.createHash('sha256').update(data).digest('hex');
   }
 
-  static verifyPassword(password: string, storedHash: string): boolean {
-    const [salt, hash] = storedHash.split(':');
-    const verifyHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-    return hash === verifyHash;
+  static maskSSN(ssn: string): string {
+    if (!ssn || ssn.length < 4) return '*****';
+    return '*****' + ssn.slice(-4);
   }
 
-  static generateSecureToken(): string {
-    return crypto.randomBytes(32).toString('hex');
+  static maskBankAccount(accountNumber: string): string {
+    if (!accountNumber || accountNumber.length < 4) return '****';
+    return '****' + accountNumber.slice(-4);
   }
 }

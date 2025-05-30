@@ -2,8 +2,10 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { sendMoneySchema } from "@shared/schema";
+import { complianceService } from "./services/complianceService";
 import { referralService } from "./services/referralService";
+import { EncryptionUtils } from "./utils/encryption";
+import { sendMoneySchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {

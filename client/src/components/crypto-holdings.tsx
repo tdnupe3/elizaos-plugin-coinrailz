@@ -9,13 +9,16 @@ import type { CryptoHolding } from "@shared/schema";
 export function CryptoHoldings() {
   const [, setLocation] = useLocation();
 
-  const { data: holdings, isLoading } = useQuery({
+  const { data: holdings, isLoading: holdingsLoading, error: holdingsError } = useQuery({
     queryKey: ["/api/crypto/holdings"],
   });
 
-  const { data: prices } = useQuery({
+  const { data: prices, isLoading: pricesLoading, error: pricesError } = useQuery({
     queryKey: ["/api/crypto/prices"],
   });
+
+  const isLoading = holdingsLoading || pricesLoading;
+  const hasError = holdingsError || pricesError;
 
   const getCoinIcon = (symbol: string) => {
     const colors = {

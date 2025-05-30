@@ -1,93 +1,94 @@
-import { nanoid } from "nanoid";
 import { storage } from "../storage";
-import type { InsertReferral } from "@shared/schema";
+import { nanoid } from "nanoid";
+import type { User, InsertReferral } from "@shared/schema";
 
 export class ReferralService {
-  // Generate a unique referral code for a user
-  generateReferralCode(): string {
-    return nanoid(8).toUpperCase();
-  }
-
-  // Create a referral when someone signs up with a code
-  async processReferral(refereeId: string, referralCode: string): Promise<boolean> {
+  async processReferral(refereeId: string, referralCode: string): Promise<void> {
     try {
       // Find the referrer by their referral code
       const referrer = await storage.getUserByReferralCode(referralCode);
       if (!referrer) {
-        return false;
+        throw new Error("Invalid referral code");
       }
 
-      // Don't allow self-referral
-      if (referrer.id === refereeId) {
-        return false;
+      // Check if this user was already referred
+      const existingReferral = await storage.getPendingReferralByReferee(refereeId);
+      if (existingReferral) {
+        throw new Error("User has already been referred");
       }
 
       // Create the referral record
-      const referral: InsertReferral = {
+      const referralData: InsertReferral = {
+        referralCode: nanoid(10), // Generate unique referral code
         referrerId: referrer.id,
         refereeId: refereeId,
-        referralCode: referralCode,
-        status: "pending",
-        bonusAmount: "5.00",
+        status: 'pending',
+        bonusAmount: '5.00', // $5 bonus as specified
       };
 
-      await storage.createReferral(referral);
-      
-      // Update referrer's total referral count
-      await storage.incrementUserReferralCount(referrer.id);
-
-      return true;
+      await storage.createReferral(referralData);
+      console.log(`Referral created: ${referrer.id} referred ${refereeId}`);
     } catch (error) {
-      console.error("Error processing referral:", error);
-      return false;
+      console.error("Failed to process referral:", error);
+      throw error;
     }
   }
 
-  // Complete a referral and pay bonuses when referee makes first transaction
-  async completeReferral(refereeId: string): Promise<void> {
+  async processFirstTransaction(userId: string): Promise<void> {
     try {
-      const pendingReferral = await storage.getPendingReferralByReferee(refereeId);
+      // Check if user has any pending referrals as referee
+      const pendingReferral = await storage.getPendingReferralByReferee(userId);
       if (!pendingReferral) {
-        return;
+        return; // No referral to process
       }
 
-      const bonusAmount = parseFloat(pendingReferral.bonusAmount || "5.00");
+      // Update referral status to completed
+      await storage.updateReferralStatus(pendingReferral.id, 'completed');
 
-      // Pay bonus to both referrer and referee
-      if (pendingReferral.referrerId) {
-        await storage.addReferralBonus(pendingReferral.referrerId, bonusAmount);
+      // Add bonus to referrer's balance
+      if (pendingReferral.referrerId && pendingReferral.bonusAmount) {
+        await storage.addReferralBonus(pendingReferral.referrerId, parseFloat(pendingReferral.bonusAmount));
+        
+        // Increment referrer's referral count
+        await storage.incrementUserReferralCount(pendingReferral.referrerId);
       }
-      if (pendingReferral.refereeId) {
-        await storage.addReferralBonus(pendingReferral.refereeId, bonusAmount);
-      }
 
-      // Update referral status
-      await storage.updateReferralStatus(pendingReferral.id, "completed");
-
-      console.log(`Referral bonus paid: $${bonusAmount} each to ${pendingReferral.referrerId} and ${pendingReferral.refereeId}`);
+      console.log(`Referral bonus paid: $${pendingReferral.bonusAmount} to user ${pendingReferral.referrerId}`);
     } catch (error) {
-      console.error("Error completing referral:", error);
+      console.error("Failed to process referral bonus:", error);
+      throw error;
     }
   }
 
-  // Get referral statistics for a user
-  async getReferralStats(userId: string) {
+  async getUserReferralStats(userId: string): Promise<{
+    totalReferrals: number;
+    pendingReferrals: number;
+    totalEarnings: number;
+    referrals: any[];
+  }> {
     try {
-      const user = await storage.getUser(userId);
       const referrals = await storage.getUserReferrals(userId);
-      const completedReferrals = referrals.filter((r: any) => r.status === "completed");
       
+      const totalReferrals = referrals.length;
+      const pendingReferrals = referrals.filter(r => r.status === 'pending').length;
+      const totalEarnings = referrals
+        .filter(r => r.status === 'completed')
+        .reduce((sum, r) => sum + r.bonusAmount, 0);
+
       return {
-        referralCode: user?.referralCode,
-        totalReferrals: user?.totalReferrals || 0,
-        completedReferrals: completedReferrals.length,
-        totalEarned: parseFloat(user?.referralBonus || "0"),
-        pendingReferrals: referrals.filter((r: any) => r.status === "pending").length,
-        recentReferrals: referrals.slice(0, 5)
+        totalReferrals,
+        pendingReferrals,
+        totalEarnings,
+        referrals: referrals.map(r => ({
+          id: r.id,
+          status: r.status,
+          bonusAmount: r.bonusAmount,
+          createdAt: r.createdAt,
+        }))
       };
     } catch (error) {
-      console.error("Error getting referral stats:", error);
-      return null;
+      console.error("Failed to get referral stats:", error);
+      throw error;
     }
   }
 }

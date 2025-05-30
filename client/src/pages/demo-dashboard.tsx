@@ -47,6 +47,11 @@ export default function DemoDashboard() {
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadDemoData();
+  };
+
   const formatCurrency = (amount: string | number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('en-US', {
@@ -74,9 +79,73 @@ export default function DemoDashboard() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
-      </div>
+      <ErrorBoundary>
+        <div className="min-h-screen bg-gray-50">
+          {/* Header Skeleton */}
+          <div className="bg-white border-b border-gray-200 p-4">
+            <div className="max-w-6xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gray-200 rounded animate-pulse" />
+                <div className="w-32 h-6 bg-gray-200 rounded animate-pulse" />
+              </div>
+              <div className="w-20 h-8 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+
+          {/* Content Skeleton */}
+          <div className="max-w-6xl mx-auto p-4 space-y-6">
+            {/* Balance Cards Skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <BalanceCardSkeleton />
+              <BalanceCardSkeleton />
+              <BalanceCardSkeleton />
+            </div>
+
+            {/* Main Content Skeleton */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Transactions Skeleton */}
+              <div className="space-y-4">
+                <div className="w-48 h-6 bg-gray-200 rounded animate-pulse" />
+                <div className="space-y-3">
+                  <TransactionSkeleton />
+                  <TransactionSkeleton />
+                  <TransactionSkeleton />
+                </div>
+              </div>
+
+              {/* Crypto Holdings Skeleton */}
+              <div className="space-y-4">
+                <div className="w-40 h-6 bg-gray-200 rounded animate-pulse" />
+                <div className="space-y-3">
+                  <CryptoHoldingSkeleton />
+                  <CryptoHoldingSkeleton />
+                  <CryptoHoldingSkeleton />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ErrorBoundary>
+    );
+  }
+
+  if (error) {
+    return (
+      <ErrorBoundary>
+        <div className="min-h-screen bg-gray-50">
+          <div className="bg-white border-b border-gray-200 p-4">
+            <div className="max-w-6xl mx-auto flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Home className="w-6 h-6 text-blue-600" />
+                <span className="text-lg font-semibold">Demo Dashboard</span>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-6xl mx-auto p-4">
+            <NetworkErrorFallback onRetry={handleRefresh} />
+          </div>
+        </div>
+      </ErrorBoundary>
     );
   }
 
@@ -91,15 +160,27 @@ export default function DemoDashboard() {
             </Badge>
             <span className="text-sm">Testing all features with sample data - no real transactions</span>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="text-blue-600 bg-white hover:bg-gray-100"
-            onClick={() => setLocation('/')}
-          >
-            <Home className="h-4 w-4 mr-1" />
-            Exit Demo
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="text-white hover:bg-blue-500"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="text-blue-600 bg-white hover:bg-gray-100"
+              onClick={() => setLocation('/')}
+            >
+              <Home className="h-4 w-4 mr-1" />
+              Exit Demo
+            </Button>
+          </div>
         </div>
       </div>
 

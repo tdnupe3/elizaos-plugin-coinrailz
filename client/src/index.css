@@ -72,6 +72,23 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
+  /* Override any yellow focus rings */
+  *:focus {
+    outline: none !important;
+  }
+  
+  *:focus-visible {
+    @apply ring-2 ring-blue-600 ring-offset-2 !important;
+  }
+  
+  /* Ensure no yellow borders anywhere */
+  button:focus,
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply ring-blue-600 border-blue-600 !important;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 6px;

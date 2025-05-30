@@ -7,7 +7,13 @@ import { referralService } from "./services/referralService";
 import { FeeCalculator } from "./utils/feeCalculator";
 import { ValidationUtils } from "./utils/validation";
 import { TransactionMonitor } from "./utils/transactionMonitor";
-import { sendMoneySchema } from "@shared/schema";
+import { 
+  sendMoneySchema, 
+  buyCryptoSchema, 
+  sellCryptoSchema,
+  walletDepositSchema,
+  walletWithdrawSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -23,6 +29,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  // Digital Wallet Routes
+  app.get('/api/wallet/balances', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const balances = await storage.getUserWalletBalances(userId);
+      
+      // If user has no wallet balances, create default USD wallet
+      if (balances.length === 0) {
+        await storage.createWalletBalance({
+          userId,
+          currency: 'USD',
+          balance: '0.00000000',
+          availableBalance: '0.00000000',
+          frozenBalance: '0.00000000'
+        });
+        const newBalances = await storage.getUserWalletBalances(userId);
+        return res.json(newBalances);
+      }
+      
+      res.json(balances);
+    } catch (error) {
+      console.error("Error fetching wallet balances:", error);
+      res.status(500).json({ message: "Failed to fetch wallet balances" });
+    }
+  });
+
+  app.post('/api/wallet/deposit', isAuthenticated, async (req: any, res) => {
+    try {
+      const validatedData = walletDepositSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      
+      // Get or create wallet for currency
+      let wallet = await storage.getWalletBalance(userId, validatedData.currency);
+      if (!wallet) {
+        wallet = await storage.createWalletBalance({
+          userId,
+          currency: validatedData.currency,
+          balance: '0.00000000',
+          availableBalance: '0.00000000',
+          frozenBalance: '0.00000000'
+        });
+      }
+
+      // Create funding transaction
+      const fundingTransaction = await storage.createFundingTransaction({
+        userId,
+        walletId: wallet.id,
+        type: 'deposit',
+        method: validatedData.method,
+        amount: validatedData.amount,
+        currency: validatedData.currency,
+        status: 'pending',
+        bankAccount: validatedData.bankAccount || null,
+        platformFee: '0.00',
+        metadata: { requestedAt: new Date().toISOString() }
+      });
+
+      // For demonstration: simulate immediate completion for small amounts
+      const amount = parseFloat(validatedData.amount);
+      if (amount <= 1000) {
+        await storage.updateFundingTransactionStatus(fundingTransaction.id, 'completed');
+        await storage.updateWalletBalance(userId, validatedData.currency, validatedData.amount, 'add');
+      }
+
+      res.json({ 
+        message: 'Deposit initiated successfully',
+        transactionId: fundingTransaction.id,
+        status: amount <= 1000 ? 'completed' : 'pending'
+      });
+    } catch (error) {
+      console.error("Error processing deposit:", error);
+      res.status(500).json({ message: "Failed to process deposit" });
+    }
+  });
+
+  app.post('/api/wallet/withdraw', isAuthenticated, async (req: any, res) => {
+    try {
+      const validatedData = walletWithdrawSchema.parse(req.body);
+      const userId = req.user.claims.sub;
+      
+      // Check wallet balance
+      const wallet = await storage.getWalletBalance(userId, validatedData.currency);
+      if (!wallet) {
+        return res.status(400).json({ message: 'Wallet not found for this currency' });
+      }
+
+      const requestedAmount = parseFloat(validatedData.amount);
+      const availableBalance = parseFloat(wallet.availableBalance);
+      
+      if (requestedAmount > availableBalance) {
+        return res.status(400).json({ message: 'Insufficient funds' });
+      }
+
+      // Freeze funds during withdrawal processing
+      await storage.freezeWalletFunds(userId, validatedData.currency, validatedData.amount);
+
+      // Create withdrawal transaction
+      const fundingTransaction = await storage.createFundingTransaction({
+        userId,
+        walletId: wallet.id,
+        type: 'withdrawal',
+        method: 'bank_transfer',
+        amount: validatedData.amount,
+        currency: validatedData.currency,
+        status: 'processing',
+        bankAccount: validatedData.bankAccount,
+        platformFee: '2.50', // Standard withdrawal fee
+        metadata: { requestedAt: new Date().toISOString() }
+      });
+
+      res.json({ 
+        message: 'Withdrawal initiated successfully',
+        transactionId: fundingTransaction.id,
+        estimatedTime: '1-3 business days'
+      });
+    } catch (error) {
+      console.error("Error processing withdrawal:", error);
+      res.status(500).json({ message: "Failed to process withdrawal" });
+    }
+  });
+
+  app.get('/api/wallet/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const fundingTransactions = await storage.getUserFundingTransactions(userId, limit);
+      const regularTransactions = await storage.getUserTransactions(userId, limit);
+      
+      // Combine and sort transactions by date
+      const allTransactions = [
+        ...fundingTransactions.map(t => ({ ...t, category: 'funding' })),
+        ...regularTransactions.map(t => ({ ...t, category: 'transfer' }))
+      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      res.json(allTransactions.slice(0, limit));
+    } catch (error) {
+      console.error("Error fetching wallet transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
     }
   });
 

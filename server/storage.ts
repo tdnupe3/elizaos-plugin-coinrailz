@@ -1,6 +1,8 @@
 import {
   users,
   transactions,
+  walletBalances,
+  fundingTransactions,
   cryptoHoldings,
   cryptoTransactions,
   complianceReports,
@@ -11,6 +13,10 @@ import {
   type UpsertUser,
   type Transaction,
   type InsertTransaction,
+  type WalletBalance,
+  type InsertWalletBalance,
+  type FundingTransaction,
+  type InsertFundingTransaction,
   type CryptoHolding,
   type InsertCryptoHolding,
   type CryptoTransaction,
@@ -100,17 +106,100 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // Balance operations
-  async updateUserBalance(userId: string, amount: string): Promise<User> {
-    const [user] = await db
-      .update(users)
-      .set({ 
-        usdBalance: amount,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId))
+  // Digital Wallet operations
+  async getUserWalletBalances(userId: string): Promise<WalletBalance[]> {
+    return await db.select().from(walletBalances)
+      .where(and(eq(walletBalances.userId, userId), eq(walletBalances.isActive, true)))
+      .orderBy(walletBalances.currency);
+  }
+
+  async getWalletBalance(userId: string, currency: string): Promise<WalletBalance | undefined> {
+    const [wallet] = await db.select().from(walletBalances)
+      .where(and(
+        eq(walletBalances.userId, userId),
+        eq(walletBalances.currency, currency),
+        eq(walletBalances.isActive, true)
+      ));
+    return wallet;
+  }
+
+  async createWalletBalance(wallet: InsertWalletBalance): Promise<WalletBalance> {
+    const [newWallet] = await db
+      .insert(walletBalances)
+      .values(wallet)
       .returning();
-    return user;
+    return newWallet;
+  }
+
+  async updateWalletBalance(userId: string, currency: string, amount: string, operation: 'add' | 'subtract'): Promise<WalletBalance> {
+    const operator = operation === 'add' ? '+' : '-';
+    const [wallet] = await db
+      .update(walletBalances)
+      .set({ 
+        balance: sql`${walletBalances.balance} ${sql.raw(operator)} ${amount}`,
+        availableBalance: sql`${walletBalances.availableBalance} ${sql.raw(operator)} ${amount}`,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(walletBalances.userId, userId),
+        eq(walletBalances.currency, currency)
+      ))
+      .returning();
+    return wallet;
+  }
+
+  async freezeWalletFunds(userId: string, currency: string, amount: string): Promise<void> {
+    await db
+      .update(walletBalances)
+      .set({ 
+        availableBalance: sql`${walletBalances.availableBalance} - ${amount}`,
+        frozenBalance: sql`${walletBalances.frozenBalance} + ${amount}`,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(walletBalances.userId, userId),
+        eq(walletBalances.currency, currency)
+      ));
+  }
+
+  async unfreezeWalletFunds(userId: string, currency: string, amount: string): Promise<void> {
+    await db
+      .update(walletBalances)
+      .set({ 
+        availableBalance: sql`${walletBalances.availableBalance} + ${amount}`,
+        frozenBalance: sql`${walletBalances.frozenBalance} - ${amount}`,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(walletBalances.userId, userId),
+        eq(walletBalances.currency, currency)
+      ));
+  }
+
+  // Funding operations
+  async createFundingTransaction(funding: InsertFundingTransaction): Promise<FundingTransaction> {
+    const [transaction] = await db
+      .insert(fundingTransactions)
+      .values(funding)
+      .returning();
+    return transaction;
+  }
+
+  async getUserFundingTransactions(userId: string, limit: number = 10): Promise<FundingTransaction[]> {
+    return await db.select().from(fundingTransactions)
+      .where(eq(fundingTransactions.userId, userId))
+      .orderBy(desc(fundingTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async updateFundingTransactionStatus(id: number, status: string): Promise<void> {
+    await db
+      .update(fundingTransactions)
+      .set({ 
+        status,
+        completedAt: status === 'completed' ? new Date() : undefined
+      })
+      .where(eq(fundingTransactions.id, id));
   }
 
   // Transaction operations
@@ -142,6 +231,16 @@ export class DatabaseStorage implements IStorage {
       .from(transactions)
       .where(eq(transactions.id, id));
     return transaction;
+  }
+
+  async updateTransactionStatus(id: number, status: string): Promise<void> {
+    await db
+      .update(transactions)
+      .set({ 
+        status,
+        completedAt: status === 'completed' ? new Date() : undefined
+      })
+      .where(eq(transactions.id, id));
   }
 
   // Crypto operations

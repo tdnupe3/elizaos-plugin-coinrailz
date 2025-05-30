@@ -69,7 +69,7 @@ export function PulseButton({ children, variant = 'primary', className, ...props
       case 'success':
         return 'bg-green-600 hover:bg-green-700 focus:ring-green-500';
       case 'warning':
-        return 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500';
+        return 'bg-orange-600 hover:bg-orange-700 focus:ring-orange-500';
       default:
         return 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500';
     }

@@ -38,7 +38,7 @@ export function EnhancedToast({ id, type, title, description, duration = 5000, o
       case 'error':
         return <AlertCircle className="w-5 h-5 text-red-600" />;
       case 'warning':
-        return <AlertCircle className="w-5 h-5 text-yellow-600" />;
+        return <AlertCircle className="w-5 h-5 text-orange-600" />;
       case 'info':
         return <Info className="w-5 h-5 text-blue-600" />;
     }
@@ -51,7 +51,7 @@ export function EnhancedToast({ id, type, title, description, duration = 5000, o
       case 'error':
         return 'bg-red-50 border-red-200';
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-orange-50 border-orange-200';
       case 'info':
         return 'bg-blue-50 border-blue-200';
     }

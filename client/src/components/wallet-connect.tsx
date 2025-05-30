@@ -12,7 +12,7 @@ const supportedChains = [
   // EVM Compatible Chains
   { id: 1, name: 'Ethereum', symbol: 'ETH', color: 'bg-blue-500', type: 'evm' },
   { id: 137, name: 'Polygon', symbol: 'MATIC', color: 'bg-purple-500', type: 'evm' },
-  { id: 56, name: 'BSC', symbol: 'BNB', color: 'bg-yellow-500', type: 'evm' },
+  { id: 56, name: 'BSC', symbol: 'BNB', color: 'bg-orange-500', type: 'evm' },
   { id: 42161, name: 'Arbitrum', symbol: 'ETH', color: 'bg-cyan-500', type: 'evm' },
   { id: 10, name: 'Optimism', symbol: 'ETH', color: 'bg-red-500', type: 'evm' },
   { id: 43114, name: 'Avalanche', symbol: 'AVAX', color: 'bg-red-600', type: 'evm' },

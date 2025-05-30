@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowDownUp, Info } from "lucide-react";
+import { WalletConnect } from "@/components/wallet-connect";
 import { useState } from "react";
 
 const chains = [
@@ -84,9 +85,17 @@ export default function SwapPage() {
         </div>
       </div>
 
-      {/* Swap Interface */}
-      <div className="max-w-md mx-auto px-4 py-12">
-        <Card>
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Wallet Connect */}
+          <div className="lg:col-span-1">
+            <WalletConnect />
+          </div>
+          
+          {/* Swap Interface */}
+          <div className="lg:col-span-2">
+            <Card>
           <CardHeader>
             <CardTitle className="text-center">Swap Tokens</CardTitle>
             <p className="text-sm text-gray-600 text-center mt-2">
@@ -240,7 +249,9 @@ export default function SwapPage() {
               </Button>
             </div>
           </CardContent>
-        </Card>
+            </Card>
+          </div>
+        </div>
 
         {/* Future Features */}
         <Card className="mt-6">

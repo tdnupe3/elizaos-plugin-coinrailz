@@ -9,19 +9,29 @@ interface WalletConnectProps {
 }
 
 const supportedChains = [
-  { id: 1, name: 'Ethereum', symbol: 'ETH', color: 'bg-blue-500' },
-  { id: 137, name: 'Polygon', symbol: 'MATIC', color: 'bg-purple-500' },
-  { id: 56, name: 'BSC', symbol: 'BNB', color: 'bg-yellow-500' },
-  { id: 42161, name: 'Arbitrum', symbol: 'ETH', color: 'bg-cyan-500' },
-  { id: 10, name: 'Optimism', symbol: 'ETH', color: 'bg-red-500' },
-  { id: 250, name: 'Fantom', symbol: 'FTM', color: 'bg-blue-600' }
+  // EVM Compatible Chains
+  { id: 1, name: 'Ethereum', symbol: 'ETH', color: 'bg-blue-500', type: 'evm' },
+  { id: 137, name: 'Polygon', symbol: 'MATIC', color: 'bg-purple-500', type: 'evm' },
+  { id: 56, name: 'BSC', symbol: 'BNB', color: 'bg-yellow-500', type: 'evm' },
+  { id: 42161, name: 'Arbitrum', symbol: 'ETH', color: 'bg-cyan-500', type: 'evm' },
+  { id: 10, name: 'Optimism', symbol: 'ETH', color: 'bg-red-500', type: 'evm' },
+  { id: 43114, name: 'Avalanche', symbol: 'AVAX', color: 'bg-red-600', type: 'evm' },
+  
+  // Non-EVM L1 Chains
+  { id: 'solana', name: 'Solana', symbol: 'SOL', color: 'bg-purple-600', type: 'solana' },
+  { id: 'xrp', name: 'XRP Ledger', symbol: 'XRP', color: 'bg-gray-700', type: 'xrpl' },
+  { id: 'cardano', name: 'Cardano', symbol: 'ADA', color: 'bg-blue-700', type: 'cardano' },
+  { id: 'cosmos', name: 'Cosmos Hub', symbol: 'ATOM', color: 'bg-indigo-600', type: 'cosmos' },
+  { id: 'polkadot', name: 'Polkadot', symbol: 'DOT', color: 'bg-pink-600', type: 'polkadot' },
+  { id: 'near', name: 'NEAR Protocol', symbol: 'NEAR', color: 'bg-green-600', type: 'near' }
 ];
 
 export function WalletConnect({ className = '' }: WalletConnectProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
-  const [currentChain, setCurrentChain] = useState<number | null>(null);
+  const [currentChain, setCurrentChain] = useState<string | number | null>(null);
+  const [walletType, setWalletType] = useState<string>('');
 
   const connectWallet = async () => {
     setIsConnecting(true);
@@ -31,6 +41,31 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
       setIsConnected(true);
       setWalletAddress('0x742d35Cc5059C6532C8A9...a12E45cF73');
       setCurrentChain(1); // Ethereum mainnet
+      setWalletType('MetaMask');
+      setIsConnecting(false);
+    }, 1500);
+  };
+
+  const connectSolanaWallet = async () => {
+    setIsConnecting(true);
+    
+    setTimeout(() => {
+      setIsConnected(true);
+      setWalletAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83T...kMi2');
+      setCurrentChain('solana');
+      setWalletType('Phantom');
+      setIsConnecting(false);
+    }, 1500);
+  };
+
+  const connectXRPWallet = async () => {
+    setIsConnecting(true);
+    
+    setTimeout(() => {
+      setIsConnected(true);
+      setWalletAddress('rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH');
+      setCurrentChain('xrp');
+      setWalletType('XUMM');
       setIsConnecting(false);
     }, 1500);
   };
@@ -39,13 +74,14 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
     setIsConnected(false);
     setWalletAddress('');
     setCurrentChain(null);
+    setWalletType('');
   };
 
   const copyAddress = () => {
     navigator.clipboard.writeText('0x742d35Cc5059C6532C8A9c2E5E5F2d0a12E45cF73');
   };
 
-  const switchChain = (chainId: number) => {
+  const switchChain = (chainId: string | number) => {
     setCurrentChain(chainId);
   };
 
@@ -75,27 +111,49 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
           </div>
           
           <div className="space-y-3">
-            <Button 
-              onClick={connectWallet}
-              disabled={isConnecting}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            >
-              {isConnecting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  Connecting...
-                </>
-              ) : (
-                <>
-                  <Wallet className="w-4 h-4 mr-2" />
-                  Connect MetaMask
-                </>
-              )}
-            </Button>
+            <div className="grid grid-cols-1 gap-2">
+              <Button 
+                onClick={connectWallet}
+                disabled={isConnecting}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                {isConnecting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Wallet className="w-4 h-4 mr-2" />
+                    MetaMask (EVM Chains)
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={connectSolanaWallet}
+                disabled={isConnecting}
+                variant="outline"
+                className="w-full"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Phantom (Solana)
+              </Button>
+              
+              <Button 
+                onClick={connectXRPWallet}
+                disabled={isConnecting}
+                variant="outline"
+                className="w-full"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                XUMM (XRP Ledger)
+              </Button>
+            </div>
             
             <div className="text-center">
               <p className="text-xs text-gray-500">
-                Don't have a wallet? <a href="https://metamask.io" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Download MetaMask</a>
+                Multiple wallet types supported for true multi-chain access
               </p>
             </div>
           </div>
@@ -126,6 +184,17 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {/* Wallet Info */}
+          <div>
+            <label className="text-sm font-medium text-gray-700">Connected Wallet</label>
+            <div className="flex items-center space-x-2 mt-1">
+              <Badge variant="outline" className="bg-blue-50">
+                <Wallet className="w-3 h-3 mr-1" />
+                {walletType}
+              </Badge>
+            </div>
+          </div>
+
           {/* Wallet Address */}
           <div>
             <label className="text-sm font-medium text-gray-700">Wallet Address</label>
@@ -151,7 +220,7 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
               {currentChainInfo && (
                 <Badge variant="outline" className="bg-white">
                   <div className={`w-2 h-2 ${currentChainInfo.color} rounded-full mr-2`}></div>
-                  {currentChainInfo.name}
+                  {currentChainInfo.name} ({currentChainInfo.symbol})
                 </Badge>
               )}
             </div>
@@ -159,15 +228,23 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
 
           {/* Network Switcher */}
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Switch Network</label>
-            <div className="grid grid-cols-2 gap-2">
-              {supportedChains.map((chain) => (
+            <label className="text-sm font-medium text-gray-700 mb-2 block">Available Networks</label>
+            <div className="grid grid-cols-1 gap-1 max-h-40 overflow-y-auto">
+              {supportedChains.filter(chain => {
+                // Show all EVM chains if connected to MetaMask
+                if (walletType === 'MetaMask') return chain.type === 'evm';
+                // Show only Solana if connected to Phantom
+                if (walletType === 'Phantom') return chain.type === 'solana';
+                // Show only XRP if connected to XUMM
+                if (walletType === 'XUMM') return chain.type === 'xrpl';
+                return true;
+              }).map((chain) => (
                 <Button
                   key={chain.id}
                   variant={currentChain === chain.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => switchChain(chain.id)}
-                  className="justify-start"
+                  className="justify-start text-xs h-8"
                 >
                   <div className={`w-2 h-2 ${chain.color} rounded-full mr-2`}></div>
                   {chain.name}

@@ -3,7 +3,11 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 
-export function NavigationHeader() {
+interface NavigationHeaderProps {
+  isDemo?: boolean;
+}
+
+export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
 

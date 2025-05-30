@@ -11,12 +11,17 @@ import SendMoney from "@/pages/send-money";
 import CryptoWallet from "@/pages/crypto-wallet";
 import TransactionHistory from "@/pages/transaction-history";
 import FundsManagement from "@/pages/funds-management";
+import DemoDashboard from "@/pages/demo-dashboard";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
     <Switch>
+      {/* Demo routes - accessible without authentication */}
+      <Route path="/demo" component={DemoDashboard} />
+      
+      {/* Regular routes */}
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (

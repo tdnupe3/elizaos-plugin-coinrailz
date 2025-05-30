@@ -39,13 +39,23 @@ export default function Landing() {
             Send money instantly, manage crypto portfolios, and experience the next generation 
             of financial technology with bank-level security.
           </p>
-          <Button 
-            onClick={handleLogin}
-            size="lg"
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-3"
-          >
-            Get Started Free
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button 
+              onClick={handleLogin}
+              size="lg"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-lg px-8 py-3"
+            >
+              Get Started Free
+            </Button>
+            <Button 
+              onClick={() => window.location.href = "/demo"}
+              size="lg"
+              variant="outline"
+              className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 text-lg px-8 py-3"
+            >
+              Try as Guest
+            </Button>
+          </div>
         </div>
 
         {/* Features Grid */}

@@ -28,7 +28,7 @@ export class ReferralService {
         refereeId: refereeId,
         referralCode: referralCode,
         status: "pending",
-        bonusAmount: "15.00",
+        bonusAmount: "5.00",
       };
 
       await storage.createReferral(referral);
@@ -51,7 +51,7 @@ export class ReferralService {
         return;
       }
 
-      const bonusAmount = parseFloat(pendingReferral.bonusAmount || "15.00");
+      const bonusAmount = parseFloat(pendingReferral.bonusAmount || "5.00");
 
       // Pay bonus to both referrer and referee
       if (pendingReferral.referrerId) {

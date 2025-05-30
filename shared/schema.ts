@@ -142,7 +142,7 @@ export const referrals = pgTable("referrals", {
   refereeId: varchar("referee_id").references(() => users.id),
   referralCode: varchar("referral_code").notNull(),
   status: varchar("status").default("pending"), // pending, completed, paid
-  bonusAmount: decimal("bonus_amount", { precision: 10, scale: 2 }).default("15.00"),
+  bonusAmount: decimal("bonus_amount", { precision: 10, scale: 2 }).default("5.00"),
   completedAt: timestamp("completed_at"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),

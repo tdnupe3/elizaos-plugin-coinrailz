@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { NavigationHeader } from "@/components/navigation-header";
-import { Share2, Copy, Users, DollarSign, Gift, Clock } from "lucide-react";
+import { Share2, Copy, Users, DollarSign, Gift, Clock, Sparkles, Trophy, Star } from "lucide-react";
 
 export default function Referrals() {
   const [referralCodeInput, setReferralCodeInput] = useState("");
@@ -71,7 +71,7 @@ export default function Referrals() {
     if (navigator.share) {
       navigator.share({
         title: "Join Coin Railz",
-        text: "Get $15 bonus when you join Coin Railz using my referral code!",
+        text: "Get $5 bonus when you join Coin Railz using my referral code!",
         url: referralUrl,
       });
     } else {
@@ -104,7 +104,7 @@ export default function Referrals() {
               Referral Program
             </h1>
             <p className="text-gray-600 dark:text-gray-300">
-              Earn $15 for every friend you refer to Coin Railz
+              🎉 Earn $5 for every friend you refer to Coin Railz! 🎉
             </p>
           </div>
 
@@ -183,7 +183,7 @@ export default function Referrals() {
                 <span>Your Referral Code</span>
               </CardTitle>
               <CardDescription>
-                Share this code with friends to earn $15 for each successful referral
+                Share this code with friends to earn $5 for each successful referral
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -227,7 +227,7 @@ export default function Referrals() {
             <CardHeader>
               <CardTitle>Have a Referral Code?</CardTitle>
               <CardDescription>
-                Enter a friend's referral code to get your $15 bonus
+                Enter a friend's referral code to get your $5 bonus
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -286,9 +286,9 @@ export default function Referrals() {
                   <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center mx-auto">
                     <span className="text-xl font-bold text-emerald-600">3</span>
                   </div>
-                  <h3 className="font-semibold">Both Get $15</h3>
+                  <h3 className="font-semibold">Both Get $5</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    You and your friend each receive $15 bonus
+                    You and your friend each receive $5 bonus
                   </p>
                 </div>
               </div>

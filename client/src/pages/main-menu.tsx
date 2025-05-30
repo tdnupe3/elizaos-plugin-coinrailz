@@ -44,7 +44,7 @@ export default function MainMenu() {
     {
       id: 'referrals',
       title: 'Referrals',
-      description: 'Earn $15 for each friend',
+      description: 'Earn $5 for each friend',
       icon: Users,
       color: 'bg-purple-500 hover:bg-purple-600',
       route: '/referrals'

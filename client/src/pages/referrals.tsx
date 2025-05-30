@@ -135,7 +135,7 @@ export default function Referrals() {
                       Total Earned
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      ${referralStats?.totalEarned?.toFixed(2) || "0.00"}
+                      ${(stats as any)?.totalEarned?.toFixed(2) || "0.00"}
                     </p>
                   </div>
                 </div>
@@ -151,7 +151,7 @@ export default function Referrals() {
                       Completed
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {referralStats?.completedReferrals || 0}
+                      {(stats as any)?.completedReferrals || 0}
                     </p>
                   </div>
                 </div>
@@ -167,7 +167,7 @@ export default function Referrals() {
                       Pending
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {referralStats?.pendingReferrals || 0}
+                      {(stats as any)?.pendingReferrals || 0}
                     </p>
                   </div>
                 </div>
@@ -187,17 +187,17 @@ export default function Referrals() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {referralStats?.referralCode ? (
+              {(stats as any)?.referralCode ? (
                 <div className="flex items-center space-x-2">
                   <Input
-                    value={referralStats.referralCode}
+                    value={(stats as any).referralCode}
                     readOnly
                     className="font-mono text-lg"
                   />
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => copyToClipboard(referralStats.referralCode)}
+                    onClick={() => copyToClipboard((stats as any).referralCode)}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>

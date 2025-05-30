@@ -203,9 +203,9 @@ export default function SwapPage() {
                     <SelectTrigger className="bg-white border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       {getFilteredTokens(selectedChain).map((token) => (
-                        <SelectItem key={token.symbol} value={token.symbol}>
+                        <SelectItem key={token.symbol} value={token.symbol} className="bg-white hover:bg-gray-100">
                           {token.symbol}
                         </SelectItem>
                       ))}

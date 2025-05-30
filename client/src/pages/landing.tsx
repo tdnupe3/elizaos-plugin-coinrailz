@@ -18,7 +18,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 sm:px-6">
+    <div className="min-h-screen bg-gray-200 flex items-center justify-center px-4 sm:px-6">
       <div className="w-full max-w-md mx-auto">
         {/* Logo and Title */}
         <div className="text-center mb-12">

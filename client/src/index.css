@@ -77,28 +77,39 @@
     @apply ring-2 ring-blue-600 ring-offset-2;
   }
   
-  /* Force all interactive elements to use blue instead of yellow */
-  button, input, select, textarea, [role="button"], [tabindex] {
-    outline-color: #2563eb !important;
-    border-color: #e2e8f0;
+  /* NUCLEAR OPTION: Override ALL possible yellow colors */
+  * {
+    color: inherit !important;
   }
   
-  button:focus, button:focus-visible,
-  input:focus, input:focus-visible,
-  select:focus, select:focus-visible,
-  textarea:focus, textarea:focus-visible {
-    outline-color: #2563eb !important;
-    border-color: #2563eb !important;
-    box-shadow: 0 0 0 2px #2563eb !important;
+  /* Force all borders to be gray or blue */
+  *, *::before, *::after {
+    border-color: #e2e8f0 !important;
   }
   
-  /* Override any default yellow ring colors */
-  .ring-yellow-400, .ring-yellow-500, .ring-amber-400, .ring-amber-500 {
-    --tw-ring-color: #2563eb !important;
+  /* Override hover states that turn yellow */
+  button:hover, [role="button"]:hover {
+    color: inherit !important;
+    background-color: #f1f5f9 !important;
   }
   
-  /* Force all border colors to use our scheme */
-  .border-yellow-400, .border-yellow-500, .border-amber-400, .border-amber-500 {
+  /* Force card borders to be gray */
+  .border, [class*="border"] {
+    border-color: #e2e8f0 !important;
+  }
+  
+  /* Override any yellow text colors */
+  [class*="text-yellow"], [class*="text-amber"] {
+    color: #64748b !important;
+  }
+  
+  /* Override any yellow backgrounds */
+  [class*="bg-yellow"], [class*="bg-amber"] {
+    background-color: #f8fafc !important;
+  }
+  
+  /* Override any yellow borders */
+  [class*="border-yellow"], [class*="border-amber"] {
     border-color: #e2e8f0 !important;
   }
 

@@ -6,6 +6,7 @@ import { complianceService } from "./services/complianceService";
 import { referralService } from "./services/referralService";
 import { EncryptionUtils } from "./utils/encryption";
 import { FeeCalculator } from "./utils/feeCalculator";
+import { ValidationUtils } from "./utils/validation";
 import { sendMoneySchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -37,14 +38,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "User not found" });
       }
 
-      const currentBalance = parseFloat(currentUser.usdBalance || "0");
-      const transferAmount = parseFloat(validatedData.amount);
-      const fee = transferAmount * 0.01; // 1% fee
-      const totalCost = transferAmount + fee;
+      // Validate and sanitize amounts
+      const transferAmount = ValidationUtils.validateAmount(validatedData.amount);
+      const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
+      const totalCost = transferAmount + feeCalculation.fee;
 
-      // Check if user has sufficient balance
-      if (currentBalance < totalCost) {
-        return res.status(400).json({ message: "Insufficient balance" });
+      // Validate balance operation
+      const balanceCheck = ValidationUtils.validateBalanceOperation(
+        currentUser.usdBalance, 
+        totalCost, 
+        'debit'
+      );
+
+      if (!balanceCheck.isValid) {
+        return res.status(400).json({ message: balanceCheck.error || "Insufficient balance" });
       }
 
       // Check if recipient exists
@@ -61,9 +68,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "completed",
       });
 
-      // Update sender balance
-      const newSenderBalance = (currentBalance - totalCost).toFixed(2);
-      await storage.updateUserBalance(userId, newSenderBalance);
+      // Update sender balance using validated calculation
+      await storage.updateUserBalance(userId, balanceCheck.newBalance.toFixed(2));
 
       // Check if this is the user's first transaction and complete any pending referrals
       const userTransactions = await storage.getUserTransactions(userId, 1);
@@ -189,6 +195,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching crypto prices:", error);
       res.status(500).json({ message: "Failed to fetch crypto prices" });
+    }
+  });
+
+  // Fee calculation endpoints
+  app.post('/api/calculate-fee', async (req: any, res) => {
+    try {
+      const { amount, type } = req.body;
+      const numAmount = parseFloat(amount);
+      
+      if (isNaN(numAmount) || numAmount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+
+      let feeCalculation;
+      switch (type) {
+        case 'send_money':
+          feeCalculation = FeeCalculator.calculateSendMoneyFee(numAmount);
+          break;
+        case 'buy_crypto':
+          feeCalculation = FeeCalculator.calculateCryptoFee(numAmount, 'buy');
+          break;
+        case 'sell_crypto':
+          feeCalculation = FeeCalculator.calculateCryptoFee(numAmount, 'sell');
+          break;
+        case 'swap_crypto':
+          feeCalculation = FeeCalculator.calculateSwapFee(numAmount);
+          break;
+        case 'deposit':
+          feeCalculation = FeeCalculator.calculateDepositFee(numAmount);
+          break;
+        case 'withdraw':
+          feeCalculation = FeeCalculator.calculateWithdrawFee(numAmount);
+          break;
+        default:
+          return res.status(400).json({ message: "Invalid transaction type" });
+      }
+
+      res.json({
+        amount: numAmount,
+        fee: feeCalculation.fee,
+        total: numAmount + feeCalculation.fee,
+        breakdown: feeCalculation.breakdown
+      });
+    } catch (error) {
+      console.error("Error calculating fee:", error);
+      res.status(500).json({ message: "Failed to calculate fee" });
     }
   });
 

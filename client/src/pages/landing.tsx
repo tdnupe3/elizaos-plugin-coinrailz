@@ -18,8 +18,8 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 sm:px-6">
+      <div className="w-full max-w-md mx-auto">
         {/* Logo and Title */}
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
@@ -29,8 +29,8 @@ export default function Landing() {
               className="w-24 h-24"
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Coin Railz</h1>
-          <p className="text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Coin Railz</h1>
+          <p className="text-gray-600 text-sm sm:text-base">
             Cross-platform payments & crypto gateway
           </p>
         </div>

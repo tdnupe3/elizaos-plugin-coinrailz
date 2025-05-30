@@ -4,10 +4,8 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { complianceService } from "./services/complianceService";
 import { referralService } from "./services/referralService";
-import { EncryptionUtils } from "./utils/encryption";
 import { FeeCalculator } from "./utils/feeCalculator";
 import { ValidationUtils } from "./utils/validation";
-import { ErrorHandler } from "./utils/errorHandler";
 import { TransactionMonitor } from "./utils/transactionMonitor";
 import { sendMoneySchema } from "@shared/schema";
 import { z } from "zod";
@@ -30,20 +28,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Send money route
   app.post('/api/send-money', isAuthenticated, async (req: any, res) => {
-    const result = await ErrorHandler.executeWithErrorHandling(async () => {
+    try {
       const validatedData = sendMoneySchema.parse(req.body);
       const userId = req.user.claims.sub;
       
       // Check if user is blocked
       const isBlocked = await TransactionMonitor.isUserBlocked(userId);
       if (isBlocked) {
-        throw new Error('Account temporarily restricted. Please contact support.');
+        return res.status(403).json({ message: 'Account temporarily restricted. Please contact support.' });
       }
 
       // Get current user
       const currentUser = await storage.getUser(userId);
       if (!currentUser) {
-        throw new Error('User not found');
+        return res.status(404).json({ message: "User not found" });
       }
 
       // Validate and sanitize amounts
@@ -57,7 +55,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       if (riskAssessment.riskLevel === 'blocked') {
-        throw new Error(riskAssessment.blockedReason || 'Transaction blocked by security screening');
+        return res.status(403).json({ 
+          message: riskAssessment.blockedReason || 'Transaction blocked by security screening' 
+        });
       }
 
       const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
 
       if (!balanceCheck.isValid) {
-        throw new Error(balanceCheck.error || 'Insufficient balance');
+        return res.status(400).json({ message: balanceCheck.error || "Insufficient balance" });
       }
 
       // Check if recipient exists
@@ -115,15 +115,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      return {
-        success: true,
+      res.json({ 
+        success: true, 
         transaction,
-        message: "Payment sent successfully"
-      };
-    }, res, 'send money transaction');
-
-    if (result) {
-      res.json(result);
+        message: "Payment sent successfully",
+        fee: feeCalculation.fee,
+        riskLevel: riskAssessment.riskLevel
+      });
+    } catch (error) {
+      console.error("Error sending money:", error);
+      res.status(500).json({ message: "Failed to send payment" });
     }
   });
 

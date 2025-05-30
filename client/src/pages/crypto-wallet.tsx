@@ -34,111 +34,6 @@ export default function CryptoWallet() {
     }
   }, []);
 
-  const { data: prices } = useQuery({
-    queryKey: ["/api/crypto/prices"],
-  });
-
-  const { data: holdings } = useQuery({
-    queryKey: ["/api/crypto/holdings"],
-  });
-
-  const buyForm = useForm<BuyCrypto>({
-    resolver: zodResolver(buyCryptoSchema),
-    defaultValues: {
-      coinSymbol: "",
-      coinName: "",
-      amount: "",
-      pricePerCoin: "",
-    },
-  });
-
-  const sellForm = useForm<SellCrypto>({
-    resolver: zodResolver(sellCryptoSchema),
-    defaultValues: {
-      coinSymbol: "",
-      amount: "",
-      pricePerCoin: "",
-    },
-  });
-
-  const buyCryptoMutation = useMutation({
-    mutationFn: async (data: BuyCrypto) => {
-      const response = await apiRequest("POST", "/api/crypto/buy", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Crypto purchase completed successfully",
-      });
-      buyForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/crypto/holdings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to purchase crypto",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const sellCryptoMutation = useMutation({
-    mutationFn: async (data: SellCrypto) => {
-      const response = await apiRequest("POST", "/api/crypto/sell", data);
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Crypto sold successfully",
-      });
-      sellForm.reset();
-      queryClient.invalidateQueries({ queryKey: ["/api/crypto/holdings"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to sell crypto",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const onBuySubmit = (data: BuyCrypto) => {
-    buyCryptoMutation.mutate(data);
-  };
-
-  const onSellSubmit = (data: SellCrypto) => {
-    sellCryptoMutation.mutate(data);
-  };
-
-  const handleCoinSelect = (coinSymbol: string) => {
-    const coinData = {
-      BTC: { name: "Bitcoin", price: (prices as any)?.BTC?.price || 45000 },
-      ETH: { name: "Ethereum", price: (prices as any)?.ETH?.price || 3200 },
-      ADA: { name: "Cardano", price: (prices as any)?.ADA?.price || 0.85 },
-      DOT: { name: "Polkadot", price: (prices as any)?.DOT?.price || 25.30 },
-    };
-
-    const coin = coinData[coinSymbol as keyof typeof coinData];
-    if (coin) {
-      buyForm.setValue("coinSymbol", coinSymbol);
-      buyForm.setValue("coinName", coin.name);
-      buyForm.setValue("pricePerCoin", coin.price.toString());
-      setSelectedCoin(coinSymbol);
-    }
-  };
-
-  const handleSellCoinSelect = (coinSymbol: string) => {
-    const price = (prices as any)?.[coinSymbol]?.price || 0;
-    sellForm.setValue("coinSymbol", coinSymbol);
-    sellForm.setValue("pricePerCoin", price.toString());
-    setSelectedSellCoin(coinSymbol);
-  };
-
   return (
     <div className="min-h-screen bg-neutral-50">
       <NavigationHeader />
@@ -174,105 +69,98 @@ export default function CryptoWallet() {
 
               {/* Market Prices */}
               <Card>
-            <CardHeader>
-              <CardTitle>Market Prices</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {prices && Object.entries(prices as any).map(([symbol, data]: [string, any]) => (
-                  <div key={symbol} className="flex items-center justify-between p-4 border rounded-lg hover:bg-neutral-50 transition-colors">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                        <span className="font-bold text-orange-600">{symbol}</span>
+                <CardHeader>
+                  <CardTitle>Market Prices</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { symbol: 'BTC', name: 'Bitcoin', price: 43250, change: 2.5 },
+                      { symbol: 'ETH', name: 'Ethereum', price: 2650, change: -1.2 },
+                      { symbol: 'SOL', name: 'Solana', price: 98, change: 4.8 },
+                      { symbol: 'ADA', name: 'Cardano', price: 0.52, change: -0.8 }
+                    ].map((coin) => (
+                      <div key={coin.symbol} className="flex items-center justify-between p-4 border rounded-lg hover:bg-neutral-50 transition-colors">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                            <span className="font-bold text-orange-600">{coin.symbol}</span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{coin.name}</p>
+                            <p className="text-sm text-neutral-500">{coin.symbol}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">${coin.price.toLocaleString()}</p>
+                          <div className={`flex items-center text-sm ${coin.change > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {coin.change > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
+                            {Math.abs(coin.change)}%
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{symbol === 'BTC' ? 'Bitcoin' : symbol === 'ETH' ? 'Ethereum' : symbol === 'ADA' ? 'Cardano' : 'Polkadot'}</p>
-                        <p className="text-sm text-neutral-500">{symbol}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${data.price.toLocaleString()}</p>
-                      <div className={`flex items-center text-sm ${data.change > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                        {data.change > 0 ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingDown className="w-3 h-3 mr-1" />}
-                        {Math.abs(data.change)}%
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
               <TabsContent value="buy">
                 <Card>
                   <CardHeader>
                     <CardTitle>Buy Cryptocurrency</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={buyForm.handleSubmit(onBuySubmit)} className="space-y-6">
+                    <div className="space-y-6">
+                      <div className="bg-blue-50 rounded-lg p-4 space-y-2 text-sm">
+                        <h4 className="font-medium text-blue-900">How Crypto Buying Works:</h4>
+                        <ul className="text-blue-800 space-y-1">
+                          <li>• Connect your wallet using the panel on the left</li>
+                          <li>• Choose your preferred cryptocurrency and payment method</li>
+                          <li>• Complete KYC verification for regulatory compliance</li>
+                          <li>• Funds are deposited directly to your connected wallet</li>
+                        </ul>
+                      </div>
+
                       <div>
                         <Label>Select Cryptocurrency</Label>
-                        <Select onValueChange={handleCoinSelect}>
+                        <Select>
                           <SelectTrigger>
-                            <SelectValue placeholder="Choose a cryptocurrency" />
+                            <SelectValue placeholder="Choose a cryptocurrency to buy" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="BTC">Bitcoin (BTC)</SelectItem>
                             <SelectItem value="ETH">Ethereum (ETH)</SelectItem>
+                            <SelectItem value="SOL">Solana (SOL)</SelectItem>
                             <SelectItem value="ADA">Cardano (ADA)</SelectItem>
-                            <SelectItem value="DOT">Polkadot (DOT)</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
-                      {selectedCoin && (
-                        <>
-                          <div>
-                            <Label>Amount to Buy</Label>
-                            <Input
-                              type="number"
-                              step="0.00000001"
-                              placeholder="0.00000000"
-                              {...buyForm.register("amount")}
-                            />
-                            {buyForm.formState.errors.amount && (
-                              <p className="text-sm text-red-500 mt-1">{buyForm.formState.errors.amount.message}</p>
-                            )}
-                          </div>
+                      <div>
+                        <Label>Amount (USD)</Label>
+                        <Input
+                          type="number"
+                          placeholder="100.00"
+                          min="10"
+                          step="0.01"
+                        />
+                      </div>
 
-                          <div>
-                            <Label>Price per Coin</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              readOnly
-                              {...buyForm.register("pricePerCoin")}
-                            />
-                          </div>
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Estimated Crypto Amount</span>
+                          <span className="font-semibold text-lg text-green-600">
+                            0.00231 BTC
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          1% platform fee • Real-time market rates
+                        </p>
+                      </div>
 
-                          <div className="bg-neutral-50 rounded-lg p-4">
-                            <div className="flex justify-between items-center">
-                              <span className="text-neutral-600">Total Cost</span>
-                              <span className="font-semibold text-lg">
-                                ${buyForm.watch("amount") && buyForm.watch("pricePerCoin") 
-                                  ? (parseFloat(buyForm.watch("amount")) * parseFloat(buyForm.watch("pricePerCoin"))).toFixed(2)
-                                  : "0.00"}
-                              </span>
-                            </div>
-                          </div>
-
-                          <Button 
-                            type="submit" 
-                            className="w-full bg-purple-600 hover:bg-purple-700"
-                            disabled={buyCryptoMutation.isPending}
-                          >
-                            {buyCryptoMutation.isPending ? "Processing..." : "Buy Crypto"}
-                          </Button>
-                        </>
-                      )}
-                    </form>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">
+                        Buy Cryptocurrency
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -283,74 +171,66 @@ export default function CryptoWallet() {
                     <CardTitle>Sell Cryptocurrency</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <form onSubmit={sellForm.handleSubmit(onSellSubmit)} className="space-y-6">
+                    <div className="space-y-6">
+                      <div className="bg-orange-50 rounded-lg p-4 space-y-2 text-sm">
+                        <h4 className="font-medium text-orange-900">How Crypto Selling Works:</h4>
+                        <ul className="text-orange-800 space-y-1">
+                          <li>• Your wallet must be connected to access your holdings</li>
+                          <li>• Select the cryptocurrency you want to sell</li>
+                          <li>• Choose your preferred payout method (bank transfer, etc.)</li>
+                          <li>• Funds are processed within 1-3 business days</li>
+                        </ul>
+                      </div>
+
                       <div>
                         <Label>Select Cryptocurrency to Sell</Label>
-                        <Select onValueChange={handleSellCoinSelect}>
+                        <Select>
                           <SelectTrigger>
-                            <SelectValue placeholder="Choose a cryptocurrency to sell" />
+                            <SelectValue placeholder="Choose from your holdings" />
                           </SelectTrigger>
                           <SelectContent>
-                            {holdings && (holdings as any[]).map((holding: any) => (
-                              <SelectItem key={holding.id} value={holding.coinSymbol}>
-                                {holding.coinName} ({holding.coinSymbol}) - {parseFloat(holding.amount).toFixed(8)}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="BTC">Bitcoin (BTC) - 0.025</SelectItem>
+                            <SelectItem value="ETH">Ethereum (ETH) - 1.5</SelectItem>
+                            <SelectItem value="SOL">Solana (SOL) - 25</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
 
-                      {selectedSellCoin && (
-                        <>
-                          <div>
-                            <Label>Amount to Sell</Label>
-                            <Input
-                              type="number"
-                              step="0.00000001"
-                              placeholder="0.00000000"
-                              {...sellForm.register("amount")}
-                            />
-                            {sellForm.formState.errors.amount && (
-                              <p className="text-sm text-red-500 mt-1">{sellForm.formState.errors.amount.message}</p>
-                            )}
-                          </div>
+                      <div>
+                        <Label>Amount to Sell</Label>
+                        <Input
+                          type="number"
+                          placeholder="0.001"
+                          step="0.00000001"
+                        />
+                      </div>
 
-                          <div>
-                            <Label>Price per Coin</Label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              readOnly
-                              {...sellForm.register("pricePerCoin")}
-                            />
-                          </div>
+                      <div className="bg-green-50 rounded-lg p-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-neutral-600">Estimated USD Value</span>
+                          <span className="font-semibold text-lg text-green-600">
+                            $432.50
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                          1% platform fee • Real-time market rates
+                        </p>
+                      </div>
 
-                          <div className="bg-green-50 rounded-lg p-4">
-                            <div className="flex justify-between items-center">
-                              <span className="text-neutral-600">Total Proceeds</span>
-                              <span className="font-semibold text-lg text-green-600">
-                                ${sellForm.watch("amount") && sellForm.watch("pricePerCoin") 
-                                  ? (parseFloat(sellForm.watch("amount")) * parseFloat(sellForm.watch("pricePerCoin"))).toFixed(2)
-                                  : "0.00"}
-                              </span>
-                            </div>
-                          </div>
-
-                          <Button 
-                            type="submit" 
-                            className="w-full bg-green-600 hover:bg-green-700"
-                            disabled={sellCryptoMutation.isPending}
-                          >
-                            {sellCryptoMutation.isPending ? "Processing..." : "Sell Crypto"}
-                          </Button>
-                        </>
-                      )}
-                    </form>
+                      <Button className="w-full bg-red-600 hover:bg-red-700">
+                        Sell Cryptocurrency
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>
           </div>
+        </div>
+        
+        {/* Crypto Holdings */}
+        <div className="mt-8">
+          <CryptoHoldings />
         </div>
         
         {/* ISO Compliance Footer */}

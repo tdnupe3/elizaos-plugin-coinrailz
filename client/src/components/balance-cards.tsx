@@ -19,7 +19,7 @@ export function BalanceCards() {
   });
 
   const calculateCryptoValue = () => {
-    if (!cryptoHoldings || !prices) return 0;
+    if (!cryptoHoldings || !Array.isArray(cryptoHoldings) || !prices) return 0;
     
     return cryptoHoldings.reduce((total: number, holding: CryptoHolding) => {
       const price = (prices as any)[holding.coinSymbol]?.price || 0;
@@ -52,7 +52,7 @@ export function BalanceCards() {
           </div>
           <div className="mb-4">
             <span className="text-3xl font-bold text-neutral-800">
-              {formatCurrency(user?.usdBalance || "0")}
+              {formatCurrency((user as any)?.usdBalance || "0")}
             </span>
           </div>
           <div className="flex space-x-2">

@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bitcoin, TrendingUp, TrendingDown } from "lucide-react";
+import { Bitcoin, TrendingUp, TrendingDown, AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { CryptoSkeleton } from "@/components/loading-skeleton";
 import type { CryptoHolding } from "@shared/schema";
 
 export function CryptoHoldings() {

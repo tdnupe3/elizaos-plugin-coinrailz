@@ -66,6 +66,20 @@ export default function Landing() {
           
           <div>
             <Button 
+              onClick={() => setLocation("/swap")}
+              variant="ghost"
+              className="w-full text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 text-lg font-medium border border-purple-200"
+              size="lg"
+            >
+              Continue as Guest
+            </Button>
+            <p className="text-xs text-purple-600 text-center mt-1 font-medium">
+              Access DEX aggregator instantly (no registration required)
+            </p>
+          </div>
+          
+          <div>
+            <Button 
               onClick={handleGuestAccess}
               variant="ghost"
               className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-3 text-lg font-medium border border-emerald-200"
@@ -81,19 +95,30 @@ export default function Landing() {
 
         {/* Footer Text */}
         <div className="text-center mt-8">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800 font-medium mb-2">Demo Mode Features:</p>
-            <div className="text-xs text-blue-700 space-y-1">
-              <p>• Digital wallet with sample funds</p>
-              <p>• Send money transactions</p>
-              <p>• Buy/sell cryptocurrency</p>
-              <p>• Crypto swaps & price checking</p>
-              <p>• Transaction history</p>
-              <p>• All platform features available</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <p className="text-sm text-purple-800 font-medium mb-2">Guest Access:</p>
+              <div className="text-xs text-purple-700 space-y-1">
+                <p>• DEX aggregator for crypto swaps</p>
+                <p>• Real-time price comparisons</p>
+                <p>• Multi-chain support</p>
+                <p>• No registration required</p>
+              </div>
+            </div>
+            
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-sm text-emerald-800 font-medium mb-2">Demo Mode:</p>
+              <div className="text-xs text-emerald-700 space-y-1">
+                <p>• Complete platform testing</p>
+                <p>• Digital wallet with sample funds</p>
+                <p>• Send money & crypto transactions</p>
+                <p>• All features with demo data</p>
+              </div>
             </div>
           </div>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
-            <p className="text-xs text-emerald-700 font-medium">
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+            <p className="text-xs text-blue-700 font-medium">
               ISO 20022 Compliant • FATF Travel Rule • Bank-Grade Security
             </p>
           </div>

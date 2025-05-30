@@ -117,7 +117,7 @@ export default function FundsManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-gray-100">
       <NavigationHeader />
       <MobileNavigation />
       
@@ -199,7 +199,7 @@ export default function FundsManagement() {
                         )}
                       </div>
 
-                      <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center space-x-3">
                           <Shield className="w-5 h-5 text-blue-600" />
                           <div>
@@ -272,7 +272,7 @@ export default function FundsManagement() {
                         )}
                       </div>
 
-                      <div className="bg-slate-50 rounded-lg p-4">
+                      <div className="bg-gray-50 rounded-lg p-4">
                         <div className="flex items-center space-x-3">
                           <Shield className="w-5 h-5 text-slate-600" />
                           <div>

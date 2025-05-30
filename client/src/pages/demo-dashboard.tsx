@@ -35,7 +35,7 @@ const demoPrices = {
 
 function DemoModeHeader() {
   return (
-    <div className="bg-violet-50 border-b border-violet-200 px-4 py-2">
+    <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Badge variant="outline" className="bg-violet-100 text-violet-800 border-violet-300">

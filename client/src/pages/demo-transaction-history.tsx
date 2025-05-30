@@ -158,11 +158,11 @@ export default function DemoTransactionHistory() {
                           <p className={`font-semibold ${
                             transaction.type === "buy" ? "text-blue-600" : "text-orange-600"
                           }`}>
-                            {formatCurrency(transaction.total)}
+                            {formatCurrency((transaction as any).total)}
                           </p>
                         )}
                         <p className="text-xs text-gray-500 mt-1">
-                          {transaction.coinSymbol || `${transaction.fromCoin}→${transaction.toCoin}`}
+                          {(transaction as any).coinSymbol || `${(transaction as any).fromCoin}→${(transaction as any).toCoin}`}
                         </p>
                       </div>
                     )}

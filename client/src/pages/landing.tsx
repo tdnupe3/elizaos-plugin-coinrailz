@@ -18,7 +18,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo and Title */}
         <div className="text-center mb-12">
@@ -48,7 +48,7 @@ export default function Landing() {
           <Button 
             onClick={handleSignUp}
             variant="outline"
-            className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-3 text-lg font-medium"
+            className="w-full bg-gray-600 border-gray-600 text-white hover:bg-gray-700 py-3 text-lg font-medium"
             size="lg"
           >
             Sign Up

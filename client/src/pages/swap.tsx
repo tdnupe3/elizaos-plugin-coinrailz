@@ -56,6 +56,7 @@ export default function SwapPage() {
             </div>
             <Button 
               variant="outline"
+              className="bg-gray-600 border-gray-600 text-white hover:bg-gray-700"
               onClick={() => window.location.href = "/"}
             >
               Back to Home

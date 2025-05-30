@@ -346,7 +346,7 @@ function DemoCryptoHoldings() {
 
 export default function DemoDashboard() {
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-gray-100">
       <NavigationHeader isDemo={true} />
       <DemoModeHeader />
       <MobileNavigation />

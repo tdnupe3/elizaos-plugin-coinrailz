@@ -12,7 +12,7 @@ export default function Dashboard() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-gray-100">
       <NavigationHeader />
       <MobileNavigation />
       

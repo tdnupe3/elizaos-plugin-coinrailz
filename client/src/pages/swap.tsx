@@ -198,7 +198,7 @@ export default function SwapPage() {
                 </div>
               )}
               <p className="text-xs text-gray-400 pt-1">
-                Service fee 0.25% included. Network fees vary.
+                Coin Railz fee 0.25% included. Network fees vary.
               </p>
             </div>
 

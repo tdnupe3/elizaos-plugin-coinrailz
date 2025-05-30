@@ -60,6 +60,10 @@ export class ReferralService {
     }
   }
 
+  generateReferralCode(): string {
+    return nanoid(8).toUpperCase();
+  }
+
   async getUserReferralStats(userId: string): Promise<{
     totalReferrals: number;
     pendingReferrals: number;
@@ -73,7 +77,7 @@ export class ReferralService {
       const pendingReferrals = referrals.filter(r => r.status === 'pending').length;
       const totalEarnings = referrals
         .filter(r => r.status === 'completed')
-        .reduce((sum, r) => sum + r.bonusAmount, 0);
+        .reduce((sum, r) => sum + (r.bonusAmount ? parseFloat(r.bonusAmount) : 0), 0);
 
       return {
         totalReferrals,
@@ -81,8 +85,8 @@ export class ReferralService {
         totalEarnings,
         referrals: referrals.map(r => ({
           id: r.id,
-          status: r.status,
-          bonusAmount: r.bonusAmount,
+          status: r.status || 'unknown',
+          bonusAmount: r.bonusAmount || '0.00',
           createdAt: r.createdAt,
         }))
       };

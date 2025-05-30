@@ -67,7 +67,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Check if this is the user's first transaction and complete any pending referrals
       const userTransactions = await storage.getUserTransactions(userId, 1);
       if (userTransactions.length === 1) { // This is their first transaction
-        await referralService.completeReferral(userId);
+        await referralService.processFirstTransaction(userId);
       }
 
       // Update recipient balance if they exist
@@ -131,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/referrals/stats', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const stats = await referralService.getReferralStats(userId);
+      const stats = await referralService.getUserReferralStats(userId);
       res.json(stats);
     } catch (error) {
       console.error("Error fetching referral stats:", error);
@@ -166,12 +166,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Referral code is required" });
       }
       
-      const success = await referralService.processReferral(userId, referralCode);
-      if (success) {
-        res.json({ success: true, message: "Referral applied successfully" });
-      } else {
-        res.status(400).json({ message: "Invalid or expired referral code" });
-      }
+      await referralService.processReferral(userId, referralCode);
+      res.json({ success: true, message: "Referral applied successfully" });
     } catch (error) {
       console.error("Error applying referral:", error);
       res.status(500).json({ message: "Failed to apply referral" });

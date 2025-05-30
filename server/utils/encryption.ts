@@ -18,14 +18,12 @@ export class EncryptionUtils {
     try {
       const key = this.getEncryptionKey();
       const iv = crypto.randomBytes(this.IV_LENGTH);
-      const cipher = crypto.createCipherGCM(this.ALGORITHM, key, iv);
+      const cipher = crypto.createCipher(this.ALGORITHM, key);
       
       let encrypted = cipher.update(text, 'utf8', 'hex');
       encrypted += cipher.final('hex');
       
-      const authTag = cipher.getAuthTag();
-      
-      return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+      return iv.toString('hex') + ':' + encrypted;
     } catch (error) {
       console.error('Encryption failed:', error);
       throw new Error('Failed to encrypt sensitive data');
@@ -37,16 +35,12 @@ export class EncryptionUtils {
       const key = this.getEncryptionKey();
       const parts = encryptedData.split(':');
       
-      if (parts.length !== 3) {
+      if (parts.length !== 2) {
         throw new Error('Invalid encrypted data format');
       }
       
-      const iv = Buffer.from(parts[0], 'hex');
-      const authTag = Buffer.from(parts[1], 'hex');
-      const encrypted = parts[2];
-      
-      const decipher = crypto.createDecipherGCM(this.ALGORITHM, key, iv);
-      decipher.setAuthTag(authTag);
+      const encrypted = parts[1];
+      const decipher = crypto.createDecipher(this.ALGORITHM, key);
       
       let decrypted = decipher.update(encrypted, 'hex', 'utf8');
       decrypted += decipher.final('utf8');

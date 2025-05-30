@@ -50,8 +50,8 @@ export default function DemoTransactionHistory() {
         <TrendingUp className="w-5 h-5 text-blue-600" />
       </div>;
     } else if (type === "sell") {
-      return <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-        <TrendingDown className="w-5 h-5 text-orange-600" />
+      return <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+        <TrendingDown className="w-5 h-5 text-blue-600" />
       </div>;
     } else if (type === "swap") {
       return <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
@@ -156,7 +156,7 @@ export default function DemoTransactionHistory() {
                           </p>
                         ) : (
                           <p className={`font-semibold ${
-                            transaction.type === "buy" ? "text-blue-600" : "text-orange-600"
+                            transaction.type === "buy" ? "text-blue-600" : "text-slate-600"
                           }`}>
                             {formatCurrency((transaction as any).total)}
                           </p>

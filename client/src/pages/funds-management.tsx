@@ -212,10 +212,10 @@ export default function FundsManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Frozen</CardTitle>
-            <TrendingDown className="h-4 w-4 text-orange-500" />
+            <TrendingDown className="h-4 w-4 text-slate-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-slate-600">
               {usdBalance ? formatAmount(usdBalance.frozenBalance) : '$0.00'}
             </div>
             <p className="text-xs text-muted-foreground">

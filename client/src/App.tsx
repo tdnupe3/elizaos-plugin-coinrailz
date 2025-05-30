@@ -20,7 +20,8 @@ function Router() {
 
   return (
     <Switch>
-      {/* Demo routes - accessible without authentication */}
+      {/* Guest-accessible routes */}
+      <Route path="/swap" component={SwapPage} />
       <Route path="/demo" component={DemoDashboard} />
       
       {/* Regular routes */}
@@ -28,8 +29,10 @@ function Router() {
         <Route path="/" component={Landing} />
       ) : (
         <>
-          <Route path="/" component={Dashboard} />
+          <Route path="/" component={MainMenu} />
           <Route path="/send" component={SendMoney} />
+          <Route path="/buy" component={CryptoWallet} />
+          <Route path="/sell" component={CryptoWallet} />
           <Route path="/crypto" component={CryptoWallet} />
           <Route path="/history" component={TransactionHistory} />
           <Route path="/funds" component={FundsManagement} />

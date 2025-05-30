@@ -2,9 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Bitcoin, Send, Download, ArrowLeftRight, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Wallet, History, Users, Home } from "lucide-react";
+import { DollarSign, Bitcoin, Send, Download, ArrowLeftRight, TrendingUp, TrendingDown, ArrowUp, ArrowDown, Wallet, History, Users, Home, RefreshCw, AlertTriangle } from "lucide-react";
 import { useLocation } from "wouter";
 import { demoApi } from "@/lib/demoApiService";
+import { BalanceCardSkeleton, TransactionSkeleton, CryptoHoldingSkeleton } from "@/components/ui/loading-skeleton";
+import { ErrorBoundary, EmptyState, NetworkErrorFallback } from "@/components/ui/error-boundary";
 
 export default function DemoDashboard() {
   const [, setLocation] = useLocation();
@@ -14,6 +16,8 @@ export default function DemoDashboard() {
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [cryptoPrices, setCryptoPrices] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadDemoData();
@@ -36,8 +40,10 @@ export default function DemoDashboard() {
       setCryptoPrices(pricesData);
     } catch (error) {
       console.error('Error loading demo data:', error);
+      setError('Unable to load dashboard data. Please try refreshing the page.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 

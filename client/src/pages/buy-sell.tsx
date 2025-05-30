@@ -153,7 +153,7 @@ export default function BuySellPage() {
                         <span className="text-emerald-800 text-lg">${calculateBuyTotal().toFixed(2)}</span>
                       </div>
                       <p className="text-xs text-gray-400">
-                        Includes 1.5% service fee. Final amount may vary based on market conditions.
+                        Includes 1.5% Coin Railz fee. Final amount may vary based on market conditions.
                       </p>
                     </div>
                   )}
@@ -253,7 +253,7 @@ export default function BuySellPage() {
                         <span className="text-emerald-800 text-lg">${calculateSellTotal().toFixed(2)}</span>
                       </div>
                       <p className="text-xs text-gray-400">
-                        After 2.5% service fee. Processing time 1-3 business days.
+                        After 2.5% Coin Railz fee. Processing time 1-3 business days.
                       </p>
                     </div>
                   )}

@@ -96,7 +96,7 @@ export default function MainMenu() {
         {/* Footer Information */}
         <div className="mt-12 text-center">
           <p className="text-gray-500 text-sm">
-            Money Railz - Cross-platform payments & crypto gateway
+            Coin Railz - Cross-platform payments & crypto gateway
           </p>
           <p className="text-gray-400 text-xs mt-2">
             Secure • Fast • Reliable

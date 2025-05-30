@@ -70,7 +70,7 @@ export default function SwapPage() {
           <div className="flex items-center space-x-3">
             <Info className="w-5 h-5 text-blue-600" />
             <span className="text-blue-800 text-sm">
-              You're using guest access. Sign up to access Send Money, Buy/Sell features.
+              You're exploring Coin Railz as a guest. Sign up to access Send Money, Buy/Sell features.
             </span>
             <Button 
               size="sm"

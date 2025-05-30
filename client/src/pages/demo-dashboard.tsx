@@ -42,7 +42,7 @@ function DemoModeHeader() {
             Demo Mode
           </Badge>
           <span className="text-sm text-yellow-700">
-            You're exploring Money Railz with sample data
+            You're exploring Coin Railz with sample data
           </span>
         </div>
         <Button 

@@ -25,11 +25,11 @@ export default function Landing() {
           <div className="flex justify-center mb-6">
             <img 
               src={coinRailzLogo} 
-              alt="Money Railz Logo" 
+              alt="Coin Railz Logo" 
               className="w-24 h-24"
             />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Money Railz</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Coin Railz</h1>
           <p className="text-gray-600">
             Cross-platform payments & crypto gateway
           </p>

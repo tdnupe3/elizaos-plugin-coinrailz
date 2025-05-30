@@ -127,7 +127,7 @@ export function SendMoneyForm() {
                     <span className="text-emerald-700 font-semibold">${(parseFloat(form.watch("amount")) + parseFloat(form.watch("amount")) * 0.03 + 5).toFixed(2)}</span>
                   </div>
                   <p className="text-xs text-gray-400">
-                    Includes $5 + 3% processing fee. See terms for details.
+                    Includes $5 + 3% Coin Railz fee. See terms for details.
                   </p>
                 </div>
               )}

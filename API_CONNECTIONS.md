@@ -1,6 +1,6 @@
-# Money Railz API Connections & Integrations
+# Coin Railz API Connections & Integrations
 
-## Core API Requirements for Money Railz Platform
+## Core API Requirements for Coin Railz Platform
 
 ### 1. Payment Platform APIs (Send Money Feature)
 **Purpose**: Cross-platform P2P transfers between different payment services

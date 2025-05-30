@@ -18,6 +18,7 @@ import SwapPage from "@/pages/swap";
 import BuySellPage from "@/pages/buy-sell";
 import Referrals from "@/pages/referrals";
 import DemoTransactionHistory from "@/pages/demo-transaction-history";
+import CryptoTransferPage from "@/pages/crypto-transfer";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/swap" component={SwapPage} />
       <Route path="/demo" component={DemoDashboard} />
       <Route path="/demo/history" component={DemoTransactionHistory} />
+      <Route path="/transfer" component={CryptoTransferPage} />
       
       {/* Regular routes */}
       {isLoading || !isAuthenticated ? (

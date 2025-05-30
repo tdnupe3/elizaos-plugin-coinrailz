@@ -344,6 +344,12 @@ export const insertFundingTransactionSchema = createInsertSchema(fundingTransact
   completedAt: true,
 });
 
+export const insertCryptoTransferSchema = createInsertSchema(cryptoTransfers).omit({
+  id: true,
+  createdAt: true,
+  confirmedAt: true,
+});
+
 // Enhanced wallet operation schemas
 export const walletDepositSchema = z.object({
   amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
@@ -389,6 +395,14 @@ export const sellCryptoSchema = z.object({
   pricePerCoin: z.string().refine((val) => parseFloat(val) > 0, "Price must be greater than 0"),
 });
 
+export const cryptoTransferSchema = z.object({
+  toWalletAddress: z.string().min(1, "Recipient wallet address is required"),
+  cryptoSymbol: z.string().min(1, "Cryptocurrency is required"),
+  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  blockchainNetwork: z.string().min(1, "Blockchain network is required"),
+  message: z.string().optional(),
+});
+
 // Legacy schemas for backward compatibility
 export const depositFundsSchema = walletDepositSchema;
 export const withdrawFundsSchema = walletWithdrawSchema;
@@ -423,3 +437,8 @@ export type WalletWithdraw = z.infer<typeof walletWithdrawSchema>;
 // Referral types
 export type Referral = typeof referrals.$inferSelect;
 export type InsertReferral = typeof referrals.$inferInsert;
+
+// Crypto transfer types
+export type CryptoTransfer = typeof cryptoTransfers.$inferSelect;
+export type InsertCryptoTransfer = z.infer<typeof insertCryptoTransferSchema>;
+export type CryptoTransferRequest = z.infer<typeof cryptoTransferSchema>;

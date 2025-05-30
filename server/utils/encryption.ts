@@ -1,15 +1,14 @@
 import crypto from 'crypto';
 
 export class EncryptionUtils {
-  private static readonly ALGORITHM = 'aes-256-gcm';
+  private static readonly ALGORITHM = 'aes-256-cbc';
   private static readonly KEY_LENGTH = 32;
   private static readonly IV_LENGTH = 16;
-  private static readonly TAG_LENGTH = 16;
 
   private static getEncryptionKey(): Buffer {
-    const key = process.env.ENCRYPTION_KEY;
-    if (!key) {
-      throw new Error('ENCRYPTION_KEY environment variable is required');
+    const key = process.env.ENCRYPTION_KEY || 'dev-key-change-in-production';
+    if (key === 'dev-key-change-in-production' && process.env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_KEY environment variable must be set in production');
     }
     return crypto.scryptSync(key, 'salt', this.KEY_LENGTH);
   }

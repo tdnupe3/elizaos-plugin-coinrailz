@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { complianceService } from "./services/complianceService";
 import { referralService } from "./services/referralService";
 import { EncryptionUtils } from "./utils/encryption";
+import { FeeCalculator } from "./utils/feeCalculator";
 import { sendMoneySchema } from "@shared/schema";
 import { z } from "zod";
 

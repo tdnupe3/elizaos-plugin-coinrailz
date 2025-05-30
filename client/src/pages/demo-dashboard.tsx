@@ -66,7 +66,7 @@ export default function DemoDashboard() {
   };
 
   const getChangeColor = (change: number) => {
-    return change >= 0 ? 'text-green-600' : 'text-red-600';
+    return change >= 0 ? 'text-blue-600' : 'text-slate-600';
   };
 
   const getChangeIcon = (change: number) => {
@@ -270,12 +270,12 @@ export default function DemoDashboard() {
             <CardContent>
               <div className="space-y-4">
                 {recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
                     <div className="flex items-center gap-3">
                       {transaction.type === 'receive' ? (
-                        <ArrowDown className="h-4 w-4 text-green-500" />
+                        <ArrowDown className="h-4 w-4 text-blue-600" />
                       ) : (
-                        <ArrowUp className="h-4 w-4 text-red-500" />
+                        <ArrowUp className="h-4 w-4 text-slate-600" />
                       )}
                       <div>
                         <p className="font-medium capitalize">{transaction.type}</p>
@@ -286,7 +286,7 @@ export default function DemoDashboard() {
                     </div>
                     <div className="text-right">
                       <p className={`font-medium ${
-                        transaction.type === 'receive' ? 'text-green-600' : 'text-red-600'
+                        transaction.type === 'receive' ? 'text-blue-600' : 'text-slate-600'
                       }`}>
                         {transaction.type === 'receive' ? '+' : '-'}{formatCurrency(transaction.amount)}
                       </p>
@@ -307,8 +307,8 @@ export default function DemoDashboard() {
                 {cryptoHoldings.slice(0, 5).map((holding) => (
                   <div key={holding.id} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium">{holding.coinSymbol}</span>
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium text-blue-600">{holding.coinSymbol}</span>
                       </div>
                       <div>
                         <p className="font-medium">{holding.coinName}</p>

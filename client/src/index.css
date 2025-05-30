@@ -112,6 +112,38 @@
   [class*="border-yellow"], [class*="border-amber"] {
     border-color: #e2e8f0 !important;
   }
+  
+  /* Target specific button variants that might have yellow */
+  button[variant="outline"]:hover,
+  button[variant="outline"]:focus,
+  .button:hover,
+  .button:focus {
+    background-color: #f1f5f9 !important;
+    border-color: #94a3b8 !important;
+    color: #475569 !important;
+  }
+  
+  /* Override any focus rings or outlines that turn yellow */
+  *:focus,
+  *:focus-within,
+  *:focus-visible {
+    outline-color: #94a3b8 !important;
+    border-color: #94a3b8 !important;
+    box-shadow: 0 0 0 2px #e2e8f0 !important;
+  }
+  
+  /* Target Tailwind CSS classes that might create yellow */
+  .ring-yellow-400,
+  .ring-yellow-500,
+  .ring-amber-400,
+  .ring-amber-500,
+  .border-yellow-400,
+  .border-yellow-500,
+  .border-amber-400,
+  .border-amber-500 {
+    border-color: #94a3b8 !important;
+    --tw-ring-color: #94a3b8 !important;
+  }
 
   /* Custom scrollbar */
   ::-webkit-scrollbar {

@@ -178,7 +178,7 @@ export default function SwapPage() {
               <Button
                 variant="outline"
                 size="icon"
-                className="rounded-full border-2"
+                className="rounded-full border-2 border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:border-gray-300 focus:ring-gray-200"
                 onClick={handleSwapTokens}
               >
                 <ArrowDownUp className="w-4 h-4" />

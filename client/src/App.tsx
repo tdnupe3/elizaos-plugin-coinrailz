@@ -16,6 +16,7 @@ import MainMenu from "@/pages/main-menu";
 import SwapPage from "@/pages/swap";
 import BuySellPage from "@/pages/buy-sell";
 import Referrals from "@/pages/referrals";
+import DemoTransactionHistory from "@/pages/demo-transaction-history";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -25,6 +26,7 @@ function Router() {
       {/* Guest-accessible routes */}
       <Route path="/swap" component={SwapPage} />
       <Route path="/demo" component={DemoDashboard} />
+      <Route path="/demo/history" component={DemoTransactionHistory} />
       
       {/* Regular routes */}
       {isLoading || !isAuthenticated ? (

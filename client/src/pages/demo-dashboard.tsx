@@ -17,13 +17,28 @@ const demoUser = {
 const demoCryptoHoldings = [
   { id: 1, coinSymbol: "BTC", coinName: "Bitcoin", amount: "0.05673421", currentPrice: 45000 },
   { id: 2, coinSymbol: "ETH", coinName: "Ethereum", amount: "1.23456789", currentPrice: 3200 },
-  { id: 3, coinSymbol: "ADA", coinName: "Cardano", amount: "2847.50000000", currentPrice: 0.85 }
+  { id: 3, coinSymbol: "ADA", coinName: "Cardano", amount: "2847.50000000", currentPrice: 0.85 },
+  { id: 4, coinSymbol: "DOT", coinName: "Polkadot", amount: "45.67890123", currentPrice: 25.30 },
+  { id: 5, coinSymbol: "USDC", coinName: "USD Coin", amount: "500.00000000", currentPrice: 1.00 }
+];
+
+const demoCryptoTransactions = [
+  { id: 1, type: "buy", coinSymbol: "BTC", amount: "0.02000000", price: 44500, date: "2025-01-29", total: 890.00 },
+  { id: 2, type: "sell", coinSymbol: "ETH", amount: "0.50000000", price: 3150, date: "2025-01-28", total: 1575.00 },
+  { id: 3, type: "buy", coinSymbol: "ADA", amount: "1000.00000000", price: 0.82, date: "2025-01-27", total: 820.00 },
+  { id: 4, type: "swap", fromCoin: "USDC", toCoin: "DOT", fromAmount: "1000.00", toAmount: "39.84", date: "2025-01-26" },
+  { id: 5, type: "buy", coinSymbol: "USDC", amount: "500.00000000", price: 1.00, date: "2025-01-25", total: 500.00 }
 ];
 
 const demoTransactions = [
-  { id: 1, type: "receive", email: "john.doe@email.com", amount: "150.00", date: "2025-01-30", message: "Coffee payment" },
-  { id: 2, type: "send", email: "sarah.smith@email.com", amount: "75.00", date: "2025-01-29", message: "Lunch split" },
-  { id: 3, type: "receive", email: "alex.wilson@email.com", amount: "250.00", date: "2025-01-28", message: "Freelance work" }
+  { id: 1, type: "receive", email: "john.doe@email.com", amount: "150.00", date: "2025-01-30", message: "Coffee payment", platform: "Zelle" },
+  { id: 2, type: "send", email: "sarah.smith@email.com", amount: "75.00", date: "2025-01-29", message: "Lunch split", platform: "PayPal" },
+  { id: 3, type: "receive", email: "alex.wilson@email.com", amount: "250.00", date: "2025-01-28", message: "Freelance work", platform: "Internal" },
+  { id: 4, type: "send", email: "mike.chen@email.com", amount: "320.50", date: "2025-01-27", message: "Rent payment", platform: "Zelle" },
+  { id: 5, type: "receive", email: "lisa.park@email.com", amount: "85.25", date: "2025-01-26", message: "Dinner split", platform: "CashApp" },
+  { id: 6, type: "send", email: "david.lee@email.com", amount: "45.00", date: "2025-01-25", message: "Uber ride share", platform: "PayPal" },
+  { id: 7, type: "receive", email: "emma.davis@email.com", amount: "500.00", date: "2025-01-24", message: "Project milestone", platform: "Internal" },
+  { id: 8, type: "send", email: "carlos.martinez@email.com", amount: "125.75", date: "2025-01-23", message: "Gym membership", platform: "Zelle" }
 ];
 
 const demoPrices = {
@@ -250,7 +265,10 @@ function DemoRecentActivity() {
                   {transaction.type === "send" ? "Sent to" : "Received from"} {transaction.email}
                 </p>
                 <p className="text-sm text-neutral-500">
-                  {transaction.date}
+                  {transaction.date} • {transaction.platform}
+                </p>
+                <p className="text-xs text-neutral-400">
+                  {transaction.message}
                 </p>
               </div>
               <div className="text-right">

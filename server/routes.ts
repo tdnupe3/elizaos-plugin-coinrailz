@@ -51,51 +51,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Transaction routes
+  // P2P Platform Detection and Transaction routes
+  app.post('/api/p2p/detect-platforms', isAuthenticated, async (req: any, res) => {
+    try {
+      const { email, phoneNumber } = req.body;
+
+      if (!email && !phoneNumber) {
+        return res.status(400).json({ message: "Email or phone number required" });
+      }
+
+      const platforms = await p2pPlatformService.detectAvailablePlatforms({
+        email,
+        phoneNumber,
+      });
+
+      res.json({ platforms });
+    } catch (error) {
+      console.error("Platform detection error:", error);
+      res.status(500).json({ message: "Failed to detect platforms" });
+    }
+  });
+
+  // Enhanced Send Money with Cross-Platform Support
   app.post('/api/transactions/send', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const validatedData = sendMoneySchema.parse(req.body);
-      
-      // Get sender
-      const sender = await storage.getUser(userId);
-      if (!sender) {
-        return res.status(404).json({ message: "User not found" });
+      const { toEmail, toPhoneNumber, amount, message, securityPin, selectedPlatform } = req.body;
+
+      // Validate input
+      if ((!toEmail && !toPhoneNumber) || !amount || !securityPin) {
+        return res.status(400).json({ message: "Missing required fields" });
       }
 
-      // Check balance
-      const currentBalance = parseFloat(sender.usdBalance || "0");
-      const transferAmount = parseFloat(validatedData.amount);
-      
-      if (currentBalance < transferAmount) {
-        return res.status(400).json({ message: "Insufficient balance" });
-      }
+      const transferRequest = {
+        userId,
+        recipient: {
+          email: toEmail,
+          phoneNumber: toPhoneNumber,
+        },
+        amount: parseFloat(amount),
+        selectedPlatform,
+        message,
+        securityPin,
+      };
 
-      // Validate security PIN (simplified - in real app would hash and compare)
-      if (sender.securityPin && sender.securityPin !== validatedData.securityPin) {
-        return res.status(400).json({ message: "Invalid security PIN" });
-      }
+      const result = await p2pPlatformService.initiateTransfer(transferRequest);
 
-      // Check if recipient exists
-      const recipient = await storage.getUser(validatedData.toEmail);
-      
-      // Create transaction
-      const transaction = await storage.createTransaction({
-        fromUserId: userId,
-        toUserId: recipient?.id || null,
-        toEmail: validatedData.toEmail,
-        amount: validatedData.amount,
-        message: validatedData.message,
-        transactionType: "send",
-        status: "completed",
+      res.json({
+        success: true,
+        ...result,
       });
+    } catch (error) {
+      console.error("Send money error:", error);
+      res.status(500).json({ 
+        message: error instanceof Error ? error.message : "Failed to send money" 
+      });
+    }
+  });
 
-      // Update sender balance
-      const newSenderBalance = (currentBalance - transferAmount).toFixed(2);
-      await storage.updateUserBalance(userId, newSenderBalance);
+  // Transaction Status Tracking
+  app.get('/api/transactions/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const status = await p2pPlatformService.getTransactionStatus(id);
+      res.json(status);
+    } catch (error) {
+      console.error("Transaction status error:", error);
+      res.status(500).json({ message: "Failed to get transaction status" });
+    }
+  });
 
-      // Update recipient balance if they exist
-      if (recipient) {
+  // Transaction listing
+  app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const transactions = await storage.getUserTransactions(userId);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      res.status(500).json({ message: "Failed to fetch transactions" });
+    }
+  });
         const recipientBalance = parseFloat(recipient.usdBalance || "0");
         const newRecipientBalance = (recipientBalance + transferAmount).toFixed(2);
         await storage.updateUserBalance(recipient.id, newRecipientBalance);

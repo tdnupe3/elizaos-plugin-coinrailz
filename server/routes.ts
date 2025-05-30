@@ -2,7 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { sendMoneySchema, buyCryptoSchema, sellCryptoSchema, depositFundsSchema, withdrawFundsSchema } from "@shared/schema";
+import { p2pPlatformService } from "./services/p2pPlatformService";
+import { buyCryptoSchema, sellCryptoSchema, depositFundsSchema, withdrawFundsSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -13,7 +14,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      
+      // If user doesn't exist, create from auth claims
+      if (!user) {
+        const claims = req.user.claims;
+        user = await storage.upsertUser({
+          id: userId,
+          email: claims.email,
+          firstName: claims.first_name,
+          lastName: claims.last_name,
+          profileImageUrl: claims.profile_image_url,
+          usdBalance: "1000.00", // Demo balance for testing
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);

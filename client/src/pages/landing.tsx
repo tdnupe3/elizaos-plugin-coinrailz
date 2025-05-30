@@ -14,7 +14,7 @@ export default function Landing() {
   };
 
   const handleGuestAccess = () => {
-    setLocation("/swap");
+    setLocation("/demo");
   };
 
   return (
@@ -68,23 +68,31 @@ export default function Landing() {
             <Button 
               onClick={handleGuestAccess}
               variant="ghost"
-              className="w-full text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-3 text-lg font-medium"
+              className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-3 text-lg font-medium border border-emerald-200"
               size="lg"
             >
-              Continue as Guest
+              Try Demo Mode
             </Button>
-            <p className="text-xs text-gray-500 text-center mt-1">
-              Try our crypto swap aggregator (no registration required)
+            <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
+              Test all features with demo data (no registration required)
             </p>
           </div>
         </div>
 
         {/* Footer Text */}
         <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">
-            Guest access provides limited features (DEX aggregator only)
-          </p>
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 mt-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800 font-medium mb-2">Demo Mode Features:</p>
+            <div className="text-xs text-blue-700 space-y-1">
+              <p>• Digital wallet with sample funds</p>
+              <p>• Send money transactions</p>
+              <p>• Buy/sell cryptocurrency</p>
+              <p>• Crypto swaps & price checking</p>
+              <p>• Transaction history</p>
+              <p>• All platform features available</p>
+            </div>
+          </div>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
             <p className="text-xs text-emerald-700 font-medium">
               ISO 20022 Compliant • FATF Travel Rule • Bank-Grade Security
             </p>

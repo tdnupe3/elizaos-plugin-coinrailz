@@ -9,9 +9,13 @@ import { useState } from "react";
 
 const chains = [
   { id: 'ethereum', name: 'Ethereum', symbol: 'ETH' },
+  { id: 'solana', name: 'Solana', symbol: 'SOL' },
   { id: 'polygon', name: 'Polygon', symbol: 'MATIC' },
   { id: 'bsc', name: 'BSC', symbol: 'BNB' },
-  { id: 'arbitrum', name: 'Arbitrum', symbol: 'ETH' }
+  { id: 'arbitrum', name: 'Arbitrum', symbol: 'ETH' },
+  { id: 'avalanche', name: 'Avalanche', symbol: 'AVAX' },
+  { id: 'cardano', name: 'Cardano', symbol: 'ADA' },
+  { id: 'polkadot', name: 'Polkadot', symbol: 'DOT' }
 ];
 
 const tokens = [
@@ -20,8 +24,14 @@ const tokens = [
   { symbol: 'USDT', name: 'Tether', chain: 'ethereum' },
   { symbol: 'WBTC', name: 'Wrapped Bitcoin', chain: 'ethereum' },
   { symbol: 'UNI', name: 'Uniswap', chain: 'ethereum' },
+  { symbol: 'SOL', name: 'Solana', chain: 'solana' },
+  { symbol: 'USDC', name: 'USD Coin', chain: 'solana' },
+  { symbol: 'RAY', name: 'Raydium', chain: 'solana' },
   { symbol: 'MATIC', name: 'Polygon', chain: 'polygon' },
-  { symbol: 'BNB', name: 'Binance Coin', chain: 'bsc' }
+  { symbol: 'BNB', name: 'Binance Coin', chain: 'bsc' },
+  { symbol: 'AVAX', name: 'Avalanche', chain: 'avalanche' },
+  { symbol: 'ADA', name: 'Cardano', chain: 'cardano' },
+  { symbol: 'DOT', name: 'Polkadot', chain: 'polkadot' }
 ];
 
 export default function SwapPage() {
@@ -254,26 +264,28 @@ export default function SwapPage() {
         </div>
 
         {/* Future Features */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle className="text-sm">Coming Soon</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm text-gray-600 space-y-2">
-              <p>• Multi-chain bridge functionality</p>
-              <p>• Advanced trading features</p>
-              <p>• Portfolio tracking</p>
-              <p>• Yield farming integration</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="max-w-md mx-auto mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Coming Soon</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-600 space-y-2">
+                <p>• Multi-chain bridge functionality</p>
+                <p>• Advanced trading features</p>
+                <p>• Portfolio tracking</p>
+                <p>• Yield farming integration</p>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* ISO Compliance Footer */}
-        <div className="mt-6 text-center">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 inline-block">
-            <p className="text-xs text-emerald-700 font-medium">
-              ISO 20022 Compliant Swaps • Cross-Chain Compliance
-            </p>
+          {/* ISO Compliance Footer */}
+          <div className="mt-6 text-center">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2 inline-block">
+              <p className="text-xs text-emerald-700 font-medium">
+                ISO 20022 Compliant Swaps • Cross-Chain Compliance
+              </p>
+            </div>
           </div>
         </div>
       </div>

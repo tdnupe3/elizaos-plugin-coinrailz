@@ -1,11 +1,13 @@
 import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { CryptoHoldings } from "@/components/crypto-holdings";
+import { WalletConnect } from "@/components/wallet-connect";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, TrendingUp, TrendingDown } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -156,14 +158,22 @@ export default function CryptoWallet() {
           <p className="text-neutral-500">Manage your cryptocurrency portfolio</p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="buy">Buy Crypto</TabsTrigger>
-            <TabsTrigger value="sell">Sell Crypto</TabsTrigger>
-          </TabsList>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Wallet Connect */}
+          <div className="lg:col-span-1">
+            <WalletConnect />
+          </div>
+          
+          {/* Main Trading Interface */}
+          <div className="lg:col-span-2">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="buy">Buy Crypto</TabsTrigger>
+                <TabsTrigger value="sell">Sell Crypto</TabsTrigger>
+              </TabsList>
 
-          {/* Market Prices */}
-          <Card>
+              {/* Market Prices */}
+              <Card>
             <CardHeader>
               <CardTitle>Market Prices</CardTitle>
             </CardHeader>
@@ -339,13 +349,9 @@ export default function CryptoWallet() {
                   </CardContent>
                 </Card>
               </TabsContent>
-            </div>
-            
-            <div>
-              <CryptoHoldings />
-            </div>
+            </Tabs>
           </div>
-        </Tabs>
+        </div>
         
         {/* ISO Compliance Footer */}
         <div className="mt-8 text-center">

@@ -94,12 +94,24 @@ export default function SwapPage() {
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Instructional Banner */}
+            <div className="bg-emerald-50 rounded-lg p-4 space-y-2 text-sm">
+              <h4 className="font-medium text-emerald-900">How DEX Aggregation Works:</h4>
+              <ul className="text-emerald-800 space-y-1">
+                <li>• We search multiple decentralized exchanges (Uniswap, SushiSwap, 1inch)</li>
+                <li>• Compare rates and find you the best price</li>
+                <li>• Execute trades with minimal slippage and gas fees</li>
+                <li>• All trades happen directly from your wallet</li>
+              </ul>
+            </div>
+
             {/* Chain Selection */}
             <div className="space-y-2">
               <Label>Select Chain</Label>
+              <p className="text-xs text-gray-500">Choose the blockchain network for your swap</p>
               <Select value={selectedChain} onValueChange={setSelectedChain}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select chain" />
+                  <SelectValue placeholder="Try selecting Ethereum" />
                 </SelectTrigger>
                 <SelectContent>
                   {chains.map((chain) => (
@@ -114,11 +126,12 @@ export default function SwapPage() {
             {/* Sell Token Section */}
             <div className="space-y-2">
               <Label>You Pay</Label>
+              <p className="text-xs text-gray-500">Enter the amount you want to swap</p>
               <div className="flex space-x-2">
                 <div className="flex-1">
                   <Input 
                     type="number"
-                    placeholder="0.0"
+                    placeholder="Try entering 1.0"
                     value={sellAmount}
                     onChange={(e) => setSellAmount(e.target.value)}
                   />

@@ -390,11 +390,28 @@ export default function DemoDashboard() {
                     Preview Mode
                   </Badge>
                 </div>
+                <p className="text-sm text-neutral-600 mt-2">
+                  Send money via Zelle, PayPal, Venmo, or Cash App. We automatically detect the best platform for each recipient.
+                </p>
               </CardHeader>
               <CardContent>
-                <div className="text-center py-8">
-                  <p className="text-neutral-600 mb-4">This is a preview of the send money feature</p>
-                  <Button onClick={() => window.location.href = "/api/login"}>
+                <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                  <h4 className="font-medium text-blue-900 mb-2">How it works:</h4>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Enter recipient's email or phone number</li>
+                    <li>• Choose amount and add optional message</li>
+                    <li>• We find the fastest, cheapest platform</li>
+                    <li>• Money arrives in minutes</li>
+                  </ul>
+                </div>
+                <div className="text-center py-4">
+                  <p className="text-neutral-600 mb-4">
+                    <strong>Demo Mode:</strong> Try entering "john@example.com" and "$25" to see the interface
+                  </p>
+                  <Button 
+                    onClick={() => window.location.href = "/api/login"}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
                     Sign Up to Send Real Money
                   </Button>
                 </div>

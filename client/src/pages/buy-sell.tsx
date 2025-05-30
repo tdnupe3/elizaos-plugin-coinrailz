@@ -72,7 +72,7 @@ export default function BuySellPage() {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Buy & Sell Crypto</h1>
-                <p className="text-gray-600">Convert between fiat and cryptocurrency</p>
+                <p className="text-gray-600">Convert between fiat and cryptocurrency with bank-grade security</p>
               </div>
             </div>
           </div>
@@ -93,18 +93,30 @@ export default function BuySellPage() {
           </TabsList>
 
           <TabsContent value="buy">
+            {/* Instructional Banner */}
+            <div className="bg-blue-50 rounded-lg p-4 mb-6">
+              <h3 className="font-medium text-blue-900 mb-2">How On-Ramp Works:</h3>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• Connect your bank account or debit card</li>
+                <li>• Choose cryptocurrency and amount</li>
+                <li>• We purchase crypto at market rates via licensed exchanges</li>
+                <li>• Crypto appears in your wallet within minutes</li>
+              </ul>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
                   <CardTitle>Buy Cryptocurrency</CardTitle>
-                  <p className="text-sm text-gray-600">Convert USD to crypto (1.5% fee)</p>
+                  <p className="text-sm text-gray-600">Convert USD to crypto with transparent 1% fee</p>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div>
                     <Label>Select Cryptocurrency</Label>
+                    <p className="text-xs text-gray-500">Choose from major cryptocurrencies with live pricing</p>
                     <Select value={selectedCrypto} onValueChange={setSelectedCrypto}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose cryptocurrency" />
+                        <SelectValue placeholder="Try selecting Bitcoin (BTC)" />
                       </SelectTrigger>
                       <SelectContent>
                         {cryptoCurrencies.map((crypto) => (

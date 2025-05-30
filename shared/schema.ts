@@ -298,9 +298,47 @@ export const insertCryptoTransactionSchema = createInsertSchema(cryptoTransactio
   createdAt: true,
 });
 
+// Wallet balance schemas
+export const insertWalletBalanceSchema = createInsertSchema(walletBalances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertFundingTransactionSchema = createInsertSchema(fundingTransactions).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+// Enhanced wallet operation schemas
+export const walletDepositSchema = z.object({
+  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  currency: z.string().min(1, "Currency is required"),
+  method: z.enum(["bank_transfer", "debit_card"]),
+  bankAccount: z.object({
+    routingNumber: z.string().length(9, "Routing number must be 9 digits"),
+    accountNumber: z.string().min(4, "Account number is required"),
+    accountType: z.enum(["checking", "savings"]),
+  }).optional(),
+});
+
+export const walletWithdrawSchema = z.object({
+  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  currency: z.string().min(1, "Currency is required"),
+  bankAccount: z.object({
+    routingNumber: z.string().length(9, "Routing number must be 9 digits"),
+    accountNumber: z.string().min(4, "Account number is required"),
+    accountType: z.enum(["checking", "savings"]),
+    accountHolderName: z.string().min(1, "Account holder name is required"),
+  }),
+  securityPin: z.string().length(6, "Security PIN must be 6 digits"),
+});
+
 export const sendMoneySchema = z.object({
   toEmail: z.string().email("Invalid email address"),
   amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  currency: z.string().default("USD"),
   message: z.string().optional(),
   securityPin: z.string().length(6, "Security PIN must be 6 digits"),
 });
@@ -318,16 +356,9 @@ export const sellCryptoSchema = z.object({
   pricePerCoin: z.string().refine((val) => parseFloat(val) > 0, "Price must be greater than 0"),
 });
 
-export const depositFundsSchema = z.object({
-  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
-  paymentMethod: z.enum(["bank_transfer", "debit_card", "credit_card"]),
-});
-
-export const withdrawFundsSchema = z.object({
-  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
-  bankAccount: z.string().min(1, "Bank account is required"),
-  securityPin: z.string().length(6, "Security PIN must be 6 digits"),
-});
+// Legacy schemas for backward compatibility
+export const depositFundsSchema = walletDepositSchema;
+export const withdrawFundsSchema = walletWithdrawSchema;
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;
@@ -348,8 +379,13 @@ export type InsertCryptoTransaction = z.infer<typeof insertCryptoTransactionSche
 export type SendMoney = z.infer<typeof sendMoneySchema>;
 export type BuyCrypto = z.infer<typeof buyCryptoSchema>;
 export type SellCrypto = z.infer<typeof sellCryptoSchema>;
-export type DepositFunds = z.infer<typeof depositFundsSchema>;
-export type WithdrawFunds = z.infer<typeof withdrawFundsSchema>;
+// Wallet types
+export type WalletBalance = typeof walletBalances.$inferSelect;
+export type InsertWalletBalance = z.infer<typeof insertWalletBalanceSchema>;
+export type FundingTransaction = typeof fundingTransactions.$inferSelect;
+export type InsertFundingTransaction = z.infer<typeof insertFundingTransactionSchema>;
+export type WalletDeposit = z.infer<typeof walletDepositSchema>;
+export type WalletWithdraw = z.infer<typeof walletWithdrawSchema>;
 
 // Referral types
 export type Referral = typeof referrals.$inferSelect;

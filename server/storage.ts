@@ -29,13 +29,24 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   
-  // Balance operations
-  updateUserBalance(userId: string, amount: string): Promise<User>;
+  // Digital Wallet operations
+  getUserWalletBalances(userId: string): Promise<WalletBalance[]>;
+  getWalletBalance(userId: string, currency: string): Promise<WalletBalance | undefined>;
+  createWalletBalance(wallet: InsertWalletBalance): Promise<WalletBalance>;
+  updateWalletBalance(userId: string, currency: string, amount: string, operation: 'add' | 'subtract'): Promise<WalletBalance>;
+  freezeWalletFunds(userId: string, currency: string, amount: string): Promise<void>;
+  unfreezeWalletFunds(userId: string, currency: string, amount: string): Promise<void>;
   
-  // Transaction operations
+  // Funding operations
+  createFundingTransaction(funding: InsertFundingTransaction): Promise<FundingTransaction>;
+  getUserFundingTransactions(userId: string, limit?: number): Promise<FundingTransaction[]>;
+  updateFundingTransactionStatus(id: number, status: string): Promise<void>;
+  
+  // Enhanced transaction operations
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getUserTransactions(userId: string, limit?: number): Promise<Transaction[]>;
   getTransactionById(id: number): Promise<Transaction | undefined>;
+  updateTransactionStatus(id: number, status: string): Promise<void>;
   
   // Crypto operations
   getUserCryptoHoldings(userId: string): Promise<CryptoHolding[]>;

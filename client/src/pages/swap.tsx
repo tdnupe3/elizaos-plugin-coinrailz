@@ -178,29 +178,28 @@ export default function SwapPage() {
             </div>
 
             {/* Swap Information */}
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+            <div className="bg-emerald-50 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">Exchange Rate:</span>
-                <span>1 {sellToken} = ~1,800 {buyToken}</span>
+                <span className="text-emerald-700">Exchange Rate:</span>
+                <span className="text-emerald-800 font-medium">1 {sellToken} = ~1,800 {buyToken}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Network Fee:</span>
-                <span>~$15.00</span>
+                <span className="text-emerald-700">Network Fee:</span>
+                <span className="text-emerald-800">~$15.00</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Money Railz Fee:</span>
-                <span>0.25%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Slippage:</span>
-                <span>0.5%</span>
+                <span className="text-emerald-700">Slippage:</span>
+                <span className="text-emerald-800">0.5%</span>
               </div>
               {sellAmount && (
-                <div className="flex justify-between font-medium pt-2 border-t">
-                  <span className="text-gray-900">Total Fee:</span>
-                  <span>${(parseFloat(sellAmount) * 1800 * 0.0025 + 15).toFixed(2)}</span>
+                <div className="flex justify-between font-medium pt-2 border-t border-emerald-200">
+                  <span className="text-emerald-800">You'll Receive:</span>
+                  <span className="text-emerald-800">${(parseFloat(sellAmount) * 1800 - 15 - parseFloat(sellAmount) * 1800 * 0.0025).toFixed(2)}</span>
                 </div>
               )}
+              <p className="text-xs text-gray-400 pt-1">
+                Service fee 0.25% included. Network fees vary.
+              </p>
             </div>
 
             {/* Swap Button */}

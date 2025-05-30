@@ -14,7 +14,7 @@ export default function MainMenu() {
       title: 'Send Money',
       description: 'Cross-platform P2P transfers',
       icon: Send,
-      color: 'bg-blue-600 hover:bg-blue-700',
+      color: 'bg-emerald-500 hover:bg-emerald-600',
       route: '/send'
     },
     {
@@ -22,7 +22,7 @@ export default function MainMenu() {
       title: 'Buy (On-Ramp)',
       description: 'Convert fiat to crypto',
       icon: TrendingUp,
-      color: 'bg-green-600 hover:bg-green-700',
+      color: 'bg-emerald-500 hover:bg-emerald-600',
       route: '/buy'
     },
     {
@@ -30,7 +30,7 @@ export default function MainMenu() {
       title: 'Sell (Off-Ramp)',
       description: 'Convert crypto to fiat',
       icon: TrendingDown,
-      color: 'bg-red-600 hover:bg-red-700',
+      color: 'bg-sky-500 hover:bg-sky-600',
       route: '/sell'
     },
     {
@@ -38,7 +38,7 @@ export default function MainMenu() {
       title: 'Swap (DEX)',
       description: 'DEX aggregator for crypto',
       icon: ArrowLeftRight,
-      color: 'bg-purple-600 hover:bg-purple-700',
+      color: 'bg-sky-500 hover:bg-sky-600',
       route: '/swap'
     }
   ];

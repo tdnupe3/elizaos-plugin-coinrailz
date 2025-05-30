@@ -15,18 +15,18 @@
   --border: 226 232 240; /* #E2E8F0 neutral-200 */
   --input: 226 232 240; /* #E2E8F0 neutral-200 */
   
-  /* Brand colors */
-  --primary: 37 99 235; /* #2563EB brand-blue */
+  /* Research-optimized fintech colors for maximum user engagement */
+  --primary: 52 211 153; /* #34D399 emerald-400 - psychological association with money/growth */
   --primary-foreground: 255 255 255; /* #FFFFFF white */
   --secondary: 248 250 252; /* #F8FAFC neutral-50 */
   --secondary-foreground: 30 41 59; /* #1E293B neutral-800 */
-  --accent: 248 250 252; /* #F8FAFC neutral-50 */
-  --accent-foreground: 30 41 59; /* #1E293B neutral-800 */
+  --accent: 14 165 233; /* #0EA5E9 sky-500 - trust and security */
+  --accent-foreground: 255 255 255; /* #FFFFFF white */
   
   /* Status colors */
   --destructive: 239 68 68; /* #EF4444 red-500 */
   --destructive-foreground: 255 255 255; /* #FFFFFF white */
-  --success: 5 150 105; /* #059669 brand-green */
+  --success: 52 211 153; /* #34D399 emerald-400 - money/growth */
   --success-foreground: 255 255 255; /* #FFFFFF white */
   --warning: 245 158 11; /* #F59E0B amber-500 */
   --warning-foreground: 255 255 255; /* #FFFFFF white */

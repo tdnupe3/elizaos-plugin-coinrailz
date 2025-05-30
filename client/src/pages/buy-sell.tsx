@@ -147,19 +147,14 @@ export default function BuySellPage() {
                   </div>
 
                   {selectedCrypto && amount && (
-                    <div className="bg-green-50 rounded-lg p-4 space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Crypto Value:</span>
-                        <span>${(parseFloat(amount) * getCryptoPrice(selectedCrypto)).toFixed(2)}</span>
+                    <div className="bg-emerald-50 rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between font-medium">
+                        <span className="text-emerald-800">Total Cost:</span>
+                        <span className="text-emerald-800 text-lg">${calculateBuyTotal().toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Money Railz Fee (1.5%):</span>
-                        <span>${(parseFloat(amount) * getCryptoPrice(selectedCrypto) * 0.015).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium pt-2 border-t border-green-200">
-                        <span className="text-gray-900">Total Cost:</span>
-                        <span>${calculateBuyTotal().toFixed(2)}</span>
-                      </div>
+                      <p className="text-xs text-gray-400">
+                        Includes 1.5% service fee. Final amount may vary based on market conditions.
+                      </p>
                     </div>
                   )}
 
@@ -252,19 +247,14 @@ export default function BuySellPage() {
                   </div>
 
                   {selectedCrypto && amount && (
-                    <div className="bg-red-50 rounded-lg p-4 space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Crypto Value:</span>
-                        <span>${(parseFloat(amount) * getCryptoPrice(selectedCrypto)).toFixed(2)}</span>
+                    <div className="bg-emerald-50 rounded-lg p-4 space-y-2">
+                      <div className="flex justify-between font-medium">
+                        <span className="text-emerald-800">You Receive:</span>
+                        <span className="text-emerald-800 text-lg">${calculateSellTotal().toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Money Railz Fee (2.5%):</span>
-                        <span>-${(parseFloat(amount) * getCryptoPrice(selectedCrypto) * 0.025).toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between font-medium pt-2 border-t border-red-200">
-                        <span className="text-gray-900">You Receive:</span>
-                        <span>${calculateSellTotal().toFixed(2)}</span>
-                      </div>
+                      <p className="text-xs text-gray-400">
+                        After 2.5% service fee. Processing time 1-3 business days.
+                      </p>
                     </div>
                   )}
 

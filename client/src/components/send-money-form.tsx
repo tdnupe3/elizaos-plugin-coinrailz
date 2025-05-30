@@ -121,19 +121,14 @@ export function SendMoneyForm() {
               
               {/* Fee Breakdown */}
               {form.watch("amount") && parseFloat(form.watch("amount")) > 0 && (
-                <div className="mt-4 bg-blue-50 rounded-lg p-3 space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Send Amount:</span>
-                    <span>${parseFloat(form.watch("amount")).toFixed(2)}</span>
+                <div className="mt-4 space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-emerald-700 font-medium">Total Cost:</span>
+                    <span className="text-emerald-700 font-semibold">${(parseFloat(form.watch("amount")) + parseFloat(form.watch("amount")) * 0.03 + 5).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Money Railz Fee (3% + $5):</span>
-                    <span>${(parseFloat(form.watch("amount")) * 0.03 + 5).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between font-medium pt-2 border-t border-blue-200">
-                    <span className="text-gray-900">Total Cost:</span>
-                    <span>${(parseFloat(form.watch("amount")) + parseFloat(form.watch("amount")) * 0.03 + 5).toFixed(2)}</span>
-                  </div>
+                  <p className="text-xs text-gray-400">
+                    Includes $5 + 3% processing fee. See terms for details.
+                  </p>
                 </div>
               )}
             </div>

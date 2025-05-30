@@ -198,6 +198,24 @@ export const referrals = pgTable("referrals", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const cryptoTransfers = pgTable("crypto_transfers", {
+  id: serial("id").primaryKey(),
+  fromUserId: varchar("from_user_id").notNull().references(() => users.id),
+  toUserId: varchar("to_user_id").references(() => users.id), // null for external wallet transfers
+  toWalletAddress: varchar("to_wallet_address").notNull(),
+  cryptoSymbol: varchar("crypto_symbol", { length: 10 }).notNull(),
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }).notNull().default("0.0025"), // 0.25%
+  commissionAmount: decimal("commission_amount", { precision: 18, scale: 8 }).notNull(),
+  netAmount: decimal("net_amount", { precision: 18, scale: 8 }).notNull(), // amount - commission
+  transactionHash: varchar("transaction_hash"),
+  blockchainNetwork: varchar("blockchain_network", { length: 50 }).notNull(),
+  status: varchar("status", { length: 50 }).notNull().default("pending"), // pending, confirmed, failed
+  message: text("message"), // optional message from sender
+  createdAt: timestamp("created_at").defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sentTransactions: many(transactions, { relationName: "sentTransactions" }),
@@ -206,6 +224,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   fundingTransactions: many(fundingTransactions),
   cryptoHoldings: many(cryptoHoldings),
   cryptoTransactions: many(cryptoTransactions),
+  sentCryptoTransfers: many(cryptoTransfers, { relationName: "sentCryptoTransfers" }),
+  receivedCryptoTransfers: many(cryptoTransfers, { relationName: "receivedCryptoTransfers" }),
   referralsSent: many(referrals, { relationName: "referrerReferrals" }),
   referralsReceived: many(referrals, { relationName: "refereeReferrals" }),
 }));
@@ -278,6 +298,19 @@ export const referralsRelations = relations(referrals, ({ one }) => ({
     fields: [referrals.refereeId],
     references: [users.id],
     relationName: "refereeReferrals",
+  }),
+}));
+
+export const cryptoTransfersRelations = relations(cryptoTransfers, ({ one }) => ({
+  fromUser: one(users, {
+    fields: [cryptoTransfers.fromUserId],
+    references: [users.id],
+    relationName: "sentCryptoTransfers",
+  }),
+  toUser: one(users, {
+    fields: [cryptoTransfers.toUserId],
+    references: [users.id],
+    relationName: "receivedCryptoTransfers",
   }),
 }));
 

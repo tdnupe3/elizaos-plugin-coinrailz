@@ -36,32 +36,47 @@ export default function Landing() {
         </div>
 
         {/* Authentication Options */}
-        <div className="space-y-4">
-          <Button 
-            onClick={handleSignIn}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
-            size="lg"
-          >
-            Sign In
-          </Button>
+        <div className="space-y-6">
+          <div>
+            <Button 
+              onClick={handleSignIn}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
+              size="lg"
+            >
+              Sign In
+            </Button>
+            <p className="text-xs text-gray-500 text-center mt-1">
+              Access your account and full features
+            </p>
+          </div>
           
-          <Button 
-            onClick={handleSignUp}
-            variant="outline"
-            className="w-full bg-gray-600 border-gray-600 text-white hover:bg-gray-700 py-3 text-lg font-medium"
-            size="lg"
-          >
-            Sign Up
-          </Button>
+          <div>
+            <Button 
+              onClick={handleSignUp}
+              variant="outline"
+              className="w-full bg-gray-600 border-gray-600 text-white hover:bg-gray-700 py-3 text-lg font-medium"
+              size="lg"
+            >
+              Sign Up
+            </Button>
+            <p className="text-xs text-gray-500 text-center mt-1">
+              Send money, buy/sell crypto, earn referral bonuses
+            </p>
+          </div>
           
-          <Button 
-            onClick={handleGuestAccess}
-            variant="ghost"
-            className="w-full text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-3 text-lg font-medium"
-            size="lg"
-          >
-            Continue as Guest
-          </Button>
+          <div>
+            <Button 
+              onClick={handleGuestAccess}
+              variant="ghost"
+              className="w-full text-gray-600 hover:text-gray-800 hover:bg-gray-50 py-3 text-lg font-medium"
+              size="lg"
+            >
+              Continue as Guest
+            </Button>
+            <p className="text-xs text-gray-500 text-center mt-1">
+              Try our crypto swap aggregator (no registration required)
+            </p>
+          </div>
         </div>
 
         {/* Footer Text */}

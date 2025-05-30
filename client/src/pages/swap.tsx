@@ -89,6 +89,9 @@ export default function SwapPage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-center">Swap Tokens</CardTitle>
+            <p className="text-sm text-gray-600 text-center mt-2">
+              Find the best rates across multiple decentralized exchanges
+            </p>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Chain Selection */}

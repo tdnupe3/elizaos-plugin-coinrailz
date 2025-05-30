@@ -12,7 +12,7 @@ export default function MainMenu() {
     {
       id: 'send',
       title: 'Send Money',
-      description: 'Cross-platform P2P transfers',
+      description: 'Instant P2P payments via Zelle, PayPal, Venmo & Cash App',
       icon: Send,
       color: 'bg-emerald-500 hover:bg-emerald-600',
       route: '/send'
@@ -20,7 +20,7 @@ export default function MainMenu() {
     {
       id: 'buy',
       title: 'Buy (On-Ramp)',
-      description: 'Convert fiat to crypto',
+      description: 'Convert USD to crypto with bank transfers or cards',
       icon: TrendingUp,
       color: 'bg-emerald-500 hover:bg-emerald-600',
       route: '/buy'
@@ -73,8 +73,30 @@ export default function MainMenu() {
         </div>
       </div>
 
-      {/* Main Menu */}
-      <div className="max-w-4xl mx-auto px-4 py-12">
+      {/* Platform Overview */}
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
+          <h2 className="text-lg font-semibold text-emerald-900 mb-3">Your Complete Fintech Platform</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-emerald-800">
+            <div>
+              <h4 className="font-medium mb-2">Money Transfer:</h4>
+              <ul className="space-y-1">
+                <li>• Send money via 4 platforms automatically</li>
+                <li>• Instant delivery with transparent fees</li>
+                <li>• Compliance with all banking regulations</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-medium mb-2">Crypto Gateway:</h4>
+              <ul className="space-y-1">
+                <li>• Buy/sell crypto with bank integration</li>
+                <li>• DEX aggregation for best swap rates</li>
+                <li>• Professional-grade security & custody</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {mainActions.map((action) => (
             <Card 

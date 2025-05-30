@@ -23,6 +23,9 @@ import {
   type InsertCryptoTransaction,
   type Referral,
   type InsertReferral,
+  cryptoTransfers,
+  type CryptoTransfer,
+  type InsertCryptoTransfer,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql } from "drizzle-orm";
@@ -75,6 +78,11 @@ export interface IStorage {
   updateReferralStatus(referralId: number, status: string): Promise<void>;
   incrementUserReferralCount(userId: string): Promise<void>;
   addReferralBonus(userId: string, amount: number): Promise<void>;
+  
+  // Crypto transfer operations
+  createCryptoTransfer(transfer: InsertCryptoTransfer): Promise<CryptoTransfer>;
+  getUserCryptoTransfers(userId: string, limit?: number): Promise<CryptoTransfer[]>;
+  updateCryptoTransferStatus(id: number, status: string, transactionHash?: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -386,6 +394,35 @@ export class DatabaseStorage implements IStorage {
         usdBalance: sql`${users.usdBalance} + ${amount}`
       })
       .where(eq(users.id, userId));
+  }
+
+  // Crypto transfer operations
+  async createCryptoTransfer(transfer: InsertCryptoTransfer): Promise<CryptoTransfer> {
+    const [cryptoTransfer] = await db
+      .insert(cryptoTransfers)
+      .values(transfer)
+      .returning();
+    return cryptoTransfer;
+  }
+
+  async getUserCryptoTransfers(userId: string, limit: number = 10): Promise<CryptoTransfer[]> {
+    return await db
+      .select()
+      .from(cryptoTransfers)
+      .where(or(eq(cryptoTransfers.fromUserId, userId), eq(cryptoTransfers.toUserId, userId)))
+      .orderBy(desc(cryptoTransfers.createdAt))
+      .limit(limit);
+  }
+
+  async updateCryptoTransferStatus(id: number, status: string, transactionHash?: string): Promise<void> {
+    await db
+      .update(cryptoTransfers)
+      .set({ 
+        status,
+        transactionHash,
+        confirmedAt: status === "confirmed" ? new Date() : undefined
+      })
+      .where(eq(cryptoTransfers.id, id));
   }
 }
 

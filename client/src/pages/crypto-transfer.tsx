@@ -116,7 +116,7 @@ export default function CryptoTransferPage() {
   const watchNetwork = form.watch('blockchainNetwork');
 
   // Calculate fees when amount or network changes
-  useState(() => {
+  useEffect(() => {
     if (watchAmount && watchNetwork) {
       const amount = parseFloat(watchAmount);
       const network = supportedNetworks.find(n => n.id === watchNetwork);
@@ -127,7 +127,7 @@ export default function CryptoTransferPage() {
         setCalculatedFees({ commission, gasFee, total });
       }
     }
-  });
+  }, [watchAmount, watchNetwork]);
 
   const getFilteredTokens = (networkId: string) => {
     return cryptoTokens.filter(token => 

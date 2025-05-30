@@ -68,12 +68,12 @@ export default function Landing() {
             <Button 
               onClick={() => setLocation("/swap")}
               variant="ghost"
-              className="w-full text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-3 text-lg font-medium border border-purple-200"
+              className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-3 text-lg font-medium border border-blue-200"
               size="lg"
             >
               Continue as Guest
             </Button>
-            <p className="text-xs text-purple-600 text-center mt-1 font-medium">
+            <p className="text-xs text-blue-600 text-center mt-1 font-medium">
               Access DEX aggregator instantly (no registration required)
             </p>
           </div>

@@ -145,7 +145,7 @@ export default function FundsManagement() {
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'pending':
       case 'processing':
-        return <Clock className="h-4 w-4 text-orange-500" />;
+        return <Clock className="h-4 w-4 text-slate-500" />;
       default:
         return <Clock className="h-4 w-4 text-gray-400" />;
     }

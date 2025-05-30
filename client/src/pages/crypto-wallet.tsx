@@ -82,8 +82,8 @@ export default function CryptoWallet() {
                     ].map((coin) => (
                       <div key={coin.symbol} className="flex items-center justify-between p-4 border rounded-lg hover:bg-neutral-50 transition-colors">
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                            <span className="font-bold text-orange-600">{coin.symbol}</span>
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="font-bold text-blue-600">{coin.symbol}</span>
                           </div>
                           <div>
                             <p className="font-medium">{coin.name}</p>
@@ -172,9 +172,9 @@ export default function CryptoWallet() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
-                      <div className="bg-orange-50 rounded-lg p-4 space-y-2 text-sm">
-                        <h4 className="font-medium text-orange-900">How Crypto Selling Works:</h4>
-                        <ul className="text-orange-800 space-y-1">
+                      <div className="bg-blue-50 rounded-lg p-4 space-y-2 text-sm">
+                        <h4 className="font-medium text-blue-900">How Crypto Selling Works:</h4>
+                        <ul className="text-blue-800 space-y-1">
                           <li>• Your wallet must be connected to access your holdings</li>
                           <li>• Select the cryptocurrency you want to sell</li>
                           <li>• Choose your preferred payout method (bank transfer, etc.)</li>

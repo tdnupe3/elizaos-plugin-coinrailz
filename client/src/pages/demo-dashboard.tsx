@@ -242,21 +242,37 @@ export default function DemoDashboard() {
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
+            <Button 
+              className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
+              variant="outline"
+              onClick={() => setLocation('/send-money')}
+            >
               <Send className="h-6 w-6" />
               <span className="text-sm">Send Money</span>
             </Button>
-            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
+            <Button 
+              className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
+              variant="outline"
+              onClick={() => setLocation('/buy-sell')}
+            >
               <Download className="h-6 w-6" />
               <span className="text-sm">Buy Crypto</span>
             </Button>
-            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
+            <Button 
+              className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
+              variant="outline"
+              onClick={() => setLocation('/buy-sell')}
+            >
+              <ArrowLeftRight className="h-6 w-6" />
+              <span className="text-sm">Sell Crypto</span>
+            </Button>
+            <Button 
+              className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
+              variant="outline"
+              onClick={() => setLocation('/swap')}
+            >
               <ArrowLeftRight className="h-6 w-6" />
               <span className="text-sm">Swap</span>
-            </Button>
-            <Button className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" variant="outline">
-              <Wallet className="h-6 w-6" />
-              <span className="text-sm">Manage Funds</span>
             </Button>
           </div>
         </div>

@@ -45,6 +45,10 @@ export const users = pgTable("users", {
   ssn: varchar("ssn"), // Encrypted in production
   address: jsonb("address"), // Store address components
   phoneNumber: varchar("phone_number"),
+  referralCode: varchar("referral_code").unique(),
+  referredBy: varchar("referred_by"),
+  referralBonus: decimal("referral_bonus", { precision: 10, scale: 2 }).default("0.00"),
+  totalReferrals: integer("total_referrals").default(0),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -132,12 +136,26 @@ export const kycVerifications = pgTable("kyc_verifications", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const referrals = pgTable("referrals", {
+  id: serial("id").primaryKey(),
+  referrerId: varchar("referrer_id").references(() => users.id),
+  refereeId: varchar("referee_id").references(() => users.id),
+  referralCode: varchar("referral_code").notNull(),
+  status: varchar("status").default("pending"), // pending, completed, paid
+  bonusAmount: decimal("bonus_amount", { precision: 10, scale: 2 }).default("15.00"),
+  completedAt: timestamp("completed_at"),
+  paidAt: timestamp("paid_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sentTransactions: many(transactions, { relationName: "sentTransactions" }),
   receivedTransactions: many(transactions, { relationName: "receivedTransactions" }),
   cryptoHoldings: many(cryptoHoldings),
   cryptoTransactions: many(cryptoTransactions),
+  referralsSent: many(referrals, { relationName: "referrerReferrals" }),
+  referralsReceived: many(referrals, { relationName: "refereeReferrals" }),
 }));
 
 export const transactionsRelations = relations(transactions, ({ one }) => ({
@@ -164,6 +182,19 @@ export const cryptoTransactionsRelations = relations(cryptoTransactions, ({ one 
   user: one(users, {
     fields: [cryptoTransactions.userId],
     references: [users.id],
+  }),
+}));
+
+export const referralsRelations = relations(referrals, ({ one }) => ({
+  referrer: one(users, {
+    fields: [referrals.referrerId],
+    references: [users.id],
+    relationName: "referrerReferrals",
+  }),
+  referee: one(users, {
+    fields: [referrals.refereeId],
+    references: [users.id],
+    relationName: "refereeReferrals",
   }),
 }));
 
@@ -229,3 +260,7 @@ export type BuyCrypto = z.infer<typeof buyCryptoSchema>;
 export type SellCrypto = z.infer<typeof sellCryptoSchema>;
 export type DepositFunds = z.infer<typeof depositFundsSchema>;
 export type WithdrawFunds = z.infer<typeof withdrawFundsSchema>;
+
+// Referral types
+export type Referral = typeof referrals.$inferSelect;
+export type InsertReferral = typeof referrals.$inferInsert;

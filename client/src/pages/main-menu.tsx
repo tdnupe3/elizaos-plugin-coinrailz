@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Send, TrendingUp, TrendingDown, ArrowLeftRight } from "lucide-react";
+import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -40,6 +40,14 @@ export default function MainMenu() {
       icon: ArrowLeftRight,
       color: 'bg-sky-500 hover:bg-sky-600',
       route: '/swap'
+    },
+    {
+      id: 'referrals',
+      title: 'Referrals',
+      description: 'Earn $15 for each friend',
+      icon: Users,
+      color: 'bg-purple-500 hover:bg-purple-600',
+      route: '/referrals'
     }
   ];
 

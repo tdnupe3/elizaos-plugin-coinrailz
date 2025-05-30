@@ -17,6 +17,9 @@ export default function Referrals() {
     queryKey: ["/api/referrals/stats"],
   });
 
+  // Type-safe access to referral stats
+  const stats = referralStats || {};
+
   const generateCodeMutation = useMutation({
     mutationFn: () => apiRequest("POST", "/api/referrals/generate-code"),
     onSuccess: (response) => {
@@ -64,7 +67,7 @@ export default function Referrals() {
   };
 
   const shareReferral = () => {
-    const referralUrl = `${window.location.origin}?ref=${referralStats?.referralCode}`;
+    const referralUrl = `${window.location.origin}?ref=${(stats as any)?.referralCode}`;
     if (navigator.share) {
       navigator.share({
         title: "Join Coin Railz",
@@ -116,7 +119,7 @@ export default function Referrals() {
                       Total Referrals
                     </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {referralStats?.totalReferrals || 0}
+                      {(stats as any)?.totalReferrals || 0}
                     </p>
                   </div>
                 </div>

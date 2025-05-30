@@ -15,6 +15,7 @@ import DemoDashboard from "@/pages/demo-dashboard";
 import MainMenu from "@/pages/main-menu";
 import SwapPage from "@/pages/swap";
 import BuySellPage from "@/pages/buy-sell";
+import Referrals from "@/pages/referrals";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -37,6 +38,7 @@ function Router() {
           <Route path="/crypto" component={CryptoWallet} />
           <Route path="/history" component={TransactionHistory} />
           <Route path="/funds" component={FundsManagement} />
+          <Route path="/referrals" component={Referrals} />
         </>
       )}
       <Route component={NotFound} />

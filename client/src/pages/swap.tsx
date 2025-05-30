@@ -105,7 +105,7 @@ export default function SwapPage() {
           
           {/* Swap Interface */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="bg-white">
           <CardHeader>
             <CardTitle className="text-center">Swap Tokens</CardTitle>
             <p className="text-sm text-gray-600 text-center mt-2">
@@ -265,7 +265,7 @@ export default function SwapPage() {
 
         {/* Future Features */}
         <div className="max-w-md mx-auto mt-6">
-          <Card>
+          <Card className="bg-white">
             <CardHeader>
               <CardTitle className="text-sm">Coming Soon</CardTitle>
             </CardHeader>

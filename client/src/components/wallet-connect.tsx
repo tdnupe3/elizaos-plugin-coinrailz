@@ -134,7 +134,7 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
                 onClick={connectSolanaWallet}
                 disabled={isConnecting}
                 variant="outline"
-                className="w-full"
+                className="w-full bg-white hover:bg-gray-50"
               >
                 <Wallet className="w-4 h-4 mr-2" />
                 Phantom (Solana)
@@ -144,7 +144,7 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
                 onClick={connectXRPWallet}
                 disabled={isConnecting}
                 variant="outline"
-                className="w-full"
+                className="w-full bg-white hover:bg-gray-50"
               >
                 <Wallet className="w-4 h-4 mr-2" />
                 XUMM (XRP Ledger)

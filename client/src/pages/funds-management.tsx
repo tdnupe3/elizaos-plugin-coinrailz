@@ -241,7 +241,7 @@ export default function FundsManagement() {
                           />
                         </div>
                         <p className="text-sm text-neutral-500 mt-2">
-                          Available: {user?.usdBalance ? `$${parseFloat(user.usdBalance).toFixed(2)}` : "$0.00"}
+                          Available: {(user as any)?.usdBalance ? `$${parseFloat((user as any).usdBalance).toFixed(2)}` : "$0.00"}
                         </p>
                         {withdrawForm.formState.errors.amount && (
                           <p className="text-sm text-red-500 mt-1">{withdrawForm.formState.errors.amount.message}</p>
@@ -306,7 +306,7 @@ export default function FundsManagement() {
                   <div className="flex justify-between items-center">
                     <span className="text-neutral-600">Current Balance</span>
                     <span className="font-semibold text-lg">
-                      {user?.usdBalance ? `$${parseFloat(user.usdBalance).toFixed(2)}` : "$0.00"}
+                      {(user as any)?.usdBalance ? `$${parseFloat((user as any).usdBalance).toFixed(2)}` : "$0.00"}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">

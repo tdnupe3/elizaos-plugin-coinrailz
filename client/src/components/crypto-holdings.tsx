@@ -92,7 +92,7 @@ export function CryptoHoldings() {
               </div>
             ))}
           </div>
-        ) : !holdings || holdings.length === 0 ? (
+        ) : !holdings || !Array.isArray(holdings) || holdings.length === 0 ? (
           <div className="text-center py-8">
             <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Bitcoin className="w-6 h-6 text-purple-600" />
@@ -107,7 +107,7 @@ export function CryptoHoldings() {
           </div>
         ) : (
           <div className="space-y-4">
-            {holdings.map((holding: CryptoHolding) => {
+            {Array.isArray(holdings) && holdings.map((holding: CryptoHolding) => {
               const change = getChangePercentage(holding.coinSymbol);
               const value = calculateValue(holding);
               

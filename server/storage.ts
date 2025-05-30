@@ -3,6 +3,9 @@ import {
   transactions,
   cryptoHoldings,
   cryptoTransactions,
+  complianceReports,
+  apiIntegrationLogs,
+  kycVerifications,
   type User,
   type UpsertUser,
   type Transaction,
@@ -36,6 +39,12 @@ export interface IStorage {
   updateCryptoHolding(userId: string, coinSymbol: string, amount: string): Promise<CryptoHolding | undefined>;
   createCryptoTransaction(transaction: InsertCryptoTransaction): Promise<CryptoTransaction>;
   getUserCryptoTransactions(userId: string, limit?: number): Promise<CryptoTransaction[]>;
+  
+  // Compliance operations
+  createComplianceReport(report: any): Promise<any>;
+  createAPILog(log: any): Promise<any>;
+  createKYCVerification(verification: any): Promise<any>;
+  updateUserKYCStatus(userId: string, status: string): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -154,6 +163,43 @@ export class DatabaseStorage implements IStorage {
       .where(eq(cryptoTransactions.userId, userId))
       .orderBy(desc(cryptoTransactions.createdAt))
       .limit(limit);
+  }
+
+  // Compliance operations
+  async createComplianceReport(report: any): Promise<any> {
+    const [newReport] = await db
+      .insert(complianceReports)
+      .values(report)
+      .returning();
+    return newReport;
+  }
+
+  async createAPILog(log: any): Promise<any> {
+    const [newLog] = await db
+      .insert(apiIntegrationLogs)
+      .values(log)
+      .returning();
+    return newLog;
+  }
+
+  async createKYCVerification(verification: any): Promise<any> {
+    const [newVerification] = await db
+      .insert(kycVerifications)
+      .values(verification)
+      .returning();
+    return newVerification;
+  }
+
+  async updateUserKYCStatus(userId: string, status: string): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        kycStatus: status,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updatedUser;
   }
 }
 

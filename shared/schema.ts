@@ -5,6 +5,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
   serial,
   decimal,
   integer,
@@ -53,17 +54,66 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Digital Wallet Balances - Support multiple currencies
+export const walletBalances = pgTable("wallet_balances", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  currency: varchar("currency").notNull(), // USD, BTC, ETH, etc.
+  balance: decimal("balance", { precision: 20, scale: 8 }).default("0.00000000"),
+  availableBalance: decimal("available_balance", { precision: 20, scale: 8 }).default("0.00000000"), // Balance minus pending transactions
+  frozenBalance: decimal("frozen_balance", { precision: 20, scale: 8 }).default("0.00000000"), // Compliance holds
+  walletAddress: varchar("wallet_address"), // For crypto currencies
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userCurrencyIndex: index("user_currency_idx").on(table.userId, table.currency),
+}));
+
+// Enhanced transaction records with wallet integration
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   fromUserId: varchar("from_user_id").references(() => users.id),
   toUserId: varchar("to_user_id").references(() => users.id),
   toEmail: varchar("to_email"), // For sending to non-users
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
   currency: varchar("currency").default("USD"),
   message: text("message"),
-  status: varchar("status").default("completed"), // pending, completed, failed
-  transactionType: varchar("transaction_type").notNull(), // send, receive, deposit, withdrawal
+  status: varchar("status").default("pending"), // pending, processing, completed, failed, cancelled
+  transactionType: varchar("transaction_type").notNull(), // send, receive, deposit, withdrawal, swap
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
+  exchangeRate: decimal("exchange_rate", { precision: 18, scale: 8 }), // For currency conversions
+  externalTransactionId: varchar("external_transaction_id"),
+  failureReason: varchar("failure_reason"),
+  fromWalletId: integer("from_wallet_id").references(() => walletBalances.id),
+  toWalletId: integer("to_wallet_id").references(() => walletBalances.id),
+  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Deposit/Withdrawal tracking
+export const fundingTransactions = pgTable("funding_transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  walletId: integer("wallet_id").references(() => walletBalances.id).notNull(),
+  type: varchar("type").notNull(), // deposit, withdrawal
+  method: varchar("method").notNull(), // bank_transfer, debit_card, crypto_deposit, crypto_withdrawal
+  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
+  currency: varchar("currency").notNull(),
+  status: varchar("status").default("pending"), // pending, processing, completed, failed, cancelled
+  externalTransactionId: varchar("external_transaction_id"),
+  bankAccount: jsonb("bank_account"), // Bank details for ACH
+  cryptoAddress: varchar("crypto_address"), // For crypto deposits/withdrawals
+  networkFee: decimal("network_fee", { precision: 20, scale: 8 }).default("0.00000000"),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
+  expectedConfirmations: integer("expected_confirmations").default(0),
+  currentConfirmations: integer("current_confirmations").default(0),
+  transactionHash: varchar("transaction_hash"), // Blockchain transaction hash
+  failureReason: varchar("failure_reason"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
 });
 
 export const cryptoHoldings = pgTable("crypto_holdings", {
@@ -152,10 +202,22 @@ export const referrals = pgTable("referrals", {
 export const usersRelations = relations(users, ({ many }) => ({
   sentTransactions: many(transactions, { relationName: "sentTransactions" }),
   receivedTransactions: many(transactions, { relationName: "receivedTransactions" }),
+  walletBalances: many(walletBalances),
+  fundingTransactions: many(fundingTransactions),
   cryptoHoldings: many(cryptoHoldings),
   cryptoTransactions: many(cryptoTransactions),
   referralsSent: many(referrals, { relationName: "referrerReferrals" }),
   referralsReceived: many(referrals, { relationName: "refereeReferrals" }),
+}));
+
+export const walletBalancesRelations = relations(walletBalances, ({ one, many }) => ({
+  user: one(users, {
+    fields: [walletBalances.userId],
+    references: [users.id],
+  }),
+  fromTransactions: many(transactions, { relationName: "fromWalletTransactions" }),
+  toTransactions: many(transactions, { relationName: "toWalletTransactions" }),
+  fundingTransactions: many(fundingTransactions),
 }));
 
 export const transactionsRelations = relations(transactions, ({ one }) => ({
@@ -168,6 +230,27 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
     fields: [transactions.toUserId],
     references: [users.id],
     relationName: "receivedTransactions",
+  }),
+  fromWallet: one(walletBalances, {
+    fields: [transactions.fromWalletId],
+    references: [walletBalances.id],
+    relationName: "fromWalletTransactions",
+  }),
+  toWallet: one(walletBalances, {
+    fields: [transactions.toWalletId],
+    references: [walletBalances.id],
+    relationName: "toWalletTransactions",
+  }),
+}));
+
+export const fundingTransactionsRelations = relations(fundingTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [fundingTransactions.userId],
+    references: [users.id],
+  }),
+  wallet: one(walletBalances, {
+    fields: [fundingTransactions.walletId],
+    references: [walletBalances.id],
   }),
 }));
 

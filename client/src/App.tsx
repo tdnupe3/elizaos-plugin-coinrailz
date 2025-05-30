@@ -10,6 +10,7 @@ import Dashboard from "@/pages/dashboard";
 import SendMoney from "@/pages/send-money";
 import CryptoWallet from "@/pages/crypto-wallet";
 import TransactionHistory from "@/pages/transaction-history";
+import FundsManagement from "@/pages/funds-management";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,6 +25,7 @@ function Router() {
           <Route path="/send" component={SendMoney} />
           <Route path="/crypto" component={CryptoWallet} />
           <Route path="/history" component={TransactionHistory} />
+          <Route path="/funds" component={FundsManagement} />
         </>
       )}
       <Route component={NotFound} />

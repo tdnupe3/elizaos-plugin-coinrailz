@@ -12,10 +12,14 @@ const supportedChains = [
   // EVM Compatible Chains
   { id: 1, name: 'Ethereum', symbol: 'ETH', color: 'bg-blue-500', type: 'evm' },
   { id: 137, name: 'Polygon', symbol: 'MATIC', color: 'bg-purple-500', type: 'evm' },
-  { id: 56, name: 'BSC', symbol: 'BNB', color: 'bg-orange-500', type: 'evm' },
+  { id: 56, name: 'BSC', symbol: 'BNB', color: 'bg-slate-500', type: 'evm' },
   { id: 42161, name: 'Arbitrum', symbol: 'ETH', color: 'bg-cyan-500', type: 'evm' },
-  { id: 10, name: 'Optimism', symbol: 'ETH', color: 'bg-red-500', type: 'evm' },
-  { id: 43114, name: 'Avalanche', symbol: 'AVAX', color: 'bg-red-600', type: 'evm' },
+  { id: 10, name: 'Optimism', symbol: 'ETH', color: 'bg-slate-500', type: 'evm' },
+  { id: 43114, name: 'Avalanche', symbol: 'AVAX', color: 'bg-slate-600', type: 'evm' },
+  
+  // Bitcoin Networks
+  { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', color: 'bg-orange-500', type: 'bitcoin' },
+  { id: 'lightning', name: 'Lightning Network', symbol: 'BTC', color: 'bg-yellow-500', type: 'bitcoin' },
   
   // Non-EVM L1 Chains
   { id: 'solana', name: 'Solana', symbol: 'SOL', color: 'bg-purple-600', type: 'solana' },
@@ -66,6 +70,30 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
       setWalletAddress('rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH');
       setCurrentChain('xrp');
       setWalletType('XUMM');
+      setIsConnecting(false);
+    }, 1500);
+  };
+
+  const connectBitcoinWallet = async () => {
+    setIsConnecting(true);
+    
+    setTimeout(() => {
+      setIsConnected(true);
+      setWalletAddress('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh');
+      setCurrentChain('bitcoin');
+      setWalletType('Bitcoin Wallet');
+      setIsConnecting(false);
+    }, 1500);
+  };
+
+  const connectOtherWallet = async () => {
+    setIsConnecting(true);
+    
+    setTimeout(() => {
+      setIsConnected(true);
+      setWalletAddress('0x742d35Cc5059C6532C8A9c2E5E5F2d0a12E45cF73');
+      setCurrentChain(1);
+      setWalletType('Other Wallet');
       setIsConnecting(false);
     }, 1500);
   };
@@ -148,6 +176,26 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
               >
                 <Wallet className="w-4 h-4 mr-2" />
                 XUMM (XRP Ledger)
+              </Button>
+              
+              <Button 
+                onClick={connectBitcoinWallet}
+                disabled={isConnecting}
+                variant="outline"
+                className="w-full bg-white hover:bg-gray-50"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Bitcoin Wallets
+              </Button>
+              
+              <Button 
+                onClick={connectOtherWallet}
+                disabled={isConnecting}
+                variant="outline"
+                className="w-full bg-white hover:bg-gray-50"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Other Wallets
               </Button>
             </div>
             
@@ -237,6 +285,10 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
                 if (walletType === 'Phantom') return chain.type === 'solana';
                 // Show only XRP if connected to XUMM
                 if (walletType === 'XUMM') return chain.type === 'xrpl';
+                // Show only Bitcoin networks if connected to Bitcoin Wallet
+                if (walletType === 'Bitcoin Wallet') return chain.type === 'bitcoin';
+                // Show all chains if connected to Other Wallet
+                if (walletType === 'Other Wallet') return true;
                 return true;
               }).map((chain) => (
                 <Button

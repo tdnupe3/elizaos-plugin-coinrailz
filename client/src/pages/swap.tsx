@@ -56,7 +56,7 @@ export default function SwapPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-200">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-6">
@@ -129,12 +129,12 @@ export default function SwapPage() {
               <Label>Select Chain</Label>
               <p className="text-xs text-gray-500">Choose the blockchain network for your swap</p>
               <Select value={selectedChain} onValueChange={setSelectedChain}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white border-gray-300">
                   <SelectValue placeholder="Try selecting Ethereum" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white">
                   {chains.map((chain) => (
-                    <SelectItem key={chain.id} value={chain.id}>
+                    <SelectItem key={chain.id} value={chain.id} className="bg-white hover:bg-gray-100">
                       {chain.name} ({chain.symbol})
                     </SelectItem>
                   ))}
@@ -153,16 +153,17 @@ export default function SwapPage() {
                     placeholder="Try entering 1.0"
                     value={sellAmount}
                     onChange={(e) => setSellAmount(e.target.value)}
+                    className="bg-white border-gray-300"
                   />
                 </div>
                 <div className="w-32">
                   <Select value={sellToken} onValueChange={setSellToken}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white">
                       {getFilteredTokens(selectedChain).map((token) => (
-                        <SelectItem key={token.symbol} value={token.symbol}>
+                        <SelectItem key={token.symbol} value={token.symbol} className="bg-white hover:bg-gray-100">
                           {token.symbol}
                         </SelectItem>
                       ))}
@@ -194,11 +195,12 @@ export default function SwapPage() {
                     placeholder="0.0"
                     value={buyAmount}
                     onChange={(e) => setBuyAmount(e.target.value)}
+                    className="bg-white border-gray-300"
                   />
                 </div>
                 <div className="w-32">
                   <Select value={buyToken} onValueChange={setBuyToken}>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-white border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

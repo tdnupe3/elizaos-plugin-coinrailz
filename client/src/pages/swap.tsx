@@ -188,9 +188,19 @@ export default function SwapPage() {
                 <span>~$15.00</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-gray-600">Money Railz Fee:</span>
+                <span>0.25%</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-gray-600">Slippage:</span>
                 <span>0.5%</span>
               </div>
+              {sellAmount && (
+                <div className="flex justify-between font-medium pt-2 border-t">
+                  <span className="text-gray-900">Total Fee:</span>
+                  <span>${(parseFloat(sellAmount) * 1800 * 0.0025 + 15).toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             {/* Swap Button */}

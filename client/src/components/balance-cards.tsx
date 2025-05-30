@@ -58,13 +58,14 @@ export function BalanceCards() {
           <div className="flex space-x-2">
             <Button 
               className="flex-1 bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
-              onClick={() => setLocation("/send")}
+              onClick={() => setLocation("/funds?action=deposit")}
             >
               Add Money
             </Button>
             <Button 
               variant="outline"
               className="flex-1 text-sm font-medium"
+              onClick={() => setLocation("/funds?action=withdraw")}
             >
               Withdraw
             </Button>
@@ -97,13 +98,14 @@ export function BalanceCards() {
           <div className="flex space-x-2">
             <Button 
               className="flex-1 bg-purple-600 text-white hover:bg-purple-700 text-sm font-medium"
-              onClick={() => setLocation("/crypto")}
+              onClick={() => setLocation("/crypto?action=buy")}
             >
               Buy Crypto
             </Button>
             <Button 
               variant="outline"
               className="flex-1 text-sm font-medium"
+              onClick={() => setLocation("/crypto?action=sell")}
             >
               Sell
             </Button>

@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { sendMoneySchema, buyCryptoSchema } from "@shared/schema";
+import { sendMoneySchema, buyCryptoSchema, sellCryptoSchema, depositFundsSchema, withdrawFundsSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -213,6 +213,169 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching crypto transactions:", error);
       res.status(500).json({ message: "Failed to fetch crypto transactions" });
+    }
+  });
+
+  // Sell crypto endpoint
+  app.post('/api/crypto/sell', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = sellCryptoSchema.parse(req.body);
+      
+      // Get user and their crypto holdings
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const holdings = await storage.getUserCryptoHoldings(userId);
+      const holding = holdings.find(h => h.coinSymbol === validatedData.coinSymbol);
+      
+      if (!holding) {
+        return res.status(400).json({ message: "You don't own this cryptocurrency" });
+      }
+
+      const sellAmount = parseFloat(validatedData.amount);
+      const currentAmount = parseFloat(holding.amount);
+      
+      if (currentAmount < sellAmount) {
+        return res.status(400).json({ message: "Insufficient crypto balance" });
+      }
+
+      const pricePerCoin = parseFloat(validatedData.pricePerCoin);
+      const totalValue = sellAmount * pricePerCoin;
+
+      // Update crypto holding
+      const newAmount = (currentAmount - sellAmount).toString();
+      if (parseFloat(newAmount) > 0) {
+        await storage.updateCryptoHolding(userId, validatedData.coinSymbol, newAmount);
+      } else {
+        // Remove holding if amount becomes 0 (would need to implement this in storage)
+        await storage.updateCryptoHolding(userId, validatedData.coinSymbol, "0");
+      }
+
+      // Create crypto transaction
+      await storage.createCryptoTransaction({
+        userId,
+        coinSymbol: validatedData.coinSymbol,
+        transactionType: "sell",
+        amount: validatedData.amount,
+        pricePerCoin: validatedData.pricePerCoin,
+        totalValue: totalValue.toString(),
+        status: "completed",
+      });
+
+      // Update user USD balance
+      const currentBalance = parseFloat(user.usdBalance || "0");
+      const newBalance = (currentBalance + totalValue).toFixed(2);
+      await storage.updateUserBalance(userId, newBalance);
+
+      res.json({ 
+        success: true, 
+        message: "Crypto sold successfully",
+        usdReceived: totalValue.toFixed(2)
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      console.error("Error selling crypto:", error);
+      res.status(500).json({ message: "Failed to sell crypto" });
+    }
+  });
+
+  // Deposit funds endpoint
+  app.post('/api/funds/deposit', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = depositFundsSchema.parse(req.body);
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const depositAmount = parseFloat(validatedData.amount);
+      
+      // Create deposit transaction
+      await storage.createTransaction({
+        fromUserId: null,
+        toUserId: userId,
+        toEmail: user.email || "",
+        amount: validatedData.amount,
+        message: `Deposit via ${validatedData.paymentMethod.replace('_', ' ')}`,
+        transactionType: "deposit",
+        status: "completed",
+      });
+
+      // Update user balance
+      const currentBalance = parseFloat(user.usdBalance || "0");
+      const newBalance = (currentBalance + depositAmount).toFixed(2);
+      await storage.updateUserBalance(userId, newBalance);
+
+      res.json({ 
+        success: true, 
+        message: "Funds deposited successfully",
+        newBalance: newBalance
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      console.error("Error depositing funds:", error);
+      res.status(500).json({ message: "Failed to deposit funds" });
+    }
+  });
+
+  // Withdraw funds endpoint
+  app.post('/api/funds/withdraw', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = withdrawFundsSchema.parse(req.body);
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const withdrawAmount = parseFloat(validatedData.amount);
+      const currentBalance = parseFloat(user.usdBalance || "0");
+      
+      if (currentBalance < withdrawAmount) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+
+      // Validate security PIN
+      if (user.securityPin && user.securityPin !== validatedData.securityPin) {
+        return res.status(400).json({ message: "Invalid security PIN" });
+      }
+
+      // Create withdrawal transaction
+      await storage.createTransaction({
+        fromUserId: userId,
+        toUserId: null,
+        toEmail: validatedData.bankAccount,
+        amount: validatedData.amount,
+        message: "Withdrawal to bank account",
+        transactionType: "withdrawal",
+        status: "completed",
+      });
+
+      // Update user balance
+      const newBalance = (currentBalance - withdrawAmount).toFixed(2);
+      await storage.updateUserBalance(userId, newBalance);
+
+      res.json({ 
+        success: true, 
+        message: "Withdrawal processed successfully",
+        newBalance: newBalance
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      console.error("Error withdrawing funds:", error);
+      res.status(500).json({ message: "Failed to process withdrawal" });
     }
   });
 

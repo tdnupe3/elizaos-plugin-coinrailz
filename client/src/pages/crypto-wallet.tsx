@@ -11,7 +11,7 @@ import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { buyCryptoSchema, type BuyCrypto } from "@shared/schema";
+import { buyCryptoSchema, sellCryptoSchema, type BuyCrypto, type SellCrypto } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -20,16 +20,40 @@ export default function CryptoWallet() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [selectedCoin, setSelectedCoin] = useState<string>("");
+  const [selectedSellCoin, setSelectedSellCoin] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("buy");
+
+  // Get URL params to determine initial tab
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const action = urlParams.get("action");
+    if (action === "sell") {
+      setActiveTab("sell");
+    }
+  }, []);
 
   const { data: prices } = useQuery({
     queryKey: ["/api/crypto/prices"],
   });
 
-  const form = useForm<BuyCrypto>({
+  const { data: holdings } = useQuery({
+    queryKey: ["/api/crypto/holdings"],
+  });
+
+  const buyForm = useForm<BuyCrypto>({
     resolver: zodResolver(buyCryptoSchema),
     defaultValues: {
       coinSymbol: "",
       coinName: "",
+      amount: "",
+      pricePerCoin: "",
+    },
+  });
+
+  const sellForm = useForm<SellCrypto>({
+    resolver: zodResolver(sellCryptoSchema),
+    defaultValues: {
+      coinSymbol: "",
       amount: "",
       pricePerCoin: "",
     },

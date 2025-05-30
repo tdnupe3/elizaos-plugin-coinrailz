@@ -142,6 +142,23 @@ export const buyCryptoSchema = z.object({
   pricePerCoin: z.string().refine((val) => parseFloat(val) > 0, "Price must be greater than 0"),
 });
 
+export const sellCryptoSchema = z.object({
+  coinSymbol: z.string().min(1, "Coin symbol is required"),
+  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  pricePerCoin: z.string().refine((val) => parseFloat(val) > 0, "Price must be greater than 0"),
+});
+
+export const depositFundsSchema = z.object({
+  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  paymentMethod: z.enum(["bank_transfer", "debit_card", "credit_card"]),
+});
+
+export const withdrawFundsSchema = z.object({
+  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  bankAccount: z.string().min(1, "Bank account is required"),
+  securityPin: z.string().length(6, "Security PIN must be 6 digits"),
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -153,3 +170,6 @@ export type CryptoTransaction = typeof cryptoTransactions.$inferSelect;
 export type InsertCryptoTransaction = z.infer<typeof insertCryptoTransactionSchema>;
 export type SendMoney = z.infer<typeof sendMoneySchema>;
 export type BuyCrypto = z.infer<typeof buyCryptoSchema>;
+export type SellCrypto = z.infer<typeof sellCryptoSchema>;
+export type DepositFunds = z.infer<typeof depositFundsSchema>;
+export type WithdrawFunds = z.infer<typeof withdrawFundsSchema>;

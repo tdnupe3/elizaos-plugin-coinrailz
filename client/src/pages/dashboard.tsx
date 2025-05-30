@@ -6,6 +6,7 @@ import { RecentActivity } from "@/components/recent-activity";
 import { CryptoHoldings } from "@/components/crypto-holdings";
 import { SecurityBanner } from "@/components/security-banner";
 import { AdBanner } from "@/components/ad-banner";
+import { WalletConnect } from "@/components/wallet-connect";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Dashboard() {
@@ -33,6 +34,7 @@ export default function Dashboard() {
           </div>
           
           <div className="space-y-6">
+            <WalletConnect />
             <RecentActivity />
             <CryptoHoldings />
           </div>

@@ -39,20 +39,20 @@ export default function Landing() {
 
           {/* Authentication Options */}
           <div className="space-y-6">
-          <div>
-            <Button 
-              onClick={handleSignIn}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
-              size="lg"
-            >
-              Sign In
-            </Button>
-            <p className="text-xs text-gray-500 text-center mt-1">
-              Access your account and full features
-            </p>
-          </div>
-          
-          <div>
+            <div>
+              <Button 
+                onClick={handleSignIn}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 text-lg font-medium"
+                size="lg"
+              >
+                Sign In
+              </Button>
+              <p className="text-xs text-gray-500 text-center mt-1">
+                Access your account and full features
+              </p>
+            </div>
+            
+            <div>
             <Button 
               onClick={handleSignUp}
               variant="outline"

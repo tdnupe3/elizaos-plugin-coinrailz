@@ -23,6 +23,7 @@ import DemoTransactionHistory from "@/pages/demo-transaction-history";
 import CryptoTransferPage from "@/pages/crypto-transfer";
 import PortfolioAnalytics from "@/pages/portfolio-analytics";
 import DemoCryptoTransfer from "@/pages/demo-crypto-transfer";
+import SettingsPage from "@/pages/settings";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -54,6 +55,7 @@ function Router() {
           <Route path="/history" component={TransactionHistory} />
           <Route path="/funds" component={FundsManagement} />
           <Route path="/referrals" component={Referrals} />
+          <Route path="/settings" component={SettingsPage} />
         </>
       )}
       <Route component={NotFound} />

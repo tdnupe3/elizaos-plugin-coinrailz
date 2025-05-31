@@ -5,24 +5,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Smartphone, Mail, Key, Copy, CheckCircle } from "lucide-react";
+import { Shield, Smartphone, Mail, CheckCircle, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 interface MfaMethod {
   id: number;
   type: string;
-  identifier?: string;
-  isActive: boolean;
-  isVerified: boolean;
+  isEnabled: boolean;
   lastUsed?: string;
-}
-
-interface TotpSetup {
-  secret: string;
-  qrCodeUrl: string;
-  manualEntryKey: string;
 }
 
 export default function MfaSetup() {

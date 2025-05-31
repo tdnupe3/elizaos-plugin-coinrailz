@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { loggingService } from "./services/loggingService";
 import { complianceService } from "./services/complianceService";
 import { referralService } from "./services/referralService";
 import { FeeCalculator } from "./utils/feeCalculator";
@@ -17,6 +18,28 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Logging middleware for API calls
+  app.use((req, res, next) => {
+    const startTime = Date.now();
+    
+    res.on('finish', () => {
+      const responseTime = Date.now() - startTime;
+      const userId = (req as any).user?.claims?.sub;
+      
+      loggingService.logAPICall(
+        req.path,
+        req.method,
+        res.statusCode,
+        responseTime,
+        userId,
+        req.body,
+        res.statusCode >= 400 ? { error: res.statusMessage } : undefined
+      );
+    });
+    
+    next();
+  });
+
   // Auth middleware
   await setupAuth(app);
 
@@ -408,6 +431,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error calculating fee:", error);
       res.status(500).json({ message: "Failed to calculate fee" });
+    }
+  });
+
+  // System monitoring and health endpoints
+  app.get('/api/system/health', async (req, res) => {
+    try {
+      const health = await loggingService.getSystemHealth();
+      res.json(health);
+    } catch (error) {
+      await loggingService.log('ERROR', 'Health check failed', { error: error.message });
+      res.status(500).json({ status: 'unhealthy', error: 'Health check failed' });
+    }
+  });
+
+  app.get('/api/system/logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const { level, count = 100 } = req.query;
+      const logs = level 
+        ? loggingService.getLogsByLevel(level as any, parseInt(count))
+        : loggingService.getRecentLogs(parseInt(count));
+      
+      res.json({ logs });
+    } catch (error) {
+      await loggingService.log('ERROR', 'Failed to retrieve logs', { error: error.message });
+      res.status(500).json({ message: 'Failed to retrieve logs' });
+    }
+  });
+
+  app.get('/api/system/metrics', isAuthenticated, async (req, res) => {
+    try {
+      const metrics = {
+        uptime: process.uptime(),
+        memoryUsage: process.memoryUsage(),
+        cpuUsage: process.cpuUsage(),
+        timestamp: new Date().toISOString(),
+      };
+      
+      res.json(metrics);
+    } catch (error) {
+      await loggingService.log('ERROR', 'Failed to retrieve metrics', { error: error.message });
+      res.status(500).json({ message: 'Failed to retrieve metrics' });
     }
   });
 

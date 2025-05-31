@@ -15,7 +15,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
     window.location.href = "/api/logout";
   };
 
-  const getInitials = (firstName?: string, lastName?: string) => {
+  const getInitials = (firstName?: string | null, lastName?: string | null) => {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase() || "U";
   };
 

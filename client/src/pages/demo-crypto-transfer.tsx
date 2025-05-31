@@ -88,23 +88,34 @@ export default function DemoCryptoTransfer() {
     setShowFlowOrchestrator(false);
   };
 
-    // Add to transfers
-    const newTransfer = {
-      id: transfers.length + 1,
-      crypto: selectedCrypto,
-      amount: amount,
-      recipient: recipientAddress,
-      status: "CONFIRMED",
-      hash: mockHash,
-      date: new Date().toISOString().split('T')[0],
-      network: DEMO_CRYPTO_HOLDINGS[selectedCrypto as keyof typeof DEMO_CRYPTO_HOLDINGS]?.network || ""
-    };
+  const handleTransferSubmit = () => {
+    setIsSubmitting(true);
+    setTransferStatus("PROCESSING");
+    
+    // Generate mock hash
+    const mockHash = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    setTransactionHash(mockHash);
 
-    setTransfers(prev => [newTransfer, ...prev]);
-    setTransferStatus("CONFIRMED");
-    setIsSubmitting(false);
+    setTimeout(() => {
+      // Add to transfers
+      const newTransfer = {
+        id: transfers.length + 1,
+        crypto: selectedCrypto,
+        amount: amount,
+        recipient: recipientAddress,
+        status: "CONFIRMED",
+        hash: mockHash,
+        date: new Date().toISOString().split('T')[0],
+        network: DEMO_CRYPTO_HOLDINGS[selectedCrypto as keyof typeof DEMO_CRYPTO_HOLDINGS]?.network || ""
+      };
 
-    // Reset form after 5 seconds
+      setTransfers(prev => [newTransfer, ...prev]);
+      setTransferStatus("CONFIRMED");
+      setIsSubmitting(false);
+    }, 2000);
+  };
+
+  const resetForm = () => {
     setTimeout(() => {
       setTransferStatus("");
       setTransactionHash("");
@@ -349,5 +360,3 @@ export default function DemoCryptoTransfer() {
     </div>
   );
 }
-
-export default DemoCryptoTransfer;

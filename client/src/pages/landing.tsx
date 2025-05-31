@@ -97,7 +97,7 @@ export default function Landing() {
 
           {/* Footer Text */}
           <div className="text-center mt-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
               <p className="text-sm text-purple-800 font-medium mb-2">Guest Access:</p>
               <div className="text-xs text-purple-700 space-y-1">
@@ -123,6 +123,7 @@ export default function Landing() {
             <p className="text-xs text-blue-700 font-medium">
               ISO 20022 Compliant • FATF Travel Rule • Bank-Grade Security
             </p>
+            </div>
           </div>
         </div>
       </div>

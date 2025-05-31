@@ -129,11 +129,21 @@ export default function DemoBuySell() {
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="buy" style={{ backgroundColor: activeTab === 'buy' ? '#2563eb' : 'white', color: activeTab === 'buy' ? 'white' : '#374151' }}>
+                    <TabsTrigger value="buy" style={{ 
+                      backgroundColor: activeTab === 'buy' ? '#2563eb' : 'white', 
+                      color: activeTab === 'buy' ? 'white' : '#374151',
+                      borderColor: '#d1d5db',
+                      border: '1px solid #d1d5db'
+                    }}>
                       <TrendingUp className="w-4 h-4 mr-2" />
                       Buy
                     </TabsTrigger>
-                    <TabsTrigger value="sell" style={{ backgroundColor: activeTab === 'sell' ? '#2563eb' : 'white', color: activeTab === 'sell' ? 'white' : '#374151' }}>
+                    <TabsTrigger value="sell" style={{ 
+                      backgroundColor: activeTab === 'sell' ? '#2563eb' : 'white', 
+                      color: activeTab === 'sell' ? 'white' : '#374151',
+                      borderColor: '#d1d5db',
+                      border: '1px solid #d1d5db'
+                    }}>
                       <TrendingDown className="w-4 h-4 mr-2" />
                       Sell
                     </TabsTrigger>

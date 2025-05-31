@@ -131,6 +131,31 @@
     border-color: #94a3b8 !important;
     box-shadow: 0 0 0 2px #e2e8f0 !important;
   }
+
+  /* Specifically target tabs to prevent yellow borders */
+  [data-state="active"],
+  [role="tab"][data-state="active"] {
+    border-color: #2563eb !important;
+    background-color: #2563eb !important;
+    color: white !important;
+  }
+
+  [data-state="inactive"],
+  [role="tab"][data-state="inactive"] {
+    border-color: #d1d5db !important;
+    background-color: white !important;
+    color: #374151 !important;
+  }
+
+  /* Force override tab trigger styling */
+  button[role="tab"] {
+    border-color: #d1d5db !important;
+  }
+
+  button[role="tab"]:focus {
+    border-color: #2563eb !important;
+    outline-color: #2563eb !important;
+  }
   
   /* Target Tailwind CSS classes that might create yellow */
   .ring-yellow-400,

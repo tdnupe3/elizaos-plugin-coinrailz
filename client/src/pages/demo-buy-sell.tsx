@@ -29,15 +29,18 @@ export default function DemoBuySell() {
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showFlowOrchestrator, setShowFlowOrchestrator] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsSubmitting(false);
+    if (!amount || !selectedCrypto) {
+      return;
+    }
+    setShowFlowOrchestrator(true);
+  };
+
+  const handleTransactionComplete = () => {
+    setShowFlowOrchestrator(false);
     setShowSuccess(true);
     
     // Reset after 3 seconds
@@ -46,6 +49,10 @@ export default function DemoBuySell() {
       setAmount("");
       setSelectedCrypto("");
     }, 3000);
+  };
+
+  const handleTransactionCancel = () => {
+    setShowFlowOrchestrator(false);
   };
 
   const calculateTotal = () => {
@@ -337,6 +344,32 @@ export default function DemoBuySell() {
           </div>
         </div>
       </div>
+
+      {/* Transaction Flow Orchestrator */}
+      {showFlowOrchestrator && (
+        <TransactionFlowOrchestrator
+          isOpen={showFlowOrchestrator}
+          onClose={handleTransactionCancel}
+          flowConfig={{
+            type: activeTab === 'buy' ? 'onramp' : 'offramp',
+            data: {
+              amount,
+              selectedCrypto,
+              transactionType: activeTab,
+              cryptoPrice: DEMO_CRYPTO_PRICES[selectedCrypto]?.price || 0,
+              ...calculateTotal(),
+              isDemoMode: true
+            },
+            steps: [
+              { id: 'validate', name: 'Validate Transaction', status: 'pending', description: 'Verifying transaction details' },
+              { id: 'safety', name: 'Safety Confirmation', status: 'pending', description: 'User safety acknowledgment' },
+              { id: 'kyc', name: 'KYC Verification', status: 'pending', description: 'Identity verification check' },
+              { id: 'payment', name: 'Payment Processing', status: 'pending', description: `Processing ${activeTab === 'buy' ? 'purchase' : 'sale'}` },
+              { id: 'confirmation', name: 'Confirmation', status: 'pending', description: 'Transaction completed' }
+            ]
+          }}
+        />
+      )}
     </div>
   );
 }

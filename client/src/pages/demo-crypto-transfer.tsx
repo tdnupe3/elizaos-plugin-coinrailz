@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowLeft, Send, Wallet, AlertCircle, CheckCircle, Clock, ExternalLink } from "lucide-react";
 import { useLocation } from "wouter";
+import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
 
 const DEMO_CRYPTO_HOLDINGS = {
   BTC: { name: "Bitcoin", balance: "0.05673421", symbol: "₿", network: "Bitcoin", fee: "0.00015000" },

@@ -279,19 +279,28 @@ export default function DemoSendMoney() {
       {/* Transaction Flow Orchestrator */}
       {showFlowOrchestrator && (
         <TransactionFlowOrchestrator
-          transactionType="send_money"
-          transactionData={{
-            amount,
-            recipient,
-            recipientPlatform,
-            method,
-            message,
-            fee: calculateFee(),
-            total: parseFloat(amount) + calculateFee()
+          isOpen={showFlowOrchestrator}
+          onClose={handleTransactionCancel}
+          flowConfig={{
+            type: 'p2p_transfer',
+            data: {
+              amount,
+              recipient,
+              recipientPlatform,
+              method,
+              message,
+              fee: calculateFee(),
+              total: parseFloat(amount) + calculateFee(),
+              isDemoMode: true
+            },
+            steps: [
+              { id: 'validate', name: 'Validate Transaction', status: 'pending', description: 'Verifying transaction details' },
+              { id: 'safety', name: 'Safety Confirmation', status: 'pending', description: 'User safety acknowledgment' },
+              { id: 'platform', name: 'Platform Connection', status: 'pending', description: `Connecting to ${recipientPlatform}` },
+              { id: 'transfer', name: 'Execute Transfer', status: 'pending', description: 'Processing money transfer' },
+              { id: 'confirmation', name: 'Confirmation', status: 'pending', description: 'Transaction completed' }
+            ]
           }}
-          onComplete={handleTransactionComplete}
-          onCancel={handleTransactionCancel}
-          isDemoMode={true}
         />
       )}
     </div>

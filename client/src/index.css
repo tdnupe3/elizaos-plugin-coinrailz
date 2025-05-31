@@ -33,6 +33,11 @@
   
   --ring: 37 99 235; /* #2563EB brand-blue */
   --radius: 0.5rem;
+  
+  /* Override default component library colors */
+  --yellow: 37 99 235; /* Replace yellow with blue */
+  --amber: 37 99 235; /* Replace amber with blue */
+  --orange: 37 99 235; /* Replace orange with blue */
 }
 
 .dark {
@@ -72,56 +77,10 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Override all yellow/amber colors with blue/gray */
-  * {
-    --tw-ring-color: #2563eb !important;
-    --tw-ring-offset-color: #ffffff !important;
-  }
-
-  /* Force focus states to use blue */
-  *:focus,
+  /* Clean component styling */
   *:focus-visible {
-    outline: 2px solid #2563eb !important;
-    outline-offset: 2px !important;
-    border-color: #2563eb !important;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2) !important;
-  }
-
-  /* Override any yellow/amber ring colors */
-  .ring-yellow-400,
-  .ring-yellow-500,
-  .ring-amber-400,
-  .ring-amber-500 {
-    --tw-ring-color: #2563eb !important;
-  }
-
-  /* Override any yellow/amber border colors */
-  .border-yellow-400,
-  .border-yellow-500,
-  .border-amber-400,
-  .border-amber-500 {
-    border-color: #d1d5db !important;
-  }
-
-  /* Tabs component specific override */
-  [data-state="active"] {
-    background-color: #2563eb !important;
-    color: white !important;
-    border-color: #2563eb !important;
-  }
-
-  [data-state="inactive"] {
-    background-color: white !important;
-    color: #374151 !important;
-    border-color: #d1d5db !important;
-  }
-
-  /* Button focus states */
-  button:focus,
-  button:focus-visible {
-    outline: 2px solid #2563eb !important;
-    outline-offset: 2px !important;
-    border-color: #2563eb !important;
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   /* Custom scrollbar */

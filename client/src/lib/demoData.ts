@@ -22,16 +22,16 @@ export const DEMO_WALLET_BALANCES = [
 ];
 
 export const DEMO_CRYPTO_HOLDINGS = [
-  { id: 1, coinSymbol: "BTC", coinName: "Bitcoin", amount: "0.05673421", currentPrice: 45000, value: 2553.04 },
-  { id: 2, coinSymbol: "ETH", coinName: "Ethereum", amount: "1.23456789", currentPrice: 3200, value: 3950.62 },
-  { id: 3, coinSymbol: "ADA", coinName: "Cardano", amount: "2847.50000000", currentPrice: 0.85, value: 2420.38 },
-  { id: 4, coinSymbol: "DOT", coinName: "Polkadot", amount: "45.67890123", currentPrice: 25.30, value: 1155.18 },
-  { id: 5, coinSymbol: "USDC", coinName: "USD Coin", amount: "500.00000000", currentPrice: 1.00, value: 500.00 }
+  { id: 101, coinSymbol: "BTC", coinName: "Bitcoin", amount: "0.05673421", currentPrice: 45000, value: 2553.04 },
+  { id: 102, coinSymbol: "ETH", coinName: "Ethereum", amount: "1.23456789", currentPrice: 3200, value: 3950.62 },
+  { id: 103, coinSymbol: "ADA", coinName: "Cardano", amount: "2847.50000000", currentPrice: 0.85, value: 2420.38 },
+  { id: 104, coinSymbol: "DOT", coinName: "Polkadot", amount: "45.67890123", currentPrice: 25.30, value: 1155.18 },
+  { id: 105, coinSymbol: "USDC", coinName: "USD Coin", amount: "500.00000000", currentPrice: 1.00, value: 500.00 }
 ];
 
 export const DEMO_TRANSACTIONS = [
   { 
-    id: 1, 
+    id: 201, 
     type: "receive", 
     amount: "150.00", 
     currency: "USD",
@@ -44,7 +44,7 @@ export const DEMO_TRANSACTIONS = [
     fee: "0.00"
   },
   { 
-    id: 2, 
+    id: 202, 
     type: "send", 
     amount: "75.00", 
     currency: "USD",

@@ -72,37 +72,10 @@
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
   }
 
-  /* Override yellow focus rings with blue */
+  /* Clean focus styles */
   *:focus-visible {
-    @apply ring-2 ring-blue-600 ring-offset-2;
-  }
-  
-  /* Remove overly aggressive overrides that break visibility */
-  
-  /* Targeted yellow override - only for tabs */
-  [data-state="active"] {
-    border-color: #2563eb !important;
-    background-color: #2563eb !important;
-    color: white !important;
-  }
-
-  [data-state="inactive"] {
-    border-color: #d1d5db !important;
-    background-color: white !important;
-    color: #374151 !important;
-  }
-  
-  /* Target Tailwind CSS classes that might create yellow */
-  .ring-yellow-400,
-  .ring-yellow-500,
-  .ring-amber-400,
-  .ring-amber-500,
-  .border-yellow-400,
-  .border-yellow-500,
-  .border-amber-400,
-  .border-amber-500 {
-    border-color: #94a3b8 !important;
-    --tw-ring-color: #94a3b8 !important;
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
   }
 
   /* Custom scrollbar */

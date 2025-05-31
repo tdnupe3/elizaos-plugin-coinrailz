@@ -128,12 +128,12 @@ export default function DemoBuySell() {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-2 bg-gray-100 rounded-lg">
-                    <TabsTrigger value="buy" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-gray-700 border-gray-300">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="buy">
                       <TrendingUp className="w-4 h-4 mr-2" />
                       Buy
                     </TabsTrigger>
-                    <TabsTrigger value="sell" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-gray-700 border-gray-300">
+                    <TabsTrigger value="sell">
                       <TrendingDown className="w-4 h-4 mr-2" />
                       Sell
                     </TabsTrigger>

@@ -2,6 +2,12 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
+console.log('Starting server with environment:', {
+  NODE_ENV: process.env.NODE_ENV,
+  DATABASE_URL: process.env.DATABASE_URL ? 'configured' : 'missing',
+  SESSION_SECRET: process.env.SESSION_SECRET ? 'configured' : 'missing'
+});
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

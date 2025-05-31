@@ -25,6 +25,10 @@ const getOidcConfig = memoize(
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL environment variable is required');
+  }
+  
   // Use database session store with improved error handling
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -33,7 +37,11 @@ export function getSession() {
     ttl: sessionTtl,
     tableName: "sessions",
     errorLog: (error: any) => {
-      console.warn("Session store warning:", error.message);
+      console.error("Session store error:", error);
+    },
+    // Add connection configuration for production
+    pg: {
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     }
   });
   
@@ -42,10 +50,12 @@ export function getSession() {
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
+    rolling: true,
     cookie: {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       maxAge: sessionTtl,
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
     },
   });
 }

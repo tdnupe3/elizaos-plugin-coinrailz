@@ -37,8 +37,8 @@ export default function Landing() {
             </p>
           </div>
 
-        {/* Authentication Options */}
-        <div className="space-y-6">
+          {/* Authentication Options */}
+          <div className="space-y-6">
           <div>
             <Button 
               onClick={handleSignIn}
@@ -124,7 +124,6 @@ export default function Landing() {
               ISO 20022 Compliant • FATF Travel Rule • Bank-Grade Security
             </p>
           </div>
-        </div>
         </div>
       </div>
       <Footer />

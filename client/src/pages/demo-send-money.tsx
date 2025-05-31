@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Send, ArrowLeft, DollarSign, Clock, CheckCircle } from "lucide-react";
 import { useLocation } from "wouter";
+import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
 
 export default function DemoSendMoney() {
   const [, setLocation] = useLocation();
@@ -18,15 +19,18 @@ export default function DemoSendMoney() {
   const [method, setMethod] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showFlowOrchestrator, setShowFlowOrchestrator] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    setIsSubmitting(false);
+    if (!amount || !recipient || !recipientPlatform || !method) {
+      return;
+    }
+    setShowFlowOrchestrator(true);
+  };
+
+  const handleTransactionComplete = () => {
+    setShowFlowOrchestrator(false);
     setShowSuccess(true);
     
     // Reset after 3 seconds
@@ -38,6 +42,10 @@ export default function DemoSendMoney() {
       setMessage("");
       setMethod("");
     }, 3000);
+  };
+
+  const handleTransactionCancel = () => {
+    setShowFlowOrchestrator(false);
   };
 
   const calculateFee = () => {
@@ -267,6 +275,25 @@ export default function DemoSendMoney() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Transaction Flow Orchestrator */}
+      {showFlowOrchestrator && (
+        <TransactionFlowOrchestrator
+          transactionType="send_money"
+          transactionData={{
+            amount,
+            recipient,
+            recipientPlatform,
+            method,
+            message,
+            fee: calculateFee(),
+            total: parseFloat(amount) + calculateFee()
+          }}
+          onComplete={handleTransactionComplete}
+          onCancel={handleTransactionCancel}
+          isDemoMode={true}
+        />
+      )}
     </div>
   );
 }

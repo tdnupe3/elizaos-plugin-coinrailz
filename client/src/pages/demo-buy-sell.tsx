@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Bitcoin, CheckCircle } from "lucide-react";
 import { useLocation } from "wouter";
+import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
 
 const DEMO_CRYPTO_PRICES = {
   BTC: { price: 45000, change: 2.5, name: "Bitcoin", symbol: "₿", volume: "$28.5B", marketCap: "$889B" },

@@ -13,6 +13,8 @@ import CryptoWallet from "@/pages/crypto-wallet";
 import TransactionHistory from "@/pages/transaction-history";
 import FundsManagement from "@/pages/funds-management";
 import DemoDashboard from "@/pages/demo-dashboard";
+import DemoSendMoney from "@/pages/demo-send-money";
+import DemoBuySell from "@/pages/demo-buy-sell";
 import MainMenu from "@/pages/main-menu";
 import SwapPage from "@/pages/swap";
 import BuySellPage from "@/pages/buy-sell";
@@ -25,11 +27,15 @@ function Router() {
 
   return (
     <Switch>
-      {/* Guest-accessible routes */}
-      <Route path="/swap" component={SwapPage} />
+      {/* Demo routes - accessible without authentication */}
       <Route path="/demo" component={DemoDashboard} />
       <Route path="/demo/history" component={DemoTransactionHistory} />
+      <Route path="/demo/send" component={DemoSendMoney} />
+      <Route path="/demo/buy-sell" component={DemoBuySell} />
+      <Route path="/swap" component={SwapPage} />
       <Route path="/transfer" component={CryptoTransferPage} />
+      
+      {/* Authenticated routes */}
       <Route path="/send" component={SendMoney} />
       <Route path="/buy" component={BuySellPage} />
       <Route path="/sell" component={BuySellPage} />

@@ -5,25 +5,33 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
+import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
+
+// Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
-import SendMoney from "@/pages/send-money";
-import CryptoWallet from "@/pages/crypto-wallet";
-import TransactionHistory from "@/pages/transaction-history";
-import FundsManagement from "@/pages/funds-management";
-import DemoDashboard from "@/pages/demo-dashboard";
-import DemoSendMoney from "@/pages/demo-send-money";
-import DemoBuySell from "@/pages/demo-buy-sell";
 import MainMenu from "@/pages/main-menu";
-import SwapPage from "@/pages/swap";
-import BuySellPage from "@/pages/buy-sell";
-import Referrals from "@/pages/referrals";
-import DemoTransactionHistory from "@/pages/demo-transaction-history";
-import CryptoTransferPage from "@/pages/crypto-transfer";
-import PortfolioAnalytics from "@/pages/portfolio-analytics";
-import DemoCryptoTransfer from "@/pages/demo-crypto-transfer";
-import SettingsPage from "@/pages/settings";
+
+// Lazy-loaded components for performance optimization
+import {
+  PortfolioAnalytics,
+  SettingsPage,
+  TransactionHistory,
+  CryptoWallet,
+  FundsManagement,
+  BuySellPage,
+  SwapPage,
+  SendMoney,
+  Referrals,
+  CryptoTransferPage,
+  DemoDashboard,
+  DemoTransactionHistory,
+  DemoSendMoney,
+  DemoBuySell,
+  DemoWalletManagement,
+  DemoCryptoTransfer
+} from "@/lib/lazyComponents";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -31,19 +39,41 @@ function Router() {
   return (
     <Switch>
       {/* Demo routes - accessible without authentication */}
-      <Route path="/demo" component={DemoDashboard} />
-      <Route path="/demo/history" component={DemoTransactionHistory} />
-      <Route path="/demo/send" component={DemoSendMoney} />
-      <Route path="/demo/buy-sell" component={DemoBuySell} />
-      <Route path="/portfolio-analytics" component={PortfolioAnalytics} />
-      <Route path="/demo-crypto-transfer" component={DemoCryptoTransfer} />
-      <Route path="/swap" component={SwapPage} />
-      <Route path="/transfer" component={CryptoTransferPage} />
+      <Route path="/demo">
+        {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/demo/history">
+        {() => <LazyLoadWrapper><DemoTransactionHistory /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/demo/send">
+        {() => <LazyLoadWrapper><DemoSendMoney /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/demo/buy-sell">
+        {() => <LazyLoadWrapper><DemoBuySell /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/portfolio-analytics">
+        {() => <LazyLoadWrapper><PortfolioAnalytics /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/demo-crypto-transfer">
+        {() => <LazyLoadWrapper><DemoCryptoTransfer /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/swap">
+        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/transfer">
+        {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
+      </Route>
       
       {/* Authenticated routes */}
-      <Route path="/send" component={SendMoney} />
-      <Route path="/buy" component={BuySellPage} />
-      <Route path="/sell" component={BuySellPage} />
+      <Route path="/send">
+        {() => <LazyLoadWrapper><SendMoney /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/buy">
+        {() => <LazyLoadWrapper><BuySellPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/sell">
+        {() => <LazyLoadWrapper><BuySellPage /></LazyLoadWrapper>}
+      </Route>
       
       {/* Regular routes */}
       {isLoading || !isAuthenticated ? (
@@ -51,11 +81,21 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={MainMenu} />
-          <Route path="/crypto" component={CryptoWallet} />
-          <Route path="/history" component={TransactionHistory} />
-          <Route path="/funds" component={FundsManagement} />
-          <Route path="/referrals" component={Referrals} />
-          <Route path="/settings" component={SettingsPage} />
+          <Route path="/crypto">
+            {() => <LazyLoadWrapper><CryptoWallet /></LazyLoadWrapper>}
+          </Route>
+          <Route path="/history">
+            {() => <LazyLoadWrapper><TransactionHistory /></LazyLoadWrapper>}
+          </Route>
+          <Route path="/funds">
+            {() => <LazyLoadWrapper><FundsManagement /></LazyLoadWrapper>}
+          </Route>
+          <Route path="/referrals">
+            {() => <LazyLoadWrapper><Referrals /></LazyLoadWrapper>}
+          </Route>
+          <Route path="/settings">
+            {() => <LazyLoadWrapper><SettingsPage /></LazyLoadWrapper>}
+          </Route>
         </>
       )}
       <Route component={NotFound} />

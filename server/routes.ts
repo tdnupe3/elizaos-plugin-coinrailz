@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { websocketService } from "./services/websocketService";
+import { env, hasStripeCredentials } from "./environment";
 import { loggingService } from "./services/loggingService";
 import { complianceService } from "./services/complianceService";
 import { referralService } from "./services/referralService";

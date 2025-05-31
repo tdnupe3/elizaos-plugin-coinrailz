@@ -10,11 +10,15 @@ import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Bitcoin, CheckCircle }
 import { useLocation } from "wouter";
 
 const DEMO_CRYPTO_PRICES = {
-  BTC: { price: 45000, change: 2.5, name: "Bitcoin" },
-  ETH: { price: 3200, change: -1.2, name: "Ethereum" },
-  ADA: { price: 0.85, change: 4.8, name: "Cardano" },
-  DOT: { price: 25.30, change: -0.9, name: "Polkadot" },
-  USDC: { price: 1.00, change: 0.0, name: "USD Coin" }
+  BTC: { price: 45000, change: 2.5, name: "Bitcoin", symbol: "₿", volume: "$28.5B", marketCap: "$889B" },
+  ETH: { price: 3200, change: -1.2, name: "Ethereum", symbol: "Ξ", volume: "$15.2B", marketCap: "$385B" },
+  ADA: { price: 0.85, change: 4.8, name: "Cardano", symbol: "₳", volume: "$892M", marketCap: "$28.5B" },
+  DOT: { price: 25.30, change: -0.9, name: "Polkadot", symbol: "●", volume: "$456M", marketCap: "$31.2B" },
+  SOL: { price: 180.50, change: 5.67, name: "Solana", symbol: "◎", volume: "$2.1B", marketCap: "$85.4B" },
+  XRP: { price: 0.62, change: 1.23, name: "XRP", symbol: "✕", volume: "$1.8B", marketCap: "$35.1B" },
+  AVAX: { price: 42.80, change: 4.12, name: "Avalanche", symbol: "▲", volume: "$718M", marketCap: "$17.9B" },
+  MATIC: { price: 1.15, change: -1.87, name: "Polygon", symbol: "⬟", volume: "$524M", marketCap: "$11.3B" },
+  USDC: { price: 1.00, change: 0.0, name: "USD Coin", symbol: "$", volume: "$4.2B", marketCap: "$34.8B" }
 };
 
 export default function DemoBuySell() {

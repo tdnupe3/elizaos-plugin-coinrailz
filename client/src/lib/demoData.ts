@@ -16,8 +16,8 @@ export const DEMO_WALLET_BALANCES = [
     id: 1,
     currency: "USD",
     balance: "2847.50",
-    availableBalance: "2647.50",
-    frozenBalance: "200.00"
+    available: 2647.50,
+    frozen: 200.00
   }
 ];
 

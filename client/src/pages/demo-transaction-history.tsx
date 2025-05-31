@@ -4,16 +4,16 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Send, Download, ArrowLeftRight, TrendingUp, TrendingDown } from "lucide-react";
 import { useLocation } from "wouter";
 
-// Demo transaction data
+// Enhanced transaction analytics
 const allDemoTransactions = [
-  { id: 1, type: "receive", email: "john.doe@email.com", amount: "150.00", date: "2025-01-30", message: "Coffee payment", platform: "Zelle" },
-  { id: 2, type: "send", email: "sarah.smith@email.com", amount: "75.00", date: "2025-01-29", message: "Lunch split", platform: "PayPal" },
-  { id: 3, type: "receive", email: "alex.wilson@email.com", amount: "250.00", date: "2025-01-28", message: "Freelance work", platform: "Internal" },
-  { id: 4, type: "send", email: "mike.chen@email.com", amount: "320.50", date: "2025-01-27", message: "Rent payment", platform: "Zelle" },
-  { id: 5, type: "receive", email: "lisa.park@email.com", amount: "85.25", date: "2025-01-26", message: "Dinner split", platform: "CashApp" },
-  { id: 6, type: "send", email: "david.lee@email.com", amount: "45.00", date: "2025-01-25", message: "Uber ride share", platform: "PayPal" },
-  { id: 7, type: "receive", email: "emma.davis@email.com", amount: "500.00", date: "2025-01-24", message: "Project milestone", platform: "Internal" },
-  { id: 8, type: "send", email: "carlos.martinez@email.com", amount: "125.75", date: "2025-01-23", message: "Gym membership", platform: "Zelle" }
+  { id: 1, type: "receive", email: "john.doe@email.com", amount: "150.00", date: "2025-01-30", time: "14:30", message: "Coffee payment", platform: "Zelle", status: "completed", fee: "0.00" },
+  { id: 2, type: "send", email: "sarah.smith@email.com", amount: "75.00", date: "2025-01-29", time: "11:45", message: "Lunch split", platform: "PayPal", status: "completed", fee: "2.19" },
+  { id: 3, type: "receive", email: "alex.wilson@email.com", amount: "250.00", date: "2025-01-28", time: "16:20", message: "Freelance work", platform: "Internal", status: "completed", fee: "0.00" },
+  { id: 4, type: "send", email: "mike.chen@email.com", amount: "320.50", date: "2025-01-27", time: "09:15", message: "Rent payment", platform: "Zelle", status: "completed", fee: "0.00" },
+  { id: 5, type: "receive", email: "lisa.park@email.com", amount: "85.25", date: "2025-01-26", time: "19:30", message: "Dinner split", platform: "CashApp", status: "completed", fee: "0.00" },
+  { id: 6, type: "send", email: "david.lee@email.com", amount: "45.00", date: "2025-01-25", time: "13:10", message: "Uber ride share", platform: "PayPal", status: "completed", fee: "1.31" },
+  { id: 7, type: "receive", email: "emma.davis@email.com", amount: "500.00", date: "2025-01-24", time: "10:45", message: "Project milestone", platform: "Internal", status: "completed", fee: "0.00" },
+  { id: 8, type: "send", email: "carlos.martinez@email.com", amount: "125.75", date: "2025-01-23", time: "15:20", message: "Gym membership", platform: "Zelle", status: "pending", fee: "0.00" }
 ];
 
 const allCryptoTransactions = [

@@ -17,10 +17,13 @@ export default function DemoWalletManagement() {
   const [method, setMethod] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [balances, setBalances] = useState(DEMO_WALLET_BALANCES);
   const [transactions, setTransactions] = useState([
-    { id: 1, type: "deposit", amount: 500, method: "Bank Transfer", status: "completed", date: "2025-01-30" },
-    { id: 2, type: "deposit", amount: 250, method: "Debit Card", status: "completed", date: "2025-01-28" },
-    { id: 3, type: "withdrawal", amount: 100, method: "Bank Transfer", status: "pending", date: "2025-01-29" }
+    { id: 1, type: "deposit", amount: 500, method: "Bank Transfer", status: "completed", date: "2025-01-30", fee: 0 },
+    { id: 2, type: "deposit", amount: 250, method: "Debit Card", status: "completed", date: "2025-01-28", fee: 3.50 },
+    { id: 3, type: "withdrawal", amount: 100, method: "Bank Transfer", status: "pending", date: "2025-01-29", fee: 0 },
+    { id: 4, type: "deposit", amount: 1000, method: "Wire Transfer", status: "completed", date: "2025-01-27", fee: 15.00 },
+    { id: 5, type: "withdrawal", amount: 75, method: "Instant Transfer", status: "completed", date: "2025-01-26", fee: 1.99 }
   ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,6 +33,19 @@ export default function DemoWalletManagement() {
     // Simulate processing
     await new Promise(resolve => setTimeout(resolve, 3000));
     
+    // Calculate fee based on method
+    const getFee = (method: string, amount: number) => {
+      switch (method) {
+        case "Debit Card": return amount * 0.014; // 1.4% fee
+        case "Instant Transfer": return 1.99;
+        case "Wire Transfer": return 15.00;
+        case "Bank Transfer": return 0;
+        default: return 0;
+      }
+    };
+
+    const fee = getFee(method, parseFloat(amount));
+    
     // Add transaction to history
     const newTransaction = {
       id: transactions.length + 1,
@@ -37,8 +53,26 @@ export default function DemoWalletManagement() {
       amount: parseFloat(amount),
       method,
       status: "processing",
-      date: new Date().toISOString().split('T')[0]
+      date: new Date().toISOString().split('T')[0],
+      fee
     };
+
+    // Update balances
+    if (activeTab === "deposit") {
+      const netAmount = parseFloat(amount) - fee;
+      setBalances(prev => prev.map(balance => 
+        balance.currency === "USD" 
+          ? { ...balance, available: balance.available + netAmount }
+          : balance
+      ));
+    } else {
+      const totalAmount = parseFloat(amount) + fee;
+      setBalances(prev => prev.map(balance => 
+        balance.currency === "USD" 
+          ? { ...balance, available: balance.available - totalAmount }
+          : balance
+      ));
+    }
     
     setTransactions(prev => [newTransaction, ...prev]);
     setIsSubmitting(false);

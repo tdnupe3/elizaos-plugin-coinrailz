@@ -53,32 +53,32 @@ export default function Landing() {
             </div>
             
             <div>
-            <Button 
-              onClick={handleSignUp}
-              variant="outline"
-              className="w-full bg-gray-600 border-gray-600 text-white hover:bg-gray-700 py-3 text-lg font-medium"
-              size="lg"
-            >
-              Sign Up
-            </Button>
-            <p className="text-xs text-gray-500 text-center mt-1">
-              Send money, buy/sell crypto, earn referral bonuses
-            </p>
-          </div>
-          
-          <div>
-            <Button 
-              onClick={() => setLocation("/swap")}
-              variant="ghost"
-              className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-3 text-lg font-medium border border-blue-200"
-              size="lg"
-            >
-              Continue as Guest
-            </Button>
-            <p className="text-xs text-blue-600 text-center mt-1 font-medium">
-              Access DEX aggregator instantly (no registration required)
-            </p>
-          </div>
+              <Button 
+                onClick={handleSignUp}
+                variant="outline"
+                className="w-full bg-gray-600 border-gray-600 text-white hover:bg-gray-700 py-3 text-lg font-medium"
+                size="lg"
+              >
+                Sign Up
+              </Button>
+              <p className="text-xs text-gray-500 text-center mt-1">
+                Send money, buy/sell crypto, earn referral bonuses
+              </p>
+            </div>
+            
+            <div>
+              <Button 
+                onClick={() => setLocation("/swap")}
+                variant="ghost"
+                className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-3 text-lg font-medium border border-blue-200"
+                size="lg"
+              >
+                Continue as Guest
+              </Button>
+              <p className="text-xs text-blue-600 text-center mt-1 font-medium">
+                Access DEX aggregator instantly (no registration required)
+              </p>
+            </div>
           
           <div>
             <Button 

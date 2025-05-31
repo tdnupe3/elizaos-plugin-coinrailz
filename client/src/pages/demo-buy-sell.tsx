@@ -128,22 +128,12 @@ export default function DemoBuySell() {
               </CardHeader>
               <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="buy" style={{ 
-                      backgroundColor: activeTab === 'buy' ? '#2563eb' : 'white', 
-                      color: activeTab === 'buy' ? 'white' : '#374151',
-                      borderColor: '#d1d5db',
-                      border: '1px solid #d1d5db'
-                    }}>
+                  <TabsList className="grid w-full grid-cols-2 bg-gray-100 rounded-lg">
+                    <TabsTrigger value="buy" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-gray-700 border-gray-300">
                       <TrendingUp className="w-4 h-4 mr-2" />
                       Buy
                     </TabsTrigger>
-                    <TabsTrigger value="sell" style={{ 
-                      backgroundColor: activeTab === 'sell' ? '#2563eb' : 'white', 
-                      color: activeTab === 'sell' ? 'white' : '#374151',
-                      borderColor: '#d1d5db',
-                      border: '1px solid #d1d5db'
-                    }}>
+                    <TabsTrigger value="sell" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:bg-white data-[state=inactive]:text-gray-700 border-gray-300">
                       <TrendingDown className="w-4 h-4 mr-2" />
                       Sell
                     </TabsTrigger>
@@ -154,7 +144,7 @@ export default function DemoBuySell() {
                       <div className="space-y-2">
                         <Label>Select Cryptocurrency</Label>
                         <Select value={selectedCrypto} onValueChange={setSelectedCrypto} required>
-                          <SelectTrigger style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}>
+                          <SelectTrigger className="bg-white text-gray-700 border-gray-300">
                             <SelectValue placeholder="Choose crypto to buy" />
                           </SelectTrigger>
                           <SelectContent>
@@ -177,8 +167,7 @@ export default function DemoBuySell() {
                           <Input
                             type="number"
                             placeholder="0.00"
-                            className="pl-10"
-                            style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}
+                            className="pl-10 bg-white text-gray-700 border-gray-300"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             step="0.01"
@@ -232,7 +221,7 @@ export default function DemoBuySell() {
                       <div className="space-y-2">
                         <Label>Select Cryptocurrency to Sell</Label>
                         <Select value={selectedCrypto} onValueChange={setSelectedCrypto} required>
-                          <SelectTrigger style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}>
+                          <SelectTrigger className="bg-white text-gray-700 border-gray-300">
                             <SelectValue placeholder="Choose crypto to sell" />
                           </SelectTrigger>
                           <SelectContent>
@@ -253,7 +242,7 @@ export default function DemoBuySell() {
                         <Input
                           type="number"
                           placeholder="0.00"
-                          style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}
+                          className="bg-white text-gray-700 border-gray-300"
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
                           step="0.000001"

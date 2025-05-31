@@ -210,6 +210,15 @@ export default function DemoDashboard() {
                 <Send className="h-4 w-4 mr-1" />
                 Send Crypto
               </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                onClick={() => setLocation('/portfolio-analytics')}
+              >
+                <TrendingUp className="h-4 w-4 mr-1" />
+                Analytics
+              </Button>
             </div>
           </div>
         </div>

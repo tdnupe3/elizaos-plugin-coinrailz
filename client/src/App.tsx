@@ -21,6 +21,8 @@ import BuySellPage from "@/pages/buy-sell";
 import Referrals from "@/pages/referrals";
 import DemoTransactionHistory from "@/pages/demo-transaction-history";
 import CryptoTransferPage from "@/pages/crypto-transfer";
+import PortfolioAnalytics from "@/pages/portfolio-analytics";
+import DemoCryptoTransfer from "@/pages/demo-crypto-transfer";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -32,6 +34,8 @@ function Router() {
       <Route path="/demo/history" component={DemoTransactionHistory} />
       <Route path="/demo/send" component={DemoSendMoney} />
       <Route path="/demo/buy-sell" component={DemoBuySell} />
+      <Route path="/portfolio-analytics" component={PortfolioAnalytics} />
+      <Route path="/demo-crypto-transfer" component={DemoCryptoTransfer} />
       <Route path="/swap" component={SwapPage} />
       <Route path="/transfer" component={CryptoTransferPage} />
       

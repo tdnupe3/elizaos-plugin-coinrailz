@@ -33,18 +33,31 @@ export function useI18n() {
 
 export function useI18nProvider() {
   const [language, setLanguageState] = useState<SupportedLanguage>(() => {
-    // Check localStorage first
+    // Check if user has explicitly set a language (overrides auto-detection)
+    const userOverride = localStorage.getItem('coin-railz-language-override');
+    
+    // Check localStorage for saved preference
     const saved = localStorage.getItem('coin-railz-language');
     if (saved && saved in translations) {
       return saved as SupportedLanguage;
     }
     
-    // Try to detect from browser
-    const browserLang = navigator.language.split('-')[0] as SupportedLanguage;
-    if (browserLang in translations) {
-      return browserLang;
+    // Only auto-detect if user hasn't explicitly chosen a language
+    if (!userOverride) {
+      // Try to detect from browser, but be conservative
+      const browserLang = navigator.language.split('-')[0] as SupportedLanguage;
+      if (browserLang in translations) {
+        // Show language confirmation for auto-detected languages (except English)
+        if (browserLang !== 'en') {
+          setTimeout(() => {
+            showLanguageConfirmation(browserLang);
+          }, 2000); // Show after 2 seconds
+        }
+        return browserLang;
+      }
     }
     
+    // Default to English if detection fails or user has overridden
     return 'en';
   });
 

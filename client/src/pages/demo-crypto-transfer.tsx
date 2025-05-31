@@ -33,6 +33,7 @@ export default function DemoCryptoTransfer() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transferStatus, setTransferStatus] = useState("");
   const [transactionHash, setTransactionHash] = useState("");
+  const [showFlowOrchestrator, setShowFlowOrchestrator] = useState(false);
   const [transfers, setTransfers] = useState([
     {
       id: 1,

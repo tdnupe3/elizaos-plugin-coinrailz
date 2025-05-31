@@ -18,24 +18,27 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Logging middleware for API calls
+  // Logging middleware for API calls (disabled for static assets)
   app.use((req, res, next) => {
-    const startTime = Date.now();
-    
-    res.on('finish', () => {
-      const responseTime = Date.now() - startTime;
-      const userId = (req as any).user?.claims?.sub;
+    // Only log actual API calls, not static assets
+    if (req.path.startsWith('/api/')) {
+      const startTime = Date.now();
       
-      loggingService.logAPICall(
-        req.path,
-        req.method,
-        res.statusCode,
-        responseTime,
-        userId,
-        req.body,
-        res.statusCode >= 400 ? { error: res.statusMessage } : undefined
-      );
-    });
+      res.on('finish', () => {
+        const responseTime = Date.now() - startTime;
+        const userId = (req as any).user?.claims?.sub;
+        
+        loggingService.logAPICall(
+          req.path,
+          req.method,
+          res.statusCode,
+          responseTime,
+          userId,
+          req.body,
+          res.statusCode >= 400 ? { error: res.statusMessage } : undefined
+        );
+      });
+    }
     
     next();
   });

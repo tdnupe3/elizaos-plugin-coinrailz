@@ -259,7 +259,7 @@ export default function DemoDashboard() {
             <Button 
               className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
               variant="outline"
-              onClick={() => setLocation('/send-money')}
+              onClick={() => setLocation('/send')}
             >
               <Send className="h-6 w-6" />
               <span className="text-sm">Send Money</span>
@@ -267,7 +267,7 @@ export default function DemoDashboard() {
             <Button 
               className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
               variant="outline"
-              onClick={() => setLocation('/buy-sell')}
+              onClick={() => setLocation('/buy')}
             >
               <Download className="h-6 w-6" />
               <span className="text-sm">Buy Crypto</span>
@@ -275,7 +275,7 @@ export default function DemoDashboard() {
             <Button 
               className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
               variant="outline"
-              onClick={() => setLocation('/buy-sell')}
+              onClick={() => setLocation('/sell')}
             >
               <ArrowLeftRight className="h-6 w-6" />
               <span className="text-sm">Sell Crypto</span>

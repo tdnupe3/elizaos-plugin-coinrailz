@@ -140,6 +140,7 @@ export class LoggingService {
         userId,
         requestData,
         responseData,
+        apiProvider: 'INTERNAL_API',
         createdAt: new Date(),
       });
 

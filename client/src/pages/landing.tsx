@@ -81,22 +81,22 @@ export default function Landing() {
             </div>
             
             <div>
-            <Button 
-              onClick={handleGuestAccess}
-              variant="ghost"
-              className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-3 text-lg font-medium border border-emerald-200"
-              size="lg"
-            >
-              Try Demo Mode
-            </Button>
-            <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
-              Test all features with demo data (no registration required)
-            </p>
+              <Button 
+                onClick={handleGuestAccess}
+                variant="ghost"
+                className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-3 text-lg font-medium border border-emerald-200"
+                size="lg"
+              >
+                Try Demo Mode
+              </Button>
+              <p className="text-xs text-emerald-600 text-center mt-1 font-medium">
+                Test all features with demo data (no registration required)
+              </p>
+            </div>
           </div>
-        </div>
 
-        {/* Footer Text */}
-        <div className="text-center mt-8">
+          {/* Footer Text */}
+          <div className="text-center mt-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
               <p className="text-sm text-purple-800 font-medium mb-2">Guest Access:</p>

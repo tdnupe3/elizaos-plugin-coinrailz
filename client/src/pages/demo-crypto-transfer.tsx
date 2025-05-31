@@ -59,15 +59,34 @@ export default function DemoCryptoTransfer() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setTransferStatus("PENDING");
+    if (!selectedCrypto || !recipientAddress || !amount) {
+      return;
+    }
+    setShowFlowOrchestrator(true);
+  };
 
-    // Simulate blockchain processing
-    await new Promise(resolve => setTimeout(resolve, 3000));
+  const handleTransactionComplete = () => {
+    setShowFlowOrchestrator(false);
+    setTransferStatus("CONFIRMED");
+    
+    // Generate demo transaction hash
+    const hash = "0x" + Array.from({length: 64}, () => Math.floor(Math.random()*16).toString(16)).join('');
+    setTransactionHash(hash);
+    
+    // Reset form
+    setTimeout(() => {
+      setSelectedCrypto("");
+      setRecipientAddress("");
+      setAmount("");
+      setMemo("");
+      setTransferStatus("");
+      setTransactionHash("");
+    }, 5000);
+  };
 
-    // Generate mock transaction hash
-    const mockHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    setTransactionHash(mockHash);
+  const handleTransactionCancel = () => {
+    setShowFlowOrchestrator(false);
+  };
 
     // Add to transfers
     const newTransfer = {

@@ -79,8 +79,8 @@ export default function Landing() {
                 Access DEX aggregator instantly (no registration required)
               </p>
             </div>
-          
-          <div>
+            
+            <div>
             <Button 
               onClick={handleGuestAccess}
               variant="ghost"

@@ -33,6 +33,9 @@ import {
   DemoCryptoTransfer
 } from "@/lib/lazyComponents";
 
+// Import signup flow demo directly
+import SignupFlowDemo from "@/pages/signup-flow-demo";
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -63,6 +66,7 @@ function Router() {
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
+      <Route path="/signup-flow" component={SignupFlowDemo} />
       
       {/* Authenticated routes */}
       <Route path="/send">

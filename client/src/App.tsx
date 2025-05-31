@@ -30,6 +30,9 @@ function Router() {
       <Route path="/demo" component={DemoDashboard} />
       <Route path="/demo/history" component={DemoTransactionHistory} />
       <Route path="/transfer" component={CryptoTransferPage} />
+      <Route path="/send" component={SendMoney} />
+      <Route path="/buy" component={BuySellPage} />
+      <Route path="/sell" component={BuySellPage} />
       
       {/* Regular routes */}
       {isLoading || !isAuthenticated ? (
@@ -37,9 +40,6 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={MainMenu} />
-          <Route path="/send" component={SendMoney} />
-          <Route path="/buy" component={BuySellPage} />
-          <Route path="/sell" component={BuySellPage} />
           <Route path="/crypto" component={CryptoWallet} />
           <Route path="/history" component={TransactionHistory} />
           <Route path="/funds" component={FundsManagement} />

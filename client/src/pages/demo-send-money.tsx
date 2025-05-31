@@ -242,7 +242,7 @@ export default function DemoSendMoney() {
               <Button
                 type="submit"
                 className="w-full"
-                disabled={isSubmitting || !amount || !recipient || !method}
+                disabled={isSubmitting || !amount || !recipient || !recipientPlatform || !method}
               >
                 {isSubmitting ? (
                   <>

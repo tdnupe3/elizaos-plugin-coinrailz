@@ -144,7 +144,7 @@ export default function DemoBuySell() {
                       <div className="space-y-2">
                         <Label>Select Cryptocurrency</Label>
                         <Select value={selectedCrypto} onValueChange={setSelectedCrypto} required>
-                          <SelectTrigger>
+                          <SelectTrigger style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}>
                             <SelectValue placeholder="Choose crypto to buy" />
                           </SelectTrigger>
                           <SelectContent>
@@ -168,6 +168,7 @@ export default function DemoBuySell() {
                             type="number"
                             placeholder="0.00"
                             className="pl-10"
+                            style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}
                             value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             step="0.01"
@@ -221,7 +222,7 @@ export default function DemoBuySell() {
                       <div className="space-y-2">
                         <Label>Select Cryptocurrency to Sell</Label>
                         <Select value={selectedCrypto} onValueChange={setSelectedCrypto} required>
-                          <SelectTrigger>
+                          <SelectTrigger style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}>
                             <SelectValue placeholder="Choose crypto to sell" />
                           </SelectTrigger>
                           <SelectContent>
@@ -242,6 +243,7 @@ export default function DemoBuySell() {
                         <Input
                           type="number"
                           placeholder="0.00"
+                          style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}
                           value={amount}
                           onChange={(e) => setAmount(e.target.value)}
                           step="0.000001"

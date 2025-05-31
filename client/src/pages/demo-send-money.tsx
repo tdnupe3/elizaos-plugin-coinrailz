@@ -13,6 +13,7 @@ export default function DemoSendMoney() {
   const [, setLocation] = useLocation();
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
+  const [recipientPlatform, setRecipientPlatform] = useState("");
   const [message, setMessage] = useState("");
   const [method, setMethod] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,6 +34,7 @@ export default function DemoSendMoney() {
       setShowSuccess(false);
       setAmount("");
       setRecipient("");
+      setRecipientPlatform("");
       setMessage("");
       setMethod("");
     }, 3000);
@@ -111,15 +113,56 @@ export default function DemoSendMoney() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="recipient">Recipient Email or Phone</Label>
+                <Label htmlFor="platform">Recipient's Payment Platform</Label>
+                <Select value={recipientPlatform} onValueChange={setRecipientPlatform} required>
+                  <SelectTrigger style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}>
+                    <SelectValue placeholder="Select payment platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="zelle">Zelle</SelectItem>
+                    <SelectItem value="venmo">Venmo</SelectItem>
+                    <SelectItem value="cashapp">Cash App</SelectItem>
+                    <SelectItem value="paypal">PayPal</SelectItem>
+                    <SelectItem value="coinrailz">Coin Railz (Internal)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="recipient">
+                  {recipientPlatform === "zelle" && "Recipient's Email or Phone"}
+                  {recipientPlatform === "venmo" && "Venmo Username or Phone"}
+                  {recipientPlatform === "cashapp" && "Cash App $Cashtag or Phone"}
+                  {recipientPlatform === "paypal" && "PayPal Email Address"}
+                  {recipientPlatform === "coinrailz" && "Coin Railz User ID or Email"}
+                  {!recipientPlatform && "Recipient Identifier"}
+                </Label>
                 <Input
                   id="recipient"
                   type="text"
-                  placeholder="john@example.com or +1 555-0123"
+                  placeholder={
+                    recipientPlatform === "zelle" ? "john@example.com or +1 555-0123" :
+                    recipientPlatform === "venmo" ? "@johnsmith or +1 555-0123" :
+                    recipientPlatform === "cashapp" ? "$johnsmith or +1 555-0123" :
+                    recipientPlatform === "paypal" ? "john@example.com" :
+                    recipientPlatform === "coinrailz" ? "john@example.com or CR123456" :
+                    "Select platform first"
+                  }
                   value={recipient}
                   onChange={(e) => setRecipient(e.target.value)}
+                  disabled={!recipientPlatform}
+                  style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}
                   required
                 />
+                {recipientPlatform && (
+                  <p className="text-xs text-gray-500">
+                    {recipientPlatform === "zelle" && "Enter the email or phone number registered with Zelle"}
+                    {recipientPlatform === "venmo" && "Enter Venmo username (with @) or phone number"}
+                    {recipientPlatform === "cashapp" && "Enter Cash App $cashtag (with $) or phone number"}
+                    {recipientPlatform === "paypal" && "Enter the email address associated with PayPal account"}
+                    {recipientPlatform === "coinrailz" && "Enter Coin Railz user ID or registered email"}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -131,6 +174,7 @@ export default function DemoSendMoney() {
                     type="number"
                     placeholder="0.00"
                     className="pl-10"
+                    style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     step="0.01"
@@ -145,7 +189,7 @@ export default function DemoSendMoney() {
               <div className="space-y-2">
                 <Label htmlFor="method">Transfer Method</Label>
                 <Select value={method} onValueChange={setMethod} required>
-                  <SelectTrigger>
+                  <SelectTrigger style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}>
                     <SelectValue placeholder="Choose transfer speed" />
                   </SelectTrigger>
                   <SelectContent>
@@ -170,6 +214,7 @@ export default function DemoSendMoney() {
                 <Textarea
                   id="message"
                   placeholder="Add a note for the recipient"
+                  style={{ backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   maxLength={200}

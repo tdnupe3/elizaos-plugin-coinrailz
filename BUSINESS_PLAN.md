@@ -479,7 +479,7 @@ Email: investors@kelloggholdings.com
 
 **Legal & Compliance**
 Compliance Officer: Travis Kellogg
-Email: compliance@kelloggholdings.com
+Email: compliance@coinrailz.com
 
 ---
 

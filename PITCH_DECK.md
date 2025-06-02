@@ -1,4 +1,3 @@
-
 # Kellogg Holdings LLC - Investor Pitch Deck
 **Revolutionizing Crypto-Banking with Regulatory Compliance**
 
@@ -361,4 +360,4 @@ Travis Kellogg - Founder & CEO
 
 ---
 
-*Document Version: 1.0 | Last Updated: January 2025 | Classification: Confidential*
+*Document Version: 1.0 | Last Updated: 2025 | Classification: Confidential*

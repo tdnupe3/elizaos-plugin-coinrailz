@@ -1,0 +1,1491 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+UNIFIED SIGNAL SAAS - CLOUD       
+ HOSTED SERVICES 
+ENABLEMENT AGREEMENT
+
+Rev:  5/21/2025 10:00 AM
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+PROPRIETARY AND CONFIDENTIAL INFORMATION
+
+Copyright© 2025 UNIFIED SIGNAL®  - All Rights Reserved Worldwide
+This document may not be reproduced without the expressed permission of UNIFIED SIGNAL and any reproduction, without authorization, is an infringement of UNIFIED SIGNAL copyrights.  This contract contains confidential and proprietary pricing information and should only be viewed by the individual or entity to whom this document is intended.
+
+
+
+UNIFIED SIGNAL SAAS CLOUD HOSTED SERVICES 
+ENABLEMENT MASTER SERVICES AGREEMENT
+
+This UNIFIED SIGNAL SAAS Services Enablement Master Services Agreement (the “Agreement”) is made and entered into as of this ___ day of _______________, 2025 (the “Effective Date”), by and between UNIFIED SIGNAL, Inc a Nevada Company (“UNIFIED SIGNAL”) and, __________________________________ (“CLIENT”).
+
+	WHEREAS, CLIENT has agreed to engage UNIFIED SIGNAL, and UNIFIED SIGNAL has agreed to be engaged, to provide certain information technology, supplier access, billing and rating technology, mobile wallet / debit card enablement, back office support services, customer service, and consulting services to CLIENT in accordance with the terms of this Agreement;
+
+	NOW, THEREFORE, in consideration of the mutual promises contained herein, and of other good and valuable consideration, the receipt and sufficiency of which is hereby acknowledged, UNIFIED SIGNAL and CLIENT (individually each a “Party” and collectively the “Parties”) agree as follows:
+
+
+ARTICLE I
+DEFINITIONS
+
+"Services” shall hereinafter mean those services provided by UNIFIED SIGNAL to CLIENT as more particularly described on Schedule A attached hereto as may be amended from time to time by mutual agreement of the Parties to add, delete, or modify the Services provided hereunder.
+
+“Back Office Systems” shall mean all source and object code owned or utilized by UNIFIED SIGNAL to deliver Services to CLIENT as further defined in Schedule A.
+
+
+ARTICLE II
+TERM
+
+	The term of this Agreement shall begin on the Effective Date and shall continue in effect for a period of three (3) years from the date of this agreement, unless terminated earlier in accordance with the terms hereof.  Following expiration of the initial term, this Agreement shall automatically renew for successive one (1) year terms unless either:  (i) CLIENT or UNIFIED SIGNAL notifies the other Party in writing at least ninety (90) days prior to the expiration of the initial or renewal term that CLIENT or UNIFIED SIGNAL does not wish to renew the Agreement; or (ii) CLIENT and UNIFIED SIGNAL are unable to agree upon the pricing for the renewal term as provided in this Section and as a result UNIFIED SIGNAL or CLIENT elects to terminate this Agreement as provided in this Section.  The price to be paid for the Services during any automatic renewal period shall be the same as in the initial term unless mutually agreed upon between UNIFIED SIGNAL and CLIENT.  In the event UNIFIED SIGNAL desires to modify the pricing or other terms for the Services during any automatic renewal period, UNIFIED SIGNAL shall notify CLIENT in writing of any proposed changes in pricing or other terms applicable to the renewal period at least sixty (60) days prior to the expiration of the initial or renewal term.  The Parties shall negotiate in good faith for the pricing and other terms that will apply in the renewal period.  UNIFIED SIGNAL reserves the right to increase its fees in Schedule B, C, F, and I as applicable, provided it communicates such fee increases to CLIENT with at least 30 days prior written notice and CLIENT consents to such changes.  In the event that CLIENT and UNIFIED SIGNAL cannot mutually agree upon such fee changes or any other terms for the Services under this Agreement within sixty (60) days following such notice (with respect to a renewal term or fee modification in Schedule B, C, F, and I), then either CLIENT or UNIFIED SIGNAL may terminate this Agreement upon written notice to the other Party.  
+
+
+
+
+2.2  Non-Exclusivity.  During the term of this Agreement, Unified Signal shall be the exclusive provider to CLIENT only for the specific services listed in Schedule A of this Agreement. CLIENT shall be free to engage other providers for any services not expressly covered by this Agreement, including similar or related services, without breaching any exclusivity terms. (a) Unified Signal’s exclusivity shall only apply to the exact services they are contractually obligated to provide, as listed in Schedule A. CLIENT shall retain the right to seek and engage other providers for any services that are not specifically defined in this Agreement, including any similar or related services. (b) Unified Signal agrees to meet the performance benchmarks outlined in Schedule G (Service Level Agreement) of this Agreement. If Unified Signal fails to meet any performance benchmarks for two consecutive months or for three months within any rolling 12-month period, CLIENT shall have the right to provide written notice of non-compliance to Unified Signal and request corrective action within 30 days. (c) If Unified Signal fails to cure the performance issue within 30 days, CLIENT may elect to engage another provider to deliver the affected services without penalty. CLIENT shall be free to contract with other providers for any services not expressly defined in Schedule A, including similar or related services, without breaching any exclusivity terms.
+
+ARTICLE III
+UNIFIED SIGNAL SERVICES
+
+	3.1	Services.  (a) UNIFIED SIGNAL is the owner of or is authorized to use the Back Office Systems to be provided to CLIENT; such Back Office Systems utilized by CLIENT, related content and any related documentation provided by UNIFIED SIGNAL, and the means used to provide the Back Office Systems to CLIENT and the services described herein are collectively referred to as the “Services”.  Subject to CLIENT’s payment of the applicable fees set forth herein and CLIENT's compliance with the terms of this Agreement, CLIENT and its subscribers and employees thereof (“Authorized Users”) shall have the right to access and use the Services solely for CLIENT’s or its subscribers' internal business purposes.  
+
+(b)	UNIFIED SIGNAL will issue to one Authorized User of CLIENT (“CLIENT Administrator”) an individual username and password (“Administrator Logon”) for purposes of administering the Service to end customers.  Using the Administrator's Logon, the CLIENT Administrator shall assign each Authorized User a unique logon identifier and password and provide such information to the Authorized Users. CLIENT shall promptly update such information as changes occur.  CLIENT shall not permit any individual or entity that is not an Authorized User to use the Services.  CLIENT shall be responsible to ensure, by providing each Authorized User a copy of the UNIFIED SIGNAL Software Acceptable Use Policy set forth on Schedule H (“Acceptable Use Policy”),  that each Authorized User will: (I) be responsible for the security and/or use of his or her logon identifier and password; (ii) not disclose such logon identifier or password to any person or entity; (iii) not permit any other person or entity to use his or her logon identifier or password; (iv) use the Services only in accordance with the terms and conditions of this Agreement and the Acceptable Use Policy. 
+
+(c)	UNIFIED SIGNAL shall have the right, to monitor CLIENT’s and the Authorized Users' compliance with the terms of this Agreement, including but not limited to technology use case management, security protocols, and service-level adherence. Prior to taking any unilateral action, such as deactivating, suspending, or terminating an Authorized User's access to the Services due to a violation of the terms and conditions, UNIFIED SIGNAL agrees to follow a collaborative approach as follows: (i) Notify CLIENT in writing, detailing the compliance issue or suspected breach, and allow CLIENT to provide an explanation or resolution plan within 10 business days; (ii) Engage in a good faith consultation with CLIENT to discuss potential solutions or corrective actions that CLIENT can take to resolve the issue prior to implementing any service suspension or termination. CLIENT shall be provided with a 30-day grace period to resolve any compliance issues raised by UNIFIED SIGNAL, during which both Parties will work together to address and rectify the concern. If CLIENT makes good faith efforts to cure the issue, this grace period may be extended by an additional 15 days, provided progress is being made toward compliance. If CLIENT disagrees with UNIFIED SIGNAL’s assessment or proposed action, CLIENT may request a third-party review or mediation to resolve the dispute before any long-term service suspension occurs, as outlined in Section 8.6 (Dispute Resolution) of this Agreement.
+
+(d) 	In cases where UNIFIED SIGNAL reasonably believes CLIENT and/or its Authorized Users are in breach of such conditions, UNIFIED SIGNAL shall provide CLIENT written notice of the specific alleged breach, and notwithstanding any provision to the contrary herein, CLIENT fails to cure such breach to UNIFIED SIGNAL’s reasonable satisfaction within 90 days following receipt of such notice. However, if such breach is not capable of being cured during the initial 90-day period and CLIENT has commenced and is diligently pursuing a cure, the period shall be extended for an additional 30 days. CLIENT shall be responsible for any and all costs and expenses actually incurred by UNIFIED SIGNAL resulting from the violation of any of the restrictions contained herein, whether or not such access or use has been authorized by CLIENT. CLIENT shall be solely responsible for ensuring that the access to the Services by an Authorized User who is no longer an employee of CLIENT or of a subscriber of CLIENT is terminated. UNIFIED SIGNAL further reserves the right to cooperate with legal authorities if it reasonably believes that a violation of this Agreement or the Acceptable Use Policy has occurred. However, the process of cooperation and disclosure shall follow the guidelines outlined below to ensure transparency and protect CLIENT’s interests: (a) Notification to CLIENT: Before disclosing any information, including the identity of any Authorized User, to legal authorities, UNIFIED SIGNAL shall: (i) Notify CLIENT in writing of the specific allegations or violations that have triggered the need for cooperation with legal authorities; (ii) Provide CLIENT with at least 48 hours’ notice (or as legally permissible) to respond or offer clarification, unless such disclosure is explicitly prohibited by law or in cases of urgent, life-threatening situations.
+
+(b) Consultation and Collaboration: UNIFIED SIGNAL agrees to consult with CLIENT before sharing any non-public information about CLIENT, its Authorized Users, or its customers with legal authorities. During this consultation, CLIENT will have the opportunity to: (i) Review the nature of the legal request and provide feedback; (ii) Propose alternative solutions or actions that could address the violation without the need for immediate disclosure; (iii) Engage legal counsel or representation in the process.
+
+(c) Confidentiality: Any information disclosed by UNIFIED SIGNAL to legal authorities will remain confidential, and UNIFIED SIGNAL shall take reasonable steps to ensure that the disclosed information is used solely for the purpose of the investigation or legal request.
+
+(d) Transparency and Reporting: UNIFIED SIGNAL agrees to provide CLIENT with regular updates regarding any ongoing legal investigations or requests involving CLIENT or its Authorized Users. This includes a summary of any actions taken, the legal authorities involved, and any information disclosed. UNIFIED SIGNAL also reserves the right to implement technical mechanisms to prevent Acceptable Use Policy violations. Regular compliance reports outlining monitoring activities, identified issues, and suggestions for improvement shall be provided to CLIENT in a format mutually agreed upon by both Parties. Nothing in this Agreement or the Acceptable Use Policy shall limit in any way UNIFIED SIGNAL’s rights and remedies at law or in equity that may otherwise be available.
+
+(e)  	Each Party acknowledges the other Party’s intellectual property rights and acknowledges and agrees that any and all intellectual property of the other Party shall remain the sole property of such Party.  No right, title or interest in any intellectual property or other proprietary rights are granted or transferred to CLIENT hereunder.  UNIFIED SIGNAL and its third-party licensors retain all right, title and interest, including, without limitation, all patent, copyright, trade secret and all other intellectual property and proprietary rights, inherent in and appurtenant to the Services and the Back Office Systems.  The Services may be performed by UNIFIED SIGNAL directly, or, as described herein or otherwise agreed to by the Parties, through one or more sub-contractors selected by UNIFIED SIGNAL.  In the event that UNIFIED SIGNAL sub-contracts any services hereunder, UNIFIED SIGNAL shall remain responsible for performance of UNIFIED SIGNAL's obligations hereunder.  Except as expressly provided herein with respect to the Services (or any additional services to be performed as described in Section 3.2), UNIFIED SIGNAL does not assume any obligations of CLIENT with respect to CLIENT’s business or data processing requirements.  UNIFIED SIGNAL has no responsibility for any material or information created, stored, maintained, transmitted or accessible on or through the Services and is not obligated to monitor or exercise any control over such material. In the event that UNIFIED SIGNAL becomes aware that any such material or any acts or omissions of an Authorized User may violate this Agreement or the Acceptable Use Policy, UNIFIED SIGNAL reserves the right to investigate and suspend or terminate any Services without liability subject to Section 3.1(c). UNIFIED SIGNAL further reserves the right to cooperate with legal authorities and third parties in investigating any alleged violations of this Agreement or the Acceptable Use Policy, including disclosing the identity of any Authorized User that UNIFIED SIGNAL believes is responsible for such violation. UNIFIED SIGNAL also reserves the right to implement technical mechanisms to prevent Acceptable Use Policy violations. Nothing in this Agreement or the Acceptable Use Policy shall limit in any way UNIFIED SIGNAL’s rights and remedies at law or in equity that may otherwise be available.
+
+(f) 	The Services shall be provided in accordance with the Service Level Agreement set forth as Schedule G.
+
+	3.2	Additional Services.  During the term of this Agreement, CLIENT may request that UNIFIED SIGNAL provide certain services not included within the scope of the Services.  Any such additional services will be provided, subject to the Parties’ mutual agreement, on a time and materials basis at the rates provided for in Schedule B, C, F, and I as applicable, or at rates mutually agreed upon between UNIFIED SIGNAL and CLIENT.
+
+	3.3	Data Security.  UNIFIED SIGNAL shall maintain commercially reasonable data information privacy, security and disaster recovery measures, including server firewalls, data encryption, physical facility security, intrusion/hacking detection and prevention measures.  UNIFIED SIGNAL will notify CLIENT of any breach of security immediately after UNIFIED SIGNAL becomes aware of such breach and shall indemnify and hold Client harmless for any losses or liability which Client may incur as a result of any such breach.
+
+Control of Resources.  UNIFIED SIGNAL shall have the exclusive right to manage all UNIFIED SIGNAL resources used in providing the Services as UNIFIED SIGNAL deems appropriate, including the right to relocate and substitute computer equipment, personnel and other resources, to change computer configurations and procedures, and convert CLIENT to a new version at any time in its sole discretion; provided, however, that UNIFIED SIGNAL shall indemnify and hold Client harmless for any losses or liability which Client may incur as a result of any such changes. 
+
+ARTICLE IV
+CLIENT RESPONSIBILITIES
+
+	4.1	CLIENT Responsibilities.  During the term of this Agreement, it shall be CLIENT’s sole responsibility to provide UNIFIED SIGNAL with any information or data related to CLIENT’s business as it relates to UNIFIED SIGNAL carrying out the Services described hereunder, including without limitation providing the data and performing the activities set forth in this Article IV.  Any such data and information provided to UNIFIED SIGNAL by CLIENT shall be subject to Section 3.3 hereof.
+
+	4.2	Operating Instructions.  CLIENT will cooperate with any written operating instructions provided to CLIENT related to the Services. Such instructions may be provided by UNIFIED SIGNAL to CLIENT from time to time for purposes of assuring proper performance of the Services. However, the provision and adherence to these operating instructions shall be subject to the following terms to ensure clarity, reasonableness, and fairness for both parties: (a) UNIFIED SIGNAL shall provide CLIENT with clear and reasonable written operating instructions that are sufficiently detailed and specific to ensure CLIENT understands the actions or steps required, align with industry standards and best practices relevant to the services being performed, and are mutually agreed upon by both parties before implementation to ensure CLIENT has the capacity and resources to comply. (b) Before issuing new operating instructions or modifying existing instructions, UNIFIED SIGNAL shall provide CLIENT with a draft of the instructions and allow at least 10 business days for CLIENT to review and provide feedback, engage in a good faith consultation to ensure that the instructions are feasible and aligned with CLIENT’s operational capabilities, and obtain CLIENT’s written approval before finalizing the instructions. If CLIENT reasonably objects to any portion of the instructions, both parties shall negotiate in good faith to reach a mutually acceptable resolution. (c) In the event CLIENT is unable to comply with any of UNIFIED SIGNAL’s written operating instructions, CLIENT shall notify UNIFIED SIGNAL within 5 business days of receiving the instructions. Both parties agree to follow a dispute resolution process before UNIFIED SIGNAL is excused from its obligations, including initial consultation where CLIENT proposes an alternative solution or modification, good faith negotiations, and if necessary, escalation to senior executives and mediation as outlined in Section 8.6 (Dispute Resolution) of this Agreement. (d) UNIFIED SIGNAL shall not be excused from any breach of contract obligations unless the written operating instructions provided to CLIENT were clear, reasonable, and mutually agreed upon, CLIENT failed to comply after the agreed-upon dispute resolution process was followed in good faith and no mutually acceptable resolution was reached, and the non-compliance directly resulted from CLIENT’s failure to follow the clear and reasonable written instructions, provided that CLIENT was given adequate time to comply. In the event that CLIENT materially fails to comply with any reasonable written operating instructions, UNIFIED SIGNAL shall be excused from any breach hereof and for errors in accuracy, timeliness, and/or other obligations, as the situation may determine, in its performance of the Services to the extent any failure in UNIFIED SIGNAL’s performance results directly from CLIENT’s material failure to comply with such reasonable written operating instructions.
+
+4.3	Cooperation.  Each Party shall cooperate with the other Party by making promptly available, as reasonably requested by the other Party, such management decisions, personnel, information, data, approvals and acceptances as may be required to enable the Party to properly perform its obligations under this Agreement.  Included in this Cooperation is accurate CLIENT volume forecasts.  If CLIENT does not provide accurate volume forecasts, then Schedule G is null and void.     
+
+	4.4	Production Manager.  CLIENT shall designate one of its employees to serve as the Production Manager for CLIENT with respect to the Services provided hereunder.  The Production Manager shall be UNIFIED SIGNAL’s primary contact with CLIENT, and UNIFIED SIGNAL shall be entitled to rely upon the instructions, decisions and/or approvals provided by CLIENT’s Production Manager.  CLIENT may replace the Production Manager from time to time by providing UNIFIED SIGNAL with written notice (email notice is sufficient for this notice) designating a new Production Manager.
+
+	4.5	Terminal Equipment.  CLIENT is responsible for the installation and maintenance of CLIENT’s own terminal equipment and facilities.  UNIFIED SIGNAL shall have no responsibility for the performance of any of CLIENT’s remote terminal equipment.  CLIENT shall be responsible for ensuring that all of its remote terminal equipment is compatible with UNIFIED SIGNAL’s equipment and systems.  UNIFIED SIGNAL shall promptly provide CLIENT with the information requested by CLIENT related to UNIFIED SIGNAL’s facilities, equipment and systems to enable CLIENT to ensure such compatibility.  
+
+	4.6	Access to CLIENT Facilities.  In the event it becomes necessary, CLIENT shall provide UNIFIED SIGNAL with reasonable access and reasonable working space in CLIENT’s premises, as may be reasonably required by UNIFIED SIGNAL to perform the Services.  
+
+
+	4.7	Applicable Approvals and Compliance with Law.  If applicable, CLIENT shall obtain and keep current any and all applicable international, national, state and local licenses, certifications and approvals and shall fully comply with all other applicable international, national, state or local law or regulation or judicial order or public policy.  CLIENT agrees that UNIFIED SIGNAL shall assume no responsibility for such compliance whatsoever.
+
+ARTICLE V
+RECORD RETENTION AND RETRIEVAL
+
+	UNIFIED SIGNAL shall maintain, at a secure facility, customer data files, specifically customer usage detail, on-line for access and retrieval by CLIENT for the customer’s current month and the eleven (11) preceding months.  Records shall be retained by UNIFIED SIGNAL at a secure facility for a total period of one (1) year from the customer’s activation date.  
+
+ARTICLE VI
+INVOICING AND PAYMENT FOR SERVICES
+
+6.1	Charges and Payment.  CLIENT agrees to pay UNIFIED SIGNAL for all services requested and rendered per Schedule B, C, D, F, and I.  Except as otherwise provided herein, amounts CLIENT owes to UNIFIED SIGNAL or third-parties under this Agreement for related services not handled in the daily Mobile Wallet batch shall be due and payable by CLIENT within thirty (30) days of receipt of a UNIFIED SIGNAL invoice.  Any amounts remaining unpaid for more than thirty (30) days after the applicable invoice date shall bear interest at the rate of 1.5% per month (but in no event to exceed the highest applicable lawful rate of interest).  If any invoice goes unpaid for more than sixty (60) days past due, UNIFIED SIGNAL has the right to collect funds from Client’s corporate mobile wallet account, deposit, customer mobile wallet balances, and or Bank ACH or suspend CLIENT’s portal and or equipment.
+
+6.2	Daily Billing (Wireless) Via Mobile Wallet Account.  This billing option uses the UNIFIED SIGNAL mobile wallet system and bills CLIENT’s distribution’s Mobile Wallet account per transaction via UNIFIED SIGNAL’ Mobile Wallet process.  CLIENT’s distribution is billed for their wholesale cost plus CLIENT’s markup and distributed to Client’s corporate mobile wallet account.  UNIFIED SIGNAL will then immediately charge Client its cost from the transaction to UNIFIED SIGNAL’s corporate mobile wallet clearing account.  At month end, CLIENT will receive a billing credit for all funds paid to the UNIFIED SIGNAL corporate mobile wallet account. CLIENT will then be invoiced for all costs per the Agreement which is netted against all funds collected throughout the month from CLIENT’s corporate mobile wallet. 
+
+
+6.3	Daily Billing (Wireless) Via Bank ACH.  This billing option bills CLIENT’s bank account via a daily ACH process to cover supplier costs.   At month end, CLIENT will receive a billing credit for all funds paid to UNIFIED SIGNAL via the daily ACHs. CLIENT will then be invoiced for all costs per the Agreement which is netted against all funds collected throughout the month from CLIENT ACHs.   
+
+In the event of a payment default, using ACH system, the following shall occur if not cured within 10 business days from the date which written notice of such payment default is received:
+(a) All channel / dealer portals shall be suspended.
+(b) All channel / dealer portals shall be reactivated after the following conditions have been met:
+i. 	A full accounting of all open invoices shall be performed and all open invoices must be paid current;
+ii. 	The appropriate deposit referenced in this section must be paid in full. 
+iii. 	The cure payments including any applicable deposits shall be successfully received and cleared into UNIFIED SIGNAL’s bank accounts.  
+
+In the event that payment default extends past any deposit collected, then this signifies as a material breach of this Agreement and UNIFIED SIGNAL has the right to deactivate CLIENT’s subscriber base after written notice is provided to CLIENT and CLIENT fails to cure such breach to UNIFIED SIGNAL’s reasonable satisfaction within 10 business days following receipt of such notice.
+
+6.4.  Supplier Deposits.  Due to the real-time nature of funds collections in 6.2, CLIENT deposits are minimized.  Actual deposit will be 15 days average supplier costs which will be due upon the acquisition of 100 customers.  Once 1,000 customers have been acquired, UNIFIED SIGNAL will calculate the daily average supplier costs for those 1,000 customers and multiply that by CLIENT’s ending subscriber forecast for the next month to calculate the required deposit.  Deposits will grow based on actual subscriber growth. 
+
+Mobile Wallet Offload Prefunding Account Deposits.  Due to the real-time nature of funds clearing from the mobile wallet to the debit card and mobile wallet to other mobile wallet offload suppliers such as (Zelle, MCN, Push to Card, Bank Offload and Private Label Debit Card) “Offload Suppliers”, CLIENT is responsible for having adequate funds in UNIFIED SIGNAL’s supplier prefunding accounts.  Prefunding account deposits need to be a minimum of 5 days of total amount of withdrawals from CLIENT’s customer’s mobile wallet accounts to Offload Suppliers.  UNIFIED SIGNAL will calculate the daily average money moved from CLIENT’s customer’s mobile wallet accounts to Offload Suppliers and multiply that by 5.  Deposits will grow based on actual subscriber growth. 
+
+6.5 	Taxes.  UNIFIED SIGNAL can upon request calculate all state, local, and federal telecommunications and sales taxes, however designated, levied or based, on any subscriber charges or services provided hereunder.  CLIENT is responsible for providing the taxing software license from the vendor of their choice and UNIFIED SIGNAL will utilize such license according to CLIENT’s business rules.  CLIENT is responsible for any monthly, quarterly, or annual filing and registration fees.  Taxes will be withheld and remitted on a monthly basis to either the Reseller, if required by the Carrier, or to the CLIENT to file.  
+
+6.6	Subscriber Ownership.    UNIFIED SIGNAL will in no case ever solicit or in any way take control of CLIENT’s customers except for material breach for non-payment.  UNIFIED SIGNAL will also not terminate this agreement unless there is a material breach of the terms herein or an uncured payment default as defined in section 8.3.  If for reasons of breach or default under Article VIII, UNIFIED SIGNAL will continue to support CLIENT’s customers and pay to CLIENT any residual above and beyond the uncured payment amount.    
+
+ARTICLE VII
+MODIFICATION OF THE CUSTOMER ACQUISITION, BILLING, AND CARE SYSTEM
+
+	7.1	General.  UNIFIED SIGNAL Services shall be provided through UNIFIED SIGNAL’s proprietary Subscriber Acquisition, Procurement, Fulfillment, Billing, and Care Systems (“Back Office Systems”) which systems are included in the Services.  Subject to the terms and conditions of this Agreement, including, without limitation, this Section 7.1 and CLIENT's payment of all applicable fees, UNIFIED SIGNAL hereby grants to CLIENT a limited, a non-exclusive, non-assignable, non-sublicensable, non-transferable license (the “License”), during the term hereof, to access and use the Services for CLIENT's and its subscribers' internal business purposes only, on devices owned and operated by CLIENT or CLIENT's subscribers, only by the number of concurrent Authorized Users paid for by CLIENT and only using the logon identifiers and passwords provided to such Authorized Users for such use.  CLIENT and its Authorized Users shall not: (a) copy the Services or any portion thereof or permit unauthorized disclosure or copying of all or any part of the Services other than as required to use the Services remotely as intended by this Agreement; (b) translate, decompile or create or attempt to create, by reverse engineering or otherwise, the source code from the object code of the Services; (c) modify, adapt, translate or create a derivative work from the Services; (d) remove any proprietary notices, labels, or marks on the Services; (e) sell, lease, loan, license, assign, sublicense, rent, transfer, publish, disclose, divulge, display, make available to third parties or otherwise make available for the benefit of third parties all or any part of the Service, including, without limitation, by transmitting or providing the Service, or any portion thereof, over the Internet, or otherwise, to any third party; (f) interfere or attempt to interfere with the Services in any way; (g) remove, obscure or alter any copyright notice, trademark or other proprietary rights notices affixed to or contained within the Service; or (h) engage in or allow any action involving the Services that is inconsistent with the terms and conditions of this Agreement. All rights not expressly granted hereunder are reserved to UNIFIED SIGNAL.  UNIFIED SIGNAL shall prepare any modifications to its Back Office Systems and provide product support services with respect to them as is deemed necessary.  When UNIFIED SIGNAL seeks to make changes to their Back Office Systems, it shall follow a process called Change Management Process established by UNIFIED SIGNAL for the testing and implementation of such changes.
+
+	7.2	Installation of Patches and Maintenance Fixes.  CLIENT acknowledges and agrees that it will be necessary for UNIFIED SIGNAL to periodically install patches and maintenance fixes to its Back Office Systems to perform the Services.  UNIFIED SIGNAL shall be entitled to determine when and how to install such patches and maintenance fixes.  UNIFIED SIGNAL shall use reasonable efforts to notify CLIENT in writing in advance of a planned installation of a patch or maintenance fix.
+
+	7.3	Installation of Operating System Hardware, Storage, Software and Network.  CLIENT acknowledges and agrees that periodically it will be necessary for UNIFIED SIGNAL to install current maintenance and/or new versions of operating system hardware, storage, software and network components to perform the Services. UNIFIED SIGNAL shall be entitled to determine when to install these components in accordance with its Change Management Process.
+
+
+
+ARTICLE VIII
+DISPUTES AND REMEDIES
+
+	8.1	Notice of Breach and Opportunity To Cure.  No breach of this Agreement, including without limitation a breach of warranty hereunder, shall be actionable by either Party unless such Party has, as an expressed condition precedent to commencing such an action or proceeding, provided written notice to the Party in breach specifying the breach in reasonable detail and providing the Party in breach an amount of time to cure such breach as provided below, and the Party in breach fails to cure the breach within such notice period.
+
+	8.2	Termination For Cause.  In the event either Party to this Agreement is in material breach of this Agreement (other than for nonpayment, which is governed by Section 8.3), the non-breaching Party may terminate this Agreement under the following conditions: (a) A material breach shall be defined as any breach that significantly impairs the non-breaching Party's ability to receive the benefits intended by this Agreement, including, but not limited to, failure to provide services, failure to comply with confidentiality obligations, or ongoing issues with service quality. Additionally, breaches relating to payment defaults, regulatory non-compliance, or repeated failures to meet service levels as outlined in Schedule G shall also constitute material breaches. (b) For all material breaches, the breaching Party shall have thirty (30) days from receipt of written notice specifying the details of the breach to cure the breach. If the breach cannot reasonably be cured within thirty (30) days, the breaching Party shall proceed to commence the cure within this period and continue with due diligence until the breach is fully cured. (c) Before either Party terminates this Agreement for cause, the Parties agree to engage in good faith negotiations to explore alternative resolutions, including, but not limited to, mediation or renegotiation of the affected sections of the Agreement. Neither Party shall terminate the Agreement without first attempting these alternative dispute resolution methods. (d) In the event of any disagreement regarding whether a breach is considered "material," the Parties agree to submit the dispute to arbitration or mediation as outlined in Section 8.6 of this Agreement.
+
+	8.3	Termination For Nonpayment.  In the event CLIENT has unpaid invoices due UNIFIED SIGNAL which are greater than 90 days past due for services rendered in accordance with the terms of this Agreement, and such failure remains uncured after the expiration of ten (10) business days after its receipt of written notice to CLIENT in the form of (i) email, fax, or overnight delivery, and (ii) phone contact with at least one principal executive of CLIENT, then UNIFIED SIGNAL may terminate this Agreement and the Services to CLIENT and its subscribers by providing CLIENT with written notice of termination.  Upon termination of Agreement for nonpayment, UNIFIED SIGNAL has the right to deduct funds from CLIENT’s customer’s mobile wallet accounts to pay for all past due invoices.  All remaining funds will be sent back to CLIENT, where then funds along with a Mobile Wallet balance report which will include all customer and balance information, so CLIENT can distribute funds back to mobile wallet end users.  UNIFIED SIGNAL will also agree to help customers get back the balance of their funds if CLIENT makes such a request of UNIFIED SIGNAL.  CLIENT will agree to cover all such costs of such request to return mobile wallet funds to CLIENT’s customers. 
+
+	8.4	Termination Due To Insolvency.  In the event either Party to this Agreement  becomes insolvent or is unable to pay its debts as due, enters into or files (or has filed or commenced against it) a petition, arrangement, action or other proceeding seeking relief or protection under the bankruptcy laws of the United States or similar laws of any other jurisdiction "Bankruptcy Filing") or fails to remain a going concern,  then in such event the other Party to this Agreement may terminate this Agreement by giving written notice thereof to such Party which notice shall specify the date of termination.  
+
+8.5 	Effect of Termination.  Upon termination or expiration of this Agreement for any reason, the License and the Services shall terminate, CLIENT will be obligated to pay any and all fees due hereunder up through the date of such termination or expiration and UNIFIED SIGNAL shall have no further obligations to CLIENT.  Sections 6.1, 6.2, 6.3, 9.2, 9.3, 10.2, 11.1, 12.1, 12.2 and Article 13 hereof shall survive the expiration or termination of this Agreement for any reason.
+
+8.6	Dispute Resolution.  This Section 8.6 governs any dispute, disagreement, claim or controversy between CLIENT and UNIFIED SIGNAL arising from or related to this Agreement except where injunctive or other equitable relief is appropriate (a “Disputed Matter”).  All Disputed Matters shall be referred jointly to senior executives of each of the Parties.  If such executives do not agree upon a resolution within thirty (30) days after referral of the matter to them, the Parties shall proceed with arbitration as follows: The Parties shall resolve any and all Disputed Matters via binding arbitration in accordance with the Commercial Arbitration Rules of the American Arbitration Association ("AAA") as presently in force.  The appointing authority shall be the AAA.  The arbitration shall be heard and determined by three arbitrators.    Each Party shall name one arbitrator.  The third arbitrator shall be named by the two arbitrators appointed by the Parties.  If one of the arbitrators is unable to serve, due to death, disability or other reason, the Party appointing said arbitrator shall appoint a replacement arbitrator.  The place of arbitration shall be in Austin, Texas.  Any issue concerning the extent to which any Dispute is subject to arbitration, or concerning the applicability, interpretation, or enforceability of these procedures, including any contention that all or part of these procedures are invalid or unenforceable, shall be governed by the U.S. Federal Arbitration Act and resolved by the arbitrators.  No potential arbitrator may serve on the panel unless he or she has agreed in writing to abide and be bound by the procedures in this Section.
+
+The arbitrators may not award non-monetary, injunctive or other equitable relief of any sort; however such relief shall be available to the Parties where appropriate from a court of competent jurisdiction.  The arbitrators shall have no power to award (i) damages inconsistent with the Agreement, (ii) punitive damages or any other damages not measured by the prevailing Party’s actual damages or (iii) damages in excess of the limitations set forth in Section 9.2 of the Agreement.  Subject to the foregoing, in no event, even if any other portion of these provisions is held to be invalid or unenforceable, shall the arbitrators have power to make an award or impose a remedy that could not be made or imposed by a court sitting in the jurisdiction and venue agreed to by the Parties in Section 13.14 and deciding the matter in accordance with the law agreed to by the Parties in Section 13.14 as the governing law.  Each Party shall, upon the written request of the other Party, promptly provide the other with copies of documents relevant to the issues raised by any claim or counterclaim on which the producing Party may rely in support of or in opposition to any claim or defense.  No discovery will be permitted in connection with the arbitration unless it is expressly authorized by the arbitration panel upon a showing of substantial need by the Party seeking discovery.  All aspects of the arbitration shall be treated as confidential.  Neither the Parties nor the arbitrators may disclose the content or results of the arbitration, except as necessary to comply with legal, audit or regulatory requirements.  Before making any such disclosure, a Party shall give written notice to all other Parties and shall afford such Parties a reasonable opportunity to protect their interests. The result of the arbitration will be binding on the Parties, and judgment on the arbitrators’ award may be entered in any court having jurisdiction.  The Parties agree that service of process and of any notices required in connection with any arbitration hereunder or any related court proceedings may be given in the manner provided for the giving of notices under this Agreement as set forth in Section 13.7.  Each Party will bear its own costs in the arbitration, including attorneys’ fees.  The arbitrators shall not be permitted to award attorneys fees as part of any award.  The fees and expenses of the arbitrators will be shared equally by the Parties. The award shall be made and payable in U.S. dollars, free of any tax or other deductions.  The award may include interest from the date of any breach or other violation of this Agreement.  The arbitrators shall fix the appropriate rate of interest from the date of the breach or other violation to the date that the award is paid in full.  In no event, however, should the interest rate during such period be lower than the prime commercial lending rate for favored borrowers published from time to time by the Wall Street Journal.
+
+ARTICLE IX
+ERROR CORRECTION, LIMITATION OF LIABILITY AND INDEMNITY
+
+	9.1	Error Correction.  CLIENT shall be responsible for the data, information and input supplied to UNIFIED SIGNAL by CLIENT or on behalf of CLIENT and its subscribers.  UNIFIED SIGNAL shall have no liability of any kind with regard to errors that are attributable to incorrect data, information or input supplied to UNIFIED SIGNAL by CLIENT or on behalf of CLIENT and its subscribers.  With regard to errors which are caused solely by an error of UNIFIED SIGNAL in performing the Services, as CLIENT's and its subscribers' sole and exclusive remedy, UNIFIED SIGNAL shall correct at its own expense, any material error in the output or in the data files it maintains for CLIENT and its subscribers, either by reprocessing the output, adjusting the files or otherwise as reasonably determined by UNIFIED SIGNAL in consultation with CLIENT; provided that:  (i) for reports run on a daily basis, UNIFIED SIGNAL shall only be required to retroactively reprocess such reports if CLIENT first reports such error to UNIFIED SIGNAL within five (5) days of CLIENT’s first receipt of output from UNIFIED SIGNAL that evidences the error; (ii) for reports run on a weekly basis, UNIFIED SIGNAL shall only be required to retroactively reprocess such reports if CLIENT first reports such error to UNIFIED SIGNAL within ten (10) days of CLIENT’s first receipt of output from UNIFIED SIGNAL that evidences the error; and (iii) for reports run on a monthly basis, UNIFIED SIGNAL shall only be required to retroactively reprocess such reports if CLIENT first reports such error to UNIFIED SIGNAL within thirty (30) days of CLIENT’s first receipt of output from UNIFIED SIGNAL that evidences the error.    .  
+
+	9.2	Scope of Liability.  IN NO EVENT SHALL EITHER PARTY BE LIABLE FOR ANY CONSEQUENTIAL, EXEMPLARY, SPECIAL, INDIRECT, INCIDENTAL OR PUNITIVE DAMAGES OR LOST REVENUE, LOST PROFITS OR ANTICIPATED BUSINESS ARISING FROM OR RELATING TO THIS AGREEMENT, THE SUBJECT MATTER HEREOF OR THE SERVICES, INCLUDING WITHOUT LIMITATION, DAMAGES ARISING FROM LOSS OF INFORMATION OR DATA, HOWEVER CAUSED (EVEN IF A PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES).  THE AGGREGATE LIABILITY OF EITHER PARTY WITH RESPECT TO ANY DAMAGES INCURRED IN ANY ONE MONTH PERIOD IN THE TERM FOR ANY OTHER DAMAGES ARISING FROM OR RELATING TO THIS AGREEMENT, THE SUBJECT MATTER HEREOF, OR THE SERVICES OR THE BACK OFFICE SYSTEM, HOWEVER CAUSED, UNDER ANY THEORY OF LIABILITY, SHALL NOT EXCEED THE AMOUNTS RECEIVED BY UNIFIED SIGNAL FROM CLIENT RELATING TO ITS USE OF THE SERVICES DURING SUCH ONE MONTH PERIOD. THIS LIMITATION APPLIES TO ALL CAUSES OF ACTIONS OR CLAIMS IN THE AGGREGATE INCLUDING WITHOUT LIMITATION, BREACH OF CONTRACT, BREACH OF WARRANTY, NEGLIGENCE, STRICT LIABILITY, MISREPRESENTATION, CLAIMS FOR FAILURE TO EXERCISE DUE CARE IN THE PERFORMANCE OF UNIFIED SIGNAL’S SERVICES HEREUNDER, AND OTHER TORTS.  FURTHER, NO CAUSE OF ACTION WHICH ACCRUED MORE THAN TWO (2) YEARS PRIOR TO THE FILING OF A SUIT ALLEGING SUCH CAUSE OF ACTION MAY BE ASSERTED AGAINST EITHER PARTY.  CLIENT AND UNIFIED SIGNAL EXPRESSLY ACKNOWLEDGE AND AGREE THAT THE LIMITATIONS AND EXCLUSIONS CONTAINED HEREIN REPRESENT THE PARTIES' AGREEMENT AS TO THE ALLOCATION OF RISK BETWEEN THE PARTIES IN CONNECTION WITH EITHER PARTY'S OBLIGATIONS UNDER THIS AGREEMENT.  THE PAYMENTS PAYABLE TO A PARTY IN CONNECTION HEREWITH REFLECT THIS ALLOCATION OF RISK AND THE EXCLUSION OF CONSEQUENTIAL AND OTHER DAMAGES HEREIN.
+
+	The Parties have agreed that the limitations specified in this Section 9.2 shall not apply to breaches by CLIENT of its obligations under Sections 11 and 12 and CLIENT’s obligations under Section 9.3; and (b) will survive and apply even if any limited remedy specified in this Agreement is found to have failed of its essential purpose.  These limitations represent an allocation of risk between the Parties and are an essential and material part of this Agreement.
+
+	9.3	General Indemnification.
+
+		(a)	Indemnity by CLIENT.  CLIENT shall indemnify, protect, defend and hold harmless UNIFIED SIGNAL and its directors, shareholders, officers, agents, attorneys and affiliates (each, a “UNIFIED SIGNAL Indemnitee”) from and against, any damages, awards, loss, liabilities, costs and expenses (including reasonable attorneys' fees and expenses) (collectively, “Liabilities”) incurred by such persons or entities in connection with any and all actions, suits, claims, or demands (collectively, “Claims”) that may be brought or instituted against any UNIFIED SIGNAL Indemnitee by any third party based upon on or arising out of or relating to any claims:  (i) any breach of any term of this Agreement or any of the representations, warranties, obligations, covenants or agreements herein or the Acceptable Use Policy by CLIENT or by any of the agents, employees or Authorized Users, or arising in connection with use of the Service by or through CLIENT or any Authorized User whether or not such use was authorized by CLIENT;  (ii) alleged infringement of third-party rights to intellectual property by any data or information which CLIENT provided to UNIFIED SIGNAL for the purpose of carrying out this Agreement; and (iii) CLIENT’s or an Authorized User's failure to comply with any applicable international, national, state or local law or regulation or judicial order or public policy. 
+
+		(b)	Indemnity by UNIFIED SIGNAL.  UNIFIED SIGNAL shall indemnify, protect, defend and hold harmless CLIENT and its directors, shareholders, officers, agents, attorneys and affiliates (each, a “CLIENT Indemnitee”) from and against, any Liabilities incurred by such persons or entities in connection with any and all Claims based upon or arising out of :  (i) any breach of any representation or warranty or the inaccuracy of any representation or warranty, made by UNIFIED SIGNAL in this Agreement; (ii) any breach of any covenant or agreement made by UNIFIED SIGNAL in or pursuant to this Agreement; (iii) bodily injury to or death of any person caused by UNIFIED SIGNAL or its agents, subcontractors or employees; (iv) damage to, or loss or destruction of, any tangible real property or tangible personal property caused by UNIFIED SIGNAL or its agents, subcontractors or employees; (v) alleged infringement of third-party rights to intellectual property UNIFIED SIGNAL provided CLIENT for the purpose of carrying out this Agreement; and (vi) UNIFIED SIGNAL’s failure to comply with any applicable state or federal law or regulation, including without limitation any conduct by CLIENT in violation of any regulations promulgated by the Federal Communications Commission, the Federal Trade Commission or the State Public Utility Commissions such as “slamming” and “cramming” violations.
+
+9.4 Indemnity Procedure.  The obligations to indemnify, protect, defend and hold harmless included in this Agreement shall not apply to the extent the indemnified Party was responsible for giving rise to the matter upon which the claim for indemnification is based and will not apply unless the indemnified Party (i) promptly notifies the indemnifying Party of any matters in respect of which the indemnity may apply and of which the indemnified Party has knowledge (provided that the failure to provide such prompt notice shall not relieve a Party of any obligation under this Section not materially affected by such failure); (ii) gives the indemnifying Party full opportunity to control the response thereto and the defense thereof, including any agreement relating to the settlement thereof, provided that the indemnifying Party shall not settle any such claim or action without the prior written consent of the indemnified Party (which shall not be unreasonably withheld or delayed); and (iii) cooperates with the indemnifying Party, at the indemnifying Party’s cost and expense in the defense or settlement thereof.  The indemnified Party may participate, at its own expense, in such defense and in any settlement discussions directly or through counsel of its choice on a monitoring, non-controlling basis.    
+  				         ARTICLE X
+WARRANTIES
+
+	10.1	Services.  Each Party (the “Representing Party”) represents and warrants to the other that:  (a) it has the authority to enter this Agreement and to perform its obligations under this Agreement; (b) the execution and performance of this Agreement does not and will not violate any agreement to which the Representing Party is a party or by which it is otherwise bound; and (c) when executed and delivered, this Agreement will constitute a legal, valid and binding obligation of the Representing Party, enforceable in accordance with its terms.  UNIFIED SIGNAL warrants to CLIENT that all Services provided hereunder will be performed in a good and workmanlike manner.  The warranty provided herein shall expire sixty (60) days after the particular part of the Services which is the subject of the claim of failure is provided (the "Warranty Period").  Subject to Section 9.1 hereof, in the event of any failure by UNIFIED SIGNAL to conform to the foregoing warranty in any material respect, UNIFIED SIGNAL shall use commercially reasonable efforts to cure or correct such failure as soon as reasonably practical at UNIFIED SIGNAL’s expense.  If UNIFIED SIGNAL is unable to cure or correct such failure within a commercially reasonable period of time, then UNIFIED SIGNAL shall provide to CLIENT, as a sole and exclusive remedy, a refund of the fees for such non-conforming portion of the Service.  The remedies in this Section 10.1 are sole and exclusive remedies and UNIFIED SIGNAL’s only obligation for breach of the warranty contained in this Section 10.1.  The foregoing warranty is expressly conditioned upon (i) CLIENT providing UNIFIED SIGNAL with prompt written notice of any claim there under prior to the expiration of the Warranty Period therefor, which notice must identify with particularity the non-conformity; and (ii) CLIENT’s reasonable cooperation with UNIFIED SIGNAL in all reasonable respects relating thereto, including assisting UNIFIED SIGNAL to locate and reproduce the non-conformity.  The foregoing warranty will not apply to the extent that the alleged breach of warranty is due to third-party hardware, software and any other services or goods supplied by CLIENT or used by CLIENT and which do not conform to their respective technical, functional and performance specifications and criteria, as such criteria was specified by the third party (or CLIENT), and UNIFIED SIGNAL shall have no liability or obligation as a result thereof.  CLIENT represents and warrants to UNIFIED SIGNAL that CLIENT and its Authorized Users will comply with and not violate the terms of the Acceptable Use Policy set forth as Schedule H.
+
+
+	10.2	WARRANTY DISCLAIMER.  CLIENT ACKNOWLEDGES THAT, EXCEPT AS PROVIDED HEREIN, THE SERVICE IS PROVIDED HEREUNDER WITH NO WARRANTY WHATSOEVER. CLIENT ACKNOWLEDGES THAT ITS USE OF THE SERVICE IS AT ITS OWN RISK.  EXCEPT AS EXPRESSLY PROVIDED HEREIN, THE SERVICE IS PROVIDED SOLELY ON AN “AS-IS” BASIS. THE EXPRESSED WARRANTY MADE IN SECTION 10.1 IS EXCLUSIVE AND IN LIEU OF, AND UNIFIED SIGNAL DISCLAIMS, ALL OTHER WARRANTIES, EXPRESSED, IMPLIED OR STATUTORY, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, NON-INFRINGEMENT OR FITNESS FOR A PARTICULAR PURPOSE AND ALL DUTIES AND OBLIGATIONS IMPLIED IN LAW.  UNIFIED SIGNAL DOES NOT WARRANT THAT THE SERVICES SHALL BE OPERABLE, SHALL PROPERLY STORE DATA, SHALL OPERATE UNINTERRUPTED OR ERROR FREE, SHALL BE SECURE, SHALL KEEP DATA CONFIDENTIAL, SHALL FUNCTION OR OPERATE IN CONJUNCTION WITH ANY OTHER PRODUCT OR SHALL MEET CLIENT'S NEEDS.
+
+
+ARTICLE XI
+INTELLECTUAL PROPERTY RIGHTS AND USE OF MARKS
+
+	11.1	Intellectual Property Rights.  CLIENT acknowledges and agrees that the Back Office Systems are the sole and exclusive property and confidential information of UNIFIED SIGNAL.  
+
+	11.2	Ownership of Media.  Unless furnished by CLIENT or its carriers, and with the exception of the media delivered by UNIFIED SIGNAL to CLIENT on which the reports and outputs provided hereunder are contained, all media upon which CLIENT data is stored is and shall remain the property of UNIFIED SIGNAL.
+
+	11.3	Use of Marks.
+		(a)	The Parties currently contemplate that CLIENT branding may appear in some fashion on or in subscriber bills, reports, correspondence and related materials (collectively referred to as “Billing Materials”).  Each Party acknowledges the other Party’s rights in and to their respective copyrights, trademarks, service marks, logos, trade names and other proprietary marks (collectively referred to as “Marks”).  Nothing in this Agreement shall be construed to grant either Party any license to or rights in or to the other Party’s Marks, except as set forth in Section 11.3(b) below.
+
+		(b)	UNIFIED SIGNAL shall use the CLIENT specific trademark(s), trade name(s) and product name(s) (designated as “CLIENT Marks”) according to the artwork standards and other requirements which have been delivered to UNIFIED SIGNAL by CLIENT, or as otherwise mutually agreed to between the Parties only in conjunction with the Services and Billing Materials as contemplated herein.  CLIENT shall be responsible for determining the artwork and communication standards related to the use of its Marks which standards are attached hereto or shall have been delivered to UNIFIED SIGNAL, as required, prior to the use of such Marks.  Prior to publication, CLIENT shall be required to approve any proposed Billing Materials which reference its Marks and UNIFIED SIGNAL shall take reasonable steps to modify such Billing Materials if necessary to acquire such CLIENT approval.  CLIENT shall have no right to use any UNIFIED SIGNAL Marks without the advance written consent of UNIFIED SIGNAL.
+
+		(c)	Any goodwill generated by use of the CLIENT Marks shall accrue to the sole benefit of CLIENT.  Any goodwill generated by use of the UNIFIED SIGNAL Marks shall accrue to the sole benefit of UNIFIED SIGNAL.  Neither Party nor its subsidiaries, nor its successors in interest, shall (or shall cause others to) challenge, file suit or initiate proceedings, or contest in any other manner the other Party’s ownership rights or rights to use, or allow its subsidiaries to use such Party’s Marks to identify any goods of such Party and its subsidiaries.
+
+		(d)	The owner or licensor of the Marks may discontinue the use of any or all of its Marks on any Billing Materials or the like at its sole option.
+
+		(e)	Except as otherwise permitted herein, neither Party will use, or permit their respective employees, agents and subcontractors to use, the Marks of the other Party, or the other Party’s affiliates, whether registered or unregistered, without such Party’s prior written consent.
+
+
+ARTICLE XII
+CONFIDENTIAL INFORMATION / NONCIRCUMVENT
+
+	12.1	Confidential Information.  For purposes of this Agreement, “Confidential Information” shall mean any and all non-public, proprietary, or confidential information of a Party, including, but not limited to, any information related to the business or customers of a Party transferred or transmitted in writing, orally, visually, electronically, or by any other means by a Party or an affiliate of such Party or otherwise learned in connection with this Agreement.  “Confidential Information” shall include the Back Office Systems and Services.  Each Party shall keep the Confidential Information of the other Party strictly confidential and used only as set forth in this Agreement.  No such information shall be disclosed by either Party, its agents or employees without the prior written consent of the other Party, except as set forth herein.  At any time upon the request of a Party, the other Party shall promptly, at the option of the requesting Party, either return or destroy all (or, if the requesting Party so requests, any part) of the Confidential Information of the requesting Party previously disclosed and all copies thereof, and the other Party shall certify in writing as to its compliance with the foregoing. Each Party agrees to secure and protect the other Party’s Confidential Information and CLIENT agrees to take appropriate action by instruction or agreement with its Authorized Users to satisfy its obligations hereunder.  CLIENT agrees to not reverse engineer any of UNIFIED SIGNAL services and or intellectual property.  Each Party shall use its best efforts to assist the other Party in identifying and preventing any unauthorized access, use, copying or disclosure of the Confidential Information, or any component thereof.  Without limitation of the foregoing, a Party shall advise the other Party immediately in the event a Party learns or has reason to believe that any person has violated or intends to violate these confidentiality obligations or the proprietary rights of a Party, and each Party will, at their own expense, cooperate with the other Party in seeking injunctive or other equitable relief in the name of each Party against any such person.
+
+Notwithstanding the foregoing, information shall not be considered Confidential Information where a Party can demonstrate that such information:
+
+		(i)	was in the public domain on or prior to the date of this Agreement; or
+
+		(ii)	was lawfully in the possession of the receiving Party on or prior to the date of this Agreement or the disclosure without obligation of confidentiality; or
+
+		(iii)	became part of the public domain, by publication or otherwise, not due to any unauthorized act or omission on the part of the receiving Party; or
+
+		(iv)	was independently created or derived by the receiving Party without the aid of any Confidential Information provided to the receiving Party by the disclosing Party; or
+
+(v)	is supplied to the receiving Party by a third party as a matter of right without an obligation of confidentiality; or 
+
+(vi) 	is required to be disclosed by law or court order, provided that the disclosing Party is provided a reasonable opportunity to prevent such disclosure, and, in the event of a disclosure, that the receiving Party apply best efforts to ensure that available confidentiality protections are applied to such information.
+
+CLIENT and Authorized Users are responsible for maintaining the confidentiality of such logon identifiers and passwords and shall be fully responsible for all activities that occur under such logon identifiers and passwords.  CLIENT agrees to (a) immediately notify UNIFIED SIGNAL of any unauthorized use of such logon identifiers or passwords or any other breach of security pertaining to the Service, and (b) ensure that Authorized Users exit from their accounts at the end of each session.  UNIFIED SIGNAL cannot and will not be liable for any loss or damage arising from CLIENT's or any Authorized User's failure to comply with this Section
+
+12.2	Non circumvent.  UNIFIED SIGNAL and CLIENT agree that in providing services to CLIENT, UNIFIED SIGNAL is providing key access directly to some third-party relationships.  Those relationships are a competitive advantage to UNIFIED SIGNAL and CLIENT agrees to not work directly or indirectly with those third parties with whom UNIFIED SIGNAL has a relationship unless such relationship is used in conjunction with the UNIFIED SIGNAL billing and operating system.  Such relationships are not to include any wireless spectrum holder.  Client will always have the right to enter into a direct relationship with any wireless spectrum holders.  In the event that CLIENT circumvents UNIFIED SIGNAL to purchase services directly from those protected supplier agreements, and chooses not to use the UNIFIED SIGNAL billing system, then UNIFIED SIGNAL remedies include, but are not limited to taking legal action that will cause CLIENT to immediately cease and desist engaging in such business.  CLIENT will also lose any and all deposits and commissions accrued by CLIENT.   
+
+ARTICLE XIII
+MISCELLANEOUS PROVISIONS
+
+	13.1	Non solicitation of Employees.  CLIENT and UNIFIED SIGNAL mutually acknowledge that each’s success in its industry is largely dependent on the performance of its personnel and that, therefore, both Parties expend substantial resources in connection with employment and training.  Accordingly, neither Party shall employ or solicit for employment, either as an employee or contractor, any person who was a Restricted Employee of the other Party at any time while such Restricted Employee is employed by such Party and during the twelve (12) months thereafter, without obtaining the advance written consent of such Party.  A Restricted Employee is any employee or third-party contractor (including employees thereof) of a Party, excluding members of the clerical staff.
+
+	13.2	Binding Effect; Assignment.  CLIENT will not transfer or assign this Agreement, in whole or in part, or delegate or subcontract any of its rights or obligations hereunder, without UNIFIED SIGNAL's prior written consent, which shall not be unreasonably withheld. Any attempted assignment, transfer or delegation in contravention of this paragraph will be void and of no force and effect.  This Agreement shall be binding upon and inure to the benefit of the Parties hereto and their respective successors and permitted assignees.
+
+	13.3	No Waiver.  No failure of either Party to exercise any power or right given either Party hereunder or to insist upon strict compliance by either Party with its obligations hereunder, and no custom or practice of the Parties at variance with the terms hereof shall constitute a waiver of either Party’s right to demand exact compliance with the terms hereof.
+
+	13.4	Excused Performance.  Each Party shall be excused from performance, and shall have no liability beyond what is included in this Agreement, for any period and to the extent that such Party is prevented, hindered or delayed from performing any Services or other obligations under this Agreement, in whole or in part, as a result of acts, omissions or events beyond the reasonable control of such Party, including by way of illustration and not limitation, acts or omissions of the other Party, third-party nonperformance, breach or other nonperformance by such Party’s vendors and/or suppliers, due to strikes or labor disputes, riots, war or terrorism, fire, or governmental regulations; provided that such Party shall resume performance hereunder promptly upon resolution of such acts, omissions or events. The Parties acknowledge that UNIFIED SIGNAL makes no guarantee that any given user will be able to access the Services at any given time.  There are no assurances that access will be available at all times and uninterrupted, and UNIFIED SIGNAL shall not be liable to CLIENT for any unavailability of the Services.	
+
+13.5	Rights Cumulative.  All rights, powers, and privileges conferred hereunder upon the Parties shall be cumulative and shall not restrict those given by law.
+
+	13.6	Singular Includes Plural.  The singular of any word in this Agreement includes the plural.
+
+	13.7	Notices.  Whenever under this Agreement one Party is required or permitted to give notice to the other, such notice shall be deemed given when delivered in hand, via email provided that both Parties acknowledge receipt of such communication, by overnight courier with tracking capability, or three (3) Business Days after the date mailed by any mail carrier with return receipt requested, postage prepaid, and addressed as follows:
+
+In the case of UNIFIED SIGNAL:
+14425 Falcon Head Blvd
+Suite E100
+Austin, Texas  78738
+Attention:  Paris Holt
+
+In the case of CLIENT:
+_________________________
+_________________________
+_________________________
+      Attention:    _________________________
+
+	Either Party may change its address for notification purposes by giving the other Party three (3) days prior written or email notice of the new address and the date upon which it will become effective.
+
+	13.8	Relationship of Parties.  In furnishing services to CLIENT, UNIFIED SIGNAL is acting as an independent contractor.  This Agreement shall not be deemed to create a partnership, joint venture or fiduciary relationship between the Parties.
+
+	13.9	Severability.  In the event any provision of this Agreement is held to be unenforceable or invalid by any court of competent jurisdiction, the validity and enforceability of the remaining provisions of this Agreement shall not be affected and, in lieu of such invalid or unenforceable provision, there shall be added automatically as part of this Agreement one or more provisions as similar in terms as may be valid and enforceable under applicable law.
+
+	13.10	Entire Agreement.  This Agreement, including the Schedules attached hereto, constitutes the entire agreement between the parties with respect to the subject matter hereof and supersedes all prior and contemporaneous representations, understandings or agreements, whether oral or written, relating to the subject matter hereof.  All prior or contemporaneous representations, understandings or agreements, whether oral or written, that are not expressly set forth within the four corners of this Agreement are hereby deemed waived, superseded and abandoned. There are no understandings, representations, warranties, covenants, conditions or other agreements, express or implied, collateral, statutory or otherwise, between the parties in connection with the subject matter of this Agreement except as specifically set forth herein and none of the parties has relied or is relying on any other information, discussion, representation, agreement or understanding in entering into and completing the transactions contemplated in this Agreement. 
+
+	13.11	Amendments.  No amendment or modification of this Agreement will be binding on either of the Parties to this Agreement unless such Amendment is contained in a written document which expresses an intention to amend this Agreement and is executed by both the Parties.
+
+	13.12	Counterparts.  This Agreement may be executed in several counterparts all of which taken together shall constitute one single agreement between the Parties.
+
+	13.13	Headings.  The article and section headings included in this Agreement are for reference and convenience only and shall not enter into the interpretation of this Agreement.
+
+	13.14	Governing Law.  This Agreement shall be governed and construed in accordance with the laws of Texas, United States of America, without regard to conflicts of law.  The sole jurisdiction and venue for any claim or action arising under this Agreement shall be Texas, United States of America.  
+
+	13.15	Currency.  All monetary amounts stated in this Agreement are stated in United States Dollars, and all amounts due hereunder shall be paid by CLIENT in United States Dollars.
+
+	13.16	Terms Confidential.  The terms and conditions of this Agreement are Confidential Information of UNIFIED SIGNAL.  CLIENT will permit UNIFIED SIGNAL to use CLIENT as a reference with CLIENT’s advance approval, which approval shall not be unreasonably withheld by CLIENT.
+
+	13.17	No Third-Party Beneficiaries.  The provisions of this Agreement are for the benefit of the Parties hereto and not for any other person.
+
+	13.18	Survival.  The expiration or termination of this Agreement for any reason shall not release a Party from any liability that at the time of such expiration or termination already accrued to the other Party, or that thereafter may accrue in respect of any act or omission prior to such expiration or termination, or from any obligation that is expressly stated herein to survive such expiration or termination of this Agreement.
+
+13.19 	Export.  CLIENT represents and warrants that it and all Authorized Users will comply with all applicable laws, rules and regulations in the jurisdiction from which they access the Service, including those laws, rules and regulations which apply to the access, import, use and export of controlled technology or other goods.  CLIENT also agrees that it and all Authorized Users will comply with the applicable laws, rules and regulations of the jurisdiction from which UNIFIED SIGNAL operates the Services (currently, the United States of America).  In particular, CLIENT represents, warrants and covenants that it shall not, without obtaining prior written authorization from UNIFIED SIGNAL and, if required, of the Bureau of Export Administration of the United States Department of Commerce or other relevant agency of the United States Government, access, use, export or re-export, directly or indirectly, the Services, or any portion thereof or any Confidential Information of UNIFIED SIGNAL (including without limitation information regarding the use, access, deployment, or functionality of the Services) from the United States to (a) any country destination to which access, use, export or re-export is restricted by the Export Administration Regulations of the United States Department of Commerce; (b) any country subject to sanctions administered by the Office of Foreign Assets Control, United States Department of the Treasury; or (c) such other countries to which access, use, export or re-export is restricted by any other United States government agency.  CLIENT further agrees that it is solely responsible for compliance with any import laws and regulations of the country of destination of permitted access, use, export or re-export, and any other import requirement related to a permitted access, use, export or re-export.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+IN WITNESS WHEREOF, the Parties hereto have each executed this Agreement by a duly authorized representative as of the date indicated adjacent to their signatures hereon.
+
+
+
+UNIFIED SIGNAL, INC.		CLIENT
+
+
+
+
+By:		By:	
+
+
+Name:		Name:	
+
+Title:		Title:	
+
+Date:		Date:	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SCHEDULE A
+UNIFIED SIGNAL SCHEDULE OF SERVICES
+
+
+	As further described below, the Services available under this Schedule A and the Master Service Agreement (“MSA”) shall consist of the following.  UNIFIED SIGNAL shall also provide such other services as may be mutually agreed upon as to description and price in accordance with Section 3.2 of the MSA.
+
+	(i)	Third Party Integration Services
+	(ii)	Implementation Services
+	(iii)	Front End Subscriber Acquisition Services
+	(iv)	Service Provisioning
+	(v)	Back Office System Operations
+	(vi)	Subscriber Care Services
+	(vii)	Activity Reporting / Reconciliation Services
+	(viii)	Management Consulting / Back Office Customization
+	(ix)	Cellular Phone Data Application
+	(x)	Open and Closed Loop Transactions
+
+
+I.	THIRD PARTY Integration SERVICES
+1.  UNIFIED SIGNAL shall work with CLIENT to provide them direct access to necessary third party suppliers as reasonably needed to deliver Services to CLIENT.
+
+2.  CLIENT may request that additional third party suppliers be added to UNIFIED SIGNAL Back Office Systems.  UNIFIED SIGNAL shall evaluate such request and exercise commercially reasonable efforts to negotiate terms with the third party supplier. Upon completion of successful negotiations, UNIFIED SIGNAL shall incorporate the additional third party suppliers into UNIFIED SIGNAL’s Back Office Systems and make such access available to CLIENT.
+
+3.  Any fees or charges assessed by such additional carriers with respect to implementing CLIENT’s access shall be passed on to CLIENT.
+
+
+II.	IMPLEMENTATION
+UNIFIED SIGNAL shall reasonably assist CLIENT in understanding the economics and functionality of each of the UNIFIED SIGNAL Services that CLIENT desires to market.  Such assistance shall include:
+
+Reporting and audit requirements.
+Market pricing reports for each of the services that CLIENT wishes to sell in each   
+            of the geographic markets in which CLIENT is considering implementation.
+Working with CLIENT to determine what products and services to market.
+Ascertaining appropriate pricing for services.
+
+UNIFIED SIGNAL shall assist CLIENT in making decisions regarding CLIENTs implementation data which is subsequently loaded into UNIFIED SIGNAL’s Back Office Systems.
+
+UNIFIED SIGNAL shall also provide system administrative functions including pricing modifications, table updates and configuration information, as reasonably necessary for CLIENT’s implementation.
+
+
+
+
+
+III.	FRONT END SUBSCRIBER ACQUISITION SERVICES
+Commencing on the Cutover Date, UNIFIED SIGNAL shall provide CLIENT access to UNIFIED SIGNAL’s Back Office System, which, at CLIENT’s request, shall be branded by modification of the web site banner to contain CLIENT’s name, brand (e.g. look and feel), and, subject to UNIFIED SIGNAL’s review and approval, any links requested by CLIENT.  It shall be CLIENT’s responsibility to provide to UNIFIED SIGNAL all art work and associated items related to such banner.  The CLIENT branded POS web site shall provide the following information, functions and capabilities:
+
+Application(s) that format and present the CLIENT branded web site in a format suitable for access and display on the Internet.
+Description of the CLIENT’s services.
+Pricing for the CLIENT’s selected services.
+Offer subscribers the ability to order CLIENT’s services.
+Enable CLIENT to acquire subscriber information for further evaluation and input into the system.
+
+
+IV.	SERVICE PROVISIONING
+
+	UNIFIED SIGNAL will use commercially reasonable efforts so that CLIENT’s applicable services are provisioned properly within the UNIFIED SIGNAL Back Office Systems and with any reasonably necessary third party, UNIFIED SIGNAL shall submit the required information to the appropriate places for provisioning, and oversee the quality assurance and data integrity of such orders.  This oversight shall include any troubleshooting and problem resolution that may be needed.  UNIFIED SIGNAL shall perform these functions manually and/or electronically.  
+
+
+V.	 Back office SYSTEM OPERATIONS
+
+	The billing system services described herein shall be provided using UNIFIED SIGNAL’s Back Office Systems, which shall provide the following functionality and capabilities:
+
+Order Entry –Identify and install new accounts, and supply new order information to external service suppliers.
+
+Account Management – Access information held on each subscriber account allowing SSRs to respond to subscriber inquiries and perform their account-related requests.
+
+Accounts Receivable – Track and manage subscriber account balances and include any activity posted to the subscriber’s account on the subscriber’s statement.
+
+International Long Distance (ILD) Subscriber Detail Record (CDR) Management – Accept unrated and pre-rated ILD CDRs from single or multiple sources.
+
+Rate Management – Support multiple rates for Services based on a combination of characteristics, assess penalties and other feature charges, and offer discounts and credits.
+
+Online Statement Generation – Arrange CLIENT data in the format and on the media required by UNIFIED SIGNAL’s vendors for statement generation.
+
+
+
+
+
+
+Miscellaneous Back Office Operations:
+
+
+ITEM
+DESCRIPTION
+1.
+System Parameter / Business Rules Maintenance (this shall be conducted pursuant to policies and practices set by CLIENT)
+2.
+Product Maintenance
+3.
+Service pricing Changes
+4.
+Fill out forms to be sent to Subscriber/Attach Subscriber letters and various Subscriber requests
+5.
+Subscriber account research/update the comment screen
+6.
+Deactivations / Temporary Suspends
+7.
+Identify Subscriber moves and update account with new information
+8.
+Handle deactivation requests 
+9.
+Review statement on-line
+10.
+Setting up pricing models, forms and reports
+11.
+Review accounts receivable file posting after billing
+12.
+Check deactivations and billing payments
+13.
+Billing research
+14.
+Error log recycle
+15.
+On-line pricing change updates
+16.
+Product file maintenance
+17.
+Research of rating / billing problems
+18.
+Perform quality assurance on statements after each billing cycle
+19.
+Perform quality assurance on rate changes
+20.
+Bill print support – provide operational support in copying bill prints to tape/files and delivery to print center
+21.
+Tape handling support – Provide support for all tape handling that must be processed
+22.
+Production scheduling – Provide production support for scheduling and ad hoc and recurring production jobs such as pre-billing queries, load, rate and bill jobs
+23.
+Full .net API support for any and all UNIFIED SIGNAL functionality
+24.
+Integration with CLIENT’s systems as well as any third party system as need to deliver CLIENT solution
+25.
+Worldwide SMS delivery
+26.
+Worldwide cellular carrier airtime top up / replenishment
+27.
+Ability for UNIFIED SIGNAL CLIENTs to provide their clients with a portal where they can manage their business.  Such portals will have 4 levels of management.  ISO, Master Agent, Agent, and Dealer
+28.
+Customer Service call analyzer which allows CLIENTs to better understand why customers call customer service and use such information to reduce consumer churn and increase customer satisfaction
+29.
+Web page statistical reporting which allows clients the ability to track their customer’s usage so as to increase penetration rates as well as increase consumer satisfaction 
+30.
+CLIENTs have access to UNIFIED SIGNAL’s (Anti-Fraud and Intrusion Detection System)  AFIDS
+
+
+
+VI.	SUBSCRIBER CARE SERVICES
+CLIENT and CLIENT’s subscribers may access UNIFIED SIGNAL’s online care platform by calling a UNIFIED SIGNAL Subscriber Service Representative (“SSR”). Subscriber calls to UNIFIED SIGNAL’s subscriber service center generated by CLIENT’s subscribers shall be branded to the CLIENT.
+
+Commencing on the Cutover Date, UNIFIED SIGNAL shall provide the following Subscriber Care Services to CLIENT at client’s request:
+
+Receiving and responding to incoming calls that relate to CLIENT’s services.
+
+Receiving and responding to mailed correspondence relating to subscriber, including, but not limited to, correspondence requiring subscriber contact and mail that originated in the Subscriber Care Center which is returned to UNIFIED SIGNAL undelivered.
+
+Handling calls via toll free numbers and segmenting those calls as appropriate or as otherwise agreed upon with CLIENT.
+
+Providing an ACD that shall permit subscribers to hear prerecorded messages, music, etc. during queue periods.
+
+At the time UNIFIED SIGNAL commences providing the Subscriber Care Services, unless otherwise requested by CLIENT and agreed to by UNIFIED SIGNAL, the ACD located at the Subscriber Care Center shall have VRU (voice response unit) capabilities that prompt subscribers for DTMF (touch tone) input so that calls can be proactively segmented and channeled to applicable SSRs’ stations.
+
+At the time UNIFIED SIGNAL commences providing the Subscriber Care Services, unless otherwise requested by CLIENT and agreed to by UNIFIED SIGNAL, the ACD and Subscriber Care and Billing System shall support automatic account accessing.  This shall enable SSRs to view account information on system screens prior to engaging calls with subscribers.
+
+Subscriber billing and maintenance inquiry functions:
+(a) Issue credits based on guidelines established by CLIENT.
+(b) Provide rate quotes and competitive rate comparisons for all products that apply, utilizing a CLIENT provided service or products to be defined.
+(c) Advise subscribers of applicable remittance information.
+(d) Input duplicate bill requests.
+(e) Respond to balance inquiry requests.
+(f) Upon inquiry, open maintenance request (trouble ticket) files.
+(g) Upon inquiry, provide subscribers with up to date status concerning maintenance requests.
+
+Subscriber sales opportunity functions:
+(a) Offer additional applicable services and features to subscribers.
+(b) Perform inbound telemarketing functions.
+(c) Respond to subscriber-initiated interest in CLIENT’s services by having a complete understanding of all products, features, and pricing.
+
+Subscriber account retention functions:
+(a) Inquire as to cause for subscriber’s request to cancel.
+(b) Attempt to address concerns and educate subscribers on CLIENT’s products and services.
+(c) Deliver billing / service credits utilizing medium described by CLIENT (i.e., online credit, call vouchers, subscriber check, etc.).
+(d) Mail follow up letter to subscribers.
+(e) Update database as required.
+(f) Initiate follow up calls to subscribers.
+
+10.	SSRs shall, upon request by a subscriber, change a subscriber’s product, billing telephone number, and subscriber account contact number and address.
+
+11.	SSRs shall be capable of viewing all applicable information contained in CLIENT’s databases to assist in facilitating calls to subscribers, including:
+(a) Order status
+(b) Fulfillment status
+(c) Subscriber profile information
+(d) Welcome Package Information
+
+12.	Maintain subscriber marketing databases and any third-party databases CLIENT provides to UNIFIED SIGNAL for the purpose of client’s marketing to subscribers.
+
+13.	When UNIFIED SIGNAL commences providing the subscriber Care Services, unless otherwise requested by CLIENT, the Subscriber Care Center’s ACD platform shall support VRU scripting capabilities.
+
+14.	Training of SSRs and their supervisors shall be the sole responsibility of UNIFIED SIGNAL.  UNIFIED SIGNAL shall develop all training materials used in the Subscriber Care Center, provided that CLIENT provides to UNIFIED SIGNAL product, marketing and other related information for UNIFIED SIGNAL’s use in training SSRs at least two weeks prior to the start of training.    UNIFIED SIGNAL may, in its discretion, use the materials as they are provided by CLIENT, or incorporate them into UNIFIED SIGNAL’s training materials.
+
+15.	UNIFIED SIGNAL shall create and maintain a quality assurance program that monitors SSRs and their supervisor’s call handling skills and their effects on satisfaction of subscribers.  Such SSRs shall be measured by a standard monitoring form which takes into account the primary areas of handling calls: opening, problem/issue identification and solution, cross sell (when appropriate), closing and professionalism.  UNIFIED SIGNAL shall use these results for coaching and development. UNIFIED SIGNAL shall generate monthly monitoring reports for CLIENT’s review to track and trend performance of Subscriber Care Services.  Additionally, CLIENT can access supervisory ports of ACD for call monitoring purposes.
+
+16.	Management of the Subscriber Care organization and Subscriber Care Center is the sole responsibility of UNIFIED SIGNAL.
+
+17.	Subscriber Care Center management and supervisory personnel shall be accessible via electronic mail to ensure quick and complete communications between CLIENT and UNIFIED SIGNAL.
+
+18.	UNIFIED SIGNAL’s escalation procedures and process shall be followed to address subscriber concerns within the Subscriber Care Center.
+
+19.	On occasion, Subscriber Care Center management and supervisory personnel shall be made available to CLIENT via teleconference for roundtable discussions to communicate issues related to subscriber and Subscriber Care Center issues.
+
+20.	UNIFIED SIGNAL shall manage CLIENT’s subscriber base with the goal of subscriber satisfaction and increasing the average subscriber life cycle.  Upon CLIENT’s request, or upon UNIFIED SIGNAL’s initiative with CLIENT’s approval, UNIFIED SIGNAL shall implement marketing campaigns to soft sell additional products and services that subscribers can bundle on their existing bill.  All campaigns and intended actions shall be sent to CLIENT prior to implementation for review and approval.  CLIENT at any time may add bill stuffers and supplements to their subscriber’s bill.  CLIENT must follow all UNIFIED SIGNAL’s processes and procedures associated with such action.  All subscribers who decide to deactivate shall be properly processed and information which may reduce future churn.  All SSRs shall be cross trained in retention and shall attempt to save subscribers before they leave.  SSRs shall be provided with retention programs and analysis tools that empower the SSR to take reasonable action to retain the subscriber and still maintain adequate profitability.
+
+
+VII.	ACTIVITY REPORTING / RECONCILIATION SERVICES
+CLIENT shall have access to standard reporting packages that permit the management of activations, deactivations, transaction reconciliation, by promo code, sales rep, location, date, and other key factors driving CLIENT’s business.  All such reports shall be available in real time via UNIFIED SIGNAL’s CLIENT branded web site.  CLIENT may request that UNIFIED SIGNAL provide additional reports.  UNIFIED SIGNAL shall evaluate such request, and if approved, shall provide them, at no additional cost to CLIENT, within thirty (30) Business Days of such approval.  If UNIFIED SIGNAL determines that it will incur significant additional time and costs in producing CLIENT’s requested reports, UNIFIED SIGNAL shall provide CLIENT with a written quote regarding the costs and timeframes associated with implementation of such additional reporting.
+
+
+VIII.	MANAGEMENT CONSULTING / BACKOFFICE CUSTOMIZATION
+Upon CLIENT’s request, UNIFIED SIGNAL shall assist CLIENT in creating marketing strategies to increase activations, minimize account churn, and increase profitability.  Such assistance may include additional reporting and statistics, evaluation of CLIENT’s sales compensation and sales incentives, market pricing, promotion creation, and sales training.  In the event that CLIENT requests and UNIFIED SIGNAL approves, a systems change to POS or other systems integration, UNIFIED SIGNAL shall charge CLIENT for the implementation and support of that system’s modification, at the rates set forth in Schedule B or Schedule C as applicable.
+
+
+IV.	CELLULAR PHONE DATA APPLICATION
+Upon CLIENT’s request, UNIFIED SIGNAL can provide to CLIENT a cellular phone data application that has the following functionality:  Ability to manage, mobile wallet accounts, debit card accounts, crypto currency accounts, music streaming, and wireless accounts.
+
+X.	OPEN AND CLOSED LOOP TRANSACTIONS
+Upon CLIENT’s request, and subject to agreed-upon terms, Unified Signal can provide to CLIENT routing of certain payment transactions in our system through either open or closed loop networks via our payment gateway.  For clarity, open loop describes a method of processing certain point-of-sale payment transactions through open loop payment rails, such as with Visa / MasterCard, while closed loop refers to a method of processing the same transaction via a closed loop payment network, such as through our proprietary mobile wallet platform.  This technology shall be controlled by our internal processing gateway in conjunction with implementation of other key processing elements, with payment transactions typically defaulting to closed loop (mobile wallet), and rolling over to open loop (MasterCard) only when customer funds on the wallet are insufficient to complete the desired transaction.
+
+
+
+
+
+
+
+
+SCHEDULE B
+SCHEDULE OF CHARGES
+One Time System Implementation Charges per Brand:
+
+Required:  Core system implementation fee: $60,000 
+Optional:  World-wide mobile wallet program implementation fee: $25,000 
+Optional:  US originating virtual reloadable debit card program implementation fee: $15,000 
+Optional:  US originating physical and companion debit card program implementation fee: $20,000
+Optional:  Global no KYC Non Reloadable virtual debit card program implementation fee: $15,000 
+Optional:  Mexico originating physical debit card program implementation fee: $75,000 
+Optional:  Buy / Sell Gold Silver: $10,000 
+Optional:  Buy / Sell Equities: $10,000 
+Optional:  Crypto Currency Module: $25,000 
+Optional:  Charity Module: $5,000 
+Optional:  UNSI Marketplace: $5,000
+Optional:  UNSI MyMarketplace: $5,000
+Optional:  Merchant Processing / Payroll Processing Portal:  $12,000
+Optional:  EyeQ Video Recognition: $20,000
+Optional:  US wireless resale implementation fee:  $10,000 per carrier
+Optional:  MCN B2C International move money module: $15,000
+Optional:  Micro Loan Origination: $5,000
+Optional:  Wellness program implementation fee:  $10,000
+Optional:  PayPal and Venmo implementation fee:  $7,500
+Optional:  JSON API Integration fee: $15,000  (includes staging and production setup and access)
+
+
+US / International Payroll Module:
+Optional:  Global 1099 Payroll Implementation and Transactional Fees: $15,000 one-time implementation fee / $0.00 cost per employee per pay cycle.   
+Optional:  International payroll virtual / physical debit card program implementation fee: $25,000 
+Optional:  US W2 Payroll Module (All 50 States) Implementation and Transactional Fees: $10,000 one-time implementation fee / $10,000 per month for tax calculation and tax filing licenses / $.75 cost per W2 employee per pay cycle (includes all tax withholding calculations, tax filings, money movement, and customer data presentation).
+
+
+All implementation fees are to be paid 50% within 7 business days of contract execution and work will not start on implementation until such funds are received.  The remaining funds will be due within 10 business days of receipt of client welcome letter which signifies completion of implementation / onboarding process.
+
+
+
+Credit Card / Debit Card Payment Processing:
+
+Customer payment processing / Mobile Wallet Load via Credit Card / Debit Card:
+CLIENT uses its Merchant Account:
+CLIENT will create a credit card processing merchant account for processing and settlement of all customer credit card transactions.  The merchant account must use Authorize.net merchant processing gateway for processing of online transactions.      
+
+Private Customer Care / Support Services (Optional):
+Tier 1 & Tier 2 COPS Dedicated Customer Service Support:
+Dedicated Agents:     $20.00/hour (includes management support, equipment, and telecom expenses)		Training of each dedicated agent:  $200/agent
+Fraud Management Services:
+Fraud Management Service Support:
+Billed by the minute and is billed at $45 / hour.
+
+System Monthly Equipment Hosting Fees per Brand:
+
+CLIENT shall pay for monthly hosting costs per client brand as provided in the table below:  
+Subscriber Account Base
+Monthly Hosting Fees
+1 – 100,000 Active Customers
+$3,000
+100,001 – 250,000 Active Customers
+$5,000
+250,001 – 500,000 Active Customers
+$7,500
+500,001 Plus Active Customers
+$10,000
+
+    First payment of monthly hosting fee is due within 7 days of contract execution.  
+
+OPTIONAL:  Staging Server Hosting Fees:
+CLIENT will be provisioned their own staging server and URL to use for testing and code move ups.  CLIENT will be billed $750 per month to cover equipment costs and all code move-ups.  CLIENT will be billed a one-time setup fee of $1,750 to launch staging server.       
+
+OPTIONAL:  Private Label Mobile Application per Brand:
+CLIENT will be provisioned their own private label data application.  CLIENT will be billed $750 per month to cover and all code move-ups to both Android and Apple play stores.  CLIENT will be billed a one-time setup fee of $1,500 to launch private label data application.       
+
+Monthly Royalty Fees for Non Fintech related Services:
+CLIENT shall pay UNIFIED SIGNAL royalty fees for all active (non-fintech) customers each month for each product customer has on their account per the below schedule:    
+Subscriber Account Base
+Per Customer / Per Month Fee
+1 – 25,000 Active Customers
+$ .50
+25,001 – 50,000 Active Customers
+$ .45
+50,001 – 100,000 Active Customers
+$ .40
+100,001 - 250,000 Active Customers
+$ .35
+250,001 - 500,000 Active Customers
+$ .30
+500,001 plus Active Customers
+$ .25
+
+
+
+US Wireless Resale Per Customer Per Month Management Fees:
+CLIENT shall pay UNIFIED SIGNAL a per active customer per month management fee to manage all active customers:    
+Subscriber Account Base
+Per Customer / Per Month Fee
+1 – 25,000 Active Customers
+$ 1.00
+25,001 – 50,000 Active Customers
+$ 0.90
+50,001 – 100,000 Active Customers
+$ 0.80
+100,001 - 250,000 Active Customers
+$ 0.70
+250,001 - 500,000 Active Customers
+$ 0.60
+500,001 plus Active Customers
+$ 0.50
+
+
+Per customer management fee is not progressive and covers: carrier wholesale and retail quality assurance audits, research and development of new functionality to improve the system, adding additional products and services,  billing and rating, code maintenance, database maintenance, system monitoring and maintenance, wireless carrier API change control and maintenance, wireless carrier audit, PCI compliance, fraud prevention and mitigation, and payment processing audit and management.  
+
+
+
+Domestic / International SMS / email termination:
+CLIENT’s cost for international and domestic SMS and email message deliver:  $.02 
+
+Domestic / International Long-Distance Class 5 origination and termination:
+CLIENT’s cost for international long-distance calls are listed in Schedule F.  This includes all ILD termination from mobile phones and Wi-Fi / VoLTE backhaul termination. 
+
+OPTIONAL:  Standard Consulting Services (System Training / Creative Design):
+Training is included free of charge up until 30 days post launch.  All training thereafter is considered product support and will be charged at a rate of $45 per hour.  All creative design will be billed at $45 per hour.
+
+
+OPTIONAL:  Advanced Strategic Consulting Services:
+CLIENT’s have access to strategic consulting to help build their business / brand and ensure that the system is being utilized to its fullest potential.  All strategic consulting is billed at $75 per hour.  
+
+OPTIONAL:  Custom Development Work:
+Back-office code customization will be billed out at $100 per hour.
+
+Initial Deposit:
+CLIENT will provide an initial deposit of $_______.  Additional deposits will be assessed on a monthly basis as CLIENT’s volume grows and per section 6.4 of the Agreement.
+
+Monthly Revenue Share Billing Minimum:
+CLIENT will adhere to the below monthly revenue share billing minimums:
+
+Month 1-3: $0 (ramp up period)
+Month 4-6: $1,500
+Month 7-9: $2,500
+Month 10-12: $5,000 
+Month 13-18: $7,500
+Month 19 plus: $10,000
+
+* Billing minimums do not include monthly fees including: monthly AWS equipment hosting fees, debit card monthly fees, and Cloudflare monthly fees.  Billing minimums include Revenue Share on any and all products that CLIENT launched under this Agreement.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+OPTIONAL:  MOBILE WALLET / DEBIT CARD SCHEDULE OF FEES
+
+
+Load / Offload Funds via US Bank account:
+UNIFIED SIGNAL will charge $.39 per transaction to load money from and or to a US bank account to the customer’s mobile wallet.  Any and all bad debt that occurs will be charged back to client and is NOT the responsibility of UNIFIED SIGNAL.  
+
+
+Credit Card / Debit Card Loads:
+Each client needs to provide their own merchant account for credit card load.  Any profit made on credit card / debit card load processing shall go into Program Profit and split per Program Profit Sharing.  
+
+
+Program Profit Sharing:
+UNIFIED SIGNAL will keep 30% of all program profits including:  MasterCard / Visa Interchange commissions earned, and all other profits generated from customer fees.  UNIFIED SIGNAL will agree to pass on 70% of all (“Program Profit”) to CLIENT.  Program Profit is defined as gross revenue from all customer transaction fees PLUS Visa / MasterCard interchange commissions MINUS all processor and bank transaction fee costs per the Agreement.  Once CLIENT has 250,000 active customers, CLIENT’s Program Profit will increase to 75%. 
+
+
+Debit Card Monthly Fixed Fees / Per Customer Fees:
+$1,950 monthly fee covers supplier fixed fees enabling access to Visa / MasterCard networks, Bank Fees, Global ATM network, Apple Pay, Android Pay, Samsung Pay, and the following load networks:  Mastercard Recharge, Bank Teller Load, Apple Wallet, Visa & MasterCard Debit.  
+
+Monthly per customer fee for Debit Card:  $.15 per customer. This is a pass-through cost from debit card processor.
+
+
+
+ Customer IDV / KYC:	US KYC Fees: $1.80 per transaction which includes KYC / Full IDV / OFAC check.  If waterfall is needed to verify end customer, the cost for waterfall verification is $1.50 per transaction.  If liveness AI scan is used, then the cost is $1.00 per scan.
+
+
+
+
+Plaid Bank Account Verification:
+Plaid US bank account validation is $.95 per transaction and Plaid ‘get balance’ on customer’s bank account is $.05 per transaction 
+
+
+Push to Debit Card, Zelle PayPal, Venmo:
+$.75 per transaction 
+
+
+Cloud Flare Security Module:
+$1,500 per month.  This feature provides CLIENT with additional security firewalls to protect consumer information and fraud.  This feature is mandatory for all private label mobile wallet services. 
+
+
+Mobile Wallet ATM Cash in / Out:
+ATM Cash Out:  $2.50 per transaction.  
+ATM Cash Load:   $0-$100:  $1.86
+                                $101-$200:  $2.21
+                                $201-$300:  $2.56 
+                                $301-$400:  $2.96
+                                $401-$500:  $3.26
+ 
+
+
+
+
+
+Wellness / Telehealth Services:
+The Annual Fees billed shall consist of (i) the Per Member Per Year (“PMPM”) administrative fee (the “Administrative Fee”) plus (ii) either or both (a) the per-visit charges for professional services (“Visit Fee”), in accordance with applicable law and the pricing table(s) below  and (b) the PMPM charge for professional medical services (“Medical PMPM Fee”, together with the Visit Fee, the “Professional Service Fees”). 
+
+The Administrative Fee is intended to cover administration and operation of the Telehealth Product, and is not for the delivery of professional services. 
+
+Distributor acknowledges that the Professional Service Fees are pass-through fees to compensate for professional services rendered and Client shall take no commission nor charge any additional fee to any individual or customer for the performance of such services.
+
+
+URGENT CARE STAND-ALONE
+
+Covered Lives
+(Applies only to Administrative Fee)
+PMPM1 Annual Administrative Fee
+
+
+Professional Service Fees2
+1 – 10,000
+$14.20
+$38 Visit Fee 
+10,001 – 50,000
+$10.20
+50,001 – 250,000
+$7.80
+250,001 +
+$6.00
+
+1 The PMPM Administrative Fee includes one individual (i.e. a single Member) and his/her (i) spouse/domestic partner and (ii) legally dependent children up to age 26.  
+
+ 2 Urgent Care Visit Fees shall be paid in full by patients upfront at the time of service. Urgent Care visits are on-demand (i.e. they are not scheduled).  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+URGENT CARE + THERAPY (18+)
+
+Covered Lives (Applies only to Administrative Fee)
+PMPM1/PEPM1 Annual Administrative Fee
+
+
+Professional Service Fees2
+1 – 10,000
+$19.80
+$38 Medical Visit Fee 
+
+$65 Therapy Visit Fee
+10,001 – 50,000
+$15.00
+50,001 – 250,000
+$12.00
+250,001 +
+$9.60
+
+1 The PMPM Administrative Fee includes one individual (i.e. a single Member) and his/her (i) spouse/domestic partner and (ii) legally dependent children up to age 26. 
+
+2 Urgent Care Visit Fees shall be paid in full by patients upfront at the time of service. Urgent Care visits are on-demand (i.e. they are not scheduled).  
+
+2 Therapy (18+) Visit Fees shall be paid in full by patients upfront at the time of service. Therapy (18+) sessions are 50-minute, scheduled visits with a Licensed Professional Counselor, Licensed Clinical Social Worker, Marriage and Family Therapist, or equivalent licensed professional. For services provided on an appointment basis, if the patient fails to properly cancel a scheduled appointment at least 24 hours in advance of the appointment or if the patient is late to an appointment causing the patient to miss more than 40% of the allotted time for the appointment, the patient (or legal guardian) will be responsible for up to a $65 missed appointment fee.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SCHEDULE C
+US WIRELESS MVNO RESALE CARRIER ACCESS
+
+
+T-Mobile Network Access:  
+
+All rate plans are primarily set by client and can dictate needed margins.  Any and all carrier rates not listed below will be passed on to CLIENT at cost.  
+
+Included Features
+All wholesale plans include:  Call Waiting, Three Way Calling, Caller ID, and Voice Mail
+	
+Voice Casual Usage Wholesale Plans
+
+Wholesale Plan
+Monthly MRC*
+Per Min Rate
+SMS Rate
+Date Rate / MB
+Usage Based Plan
+$2.00
+$.007
+$0.002
+$0.006
+
+
+*$10.00 billing per line minimum (BRPS) is applicable
+
+Other charges
+Activation Fee:  $1.00
+Wireless Local Number Portability: $3 per End User port (both incoming and outgoing).
+Physical SIM:  $1.00      ESIM:  $1.90
+eSIM one time Implementation:  $2,250
+
+
+Verizon Network Access:  
+All rate plans are primarily set by client and can dictate needed margins.  Any and all carrier rates not listed below will be passed on to CLIENT at cost.  
+Table 4G / LTE Bulk Voice/SMS/MMS/Data Plan:  
+Wholesale Plans
+Data Services RPKB
+MRC
+Voice RPMOU
+Domestic SMS
+Rate Per MMS
+Domestic Voice Roaming
+Domestic Data
+Roaming RPKB
+Usage Based Plan
+.000008301
+$3.00
+$0.011
+$0.002
+$0.011
+$0.20
+$.0015
+Bundle Plan 1  1GB Pooled Data 
+.0000066
+$5.00
+Unlimited
+Unlimited
+Unlimited
+$0.20
+$.0015
+Bundle Plan 2  3GB Pooled Data 
+.0000066
+$13.00
+Unlimited
+Unlimited
+Unlimited
+$0.20
+$.0015
+Bundle Plan 2  6GB Pooled Data 
+.0000066
+$18.50
+Unlimited
+Unlimited
+Unlimited
+$0.20
+$.0015
+Bundle Plan 2  10GB Pooled Data 
+.0000066
+$22.50
+Unlimited
+Unlimited
+Unlimited
+$0.20
+$.0015
+Bundle Plan 5  15GB Pooled Data 
+.0000066
+$30.50
+Unlimited
+Unlimited
+Unlimited
+$0.20
+$.0015
+Bundle Plan 6  22GB Pooled Data 
+.0000066
+$39.50
+Unlimited
+Unlimited
+Unlimited
+$0.20
+$.0015
+Bundle Plan 7  30GB Pooled Data 
+.0000066
+$51.50
+Unlimited
+Unlimited
+Unlimited
+$0.20
+$.0015
+
+Physical SIM (TriCut):  $2.50   ESIM:  $1.00	    
+eSIM one time Implementation:  $2,250
+411:  $1.50 per call
+Wireless Local Number Portability: $3 per End User port (both incoming and outgoing).
+Enhanced Voicemail:  $3.50 per month
+Monthly Recurring Fee Surcharge for Verizon Port-Ins:  Verizon charges additional monthly recurring fees for porting in current Verizon Wireless mobile numbers.
+Monthly Recurring Fee Surcharge:  Verizon Port-in:  $12.00 /  Verizon Port-in out of contract: $19.75 Port-in Device in Contract $24 
+
+
+SCHEDULE D
+INITIAL CUSTOMIZATION WORK
+
+This Schedule lists what is included in a CLIENT implementation: 
+Installation of core cloud-based billing platform.  Implementation will take 4-5 weeks to complete provided client sends to UNIFIED SIGNAL all the information requested in its UNIFIED SIGNAL blue print request document.  Physical debit card bank approval takes approximately 60 days from submission of application.   
+
+Configuration of one private label system, including an Internet based POS system as well as a back-office management portal.  POS system to be used is UNIFIED SIGNAL’s standard layout Internet POS.   POS Customization work is available but at standard contracted rates set forth in Schedule C.
+
+Configuration of FTP site deemed necessary by UNIFIED SIGNAL for an operational system.
+
+
+Assistance in setting up SSL connectivity for the domain to be used for CLIENTs back-office portal.  CLIENT agrees to pay $1,500 for its own SSL cert.  This cost will also include the installation of such cert.  Client will agree to pay $1,500 to renew each SSL cert every 12 months.
+
+Configuration of alerts and email notifications, deemed necessary by UNIFIED SIGNAL for an operational system, are included in the initial installation. It is the sole responsibility of CLIENT to test and ensure the necessary alerts are working properly and to CLIENT’s specifications.  Any customization work on any alerts would be billed in accordance with rates set forth in Schedule C.  
+
+
+Set up of UNIFIED SIGNAL’s standard Daily / Monthly Reporting processes on an application server.  The testing of reporting is the sole responsibility of CLIENT.  Any customization work on reporting would be billed in accordance with rates set forth in Schedule C.  
+
+Initial setting and configuration of all billing plans, features, and value-added services in the system.  It is CLIENT’s sole responsibility to test all rating and billing functionality prior to a retail launch. 
+
+Initial systems training on the POS system, CLIENT admin portal, customer service, and dealer portal.
+
+CLIENT is responsible for the user acceptance testing of the configuration of its new administrative, POS, and dealer / distributor portals and must provide notice of any issues with the installation or configuration of the UNIFIED SIGNAL systems, within 10 business days after receipt of welcome letter from UNIFIED SIGNAL.  After 10 business days post welcome letter receipt, CLIENT assumes full responsibility of the configuration and management of its systems infrastructure.  All future configuration changes and development completed on the CLIENT’s portal will be completed and billed in accordance with rates set forth in Schedule C.  
+
+SCHEDULE E
+ACH Load to Mobile Wallet Services Agreement
+
+
+This Agreement, dated as of _________, 2025, is between UNIFIED SIGNAL, (“Originator”) and ____________________________________  (“Receiver”).
+
+RECITALS
+A. 	Receiver wishes to have Originator initiate Debit or Credit Entries to its account
+specified below (the “Account”) in payment of obligations owed by Receiver to Originator or Originator to Receiver pursuant to the terms of this Agreement, the laws of the state of Texas and the Rules relating to Corporate entries (the “Rules”) of the National Automated Clearing House Association and Originator is willing to initiate such Entries on the terms set forth below.
+
+B.        	Unless otherwise defined herein, capitalized terms shall have the meanings provided in the Rules as set forth below:
+
+ACH: Automated Clearing House Network. A funds transfer system, governed by the NACHA Operating Rules, that provides for the interbank clearing of electronic entries for participating financial institutions.
+
+Originator: Any individual, corporation or other entity that initiates entries into the ACH Network.
+
+Receiver: An individual, corporation or other entity who has authorized an Originator to initiate a credit or debit entry to an account held at a Receiving Depository Financial Institution.
+
+Entry(ies): An electronic item representing the transfer of funds in the ACH.
+
+Credit: An entry to the record of an account to represent the transfer or placement of funds into the account.
+
+Debit: An entry to the record of an account to represent the transfer or removal of funds from the account.
+
+AGREEMENT
+In consideration of the mutual promises contained herein, Originator and Receiver agree as follows:
+
+1. Authorization:
+Subject to the terms set forth below, Receiver authorizes Originator to initiate ACH, Debit and/or Credit Entries to pay for UNIFIED SIGNAL invoices resulting from transactions or services provided under Schedule B and C.
+
+2. Authorization Limitations:
+No Entry shall be initiated under this Agreement except in conformity with the authorization provided above. The Originator will debit the invoice amount (Daily Payment Report) on the due date (daily) as specified on each invoice. The number of Debit Entries made in a calendar month will be limited to the number of invoices due. The Originator will initiate Credit Entries to the Receiver as applicable from time to time. The Originator will provide notice of a debit or credit transaction on a daily basis via the Payment Report. No single Entry initiated under this Agreement shall be in excess of the invoice amount.
+
+3. Originator’s Failure to Originate:
+Receiver shall not be deemed to default on any obligation or suffer any loss of discount or other penalty by reason of the failure of Originator to initiate any Debit Entry in accordance with the terms of this Agreement, or by reason of any delay in receipt by Receiver’s financial institution, or the non-receipt by such institution of
+any Debit Entry initiated by Originator.
+
+
+4. Compliance with ACH Operating Rules / Chargebacks:
+Receiver shall comply with and be bound by the ACH Rules as in effect from time to time including but not limited to:  $15 fee for every bank load declined due to insufficient Funds (R01) and $25 fee for every bank load declined due to return code (R10) customer advises not authorized.  Such returns may take up to 90 to 120 days to come back to Unified Signal.
+
+5. Acceptance and Return of Entries:
+Nothing contained herein shall be deemed to require Receiver or its financial institution to accept any Entry initiated under this Agreement, and any such Entry may be returned in accordance with the Rules. Receiver shall not be deemed to have accepted any Entry that is returned in accordance with the Rules. Originator shall not be deemed in default on any obligation or suffer any loss of discount or other penalty by reason of the return of any Entry, provided such Entry was initiated in accordance with the terms of this Agreement. Notwithstanding any statement contained in any Entry or any data transmitted with any Entry, and notwithstanding the failure to return any Entry in accordance with the Rules, Receiver shall not be deemed to have accepted any Entry as being in the correct amount if, within three days after receipt of the Entry by its financial institution, Receiver provides written notice to Originator of a discrepancy.
+
+6. Credit for Entries:
+Unless such Entry is returned in accordance with the Rules, Receiver shall, as of the date the amount of such Entry is credited to the Account, credit Originator with the Amount of each Entry received and interest or other charges payable with respect to the amount of such Entry shall cease of the time. Unless such Entry is returned in accordance with the Rules, Originator shall, as of the date of such Entry is credited to its Account with its financial institution, credit Receiver with the amount of each Entry received.
+
+7. Information:
+Each Entry initiated under this Agreement shall be accompanied by the following information: The ACH batch number and other applicable identifier information.
+
+8. Receiver’s Account: 
+The following is the deposit account maintained by Receiver:
+Financial Institution: ____________________________________
+Name of Bank Account: _________________________________
+Account Number: ______________________________________
+Routing Number: ______________________________________
+Client will also need to supply a copy of a blank voided check 
+
+9. Questions and Errors:
+In the event of any questions or error relating to Entries initiated pursuant to this Agreement, Receiver should contact Paris Holt, and Originator should contact _____________________________________________.
+
+10. Liabilities of Parties:
+Neither Originator nor Receiver shall be liable for the act or omission of any Automated Clearing House, financial institution, or other person. The Receiver is responsible for ensuring that funds are available on the due date. If funds are not available on the specified due date, then the Receiver shall cure the amount due Originator via wire transfer within one business day.
+
+11. Notice:
+Any written notice or other written communication required or permitted to be given under this Agreement shall be delivered, or sent by United States registered mail, postage prepaid, unless another address is substituted by notice delivered or sent as provided herein.  Any such notice shall be deemed given when so delivered.
+
+12. Termination:
+This Agreement may be terminated by Originator or Receiver at any time by giving 30 days prior written notice to the other party. Notwithstanding such termination, this Agreement shall remain in force and effect as to all transactions that have occurred prior to the date of the termination.
+
+13. Headings:
+Headings are used for reference purposes only, and shall be deemed a part of this Agreement.
+
+14. Law Governing:
+This Agreement shall be construed in accordance with and governed by the laws of the state of Texas.
+
+15. Entire Agreement:
+This Agreement embodies the entire agreement of the parties with respect to the subject matter hereof, and supersedes all previous negotiations, representations, and agreements with respect hereto, and shall be binding upon the parties hereto, and their respective successors and assigns. This Agreement may be amended only by a written statement, signed by both parties.
+
+I (we) hereby authorized UNIFIED SIGNAL to initiate via Debit Entries, debit transactions and, if necessary, credit correction and adjustment transactions to our account listed in section 8.  
+
+
+
+UNIFIED SIGNAL, INC
+
+
+
+
+_____________________________________   	 ___________________
+By: Paris Holt (Chief Executive Officer)	         	  Date
+
+
+
+
+CLIENT
+
+
+
+
+_____________________________________    	___________________
+By: 						 Date
+
+
+
+
+
+
+
+
+
+
+
+AUTHORIZATION AGREEMENT FOR MOBILE WALLET DEBITS / CREDITS
+
+
+UNIFIED SIGNAL hereinafter called ORIGINATOR, is authorized by CLIENT hereinafter called RECIEVER, to initiate debit or credit entries to its Corporate Mobile Wallet account indicated below to pay for outstanding invoices or receive commissions or credits from UNIFIED SIGNAL.  RECEIVER acknowledges that these transactions must comply with the provisions of U.S. law and Dept. of Homeland Security AML (Anti Money Laundering).
+
+
+Mobile Wallet #: ______________________________  
+
+
+
+
+This authorization is to remain in full force and effect until ORIGINATOR has received written notification from RECEIVER of its termination in such time and in such manner as to afford ORIGINATOR and DEPOSITORY a reasonable opportunity to act on it.
+
+
+
+Receiver 				              
+Signature:_______________________________     
+
+
+
+
+Name:________________________________    Title:__________________________________
+
+
+
+
+Dated:________________________ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SCHEDULE F
+MCN CROSS BORDER PAYMENTS & DOMESTIC AND INTERNATIONAL 
+LONG DISTANCE RATE DECKS
+
+
+
+
+SEE Rate appendix:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SCHEDULE G
+SERVICE LEVEL AGREEMENT
+Services Uptime
+
+Objective:
+To provide system availability so that the Services are available during their scheduled hours of operation.
+Definition:
+Uptime is the total amount of time the Services are usable by CLIENT between the hours defined in the Measurement Interval.
+Measurement Method:
+Data Capture – Service Level performance data will be captured by automated UNIFIED SIGNAL provided system-monitoring tools.
+Measurement Interval:
+Amount of uptime will be measured daily between the hours of 5:00 a.m. to 3:00 AM EST "Measurement Interval".  Data will be accumulated monthly for performance measurement reporting.
+Service Level:
+The uptime will be at least 99.999% per month between the Measurement Interval except for scheduled maintenance and other causes set forth in "Excused Performance" below.  
+
+Excused Performance:
+UNIFIED SIGNAL shall not be liable for any failure to meet or exceed the Service Level to the extent such failure was caused by one or more of the following: (i) a failure of CLIENT or any of its employees, agents or contractors (including third party providers) to perform any of its responsibilities under the Agreement; (ii) any act or omission of CLIENT or any of its employees, agents or contractors (including third party providers or other third parties acting on behalf of CLIENT); (iii) reductions in resources designated to the performance of Services requested or approved by CLIENT; (iv) any hardware, software or service provided by a third-party supplier and not under the control of UNIFIED SIGNAL; (v) any failure of CLIENT to secure the proper access rights or maintenance and support services with respect to any component of the Services (e.g., hardware, software, network, maintenance) for which UNIFIED SIGNAL does not bear operational responsibility; (vi) downtimes resulting from agreed-upon maintenance windows or other scheduled maintenance determined as necessary by UNIFIED SIGNAL; or (vii) CLIENT’s reprioritization of the tasks to be performed by UNIFIED SIGNAL where such reprioritization causes UNIFIED SIGNAL to miss a Service Level; (viii) declared disasters; or (ix) an act, omission or event beyond the reasonable control of UNIFIED SIGNAL. A failure to meet a Service Level shall not be a material default.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SCHEDULE H
+UNIFIED SIGNAL SOFTWARE ACCEPTABLE USE POLICY
+A. General 
+UNIFIED SIGNAL provides a converging services billing and rating operating system its clients ("CLIENTs") utilizing its Back Office Systems (such Back Office Systems, related content and any related documentation provided by UNIFIED SIGNAL, and the means used to provide the Back Office Systems to CLIENTs and the related services are collectively referred to as the “Services”).  Such use is solely for the internal business purposes of such CLIENTs and their subscribers.  UNIFIED SIGNAL has formulated this Acceptable Use Policy (“AUP”) in order to ensure the appropriate use of the Services by its CLIENTs and their subscribers and the employees thereof who are authorized by the CLIENT to use the Services (collectively “Authorized Users”).  All Authorized Users must comply with this AUP.  UNIFIED SIGNAL reserves the right to change this AUP from time to time.  By using or accessing the UNIFIED SIGNAL Services, Authorized Users agree to be bound by the terms of this AUP.  Any indirect or attempted violation of this AUP by or on behalf of an Authorized User, and any actual or attempted violation by a third party on behalf of an Authorized User, shall be considered a violation of the policy by the Authorized User and the Authorized User shall be held directly accountable therefor. 
+
+B. Acceptable Use 
+	1.	Authorized Users shall have the right to access and use the Services solely for the internal business purposes of their employer.  Each Authorized User will: (a) be responsible for the security and/or use of his or her logon identifier and password; (b) not disclose such logon identifier or password to any person or entity; (c) not permit any other person or entity to use his or her logon identifier or password; and (d) use the Services only in accordance with the terms and conditions of this AUP.  An Authorized User who is no longer an employee of a CLIENT or of a subscriber of a CLIENT shall cease being an Authorized User.  The Back-Office Systems are the sole and exclusive property and confidential information of UNIFIED SIGNAL or UNIFIED SIGNAL’s licensors.  The Back-Office Systems and Services shall be treated by each CLIENT and each Authorized User as confidential to UNIFIED SIGNAL and shall be held in strict confidence and used only as set forth in this AUP.  No information related to the Services shall be disclosed by any Authorized User without the prior written consent of UNIFIED SIGNAL, except as set forth herein.  No right, title or interest in any intellectual property or other proprietary rights are granted or transferred hereunder.  UNIFIED SIGNAL and its third-party licensors retain all right, title and interest, including, without limitation, all patent, copyright, trade secret and all other intellectual property and proprietary rights, inherent in and appurtenant to the Services and the Back-Office Systems.  
+
+	2.	Authorized Users shall not: (a) copy the Services or any portion thereof or permit unauthorized use of the Services or disclosure or copying of all or any part of the Services other than as required to use the Services as intended by this AUP; (b) translate, decompile or create or attempt to create, by reverse engineering or otherwise, the source code from the object code of the Services; (c) modify, adapt, translate or create a derivative work from the Services; (d) remove any proprietary notices, labels, or marks on the Services; or (e) sell, lease, loan, license, assign, sublicense, rent, transfer, publish, disclose, divulge, display, make available to third parties or otherwise make available for the benefit of third parties all or any part of the Services, including, without limitation, by transmitting or providing the Service, or any portion thereof, to any third party; (f) interfere or attempt to interfere with the Services in any way; (g) remove, obscure or alter any copyright notice, trademark or other proprietary rights notices affixed to or contained within the Services; or (h) engage in or allow any action involving the Services that is inconsistent with the terms and conditions of this AUP. 
+
+	3.	Authorized Users shall cooperate with UNIFIED SIGNAL in investigating and correcting any breach of this AUP.   Authorized Users shall be solely responsible for any material, information or data that they maintain, transmit, download, view, post, distribute or otherwise access or make available using the Services. 
+
+	4.	Authorized Users are responsible for maintaining the confidentiality of such logon identifiers and passwords and shall be fully responsible for all activities that occur under such logon identifiers and passwords.  Authorized Users agree to (a) immediately notify UNIFIED SIGNAL of any unauthorized use of such logon identifiers or passwords or any other breach of security pertaining to the Service, and (b) exit from their accounts at the end of each session.  UNIFIED SIGNAL cannot and will not be liable for any loss or damage arising from any Authorized User's failure to comply with this AUP
+
+	5.	Authorized Users shall not use the Services, or assist anyone else to use the Services in a way that: (a) violates an international, national, state or local law or regulation, judicial order or public policy; (b) violates the terms of this AUP, the terms of any applicable agreement with UNIFIED SIGNAL, or any other UNIFIED SIGNAL policy; (c) interferes with or adversely affects the Services or use of the Services by other UNIFIED SIGNAL clients or their subscribers or disrupts, degrades, impairs or violates the integrity or security of the Services; (d) may expose UNIFIED SIGNAL to criminal or civil liability; (e) is harmful to or interferes with UNIFIED SIGNAL’s provision of Services, or any third party's networks, equipment, applications, services, or web sites or violates the regulations, policies or procedures thereof; (f) would infringe, dilute, misappropriate, or otherwise violate any privacy, intellectual property, publicity or other personal rights including, without limitation, copyrights, patents, trademarks, trade secrets or other proprietary information; (g) is fraudulent or contains false, deceptive, or misleading statements, claims, or representations; (h) violates generally accepted standards; (i) avoids incurring charges or otherwise being required to pay for Services; or (j) attempts to gain unauthorized access to the Services, other accounts, computer systems or networks connected to the Service, through any other means. 
+
+C. UNIFIED SIGNAL’s Rights and Remedies 
+UNIFIED SIGNAL shall have the right, in its sole discretion, to deactivate Authorized Users or suspend or terminate the use of the Services by Authorized Users who have violated the terms or conditions of this AUP or are otherwise using or accessing the Services in a manner inconsistent with such terms and conditions and to deny or revoke access to the Services, in whole or in part, if UNIFIED SIGNAL believes an Authorized Users is in breach of such conditions. UNIFIED SIGNAL has no responsibility for any material or information created, stored, maintained, transmitted or accessible on or through the Services and is not obligated to monitor or exercise any control over such material. In the event that UNIFIED SIGNAL becomes aware that any such material or any acts or omissions of an Authorized User may violate this AUP, UNIFIED SIGNAL reserves the right to investigate and suspend or terminate any Services without liability. UNIFIED SIGNAL further reserves the right to cooperate with legal authorities and third parties in investigating any alleged violations of this AUP, including disclosing the identity of any Authorized User that UNIFIED SIGNAL believes is responsible for such violation. UNIFIED SIGNAL also reserves the right to implement technical mechanisms to prevent AUP violations. Nothing in this AUP shall limit in any way UNIFIED SIGNAL’s rights and remedies at law or in equity that may otherwise be available. 
+
+EACH AUTHORIZED USER ACKNOWLEDGES THAT THE SERVICES ARE PROVIDED WITH NO WARRANTY WHATSOEVER, THE USE OF THE SERVICE IS AT ITS OWN RISK AND THE SERVICE IS PROVIDED SOLELY ON AN “AS-IS” BASIS. UNIFIED SIGNAL DISCLAIMS ALL OTHER WARRANTIES, EXPRESSED, IMPLIED OR STATUTORY, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE AND ALL DUTIES AND OBLIGATIONS IMPLIED IN LAW.  UNIFIED SIGNAL DOES NOT WARRANT THAT THE SERVICES SHALL BE OPERABLE, SHALL PROPERLY STORE DATA, SHALL OPERATE UNINTERRUPTED OR ERROR FREE, SHALL BE SECURE, SHALL KEEP DATA CONFIDENTIAL, SHALL FUNCTION OR OPERATE IN CONJUNCTION WITH ANY OTHER PRODUCT OR SHALL MEET A CLIENT'S OR SUBSCRIBER'S NEEDS.
+
+IN NO EVENT SHALL UNIFIED SIGNAL BE LIABLE FOR ANY DAMAGES, WHETHER DIRECT, CONSEQUENTIAL, EXEMPLARY, SPECIAL, INDIRECT, INCIDENTAL OR PUNITIVE DAMAGES OR FOR LOST REVENUE, LOST PROFITS OR ANTICIPATED BUSINESS, INCLUDING WITHOUT LIMITATION, DAMAGES ARISING FROM LOSS OF INFORMATION OR DATA, HOWEVER CAUSED (EVEN IF UNIFIED SIGNAL HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES).  THIS LIMITATION APPLIES TO ALL CAUSES OF ACTIONS OR CLAIMS IN THE AGGREGATE INCLUDING WITHOUT LIMITATION, BREACH OF CONTRACT, BREACH OF WARRANTY, NEGLIGENCE, STRICT LIABILITY, MISREPRESENTATION, CLAIMS FOR FAILURE TO EXERCISE DUE CARE IN THE PERFORMANCE OF UNIFIED SIGNAL’S SERVICES AND OTHER TORTS.  
+
+
+
+SCHEDULE I
+US CONSUMER DEBIT CARD COST SCHEDULE
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Reloadable Debit Card Interchange
+
+Visa / MasterCard Interchange
+
+
+
+
+
+
+
+
+
+
+Visa / MasterCard Interchange
+General range for consumer program net interchange is estimated to be (on average):  0.5% - 0.70% of qualifying card spend volume.
+
+
+
+
+
+
+Non-Reloadable Debit Card Interchange
+
+Visa / MasterCard Interchange
+
+
+
+
+
+
+
+
+
+
+Visa / MasterCard Interchange
+General range for consumer program net interchange for non reloadable debit card spend is estimated to be (on average):  0.80% - 1.0% of qualifying card spend volume.
+
+
+
+
+
+
+
+
+
+

@@ -28,7 +28,7 @@ To democratize access to cryptocurrency while maintaining the highest standards 
 - **Jurisdiction**: Alabama, United States
 - **License**: Money Transmitter License (MTL) - Active
 - **Compliance Officer**: Travis Kellogg
-- **Founded**: 2024
+- **Founded**: 2012
 - **Headquarters**: Alabama, USA
 
 ### Current Status

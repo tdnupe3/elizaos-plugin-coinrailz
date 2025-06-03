@@ -231,13 +231,21 @@ Revenue Streams:
 • Yield Products: Revenue sharing on DeFi integrations
 • Interest on Deposits: Spread between bank rates and customer rates
 
-4. B2B Services & Licensing
+4. Data Analytics & Insights (Major Revenue Driver)
+• Transaction Data Analytics: $0.10-0.50 per data point
+• Market Intelligence Reports: $5,000-25,000 per report
+• Compliance Intelligence: $10,000-50,000 per institutional client
+• Aggregated Market Data: $50,000-200,000 annual subscriptions
+• Real-time Risk Scoring: $1,000-5,000 per month per client
+• Regulatory Trend Analysis: $25,000-100,000 per enterprise client
+
+5. B2B Services & Licensing
 • White-Label Platform: $50,000 setup + monthly licensing
 • Compliance-as-a-Service: $25,000-100,000 annually
 • API Access: Usage-based pricing for institutional clients
 • Patent Licensing: Future revenue stream from proprietary IP
 
-5. New Revenue Opportunities from Patent Protection
+6. New Revenue Opportunities from Patent Protection
 • Technology Licensing: License patent-protected compliance infrastructure
 • Consulting Services: Regulatory compliance consulting with IP protection
 • Strategic Partnerships: Enhanced value proposition with defensible technology
@@ -273,12 +281,12 @@ FINANCIAL PROJECTIONS
 
 Revenue Projections (Next 5 Years):
 
-Year | Customers | Avg Revenue/Customer | Total Revenue | Growth Rate
-2025 | 2,500     | $245                | $612,500      | -
-2026 | 12,000    | $320                | $3,840,000    | 527%
-2027 | 35,000    | $385                | $13,475,000   | 251%
-2028 | 75,000    | $445                | $33,375,000   | 148%
-2029 | 125,000   | $510                | $63,750,000   | 91%
+Year | Customers | Revenue/Customer | Data Revenue | B2B Revenue | Total Revenue | Growth Rate
+2025 | 2,500     | $245            | $850,000     | $400,000    | $1,862,500    | -
+2026 | 12,000    | $320            | $2,800,000   | $1,200,000  | $7,840,000    | 321%
+2027 | 35,000    | $385            | $6,500,000   | $3,500,000  | $23,475,000   | 199%
+2028 | 75,000    | $445            | $12,000,000  | $8,500,000  | $53,875,000   | 129%
+2029 | 125,000   | $510            | $22,000,000  | $15,000,000 | $100,750,000  | 87%
 
 Operating Expenses:
 
@@ -306,12 +314,12 @@ Profitability Analysis:
 • 5-Year Net Profit: $54.2M cumulative
 
 Cash Flow Projections:
-Year | Revenue     | OpEx        | EBITDA      | Cash Flow
-2025 | $612,500    | $1,326,000  | ($713,500)  | ($713,500)
-2026 | $3,840,000  | $2,355,000  | $1,485,000  | $771,500
-2027 | $13,475,000 | $3,998,000  | $9,477,000  | $10,248,500
-2028 | $33,375,000 | $6,296,250  | $27,078,750 | $37,327,250
-2029 | $63,750,000 | $9,549,250  | $54,200,750 | $91,528,000
+Year | Revenue      | OpEx        | EBITDA       | Cash Flow
+2025 | $1,862,500   | $1,326,000  | $536,500     | $536,500
+2026 | $7,840,000   | $2,355,000  | $5,485,000   | $6,021,500
+2027 | $23,475,000  | $3,998,000  | $19,477,000  | $25,498,500
+2028 | $53,875,000  | $6,296,250  | $47,578,750  | $73,077,250
+2029 | $100,750,000 | $9,549,250  | $91,200,750  | $164,278,000
 
 ==============================================================================
 

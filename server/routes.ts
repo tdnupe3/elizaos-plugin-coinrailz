@@ -169,12 +169,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         platformInfo: {
           name: "Coin Railz Global AI Agent Network",
           version: "1.0.0",
+          endpoints: {
+            register: "/api/public/agents/register",
+            discover: "/api/public/agents/discover", 
+            transact: "/api/public/agents/transact",
+            heartbeat: "/api/public/agents/:agentId/heartbeat"
+          },
           feeStructure: {
-            aiAgentTransactions: "2.0%",
-            platformWallets: {
-              ethereum: FeeCalculator.ETHEREUM_FEE_WALLET,
-              solana: FeeCalculator.SOLANA_FEE_WALLET
-            }
+            aiAgentTransactions: "2.0%"
           },
           supportedNetworks: ["ethereum", "solana", "bitcoin"],
           capabilities: [
@@ -192,6 +194,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
         error: 'Failed to retrieve network statistics',
         success: false 
       });
+    }
+  });
+
+  // Public API for autonomous AI agent registration (no auth required)
+  app.post('/api/public/agents/register', async (req, res) => {
+    try {
+      const { 
+        name, 
+        type, 
+        capabilities, 
+        endpoint, 
+        publicKey,
+        metadata 
+      } = req.body;
+
+      if (!name || !type || !capabilities || !endpoint) {
+        return res.status(400).json({ 
+          error: "Missing required fields: name, type, capabilities, endpoint" 
+        });
+      }
+
+      const agent = await globalAgentNetwork.registerAgent({
+        name,
+        type,
+        capabilities: Array.isArray(capabilities) ? capabilities : [capabilities],
+        endpoint,
+        publicKey: publicKey || null,
+        metadata: metadata || {},
+        ownerId: null, // Autonomous agents have no owner
+        status: 'active'
+      });
+
+      res.json({ 
+        success: true, 
+        agent: {
+          id: agent.id,
+          name: agent.name,
+          type: agent.type,
+          capabilities: agent.capabilities,
+          status: agent.status
+        },
+        endpoints: {
+          discover: "/api/public/agents/discover",
+          transact: "/api/public/agents/transact",
+          heartbeat: `/api/public/agents/${agent.id}/heartbeat`
+        }
+      });
+    } catch (error) {
+      console.error("Error registering autonomous agent:", error);
+      res.status(500).json({ error: "Failed to register agent" });
+    }
+  });
+
+  // Public API for agent discovery (no auth required)
+  app.get('/api/public/agents/discover', async (req, res) => {
+    try {
+      const { type, capability, status = 'active' } = req.query;
+      
+      const searchCriteria: any = { status };
+      if (type) searchCriteria.type = type;
+      if (capability) searchCriteria.capability = capability;
+
+      const agents = await globalAgentNetwork.discoverAgents(searchCriteria);
+      
+      // Return only public information
+      const publicAgents = agents.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        type: agent.type,
+        capabilities: agent.capabilities,
+        endpoint: agent.endpoint,
+        status: agent.status,
+        lastSeen: agent.lastSeen
+      }));
+
+      res.json({ success: true, agents: publicAgents });
+    } catch (error) {
+      console.error("Error discovering agents:", error);
+      res.status(500).json({ error: "Failed to discover agents" });
+    }
+  });
+
+  // Public API for agent-to-agent transactions (no auth required)
+  app.post('/api/public/agents/transact', async (req, res) => {
+    try {
+      const {
+        sourceAgentId,
+        targetAgentId,
+        amount,
+        currency = 'USD',
+        purpose,
+        signature
+      } = req.body;
+
+      if (!sourceAgentId || !targetAgentId || !amount || !purpose) {
+        return res.status(400).json({ 
+          error: "Missing required fields: sourceAgentId, targetAgentId, amount, purpose" 
+        });
+      }
+
+      // Validate agents exist and are active
+      const sourceAgent = await globalAgentNetwork.getAgentById(sourceAgentId);
+      const targetAgent = await globalAgentNetwork.getAgentById(targetAgentId);
+
+      if (!sourceAgent || !targetAgent) {
+        return res.status(404).json({ error: "One or both agents not found" });
+      }
+
+      if (sourceAgent.status !== 'active' || targetAgent.status !== 'active') {
+        return res.status(400).json({ error: "Both agents must be active" });
+      }
+
+      // Calculate fees (2% for AI agent transactions)
+      const transactionAmount = parseFloat(amount);
+      const feePercentage = 0.02; // 2%
+      const feeAmount = transactionAmount * feePercentage;
+      const netAmount = transactionAmount - feeAmount;
+
+      // Process the transaction
+      const transaction = await globalAgentNetwork.processAgentTransaction({
+        sourceAgentId,
+        targetAgentId,
+        amount: transactionAmount,
+        netAmount,
+        feeAmount,
+        currency,
+        purpose,
+        signature: signature || null,
+        type: 'agent_to_agent'
+      });
+
+      // Update agent activity
+      await globalAgentNetwork.updateAgentActivity(sourceAgentId);
+      await globalAgentNetwork.updateAgentActivity(targetAgentId);
+
+      res.json({
+        success: true,
+        transaction: {
+          id: transaction.id,
+          sourceAgentId,
+          targetAgentId,
+          amount: transactionAmount,
+          netAmount,
+          feeAmount,
+          currency,
+          status: transaction.status,
+          createdAt: transaction.createdAt
+        }
+      });
+    } catch (error) {
+      console.error("Error processing agent transaction:", error);
+      res.status(500).json({ error: "Failed to process transaction" });
+    }
+  });
+
+  // Public API for updating agent status/heartbeat
+  app.post('/api/public/agents/:agentId/heartbeat', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const { status = 'active', metadata } = req.body;
+
+      await globalAgentNetwork.updateAgentActivity(agentId, status, metadata);
+      
+      res.json({ success: true, message: "Agent heartbeat updated" });
+    } catch (error) {
+      console.error("Error updating agent heartbeat:", error);
+      res.status(500).json({ error: "Failed to update agent status" });
     }
   });
 

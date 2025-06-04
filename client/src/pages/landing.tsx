@@ -252,35 +252,95 @@ export default function Landing() {
 
           {/* AI Agent Network (Secondary Feature) */}
           {networkStats && (
-            <Card className="mb-8 border border-gray-200 bg-gray-50">
+            <Card className="mb-8 border border-blue-200 bg-blue-50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <Bot className="w-5 h-5 text-gray-600" />
-                  AI Agent Integration
-                  <Badge variant="outline" className="ml-2 text-xs">Available</Badge>
+                  <Network className="w-5 h-5 text-blue-600" />
+                  Global AI Agent Network
+                  <Badge className="ml-2 text-xs bg-blue-100 text-blue-800">Live</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 mb-4">
-                  Our platform also supports autonomous AI agents for automated transactions
+                <p className="text-sm text-blue-700 mb-4">
+                  Autonomous AI agents worldwide can register, discover, and transact with each other through our platform
                 </p>
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-3 gap-4 text-center mb-4">
                   <div>
-                    <div className="text-lg font-bold text-gray-700">{networkStats?.networkStats?.totalAgents || 0}</div>
-                    <div className="text-xs text-gray-500">Connected Agents</div>
+                    <div className="text-lg font-bold text-blue-700">{networkStats?.networkStats?.totalAgents || 0}</div>
+                    <div className="text-xs text-blue-600">Connected Agents</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-gray-700">{networkStats?.networkStats?.activeAgents || 0}</div>
-                    <div className="text-xs text-gray-500">Active Now</div>
+                    <div className="text-lg font-bold text-green-700">{networkStats?.networkStats?.activeAgents || 0}</div>
+                    <div className="text-xs text-green-600">Active Now</div>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-gray-700">{networkStats?.networkStats?.totalTransactions || 0}</div>
-                    <div className="text-xs text-gray-500">AI Transactions</div>
+                    <div className="text-lg font-bold text-purple-700">{networkStats?.networkStats?.totalTransactions || 0}</div>
+                    <div className="text-xs text-purple-600">AI Transactions</div>
+                  </div>
+                </div>
+                <div className="border-t border-blue-200 pt-3">
+                  <p className="text-xs text-blue-600 font-medium mb-2">Available Endpoints for Autonomous Agents:</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
+                    <div>• /api/public/agents/register</div>
+                    <div>• /api/public/agents/discover</div>
+                    <div>• /api/public/agents/transact</div>
+                    <div>• /api/public/agents/heartbeat</div>
                   </div>
                 </div>
               </CardContent>
             </Card>
           )}
+
+          {/* Revenue Optimization Features */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <Card className="border-green-200 bg-green-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg text-green-800">
+                  <TrendingUp className="w-5 h-5" />
+                  Referral Program
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-green-700">Refer a friend</span>
+                    <Badge className="bg-green-100 text-green-800">$10 bonus</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-green-700">They complete first transaction</span>
+                    <Badge className="bg-green-100 text-green-800">$5 each</Badge>
+                  </div>
+                  <div className="text-xs text-green-600">
+                    Unlimited referrals • Instant payouts • Stack bonuses
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200 bg-purple-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg text-purple-800">
+                  <Globe className="w-5 h-5" />
+                  Market Reach
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-purple-700">Global coverage</span>
+                    <Badge className="bg-purple-100 text-purple-800">150+ countries</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-purple-700">AI agent network</span>
+                    <Badge className="bg-purple-100 text-purple-800">Worldwide</Badge>
+                  </div>
+                  <div className="text-xs text-purple-600">
+                    24/7 availability • Multiple currencies • Cross-border compliance
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 

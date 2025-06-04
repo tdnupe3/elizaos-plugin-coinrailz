@@ -27,6 +27,7 @@ import { solanaService } from './services/solanaService';
 import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
+import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues
@@ -1789,6 +1790,249 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error processing subscription payment:", error);
       res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // ==============================================
+  // NOWPAYMENTS CRYPTOCURRENCY PAYOUT SYSTEM
+  // Automatic referral reward distribution
+  // ==============================================
+
+  // Process single referral payout
+  app.post('/api/nowpayments/payout', isAuthenticated, async (req: any, res) => {
+    try {
+      const { agentId, amount, currency, walletAddress } = req.body;
+      
+      if (!agentId || !amount || !walletAddress) {
+        return res.status(400).json({
+          success: false,
+          message: "Agent ID, amount, and wallet address are required"
+        });
+      }
+
+      const payout = await nowPaymentsService.processReferralPayout(
+        agentId,
+        parseFloat(amount),
+        currency || 'USDT',
+        walletAddress
+      );
+
+      res.json({
+        success: true,
+        payout,
+        message: "Referral payout processed successfully"
+      });
+    } catch (error: any) {
+      console.error("Error processing referral payout:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to process payout"
+      });
+    }
+  });
+
+  // Get payout status
+  app.get('/api/nowpayments/payout/:payoutId', isAuthenticated, async (req, res) => {
+    try {
+      const { payoutId } = req.params;
+      const status = await nowPaymentsService.getPayoutStatus(payoutId);
+
+      res.json({
+        success: true,
+        status
+      });
+    } catch (error: any) {
+      console.error("Error fetching payout status:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to fetch payout status"
+      });
+    }
+  });
+
+  // Batch process multiple payouts
+  app.post('/api/nowpayments/batch-payout', isAuthenticated, async (req: any, res) => {
+    try {
+      const { payouts } = req.body;
+      
+      if (!payouts || !Array.isArray(payouts)) {
+        return res.status(400).json({
+          success: false,
+          message: "Payouts array is required"
+        });
+      }
+
+      const results = await nowPaymentsService.batchProcessPayouts(payouts);
+
+      res.json({
+        success: true,
+        results,
+        message: `Processed ${results.length} payouts`
+      });
+    } catch (error: any) {
+      console.error("Error processing batch payouts:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to process batch payouts"
+      });
+    }
+  });
+
+  // NOWPayments IPN callback for payout confirmations
+  app.post('/api/nowpayments/ipn', async (req, res) => {
+    try {
+      const ipnData = req.body;
+      
+      console.log('NOWPayments IPN received:', ipnData);
+      
+      // Process the IPN notification
+      if (ipnData.payment_status === 'confirmed' && ipnData.extra_id) {
+        // Update agent referral record as completed
+        await aiAgentReferralService.updateReferralPayoutStatus(
+          ipnData.extra_id, // agentId
+          ipnData.pay_amount,
+          ipnData.pay_currency,
+          'completed'
+        );
+      }
+
+      res.status(200).send('OK');
+    } catch (error: any) {
+      console.error("Error processing NOWPayments IPN:", error);
+      res.status(500).send('Error');
+    }
+  });
+
+  // Get available currencies for payouts
+  app.get('/api/nowpayments/currencies', async (req, res) => {
+    try {
+      const currencies = await nowPaymentsService.getAvailableCurrencies();
+      
+      res.json({
+        success: true,
+        currencies
+      });
+    } catch (error: any) {
+      console.error("Error fetching currencies:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to fetch currencies"
+      });
+    }
+  });
+
+  // ==============================================
+  // CRYPTO SIGNALS AGENT - FIRST MARKETPLACE SERVICE
+  // Elite trading signals with technical analysis and sentiment
+  // ==============================================
+
+  // Get crypto signals agent service offerings
+  app.get('/api/crypto-signals/services', async (req, res) => {
+    try {
+      const services = await cryptoSignalsAgent.getServicePricing();
+      res.json({
+        success: true,
+        services
+      });
+    } catch (error: any) {
+      console.error("Error fetching crypto signals services:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to fetch services"
+      });
+    }
+  });
+
+  // Purchase crypto signal service
+  app.post('/api/crypto-signals/purchase', async (req, res) => {
+    try {
+      const { serviceId, parameters, paymentAmount } = req.body;
+
+      if (!serviceId) {
+        return res.status(400).json({
+          success: false,
+          message: "Service ID is required"
+        });
+      }
+
+      // Generate the service deliverable
+      const deliverable = await cryptoSignalsAgent.generateServiceDeliverable(serviceId, parameters || {});
+
+      // Process payment and record transaction
+      const transactionId = `crypto_signal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      res.json({
+        success: true,
+        transactionId,
+        deliverable,
+        message: "Crypto signal generated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error processing crypto signals purchase:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to process purchase"
+      });
+    }
+  });
+
+  // Get live crypto signal for specific coin
+  app.get('/api/crypto-signals/live/:symbol', async (req, res) => {
+    try {
+      const { symbol } = req.params;
+      const { timeframe = '4H' } = req.query;
+
+      const signal = await cryptoSignalsAgent.generateCryptoSignal(
+        symbol.toLowerCase(),
+        timeframe as any
+      );
+
+      res.json({
+        success: true,
+        signal
+      });
+    } catch (error: any) {
+      console.error(`Error generating live signal for ${req.params.symbol}:`, error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to generate signal"
+      });
+    }
+  });
+
+  // Get daily market analysis
+  app.get('/api/crypto-signals/daily-analysis', async (req, res) => {
+    try {
+      const analysis = await cryptoSignalsAgent.generateServiceDeliverable('daily_analysis', {});
+
+      res.json({
+        success: true,
+        analysis
+      });
+    } catch (error: any) {
+      console.error("Error generating daily analysis:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to generate daily analysis"
+      });
+    }
+  });
+
+  // Get weekly market outlook
+  app.get('/api/crypto-signals/weekly-outlook', async (req, res) => {
+    try {
+      const outlook = await cryptoSignalsAgent.generateServiceDeliverable('weekly_outlook', {});
+
+      res.json({
+        success: true,
+        outlook
+      });
+    } catch (error: any) {
+      console.error("Error generating weekly outlook:", error);
+      res.status(500).json({
+        success: false,
+        message: error.message || "Failed to generate weekly outlook"
+      });
     }
   });
 

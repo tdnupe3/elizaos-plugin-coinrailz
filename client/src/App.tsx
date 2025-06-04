@@ -44,6 +44,7 @@ import { lazy } from "react";
 const AIAgents = lazy(() => import("@/pages/ai-agents"));
 const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
 const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
+const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();

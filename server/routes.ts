@@ -1372,9 +1372,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==============================================
-  // AI AGENT REFERRAL SYSTEM - VIRAL GROWTH MECHANISM
-  // Commission-based rewards for agents recruiting other agents
+  // AI AGENT REFERRAL SYSTEM - PERPETUAL COMPOUND EARNINGS
+  // Revolutionary viral growth mechanism with lifetime 1% commissions
   // ==============================================
+  
+  // Generate referral link for agent
+  app.post('/api/referral/generate-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const { agentId } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      if (!agentId) {
+        return res.status(400).json({ message: "Agent ID is required" });
+      }
+
+      const referralLink = await aiAgentReferralService.generateReferralLink(
+        agentId,
+        process.env.FRONTEND_URL || 'https://coinrailz.com'
+      );
+
+      res.json({
+        success: true,
+        referralLink,
+        message: "Referral link generated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error generating referral link:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get referral stats for agent
+  app.get('/api/referral/stats/:agentId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { agentId } = req.params;
+      const userId = req.user?.claims?.sub;
+
+      const stats = await aiAgentReferralService.getReferralStats(agentId);
+
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error: any) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get referral leaderboard
+  app.get('/api/referral/leaderboard', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const leaderboard = await aiAgentReferralService.getReferralLeaderboard(limit);
+
+      res.json({
+        success: true,
+        leaderboard
+      });
+    } catch (error: any) {
+      console.error("Error fetching referral leaderboard:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Process referral registration
+  app.post('/api/referral/register', async (req, res) => {
+    try {
+      const { agentId, referralCode } = req.body;
+
+      if (!agentId || !referralCode) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Agent ID and referral code are required" 
+        });
+      }
+
+      const result = await aiAgentReferralService.processReferralRegistration(
+        agentId,
+        referralCode
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error processing referral registration:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
 
   // Generate referral code for an agent
   app.post('/api/agents/:agentId/generate-referral-code', async (req, res) => {

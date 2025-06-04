@@ -449,18 +449,19 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// AI Agent Referral System
+// AI Agent Referral System - Perpetual Compound Earnings
 export const agentReferrals = pgTable("agent_referrals", {
   id: serial("id").primaryKey(),
-  referralCode: varchar("referral_code").notNull(),
   referrerAgentId: varchar("referrer_agent_id").notNull(),
-  referredAgentId: varchar("referred_agent_id").notNull(),
-  status: varchar("status").notNull().default("pending"), // pending, completed, paid
-  rewardAmount: varchar("reward_amount").notNull().default("0"),
-  rewardCurrency: varchar("reward_currency").notNull().default("USDT"),
-  firstTransactionCompleted: boolean("first_transaction_completed").notNull().default(false),
+  refereeAgentId: varchar("referee_agent_id").notNull(),
+  transactionAmount: varchar("transaction_amount").notNull(), // Track original transaction value
+  rewardAmount: varchar("reward_amount").notNull(),
+  currency: varchar("currency").default("USDT"),
+  isCompleted: boolean("is_completed").default(false),
+  isFirstTransaction: boolean("is_first_transaction").default(false), // Track if this was first transaction
+  transactionId: varchar("transaction_id"), // Link to specific transaction
   createdAt: timestamp("created_at").defaultNow(),
-  completedAt: timestamp("completed_at"),
+  completedAt: timestamp("completed_at")
 });
 
 // AI Agent Service Marketplace

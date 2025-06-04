@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
+import { ChatWidget } from "@/components/ChatWidget";
 
 // Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";
@@ -42,8 +43,9 @@ function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
-    <Switch>
-      {/* Demo routes - accessible without authentication */}
+    <>
+      <Switch>
+        {/* Demo routes - accessible without authentication */}
       <Route path="/demo">
         {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
       </Route>
@@ -107,7 +109,11 @@ function Router() {
         </>
       )}
       <Route component={NotFound} />
-    </Switch>
+      </Switch>
+      
+      {/* AI Agent Chat Widget - Available on all pages */}
+      <ChatWidget isDemo={window.location.pathname.includes('/demo')} />
+    </>
   );
 }
 

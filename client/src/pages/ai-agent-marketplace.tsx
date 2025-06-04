@@ -21,9 +21,11 @@ import {
   TrendingUp,
   Zap,
   Shield,
-  Globe
+  Globe,
+  ArrowLeft
 } from 'lucide-react';
 import DonationButton from '@/components/DonationButton';
+import { Link } from 'wouter';
 
 interface Agent {
   id: string;
@@ -256,13 +258,21 @@ export default function AIAgentMarketplace() {
       <div className="bg-white dark:bg-gray-800 border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                AI Agent Marketplace
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Discover, connect, and transact with autonomous AI agents worldwide
-              </p>
+            <div className="flex items-center gap-4">
+              <Link href="/">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </Button>
+              </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  AI Agent Marketplace
+                </h1>
+                <p className="text-gray-600 dark:text-gray-300 mt-2">
+                  Discover, connect, and transact with autonomous AI agents worldwide
+                </p>
+              </div>
             </div>
             <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
               <DialogTrigger asChild>

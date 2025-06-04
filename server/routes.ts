@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { globalAgentNetwork } from "./services/globalAgentNetworkService";
+import { FeeCalculator } from "./utils/feeCalculator";
 import { websocketService } from "./services/websocketService";
 import { env, hasStripeCredentials } from "./environment";
 import { loggingService } from "./services/loggingService";
@@ -29,6 +31,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auth middleware
   await setupAuth(app);
+
+  // ==============================================
+  // PUBLIC AI AGENT NETWORK ENDPOINTS
+  // These endpoints allow external AI agents to register and interact
+  // without human authentication - designed for autonomous agents
+  // ==============================================
+
+  // Public Agent Registration - No authentication required
+  app.post('/api/public/agents/register', async (req, res) => {
+    try {
+      const registrationData = req.body;
+      
+      // Validate required fields
+      const requiredFields = ['agentName', 'capabilities', 'walletAddress', 'walletNetwork', 'publicKey', 'signature', 'preferredCurrencies'];
+      for (const field of requiredFields) {
+        if (!registrationData[field]) {
+          return res.status(400).json({ error: `Missing required field: ${field}` });
+        }
+      }
+
+      const newAgent = await globalAgentNetwork.registerAgent(registrationData);
+      
+      res.status(201).json({
+        success: true,
+        agent: newAgent,
+        message: "Agent successfully registered in the global network",
+        networkInfo: {
+          feeStructure: "2% platform fee on all transactions",
+          platformWallets: {
+            ethereum: FeeCalculator.ETHEREUM_FEE_WALLET,
+            solana: FeeCalculator.SOLANA_FEE_WALLET
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Agent registration error:', error);
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Registration failed',
+        success: false 
+      });
+    }
+  });
+
+  // Public Agent Discovery - No authentication required
+  app.get('/api/public/agents/discover', async (req, res) => {
+    try {
+      const filter = {
+        capabilities: req.query.capabilities ? (req.query.capabilities as string).split(',') : undefined,
+        currencies: req.query.currencies ? (req.query.currencies as string).split(',') : undefined,
+        geolocation: req.query.geolocation as string,
+        status: req.query.status as string || 'active',
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+        offset: req.query.offset ? parseInt(req.query.offset as string) : 0
+      };
+
+      const agents = await globalAgentNetwork.discoverAgents(filter);
+      
+      res.json({
+        success: true,
+        agents: agents.map(agent => ({
+          id: agent.id,
+          agentName: agent.agentName,
+          description: agent.description,
+          capabilities: agent.capabilities,
+          walletAddress: agent.walletAddress,
+          walletNetwork: agent.walletNetwork,
+          reputation: agent.reputation,
+          transactionCount: agent.transactionCount,
+          preferredCurrencies: agent.preferredCurrencies,
+          geolocation: agent.geolocation,
+          lastActive: agent.lastActive,
+          apiEndpoint: agent.apiEndpoint
+        })),
+        total: agents.length,
+        filter: filter
+      });
+    } catch (error) {
+      console.error('Agent discovery error:', error);
+      res.status(500).json({ 
+        error: 'Discovery failed',
+        success: false 
+      });
+    }
+  });
+
+  // Public Agent Transaction Processing - No authentication required
+  app.post('/api/public/agents/transact', async (req, res) => {
+    try {
+      const transactionData = req.body;
+      
+      // Validate required fields
+      const requiredFields = ['initiatorAgentId', 'transactionType', 'amount', 'currency'];
+      for (const field of requiredFields) {
+        if (!transactionData[field]) {
+          return res.status(400).json({ error: `Missing required field: ${field}` });
+        }
+      }
+
+      // Calculate fees for transparency
+      const amount = parseFloat(transactionData.amount);
+      const feeCalculation = FeeCalculator.calculateAIAgentFee(amount, transactionData.currency);
+
+      const transaction = await globalAgentNetwork.processTransaction(transactionData);
+      
+      res.status(201).json({
+        success: true,
+        transaction: transaction,
+        feeBreakdown: {
+          amount: feeCalculation.amount,
+          platformFee: feeCalculation.platformFee,
+          gasFee: feeCalculation.gasFee,
+          totalFees: feeCalculation.totalFee,
+          netAmount: feeCalculation.netAmount,
+          currency: feeCalculation.currency,
+          feeWallet: FeeCalculator.getFeeWalletAddress(transactionData.currency)
+        },
+        message: "Transaction initiated successfully"
+      });
+    } catch (error) {
+      console.error('Agent transaction error:', error);
+      res.status(400).json({ 
+        error: error instanceof Error ? error.message : 'Transaction failed',
+        success: false 
+      });
+    }
+  });
+
+  // Public Network Statistics - No authentication required
+  app.get('/api/public/network/stats', async (req, res) => {
+    try {
+      const stats = await globalAgentNetwork.getNetworkStatistics();
+      
+      res.json({
+        success: true,
+        networkStats: stats,
+        platformInfo: {
+          name: "Coin Railz Global AI Agent Network",
+          version: "1.0.0",
+          feeStructure: {
+            aiAgentTransactions: "2.0%",
+            platformWallets: {
+              ethereum: FeeCalculator.ETHEREUM_FEE_WALLET,
+              solana: FeeCalculator.SOLANA_FEE_WALLET
+            }
+          },
+          supportedNetworks: ["ethereum", "solana", "bitcoin"],
+          capabilities: [
+            "autonomous_registration",
+            "cross_network_transactions", 
+            "real_time_discovery",
+            "automated_compliance",
+            "multi_currency_support"
+          ]
+        }
+      });
+    } catch (error) {
+      console.error('Network stats error:', error);
+      res.status(500).json({ 
+        error: 'Failed to retrieve network statistics',
+        success: false 
+      });
+    }
+  });
+
+  // ==============================================
+  // AUTHENTICATED USER ROUTES
+  // ==============================================
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

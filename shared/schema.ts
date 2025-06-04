@@ -494,7 +494,7 @@ export const agentContracts = pgTable("agent_contracts", {
 
 export const networkStats = pgTable("network_stats", {
   id: serial("id").primaryKey(),
-  date: date("date").notNull(),
+  date: varchar("date").notNull(),
   activeAgents: integer("active_agents").notNull().default(0),
   totalTransactions: integer("total_transactions").notNull().default(0),
   transactionVolume: varchar("transaction_volume").notNull().default("0"),
@@ -502,7 +502,7 @@ export const networkStats = pgTable("network_stats", {
   newRegistrations: integer("new_registrations").notNull().default(0),
   averageTransactionSize: varchar("average_transaction_size").notNull().default("0"),
   topCurrency: varchar("top_currency").default("USD"),
-  networkHealth: real("network_health").notNull().default(1.0), // 0-1 scale
+  networkHealth: decimal("network_health", { precision: 3, scale: 2 }).notNull().default("1.0"), // 0-1 scale
   createdAt: timestamp("created_at").defaultNow(),
 });
 

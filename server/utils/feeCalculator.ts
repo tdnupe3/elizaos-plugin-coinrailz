@@ -24,7 +24,27 @@ export class FeeCalculator {
     swap_crypto: 0.30,        // $0.30 minimum profit
     deposit_funds: 0.15,      // $0.15 minimum profit
     withdraw_funds: 0.25,     // $0.25 minimum profit
+    ai_agent: 0.10,           // $0.10 minimum profit for AI agent transactions
   };
+
+  // Base fee rates
+  private static readonly SEND_MONEY_FEE_RATE = 0.025; // 2.5%
+  private static readonly SEND_MONEY_MIN_FEE = 0.99;
+  private static readonly SEND_MONEY_MAX_FEE = 4.99;
+
+  private static readonly CRYPTO_BUY_FEE_RATE = 0.015; // 1.5%
+  private static readonly CRYPTO_SELL_FEE_RATE = 0.020; // 2.0%
+  private static readonly CRYPTO_MIN_FEE = 0.99;
+
+  private static readonly SWAP_FEE_RATE = 0.01; // 1.0%
+  private static readonly SWAP_MIN_FEE = 0.50;
+
+  private static readonly DEPOSIT_FEE_RATE = 0.0; // Free deposits
+  private static readonly WITHDRAW_FEE_FLAT = 2.50; // Flat withdrawal fee
+
+  private static readonly AI_AGENT_FEE_RATE = 0.005; // 0.5% for AI agent transactions
+  private static readonly AI_AGENT_MIN_FEE = 0.25;
+  private static readonly AI_AGENT_MAX_FEE = 2.00;
 
   static calculateSendMoneyFee(amount: number): { fee: number; breakdown: any } {
     const operationalCost = 

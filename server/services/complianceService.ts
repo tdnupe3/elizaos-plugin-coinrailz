@@ -336,6 +336,100 @@ export class ComplianceService {
 
     return { approved, flags };
   }
+  // Risk assessment for transactions
+  async assessTransactionRisk(
+    userId: string,
+    amount: number,
+    recipientEmail: string
+  ): Promise<{ riskLevel: 'low' | 'medium' | 'high'; score: number; flags: string[] }> {
+    const flags: string[] = [];
+    let riskScore = 0;
+
+    // Check amount thresholds
+    if (amount > 10000) {
+      riskScore += 30;
+      flags.push('large_amount');
+    }
+
+    // Check for suspicious patterns (simplified)
+    if (amount === 999.99 || amount === 9999.99) {
+      riskScore += 20;
+      flags.push('suspicious_amount');
+    }
+
+    // Check user transaction history
+    const recentTransactions = await storage.getUserTransactions(userId, 10);
+    const recentTotal = recentTransactions
+      .filter(tx => new Date(tx.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000)
+      .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+
+    if (recentTotal > 5000) {
+      riskScore += 15;
+      flags.push('high_daily_volume');
+    }
+
+    // Determine risk level
+    let riskLevel: 'low' | 'medium' | 'high';
+    if (riskScore >= 50) {
+      riskLevel = 'high';
+    } else if (riskScore >= 25) {
+      riskLevel = 'medium';
+    } else {
+      riskLevel = 'low';
+    }
+
+    return { riskLevel, score: riskScore, flags };
+  }
+
+  // AI Agent Transaction Compliance Check
+  async checkAITransaction_new(transaction: any): Promise<{ approved: boolean; flags: string[] }> {
+    const flags: string[] = [];
+    const amount = parseFloat(transaction.amount);
+
+    // Check amount limits for AI transactions
+    if (amount > 25000) {
+      flags.push('ai_transaction_limit_exceeded');
+      return { approved: false, flags };
+    }
+
+    // Check for rapid AI transactions (velocity limits)
+    if (transaction.metadata?.riskScore > 0.7) {
+      flags.push('high_risk_ai_transaction');
+    }
+
+    // Check for cross-owner transactions requiring additional verification
+    if (transaction.metadata?.crossOwner) {
+      flags.push('cross_owner_ai_transaction');
+
+      // Require additional checks for cross-owner AI transactions
+      if (amount > 5000) {
+        flags.push('high_value_cross_owner');
+        return { approved: false, flags };
+      }
+    }
+
+    // Check for AI transaction patterns
+    if (transaction.purpose && transaction.purpose.toLowerCase().includes('test')) {
+      flags.push('test_transaction');
+      return { approved: false, flags };
+    }
+
+    // AI transactions are generally approved with monitoring
+    if (flags.length > 0 && !flags.includes('ai_transaction_limit_exceeded')) {
+      flags.push('ai_transaction_monitored');
+    }
+
+    await loggingService.log('INFO', 'AI transaction compliance check completed', {
+      transactionId: transaction.id,
+      approved: flags.length === 0 || !flags.includes('ai_transaction_limit_exceeded'),
+      flags
+    });
+
+    return { 
+      approved: !flags.includes('ai_transaction_limit_exceeded') && !flags.includes('high_value_cross_owner'),
+      flags 
+    };
+  }
 }
 
 export const complianceService = new ComplianceService();

@@ -69,6 +69,8 @@ export function AIAgentManager() {
   const [agentActivities, setAgentActivities] = useState<AgentActivity[]>([]);
   const [userMessage, setUserMessage] = useState('');
   const [activeTab, setActiveTab] = useState('overview');
+  const [networkAgents, setNetworkAgents] = useState<AIAgent[]>([]);
+  const [showAgentTransactionForm, setShowAgentTransactionForm] = useState(false);
   const { toast } = useToast();
 
   // Create agent form state
@@ -87,9 +89,19 @@ export function AIAgentManager() {
     purpose: ''
   });
 
+  // Agent-to-agent transaction state
+  const [agentTransaction, setAgentTransaction] = useState({
+    sourceAgentId: '',
+    targetAgentId: '',
+    amount: '',
+    purpose: '',
+    autoApprove: false
+  });
+
   useEffect(() => {
     loadAgents();
     loadAgentActivities();
+    loadNetworkAgents();
     // Set up real-time updates
     const interval = setInterval(() => {
       loadAgentActivities();
@@ -320,6 +332,129 @@ export function AIAgentManager() {
       case 'trading_bot': return 'Trading Bot';
       case 'compliance_monitor': return 'Compliance Monitor';
       case 'treasury_manager': return 'Treasury Manager';
+    }
+  };
+
+  const loadNetworkAgents = async () => {
+    try {
+      const response = await fetch('/api/ai-agents/network/discover?excludeOwn=true', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setNetworkAgents(data);
+      }
+    } catch (error) {
+      console.error('Error loading network agents:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load network agents",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const initiateAgentToAgentTransaction = (targetAgentId: string) => {
+    setAgentTransaction({
+      ...agentTransaction,
+      targetAgentId
+    });
+    setShowAgentTransactionForm(true);
+  };
+
+  const processAgentToAgentTransaction = async () => {
+    if (!agentTransaction.sourceAgentId || !agentTransaction.targetAgentId || !agentTransaction.amount || !agentTransaction.purpose) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const endpoint = agentTransaction.autoApprove ? '/api/ai-agents/direct-transfer' : '/api/ai-agents/request-transaction';
+      
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify(agentTransaction)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAgentTransaction({
+          sourceAgentId: '',
+          targetAgentId: '',
+          amount: '',
+          purpose: '',
+          autoApprove: false
+        });
+        setShowAgentTransactionForm(false);
+        toast({
+          title: "Success",
+          description: result.message
+        });
+        loadAgentActivities(); // Refresh activities
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Transaction failed');
+      }
+    } catch (error) {
+      console.error('Error processing agent transaction:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to process transaction",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const sendAgentToAgentMessage = async (targetAgentId: string) => {
+    const sourceAgent = agents.find(agent => agent.permissions.includes('transfer_funds'));
+    if (!sourceAgent) {
+      toast({
+        title: "Error",
+        description: "No agents available to send messages",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const message = prompt("Enter message to send to agent:");
+    if (!message) return;
+
+    try {
+      const response = await fetch('/api/ai-agents/send-agent-message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          fromAgentId: sourceAgent.id,
+          toAgentId: targetAgentId,
+          message
+        })
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Message sent to agent"
+        });
+      }
+    } catch (error) {
+      console.error('Error sending agent message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
     }
   };
 
@@ -590,6 +725,149 @@ export function AIAgentManager() {
             </TabsContent>
 
             <TabsContent value="create" className="space-y-4">
+              {/* Agent Network Discovery */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Agent Network</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-neutral-600">
+                        Discover and interact with other agents in the network
+                      </p>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => loadNetworkAgents()}
+                      >
+                        <Zap className="w-4 h-4 mr-2" />
+                        Discover Agents
+                      </Button>
+                    </div>
+                    
+                    {networkAgents.length > 0 && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {networkAgents.map(agent => (
+                          <div key={agent.id} className="p-3 border rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                {getAgentIcon(agent.type)}
+                                <div>
+                                  <p className="font-medium text-sm">{agent.name}</p>
+                                  <p className="text-xs text-neutral-500">{getTypeLabel(agent.type)}</p>
+                                </div>
+                              </div>
+                              <Badge variant="secondary" className="text-xs">
+                                {agent.ownerId === user?.id ? 'Yours' : 'Network'}
+                              </Badge>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => initiateAgentToAgentTransaction(agent.id)}
+                                disabled={agent.ownerId === user?.id}
+                              >
+                                <Send className="w-3 h-3 mr-1" />
+                                Request Transfer
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => sendAgentToAgentMessage(agent.id)}
+                                disabled={agent.ownerId === user?.id}
+                              >
+                                <MessageSquare className="w-3 h-3 mr-1" />
+                                Message
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Agent-to-Agent Transaction Form */}
+              {showAgentTransactionForm && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Agent-to-Agent Transaction</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="source-agent">Your Agent</Label>
+                          <Select 
+                            value={agentTransaction.sourceAgentId} 
+                            onValueChange={(value) => setAgentTransaction({ ...agentTransaction, sourceAgentId: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your agent" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {agents.filter(agent => agent.permissions.includes('transfer_funds')).map(agent => (
+                                <SelectItem key={agent.id} value={agent.id}>
+                                  {agent.name} ({getTypeLabel(agent.type)})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="target-agent">Target Agent</Label>
+                          <Input
+                            id="target-agent"
+                            value={agentTransaction.targetAgentId}
+                            onChange={(e) => setAgentTransaction({ ...agentTransaction, targetAgentId: e.target.value })}
+                            placeholder="Target agent ID"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="amount">Amount</Label>
+                          <Input
+                            id="amount"
+                            type="number"
+                            value={agentTransaction.amount}
+                            onChange={(e) => setAgentTransaction({ ...agentTransaction, amount: e.target.value })}
+                            placeholder="0.00"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="purpose">Purpose</Label>
+                          <Input
+                            id="purpose"
+                            value={agentTransaction.purpose}
+                            onChange={(e) => setAgentTransaction({ ...agentTransaction, purpose: e.target.value })}
+                            placeholder="Transaction purpose"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="auto-approve"
+                          checked={agentTransaction.autoApprove}
+                          onChange={(e) => setAgentTransaction({ ...agentTransaction, autoApprove: e.target.checked })}
+                        />
+                        <label htmlFor="auto-approve" className="text-sm">Auto-approve (direct transfer)</label>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button onClick={processAgentToAgentTransaction}>
+                          Send Transaction Request
+                        </Button>
+                        <Button variant="outline" onClick={() => setShowAgentTransactionForm(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Create Agent Form */}
               {showCreateForm && (
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">

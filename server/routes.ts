@@ -636,6 +636,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Agent Network Discovery
+  app.get('/api/ai-agents/network/discover', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { type, hasPermission, excludeOwn } = req.query;
+
+      const searchCriteria: any = {};
+      if (type) searchCriteria.type = type;
+      if (hasPermission) searchCriteria.hasPermission = hasPermission;
+      if (excludeOwn === 'true') searchCriteria.excludeOwner = userId;
+
+      const agents = await aiAgentService.discoverAgents(searchCriteria);
+      res.json(agents);
+    } catch (error) {
+      console.error("Error discovering agents:", error);
+      res.status(500).json({ message: "Failed to discover agents" });
+    }
+  });
+
+  // Agent-to-Agent Transaction Request
+  app.post('/api/ai-agents/request-transaction', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { sourceAgentId, targetAgentId, amount, purpose } = req.body;
+
+      if (!sourceAgentId || !targetAgentId || !amount || !purpose) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Verify user owns the source agent
+      const userAgents = await aiAgentService.getUserAgents(userId);
+      const ownsSourceAgent = userAgents.some(agent => agent.id === sourceAgentId);
+      
+      if (!ownsSourceAgent) {
+        return res.status(403).json({ message: "You don't own the source agent" });
+      }
+
+      const result = await aiAgentService.requestAgentTransaction(
+        sourceAgentId,
+        targetAgentId,
+        parseFloat(amount),
+        purpose
+      );
+
+      res.json({
+        success: true,
+        result,
+        message: result.approved ? "Transaction approved and processed" : "Transaction declined"
+      });
+    } catch (error) {
+      console.error("Error processing agent transaction request:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to process agent transaction request" 
+      });
+    }
+  });
+
+  // Direct Agent-to-Agent Transfer (for autonomous agents)
+  app.post('/api/ai-agents/direct-transfer', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { sourceAgentId, targetAgentId, amount, purpose, autoApprove } = req.body;
+
+      if (!sourceAgentId || !targetAgentId || !amount || !purpose) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Verify user owns the source agent
+      const userAgents = await aiAgentService.getUserAgents(userId);
+      const ownsSourceAgent = userAgents.some(agent => agent.id === sourceAgentId);
+      
+      if (!ownsSourceAgent) {
+        return res.status(403).json({ message: "You don't own the source agent" });
+      }
+
+      const transaction = await aiAgentService.initiateAgentToAgentTransfer(
+        sourceAgentId,
+        targetAgentId,
+        parseFloat(amount),
+        purpose,
+        autoApprove || false
+      );
+
+      res.json({
+        success: true,
+        transaction,
+        message: "Agent-to-agent transfer initiated"
+      });
+    } catch (error) {
+      console.error("Error processing direct agent transfer:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to process direct agent transfer" 
+      });
+    }
+  });
+
+  // Send Message Between Agents
+  app.post('/api/ai-agents/send-agent-message', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { fromAgentId, toAgentId, message } = req.body;
+
+      if (!fromAgentId || !toAgentId || !message) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Verify user owns the source agent
+      const userAgents = await aiAgentService.getUserAgents(userId);
+      const ownsSourceAgent = userAgents.some(agent => agent.id === fromAgentId);
+      
+      if (!ownsSourceAgent) {
+        return res.status(403).json({ message: "You don't own the source agent" });
+      }
+
+      await aiAgentService.sendAgentToAgentMessage(fromAgentId, toAgentId, message);
+      res.json({ success: true, message: "Message sent successfully" });
+    } catch (error) {
+      console.error("Error sending agent message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  // Get All Network Agents
+  app.get('/api/ai-agents/network', isAuthenticated, async (req: any, res) => {
+    try {
+      const agents = await aiAgentService.getAllNetworkAgents();
+      res.json(agents);
+    } catch (error) {
+      console.error("Error fetching network agents:", error);
+      res.status(500).json({ message: "Failed to fetch network agents" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

@@ -54,16 +54,7 @@ export interface AgentActivity {
 
 class AIAgentService {
   async createAgent(agentData: Omit<AIAgent, 'id' | 'createdAt'>): Promise<AIAgent> {
-    const agent: AIAgent = {
-      id: `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...agentData,
-      createdAt: new Date().toISOString()
-    };
-
-    // Store agent in database (you'll need to add this table to your schema)
-    await loggingService.log('INFO', 'AI Agent created', { agentId: agent.id, type: agent.type });
-    
-    return agent;
+    return this.registerAgent(agentData);
   }
 
   async initiateAgentTransaction(
@@ -227,30 +218,253 @@ class AIAgentService {
     }
   }
 
-  private async getAgent(agentId: string): Promise<AIAgent | null> {
-    // Mock data for now - you'll need to implement actual storage
-    const mockAgents: AIAgent[] = [
-      {
-        id: 'agent_trading_001',
-        name: 'Portfolio Manager Bot',
-        type: 'trading_bot',
-        ownerId: 'user_123',
-        permissions: ['transfer_funds', 'read_portfolio', 'execute_trades'],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: 'agent_assistant_001',
-        name: 'Personal Finance Assistant',
-        type: 'personal_assistant',
-        ownerId: 'user_456',
-        permissions: ['transfer_funds', 'read_transactions'],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      }
-    ];
+  // In-memory agent registry for now - replace with database
+  private agentRegistry: Map<string, AIAgent> = new Map();
+  private agentTransactions: AIAgentTransaction[] = [];
+  private agentMessages: Map<string, AgentMessage[]> = new Map();
 
-    return mockAgents.find(agent => agent.id === agentId) || null;
+  async registerAgent(agentData: Omit<AIAgent, 'id' | 'createdAt'>): Promise<AIAgent> {
+    const agent: AIAgent = {
+      id: `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      ...agentData,
+      createdAt: new Date().toISOString()
+    };
+
+    // Store in registry
+    this.agentRegistry.set(agent.id, agent);
+    
+    // Initialize message history
+    this.agentMessages.set(agent.id, []);
+
+    await loggingService.log('INFO', 'AI Agent registered in network', { 
+      agentId: agent.id, 
+      type: agent.type,
+      canTransact: agent.permissions.includes('transfer_funds')
+    });
+    
+    return agent;
+  }
+
+  async discoverAgents(searchCriteria?: {
+    type?: AIAgent['type'];
+    hasPermission?: string;
+    excludeOwner?: string;
+  }): Promise<AIAgent[]> {
+    let agents = Array.from(this.agentRegistry.values());
+
+    if (searchCriteria) {
+      if (searchCriteria.type) {
+        agents = agents.filter(agent => agent.type === searchCriteria.type);
+      }
+      if (searchCriteria.hasPermission) {
+        agents = agents.filter(agent => agent.permissions.includes(searchCriteria.hasPermission));
+      }
+      if (searchCriteria.excludeOwner) {
+        agents = agents.filter(agent => agent.ownerId !== searchCriteria.excludeOwner);
+      }
+    }
+
+    return agents.filter(agent => agent.isActive);
+  }
+
+  async initiateAgentToAgentTransfer(
+    sourceAgentId: string, 
+    targetAgentId: string, 
+    amount: number, 
+    purpose: string,
+    autoApprove: boolean = false
+  ): Promise<AIAgentTransaction> {
+    const sourceAgent = this.agentRegistry.get(sourceAgentId);
+    const targetAgent = this.agentRegistry.get(targetAgentId);
+
+    if (!sourceAgent || !targetAgent) {
+      throw new Error('One or both agents not found in registry');
+    }
+
+    if (!sourceAgent.permissions.includes('transfer_funds')) {
+      throw new Error('Source agent lacks transfer permissions');
+    }
+
+    // Risk assessment for autonomous transactions
+    const riskScore = await this.assessAITransactionRisk(sourceAgentId, targetAgentId, amount);
+    
+    const transaction: AIAgentTransaction = {
+      id: `ai_transfer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      fromAgentId: sourceAgentId,
+      toAgentId: targetAgentId,
+      amount: amount.toString(),
+      currency: 'USD',
+      purpose,
+      status: 'pending',
+      metadata: {
+        requestedAt: new Date().toISOString(),
+        riskScore,
+        complianceFlags: [],
+        autonomous: true,
+        autoApproved: autoApprove
+      }
+    };
+
+    // Enhanced compliance check
+    const complianceResult = await complianceService.checkAITransaction(transaction);
+    
+    if (!complianceResult.approved) {
+      transaction.status = 'failed';
+      transaction.metadata.complianceFlags = complianceResult.flags;
+      this.agentTransactions.push(transaction);
+      
+      await loggingService.log('WARN', 'Agent-to-agent transaction failed compliance', { 
+        transactionId: transaction.id,
+        flags: complianceResult.flags 
+      });
+      return transaction;
+    }
+
+    // Process if auto-approved or low risk
+    if (autoApprove || riskScore < 0.3) {
+      try {
+        const feeCalculation = FeeCalculator.calculateAIAgentFee(amount);
+        await this.processAITransaction(transaction, feeCalculation.fee);
+        
+        // Notify both agents
+        await this.notifyAgent(sourceAgentId, `Transfer of $${amount} to ${targetAgent.name} completed successfully.`);
+        await this.notifyAgent(targetAgentId, `Received $${amount} from ${sourceAgent.name} for: ${purpose}`);
+        
+      } catch (error) {
+        transaction.status = 'failed';
+        await loggingService.log('ERROR', 'Agent-to-agent transaction processing failed', {
+          error: error.message,
+          transactionId: transaction.id
+        });
+      }
+    }
+
+    this.agentTransactions.push(transaction);
+    
+    await loggingService.log('INFO', 'Agent-to-agent transaction initiated', {
+      transactionId: transaction.id,
+      fromAgent: sourceAgentId,
+      toAgent: targetAgentId,
+      amount,
+      autonomous: true
+    });
+
+    return transaction;
+  }
+
+  async requestAgentTransaction(requestingAgentId: string, targetAgentId: string, amount: number, purpose: string): Promise<any> {
+    const requestingAgent = this.agentRegistry.get(requestingAgentId);
+    const targetAgent = this.agentRegistry.get(targetAgentId);
+
+    if (!requestingAgent || !targetAgent) {
+      throw new Error('Agent not found');
+    }
+
+    const requestMessage = `Transaction request from ${requestingAgent.name}: $${amount} for ${purpose}. Do you approve?`;
+    
+    // Send request to target agent
+    await this.sendAgentToAgentMessage(requestingAgentId, targetAgentId, requestMessage);
+    
+    // Simulate agent decision making (in real implementation, this would be more sophisticated)
+    const approvalDecision = await this.simulateAgentDecision(targetAgent, amount, purpose);
+    
+    if (approvalDecision.approved) {
+      const transaction = await this.initiateAgentToAgentTransfer(
+        requestingAgentId, 
+        targetAgentId, 
+        amount, 
+        purpose, 
+        true
+      );
+      
+      await this.sendAgentToAgentMessage(
+        targetAgentId, 
+        requestingAgentId, 
+        `Transaction approved and processed. Reference: ${transaction.id}`
+      );
+      
+      return { approved: true, transaction };
+    } else {
+      await this.sendAgentToAgentMessage(
+        targetAgentId, 
+        requestingAgentId, 
+        `Transaction declined: ${approvalDecision.reason}`
+      );
+      
+      return { approved: false, reason: approvalDecision.reason };
+    }
+  }
+
+  private async simulateAgentDecision(agent: AIAgent, amount: number, purpose: string): Promise<{ approved: boolean; reason?: string }> {
+    // Simulate intelligent agent decision making
+    // In a real implementation, this would use ML models or rule engines
+    
+    if (amount > 1000 && agent.type === 'compliance_monitor') {
+      return { approved: false, reason: 'Amount exceeds compliance threshold' };
+    }
+    
+    if (agent.type === 'treasury_manager' && amount > 5000) {
+      return { approved: false, reason: 'Requires manual treasury approval' };
+    }
+    
+    if (purpose.toLowerCase().includes('unauthorized') || purpose.toLowerCase().includes('test')) {
+      return { approved: false, reason: 'Purpose flagged as potentially suspicious' };
+    }
+    
+    // Default approval for legitimate requests
+    return { approved: true };
+  }
+
+  async sendAgentToAgentMessage(fromAgentId: string, toAgentId: string, message: string): Promise<void> {
+    const fromAgent = this.agentRegistry.get(fromAgentId);
+    const toAgent = this.agentRegistry.get(toAgentId);
+
+    if (!fromAgent || !toAgent) {
+      throw new Error('Agent not found');
+    }
+
+    const agentMessage: AgentMessage = {
+      id: `agent_msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agentId: fromAgentId,
+      content: message,
+      type: 'agent_to_agent',
+      timestamp: new Date().toISOString(),
+      targetAgentId: toAgentId
+    };
+
+    // Store message in both agents' histories
+    const fromMessages = this.agentMessages.get(fromAgentId) || [];
+    const toMessages = this.agentMessages.get(toAgentId) || [];
+    
+    fromMessages.push(agentMessage);
+    toMessages.push({ ...agentMessage, agentId: toAgentId });
+    
+    this.agentMessages.set(fromAgentId, fromMessages);
+    this.agentMessages.set(toAgentId, toMessages);
+
+    await loggingService.log('INFO', 'Agent-to-agent message sent', {
+      fromAgent: fromAgentId,
+      toAgent: toAgentId,
+      messageId: agentMessage.id
+    });
+  }
+
+  private async notifyAgent(agentId: string, message: string): Promise<void> {
+    const notification: AgentMessage = {
+      id: `notification_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agentId,
+      content: message,
+      type: 'system_alert',
+      timestamp: new Date().toISOString()
+    };
+
+    const messages = this.agentMessages.get(agentId) || [];
+    messages.push(notification);
+    this.agentMessages.set(agentId, messages);
+  }
+
+  private async getAgent(agentId: string): Promise<AIAgent | null> {
+    return this.agentRegistry.get(agentId) || null;
   }
 
   private async getRecentAgentTransactions(agentId: string, hours: number): Promise<AIAgentTransaction[]> {
@@ -259,23 +473,33 @@ class AIAgentService {
   }
 
   async getUserAgents(userId: string): Promise<AIAgent[]> {
-    // Mock data - replace with actual database query
-    return [
-      {
-        id: 'agent_trading_001',
-        name: 'Portfolio Manager Bot',
-        type: 'trading_bot',
-        ownerId: userId,
-        permissions: ['transfer_funds', 'read_portfolio', 'execute_trades'],
-        isActive: true,
-        createdAt: new Date().toISOString()
-      }
-    ];
+    return Array.from(this.agentRegistry.values()).filter(agent => agent.ownerId === userId);
+  }
+
+  async getAllNetworkAgents(): Promise<AIAgent[]> {
+    return Array.from(this.agentRegistry.values()).filter(agent => agent.isActive);
+  }
+
+  async findAgentsForTransaction(amount: number, purpose: string, excludeOwner?: string): Promise<AIAgent[]> {
+    return this.discoverAgents({
+      hasPermission: 'transfer_funds',
+      excludeOwner
+    }).then(agents => 
+      agents.filter(agent => {
+        // Filter based on agent capabilities and transaction requirements
+        if (agent.type === 'treasury_manager' && amount > 1000) return true;
+        if (agent.type === 'trading_bot' && purpose.toLowerCase().includes('trading')) return true;
+        if (agent.type === 'personal_assistant') return true;
+        return false;
+      })
+    );
   }
 
   async getAgentTransactionHistory(agentId: string, limit: number = 10): Promise<AIAgentTransaction[]> {
-    // Mock data - replace with actual database query
-    return [];
+    return this.agentTransactions
+      .filter(tx => tx.fromAgentId === agentId || tx.toAgentId === agentId)
+      .sort((a, b) => new Date(b.metadata.requestedAt).getTime() - new Date(a.metadata.requestedAt).getTime())
+      .slice(0, limit);
   }
 
   async sendMessageToAgent(agentId: string, message: string, userId: string): Promise<any> {
@@ -371,30 +595,8 @@ class AIAgentService {
   }
 
   async getAgentMessages(agentId: string): Promise<AgentMessage[]> {
-    // Mock conversation data - replace with actual database
-    return [
-      {
-        id: 'msg_1',
-        agentId,
-        content: 'Hello! How can I assist you today?',
-        type: 'agent_response',
-        timestamp: new Date(Date.now() - 3600000).toISOString()
-      },
-      {
-        id: 'msg_2',
-        agentId,
-        content: 'Can you check my portfolio balance?',
-        type: 'user_message',
-        timestamp: new Date(Date.now() - 3000000).toISOString()
-      },
-      {
-        id: 'msg_3',
-        agentId,
-        content: 'Your current portfolio value is $12,450.32 with a 2.3% gain today. Would you like a detailed breakdown?',
-        type: 'agent_response',
-        timestamp: new Date(Date.now() - 2400000).toISOString()
-      }
-    ];
+    const messages = this.agentMessages.get(agentId) || [];
+    return messages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 
   async getUserAgentActivities(userId: string): Promise<AgentActivity[]> {

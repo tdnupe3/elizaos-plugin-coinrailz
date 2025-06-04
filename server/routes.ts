@@ -205,12 +205,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         capabilities, 
         endpoint, 
         publicKey,
-        metadata 
+        metadata,
+        walletAddress,
+        walletNetwork,
+        signature,
+        preferredCurrencies
       } = req.body;
 
-      if (!name || !type || !capabilities || !endpoint) {
+      if (!name || !type || !capabilities || !endpoint || !walletAddress || !walletNetwork) {
         return res.status(400).json({ 
-          error: "Missing required fields: name, type, capabilities, endpoint" 
+          error: "Missing required fields: name, type, capabilities, endpoint, walletAddress, walletNetwork" 
         });
       }
 
@@ -219,10 +223,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         agentType: type,
         capabilities: Array.isArray(capabilities) ? capabilities : [capabilities],
         endpoint: endpoint,
-        publicKey: publicKey || null,
+        publicKey: publicKey || 'default_key',
         metadata: metadata || {},
         ownerId: null, // Autonomous agents have no owner
-        status: 'active'
+        status: 'active',
+        walletAddress,
+        walletNetwork,
+        signature: signature || 'auto_generated',
+        preferredCurrencies: preferredCurrencies || ['USD', 'ETH', 'SOL']
       });
 
       res.json({ 
@@ -230,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         agent: {
           id: agent.id,
           name: agent.agentName,
-          type: agent.agentType,
+          type: agent.agentType || type,
           capabilities: agent.capabilities,
           status: agent.status
         },
@@ -261,11 +269,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const publicAgents = agents.map(agent => ({
         id: agent.id,
         name: agent.agentName,
-        type: agent.agentType,
+        type: agent.agentType || 'autonomous',
         capabilities: agent.capabilities,
-        endpoint: agent.endpoint || '',
+        endpoint: agent.apiEndpoint || '',
         status: agent.status,
-        lastSeen: agent.lastSeen || agent.updatedAt
+        lastSeen: agent.lastActive || agent.updatedAt
       }));
 
       res.json({ success: true, agents: publicAgents });
@@ -312,11 +320,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const netAmount = transactionAmount - feeAmount;
 
       // Process the transaction
-      const transaction = await globalAgentNetwork.processAgentTransaction({
+      const transaction = await globalAgentNetwork.processTransaction({
         sourceAgentId,
         targetAgentId,
-        amount: transactionAmount,
-        netAmount,
+        amount: transactionAmount.toString(),
+        netAmount: netAmount.toString(),
         feeAmount,
         currency,
         purpose,

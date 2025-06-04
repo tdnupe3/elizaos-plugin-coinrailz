@@ -36,6 +36,7 @@ export interface AgentRegistrationRequest {
   preferredCurrencies: string[];
   geolocation?: string;
   timezone?: string;
+  metadata?: any;
 }
 
 export interface AgentDiscoveryFilter {
@@ -147,35 +148,12 @@ export class GlobalAgentNetworkService {
       conditions.push(eq(globalAIAgents.geolocation, filter.geolocation));
     }
 
-    // Build query with proper typing
-    const baseQuery = db.select().from(globalAIAgents);
-    
-    const agents = await (async () => {
-      if (conditions.length > 0) {
-        const withWhere = baseQuery.where(and(...conditions));
-        const withOrder = withWhere.orderBy(desc(globalAIAgents.lastActive));
-        
-        if (filter.limit && filter.offset) {
-          return withOrder.limit(filter.limit).offset(filter.offset);
-        } else if (filter.limit) {
-          return withOrder.limit(filter.limit);
-        } else if (filter.offset) {
-          return withOrder.offset(filter.offset);
-        }
-        return withOrder;
-      } else {
-        const withOrder = baseQuery.orderBy(desc(globalAIAgents.lastActive));
-        
-        if (filter.limit && filter.offset) {
-          return withOrder.limit(filter.limit).offset(filter.offset);
-        } else if (filter.limit) {
-          return withOrder.limit(filter.limit);
-        } else if (filter.offset) {
-          return withOrder.offset(filter.offset);
-        }
-        return withOrder;
-      }
-    })();
+    // Simple direct query approach
+    const agents = await db.select().from(globalAIAgents)
+      .where(conditions.length > 0 ? and(...conditions) : eq(globalAIAgents.status, "active"))
+      .orderBy(desc(globalAIAgents.lastActive))
+      .limit(filter.limit || 50)
+      .offset(filter.offset || 0);
 
     // Filter by capabilities and currencies if specified
     let filteredAgents = agents;

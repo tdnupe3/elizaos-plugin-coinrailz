@@ -146,6 +146,41 @@ export class FeeCalculator {
     return this.ETHEREUM_FEE_WALLET;
   }
 
+  // Add missing methods for complete functionality
+  static calculateCryptoFee(amount: number, currency: string): FeeCalculation {
+    return this.calculateCryptoTransactionFee(amount, currency);
+  }
+
+  static calculateDepositFee(amount: number, currency: string): FeeCalculation {
+    const platformFee = Math.max(amount * 0.01, 0.50); // 1% with $0.50 minimum
+    const gasFee = this.estimateGasFee(currency);
+    const totalFee = platformFee + gasFee;
+    
+    return {
+      amount,
+      platformFee,
+      gasFee,
+      totalFee,
+      netAmount: amount - totalFee,
+      currency
+    };
+  }
+
+  static calculateWithdrawFee(amount: number, currency: string): FeeCalculation {
+    const platformFee = Math.max(amount * 0.015, 1.00); // 1.5% with $1.00 minimum
+    const gasFee = this.estimateGasFee(currency);
+    const totalFee = platformFee + gasFee;
+    
+    return {
+      amount,
+      platformFee,
+      gasFee,
+      totalFee,
+      netAmount: amount - totalFee,
+      currency
+    };
+  }
+
   static formatFeeBreakdown(calculation: AIAgentFeeCalculation): string {
     return `
 Transaction Amount: ${calculation.amount} ${calculation.currency}

@@ -7,6 +7,7 @@ export interface FeeCalculation {
   totalFee: number;
   netAmount: number;
   currency: string;
+  fee: number; // Add missing fee property
 }
 
 export interface AIAgentFeeCalculation extends FeeCalculation {
@@ -46,7 +47,8 @@ export class FeeCalculator {
       gasFee,
       totalFee,
       netAmount: amount - totalFee,
-      currency
+      currency,
+      fee: totalFee
     };
   }
 
@@ -61,7 +63,8 @@ export class FeeCalculator {
       gasFee,
       totalFee,
       netAmount: amount - totalFee,
-      currency
+      currency,
+      fee: totalFee
     };
   }
 
@@ -76,7 +79,8 @@ export class FeeCalculator {
       gasFee,
       totalFee,
       netAmount: amount - totalFee,
-      currency: fromCurrency
+      currency: fromCurrency,
+      fee: totalFee
     };
   }
 

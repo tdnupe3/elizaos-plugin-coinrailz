@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         agent: {
           id: agent.id,
           name: agent.agentName,
-          type: agent.agentType || type,
+          type: type,
           capabilities: agent.capabilities,
           status: agent.status
         },
@@ -269,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const publicAgents = agents.map(agent => ({
         id: agent.id,
         name: agent.agentName,
-        type: agent.agentType || 'autonomous',
+        type: 'autonomous',
         capabilities: agent.capabilities,
         endpoint: agent.apiEndpoint || '',
         status: agent.status,
@@ -321,15 +321,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Process the transaction
       const transaction = await globalAgentNetwork.processTransaction({
-        sourceAgentId,
-        targetAgentId,
+        initiatorAgentId: sourceAgentId,
+        recipientAgentId: targetAgentId,
+        transactionType: 'agent_to_agent',
         amount: transactionAmount.toString(),
-        netAmount: netAmount.toString(),
-        feeAmount,
         currency,
-        purpose,
-        signature: signature || null,
-        type: 'agent_to_agent'
+        description: purpose,
+        metadata: {
+          netAmount: netAmount.toString(),
+          feeAmount: feeAmount.toString(),
+          signature: signature || null
+        }
       });
 
       // Update agent activity

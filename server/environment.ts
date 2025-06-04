@@ -56,6 +56,9 @@ export interface EnvironmentConfig {
   NOWPAYMENTS_API_KEY?: string;
   NOWPAYMENTS_IPN_SECRET?: string;
 
+  // ChangeNOW Integration
+  CHANGENOW_API_KEY?: string;
+
   // Monitoring
   LOG_LEVEL: 'error' | 'warn' | 'info' | 'debug';
   SENTRY_DSN?: string;
@@ -110,6 +113,9 @@ function validateEnvironment(): EnvironmentConfig {
     // NOWPayments Integration
     NOWPAYMENTS_API_KEY: process.env.NOWPAYMENTS_API_KEY,
     NOWPAYMENTS_IPN_SECRET: process.env.NOWPAYMENTS_IPN_SECRET,
+
+    // ChangeNOW Integration
+    CHANGENOW_API_KEY: process.env.CHANGENOW_API_KEY || 'ca3accd403855c72d0cb8eecdecf3477334875902197b7e02c689e9e626bd0db',
     
     LOG_LEVEL: (process.env.LOG_LEVEL as EnvironmentConfig['LOG_LEVEL']) || 'info',
     SENTRY_DSN: process.env.SENTRY_DSN,

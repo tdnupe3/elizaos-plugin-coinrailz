@@ -22,6 +22,7 @@ import {
 import { z } from "zod";
 import { pncBankService } from './services/pncBankService';
 import { dexAggregatorService } from './services/dexAggregatorService';
+import { changeNowService } from './services/changeNowService';
 import { solanaService } from './services/solanaService';
 import { aiAgentService } from './services/aiAgentService';
 
@@ -1206,6 +1207,284 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, rate });
     } catch (error: any) {
       console.error("Error fetching exchange rate:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // ChangeNOW Integration Routes - Enhanced DEX & Cross-Chain Functionality
+  app.get('/api/changenow/currencies', async (req, res) => {
+    try {
+      const currencies = await changeNowService.getAvailableCurrencies();
+      res.json({ success: true, currencies });
+    } catch (error: any) {
+      console.error("Error fetching ChangeNOW currencies:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.post('/api/changenow/estimate', async (req, res) => {
+    try {
+      const { fromCurrency, toCurrency, fromAmount, flow } = req.body;
+      const estimate = await changeNowService.getExchangeEstimate({
+        fromCurrency,
+        toCurrency,
+        fromAmount: parseFloat(fromAmount),
+        flow: flow || 'standard'
+      });
+      res.json({ success: true, estimate });
+    } catch (error: any) {
+      console.error("Error getting ChangeNOW estimate:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.post('/api/changenow/exchange', isAuthenticated, async (req: any, res) => {
+    try {
+      const { fromCurrency, toCurrency, fromAmount, toAddress, refundAddress, flow } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      if (!fromCurrency || !toCurrency || !fromAmount || !toAddress) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Missing required fields" 
+        });
+      }
+
+      const exchange = await changeNowService.createExchange({
+        fromCurrency,
+        toCurrency,
+        fromAmount: parseFloat(fromAmount),
+        toAddress,
+        refundAddress,
+        flow: flow || 'standard',
+        userId
+      });
+
+      res.json({ success: true, exchange });
+    } catch (error: any) {
+      console.error("Error creating ChangeNOW exchange:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.get('/api/changenow/exchange/:exchangeId/status', async (req, res) => {
+    try {
+      const { exchangeId } = req.params;
+      const status = await changeNowService.getExchangeStatus(exchangeId);
+      res.json({ success: true, status });
+    } catch (error: any) {
+      console.error("Error fetching exchange status:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Enhanced P2P Transfer with Crypto Fee Collection
+  app.post('/api/p2p/transfer-with-crypto-fee', isAuthenticated, async (req: any, res) => {
+    try {
+      const { recipientId, amount, currency, feePaymentCurrency } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      // Calculate 0.25% P2P commission
+      const transferAmount = parseFloat(amount);
+      const feeAmount = transferAmount * 0.0025;
+
+      // Create NOWPayments fee collection
+      const feePayment = await nowPaymentsService.createDirectDonation({
+        agentId: `p2p_transfer_${Date.now()}`,
+        amount: feeAmount,
+        currency: feePaymentCurrency || 'USDT',
+        donorMessage: `P2P transfer fee for ${amount} ${currency}`,
+        targetWallet: 'ethereum'
+      });
+
+      // Process the actual transfer (implement based on your P2P logic)
+      // This would integrate with your existing P2P transfer system
+
+      res.json({
+        success: true,
+        transferId: `transfer_${Date.now()}`,
+        feePayment: {
+          amount: feeAmount,
+          currency: feePaymentCurrency,
+          paymentUrl: feePayment.paymentUrl,
+          qrCode: feePayment.qrCode
+        }
+      });
+    } catch (error: any) {
+      console.error("Error processing P2P transfer with crypto fee:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // AI Agent Marketplace Fee Collection with Multiple Currencies
+  app.post('/api/agents/:agentId/transaction-fee', isAuthenticated, async (req: any, res) => {
+    try {
+      const { agentId } = req.params;
+      const { transactionAmount, transactionCurrency, feePaymentCurrency } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      // Calculate 2% marketplace fee
+      const feeAmount = parseFloat(transactionAmount) * 0.02;
+
+      // Create NOWPayments fee collection
+      const feePayment = await nowPaymentsService.createDirectDonation({
+        agentId,
+        amount: feeAmount,
+        currency: feePaymentCurrency || 'USDT',
+        donorMessage: `AI Agent marketplace fee for transaction`,
+        targetWallet: 'ethereum'
+      });
+
+      res.json({
+        success: true,
+        feeAmount,
+        currency: feePaymentCurrency,
+        paymentUrl: feePayment.paymentUrl,
+        qrCode: feePayment.qrCode
+      });
+    } catch (error: any) {
+      console.error("Error collecting agent transaction fee:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Enhanced DEX Aggregation with ChangeNOW + Existing 1inch
+  app.get('/api/dex/best-rate/:fromToken/:toToken/:amount', async (req, res) => {
+    try {
+      const { fromToken, toToken, amount } = req.params;
+      const amountFloat = parseFloat(amount);
+
+      // Get rates from both ChangeNOW and existing 1inch integration
+      const [changeNowRate, oneInchRate] = await Promise.allSettled([
+        changeNowService.getBestSwapRate(fromToken, toToken, amountFloat),
+        dexAggregatorService.getSwapQuote({
+          fromToken,
+          toToken,
+          amount,
+          chainId: 1, // Ethereum mainnet
+          slippage: 1
+        })
+      ]);
+
+      const rates = [];
+      
+      if (changeNowRate.status === 'fulfilled') {
+        rates.push(changeNowRate.value);
+      }
+      
+      if (oneInchRate.status === 'fulfilled') {
+        rates.push({
+          provider: '1inch',
+          fromAmount: amountFloat,
+          toAmount: oneInchRate.value.toTokenAmount,
+          rate: oneInchRate.value.toTokenAmount / amountFloat,
+          networkFee: oneInchRate.value.estimatedGas || 0
+        });
+      }
+
+      // Find best rate
+      const bestRate = rates.reduce((best, current) => 
+        current.rate > best.rate ? current : best
+      );
+
+      res.json({ success: true, rates, bestRate });
+    } catch (error: any) {
+      console.error("Error fetching best DEX rates:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Cross-Chain Portfolio Rebalancing
+  app.post('/api/portfolio/rebalance', isAuthenticated, async (req: any, res) => {
+    try {
+      const { targetAllocations } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      const rebalanceResult = await changeNowService.rebalancePortfolio(userId, targetAllocations);
+      res.json({ success: true, rebalanceResult });
+    } catch (error: any) {
+      console.error("Error rebalancing portfolio:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Multi-Currency Referral Rewards
+  app.post('/api/referrals/convert-reward', isAuthenticated, async (req: any, res) => {
+    try {
+      const { rewardAmount, preferredCurrency } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      const conversion = await changeNowService.processReferralReward(
+        userId, 
+        parseFloat(rewardAmount), 
+        preferredCurrency || 'USDT'
+      );
+
+      res.json({ success: true, conversion });
+    } catch (error: any) {
+      console.error("Error converting referral reward:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // AI Agent Cross-Chain Operations
+  app.post('/api/agents/:agentId/cross-chain-transaction', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const { fromCurrency, toCurrency, amount, toAddress } = req.body;
+
+      const transaction = await changeNowService.createAgentCrossChainTransaction(agentId, {
+        fromCurrency,
+        toCurrency,
+        fromAmount: parseFloat(amount),
+        toAddress
+      });
+
+      res.json({ success: true, transaction });
+    } catch (error: any) {
+      console.error("Error creating agent cross-chain transaction:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Subscription/Premium Features with Crypto Payments
+  app.post('/api/subscriptions/crypto-payment', isAuthenticated, async (req: any, res) => {
+    try {
+      const { planType, paymentCurrency } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      // Define subscription pricing
+      const subscriptionPrices = {
+        basic: 9.99,
+        premium: 19.99,
+        enterprise: 49.99
+      };
+
+      const amount = subscriptionPrices[planType as keyof typeof subscriptionPrices];
+      if (!amount) {
+        return res.status(400).json({ success: false, message: "Invalid plan type" });
+      }
+
+      const payment = await nowPaymentsService.createDirectDonation({
+        agentId: `subscription_${userId}`,
+        amount,
+        currency: paymentCurrency || 'USDT',
+        donorMessage: `${planType} subscription payment`,
+        targetWallet: 'ethereum'
+      });
+
+      res.json({
+        success: true,
+        subscription: {
+          planType,
+          amount,
+          currency: paymentCurrency,
+          paymentUrl: payment.paymentUrl,
+          qrCode: payment.qrCode
+        }
+      });
+    } catch (error: any) {
+      console.error("Error processing subscription payment:", error);
       res.status(500).json({ success: false, message: error.message });
     }
   });

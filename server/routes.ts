@@ -1318,15 +1318,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI Agent Marketplace Fee Collection with Multiple Currencies
+  // AI Agent Marketplace Fee Collection with Perpetual Referral Rewards
   app.post('/api/agents/:agentId/transaction-fee', isAuthenticated, async (req: any, res) => {
     try {
       const { agentId } = req.params;
       const { transactionAmount, transactionCurrency, feePaymentCurrency } = req.body;
       const userId = req.user?.claims?.sub;
 
-      // Calculate 2% marketplace fee
-      const feeAmount = parseFloat(transactionAmount) * 0.02;
+      // Calculate tiered marketplace fee
+      const numAmount = parseFloat(transactionAmount);
+      let feeAmount: number;
+      
+      if (numAmount <= 20) {
+        feeAmount = 2 + (numAmount * 0.035); // $2 + 3.5%
+      } else if (numAmount <= 50) {
+        feeAmount = 1 + (numAmount * 0.035); // $1 + 3.5%
+      } else {
+        feeAmount = numAmount * 0.035; // 3.5%
+      }
+
+      // Process perpetual referral reward (first transaction or subsequent)
+      const referralReward = await aiAgentReferralService.processTransactionReward(
+        agentId,
+        numAmount,
+        transactionCurrency || 'USDT'
+      );
 
       // Create NOWPayments fee collection
       const feePayment = await nowPaymentsService.createDirectDonation({
@@ -1342,7 +1358,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         feeAmount,
         currency: feePaymentCurrency,
         paymentUrl: feePayment.paymentUrl,
-        qrCode: feePayment.qrCode
+        qrCode: feePayment.qrCode,
+        referralReward: referralReward ? {
+          amount: referralReward.rewardAmount,
+          currency: referralReward.rewardCurrency,
+          referrerAgentId: referralReward.referrerAgentId
+        } : null
       });
     } catch (error: any) {
       console.error("Error collecting agent transaction fee:", error);

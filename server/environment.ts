@@ -52,6 +52,10 @@ export interface EnvironmentConfig {
   TWILIO_PHONE_NUMBER?: string;
   SENDGRID_API_KEY?: string;
 
+  // NOWPayments Integration
+  NOWPAYMENTS_API_KEY?: string;
+  NOWPAYMENTS_IPN_SECRET?: string;
+
   // Monitoring
   LOG_LEVEL: 'error' | 'warn' | 'info' | 'debug';
   SENTRY_DSN?: string;
@@ -102,6 +106,10 @@ function validateEnvironment(): EnvironmentConfig {
     TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN,
     TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER,
     SENDGRID_API_KEY: process.env.SENDGRID_API_KEY,
+
+    // NOWPayments Integration
+    NOWPAYMENTS_API_KEY: process.env.NOWPAYMENTS_API_KEY,
+    NOWPAYMENTS_IPN_SECRET: process.env.NOWPAYMENTS_IPN_SECRET,
     
     LOG_LEVEL: (process.env.LOG_LEVEL as EnvironmentConfig['LOG_LEVEL']) || 'info',
     SENTRY_DSN: process.env.SENTRY_DSN,

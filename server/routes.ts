@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
 import { FeeCalculator } from "./utils/feeCalculator";
+import { nowPaymentsService } from "./services/nowPaymentsService";
 import { websocketService } from "./services/websocketService";
 import { env, hasStripeCredentials } from "./environment";
 import { loggingService } from "./services/loggingService";

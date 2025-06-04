@@ -1117,6 +1117,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NOWPayments donation routes for AI Agent Marketplace
+  app.get('/api/nowpayments/currencies', async (req, res) => {
+    try {
+      const currencies = await nowPaymentsService.getSelectedCurrencies();
+      res.json({ success: true, currencies });
+    } catch (error: any) {
+      console.error("Error fetching currencies:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.post('/api/agents/:agentId/donate', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const { amount, currency, donorMessage, targetWallet } = req.body;
+
+      if (!amount || !currency) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Amount and currency are required" 
+        });
+      }
+
+      const donationRequest = {
+        agentId,
+        amount: parseFloat(amount),
+        currency,
+        donorMessage,
+        targetWallet: targetWallet || 'ethereum'
+      };
+
+      const payment = await nowPaymentsService.createDirectDonation(donationRequest);
+
+      res.json({
+        success: true,
+        payment: {
+          paymentUrl: payment.paymentUrl,
+          qrCode: payment.qrCode
+        }
+      });
+    } catch (error: any) {
+      console.error("Error creating donation:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.get('/api/nowpayments/payment/:paymentId/status', async (req, res) => {
+    try {
+      const { paymentId } = req.params;
+      const payment = await nowPaymentsService.getPaymentStatus(paymentId);
+      res.json({ success: true, payment });
+    } catch (error: any) {
+      console.error("Error fetching payment status:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.post('/api/nowpayments/webhook', async (req, res) => {
+    try {
+      const signature = req.headers['x-nowpayments-sig'] as string;
+      const payload = JSON.stringify(req.body);
+
+      if (!await nowPaymentsService.verifyWebhook(payload, signature)) {
+        return res.status(401).json({ success: false, message: "Invalid signature" });
+      }
+
+      const paymentData = req.body;
+      
+      // Process donation completion
+      if (paymentData.payment_status === 'finished') {
+        console.log(`Donation completed: ${paymentData.payment_id} - ${paymentData.outcome_amount} ${paymentData.outcome_currency}`);
+        
+        // Funds go directly to your specified Ethereum/Solana wallets
+      }
+
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error processing webhook:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  app.get('/api/nowpayments/rate/:fromCurrency/:toCurrency', async (req, res) => {
+    try {
+      const { fromCurrency, toCurrency } = req.params;
+      const rate = await nowPaymentsService.getExchangeRate(fromCurrency, toCurrency);
+      res.json({ success: true, rate });
+    } catch (error: any) {
+      console.error("Error fetching exchange rate:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

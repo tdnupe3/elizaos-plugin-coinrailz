@@ -23,6 +23,7 @@ import {
   Shield,
   Globe
 } from 'lucide-react';
+import DonationButton from '@/components/DonationButton';
 
 interface Agent {
   id: string;
@@ -395,17 +396,23 @@ export default function AIAgentMarketplace() {
                       </div>
                     </div>
 
-                    <Button 
-                      onClick={() => {
-                        setSelectedAgent(agent);
-                        setIsTransactOpen(true);
-                      }}
-                      className="w-full"
-                      size="sm"
-                    >
-                      <DollarSign className="w-4 h-4 mr-2" />
-                      Initiate Transaction
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => {
+                          setSelectedAgent(agent);
+                          setIsTransactOpen(true);
+                        }}
+                        className="flex-1"
+                        size="sm"
+                      >
+                        <DollarSign className="w-4 h-4 mr-2" />
+                        Transact
+                      </Button>
+                      <DonationButton 
+                        agentId={agent.id} 
+                        agentName={agent.agentName}
+                      />
+                    </div>
                   </div>
                 </CardContent>
               </Card>

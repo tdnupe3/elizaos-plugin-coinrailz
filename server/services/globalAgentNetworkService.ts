@@ -22,12 +22,16 @@ import crypto from "crypto";
 
 export interface AgentRegistrationRequest {
   agentName: string;
+  agentType?: string;
   description?: string;
   capabilities: string[];
   walletAddress: string;
   walletNetwork: string;
+  endpoint?: string;
   apiEndpoint?: string;
   publicKey: string;
+  ownerId?: string | null;
+  status?: string;
   signature: string;
   preferredCurrencies: string[];
   geolocation?: string;
@@ -143,23 +147,35 @@ export class GlobalAgentNetworkService {
       conditions.push(eq(globalAIAgents.geolocation, filter.geolocation));
     }
 
-    let queryBuilder = db.select().from(globalAIAgents);
-
-    if (conditions.length > 0) {
-      queryBuilder = queryBuilder.where(and(...conditions));
-    }
-
-    queryBuilder = queryBuilder.orderBy(desc(globalAIAgents.lastActive));
-
-    if (filter.limit) {
-      queryBuilder = queryBuilder.limit(filter.limit);
-    }
-
-    if (filter.offset) {
-      queryBuilder = queryBuilder.offset(filter.offset);
-    }
-
-    const agents = await queryBuilder;
+    // Build query with proper typing
+    const baseQuery = db.select().from(globalAIAgents);
+    
+    const agents = await (async () => {
+      if (conditions.length > 0) {
+        const withWhere = baseQuery.where(and(...conditions));
+        const withOrder = withWhere.orderBy(desc(globalAIAgents.lastActive));
+        
+        if (filter.limit && filter.offset) {
+          return withOrder.limit(filter.limit).offset(filter.offset);
+        } else if (filter.limit) {
+          return withOrder.limit(filter.limit);
+        } else if (filter.offset) {
+          return withOrder.offset(filter.offset);
+        }
+        return withOrder;
+      } else {
+        const withOrder = baseQuery.orderBy(desc(globalAIAgents.lastActive));
+        
+        if (filter.limit && filter.offset) {
+          return withOrder.limit(filter.limit).offset(filter.offset);
+        } else if (filter.limit) {
+          return withOrder.limit(filter.limit);
+        } else if (filter.offset) {
+          return withOrder.offset(filter.offset);
+        }
+        return withOrder;
+      }
+    })();
 
     // Filter by capabilities and currencies if specified
     let filteredAgents = agents;

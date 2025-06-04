@@ -9,7 +9,6 @@ import { env, hasStripeCredentials } from "./environment";
 import { loggingService } from "./services/loggingService";
 import { complianceService } from "./services/complianceService";
 import { referralService } from "./services/referralService";
-import { FeeCalculator } from "./utils/feeCalculator";
 import { ValidationUtils } from "./utils/validation";
 import { TransactionMonitor } from "./utils/transactionMonitor";
 import { 
@@ -216,10 +215,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const agent = await globalAgentNetwork.registerAgent({
-        name,
-        type,
+        agentName: name,
+        agentType: type,
         capabilities: Array.isArray(capabilities) ? capabilities : [capabilities],
-        endpoint,
+        endpoint: endpoint,
         publicKey: publicKey || null,
         metadata: metadata || {},
         ownerId: null, // Autonomous agents have no owner
@@ -230,8 +229,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         agent: {
           id: agent.id,
-          name: agent.name,
-          type: agent.type,
+          name: agent.agentName,
+          type: agent.agentType,
           capabilities: agent.capabilities,
           status: agent.status
         },
@@ -261,12 +260,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return only public information
       const publicAgents = agents.map(agent => ({
         id: agent.id,
-        name: agent.name,
-        type: agent.type,
+        name: agent.agentName,
+        type: agent.agentType,
         capabilities: agent.capabilities,
-        endpoint: agent.endpoint,
+        endpoint: agent.endpoint || '',
         status: agent.status,
-        lastSeen: agent.lastSeen
+        lastSeen: agent.lastSeen || agent.updatedAt
       }));
 
       res.json({ success: true, agents: publicAgents });

@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { Bot, Plus, Send, Activity, Shield, TrendingUp, Wallet } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bot, Plus, Send, Activity, Shield, TrendingUp, Wallet, MessageSquare, Clock, Zap, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface AIAgent {
@@ -36,6 +38,25 @@ interface AITransaction {
   };
 }
 
+interface AgentMessage {
+  id: string;
+  agentId: string;
+  content: string;
+  type: 'user_message' | 'agent_response' | 'agent_to_agent' | 'system_alert';
+  timestamp: string;
+  targetAgentId?: string;
+}
+
+interface AgentActivity {
+  id: string;
+  agentId: string;
+  action: string;
+  description: string;
+  timestamp: string;
+  status: 'success' | 'failed' | 'in_progress';
+  metadata?: any;
+}
+
 export function AIAgentManager() {
   const [agents, setAgents] = useState<AIAgent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +64,11 @@ export function AIAgentManager() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showTransferForm, setShowTransferForm] = useState(false);
   const [recentTransactions, setRecentTransactions] = useState<AITransaction[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<string>('');
+  const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
+  const [agentActivities, setAgentActivities] = useState<AgentActivity[]>([]);
+  const [userMessage, setUserMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('overview');
   const { toast } = useToast();
 
   // Create agent form state
@@ -63,7 +89,17 @@ export function AIAgentManager() {
 
   useEffect(() => {
     loadAgents();
-  }, []);
+    loadAgentActivities();
+    // Set up real-time updates
+    const interval = setInterval(() => {
+      loadAgentActivities();
+      if (selectedAgent) {
+        loadAgentMessages(selectedAgent);
+      }
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [selectedAgent]);
 
   const loadAgents = async () => {
     try {
@@ -84,6 +120,95 @@ export function AIAgentManager() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadAgentMessages = async (agentId: string) => {
+    try {
+      const response = await fetch(`/api/ai-agents/${agentId}/messages`, {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAgentMessages(data);
+      }
+    } catch (error) {
+      console.error('Error loading agent messages:', error);
+    }
+  };
+
+  const loadAgentActivities = async () => {
+    try {
+      const response = await fetch('/api/ai-agents/activities', {
+        credentials: 'include'
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAgentActivities(data);
+      }
+    } catch (error) {
+      console.error('Error loading agent activities:', error);
+    }
+  };
+
+  const sendMessageToAgent = async () => {
+    if (!userMessage.trim() || !selectedAgent) return;
+
+    try {
+      const response = await fetch('/api/ai-agents/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          agentId: selectedAgent,
+          message: userMessage
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setUserMessage('');
+        loadAgentMessages(selectedAgent);
+        toast({
+          title: "Message sent",
+          description: "Your message has been sent to the agent"
+        });
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const activateAgent = async (agentId: string) => {
+    try {
+      const response = await fetch(`/api/ai-agents/${agentId}/activate`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (response.ok) {
+        loadAgents();
+        toast({
+          title: "Agent activated",
+          description: "Agent is now active and ready for tasks"
+        });
+      }
+    } catch (error) {
+      console.error('Error activating agent:', error);
+      toast({
+        title: "Error",
+        description: "Failed to activate agent",
+        variant: "destructive"
+      });
     }
   };
 
@@ -248,8 +373,225 @@ export function AIAgentManager() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Create Agent Form */}
-          {showCreateForm && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="communicate">Communicate</TabsTrigger>
+              <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="create">Create & Transfer</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+          {/* Agent Overview Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {agents.length === 0 ? (
+                  <div className="col-span-full text-center py-8 text-neutral-500">
+                    <Bot className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No AI agents created yet</p>
+                    <p className="text-sm">Create your first AI agent to get started</p>
+                  </div>
+                ) : (
+                  agents.map(agent => (
+                    <Card key={agent.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => {
+                      setSelectedAgent(agent.id);
+                      setActiveTab('communicate');
+                    }}>
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            {getAgentIcon(agent.type)}
+                            <div>
+                              <h3 className="font-medium">{agent.name}</h3>
+                              <p className="text-sm text-neutral-500">{getTypeLabel(agent.type)}</p>
+                            </div>
+                          </div>
+                          <Badge variant={agent.isActive ? "default" : "destructive"}>
+                            {agent.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap gap-1">
+                            {agent.permissions.slice(0, 3).map(permission => (
+                              <Badge key={permission} variant="secondary" className="text-xs">
+                                {permission}
+                              </Badge>
+                            ))}
+                            {agent.permissions.length > 3 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{agent.permissions.length - 3} more
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex justify-between items-center pt-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedAgent(agent.id);
+                                setActiveTab('communicate');
+                              }}
+                            >
+                              <MessageSquare className="w-3 h-3 mr-1" />
+                              Chat
+                            </Button>
+                            {!agent.isActive && (
+                              <Button 
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  activateAgent(agent.id);
+                                }}
+                              >
+                                <Zap className="w-3 h-3 mr-1" />
+                                Activate
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="communicate" className="space-y-4">
+              {/* Agent Communication Interface */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Agent Communication</h3>
+                  <Select value={selectedAgent} onValueChange={setSelectedAgent}>
+                    <SelectTrigger className="w-64">
+                      <SelectValue placeholder="Select an agent to communicate with" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {agents.filter(agent => agent.isActive).map(agent => (
+                        <SelectItem key={agent.id} value={agent.id}>
+                          <div className="flex items-center space-x-2">
+                            {getAgentIcon(agent.type)}
+                            <span>{agent.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {selectedAgent ? (
+                  <div className="space-y-4">
+                    {/* Message History */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-sm">Conversation History</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ScrollArea className="h-64 w-full border rounded p-4">
+                          {agentMessages.length === 0 ? (
+                            <div className="text-center text-neutral-500 py-8">
+                              <MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                              <p>No messages yet</p>
+                              <p className="text-sm">Start a conversation with your agent</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {agentMessages.map(message => (
+                                <div key={message.id} className={`flex ${message.type === 'user_message' ? 'justify-end' : 'justify-start'}`}>
+                                  <div className={`max-w-xs px-3 py-2 rounded-lg ${
+                                    message.type === 'user_message' 
+                                      ? 'bg-blue-500 text-white' 
+                                      : 'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    <p className="text-sm">{message.content}</p>
+                                    <p className="text-xs opacity-70 mt-1">
+                                      {new Date(message.timestamp).toLocaleTimeString()}
+                                    </p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </CardContent>
+                    </Card>
+
+                    {/* Message Input */}
+                    <Card>
+                      <CardContent className="pt-6">
+                        <div className="flex space-x-2">
+                          <Input
+                            value={userMessage}
+                            onChange={(e) => setUserMessage(e.target.value)}
+                            placeholder="Type your message to the agent..."
+                            onKeyPress={(e) => e.key === 'Enter' && sendMessageToAgent()}
+                          />
+                          <Button onClick={sendMessageToAgent} disabled={!userMessage.trim()}>
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-neutral-500">
+                    <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>Select an agent to start communicating</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="activities" className="space-y-4">
+              {/* Agent Activities */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Activity className="w-5 h-5" />
+                    <span>Recent Agent Activities</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-80 w-full">
+                    {agentActivities.length === 0 ? (
+                      <div className="text-center py-8 text-neutral-500">
+                        <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>No recent activities</p>
+                        <p className="text-sm">Agent activities will appear here</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {agentActivities.map(activity => (
+                          <div key={activity.id} className="flex items-start space-x-3 p-3 border rounded-lg">
+                            <div className={`w-2 h-2 rounded-full mt-2 ${
+                              activity.status === 'success' ? 'bg-green-500' :
+                              activity.status === 'failed' ? 'bg-red-500' : 'bg-yellow-500'
+                            }`} />
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{activity.action}</p>
+                              <p className="text-sm text-neutral-600">{activity.description}</p>
+                              <div className="flex items-center justify-between mt-1">
+                                <Badge variant="outline" className="text-xs">
+                                  Agent: {agents.find(a => a.id === activity.agentId)?.name || activity.agentId}
+                                </Badge>
+                                <span className="text-xs text-neutral-500">
+                                  {new Date(activity.timestamp).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="create" className="space-y-4">
+              {/* Create Agent Form */}
+              {showCreateForm && (
             <div className="mb-6 p-4 border rounded-lg bg-gray-50">
               <h3 className="font-semibold mb-4">Create New AI Agent</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -390,43 +732,62 @@ export function AIAgentManager() {
             </div>
           )}
 
-          {/* Agent List */}
-          <div className="space-y-4">
-            {agents.length === 0 ? (
-              <div className="text-center py-8 text-neutral-500">
-                <Bot className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p>No AI agents created yet</p>
-                <p className="text-sm">Create your first AI agent to get started</p>
-              </div>
-            ) : (
-              agents.map(agent => (
-                <div key={agent.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center space-x-3">
-                    {getAgentIcon(agent.type)}
-                    <div>
-                      <p className="font-medium">{agent.name}</p>
-                      <p className="text-sm text-neutral-500">{getTypeLabel(agent.type)}</p>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {agent.permissions.map(permission => (
-                          <Badge key={permission} variant="secondary" className="text-xs">
-                            {permission}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
+          {/* Quick Agent Creation */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Agent Creation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button variant="outline" onClick={() => {
+                      setNewAgent({
+                        name: 'Trading Assistant',
+                        type: 'trading_bot',
+                        permissions: ['read_portfolio', 'execute_trades', 'read_transactions']
+                      });
+                      setShowCreateForm(true);
+                    }}>
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Create Trading Bot
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setNewAgent({
+                        name: 'Personal Assistant',
+                        type: 'personal_assistant',
+                        permissions: ['transfer_funds', 'read_transactions', 'generate_reports']
+                      });
+                      setShowCreateForm(true);
+                    }}>
+                      <Bot className="w-4 h-4 mr-2" />
+                      Create Assistant
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setNewAgent({
+                        name: 'Compliance Monitor',
+                        type: 'compliance_monitor',
+                        permissions: ['compliance_monitoring', 'read_transactions', 'generate_reports']
+                      });
+                      setShowCreateForm(true);
+                    }}>
+                      <Shield className="w-4 h-4 mr-2" />
+                      Create Compliance Bot
+                    </Button>
+                    <Button variant="outline" onClick={() => {
+                      setNewAgent({
+                        name: 'Treasury Manager',
+                        type: 'treasury_manager',
+                        permissions: ['transfer_funds', 'read_portfolio', 'compliance_monitoring']
+                      });
+                      setShowCreateForm(true);
+                    }}>
+                      <Wallet className="w-4 h-4 mr-2" />
+                      Create Treasury Bot
+                    </Button>
                   </div>
-                  <div className="text-right">
-                    <Badge variant={agent.isActive ? "default" : "destructive"}>
-                      {agent.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      ID: {agent.id}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

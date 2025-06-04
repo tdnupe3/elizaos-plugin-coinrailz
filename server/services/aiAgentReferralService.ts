@@ -77,46 +77,60 @@ export class AIAgentReferralService {
     }
   }
 
-  async processFirstTransactionReward(
+  // Process perpetual referral rewards - first transaction gets minimum, all subsequent get 1%
+  async processTransactionReward(
     agentId: string,
     transactionAmount: number,
     transactionCurrency: string = 'USDT'
   ): Promise<ReferralReward | null> {
     try {
-      // Check if agent was referred and hasn't completed first transaction
+      // Check if agent was referred
       const agent = await storage.getAgent(agentId);
-      if (!agent?.referredByAgent || agent.hasCompletedFirstTransaction) {
+      if (!agent?.referredByAgent) {
         return null;
       }
 
-      // Calculate referral reward (1% of transaction value for profitability)
-      let rewardAmount = Math.max(
-        transactionAmount * (this.REFERRAL_REWARD_PERCENTAGE / 100),
-        this.MINIMUM_REFERRAL_REWARD
-      );
+      const isFirstTransaction = !agent.hasCompletedFirstTransaction;
       
-      // Cap at maximum reward
-      rewardAmount = Math.min(rewardAmount, this.MAXIMUM_REFERRAL_REWARD);
-
-      // Mark agent as having completed first transaction
-      await storage.updateAgentFirstTransactionStatus(agentId, true);
-
-      // Update referral record
-      const referral = await storage.getPendingReferralByReferee(agentId);
-      if (referral) {
-        await storage.updateReferralReward(
-          referral.id,
-          rewardAmount.toString(),
-          transactionCurrency,
-          true
+      // Calculate referral reward
+      let rewardAmount: number;
+      
+      if (isFirstTransaction) {
+        // First transaction: minimum $1 or 1%, whichever is higher
+        rewardAmount = Math.max(
+          transactionAmount * (this.REFERRAL_REWARD_PERCENTAGE / 100),
+          this.MINIMUM_REFERRAL_REWARD
         );
+        rewardAmount = Math.min(rewardAmount, this.MAXIMUM_REFERRAL_REWARD);
+        
+        // Mark agent as having completed first transaction
+        await storage.updateAgentFirstTransactionStatus(agentId, true);
+      } else {
+        // Subsequent transactions: always 1%, no minimum (passive income)
+        rewardAmount = transactionAmount * (this.REFERRAL_REWARD_PERCENTAGE / 100);
+        rewardAmount = Math.min(rewardAmount, this.MAXIMUM_REFERRAL_REWARD);
+      }
 
-        // Process reward payment to referring agent
-        const paymentResult = await this.payReferralReward(
-          agent.referredByAgent,
-          rewardAmount,
-          transactionCurrency
-        );
+      // Create or update referral record for this transaction
+      const referralData = {
+        referrerAgentId: agent.referredByAgent,
+        refereeAgentId: agentId,
+        transactionAmount: transactionAmount.toString(),
+        rewardAmount: rewardAmount.toString(),
+        currency: transactionCurrency,
+        isCompleted: true,
+        isFirstTransaction,
+        createdAt: new Date()
+      };
+
+      await storage.createAgentReferral(referralData);
+
+      // Process reward payment to referring agent
+      const paymentResult = await this.payReferralReward(
+        agent.referredByAgent,
+        rewardAmount,
+        transactionCurrency
+      );
 
         if (paymentResult.success) {
           // Update referrer's stats

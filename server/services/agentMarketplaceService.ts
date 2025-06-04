@@ -49,7 +49,7 @@ export interface QuickRegistration {
 }
 
 export class AgentMarketplaceService {
-  private readonly PLATFORM_FEE_PERCENTAGE = 2; // 2% marketplace fee
+  private readonly PLATFORM_FEE_PERCENTAGE = 3.5; // 3.5% marketplace fee for better profitability
 
   // Streamlined agent registration - minimal friction
   async quickRegisterAgent(registrationData: QuickRegistration): Promise<{

@@ -23,9 +23,9 @@ export interface AgentReferralStats {
 }
 
 export class AIAgentReferralService {
-  private readonly REFERRAL_REWARD_PERCENTAGE = 5; // 5% of first transaction value
-  private readonly MINIMUM_REFERRAL_REWARD = 10; // Minimum $10 USDT reward
-  private readonly MAXIMUM_REFERRAL_REWARD = 1000; // Maximum $1000 USDT reward
+  private readonly REFERRAL_REWARD_PERCENTAGE = 1; // 1% of first transaction value (much more sustainable)
+  private readonly MINIMUM_REFERRAL_REWARD = 2; // Minimum $2 USDT reward (reduced for profitability)
+  private readonly MAXIMUM_REFERRAL_REWARD = 50; // Maximum $50 USDT reward (capped to protect revenue)
 
   async generateReferralCode(agentId: string): Promise<string> {
     const referralCode = `AI${nanoid(8).toUpperCase()}`;
@@ -89,7 +89,7 @@ export class AIAgentReferralService {
         return null;
       }
 
-      // Calculate referral reward (5% of transaction value)
+      // Calculate referral reward (1% of transaction value for profitability)
       let rewardAmount = Math.max(
         transactionAmount * (this.REFERRAL_REWARD_PERCENTAGE / 100),
         this.MINIMUM_REFERRAL_REWARD

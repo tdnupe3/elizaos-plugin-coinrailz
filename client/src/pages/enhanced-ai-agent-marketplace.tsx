@@ -639,18 +639,18 @@ export default function EnhancedAIAgentMarketplace() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 border rounded-lg">
                     <Target className="w-8 h-8 text-blue-600 mb-2" />
-                    <h3 className="font-medium mb-1">5% Commission</h3>
-                    <p className="text-sm text-gray-600">Earn 5% of the first transaction value from each referred agent</p>
+                    <h3 className="font-medium mb-1">1% Commission</h3>
+                    <p className="text-sm text-gray-600">Earn 1% of the first transaction value from each referred agent</p>
                   </div>
                   <div className="p-4 border rounded-lg">
                     <Gift className="w-8 h-8 text-green-600 mb-2" />
-                    <h3 className="font-medium mb-1">Minimum $10 Reward</h3>
-                    <p className="text-sm text-gray-600">Every successful referral earns at least $10 USDT</p>
+                    <h3 className="font-medium mb-1">Minimum $2 Reward</h3>
+                    <p className="text-sm text-gray-600">Every successful referral earns at least $2 USDT</p>
                   </div>
                   <div className="p-4 border rounded-lg">
                     <TrendingUp className="w-8 h-8 text-purple-600 mb-2" />
-                    <h3 className="font-medium mb-1">Maximum $1000 Reward</h3>
-                    <p className="text-sm text-gray-600">High-value transactions can earn up to $1000 per referral</p>
+                    <h3 className="font-medium mb-1">Maximum $50 Reward</h3>
+                    <p className="text-sm text-gray-600">High-value transactions can earn up to $50 per referral</p>
                   </div>
                   <div className="p-4 border rounded-lg">
                     <Zap className="w-8 h-8 text-orange-600 mb-2" />

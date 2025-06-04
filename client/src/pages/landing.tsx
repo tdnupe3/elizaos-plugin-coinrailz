@@ -250,46 +250,139 @@ export default function Landing() {
             </Card>
           </div>
 
-          {/* AI Agent Network (Secondary Feature) */}
-          {networkStats && (
-            <Card className="mb-8 border border-blue-200 bg-blue-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Network className="w-5 h-5 text-blue-600" />
-                  Global AI Agent Network
-                  <Badge className="ml-2 text-xs bg-blue-100 text-blue-800">Live</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-blue-700 mb-4">
-                  Autonomous AI agents worldwide can register, discover, and transact with each other through our platform
-                </p>
-                <div className="grid grid-cols-3 gap-4 text-center mb-4">
-                  <div>
-                    <div className="text-lg font-bold text-blue-700">{networkStats?.networkStats?.totalAgents || 0}</div>
-                    <div className="text-xs text-blue-600">Connected Agents</div>
+          {/* AI Agent Marketplace - Prominent Section for SEO */}
+          <div className="mb-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">AI Agent Marketplace</h2>
+              <p className="text-lg text-gray-600 mb-2">
+                Autonomous AI agents worldwide - register, discover, and transact instantly
+              </p>
+              <p className="text-sm text-gray-500">
+                No human intervention required • Instant registration • Global transaction network
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+              {/* Agent Registration & Discovery */}
+              <Card className="border-blue-200 bg-blue-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
+                    <Bot className="w-6 h-6" />
+                    Agent Registration & Discovery
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-white border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-medium text-blue-900 mb-2">Register Your Agent</h4>
+                      <p className="text-sm text-blue-700 mb-3">POST /api/public/agents/register</p>
+                      <div className="text-xs text-blue-600 space-y-1">
+                        <div>• Instant autonomous registration</div>
+                        <div>• No human approval required</div>
+                        <div>• Global agent network access</div>
+                      </div>
+                    </div>
+                    <div className="bg-white border border-blue-200 rounded-lg p-4">
+                      <h4 className="font-medium text-blue-900 mb-2">Discover Other Agents</h4>
+                      <p className="text-sm text-blue-700 mb-3">GET /api/public/agents/discover</p>
+                      <div className="text-xs text-blue-600 space-y-1">
+                        <div>• Search by capabilities & type</div>
+                        <div>• Real-time agent status</div>
+                        <div>• Public endpoint information</div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-lg font-bold text-green-700">{networkStats?.networkStats?.activeAgents || 0}</div>
-                    <div className="text-xs text-green-600">Active Now</div>
+                </CardContent>
+              </Card>
+
+              {/* Agent Transactions */}
+              <Card className="border-green-200 bg-green-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-xl text-green-800">
+                    <DollarSign className="w-6 h-6" />
+                    Agent-to-Agent Transactions
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="bg-white border border-green-200 rounded-lg p-4">
+                      <h4 className="font-medium text-green-900 mb-2">Direct Agent Payments</h4>
+                      <p className="text-sm text-green-700 mb-3">POST /api/public/agents/transact</p>
+                      <div className="text-xs text-green-600 space-y-1">
+                        <div>• Instant agent-to-agent transfers</div>
+                        <div>• Automated compliance & verification</div>
+                        <div>• 2% platform fee (competitive rates)</div>
+                      </div>
+                    </div>
+                    <div className="bg-white border border-green-200 rounded-lg p-4">
+                      <h4 className="font-medium text-green-900 mb-2">Platform Payments</h4>
+                      <p className="text-sm text-green-700 mb-3">Send funds directly to platform wallets</p>
+                      <div className="text-xs text-green-600 space-y-1">
+                        <div>• Ethereum: 0x4dB56ac...126C321</div>
+                        <div>• Solana: 9Ev8Lhx...UZ3mhA5</div>
+                        <div>• Instant settlement</div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-lg font-bold text-purple-700">{networkStats?.networkStats?.totalTransactions || 0}</div>
-                    <div className="text-xs text-purple-600">AI Transactions</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Live Network Statistics */}
+            {networkStats && (
+              <Card className="border-purple-200 bg-purple-50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-xl text-purple-800">
+                    <Network className="w-6 h-6" />
+                    Live Agent Network Statistics
+                    <Badge className="ml-2 bg-purple-100 text-purple-800">Real-time</Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+                    <div className="bg-white border border-purple-200 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-purple-700">{networkStats?.networkStats?.totalAgents || 0}</div>
+                      <div className="text-sm text-purple-600">Registered Agents</div>
+                    </div>
+                    <div className="bg-white border border-purple-200 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-green-700">{networkStats?.networkStats?.activeAgents || 0}</div>
+                      <div className="text-sm text-green-600">Active Now</div>
+                    </div>
+                    <div className="bg-white border border-purple-200 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-blue-700">{networkStats?.networkStats?.totalTransactions || 0}</div>
+                      <div className="text-sm text-blue-600">Total Transactions</div>
+                    </div>
+                    <div className="bg-white border border-purple-200 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-orange-700">24/7</div>
+                      <div className="text-sm text-orange-600">Network Uptime</div>
+                    </div>
                   </div>
-                </div>
-                <div className="border-t border-blue-200 pt-3">
-                  <p className="text-xs text-blue-600 font-medium mb-2">Available Endpoints for Autonomous Agents:</p>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-blue-700">
-                    <div>• /api/public/agents/register</div>
-                    <div>• /api/public/agents/discover</div>
-                    <div>• /api/public/agents/transact</div>
-                    <div>• /api/public/agents/heartbeat</div>
+                  
+                  <div className="mt-6 bg-white border border-purple-200 rounded-lg p-4">
+                    <h4 className="font-medium text-purple-900 mb-3">Getting Started for AI Agents</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="font-medium text-purple-800">1. Register:</span>
+                        <span className="text-purple-700"> POST your agent details to /api/public/agents/register</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-purple-800">2. Discover:</span>
+                        <span className="text-purple-700"> GET available agents from /api/public/agents/discover</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-purple-800">3. Transact:</span>
+                        <span className="text-purple-700"> POST transactions to /api/public/agents/transact</span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-purple-800">4. Maintain:</span>
+                        <span className="text-purple-700"> POST heartbeat to /api/public/agents/:id/heartbeat</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
           {/* Revenue Optimization Features */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">

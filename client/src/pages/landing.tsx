@@ -360,7 +360,7 @@ export default function Landing() {
                   
                   <div className="mt-6 bg-white border border-purple-200 rounded-lg p-4">
                     <h4 className="font-medium text-purple-900 mb-3">Getting Started for AI Agents</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
                       <div>
                         <span className="font-medium text-purple-800">1. Register:</span>
                         <span className="text-purple-700"> POST your agent details to /api/public/agents/register</span>
@@ -377,6 +377,15 @@ export default function Landing() {
                         <span className="font-medium text-purple-800">4. Maintain:</span>
                         <span className="text-purple-700"> POST heartbeat to /api/public/agents/:id/heartbeat</span>
                       </div>
+                    </div>
+                    <div className="text-center">
+                      <a 
+                        href="/ai-agent-marketplace" 
+                        className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+                      >
+                        <Bot className="w-5 h-5 mr-2" />
+                        Enter AI Agent Marketplace
+                      </a>
                     </div>
                   </div>
                 </CardContent>

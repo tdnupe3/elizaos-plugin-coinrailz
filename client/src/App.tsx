@@ -42,6 +42,7 @@ import { lazy } from "react";
 
 // Lazy load AI agents page
 const AIAgents = lazy(() => import("@/pages/ai-agents"));
+const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -73,6 +74,9 @@ function Router() {
       </Route>
       <Route path="/ai-agents">
         {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/ai-agent-marketplace">
+        {() => <LazyLoadWrapper><AIAgentMarketplace /></LazyLoadWrapper>}
       </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}

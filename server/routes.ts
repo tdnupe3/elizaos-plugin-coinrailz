@@ -18,6 +18,9 @@ import {
   walletWithdrawSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { pncBankService } from './services/pncBankService';
+import { dexAggregatorService } from './services/dexAggregatorService';
+import { solanaService } from './services/solanaService';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues

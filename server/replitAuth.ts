@@ -24,11 +24,11 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  
+
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL environment variable is required');
   }
-  
+
   // Use database session store with improved error handling
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
@@ -44,7 +44,7 @@ export function getSession() {
       ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     }
   });
-  
+
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,

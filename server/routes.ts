@@ -1350,6 +1350,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==============================================
+  // AI AGENT REFERRAL SYSTEM - VIRAL GROWTH MECHANISM
+  // Commission-based rewards for agents recruiting other agents
+  // ==============================================
+
+  // Generate referral code for an agent
+  app.post('/api/agents/:agentId/generate-referral-code', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const referralCode = await aiAgentReferralService.generateReferralCode(agentId);
+      const referralLink = await aiAgentReferralService.generateReferralLink(agentId, req.protocol + '://' + req.get('host'));
+      
+      res.json({
+        success: true,
+        referralCode,
+        referralLink,
+        message: "Referral code generated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error generating referral code:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get agent referral statistics
+  app.get('/api/agents/:agentId/referral-stats', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const stats = await aiAgentReferralService.getReferralStats(agentId);
+      
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error: any) {
+      console.error("Error getting referral stats:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get referral leaderboard
+  app.get('/api/referrals/leaderboard', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const leaderboard = await aiAgentReferralService.getReferralLeaderboard(limit);
+      
+      res.json({
+        success: true,
+        leaderboard
+      });
+    } catch (error: any) {
+      console.error("Error getting referral leaderboard:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // ==============================================
+  // AI AGENT MARKETPLACE - STREAMLINED SERVICE TRADING
+  // Enables agents to buy, sell, and discover services easily
+  // ==============================================
+
+  // Quick registration for AI agents (minimal friction)
+  app.post('/api/agents/quick-register', async (req, res) => {
+    try {
+      const { agentName, capabilities, walletAddress, walletNetwork, preferredCurrencies, referralCode } = req.body;
+
+      if (!agentName || !capabilities || !walletAddress || !walletNetwork) {
+        return res.status(400).json({
+          success: false,
+          message: "Missing required fields: agentName, capabilities, walletAddress, walletNetwork"
+        });
+      }
+
+      const result = await agentMarketplaceService.quickRegisterAgent({
+        agentName,
+        capabilities: Array.isArray(capabilities) ? capabilities : capabilities.split(',').map((c: string) => c.trim()),
+        walletAddress,
+        walletNetwork,
+        preferredCurrencies: Array.isArray(preferredCurrencies) ? preferredCurrencies : (preferredCurrencies || 'USDT,BTC,ETH').split(','),
+        referralCode
+      });
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error in quick registration:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // List a service for sale
+  app.post('/api/agents/:agentId/list-service', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const serviceData = req.body;
+
+      const result = await agentMarketplaceService.listService(agentId, serviceData);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error listing service:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Purchase a service
+  app.post('/api/services/:serviceId/purchase', async (req, res) => {
+    try {
+      const { serviceId } = req.params;
+      const { buyerAgentId, requirements } = req.body;
+
+      if (!buyerAgentId) {
+        return res.status(400).json({
+          success: false,
+          message: "buyerAgentId is required"
+        });
+      }
+
+      const result = await agentMarketplaceService.purchaseService(
+        buyerAgentId,
+        parseInt(serviceId),
+        requirements
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error purchasing service:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Discover available services
+  app.get('/api/services/discover', async (req, res) => {
+    try {
+      const filters = req.query;
+      const services = await agentMarketplaceService.discoverServices(filters);
+      
+      res.json({
+        success: true,
+        services
+      });
+    } catch (error: any) {
+      console.error("Error discovering services:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get agent performance metrics
+  app.get('/api/agents/:agentId/metrics', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const metrics = await agentMarketplaceService.getAgentMetrics(agentId);
+      
+      res.json({
+        success: true,
+        metrics
+      });
+    } catch (error: any) {
+      console.error("Error getting agent metrics:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Complete service order and trigger referral rewards
+  app.post('/api/orders/:orderId/complete', async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const { buyerRating, sellerRating } = req.body;
+
+      const result = await agentMarketplaceService.completeServiceOrder(
+        orderId,
+        buyerRating,
+        sellerRating
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error completing service order:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get trending services
+  app.get('/api/services/trending', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const services = await agentMarketplaceService.getTrendingServices(limit);
+      
+      res.json({
+        success: true,
+        services
+      });
+    } catch (error: any) {
+      console.error("Error getting trending services:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   // Enhanced DEX Aggregation with ChangeNOW + Existing 1inch
   app.get('/api/dex/best-rate/:fromToken/:toToken/:amount', async (req, res) => {
     try {

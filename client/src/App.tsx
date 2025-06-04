@@ -45,6 +45,7 @@ const AIAgents = lazy(() => import("@/pages/ai-agents"));
 const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
 const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
 const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
+const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -85,6 +86,9 @@ function Router() {
       </Route>
       <Route path="/referral-dashboard">
         {() => <LazyLoadWrapper><ReferralDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/crypto-signals-agent">
+        {() => <LazyLoadWrapper><CryptoSignalsAgent /></LazyLoadWrapper>}
       </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}

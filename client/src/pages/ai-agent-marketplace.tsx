@@ -156,14 +156,99 @@ export default function AIAgentMarketplace() {
     transactionMutation.mutate(transactionData);
   };
 
-  const filteredAgents = agentsData?.agents?.filter(agent => 
+  // Demo agents for showcasing donation functionality
+  const demoAgents = [
+    {
+      id: 'agent_alpha_001',
+      agentName: 'Trading Agent Alpha',
+      agentType: 'Autonomous Trading',
+      capabilities: ['Technical Analysis', 'Risk Management', 'Portfolio Optimization'],
+      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
+      walletNetwork: 'Ethereum',
+      status: 'active',
+      description: 'Advanced AI trading agent specializing in cryptocurrency markets with proven track record.',
+      preferredCurrencies: ['USDT', 'BTC', 'ETH'],
+      complianceLevel: 'High',
+      lastSeen: new Date()
+    },
+    {
+      id: 'agent_defi_002',
+      agentName: 'DeFi Yield Bot',
+      agentType: 'Yield Farming',
+      capabilities: ['Yield Optimization', 'Liquidity Mining', 'Protocol Analysis'],
+      walletAddress: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5',
+      walletNetwork: 'Solana',
+      status: 'active',
+      description: 'Automated yield farming agent that maximizes returns across DeFi protocols.',
+      preferredCurrencies: ['SOL', 'USDC', 'RAY'],
+      complianceLevel: 'Medium',
+      lastSeen: new Date()
+    },
+    {
+      id: 'agent_portfolio_003',
+      agentName: 'Portfolio Manager Pro',
+      agentType: 'Asset Management',
+      capabilities: ['Asset Allocation', 'Rebalancing', 'Risk Assessment'],
+      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
+      walletNetwork: 'Ethereum',
+      status: 'active',
+      description: 'Professional portfolio management agent with dynamic rebalancing capabilities.',
+      preferredCurrencies: ['USDT', 'USDC', 'BTC'],
+      complianceLevel: 'High',
+      lastSeen: new Date()
+    },
+    {
+      id: 'agent_arbitrage_004',
+      agentName: 'Cross-Chain Arbitrage',
+      agentType: 'Arbitrage Trading',
+      capabilities: ['Cross-Chain Analysis', 'Price Discovery', 'MEV Protection'],
+      walletAddress: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5',
+      walletNetwork: 'Multi-Chain',
+      status: 'active',
+      description: 'Identifies and executes arbitrage opportunities across multiple blockchain networks.',
+      preferredCurrencies: ['ETH', 'SOL', 'AVAX'],
+      complianceLevel: 'Medium',
+      lastSeen: new Date()
+    },
+    {
+      id: 'agent_market_005',
+      agentName: 'Market Sentiment AI',
+      agentType: 'Market Analysis',
+      capabilities: ['Sentiment Analysis', 'News Processing', 'Social Media Monitoring'],
+      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
+      walletNetwork: 'Ethereum',
+      status: 'active',
+      description: 'AI agent that analyzes market sentiment from news, social media, and on-chain data.',
+      preferredCurrencies: ['BTC', 'ETH', 'DOGE'],
+      complianceLevel: 'High',
+      lastSeen: new Date()
+    },
+    {
+      id: 'agent_nft_006',
+      agentName: 'NFT Collections Bot',
+      agentType: 'NFT Trading',
+      capabilities: ['Floor Price Analysis', 'Rarity Assessment', 'Collection Monitoring'],
+      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
+      walletNetwork: 'Ethereum',
+      status: 'active',
+      description: 'Specialized agent for NFT market analysis and trading opportunities.',
+      preferredCurrencies: ['ETH', 'WETH', 'USDC'],
+      complianceLevel: 'Medium',
+      lastSeen: new Date()
+    }
+  ];
+
+  // Combine demo agents with API data, fallback to demo agents if API returns empty
+  const allAgents = (agentsData?.agents && agentsData.agents.length > 0) ? agentsData.agents : demoAgents;
+  
+  const filteredAgents = allAgents.filter(agent => 
     agent.agentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.capabilities.some(cap => cap.toLowerCase().includes(searchTerm.toLowerCase())) ||
     agent.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  );
 
-  const uniqueTypes = [...new Set(agentsData?.agents?.map(a => a.agentType) || [])];
-  const uniqueCapabilities = [...new Set(agentsData?.agents?.flatMap(a => a.capabilities) || [])];
+  const uniqueTypes = [...new Set(allAgents.map(a => a.agentType))];
+  const uniqueCapabilities = [...new Set(allAgents.flatMap(a => a.capabilities))];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

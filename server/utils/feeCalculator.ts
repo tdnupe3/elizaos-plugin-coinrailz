@@ -100,7 +100,8 @@ export class FeeCalculator {
       gasFee,
       totalFee,
       netAmount: amount - totalFee,
-      currency
+      currency,
+      fee: totalFee
     };
   }
 
@@ -115,7 +116,8 @@ export class FeeCalculator {
       gasFee,
       totalFee,
       netAmount: transactionValue - totalFee,
-      currency
+      currency,
+      fee: totalFee
     };
   }
 
@@ -166,7 +168,8 @@ export class FeeCalculator {
       gasFee,
       totalFee,
       netAmount: amount - totalFee,
-      currency
+      currency,
+      fee: totalFee
     };
   }
 
@@ -181,7 +184,8 @@ export class FeeCalculator {
       gasFee,
       totalFee,
       netAmount: amount - totalFee,
-      currency
+      currency,
+      fee: totalFee
     };
   }
 

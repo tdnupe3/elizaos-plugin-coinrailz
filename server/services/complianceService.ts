@@ -146,7 +146,7 @@ export class ComplianceService {
   private async checkSanctions(user: any): Promise<{ isMatch: boolean; details?: any }> {
     // In production, this would check against OFAC SDN, EU sanctions, UN sanctions
     const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-    
+
     // Placeholder logic - in production would use proper sanctions screening API
     const suspiciousNames = ['test suspicious', 'blocked person'];
     const isMatch = suspiciousNames.some(name => fullName.includes(name));
@@ -157,7 +157,7 @@ export class ComplianceService {
   private async checkPEPs(user: any): Promise<{ isMatch: boolean; details?: any }> {
     // In production, this would check against PEPs databases
     const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-    
+
     // Placeholder logic - in production would use proper PEPs screening API
     const politicalTitles = ['senator', 'governor', 'minister', 'president'];
     const isMatch = politicalTitles.some(title => fullName.includes(title));
@@ -259,7 +259,7 @@ export class ComplianceService {
     // Check current usage
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const recentTransactions = await storage.getUserTransactions(userId, 100);
     const todayTransactions = recentTransactions.filter(t => 
       new Date(t.createdAt!).getTime() >= today.getTime()
@@ -277,6 +277,64 @@ export class ComplianceService {
     }
 
     return { allowed: true, dailyLimit, monthlyLimit };
+  }
+
+  async generateComplianceReport(): Promise<ComplianceReport> {
+    const report: ComplianceReport = {
+      reportId: `CR-${Date.now()}`,
+      generatedAt: new Date().toISOString(),
+      period: {
+        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        endDate: new Date().toISOString()
+      },
+      summary: {
+        totalTransactions: 0,
+        totalVolume: 0,
+        suspiciousTransactions: 0,
+        blockedTransactions: 0
+      },
+      findings: [],
+      recommendations: []
+    };
+
+    return report;
+  }
+
+  async checkAITransaction(transaction: any): Promise<{ approved: boolean; flags: string[] }> {
+    const flags: string[] = [];
+
+    // Check amount thresholds for AI transactions
+    const amount = parseFloat(transaction.amount);
+    if (amount > 25000) {
+      flags.push('HIGH_VALUE_AI_TRANSACTION');
+    }
+
+    // Check for rapid AI transaction patterns
+    if (transaction.metadata?.riskScore > 0.7) {
+      flags.push('HIGH_RISK_AI_PATTERN');
+    }
+
+    // Verify agent permissions
+    if (!transaction.fromAgentId || !transaction.toAgentId) {
+      flags.push('INVALID_AGENT_CREDENTIALS');
+    }
+
+    // AI transactions require additional monitoring for regulatory compliance
+    if (amount > 10000) {
+      flags.push('AI_TRANSACTION_MONITORING_REQUIRED');
+      await this.logComplianceEvent('AI_HIGH_VALUE_TRANSACTION', {
+        transactionId: transaction.id,
+        amount: transaction.amount,
+        fromAgent: transaction.fromAgentId,
+        toAgent: transaction.toAgentId
+      });
+    }
+
+    const approved = !flags.some(flag => 
+      ['INVALID_AGENT_CREDENTIALS', 'BLOCKED_ENTITY'].includes(flag)
+    );
+
+    return { approved, flags };
   }
 }
 

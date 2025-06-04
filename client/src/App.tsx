@@ -38,6 +38,7 @@ import {
 import SignupFlowDemo from "@/pages/signup-flow-demo";
 import LegalDisclaimers from "@/pages/legal-disclaimers";
 import ContactUs from "@/pages/contact-us";
+import { lazy } from "react";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -67,13 +68,16 @@ function Router() {
       <Route path="/swap">
         {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
       </Route>
+      <Route path="/ai-agents">
+        {() => <LazyLoadWrapper><lazy(() => import("@/pages/ai-agents")) /></LazyLoadWrapper>}
+      </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/signup-flow" component={SignupFlowDemo} />
       <Route path="/legal-disclaimers" component={LegalDisclaimers} />
       <Route path="/contact-us" component={ContactUs} />
-      
+
       {/* Authenticated routes */}
       <Route path="/send">
         {() => <LazyLoadWrapper><SendMoney /></LazyLoadWrapper>}
@@ -84,7 +88,7 @@ function Router() {
       <Route path="/sell">
         {() => <LazyLoadWrapper><BuySellPage /></LazyLoadWrapper>}
       </Route>
-      
+
       {/* Regular routes */}
       {isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
@@ -110,7 +114,7 @@ function Router() {
       )}
       <Route component={NotFound} />
       </Switch>
-      
+
       {/* AI Agent Chat Widget - Available on all pages */}
       <ChatWidget isDemo={window.location.pathname.includes('/demo')} />
     </>

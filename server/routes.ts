@@ -21,6 +21,7 @@ import { z } from "zod";
 import { pncBankService } from './services/pncBankService';
 import { dexAggregatorService } from './services/dexAggregatorService';
 import { solanaService } from './services/solanaService';
+import { aiAgentService } from './services/aiAgentService';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues
@@ -458,6 +459,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       await loggingService.log('ERROR', 'Failed to retrieve metrics', { error: error.message });
       res.status(500).json({ message: 'Failed to retrieve metrics' });
+    }
+  });
+
+  // AI Agent Transaction Routes
+  app.get('/api/ai-agents', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const agents = await aiAgentService.getUserAgents(userId);
+      res.json(agents);
+    } catch (error) {
+      console.error("Error fetching AI agents:", error);
+      res.status(500).json({ message: "Failed to fetch AI agents" });
+    }
+  });
+
+  app.post('/api/ai-agents/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { name, type, permissions } = req.body;
+
+      if (!name || !type || !permissions) {
+        return res.status(400).json({ message: "Name, type, and permissions are required" });
+      }
+
+      const agent = await aiAgentService.createAgent({
+        name,
+        type,
+        ownerId: userId,
+        permissions,
+        isActive: true
+      });
+
+      res.json(agent);
+    } catch (error) {
+      console.error("Error creating AI agent:", error);
+      res.status(500).json({ message: "Failed to create AI agent" });
+    }
+  });
+
+  app.post('/api/ai-agents/transfer', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { fromAgentId, toAgentId, amount, currency, purpose } = req.body;
+
+      if (!fromAgentId || !toAgentId || !amount || !currency || !purpose) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Verify user owns the source agent
+      const userAgents = await aiAgentService.getUserAgents(userId);
+      const ownsSourceAgent = userAgents.some(agent => agent.id === fromAgentId);
+      
+      if (!ownsSourceAgent) {
+        return res.status(403).json({ message: "You don't own the source agent" });
+      }
+
+      const transaction = await aiAgentService.initiateAgentTransaction(
+        fromAgentId,
+        toAgentId,
+        amount,
+        currency,
+        purpose
+      );
+
+      res.json({
+        success: true,
+        transaction,
+        message: "AI agent transaction initiated successfully"
+      });
+    } catch (error) {
+      console.error("Error processing AI agent transfer:", error);
+      res.status(500).json({ 
+        message: error.message || "Failed to process AI agent transfer" 
+      });
+    }
+  });
+
+  app.get('/api/ai-agents/:agentId/transactions', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { agentId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      // Verify user owns the agent
+      const userAgents = await aiAgentService.getUserAgents(userId);
+      const ownsAgent = userAgents.some(agent => agent.id === agentId);
+      
+      if (!ownsAgent) {
+        return res.status(403).json({ message: "You don't own this agent" });
+      }
+
+      const transactions = await aiAgentService.getAgentTransactionHistory(agentId, limit);
+      res.json(transactions);
+    } catch (error) {
+      console.error("Error fetching AI agent transactions:", error);
+      res.status(500).json({ message: "Failed to fetch AI agent transactions" });
     }
   });
 

@@ -9,7 +9,7 @@ export class FeeCalculator {
     crypto_offramp: 0.30,     // Crypto sale
     crypto_swap: 0.10,        // DEX aggregator
     p2p_transfer: 0.05,       // Internal transfer
-    
+
     // Processing overhead
     database_operations: 0.01,
     compliance_reporting: 0.03,
@@ -35,7 +35,7 @@ export class FeeCalculator {
 
     const percentageFee = amount * 0.01; // 1% base fee
     const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.send_money;
-    
+
     const finalFee = Math.max(percentageFee, minimumFee);
 
     return {
@@ -60,7 +60,7 @@ export class FeeCalculator {
     const percentageFee = amount * 0.015; // 1.5% for crypto transactions
     const minimumFee = operationalCost + 
       (type === 'buy' ? this.MIN_PROFIT_MARGINS.buy_crypto : this.MIN_PROFIT_MARGINS.sell_crypto);
-    
+
     const finalFee = Math.max(percentageFee, minimumFee);
 
     return {
@@ -82,7 +82,7 @@ export class FeeCalculator {
 
     const percentageFee = amount * 0.005; // 0.5% for swaps
     const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.swap_crypto;
-    
+
     const finalFee = Math.max(percentageFee, minimumFee);
 
     return {
@@ -104,7 +104,7 @@ export class FeeCalculator {
 
     const percentageFee = amount * 0.005; // 0.5% for deposits
     const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.deposit_funds;
-    
+
     const finalFee = Math.max(percentageFee, minimumFee);
 
     return {
@@ -127,7 +127,7 @@ export class FeeCalculator {
 
     const percentageFee = amount * 0.008; // 0.8% for withdrawals
     const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.withdraw_funds;
-    
+
     const finalFee = Math.max(percentageFee, minimumFee);
 
     return {
@@ -137,6 +137,23 @@ export class FeeCalculator {
         minimumProfit: this.MIN_PROFIT_MARGINS.withdraw_funds,
         percentageFee: Number(percentageFee.toFixed(2)),
         finalFee: Number(finalFee.toFixed(2))
+      }
+    };
+  }
+
+  static calculateAIAgentFee(amount: number): { fee: number; breakdown: any } {
+    // Lower fees for AI agent transactions to encourage automation
+    const baseFee = 0.25;
+    const percentageFee = amount * 0.0005; // 0.05%
+    const fee = Math.max(baseFee, percentageFee);
+
+    return {
+      fee: Number(fee.toFixed(2)),
+      breakdown: {
+        baseFee: baseFee,
+        percentageFee: Number(percentageFee.toFixed(2)),
+        finalFee: Number(fee.toFixed(2)),
+        aiDiscount: true
       }
     };
   }

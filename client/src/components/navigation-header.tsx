@@ -24,6 +24,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
     { path: "/send", label: "Send Money" },
     { path: "/crypto", label: "Crypto Wallet" },
     { path: "/history", label: "History" },
+    { path: "/ai-agents", label: "AI Agents" },
   ];
 
   return (
@@ -42,7 +43,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
               <span className="text-xl font-bold text-neutral-800">Coin Railz</span>
             </Button>
           </div>
-          
+
           <div className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => (
               <Button

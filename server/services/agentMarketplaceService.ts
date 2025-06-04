@@ -50,7 +50,17 @@ export interface QuickRegistration {
 
 export class AgentMarketplaceService {
   private readonly PLATFORM_FEE_PERCENTAGE = 3.5; // 3.5% marketplace fee for better profitability
-  private readonly MINIMUM_TRANSACTION_VALUE = 25; // $25 minimum transaction for profitability
+  
+  // Tiered fee structure for profitability on all transaction sizes
+  private calculatePlatformFee(amount: number): number {
+    if (amount <= 20) {
+      return 2 + (amount * 0.035); // $2 + 3.5% for transactions $20 and under
+    } else if (amount <= 50) {
+      return 1 + (amount * 0.035); // $1 + 3.5% for transactions $20.01-$50
+    } else {
+      return amount * 0.035; // Standard 3.5% for transactions over $50
+    }
+  }
 
   // Streamlined agent registration - minimal friction
   async quickRegisterAgent(registrationData: QuickRegistration): Promise<{
@@ -184,7 +194,7 @@ export class AgentMarketplaceService {
 
       // Calculate total amount including platform fee
       const baseAmount = parseFloat(listing.basePrice);
-      const platformFee = baseAmount * (this.PLATFORM_FEE_PERCENTAGE / 100);
+      const platformFee = this.calculatePlatformFee(baseAmount);
       const totalAmount = baseAmount + platformFee;
 
       // Create service order

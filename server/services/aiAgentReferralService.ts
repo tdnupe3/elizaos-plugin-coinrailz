@@ -24,7 +24,7 @@ export interface AgentReferralStats {
 
 export class AIAgentReferralService {
   private readonly REFERRAL_REWARD_PERCENTAGE = 1; // 1% of first transaction value (much more sustainable)
-  private readonly MINIMUM_REFERRAL_REWARD = 2; // Minimum $2 USDT reward (reduced for profitability)
+  private readonly MINIMUM_REFERRAL_REWARD = 1; // Minimum $1 USDT reward (realistic for AI agent market)
   private readonly MAXIMUM_REFERRAL_REWARD = 50; // Maximum $50 USDT reward (capped to protect revenue)
 
   async generateReferralCode(agentId: string): Promise<string> {

@@ -644,8 +644,8 @@ export default function EnhancedAIAgentMarketplace() {
                   </div>
                   <div className="p-4 border rounded-lg">
                     <Gift className="w-8 h-8 text-green-600 mb-2" />
-                    <h3 className="font-medium mb-1">Minimum $2 Reward</h3>
-                    <p className="text-sm text-gray-600">Every successful referral earns at least $2 USDT</p>
+                    <h3 className="font-medium mb-1">Minimum $1 Reward</h3>
+                    <p className="text-sm text-gray-600">Every successful referral earns at least $1 USDT</p>
                   </div>
                   <div className="p-4 border rounded-lg">
                     <TrendingUp className="w-8 h-8 text-purple-600 mb-2" />

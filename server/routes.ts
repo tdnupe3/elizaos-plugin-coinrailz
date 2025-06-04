@@ -43,7 +43,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const balances = await storage.getUserWalletBalances(userId);
-      
+
       // If user has no wallet balances, create default USD wallet
       if (balances.length === 0) {
         await storage.createWalletBalance({
@@ -56,7 +56,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const newBalances = await storage.getUserWalletBalances(userId);
         return res.json(newBalances);
       }
-      
+
       res.json(balances);
     } catch (error) {
       console.error("Error fetching wallet balances:", error);
@@ -68,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = walletDepositSchema.parse(req.body);
       const userId = req.user.claims.sub;
-      
+
       // Get or create wallet for currency
       let wallet = await storage.getWalletBalance(userId, validatedData.currency);
       if (!wallet) {
@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = walletWithdrawSchema.parse(req.body);
       const userId = req.user.claims.sub;
-      
+
       // Check wallet balance
       const wallet = await storage.getWalletBalance(userId, validatedData.currency);
       if (!wallet) {
@@ -126,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const requestedAmount = parseFloat(validatedData.amount);
       const availableBalance = parseFloat(wallet.availableBalance);
-      
+
       if (requestedAmount > availableBalance) {
         return res.status(400).json({ message: 'Insufficient funds' });
       }
@@ -163,16 +163,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const limit = parseInt(req.query.limit as string) || 10;
-      
+
       const fundingTransactions = await storage.getUserFundingTransactions(userId, limit);
       const regularTransactions = await storage.getUserTransactions(userId, limit);
-      
+
       // Combine and sort transactions by date
       const allTransactions = [
         ...fundingTransactions.map(t => ({ ...t, category: 'funding' })),
         ...regularTransactions.map(t => ({ ...t, category: 'transfer' }))
       ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
+
       res.json(allTransactions.slice(0, limit));
     } catch (error) {
       console.error("Error fetching wallet transactions:", error);
@@ -185,7 +185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = sendMoneySchema.parse(req.body);
       const userId = req.user.claims.sub;
-      
+
       // Check if user is blocked
       const isBlocked = await TransactionMonitor.isUserBlocked(userId);
       if (isBlocked) {
@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate and sanitize amounts
       const transferAmount = ValidationUtils.validateAmount(validatedData.amount);
-      
+
       // Assess transaction risk
       const riskAssessment = await TransactionMonitor.assessTransactionRisk(
         userId, 
@@ -230,7 +230,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if recipient exists
       const recipient = await storage.getUserByEmail(validatedData.toEmail);
-      
+
       // Create transaction
       const transaction = await storage.createTransaction({
         fromUserId: userId,
@@ -323,13 +323,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const referralCode = referralService.generateReferralCode();
-      
+
       // Update user with new referral code
       await storage.upsertUser({
         id: userId,
         referralCode: referralCode
       });
-      
+
       res.json({ referralCode });
     } catch (error) {
       console.error("Error generating referral code:", error);
@@ -341,11 +341,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const { referralCode } = req.body;
-      
+
       if (!referralCode) {
         return res.status(400).json({ message: "Referral code is required" });
       }
-      
+
       await referralService.processReferral(userId, referralCode);
       res.json({ success: true, message: "Referral applied successfully" });
     } catch (error) {
@@ -376,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { amount, type } = req.body;
       const numAmount = parseFloat(amount);
-      
+
       if (isNaN(numAmount) || numAmount <= 0) {
         return res.status(400).json({ message: "Invalid amount" });
       }
@@ -434,7 +434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const logs = level 
         ? loggingService.getLogsByLevel(level as any, parseInt(count))
         : loggingService.getRecentLogs(parseInt(count));
-      
+
       res.json({ logs });
     } catch (error) {
       await loggingService.log('ERROR', 'Failed to retrieve logs', { error: error.message });
@@ -450,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         cpuUsage: process.cpuUsage(),
         timestamp: new Date().toISOString(),
       };
-      
+
       res.json(metrics);
     } catch (error) {
       await loggingService.log('ERROR', 'Failed to retrieve metrics', { error: error.message });
@@ -459,9 +459,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
-  
+
   // Initialize WebSocket service
   websocketService.initialize(httpServer);
-  
+
   return httpServer;
 }

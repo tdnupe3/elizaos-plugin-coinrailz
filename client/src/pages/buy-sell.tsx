@@ -12,8 +12,11 @@ import { useState, useEffect } from "react";
 const cryptoCurrencies = [
   { symbol: 'BTC', name: 'Bitcoin', price: 45000 },
   { symbol: 'ETH', name: 'Ethereum', price: 3200 },
+  { symbol: 'SOL', name: 'Solana', price: 180.50 },
   { symbol: 'ADA', name: 'Cardano', price: 0.85 },
-  { symbol: 'DOT', name: 'Polkadot', price: 25.30 }
+  { symbol: 'DOT', name: 'Polkadot', price: 25.30 },
+  { symbol: 'USDC', name: 'USD Coin', price: 1.00 },
+  { symbol: 'USDT', name: 'Tether', price: 1.00 }
 ];
 
 const paymentMethods = [

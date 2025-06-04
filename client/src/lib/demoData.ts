@@ -144,7 +144,26 @@ export const DEMO_CRYPTO_PRICES = {
   SOL: { price: 180.50, change: 4.7, symbol: "◎" },
   XRP: { price: 0.62, change: -1.2, symbol: "✕" },
   USDC: { price: 1.00, change: 0.0, symbol: "$" },
-  USDT: { price: 1.00, change: 0.0, symbol: "₮" }
+  USDT: { price: 1.00, change: 0.0, symbol: "$" }
+};
+
+export const DEMO_CRYPTO_HOLDINGS = [
+  { id: 1, coinSymbol: "BTC", coinName: "Bitcoin", amount: "0.05673421", value: 2536.70 },
+  { id: 2, coinSymbol: "ETH", coinName: "Ethereum", amount: "1.23456789", value: 3950.62 },
+  { id: 3, coinSymbol: "SOL", coinName: "Solana", amount: "15.75000000", value: 2842.88 },
+  { id: 4, coinSymbol: "ADA", coinName: "Cardano", amount: "2847.50000000", value: 2420.38 },
+  { id: 5, coinSymbol: "DOT", coinName: "Polkadot", amount: "95.30000000", value: 2411.09 },
+  { id: 6, coinSymbol: "USDC", coinName: "USD Coin", amount: "500.00000000", value: 500.00 },
+  { id: 7, coinSymbol: "USDT", coinName: "Tether", amount: "750.00000000", value: 750.00 }
+];
+
+export const SOLANA_SUPPORTED_TOKENS = [
+  { symbol: "SOL", name: "Solana", network: "Solana", decimals: 9 },
+  { symbol: "USDC", name: "USD Coin", network: "Solana", decimals: 6 },
+  { symbol: "USDT", name: "Tether", network: "Solana", decimals: 6 },
+  { symbol: "RAY", name: "Raydium", network: "Solana", decimals: 6 },
+  { symbol: "SRM", name: "Serum", network: "Solana", decimals: 6 }
+];l: "₮" }
 };
 
 export const DEMO_REFERRALS = [

@@ -83,6 +83,9 @@ function Router() {
       <Route path="/revenue-dashboard">
         {() => <LazyLoadWrapper><RevenueDashboard /></LazyLoadWrapper>}
       </Route>
+      <Route path="/referral-dashboard">
+        {() => <LazyLoadWrapper><ReferralDashboard /></LazyLoadWrapper>}
+      </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>

@@ -25,6 +25,8 @@ import { dexAggregatorService } from './services/dexAggregatorService';
 import { changeNowService } from './services/changeNowService';
 import { solanaService } from './services/solanaService';
 import { aiAgentService } from './services/aiAgentService';
+import { aiAgentReferralService } from './services/aiAgentReferralService';
+import { agentMarketplaceService } from './services/agentMarketplaceService';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues

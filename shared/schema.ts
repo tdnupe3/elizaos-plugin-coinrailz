@@ -436,8 +436,76 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   complianceLevel: varchar("compliance_level").notNull().default("basic"), // basic, enhanced, institutional
   geolocation: varchar("geolocation"), // ISO country code
   timezone: varchar("timezone"),
+  referralCode: varchar("referral_code").unique(), // Unique referral code for this agent
+  referredByAgent: varchar("referred_by_agent"), // ID of referring agent
+  referralRewards: varchar("referral_rewards").notNull().default("0"), // Total earned from referrals
+  referralCount: integer("referral_count").notNull().default(0), // Number of successful referrals
+  hasCompletedFirstTransaction: boolean("has_completed_first_transaction").notNull().default(false),
+  marketplaceServiceListings: jsonb("marketplace_service_listings").default('[]'), // Services offered
+  serviceCategories: jsonb("service_categories").default('[]'), // Service categories
+  pricingModel: varchar("pricing_model").default("fixed"), // fixed, hourly, commission
   lastActive: timestamp("last_active").defaultNow(),
   registeredAt: timestamp("registered_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// AI Agent Referral System
+export const agentReferrals = pgTable("agent_referrals", {
+  id: serial("id").primaryKey(),
+  referralCode: varchar("referral_code").notNull(),
+  referrerAgentId: varchar("referrer_agent_id").notNull(),
+  referredAgentId: varchar("referred_agent_id").notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, completed, paid
+  rewardAmount: varchar("reward_amount").notNull().default("0"),
+  rewardCurrency: varchar("reward_currency").notNull().default("USDT"),
+  firstTransactionCompleted: boolean("first_transaction_completed").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// AI Agent Service Marketplace
+export const agentServiceListings = pgTable("agent_service_listings", {
+  id: serial("id").primaryKey(),
+  agentId: varchar("agent_id").notNull(),
+  serviceName: varchar("service_name").notNull(),
+  description: text("description").notNull(),
+  category: varchar("category").notNull(), // trading, analysis, automation, data-processing
+  subcategory: varchar("subcategory"),
+  pricingModel: varchar("pricing_model").notNull(), // fixed, hourly, commission, revenue-share
+  basePrice: varchar("base_price").notNull(),
+  currency: varchar("currency").notNull().default("USDT"),
+  estimatedDeliveryTime: varchar("estimated_delivery_time"), // in hours/days
+  availabilityStatus: varchar("availability_status").notNull().default("available"), // available, busy, offline
+  requiredInputs: jsonb("required_inputs").default('[]'), // Input parameters needed
+  sampleOutputs: jsonb("sample_outputs").default('[]'), // Example outputs
+  successMetrics: jsonb("success_metrics").default('[]'), // How success is measured
+  rating: decimal("rating", { precision: 3, scale: 2 }).default("0.0"),
+  completedOrders: integer("completed_orders").notNull().default(0),
+  totalRevenue: varchar("total_revenue").notNull().default("0"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// AI Agent Service Orders
+export const agentServiceOrders = pgTable("agent_service_orders", {
+  id: serial("id").primaryKey(),
+  orderId: varchar("order_id").notNull().unique(),
+  serviceListingId: integer("service_listing_id").notNull(),
+  buyerAgentId: varchar("buyer_agent_id").notNull(),
+  sellerAgentId: varchar("seller_agent_id").notNull(),
+  orderStatus: varchar("order_status").notNull().default("pending"), // pending, in-progress, completed, cancelled, disputed
+  totalAmount: varchar("total_amount").notNull(),
+  currency: varchar("currency").notNull(),
+  platformFee: varchar("platform_fee").notNull(), // 2% marketplace fee
+  requirements: text("requirements"), // Specific requirements from buyer
+  deliverables: text("deliverables"), // What will be delivered
+  communicationChannel: varchar("communication_channel"), // API endpoint for coordination
+  estimatedCompletion: timestamp("estimated_completion"),
+  actualCompletion: timestamp("actual_completion"),
+  buyerRating: integer("buyer_rating"), // 1-5 rating from buyer
+  sellerRating: integer("seller_rating"), // 1-5 rating from seller
+  createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 

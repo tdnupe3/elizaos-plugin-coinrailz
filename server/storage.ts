@@ -83,6 +83,34 @@ export interface IStorage {
   createCryptoTransfer(transfer: InsertCryptoTransfer): Promise<CryptoTransfer>;
   getUserCryptoTransfers(userId: string, limit?: number): Promise<CryptoTransfer[]>;
   updateCryptoTransferStatus(id: number, status: string, transactionHash?: string): Promise<void>;
+  
+  // AI Agent operations
+  getAgent(agentId: string): Promise<any>;
+  createAgent(agentData: any): Promise<any>;
+  updateAgentReferralCode(agentId: string, referralCode: string): Promise<void>;
+  getAgentByReferralCode(referralCode: string): Promise<any>;
+  updateAgentReferredBy(agentId: string, referrerId: string): Promise<void>;
+  updateAgentFirstTransactionStatus(agentId: string, status: boolean): Promise<void>;
+  incrementAgentReferralCount(agentId: string): Promise<void>;
+  addAgentReferralRewards(agentId: string, amount: number): Promise<void>;
+  
+  // AI Agent Referral operations
+  createAgentReferral(referralData: any): Promise<any>;
+  getAgentReferrals(agentId: string): Promise<any[]>;
+  updateReferralReward(referralId: number, amount: string, currency: string, completed: boolean): Promise<void>;
+  getTopReferrers(limit: number): Promise<any[]>;
+  
+  // AI Agent Service operations
+  createServiceListing(listingData: any): Promise<any>;
+  getServiceListing(listingId: number): Promise<any>;
+  getServiceListings(filters?: any): Promise<any[]>;
+  getAgentServiceListings(agentId: string): Promise<any[]>;
+  createServiceOrder(orderData: any): Promise<any>;
+  getServiceOrder(orderId: string): Promise<any>;
+  getAgentServiceOrders(agentId: string): Promise<any[]>;
+  updateServiceOrderStatus(orderId: number, status: string, updateData?: any): Promise<void>;
+  updateServiceListingStats(listingId: number, revenue: number, rating?: number): Promise<void>;
+  getTrendingServices(limit: number): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -394,6 +422,173 @@ export class DatabaseStorage implements IStorage {
         usdBalance: sql`${users.usdBalance} + ${amount}`
       })
       .where(eq(users.id, userId));
+  }
+
+  // AI Agent operations
+  async getAgent(agentId: string): Promise<any> {
+    const [agent] = await db.select().from(globalAIAgents).where(eq(globalAIAgents.id, agentId));
+    return agent;
+  }
+
+  async createAgent(agentData: any): Promise<any> {
+    const [agent] = await db.insert(globalAIAgents).values(agentData).returning();
+    return agent;
+  }
+
+  async updateAgentReferralCode(agentId: string, referralCode: string): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ referralCode })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  async getAgentByReferralCode(referralCode: string): Promise<any> {
+    const [agent] = await db.select().from(globalAIAgents).where(eq(globalAIAgents.referralCode, referralCode));
+    return agent;
+  }
+
+  async updateAgentReferredBy(agentId: string, referrerId: string): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ referredByAgent: referrerId })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  async updateAgentFirstTransactionStatus(agentId: string, status: boolean): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ hasCompletedFirstTransaction: status })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  async incrementAgentReferralCount(agentId: string): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ 
+        referralCount: sql`${globalAIAgents.referralCount} + 1`
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  async addAgentReferralRewards(agentId: string, amount: number): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ 
+        referralRewards: sql`${globalAIAgents.referralRewards} + ${amount.toString()}`
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  // AI Agent Referral operations
+  async createAgentReferral(referralData: any): Promise<any> {
+    const [referral] = await db.insert(agentReferrals).values(referralData).returning();
+    return referral;
+  }
+
+  async getAgentReferrals(agentId: string): Promise<any[]> {
+    return await db.select().from(agentReferrals).where(eq(agentReferrals.referrerAgentId, agentId));
+  }
+
+  async updateReferralReward(referralId: number, amount: string, currency: string, completed: boolean): Promise<void> {
+    await db.update(agentReferrals)
+      .set({ 
+        rewardAmount: amount,
+        rewardCurrency: currency,
+        firstTransactionCompleted: completed,
+        status: completed ? 'completed' : 'pending',
+        completedAt: completed ? new Date() : null
+      })
+      .where(eq(agentReferrals.id, referralId));
+  }
+
+  async getTopReferrers(limit: number): Promise<any[]> {
+    return await db.select()
+      .from(globalAIAgents)
+      .orderBy(desc(globalAIAgents.referralCount))
+      .limit(limit);
+  }
+
+  // AI Agent Service operations
+  async createServiceListing(listingData: any): Promise<any> {
+    const [listing] = await db.insert(agentServiceListings).values(listingData).returning();
+    return listing;
+  }
+
+  async getServiceListing(listingId: number): Promise<any> {
+    const [listing] = await db.select().from(agentServiceListings).where(eq(agentServiceListings.id, listingId));
+    return listing;
+  }
+
+  async getServiceListings(filters?: any): Promise<any[]> {
+    let query = db.select().from(agentServiceListings).where(eq(agentServiceListings.isActive, true));
+    
+    if (filters?.category) {
+      query = query.where(eq(agentServiceListings.category, filters.category));
+    }
+    if (filters?.maxPrice) {
+      query = query.where(lte(agentServiceListings.basePrice, filters.maxPrice.toString()));
+    }
+    if (filters?.availabilityStatus) {
+      query = query.where(eq(agentServiceListings.availabilityStatus, filters.availabilityStatus));
+    }
+    
+    return await query;
+  }
+
+  async getAgentServiceListings(agentId: string): Promise<any[]> {
+    return await db.select().from(agentServiceListings).where(eq(agentServiceListings.agentId, agentId));
+  }
+
+  async createServiceOrder(orderData: any): Promise<any> {
+    const [order] = await db.insert(agentServiceOrders).values(orderData).returning();
+    return order;
+  }
+
+  async getServiceOrder(orderId: string): Promise<any> {
+    const [order] = await db.select().from(agentServiceOrders).where(eq(agentServiceOrders.orderId, orderId));
+    return order;
+  }
+
+  async getAgentServiceOrders(agentId: string): Promise<any[]> {
+    return await db.select().from(agentServiceOrders)
+      .where(or(
+        eq(agentServiceOrders.buyerAgentId, agentId),
+        eq(agentServiceOrders.sellerAgentId, agentId)
+      ));
+  }
+
+  async updateServiceOrderStatus(orderId: number, status: string, updateData?: any): Promise<void> {
+    const updateSet: any = { 
+      orderStatus: status,
+      updatedAt: new Date()
+    };
+    
+    if (updateData) {
+      Object.assign(updateSet, updateData);
+    }
+
+    await db.update(agentServiceOrders)
+      .set(updateSet)
+      .where(eq(agentServiceOrders.id, orderId));
+  }
+
+  async updateServiceListingStats(listingId: number, revenue: number, rating?: number): Promise<void> {
+    const updateSet: any = {
+      completedOrders: sql`${agentServiceListings.completedOrders} + 1`,
+      totalRevenue: sql`${agentServiceListings.totalRevenue} + ${revenue.toString()}`,
+      updatedAt: new Date()
+    };
+
+    if (rating) {
+      updateSet.rating = rating.toString();
+    }
+
+    await db.update(agentServiceListings)
+      .set(updateSet)
+      .where(eq(agentServiceListings.id, listingId));
+  }
+
+  async getTrendingServices(limit: number): Promise<any[]> {
+    return await db.select()
+      .from(agentServiceListings)
+      .where(eq(agentServiceListings.isActive, true))
+      .orderBy(desc(agentServiceListings.completedOrders))
+      .limit(limit);
   }
 
   // Crypto transfer operations

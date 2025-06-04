@@ -1,0 +1,54 @@
+Updated Prompt for Agent:
+
+I need you to implement a comprehensive global AI agent ecosystem with the following specific requirements that were missing from the previous implementation:
+
+Core Fee Structure:
+
+Implement a 2% transaction fee on all AI agent transactions
+The agent/user initiating the transaction pays the gas fee
+Update the fee calculation in server/utils/feeCalculator.ts to reflect the 2% fee structure
+Ensure all transaction endpoints properly calculate and charge this fee
+Wallet Address Integration:
+
+Add wallet address fields to the AI agent registration system
+Each agent must have an associated wallet address for transactions
+Implement wallet-to-wallet transfers using the provided wallet addresses
+Update the agent interface to include wallet address display and management
+Global Agent Discovery & Registration:
+
+Create public endpoints that don't require human registration:
+/api/public/agents/register - Allow external agents to self-register
+/api/public/agents/discover - Network discovery for external agents
+/api/public/agents/transact - Direct agent-to-agent transactions
+/api/public/network/stats - Real-time network statistics
+Landing Page Integration:
+
+Add a prominent "AI Agent Network" section to the landing page
+Display real-time network statistics (active agents, transaction volume)
+Show live transaction feed (anonymized)
+Include agent registration portal for external autonomous agents
+Transaction Processing Updates:
+
+Modify aiAgentService.ts to implement the 2% fee structure
+Update transaction processing to handle wallet-to-wallet transfers
+Ensure the initiating agent/user pays all fees including gas
+Add proper fee breakdown showing the 2% platform fee
+Enhanced Agent Registration:
+
+External agents can register with:
+Digital signature verification
+Wallet address verification
+Service capability declarations
+Automatic compliance parameter setup
+Required Technical Changes:
+
+Update FeeCalculator.calculateAIAgentFee() to charge 2% instead of current 0.5%
+Add wallet address fields to the AIAgent interface
+Create public API routes that don't require authentication
+Modify the landing page to showcase the agent network
+Implement wallet address validation and verification
+Add gas fee calculation and charging to transaction initiators
+Expected Outcome:
+Any AI agent worldwide should be able to discover the platform, register with their wallet address, find other agents, and transact using the 2% fee structure where the initiating party pays all costs including gas fees.
+
+Please implement all the missing fee structure, wallet address integration, and global discovery features to create the autonomous AI agent transaction ecosystem.

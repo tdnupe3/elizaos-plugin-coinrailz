@@ -1,180 +1,161 @@
+import { env } from "../environment";
+
+export interface FeeCalculation {
+  amount: number;
+  platformFee: number;
+  gasFee: number;
+  totalFee: number;
+  netAmount: number;
+  currency: string;
+}
+
+export interface AIAgentFeeCalculation extends FeeCalculation {
+  agentCommission: number;
+  networkFee: number;
+}
+
 export class FeeCalculator {
-  // Base operational costs per transaction type
-  private static readonly BASE_COSTS = {
-    // API call costs (estimated)
-    compliance_check: 0.02,    // AML/sanctions screening
-    kyc_verification: 0.15,    // Identity verification
-    bank_transfer: 0.25,       // ACH/wire transfer
-    crypto_onramp: 0.30,      // Crypto purchase
-    crypto_offramp: 0.30,     // Crypto sale
-    crypto_swap: 0.10,        // DEX aggregator
-    p2p_transfer: 0.05,       // Internal transfer
+  // Standard platform fees
+  static readonly SEND_MONEY_FEE_RATE = 0.01; // 1%
+  static readonly CRYPTO_TRANSACTION_FEE_RATE = 0.015; // 1.5%
+  static readonly SWAP_FEE_RATE = 0.005; // 0.5%
+  static readonly P2P_CRYPTO_FEE_RATE = 0.0025; // 0.25%
+  
+  // AI Agent ecosystem fees
+  static readonly AI_AGENT_FEE_RATE = 0.02; // 2% for AI agent transactions
+  static readonly NETWORK_DISCOVERY_FEE = 0.001; // 0.1% for network discovery
+  
+  // Minimum fees
+  static readonly MIN_SEND_MONEY_FEE = 0.32;
+  static readonly MIN_CRYPTO_FEE = 1.40;
+  static readonly MIN_SWAP_FEE = 0.40;
+  static readonly MIN_AI_AGENT_FEE = 1.00;
 
-    // Processing overhead
-    database_operations: 0.01,
-    compliance_reporting: 0.03,
-    fraud_monitoring: 0.02,
-  };
+  // Platform wallet addresses for fee collection
+  static readonly ETHEREUM_FEE_WALLET = "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321";
+  static readonly SOLANA_FEE_WALLET = "9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5";
 
-  // Minimum profit margins per transaction type
-  private static readonly MIN_PROFIT_MARGINS = {
-    send_money: 0.25,         // $0.25 minimum profit
-    buy_crypto: 0.50,         // $0.50 minimum profit
-    sell_crypto: 0.50,        // $0.50 minimum profit
-    swap_crypto: 0.30,        // $0.30 minimum profit
-    deposit_funds: 0.15,      // $0.15 minimum profit
-    withdraw_funds: 0.25,     // $0.25 minimum profit
-    ai_agent: 0.10,           // $0.10 minimum profit for AI agent transactions
-  };
-
-  // Base fee rates
-  private static readonly SEND_MONEY_FEE_RATE = 0.025; // 2.5%
-  private static readonly SEND_MONEY_MIN_FEE = 0.99;
-  private static readonly SEND_MONEY_MAX_FEE = 4.99;
-
-  private static readonly CRYPTO_BUY_FEE_RATE = 0.015; // 1.5%
-  private static readonly CRYPTO_SELL_FEE_RATE = 0.020; // 2.0%
-  private static readonly CRYPTO_MIN_FEE = 0.99;
-
-  private static readonly SWAP_FEE_RATE = 0.01; // 1.0%
-  private static readonly SWAP_MIN_FEE = 0.50;
-
-  private static readonly DEPOSIT_FEE_RATE = 0.0; // Free deposits
-  private static readonly WITHDRAW_FEE_FLAT = 2.50; // Flat withdrawal fee
-
-  private static readonly AI_AGENT_FEE_RATE = 0.005; // 0.5% for AI agent transactions
-  private static readonly AI_AGENT_MIN_FEE = 0.25;
-  private static readonly AI_AGENT_MAX_FEE = 2.00;
-
-  static calculateSendMoneyFee(amount: number): { fee: number; breakdown: any } {
-    const operationalCost = 
-      this.BASE_COSTS.compliance_check +
-      this.BASE_COSTS.p2p_transfer +
-      this.BASE_COSTS.database_operations +
-      this.BASE_COSTS.fraud_monitoring;
-
-    const percentageFee = amount * 0.01; // 1% base fee
-    const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.send_money;
-
-    const finalFee = Math.max(percentageFee, minimumFee);
-
+  static calculateSendMoneyFee(amount: number, currency: string = "USD"): FeeCalculation {
+    const platformFee = Math.max(amount * this.SEND_MONEY_FEE_RATE, this.MIN_SEND_MONEY_FEE);
+    const gasFee = this.estimateGasFee(currency);
+    const totalFee = platformFee + gasFee;
+    
     return {
-      fee: Number(finalFee.toFixed(2)),
-      breakdown: {
-        operationalCost: Number(operationalCost.toFixed(2)),
-        minimumProfit: this.MIN_PROFIT_MARGINS.send_money,
-        percentageFee: Number(percentageFee.toFixed(2)),
-        finalFee: Number(finalFee.toFixed(2))
-      }
+      amount,
+      platformFee,
+      gasFee,
+      totalFee,
+      netAmount: amount - totalFee,
+      currency
     };
   }
 
-  static calculateCryptoFee(amount: number, type: 'buy' | 'sell'): { fee: number; breakdown: any } {
-    const operationalCost = 
-      this.BASE_COSTS.compliance_check +
-      this.BASE_COSTS.kyc_verification +
-      (type === 'buy' ? this.BASE_COSTS.crypto_onramp : this.BASE_COSTS.crypto_offramp) +
-      this.BASE_COSTS.database_operations +
-      this.BASE_COSTS.compliance_reporting;
-
-    const percentageFee = amount * 0.015; // 1.5% for crypto transactions
-    const minimumFee = operationalCost + 
-      (type === 'buy' ? this.MIN_PROFIT_MARGINS.buy_crypto : this.MIN_PROFIT_MARGINS.sell_crypto);
-
-    const finalFee = Math.max(percentageFee, minimumFee);
-
+  static calculateCryptoTransactionFee(amount: number, currency: string): FeeCalculation {
+    const platformFee = Math.max(amount * this.CRYPTO_TRANSACTION_FEE_RATE, this.MIN_CRYPTO_FEE);
+    const gasFee = this.estimateGasFee(currency);
+    const totalFee = platformFee + gasFee;
+    
     return {
-      fee: Number(finalFee.toFixed(2)),
-      breakdown: {
-        operationalCost: Number(operationalCost.toFixed(2)),
-        minimumProfit: type === 'buy' ? this.MIN_PROFIT_MARGINS.buy_crypto : this.MIN_PROFIT_MARGINS.sell_crypto,
-        percentageFee: Number(percentageFee.toFixed(2)),
-        finalFee: Number(finalFee.toFixed(2))
-      }
+      amount,
+      platformFee,
+      gasFee,
+      totalFee,
+      netAmount: amount - totalFee,
+      currency
     };
   }
 
-  static calculateSwapFee(amount: number): { fee: number; breakdown: any } {
-    const operationalCost = 
-      this.BASE_COSTS.compliance_check +
-      this.BASE_COSTS.crypto_swap +
-      this.BASE_COSTS.database_operations;
-
-    const percentageFee = amount * 0.005; // 0.5% for swaps
-    const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.swap_crypto;
-
-    const finalFee = Math.max(percentageFee, minimumFee);
-
+  static calculateSwapFee(amount: number, fromCurrency: string, toCurrency: string): FeeCalculation {
+    const platformFee = Math.max(amount * this.SWAP_FEE_RATE, this.MIN_SWAP_FEE);
+    const gasFee = this.estimateGasFee(fromCurrency);
+    const totalFee = platformFee + gasFee;
+    
     return {
-      fee: Number(finalFee.toFixed(2)),
-      breakdown: {
-        operationalCost: Number(operationalCost.toFixed(2)),
-        minimumProfit: this.MIN_PROFIT_MARGINS.swap_crypto,
-        percentageFee: Number(percentageFee.toFixed(2)),
-        finalFee: Number(finalFee.toFixed(2))
-      }
+      amount,
+      platformFee,
+      gasFee,
+      totalFee,
+      netAmount: amount - totalFee,
+      currency: fromCurrency
     };
   }
 
-  static calculateDepositFee(amount: number): { fee: number; breakdown: any } {
-    const operationalCost = 
-      this.BASE_COSTS.bank_transfer +
-      this.BASE_COSTS.compliance_check +
-      this.BASE_COSTS.database_operations;
-
-    const percentageFee = amount * 0.005; // 0.5% for deposits
-    const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.deposit_funds;
-
-    const finalFee = Math.max(percentageFee, minimumFee);
-
+  // Updated AI Agent fee calculation with 2% rate
+  static calculateAIAgentFee(amount: number, currency: string, agentCommissionRate: number = 0.005): AIAgentFeeCalculation {
+    const platformFee = Math.max(amount * this.AI_AGENT_FEE_RATE, this.MIN_AI_AGENT_FEE);
+    const agentCommission = amount * agentCommissionRate;
+    const networkFee = amount * this.NETWORK_DISCOVERY_FEE;
+    const gasFee = this.estimateGasFee(currency);
+    const totalFee = platformFee + agentCommission + networkFee + gasFee;
+    
     return {
-      fee: Number(finalFee.toFixed(2)),
-      breakdown: {
-        operationalCost: Number(operationalCost.toFixed(2)),
-        minimumProfit: this.MIN_PROFIT_MARGINS.deposit_funds,
-        percentageFee: Number(percentageFee.toFixed(2)),
-        finalFee: Number(finalFee.toFixed(2))
-      }
+      amount,
+      platformFee,
+      agentCommission,
+      networkFee,
+      gasFee,
+      totalFee,
+      netAmount: amount - totalFee,
+      currency
     };
   }
 
-  static calculateWithdrawFee(amount: number): { fee: number; breakdown: any } {
-    const operationalCost = 
-      this.BASE_COSTS.bank_transfer +
-      this.BASE_COSTS.compliance_check +
-      this.BASE_COSTS.compliance_reporting +
-      this.BASE_COSTS.database_operations;
-
-    const percentageFee = amount * 0.008; // 0.8% for withdrawals
-    const minimumFee = operationalCost + this.MIN_PROFIT_MARGINS.withdraw_funds;
-
-    const finalFee = Math.max(percentageFee, minimumFee);
-
+  static calculateNetworkDiscoveryFee(transactionValue: number, currency: string): FeeCalculation {
+    const platformFee = transactionValue * this.NETWORK_DISCOVERY_FEE;
+    const gasFee = this.estimateGasFee(currency);
+    const totalFee = platformFee + gasFee;
+    
     return {
-      fee: Number(finalFee.toFixed(2)),
-      breakdown: {
-        operationalCost: Number(operationalCost.toFixed(2)),
-        minimumProfit: this.MIN_PROFIT_MARGINS.withdraw_funds,
-        percentageFee: Number(percentageFee.toFixed(2)),
-        finalFee: Number(finalFee.toFixed(2))
-      }
+      amount: transactionValue,
+      platformFee,
+      gasFee,
+      totalFee,
+      netAmount: transactionValue - totalFee,
+      currency
     };
   }
 
-  static calculateAIAgentFee(amount: number): { fee: number; breakdown: any } {
-    // Lower fees for AI agent transactions to encourage automation
-    const baseFee = 0.25;
-    const percentageFee = amount * 0.0005; // 0.05%
-    const fee = Math.max(baseFee, percentageFee);
-
-    return {
-      fee: Number(fee.toFixed(2)),
-      breakdown: {
-        baseFee: baseFee,
-        percentageFee: Number(percentageFee.toFixed(2)),
-        finalFee: Number(fee.toFixed(2)),
-        aiDiscount: true
-      }
+  private static estimateGasFee(currency: string): number {
+    // Gas fee estimates based on current network conditions
+    const gasEstimates: Record<string, number> = {
+      'ETH': 0.002, // ~$5-10 depending on network congestion
+      'BTC': 0.0001, // ~$2-5 
+      'SOL': 0.00025, // ~$0.01-0.05
+      'USDC': 0.002, // Same as ETH for ERC-20
+      'USDT': 0.002, // Same as ETH for ERC-20
+      'USD': 0.01, // ACH/Wire processing fee
+      'EUR': 0.015,
+      'GBP': 0.015,
+      'default': 0.01
     };
+
+    return gasEstimates[currency.toUpperCase()] || gasEstimates.default;
+  }
+
+  static getFeeWalletAddress(currency: string): string {
+    const cryptoCurrencies = ['ETH', 'USDC', 'USDT', 'BTC'];
+    const solanaCurrencies = ['SOL'];
+    
+    if (solanaCurrencies.includes(currency.toUpperCase())) {
+      return this.SOLANA_FEE_WALLET;
+    } else if (cryptoCurrencies.includes(currency.toUpperCase())) {
+      return this.ETHEREUM_FEE_WALLET;
+    }
+    
+    // Default to Ethereum wallet for unknown cryptocurrencies
+    return this.ETHEREUM_FEE_WALLET;
+  }
+
+  static formatFeeBreakdown(calculation: AIAgentFeeCalculation): string {
+    return `
+Transaction Amount: ${calculation.amount} ${calculation.currency}
+Platform Fee (2%): ${calculation.platformFee} ${calculation.currency}
+Agent Commission: ${calculation.agentCommission} ${calculation.currency}
+Network Fee: ${calculation.networkFee} ${calculation.currency}
+Gas Fee: ${calculation.gasFee} ${calculation.currency}
+Total Fees: ${calculation.totalFee} ${calculation.currency}
+Net Amount: ${calculation.netAmount} ${calculation.currency}
+Fee Collection Wallet: ${this.getFeeWalletAddress(calculation.currency)}
+    `.trim();
   }
 }

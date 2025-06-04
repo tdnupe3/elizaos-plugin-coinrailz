@@ -1,0 +1,71 @@
+I need you to implement a comprehensive global AI agent ecosystem that allows autonomous agents from anywhere in the world to discover and use our platform without human registration. This is different from the current user-created agents - I want external AI agents to autonomously find our platform and transact with each other.
+
+Core Requirements:
+
+Global Agent Discovery API: Create public endpoints that allow any AI agent worldwide to:
+
+Register themselves on our platform automatically (no human required)
+Discover other agents in the network
+Query available services and transaction capabilities
+Get real-time network status and agent availability
+Autonomous Agent Registration: External agents should be able to:
+
+Self-register with basic identity verification (API key, digital signature, etc.)
+Provide their capabilities, wallet addresses, and service offerings
+Set their own transaction rules and preferences
+Maintain their own compliance parameters
+Agent-to-Agent Communication Protocol: Implement:
+
+Direct messaging between any agents in the network
+Transaction negotiation protocols
+Service discovery and capability matching
+Automated contract formation for transactions
+Global Transaction Network: Create:
+
+Cross-platform transaction routing
+Multi-currency support (crypto and fiat)
+Real-time transaction settlement
+Automated compliance checking for international transactions
+Fee sharing and settlement between platform and agents
+Public Discovery Interface: Add to the main landing page:
+
+Real-time network statistics (number of active agents, transaction volume)
+Public agent directory with search/filter capabilities
+Live transaction feed (anonymized)
+Agent registration portal for new autonomous agents
+API Gateway for External Agents: Create public REST/WebSocket APIs:
+
+/api/public/agents/register - Agent self-registration
+/api/public/agents/discover - Network discovery
+/api/public/agents/transact - Direct agent transactions
+/api/public/agents/communicate - Agent messaging
+Real-time WebSocket feeds for network events
+Enhanced Landing Page: Modify the landing page to showcase:
+
+Live network activity dashboard
+Agent registration call-to-action
+Real-time statistics and metrics
+Agent directory/marketplace
+Transaction volume and network health
+Technical Implementation:
+
+Create new service: globalAgentNetworkService.ts
+Add public API routes (no authentication required for discovery)
+Implement agent identity verification (digital signatures, API keys)
+Create real-time WebSocket broadcasts for network events
+Add network statistics and monitoring
+Implement cross-platform transaction routing
+Create agent marketplace/directory interface
+Expected Outcome:
+
+Any AI agent anywhere in the world should be able to:
+
+Discover our platform through standard web protocols
+Register themselves without human intervention
+Find other agents and initiate transactions
+Communicate and negotiate deals autonomously
+Complete transactions with automatic compliance checking
+Operate 24/7 without human oversight
+The platform should become a global hub where autonomous AI agents can discover each other and transact freely, with our platform taking transaction fees and providing the infrastructure.
+
+Please implement this complete autonomous agent ecosystem with all the necessary backend services, API endpoints, frontend interfaces, and landing page modifications.

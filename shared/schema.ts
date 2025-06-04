@@ -10,6 +10,9 @@ import {
   decimal,
   integer,
   boolean,
+  numeric,
+  date,
+  real,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -413,6 +416,156 @@ export const withdrawFundsSchema = walletWithdrawSchema;
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+// Global AI Agent Network Schema
+export const globalAIAgents = pgTable("global_ai_agents", {
+  id: varchar("id").primaryKey().notNull(),
+  agentName: varchar("agent_name").notNull(),
+  description: text("description"),
+  capabilities: jsonb("capabilities").notNull(), // Array of service capabilities
+  walletAddress: varchar("wallet_address").notNull(),
+  walletNetwork: varchar("wallet_network").notNull().default("ethereum"), // ethereum, solana, bitcoin
+  apiEndpoint: varchar("api_endpoint"),
+  publicKey: text("public_key").notNull(), // For digital signature verification
+  signature: text("signature").notNull(), // Registration signature
+  status: varchar("status").notNull().default("active"), // active, inactive, suspended
+  reputation: decimal("reputation", { precision: 3, scale: 2 }).notNull().default("0.0"), // 0-5 rating system
+  transactionCount: integer("transaction_count").notNull().default(0),
+  totalVolume: varchar("total_volume").notNull().default("0"), // Total transaction volume
+  preferredCurrencies: jsonb("preferred_currencies").notNull(), // Supported currencies array
+  complianceLevel: varchar("compliance_level").notNull().default("basic"), // basic, enhanced, institutional
+  geolocation: varchar("geolocation"), // ISO country code
+  timezone: varchar("timezone"),
+  lastActive: timestamp("last_active").defaultNow(),
+  registeredAt: timestamp("registered_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const agentTransactions = pgTable("agent_transactions", {
+  id: serial("id").primaryKey(),
+  transactionId: varchar("transaction_id").notNull().unique(),
+  initiatorAgentId: varchar("initiator_agent_id").notNull(),
+  recipientAgentId: varchar("recipient_agent_id"),
+  transactionType: varchar("transaction_type").notNull(), // transfer, service, discovery, communication
+  amount: varchar("amount").notNull(),
+  currency: varchar("currency").notNull(),
+  status: varchar("status").notNull().default("pending"), // pending, processing, completed, failed, cancelled
+  platformFee: varchar("platform_fee").notNull(),
+  gasFee: varchar("gas_fee").notNull(),
+  agentCommission: varchar("agent_commission").notNull().default("0"),
+  networkFee: varchar("network_fee").notNull().default("0"),
+  totalFees: varchar("total_fees").notNull(),
+  description: text("description"),
+  metadata: jsonb("metadata"), // Additional transaction data
+  blockchainTxHash: varchar("blockchain_tx_hash"),
+  confirmedAt: timestamp("confirmed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const agentCommunications = pgTable("agent_communications", {
+  id: serial("id").primaryKey(),
+  fromAgentId: varchar("from_agent_id").notNull(),
+  toAgentId: varchar("to_agent_id").notNull(),
+  messageType: varchar("message_type").notNull(), // direct, broadcast, negotiation, contract
+  content: text("content").notNull(),
+  encrypted: boolean("encrypted").notNull().default(false),
+  metadata: jsonb("metadata"),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const agentContracts = pgTable("agent_contracts", {
+  id: serial("id").primaryKey(),
+  contractId: varchar("contract_id").notNull().unique(),
+  initiatorAgentId: varchar("initiator_agent_id").notNull(),
+  recipientAgentId: varchar("recipient_agent_id").notNull(),
+  contractType: varchar("contract_type").notNull(), // service, recurring, escrow
+  terms: jsonb("terms").notNull(), // Contract terms and conditions
+  amount: varchar("amount").notNull(),
+  currency: varchar("currency").notNull(),
+  status: varchar("status").notNull().default("draft"), // draft, proposed, active, completed, cancelled
+  expiresAt: timestamp("expires_at"),
+  signedAt: timestamp("signed_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const networkStats = pgTable("network_stats", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(),
+  activeAgents: integer("active_agents").notNull().default(0),
+  totalTransactions: integer("total_transactions").notNull().default(0),
+  transactionVolume: varchar("transaction_volume").notNull().default("0"),
+  platformFees: varchar("platform_fees").notNull().default("0"),
+  newRegistrations: integer("new_registrations").notNull().default(0),
+  averageTransactionSize: varchar("average_transaction_size").notNull().default("0"),
+  topCurrency: varchar("top_currency").default("USD"),
+  networkHealth: real("network_health").notNull().default(1.0), // 0-1 scale
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations for AI Agent Network
+export const globalAIAgentsRelations = relations(globalAIAgents, ({ many }) => ({
+  sentTransactions: many(agentTransactions, { relationName: "initiatorTransactions" }),
+  receivedTransactions: many(agentTransactions, { relationName: "recipientTransactions" }),
+  sentMessages: many(agentCommunications, { relationName: "sentMessages" }),
+  receivedMessages: many(agentCommunications, { relationName: "receivedMessages" }),
+  initiatedContracts: many(agentContracts, { relationName: "initiatedContracts" }),
+  receivedContracts: many(agentContracts, { relationName: "receivedContracts" }),
+}));
+
+export const agentTransactionsRelations = relations(agentTransactions, ({ one }) => ({
+  initiatorAgent: one(globalAIAgents, {
+    fields: [agentTransactions.initiatorAgentId],
+    references: [globalAIAgents.id],
+    relationName: "initiatorTransactions"
+  }),
+  recipientAgent: one(globalAIAgents, {
+    fields: [agentTransactions.recipientAgentId],
+    references: [globalAIAgents.id],
+    relationName: "recipientTransactions"
+  }),
+}));
+
+export const agentCommunicationsRelations = relations(agentCommunications, ({ one }) => ({
+  fromAgent: one(globalAIAgents, {
+    fields: [agentCommunications.fromAgentId],
+    references: [globalAIAgents.id],
+    relationName: "sentMessages"
+  }),
+  toAgent: one(globalAIAgents, {
+    fields: [agentCommunications.toAgentId],
+    references: [globalAIAgents.id],
+    relationName: "receivedMessages"
+  }),
+}));
+
+export const agentContractsRelations = relations(agentContracts, ({ one }) => ({
+  initiatorAgent: one(globalAIAgents, {
+    fields: [agentContracts.initiatorAgentId],
+    references: [globalAIAgents.id],
+    relationName: "initiatedContracts"
+  }),
+  recipientAgent: one(globalAIAgents, {
+    fields: [agentContracts.recipientAgentId],
+    references: [globalAIAgents.id],
+    relationName: "receivedContracts"
+  }),
+}));
+
+// Export types for AI Agent Network
+export type GlobalAIAgent = typeof globalAIAgents.$inferSelect;
+export type InsertGlobalAIAgent = typeof globalAIAgents.$inferInsert;
+export type AgentTransaction = typeof agentTransactions.$inferSelect;
+export type InsertAgentTransaction = typeof agentTransactions.$inferInsert;
+export type AgentCommunication = typeof agentCommunications.$inferSelect;
+export type InsertAgentCommunication = typeof agentCommunications.$inferInsert;
+export type AgentContract = typeof agentContracts.$inferSelect;
+export type InsertAgentContract = typeof agentContracts.$inferInsert;
+export type NetworkStats = typeof networkStats.$inferSelect;
+export type InsertNetworkStats = typeof networkStats.$inferInsert;
 
 // Extended user interface for frontend usage
 export interface AuthUser extends User {

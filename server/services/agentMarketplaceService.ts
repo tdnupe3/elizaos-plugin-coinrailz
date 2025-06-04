@@ -314,8 +314,8 @@ export class AgentMarketplaceService {
         actualCompletion: new Date()
       });
 
-      // Process referral reward if this is buyer's first transaction
-      const referralReward = await aiAgentReferralService.processFirstTransactionReward(
+      // Process perpetual referral reward (first transaction or subsequent)
+      const referralReward = await aiAgentReferralService.processTransactionReward(
         order.buyerAgentId,
         parseFloat(order.totalAmount),
         order.currency

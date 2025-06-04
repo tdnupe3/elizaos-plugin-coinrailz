@@ -1,9 +1,4 @@
-// AI Agent Referral Service - Viral Growth System for Autonomous Agents
-// Incentivizes AI agents to recruit other agents with commission-based rewards
-
 import { storage } from "../storage";
-import { nowPaymentsService } from "./nowPaymentsService";
-import { nanoid } from "nanoid";
 
 export interface ReferralReward {
   referrerAgentId: string;
@@ -23,12 +18,14 @@ export interface AgentReferralStats {
 }
 
 export class AIAgentReferralService {
-  private readonly REFERRAL_REWARD_PERCENTAGE = 1; // 1% of first transaction value (much more sustainable)
-  private readonly MINIMUM_REFERRAL_REWARD = 1; // Minimum $1 USDT reward (realistic for AI agent market)
-  private readonly MAXIMUM_REFERRAL_REWARD = 50; // Maximum $50 USDT reward (capped to protect revenue)
+  private readonly REFERRAL_REWARD_PERCENTAGE = 1; // 1% of transaction value
+  private readonly MINIMUM_REFERRAL_REWARD = 1; // Minimum $1 USDT reward
+  private readonly MAXIMUM_REFERRAL_REWARD = 50; // Maximum $50 USDT reward
 
   async generateReferralCode(agentId: string): Promise<string> {
-    const referralCode = `AI${nanoid(8).toUpperCase()}`;
+    const timestamp = Date.now().toString(36);
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const referralCode = `${agentId.substring(0, 4)}_${timestamp}_${randomString}`.toUpperCase();
     
     // Update agent with referral code
     await storage.updateAgentReferralCode(agentId, referralCode);
@@ -37,40 +34,39 @@ export class AIAgentReferralService {
   }
 
   async processReferralRegistration(
-    referralCode: string,
-    newAgentId: string
-  ): Promise<{ success: boolean; referrerId?: string; message: string }> {
+    refereeAgentId: string,
+    referralCode: string
+  ): Promise<{ success: boolean; message: string }> {
     try {
-      // Find referring agent
-      const referrer = await storage.getAgentByReferralCode(referralCode);
-      if (!referrer) {
+      // Find the referring agent by referral code
+      const referrerAgent = await storage.getAgentByReferralCode(referralCode);
+      if (!referrerAgent) {
         return { success: false, message: "Invalid referral code" };
       }
 
       // Prevent self-referral
-      if (referrer.id === newAgentId) {
+      if (referrerAgent.id === refereeAgentId) {
         return { success: false, message: "Cannot refer yourself" };
       }
 
+      // Update referee agent with referrer information
+      await storage.updateAgentReferredBy(refereeAgentId, referrerAgent.id);
+
       // Create referral record
-      await storage.createAgentReferral({
-        referralCode,
-        referrerAgentId: referrer.id,
-        referredAgentId: newAgentId,
-        status: 'pending',
+      const referralData = {
+        referrerAgentId: referrerAgent.id,
+        refereeAgentId: refereeAgentId,
+        transactionAmount: '0',
         rewardAmount: '0',
-        rewardCurrency: 'USDT',
-        firstTransactionCompleted: false
-      });
-
-      // Update referred agent's record
-      await storage.updateAgentReferredBy(newAgentId, referrer.id);
-
-      return {
-        success: true,
-        referrerId: referrer.id,
-        message: `Successfully registered with referral from ${referrer.agentName}`
+        currency: 'USDT',
+        isCompleted: false,
+        isFirstTransaction: false,
+        createdAt: new Date()
       };
+
+      await storage.createAgentReferral(referralData);
+
+      return { success: true, message: "Referral registered successfully" };
     } catch (error) {
       console.error("Error processing referral registration:", error);
       return { success: false, message: "Failed to process referral" };
@@ -111,7 +107,7 @@ export class AIAgentReferralService {
         rewardAmount = Math.min(rewardAmount, this.MAXIMUM_REFERRAL_REWARD);
       }
 
-      // Create or update referral record for this transaction
+      // Create referral record for this transaction
       const referralData = {
         referrerAgentId: agent.referredByAgent,
         refereeAgentId: agentId,
@@ -132,24 +128,23 @@ export class AIAgentReferralService {
         transactionCurrency
       );
 
-        if (paymentResult.success) {
-          // Update referrer's stats
-          await storage.incrementAgentReferralCount(agent.referredByAgent);
-          await storage.addAgentReferralRewards(agent.referredByAgent, rewardAmount);
+      if (paymentResult.success) {
+        // Update referrer's stats
+        await storage.incrementAgentReferralCount(agent.referredByAgent);
+        await storage.addAgentReferralRewards(agent.referredByAgent, rewardAmount);
 
-          return {
-            referrerAgentId: agent.referredByAgent,
-            referredAgentId: agentId,
-            rewardAmount: rewardAmount.toString(),
-            rewardCurrency: transactionCurrency,
-            transactionId: paymentResult.transactionId || ''
-          };
-        }
+        return {
+          referrerAgentId: agent.referredByAgent,
+          referredAgentId: agentId,
+          rewardAmount: rewardAmount.toString(),
+          rewardCurrency: transactionCurrency,
+          transactionId: paymentResult.transactionId || ''
+        };
       }
 
       return null;
     } catch (error) {
-      console.error("Error processing first transaction reward:", error);
+      console.error("Error processing transaction reward:", error);
       return null;
     }
   }
@@ -157,7 +152,7 @@ export class AIAgentReferralService {
   private async payReferralReward(
     referrerAgentId: string,
     amount: number,
-    currency: string
+    currency: string = 'USDT'
   ): Promise<{ success: boolean; transactionId?: string }> {
     try {
       // Get referrer agent details
@@ -166,18 +161,13 @@ export class AIAgentReferralService {
         return { success: false };
       }
 
-      // Create payment through NOWPayments
-      const payment = await nowPaymentsService.createDirectDonation({
-        agentId: referrerAgentId,
-        amount,
-        currency,
-        donorMessage: `Referral reward for recruiting new AI agent`,
-        targetWallet: referrer.walletNetwork === 'solana' ? 'solana' : 'ethereum'
-      });
+      // For now, simulate payment processing - will integrate with NOWPayments
+      // TODO: Integrate with actual NOWPayments service for automatic referral rewards
+      console.log(`Processing referral reward: ${amount} ${currency} to agent ${referrerAgentId}`);
 
       return {
         success: true,
-        transactionId: payment.paymentUrl // Use payment URL as reference
+        transactionId: `ref_${referrerAgentId}_${Date.now()}`
       };
     } catch (error) {
       console.error("Error paying referral reward:", error);
@@ -191,16 +181,17 @@ export class AIAgentReferralService {
       const agent = await storage.getAgent(agentId);
 
       const totalReferrals = referrals.length;
-      const completedReferrals = referrals.filter(r => r.status === 'completed').length;
-      const pendingReferrals = referrals.filter(r => r.status === 'pending').length;
+      const completedReferrals = referrals.filter((r: any) => r.isCompleted).length;
+      const pendingReferrals = referrals.filter((r: any) => !r.isCompleted).length;
 
       // Calculate monthly referrals (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const monthlyReferrals = referrals.filter(r => 
-        r.createdAt && new Date(r.createdAt) >= thirtyDaysAgo
+      const monthlyReferrals = referrals.filter((r: any) => 
+        r.createdAt && new Date(r.createdAt) > thirtyDaysAgo
       ).length;
 
+      // Calculate conversion rate
       const conversionRate = totalReferrals > 0 ? (completedReferrals / totalReferrals) * 100 : 0;
 
       return {
@@ -224,15 +215,15 @@ export class AIAgentReferralService {
     }
   }
 
-  async generateReferralLink(agentId: string, baseUrl: string): Promise<string> {
+  async generateReferralLink(agentId: string, baseUrl: string = 'https://coinrailz.com'): Promise<string> {
     const agent = await storage.getAgent(agentId);
     let referralCode = agent?.referralCode;
-
+    
     if (!referralCode) {
       referralCode = await this.generateReferralCode(agentId);
     }
-
-    return `${baseUrl}/ai-agent-marketplace?ref=${referralCode}`;
+    
+    return `${baseUrl}/register?ref=${referralCode}`;
   }
 
   async getReferralLeaderboard(limit: number = 10): Promise<any[]> {

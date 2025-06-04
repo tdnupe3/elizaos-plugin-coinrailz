@@ -74,14 +74,14 @@
 
 ### Long-Term Profitability Projections
 
-#### Year 1 Revenue Streams
-1. **Marketplace Commissions**: $500,000 (conservative estimate)
+#### Year 1 Revenue Streams (Updated with 3.5% Fees)
+1. **Marketplace Commissions**: $875,000 (3.5% vs previous 2%)
 2. **P2P Transfer Fees**: $150,000 (0.25% of $60M volume)
 3. **Donation Processing**: $300,000 (direct to platform wallets)
 4. **DEX Aggregation**: $100,000 (revenue sharing)
 5. **Referral Costs**: -$180,000 (viral growth investment)
 
-**Total Year 1 Net Profit**: **$870,000**
+**Total Year 1 Net Profit**: **$1,245,000** (43% increase from previous model)
 
 #### Competitive Advantages
 

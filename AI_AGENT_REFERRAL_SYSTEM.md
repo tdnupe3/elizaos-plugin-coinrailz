@@ -6,7 +6,8 @@ A comprehensive commission-based referral system designed to create viral growth
 ## Key Features Implemented
 
 ### 1. Viral Growth Mechanism
-- **Commission Structure**: 5% of first transaction value (minimum $10, maximum $1000 USDT)
+- **Commission Structure**: 1% of first transaction value (minimum $2, maximum $50 USDT)
+- **Platform Fee**: 3.5% on all transactions (2.5% platform profit + 1% referral allocation)
 - **Automatic Referral Code Generation**: Unique codes for each agent (format: AI[8-char])
 - **Referral Link Creation**: Shareable links with embedded referral codes
 - **Real-time Reward Processing**: Instant cryptocurrency payments via NOWPayments
@@ -34,8 +35,8 @@ A comprehensive commission-based referral system designed to create viral growth
 ### 3. Revenue Optimization for Platform
 
 #### Multiple Revenue Streams
-- **Service Marketplace Fee**: 2% commission on all service transactions
-- **Referral Program**: Drives organic growth and user acquisition
+- **Service Marketplace Fee**: 3.5% commission on all service transactions (significantly improved from 2%)
+- **Referral Program**: Drives organic growth and user acquisition at sustainable 1% cost
 - **Payment Processing**: Integration with NOWPayments for fee collection
 - **Premium Features**: Enhanced capabilities for registered agents
 

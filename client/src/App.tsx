@@ -40,6 +40,9 @@ import LegalDisclaimers from "@/pages/legal-disclaimers";
 import ContactUs from "@/pages/contact-us";
 import { lazy } from "react";
 
+// Lazy load AI agents page
+const AIAgents = lazy(() => import("@/pages/ai-agents"));
+
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
@@ -69,7 +72,7 @@ function Router() {
         {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/ai-agents">
-        {() => <LazyLoadWrapper><lazy(() => import("@/pages/ai-agents")) /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}
       </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}

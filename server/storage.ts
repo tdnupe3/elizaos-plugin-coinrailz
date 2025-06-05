@@ -439,6 +439,11 @@ export class DatabaseStorage implements IStorage {
     return agent;
   }
 
+  async createGlobalAIAgent(agentData: any): Promise<any> {
+    const [agent] = await db.insert(globalAIAgents).values(agentData).returning();
+    return agent;
+  }
+
   async updateAgentReferralCode(agentId: string, referralCode: string): Promise<void> {
     await db.update(globalAIAgents)
       .set({ referralCode })

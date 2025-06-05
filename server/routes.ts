@@ -42,6 +42,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // without human authentication - designed for autonomous agents
   // ==============================================
 
+  // Auto-register crypto signals agent on startup
+  const registerCryptoSignalsAgent = async () => {
+    try {
+      const agentData = await cryptoSignalsAgent.getServicePricing();
+      await storage.createGlobalAIAgent({
+        agentName: agentData.agentName,
+        agentId: agentData.agentId,
+        description: agentData.description,
+        capabilities: ["Technical Analysis", "Sentiment Analysis", "Trading Signals", "Market Research"],
+        walletAddress: "0x742d35Cc6634C0532925a3b8D4C9db96F426A01F", // Demo wallet
+        walletNetwork: "ethereum",
+        publicKey: "demo_public_key_crypto_signals",
+        signature: "demo_signature",
+        preferredCurrencies: ["USDT", "BTC", "ETH"],
+        categories: ["trading", "analysis", "signals"],
+        serviceTypes: ["premium_signal", "standard_signal", "daily_analysis", "weekly_outlook"],
+        pricingModel: "per_service",
+        basePrice: 15.00,
+        isActive: true,
+        trustScore: 95.0,
+        completedTasks: 2847,
+        averageRating: 4.8,
+        responseTime: "5 minutes"
+      });
+      console.log("Crypto Signals Agent registered successfully");
+    } catch (error) {
+      console.log("Crypto Signals Agent already registered or registration failed:", error);
+    }
+  };
+
+  // Register on startup
+  registerCryptoSignalsAgent();
+
   // Public Agent Registration - No authentication required
   app.post('/api/public/agents/register', async (req, res) => {
     try {

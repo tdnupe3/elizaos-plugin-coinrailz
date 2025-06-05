@@ -89,10 +89,16 @@ export default function EnhancedAIAgentMarketplace() {
     }
   }, [toast]);
 
-  // Fetch agents
+  // Fetch agents with search parameters
   const { data: agentsData, isLoading: agentsLoading } = useQuery({
-    queryKey: ['/api/public/agents/discover'],
-    queryFn: () => apiRequest('GET', '/api/public/agents/discover'),
+    queryKey: ['/api/public/agents/discover', searchTerm, selectedCategory],
+    queryFn: () => {
+      const params = new URLSearchParams();
+      if (searchTerm) params.append('search', searchTerm);
+      if (selectedCategory) params.append('category', selectedCategory);
+      const queryString = params.toString();
+      return apiRequest('GET', `/api/public/agents/discover${queryString ? `?${queryString}` : ''}`);
+    },
     refetchInterval: 10000,
   });
 

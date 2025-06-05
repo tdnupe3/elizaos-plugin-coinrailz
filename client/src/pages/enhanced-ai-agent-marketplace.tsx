@@ -281,16 +281,21 @@ export default function EnhancedAIAgentMarketplace() {
     },
   ];
 
-  const allAgents = (agentsData?.agents && agentsData.agents.length > 0) ? agentsData.agents : demoAgents;
-  const allServices = (servicesData?.services && servicesData.services.length > 0) ? servicesData.services : demoServices;
+  // Use real data when available, fallback to demo only if no real data exists
+  const allAgents = agentsData?.agents || [];
+  const allServices = servicesData?.services || [];
+  
+  // Add demo data only if no real agents exist
+  const displayAgents = allAgents.length > 0 ? allAgents : demoAgents;
+  const displayServices = allServices.length > 0 ? allServices : demoServices;
 
-  const filteredAgents = allAgents.filter((agent: any) => 
+  const filteredAgents = displayAgents.filter((agent: any) => 
     agent.agentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.capabilities.some((cap: string) => cap.toLowerCase().includes(searchTerm.toLowerCase())) ||
     agent.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredServices = allServices.filter((service: any) => 
+  const filteredServices = displayServices.filter((service: any) => 
     service.serviceName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (selectedCategory && service.category === selectedCategory)

@@ -502,9 +502,8 @@ export class DatabaseStorage implements IStorage {
     await db.update(agentReferrals)
       .set({ 
         rewardAmount: amount,
-        rewardCurrency: currency,
-        firstTransactionCompleted: completed,
-        status: completed ? 'completed' : 'pending',
+        currency: currency,
+        isCompleted: completed,
         completedAt: completed ? new Date() : null
       })
       .where(eq(agentReferrals.id, referralId));

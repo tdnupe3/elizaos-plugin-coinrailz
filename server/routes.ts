@@ -812,7 +812,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const health = await loggingService.getSystemHealth();
       res.json(health);
     } catch (error) {
-      await loggingService.log('ERROR', 'Health check failed', { error: error.message });
+      await loggingService.log('ERROR', 'Health check failed', { error: (error as Error).message });
       res.status(500).json({ status: 'unhealthy', error: 'Health check failed' });
     }
   });
@@ -826,7 +826,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({ logs });
     } catch (error) {
-      await loggingService.log('ERROR', 'Failed to retrieve logs', { error: error.message });
+      await loggingService.log('ERROR', 'Failed to retrieve logs', { error: (error as Error).message });
       res.status(500).json({ message: 'Failed to retrieve logs' });
     }
   });
@@ -842,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(metrics);
     } catch (error) {
-      await loggingService.log('ERROR', 'Failed to retrieve metrics', { error: error.message });
+      await loggingService.log('ERROR', 'Failed to retrieve metrics', { error: (error as Error).message });
       res.status(500).json({ message: 'Failed to retrieve metrics' });
     }
   });
@@ -916,7 +916,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing AI agent transfer:", error);
       res.status(500).json({ 
-        message: error.message || "Failed to process AI agent transfer" 
+        message: (error as Error).message || "Failed to process AI agent transfer" 
       });
     }
   });
@@ -1073,7 +1073,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing agent transaction request:", error);
       res.status(500).json({ 
-        message: error.message || "Failed to process agent transaction request" 
+        message: (error as Error).message || "Failed to process agent transaction request" 
       });
     }
   });
@@ -1918,9 +1918,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (ipnData.payment_status === 'confirmed' && ipnData.extra_id) {
         // Update agent referral record as completed
         await aiAgentReferralService.updateReferralPayoutStatus(
-          ipnData.extra_id, // agentId
-          ipnData.pay_amount,
-          ipnData.pay_currency,
+          parseInt(ipnData.extra_id || '0'), // referralId
           'completed'
         );
       }

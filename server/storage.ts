@@ -32,7 +32,7 @@ import {
   type InsertCryptoTransfer,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, sum, sql } from "drizzle-orm";
+import { eq, desc, and, or, sum, sql, lte, gte } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -47,6 +47,7 @@ export interface IStorage {
   getWalletBalance(userId: string, currency: string): Promise<WalletBalance | undefined>;
   createWalletBalance(wallet: InsertWalletBalance): Promise<WalletBalance>;
   updateWalletBalance(userId: string, currency: string, amount: string, operation: 'add' | 'subtract'): Promise<WalletBalance>;
+  updateUserBalance(userId: string, amount: number, currency: string): Promise<WalletBalance>;
   freezeWalletFunds(userId: string, currency: string, amount: string): Promise<void>;
   unfreezeWalletFunds(userId: string, currency: string, amount: string): Promise<void>;
   
@@ -214,6 +215,10 @@ export class DatabaseStorage implements IStorage {
         eq(walletBalances.userId, userId),
         eq(walletBalances.currency, currency)
       ));
+  }
+
+  async updateUserBalance(userId: string, amount: number, currency: string): Promise<WalletBalance> {
+    return this.updateWalletBalance(userId, currency, amount.toString(), 'add');
   }
 
   // Funding operations
@@ -524,19 +529,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getServiceListings(filters?: any): Promise<any[]> {
-    let query = db.select().from(agentServiceListings).where(eq(agentServiceListings.isActive, true));
+    const conditions = [eq(agentServiceListings.isActive, true)];
     
     if (filters?.category) {
-      query = query.where(eq(agentServiceListings.category, filters.category));
+      conditions.push(eq(agentServiceListings.category, filters.category));
     }
     if (filters?.maxPrice) {
-      query = query.where(lte(agentServiceListings.basePrice, filters.maxPrice.toString()));
+      conditions.push(lte(agentServiceListings.basePrice, filters.maxPrice.toString()));
     }
     if (filters?.availabilityStatus) {
-      query = query.where(eq(agentServiceListings.availabilityStatus, filters.availabilityStatus));
+      conditions.push(eq(agentServiceListings.availabilityStatus, filters.availabilityStatus));
     }
     
-    return await query;
+    return await db.select().from(agentServiceListings).where(and(...conditions));
   }
 
   async getAgentServiceListings(agentId: string): Promise<any[]> {

@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update sender balance using validated calculation
-      await storage.updateUserBalance(userId, balanceCheck.newBalance.toFixed(2));
+      await storage.updateUserBalance(userId, parseFloat(balanceCheck.newBalance.toFixed(2)), "USD");
 
       // Check if this is the user's first transaction and complete any pending referrals
       const userTransactions = await storage.getUserTransactions(userId, 1);

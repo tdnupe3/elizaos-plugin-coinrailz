@@ -7,7 +7,13 @@ export interface FeeCalculation {
   totalFee: number;
   netAmount: number;
   currency: string;
-  fee: number; // Add missing fee property
+  fee: number;
+  breakdown?: {
+    platformFee: number;
+    gasFee: number;
+    agentCommission?: number;
+    networkFee?: number;
+  };
 }
 
 export interface AIAgentFeeCalculation extends FeeCalculation {

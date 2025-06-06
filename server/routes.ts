@@ -746,6 +746,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // NOWPayments payment creation for crypto transactions
+  app.post("/api/crypto/create-payment", isAuthenticated, async (req: any, res) => {
+    try {
+      const { amount, currency, purpose, recipientInfo } = req.body;
+      const userId = req.user.claims.sub;
+
+      const payment = await nowPaymentsService.createPayment({
+        price_amount: parseFloat(amount),
+        price_currency: 'USD',
+        pay_currency: currency,
+        order_id: `${purpose}_${userId}_${Date.now()}`,
+        order_description: `${purpose} payment`,
+        ipn_callback_url: `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/webhooks/nowpayments`
+      });
+
+      res.json({
+        success: true,
+        payment_id: payment.payment_id,
+        payment_url: payment.invoice_url,
+        amount: payment.price_amount,
+        currency: payment.pay_currency,
+        address: payment.pay_address
+      });
+    } catch (error: any) {
+      console.error("Error creating crypto payment:", error);
+      res.status(500).json({ message: "Error creating crypto payment: " + error.message });
+    }
+  });
+
+  // NOWPayments webhook handler
+  app.post('/api/webhooks/nowpayments', async (req, res) => {
+    try {
+      const { payment_status, order_id, pay_amount, pay_currency, actually_paid } = req.body;
+      
+      console.log('NOWPayments webhook received:', {
+        payment_status,
+        order_id,
+        pay_amount,
+        pay_currency,
+        actually_paid
+      });
+      
+      if (payment_status === 'finished') {
+        const [purpose, userId] = order_id.split('_');
+        
+        if (purpose === 'p2p_transfer') {
+          // Process P2P crypto transfer
+          const amount = parseFloat(actually_paid);
+          const fee = amount * 0.01; // 1% fee
+          const recipientAmount = amount - fee;
+          
+          await storage.createTransaction({
+            fromUserId: userId,
+            toUserId: null,
+            toEmail: 'crypto_recipient@placeholder.com',
+            amount: recipientAmount.toString(),
+            message: `Crypto P2P transfer`,
+            transactionType: "send",
+            status: "completed",
+          });
+          
+          console.log(`Crypto P2P transfer completed: ${amount} ${pay_currency}, Fee: ${fee}`);
+          
+        } else if (purpose === 'agent_service') {
+          // Process AI agent crypto payment
+          const amount = parseFloat(actually_paid);
+          const platformFee = amount * 0.02; // 2% platform fee
+          const agentEarnings = amount - platformFee;
+          
+          await storage.createTransaction({
+            fromUserId: userId,
+            toUserId: 'agent_crypto_recipient',
+            toEmail: `agent@crypto.service`,
+            amount: amount.toString(),
+            message: `AI Agent crypto payment`,
+            transactionType: "agent_service",
+            status: "completed",
+          });
+          
+          console.log(`AI Agent crypto payment completed: ${amount} ${pay_currency}, Platform fee: ${platformFee}`);
+        }
+      }
+      
+      res.status(200).json({ status: 'processed' });
+    } catch (error) {
+      console.error('NOWPayments webhook error:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  });
+
   // Stripe webhook handler for payment confirmations
   app.post('/api/webhooks/stripe', async (req, res) => {
     try {

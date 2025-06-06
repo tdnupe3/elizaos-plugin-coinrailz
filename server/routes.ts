@@ -495,6 +495,100 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Basic AI Agent Registration (authenticated)
+  app.post('/api/agents/register/basic', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      const agentData = req.body;
+
+      // Create basic tier agent
+      const agent = await storage.createGlobalAIAgent({
+        ...agentData,
+        id: `AGENT_${userId}_${Date.now()}`,
+        ownerId: userId,
+        membershipTier: 'basic',
+        commissionRate: 0.5,
+        premiumExpiresAt: null,
+        autoUpgradeEnabled: true,
+        totalRevenue: 0,
+        isActive: true,
+        lastActiveAt: new Date(),
+        createdAt: new Date()
+      });
+
+      res.json({
+        success: true,
+        agent,
+        membershipTier: 'basic',
+        commissionRate: '0.5%',
+        message: 'Basic AI agent registered successfully'
+      });
+    } catch (error) {
+      console.error('Basic registration error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to register basic agent' 
+      });
+    }
+  });
+
+  // Premium AI Agent Registration with Stripe Payment (authenticated)
+  app.post('/api/agents/register/premium', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      const { agentData, paymentMethodId } = req.body;
+
+      // Create Stripe payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: 2500, // $25.00 in cents
+        currency: 'usd',
+        payment_method: paymentMethodId,
+        confirm: true,
+        return_url: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/ai-agent-registration`,
+      });
+
+      if (paymentIntent.status === 'succeeded') {
+        // Create premium tier agent
+        const premiumExpiresAt = new Date();
+        premiumExpiresAt.setFullYear(premiumExpiresAt.getFullYear() + 1);
+
+        const agent = await storage.createGlobalAIAgent({
+          ...agentData,
+          id: `PREMIUM_${userId}_${Date.now()}`,
+          ownerId: userId,
+          membershipTier: 'premium',
+          commissionRate: 1.5,
+          premiumExpiresAt,
+          autoUpgradeEnabled: false,
+          totalRevenue: 0,
+          isActive: true,
+          lastActiveAt: new Date(),
+          createdAt: new Date()
+        });
+
+        res.json({
+          success: true,
+          agent,
+          membershipTier: 'premium',
+          commissionRate: '1.5%',
+          paymentIntent: paymentIntent.id,
+          message: 'Premium AI agent registered successfully'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          error: 'Payment failed'
+        });
+      }
+    } catch (error) {
+      console.error('Premium registration error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to register premium agent'
+      });
+    }
+  });
+
   // Public API for autonomous AI agent registration (no auth required)
   app.post('/api/public/agents/register', async (req, res) => {
     try {

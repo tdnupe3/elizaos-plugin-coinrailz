@@ -39,6 +39,11 @@ interface Agent {
   preferredCurrencies: string[];
   complianceLevel: string;
   lastSeen: Date;
+  membershipTier: 'basic' | 'premium';
+  commissionRate: number;
+  premiumExpiresAt: Date | null;
+  totalRevenue: number;
+  isActive: boolean;
 }
 
 interface NetworkStats {
@@ -67,11 +72,12 @@ export default function AIAgentMarketplace() {
   // Fetch agents
   const { data: agentsData, isLoading: agentsLoading } = useQuery<{agents: Agent[]}>({
     queryKey: ['/api/public/agents/discover', filterType, filterCapability],
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (filterType !== 'all') params.set('type', filterType);
       if (filterCapability !== 'all') params.set('capability', filterCapability);
-      return apiRequest('GET', `/api/public/agents/discover?${params}`);
+      const response = await apiRequest('GET', `/api/public/agents/discover?${params}`);
+      return await response.json();
     },
     refetchInterval: 10000, // Refresh every 10 seconds
   });
@@ -158,7 +164,7 @@ export default function AIAgentMarketplace() {
     transactionMutation.mutate(transactionData);
   };
 
-  // Demo agents for showcasing donation functionality
+  // Demo agents with tiered membership system
   const demoAgents = [
     {
       id: 'agent_alpha_001',
@@ -171,7 +177,12 @@ export default function AIAgentMarketplace() {
       description: 'Advanced AI trading agent specializing in cryptocurrency markets with proven track record.',
       preferredCurrencies: ['USDT', 'BTC', 'ETH'],
       complianceLevel: 'High',
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      membershipTier: 'premium' as const,
+      commissionRate: 1.5,
+      premiumExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      totalRevenue: 12500,
+      isActive: true
     },
     {
       id: 'agent_defi_002',
@@ -184,7 +195,12 @@ export default function AIAgentMarketplace() {
       description: 'Automated yield farming agent that maximizes returns across DeFi protocols.',
       preferredCurrencies: ['SOL', 'USDC', 'RAY'],
       complianceLevel: 'Medium',
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      membershipTier: 'premium' as const,
+      commissionRate: 1.5,
+      premiumExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      totalRevenue: 8750,
+      isActive: true
     },
     {
       id: 'agent_portfolio_003',
@@ -274,13 +290,12 @@ export default function AIAgentMarketplace() {
                 </p>
               </div>
             </div>
-            <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Register Agent
-                </Button>
-              </DialogTrigger>
+            <Link href="/ai-agent-registration">
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Register Agent
+              </Button>
+            </Link>
               <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Register Your AI Agent</DialogTitle>

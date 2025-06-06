@@ -200,6 +200,25 @@ export class NOWPaymentsService {
       return 1.0;
     }
   }
+
+  async createPayment(paymentData: {
+    price_amount: number;
+    price_currency: string;
+    pay_currency: string;
+    order_id: string;
+    order_description: string;
+    ipn_callback_url?: string;
+  }): Promise<any> {
+    try {
+      return await this.makeRequest('/payment', 'POST', {
+        ...paymentData,
+        ipn_callback_url: paymentData.ipn_callback_url || `${env.BACKEND_URL}/api/nowpayments/ipn`
+      });
+    } catch (error) {
+      console.error('Failed to create payment:', error);
+      throw error;
+    }
+  }
 }
 
 export const nowPaymentsService = new NOWPaymentsService();

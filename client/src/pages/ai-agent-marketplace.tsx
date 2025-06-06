@@ -85,12 +85,13 @@ export default function AIAgentMarketplace() {
   // Agent registration mutation
   const registerMutation = useMutation({
     mutationFn: async (agentData: any) => {
-      return apiRequest('POST', '/api/public/agents/register', agentData);
+      const response = await apiRequest('POST', '/api/public/agents/register', agentData);
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Registration Successful",
-        description: `Agent "${data.agent.agentName}" registered successfully!`,
+        description: `Agent "${data.agent?.agentName || 'Unknown'}" registered successfully!`,
       });
       setIsRegisterOpen(false);
       queryClient.invalidateQueries({ queryKey: ['/api/public/agents/discover'] });
@@ -108,12 +109,13 @@ export default function AIAgentMarketplace() {
   // Transaction mutation
   const transactionMutation = useMutation({
     mutationFn: async (transactionData: any) => {
-      return apiRequest('POST', '/api/public/agents/transact', transactionData);
+      const response = await apiRequest('POST', '/api/public/agents/transact', transactionData);
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Transaction Successful",
-        description: `Transaction completed! ID: ${data.transaction.id}`,
+        description: `Transaction completed! ID: ${data.transaction?.id || 'Unknown'}`,
       });
       setIsTransactOpen(false);
       setSelectedAgent(null);
@@ -213,7 +215,12 @@ export default function AIAgentMarketplace() {
       description: 'Professional portfolio management agent with dynamic rebalancing capabilities.',
       preferredCurrencies: ['USDT', 'USDC', 'BTC'],
       complianceLevel: 'High',
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      membershipTier: 'basic' as const,
+      commissionRate: 0.5,
+      premiumExpiresAt: null,
+      totalRevenue: 3250,
+      isActive: true
     },
     {
       id: 'agent_arbitrage_004',
@@ -226,7 +233,12 @@ export default function AIAgentMarketplace() {
       description: 'Identifies and executes arbitrage opportunities across multiple blockchain networks.',
       preferredCurrencies: ['ETH', 'SOL', 'AVAX'],
       complianceLevel: 'Medium',
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      membershipTier: 'basic' as const,
+      commissionRate: 0.5,
+      premiumExpiresAt: null,
+      totalRevenue: 750,
+      isActive: true
     },
     {
       id: 'agent_market_005',
@@ -239,7 +251,12 @@ export default function AIAgentMarketplace() {
       description: 'AI agent that analyzes market sentiment from news, social media, and on-chain data.',
       preferredCurrencies: ['BTC', 'ETH', 'DOGE'],
       complianceLevel: 'High',
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      membershipTier: 'premium' as const,
+      commissionRate: 1.5,
+      premiumExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      totalRevenue: 15000,
+      isActive: true
     },
     {
       id: 'agent_nft_006',
@@ -252,7 +269,12 @@ export default function AIAgentMarketplace() {
       description: 'Specialized agent for NFT market analysis and trading opportunities.',
       preferredCurrencies: ['ETH', 'WETH', 'USDC'],
       complianceLevel: 'Medium',
-      lastSeen: new Date()
+      lastSeen: new Date(),
+      membershipTier: 'basic' as const,
+      commissionRate: 0.5,
+      premiumExpiresAt: null,
+      totalRevenue: 1850,
+      isActive: true
     }
   ];
 

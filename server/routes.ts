@@ -148,16 +148,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoice_settings: { default_payment_method: paymentMethodId }
       });
 
+      // Create product first
+      const product = await stripe.products.create({
+        name: 'AI Agent Premium Membership',
+        description: 'Annual premium membership for AI agents'
+      });
+
+      const price = await stripe.prices.create({
+        currency: 'usd',
+        product: product.id,
+        unit_amount: 2500, // $25.00
+        recurring: { interval: 'year' }
+      });
+
       const subscription = await stripe.subscriptions.create({
         customer: customer.id,
-        items: [{ 
-          price_data: {
-            currency: 'usd',
-            product_data: { name: 'AI Agent Premium Membership' },
-            unit_amount: 2500, // $25.00
-            recurring: { interval: 'year' }
-          }
-        }],
+        items: [{ price: price.id }],
         payment_behavior: 'default_incomplete',
         expand: ['latest_invoice.payment_intent']
       });
@@ -174,12 +180,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const newAgent = await storage.createPremiumAgent(fullAgentData, customer.id, subscription.id);
       
+      const latestInvoice = subscription.latest_invoice;
+      const clientSecret = latestInvoice && typeof latestInvoice !== 'string' && latestInvoice.payment_intent 
+        ? (typeof latestInvoice.payment_intent !== 'string' ? latestInvoice.payment_intent.client_secret : null)
+        : null;
+      
       res.status(201).json({
         success: true,
         agent: newAgent,
         subscription: {
           id: subscription.id,
-          clientSecret: subscription.latest_invoice.payment_intent.client_secret
+          clientSecret: clientSecret
         },
         message: "Premium agent registration initiated - 1.5% commission rate",
         membershipTier: 'premium',
@@ -327,16 +338,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         invoice_settings: { default_payment_method: paymentMethodId }
       });
 
+      // Create product and price for upgrade
+      const upgradeProduct = await stripe.products.create({
+        name: 'AI Agent Premium Upgrade',
+        description: 'Upgrade to premium membership'
+      });
+
+      const upgradePrice = await stripe.prices.create({
+        currency: 'usd',
+        product: upgradeProduct.id,
+        unit_amount: 2500, // $25.00
+        recurring: { interval: 'year' }
+      });
+
       const subscription = await stripe.subscriptions.create({
         customer: customer.id,
-        items: [{ 
-          price_data: {
-            currency: 'usd',
-            product_data: { name: 'AI Agent Premium Membership' },
-            unit_amount: 2500, // $25.00
-            recurring: { interval: 'year' }
-          }
-        }],
+        items: [{ price: upgradePrice.id }],
         payment_behavior: 'default_incomplete',
         expand: ['latest_invoice.payment_intent']
       });
@@ -346,12 +363,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateAgentMembership(agentId, 'premium', expiryDate);
       
+      const latestInvoice = subscription.latest_invoice;
+      const clientSecret = latestInvoice && typeof latestInvoice !== 'string' && latestInvoice.payment_intent 
+        ? (typeof latestInvoice.payment_intent !== 'string' ? latestInvoice.payment_intent.client_secret : null)
+        : null;
+      
       res.json({
         success: true,
         message: 'Agent upgraded to premium membership',
         subscription: {
           id: subscription.id,
-          clientSecret: subscription.latest_invoice.payment_intent.client_secret
+          clientSecret: clientSecret
         },
         membershipTier: 'premium',
         expiryDate,

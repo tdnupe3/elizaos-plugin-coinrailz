@@ -28,28 +28,28 @@ function DemoDashboard() {
           return res.json();
         }).catch(err => {
           console.error('User data error:', err);
-          throw err;
+          return null;
         }),
         fetch('/api/demo/balances').then(res => {
           if (!res.ok) throw new Error(`Balance data fetch failed: ${res.status}`);
           return res.json();
         }).catch(err => {
           console.error('Balance data error:', err);
-          throw err;
+          return [];
         }),
         fetch('/api/demo/transactions').then(res => {
           if (!res.ok) throw new Error(`Transaction data fetch failed: ${res.status}`);
           return res.json();
         }).catch(err => {
           console.error('Transaction data error:', err);
-          throw err;
+          return [];
         }),
         fetch('/api/demo/crypto-prices').then(res => {
           if (!res.ok) throw new Error(`Price data fetch failed: ${res.status}`);
           return res.json();
         }).catch(err => {
           console.error('Price data error:', err);
-          throw err;
+          return {};
         })
       ]);
 
@@ -66,12 +66,12 @@ function DemoDashboard() {
       );
 
       if (userData) setUser(userData);
-      if (walletData) {
+      if (walletData && Array.isArray(walletData)) {
         setWalletBalances(walletData);
         setCryptoHoldings(walletData.filter((balance: any) => balance.currency !== 'USD'));
       }
-      if (transactionData) setRecentTransactions(transactionData.slice(0, 5));
-      if (pricesData) setCryptoPrices(pricesData);
+      if (transactionData && Array.isArray(transactionData)) setRecentTransactions(transactionData.slice(0, 5));
+      if (pricesData && typeof pricesData === 'object') setCryptoPrices(pricesData);
 
     } catch (error) {
       console.error('Critical error loading demo data:', error);
@@ -372,8 +372,8 @@ function DemoDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentTransactions.map((transaction) => (
-                  <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                {recentTransactions.map((transaction, index) => (
+                  <div key={transaction.id || `transaction-${index}`} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
                     <div className="flex items-center gap-3">
                       {transaction.type === 'receive' ? (
                         <ArrowDown className="h-4 w-4 text-blue-600" />
@@ -407,8 +407,8 @@ function DemoDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {cryptoHoldings.slice(0, 5).map((holding) => (
-                  <div key={holding.id} className="flex items-center justify-between">
+                {cryptoHoldings.slice(0, 5).map((holding, index) => (
+                  <div key={holding.id || `holding-${index}`} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                         <span className="text-sm font-medium text-blue-600">{holding.coinSymbol}</span>

@@ -92,22 +92,26 @@ export default function EnhancedAIAgentMarketplace() {
   // Fetch agents with search parameters
   const { data: agentsData, isLoading: agentsLoading } = useQuery({
     queryKey: ['/api/public/agents/discover', searchTerm, selectedCategory],
-    queryFn: () => {
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       if (selectedCategory) params.append('category', selectedCategory);
       const queryString = params.toString();
-      return apiRequest('GET', `/api/public/agents/discover${queryString ? `?${queryString}` : ''}`);
+      const response = await apiRequest('GET', `/api/public/agents/discover${queryString ? `?${queryString}` : ''}`);
+      return await response.json();
     },
     refetchInterval: 10000,
-    staleTime: 0, // Always refetch
-    cacheTime: 0, // Don't cache
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Fetch services
   const { data: servicesData, isLoading: servicesLoading } = useQuery({
     queryKey: ['/api/services/discover'],
-    queryFn: () => apiRequest('GET', '/api/services/discover'),
+    queryFn: async () => {
+      const response = await apiRequest('GET', '/api/services/discover');
+      return await response.json();
+    },
     enabled: view === 'services',
   });
 
@@ -129,12 +133,13 @@ export default function EnhancedAIAgentMarketplace() {
         preferredCurrencies: formData.get('preferredCurrencies'),
         referralCode: referralCode
       };
-      return apiRequest('POST', '/api/agents/quick-register', data);
+      const response = await apiRequest('POST', '/api/agents/quick-register', data);
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Registration Successful!",
-        description: data.message,
+        description: data.message || "Agent registered successfully",
       });
       setIsRegisterOpen(false);
       queryClient.invalidateQueries({ queryKey: ['/api/public/agents/discover'] });
@@ -151,12 +156,13 @@ export default function EnhancedAIAgentMarketplace() {
   // Service listing mutation
   const listServiceMutation = useMutation({
     mutationFn: async (serviceData: any) => {
-      return apiRequest('POST', `/api/agents/${selectedAgent?.id}/list-service`, serviceData);
+      const response = await apiRequest('POST', `/api/agents/${selectedAgent?.id}/list-service`, serviceData);
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
         title: "Service Listed Successfully!",
-        description: data.message,
+        description: data.message || "Service listed successfully",
       });
       setIsServiceOpen(false);
       queryClient.invalidateQueries({ queryKey: ['/api/services/discover'] });

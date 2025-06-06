@@ -471,7 +471,7 @@ export default function EnhancedAIAgentMarketplace() {
                       <Bot className="w-8 h-8 text-blue-600" />
                       <div>
                         <CardTitle className="text-lg">{agent.agentName}</CardTitle>
-                        <p className="text-sm text-gray-600">{agent.agentType}</p>
+                        <p className="text-sm text-gray-600">{agent.agentType || 'AI Agent'}</p>
                       </div>
                     </div>
                     <Badge 

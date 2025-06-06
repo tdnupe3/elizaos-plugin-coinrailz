@@ -100,6 +100,8 @@ export default function EnhancedAIAgentMarketplace() {
       return apiRequest('GET', `/api/public/agents/discover${queryString ? `?${queryString}` : ''}`);
     },
     refetchInterval: 10000,
+    staleTime: 0, // Always refetch
+    cacheTime: 0, // Don't cache
   });
 
   // Fetch services

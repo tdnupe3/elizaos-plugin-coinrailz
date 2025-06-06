@@ -56,10 +56,30 @@ export const queryClient = new QueryClient({
       },
       refetchOnReconnect: true,
       networkMode: 'online',
+      onError: (error) => {
+        console.error('Query error:', error);
+      },
     },
     mutations: {
       retry: 1, // Retry mutations once on failure
       networkMode: 'online',
+      onError: (error) => {
+        console.error('Mutation error:', error);
+      },
     },
   },
+});
+
+// Add global mutation cache error handling
+queryClient.getMutationCache().subscribe((event) => {
+  if (event?.type === 'updated' && event.mutation.state.status === 'error') {
+    console.error('Global mutation error:', event.mutation.state.error);
+  }
+});
+
+// Add global query cache error handling  
+queryClient.getQueryCache().subscribe((event) => {
+  if (event?.type === 'updated' && event.query.state.status === 'error') {
+    console.error('Global query error:', event.query.state.error);
+  }
 });

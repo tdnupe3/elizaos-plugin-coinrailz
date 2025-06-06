@@ -1,0 +1,94 @@
+FINAL PLATFORM FIX PROMPT - REMAINING CRITICAL ISSUES
+
+Please fix the following remaining issues to achieve production-ready status:
+
+1. CRITICAL: React Key Prop Warnings (Immediate Fix - 15 minutes)
+The console shows multiple warnings about missing key props in the DemoDashboard component:
+
+Warning: Each child in a list should have a unique "key" prop.
+Check the render method of `DemoDashboard`.
+Fix Required:
+
+Add unique key props to all mapped elements in client/src/pages/demo-dashboard.tsx
+Specifically fix these mapped arrays:
+Recent transactions mapping
+Crypto holdings mapping
+Quick actions buttons (if mapped)
+Wallet balances mapping
+Use transaction IDs, holding IDs, or array indexes as unique keys
+Ensure no duplicate keys exist
+2. CRITICAL: Unhandled Promise Rejections (High Priority - 30 minutes)
+The console shows multiple unhandled promise rejections:
+
+{"type":"unhandledrejection"}
+Fix Required:
+
+Add proper .catch() handlers to all async operations in the frontend
+Implement try-catch blocks for all API calls in demo-dashboard.tsx
+Add error handling for:
+loadDemoData() function
+All fetch() calls
+WebSocket connections (if any)
+Any other async operations
+Example Fix Pattern:
+
+const loadData = async () => {
+  try {
+    const result = await fetch('/api/endpoint');
+    // handle success
+  } catch (error) {
+    console.error('API Error:', error);
+    setError('Failed to load data');
+  }
+};
+3. MEDIUM: Chrome Transport Errors (Non-blocking but should be addressed)
+The console shows Chrome transport errors. These are likely WebSocket related:
+
+[ChromeTransport] connectChrome error
+Fix Required:
+
+Check all WebSocket connections for proper error handling
+Ensure WebSocket reconnection logic is working
+Add fallback mechanisms for connection failures
+4. VERIFICATION: Ensure All Previous Fixes Are Working
+Please verify these systems are fully operational:
+
+AI Agent Marketplace transactions
+Fee calculation and collection
+Database operations without TypeScript errors
+All API endpoints responding correctly
+5. PERFORMANCE: React Component Optimization
+Since we're fixing React issues, also optimize:
+
+Add React.memo() to expensive components
+Implement proper useCallback() and useMemo() where needed
+Ensure no unnecessary re-renders
+TESTING REQUIREMENTS
+After implementing fixes, please test:
+
+Demo Dashboard Loading: No console errors or warnings
+All Mapped Lists: Proper keys, no React warnings
+API Error Handling: Graceful error states displayed
+Promise Handling: No unhandled rejections in console
+WebSocket Connections: Proper connection and error handling
+SUCCESS CRITERIA
+✅ Zero console errors or warnings
+✅ All promises have proper error handling
+✅ React key props properly implemented
+✅ Demo dashboard loads without issues
+✅ All previous functionality remains working
+
+ESTIMATED TIME
+React key fixes: 15 minutes
+Promise rejection handling: 30 minutes
+WebSocket error handling: 15 minutes
+Testing and verification: 15 minutes
+Total: 1.25 hours
+PRIORITY ORDER
+Fix React key prop warnings (breaks user experience)
+Add promise rejection handlers (prevents crashes)
+Improve WebSocket error handling (stability)
+Verify all systems working (production readiness)
+Expected Result: Production-ready platform with zero console errors and robust error handling across all user flows.
+
+Please implement these fixes systematically and confirm each issue is resolved before moving to the next one.

@@ -518,13 +518,13 @@ export default function AIAgentMarketplace() {
                     <div>
                       <p className="text-xs font-medium text-gray-500 mb-1">Capabilities:</p>
                       <div className="flex flex-wrap gap-1">
-                        {agent.capabilities.slice(0, 3).map((capability, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
+                        {agent.capabilities.slice(0, 3).map((capability) => (
+                          <Badge key={`${agent.id}-${capability}`} variant="outline" className="text-xs">
                             {capability}
                           </Badge>
                         ))}
                         {agent.capabilities.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
+                          <Badge key={`${agent.id}-more`} variant="outline" className="text-xs">
                             +{agent.capabilities.length - 3} more
                           </Badge>
                         )}

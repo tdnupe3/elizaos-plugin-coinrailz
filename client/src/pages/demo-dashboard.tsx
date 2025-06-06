@@ -25,20 +25,60 @@ export default function DemoDashboard() {
 
   const loadDemoData = async () => {
     try {
-      const [userData, walletData, transactionData, pricesData] = await Promise.all([
-        fetch('/api/demo/user').then(res => res.json()),
-        fetch('/api/demo/balances').then(res => res.json()),
-        fetch('/api/demo/transactions').then(res => res.json()),
-        fetch('/api/demo/crypto-prices').then(res => res.json())
+      setError(null);
+      const responses = await Promise.allSettled([
+        fetch('/api/demo/user').then(res => {
+          if (!res.ok) throw new Error(`User data fetch failed: ${res.status}`);
+          return res.json();
+        }).catch(err => {
+          console.error('User data error:', err);
+          throw err;
+        }),
+        fetch('/api/demo/balances').then(res => {
+          if (!res.ok) throw new Error(`Balance data fetch failed: ${res.status}`);
+          return res.json();
+        }).catch(err => {
+          console.error('Balance data error:', err);
+          throw err;
+        }),
+        fetch('/api/demo/transactions').then(res => {
+          if (!res.ok) throw new Error(`Transaction data fetch failed: ${res.status}`);
+          return res.json();
+        }).catch(err => {
+          console.error('Transaction data error:', err);
+          throw err;
+        }),
+        fetch('/api/demo/crypto-prices').then(res => {
+          if (!res.ok) throw new Error(`Price data fetch failed: ${res.status}`);
+          return res.json();
+        }).catch(err => {
+          console.error('Price data error:', err);
+          throw err;
+        })
       ]);
 
-      setUser(userData);
-      setWalletBalances(walletData);
-      setCryptoHoldings(walletData.filter((balance: any) => balance.currency !== 'USD'));
-      setRecentTransactions(transactionData.slice(0, 5));
-      setCryptoPrices(pricesData);
+      // Check for any failed requests
+      const failedRequests = responses.filter(response => response.status === 'rejected');
+      if (failedRequests.length > 0) {
+        console.error('Some requests failed:', failedRequests);
+        setError('Some data could not be loaded. Using available data.');
+      }
+
+      // Extract successful data
+      const [userData, walletData, transactionData, pricesData] = responses.map(response => 
+        response.status === 'fulfilled' ? response.value : null
+      );
+
+      if (userData) setUser(userData);
+      if (walletData) {
+        setWalletBalances(walletData);
+        setCryptoHoldings(walletData.filter((balance: any) => balance.currency !== 'USD'));
+      }
+      if (transactionData) setRecentTransactions(transactionData.slice(0, 5));
+      if (pricesData) setCryptoPrices(pricesData);
+
     } catch (error) {
-      console.error('Error loading demo data:', error);
+      console.error('Critical error loading demo data:', error);
       setError('Unable to load dashboard data. Please try refreshing the page.');
     } finally {
       setLoading(false);
@@ -47,8 +87,15 @@ export default function DemoDashboard() {
   };
 
   const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadDemoData();
+    try {
+      setRefreshing(true);
+      await loadDemoData();
+    } catch (error) {
+      console.error('Refresh failed:', error);
+      setError('Refresh failed. Please try again.');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const formatCurrency = (amount: string | number) => {

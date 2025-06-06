@@ -28,6 +28,10 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import Stripe from "stripe";
+
+// Initialize Stripe with secret key
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues
@@ -668,6 +672,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error sending money:", error);
       res.status(500).json({ message: "Failed to send payment" });
+    }
+  });
+
+  // Stripe payment intent creation for P2P transfers
+  app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
+    try {
+      const { amount, recipientEmail } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Validate amount
+      const transferAmount = ValidationUtils.validateAmount(amount);
+      const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
+      const totalAmount = Math.round((transferAmount + feeCalculation.fee) * 100); // Convert to cents
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: totalAmount,
+        currency: "usd",
+        metadata: {
+          userId,
+          recipientEmail,
+          transferAmount: transferAmount.toString(),
+          fee: feeCalculation.fee.toString(),
+          type: "p2p_transfer"
+        },
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        amount: transferAmount,
+        fee: feeCalculation.fee,
+        total: transferAmount + feeCalculation.fee
+      });
+    } catch (error: any) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Stripe payment intent for AI agent services
+  app.post("/api/agents/create-payment-intent", isAuthenticated, async (req: any, res) => {
+    try {
+      const { agentId, serviceType, amount } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Validate amount and calculate AI agent fee (2%)
+      const serviceAmount = ValidationUtils.validateAmount(amount);
+      const feeCalculation = FeeCalculator.calculateAIAgentFee(serviceAmount);
+      const totalAmount = Math.round((serviceAmount + feeCalculation.fee) * 100); // Convert to cents
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: totalAmount,
+        currency: "usd",
+        metadata: {
+          userId,
+          agentId,
+          serviceType,
+          serviceAmount: serviceAmount.toString(),
+          platformFee: feeCalculation.fee.toString(),
+          type: "ai_agent_service"
+        },
+      });
+
+      res.json({ 
+        clientSecret: paymentIntent.client_secret,
+        amount: serviceAmount,
+        fee: feeCalculation.fee,
+        total: serviceAmount + feeCalculation.fee
+      });
+    } catch (error: any) {
+      console.error("Error creating AI agent payment intent:", error);
+      res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // Stripe webhook handler for payment confirmations
+  app.post('/api/webhooks/stripe', async (req, res) => {
+    try {
+      const sig = req.headers['stripe-signature'] as string;
+      let event;
+
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET || '');
+      } catch (err: any) {
+        console.error('Webhook signature verification failed:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      // Handle successful payment
+      if (event.type === 'payment_intent.succeeded') {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const { userId, recipientEmail, transferAmount, fee, type, agentId } = paymentIntent.metadata;
+
+        if (type === 'p2p_transfer') {
+          // Process P2P transfer
+          const recipient = await storage.getUserByEmail(recipientEmail);
+          const amount = parseFloat(transferAmount);
+
+          // Create transaction records
+          const transaction = await storage.createTransaction({
+            fromUserId: userId,
+            toUserId: recipient?.id || null,
+            toEmail: recipientEmail,
+            amount: transferAmount,
+            message: `Card payment transfer`,
+            transactionType: "send",
+            status: "completed",
+          });
+
+          // Update recipient balance if they exist
+          if (recipient) {
+            const recipientBalance = parseFloat(recipient.usdBalance || "0");
+            const newRecipientBalance = (recipientBalance + amount).toFixed(2);
+            await storage.updateUserBalance(recipient.id, parseFloat(newRecipientBalance), "USD");
+          }
+
+          console.log(`P2P transfer completed: ${amount} USD from ${userId} to ${recipientEmail}`);
+          
+        } else if (type === 'ai_agent_service') {
+          // Process AI agent service payment
+          const serviceAmount = parseFloat(transferAmount);
+          const platformFee = parseFloat(fee);
+          const agentEarnings = serviceAmount - platformFee;
+
+          // Record agent transaction
+          const transaction = await storage.createAgentTransaction({
+            agentId,
+            userId,
+            amount: serviceAmount.toString(),
+            fee: platformFee.toString(),
+            status: 'completed',
+            paymentMethod: 'stripe_card'
+          });
+
+          console.log(`AI Agent service payment completed: ${serviceAmount} USD, Platform fee: ${platformFee}, Agent earnings: ${agentEarnings}`);
+        }
+      }
+
+      res.json({ received: true });
+    } catch (error) {
+      console.error('Stripe webhook error:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
     }
   });
 

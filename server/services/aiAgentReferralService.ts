@@ -234,6 +234,15 @@ export class AIAgentReferralService {
       return [];
     }
   }
+
+  async updateReferralPayoutStatus(referralId: number, status: string): Promise<void> {
+    try {
+      await storage.updateReferralReward(referralId, "0", "USDT", status === "completed");
+    } catch (error) {
+      console.error("Error updating referral payout status:", error);
+      throw error;
+    }
+  }
 }
 
 export const aiAgentReferralService = new AIAgentReferralService();

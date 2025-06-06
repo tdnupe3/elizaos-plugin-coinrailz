@@ -344,10 +344,19 @@ export class GlobalAgentNetworkService {
   }
 
   // Update Agent Activity
-  async updateAgentActivity(agentId: string): Promise<void> {
+  async updateAgentActivity(agentId: string, status?: string, metadata?: any): Promise<void> {
+    const updateData: any = { lastActive: new Date() };
+    
+    if (status) {
+      updateData.status = status;
+    }
+    if (metadata) {
+      updateData.metadata = metadata;
+    }
+    
     await db
       .update(globalAIAgents)
-      .set({ lastActive: new Date() })
+      .set(updateData)
       .where(eq(globalAIAgents.id, agentId));
   }
 

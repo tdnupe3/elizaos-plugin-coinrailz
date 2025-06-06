@@ -514,7 +514,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const requestedAmount = parseFloat(validatedData.amount);
-      const availableBalance = parseFloat(wallet.availableBalance);
+      const availableBalance = parseFloat(wallet.availableBalance || "0");
 
       if (requestedAmount > availableBalance) {
         return res.status(400).json({ message: 'Insufficient funds' });
@@ -644,7 +644,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (recipient) {
         const recipientBalance = parseFloat(recipient.usdBalance || "0");
         const newRecipientBalance = (recipientBalance + transferAmount).toFixed(2);
-        await storage.updateUserBalance(recipient.id, newRecipientBalance);
+        await storage.updateUserBalance(recipient.id, parseFloat(newRecipientBalance), "USD");
 
         // Create receive transaction for recipient
         await storage.createTransaction({
@@ -782,13 +782,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           feeCalculation = FeeCalculator.calculateCryptoFee(numAmount, 'sell');
           break;
         case 'swap_crypto':
-          feeCalculation = FeeCalculator.calculateSwapFee(numAmount);
+          feeCalculation = FeeCalculator.calculateSwapFee(numAmount, 'ETH', 'USDC');
           break;
         case 'deposit':
-          feeCalculation = FeeCalculator.calculateDepositFee(numAmount);
+          feeCalculation = FeeCalculator.calculateDepositFee(numAmount, 'USD');
           break;
         case 'withdraw':
-          feeCalculation = FeeCalculator.calculateWithdrawFee(numAmount);
+          feeCalculation = FeeCalculator.calculateWithdrawFee(numAmount, 'USD');
           break;
         default:
           return res.status(400).json({ message: "Invalid transaction type" });

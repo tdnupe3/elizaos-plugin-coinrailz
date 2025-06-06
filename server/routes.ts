@@ -181,9 +181,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newAgent = await storage.createPremiumAgent(fullAgentData, customer.id, subscription.id);
       
       const latestInvoice = subscription.latest_invoice;
-      const clientSecret = latestInvoice && typeof latestInvoice !== 'string' && latestInvoice.payment_intent 
-        ? (typeof latestInvoice.payment_intent !== 'string' ? latestInvoice.payment_intent.client_secret : null)
-        : null;
+      let clientSecret = null;
+      
+      if (latestInvoice && typeof latestInvoice !== 'string') {
+        const paymentIntent = (latestInvoice as any).payment_intent;
+        if (paymentIntent && typeof paymentIntent !== 'string') {
+          clientSecret = paymentIntent.client_secret;
+        }
+      }
       
       res.status(201).json({
         success: true,
@@ -363,17 +368,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       await storage.updateAgentMembership(agentId, 'premium', expiryDate);
       
-      const latestInvoice = subscription.latest_invoice;
-      const clientSecret = latestInvoice && typeof latestInvoice !== 'string' && latestInvoice.payment_intent 
-        ? (typeof latestInvoice.payment_intent !== 'string' ? latestInvoice.payment_intent.client_secret : null)
-        : null;
+      const upgradeLatestInvoice = subscription.latest_invoice;
+      let upgradeClientSecret = null;
+      
+      if (upgradeLatestInvoice && typeof upgradeLatestInvoice !== 'string') {
+        const upgradePaymentIntent = (upgradeLatestInvoice as any).payment_intent;
+        if (upgradePaymentIntent && typeof upgradePaymentIntent !== 'string') {
+          upgradeClientSecret = upgradePaymentIntent.client_secret;
+        }
+      }
       
       res.json({
         success: true,
         message: 'Agent upgraded to premium membership',
         subscription: {
           id: subscription.id,
-          clientSecret: clientSecret
+          clientSecret: upgradeClientSecret
         },
         membershipTier: 'premium',
         expiryDate,

@@ -19,11 +19,7 @@ function DemoDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    loadDemoData();
-  }, []);
-
-  const loadDemoData = async () => {
+  const loadDemoData = useCallback(async () => {
     try {
       setError(null);
       const responses = await Promise.allSettled([
@@ -84,7 +80,14 @@ function DemoDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDemoData().catch(error => {
+      console.error('Initial data load failed:', error);
+      setError('Failed to load dashboard data');
+    });
+  }, [loadDemoData]);
 
   const handleRefresh = useCallback(async () => {
     try {
@@ -96,7 +99,7 @@ function DemoDashboard() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [loadDemoData]);
 
   const formatCurrency = (amount: string | number) => {
     if (amount === undefined || amount === null) return '$0.00';

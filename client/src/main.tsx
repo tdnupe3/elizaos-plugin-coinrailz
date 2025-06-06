@@ -4,25 +4,32 @@ import "./index.css";
 
 // Global error handling for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-  
   // Handle Chrome transport errors specifically
   if (event.reason?.message?.includes('ChromeTransport') || 
-      event.reason?.name === 'ChromeTransport') {
-    console.warn('Chrome transport connection issue - non-critical');
+      event.reason?.name === 'ChromeTransport' ||
+      event.reason?.stack?.includes('ChromeTransport')) {
     event.preventDefault();
     return;
   }
   
   // Handle WebSocket connection errors
   if (event.reason?.message?.includes('WebSocket') || 
-      event.reason?.type === 'error') {
-    console.warn('WebSocket connection issue - attempting reconnection');
+      event.reason?.type === 'error' ||
+      event.reason?.message?.includes('connectChrome')) {
     event.preventDefault();
     return;
   }
   
-  event.preventDefault(); // Prevent default browser behavior
+  // Handle Vite HMR connection errors
+  if (event.reason?.message?.includes('vite') || 
+      event.reason?.message?.includes('connecting') ||
+      event.reason?.type === 'unhandledrejection') {
+    event.preventDefault();
+    return;
+  }
+  
+  console.error('Unhandled promise rejection:', event.reason);
+  event.preventDefault();
 });
 
 // Global error handling for general errors

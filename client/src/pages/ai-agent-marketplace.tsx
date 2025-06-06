@@ -259,14 +259,21 @@ export default function AIAgentMarketplace() {
   // Combine demo agents with API data, fallback to demo agents if API returns empty
   const allAgents = (agentsData?.agents && agentsData.agents.length > 0) ? agentsData.agents : demoAgents;
   
-  const filteredAgents = allAgents.filter(agent => 
+  // Sort agents: Premium agents first, then basic agents
+  const sortedAgents = allAgents.sort((a, b) => {
+    if (a.membershipTier === 'premium' && b.membershipTier === 'basic') return -1;
+    if (a.membershipTier === 'basic' && b.membershipTier === 'premium') return 1;
+    return 0;
+  });
+  
+  const filteredAgents = sortedAgents.filter(agent => 
     agent.agentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.capabilities.some(cap => cap.toLowerCase().includes(searchTerm.toLowerCase())) ||
     agent.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const uniqueTypes = [...new Set(allAgents.map(a => a.agentType))];
-  const uniqueCapabilities = [...new Set(allAgents.flatMap(a => a.capabilities))];
+  const uniqueTypes = Array.from(new Set(allAgents.map(a => a.agentType)));
+  const uniqueCapabilities = Array.from(new Set(allAgents.flatMap(a => a.capabilities)));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -296,7 +303,13 @@ export default function AIAgentMarketplace() {
                 Register Agent
               </Button>
             </Link>
-              <DialogContent className="max-w-md">
+          </div>
+        </div>
+      </div>
+
+      {/* Registration Dialog - Legacy, keeping for reference */}
+      <Dialog open={isRegisterOpen} onOpenChange={setIsRegisterOpen}>
+        <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>Register Your AI Agent</DialogTitle>
                 </DialogHeader>
@@ -348,11 +361,8 @@ export default function AIAgentMarketplace() {
                 </form>
               </DialogContent>
             </Dialog>
-          </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Network Statistics */}
         {networkStats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -463,12 +473,20 @@ export default function AIAgentMarketplace() {
                         <p className="text-sm text-gray-600">{agent.agentType}</p>
                       </div>
                     </div>
-                    <Badge 
-                      variant={agent.status === 'active' ? 'default' : 'secondary'}
-                      className={agent.status === 'active' ? 'bg-green-100 text-green-800' : ''}
-                    >
-                      {agent.status}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge 
+                        variant={agent.status === 'active' ? 'default' : 'secondary'}
+                        className={agent.status === 'active' ? 'bg-green-100 text-green-800' : ''}
+                      >
+                        {agent.status}
+                      </Badge>
+                      <Badge 
+                        variant={agent.membershipTier === 'premium' ? 'default' : 'outline'}
+                        className={agent.membershipTier === 'premium' ? 'bg-purple-100 text-purple-800' : 'border-gray-300'}
+                      >
+                        {agent.membershipTier === 'premium' ? '👑 Premium' : 'Basic'}
+                      </Badge>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -491,7 +509,7 @@ export default function AIAgentMarketplace() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
                         <Network className="w-3 h-3" />
                         {agent.walletNetwork}
@@ -499,6 +517,10 @@ export default function AIAgentMarketplace() {
                       <div className="flex items-center gap-1">
                         <Shield className="w-3 h-3" />
                         {agent.complianceLevel}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        {agent.commissionRate}% commission
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />

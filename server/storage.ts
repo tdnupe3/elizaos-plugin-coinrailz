@@ -92,6 +92,8 @@ export interface IStorage {
   // AI Agent operations
   getAgent(agentId: string): Promise<any>;
   createAgent(agentData: any): Promise<any>;
+  getGlobalAIAgent(agentId: string): Promise<any>;
+  createGlobalAIAgent(agentData: any): Promise<any>;
   updateAgentReferralCode(agentId: string, referralCode: string): Promise<void>;
   getAgentByReferralCode(referralCode: string): Promise<any>;
   updateAgentReferredBy(agentId: string, referrerId: string): Promise<void>;
@@ -116,6 +118,16 @@ export interface IStorage {
   updateServiceOrderStatus(orderId: number, status: string, updateData?: any): Promise<void>;
   updateServiceListingStats(listingId: number, revenue: number, rating?: number): Promise<void>;
   getTrendingServices(limit: number): Promise<any[]>;
+
+  // Tiered registration system methods
+  createBasicAgent(agentData: any): Promise<any>;
+  createPremiumAgent(agentData: any, stripeCustomerId: string, stripeSubscriptionId: string): Promise<any>;
+  updateAgentRevenue(agentId: string, additionalRevenue: number): Promise<void>;
+  checkAndAutoUpgradeAgent(agentId: string): Promise<boolean>;
+  getAgentsByMembershipTier(tier: 'basic' | 'premium', limit?: number): Promise<any[]>;
+  getExpiredPremiumAgents(): Promise<any[]>;
+  downgradeExpiredAgents(): Promise<number>;
+  updateAgentMembership(agentId: string, tier: 'basic' | 'premium', expiryDate?: Date): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -441,6 +453,11 @@ export class DatabaseStorage implements IStorage {
 
   async createAgent(agentData: any): Promise<any> {
     const [agent] = await db.insert(globalAIAgents).values(agentData).returning();
+    return agent;
+  }
+
+  async getGlobalAIAgent(agentId: string): Promise<any> {
+    const [agent] = await db.select().from(globalAIAgents).where(eq(globalAIAgents.id, agentId));
     return agent;
   }
 

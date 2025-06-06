@@ -50,6 +50,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const registerCryptoSignalsAgent = async () => {
     try {
       const agentData = await cryptoSignalsAgent.getServicePricing();
+      
+      // Check if agent already exists
+      const existingAgent = await storage.getGlobalAIAgent(agentData.agentId);
+      if (existingAgent) {
+        console.log('Crypto Signals Agent already registered, skipping auto-registration');
+        return;
+      }
+      
       await storage.createGlobalAIAgent({
         id: agentData.agentId,
         agentName: agentData.agentName,

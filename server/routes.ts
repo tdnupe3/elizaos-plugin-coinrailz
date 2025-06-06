@@ -79,7 +79,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register on startup
   registerCryptoSignalsAgent();
 
-  // Public Agent Registration - No authentication required
+  // Basic Agent Registration - Free for human developers
+  app.post('/api/agents/register/basic', async (req, res) => {
+    try {
+      const registrationData = req.body;
+      
+      // Validate required fields
+      const requiredFields = ['agentName', 'description', 'capabilities', 'walletAddress', 'walletNetwork', 'publicKey', 'signature', 'preferredCurrencies'];
+      for (const field of requiredFields) {
+        if (!registrationData[field]) {
+          return res.status(400).json({ error: `Missing required field: ${field}` });
+        }
+      }
+
+      // Generate unique agent ID
+      const agentId = `BASIC_${Date.now()}_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      
+      const agentData = {
+        id: agentId,
+        ...registrationData,
+        serviceCategories: registrationData.serviceCategories || ['general'],
+        pricingModel: registrationData.pricingModel || 'per_service'
+      };
+
+      const newAgent = await storage.createBasicAgent(agentData);
+      
+      res.status(201).json({
+        success: true,
+        agent: newAgent,
+        message: "Basic agent registered successfully - 0.5% commission rate",
+        membershipTier: 'basic',
+        commissionRate: '0.5%'
+      });
+    } catch (error) {
+      console.error('Basic agent registration error:', error);
+      res.status(500).json({ error: 'Failed to register basic agent' });
+    }
+  });
+
+  // Premium Agent Registration - $25/year for autonomous agents
+  app.post('/api/agents/register/premium', async (req, res) => {
+    try {
+      const { agentData, paymentMethodId } = req.body;
+      
+      // Validate required fields
+      const requiredFields = ['agentName', 'description', 'capabilities', 'walletAddress', 'walletNetwork', 'publicKey', 'signature', 'preferredCurrencies'];
+      for (const field of requiredFields) {
+        if (!agentData[field]) {
+          return res.status(400).json({ error: `Missing required field: ${field}` });
+        }
+      }
+
+      if (!paymentMethodId) {
+        return res.status(400).json({ error: 'Payment method required for premium registration' });
+      }
+
+      // Create Stripe customer and subscription
+      const customer = await stripe.customers.create({
+        payment_method: paymentMethodId,
+        invoice_settings: { default_payment_method: paymentMethodId }
+      });
+
+      const subscription = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ 
+          price_data: {
+            currency: 'usd',
+            product_data: { name: 'AI Agent Premium Membership' },
+            unit_amount: 2500, // $25.00
+            recurring: { interval: 'year' }
+          }
+        }],
+        payment_behavior: 'default_incomplete',
+        expand: ['latest_invoice.payment_intent']
+      });
+
+      // Generate unique agent ID
+      const agentId = `PREMIUM_${Date.now()}_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      
+      const fullAgentData = {
+        id: agentId,
+        ...agentData,
+        serviceCategories: agentData.serviceCategories || ['automation'],
+        pricingModel: agentData.pricingModel || 'per_service'
+      };
+
+      const newAgent = await storage.createPremiumAgent(fullAgentData, customer.id, subscription.id);
+      
+      res.status(201).json({
+        success: true,
+        agent: newAgent,
+        subscription: {
+          id: subscription.id,
+          clientSecret: subscription.latest_invoice.payment_intent.client_secret
+        },
+        message: "Premium agent registration initiated - 1.5% commission rate",
+        membershipTier: 'premium',
+        commissionRate: '1.5%',
+        expiryDate: newAgent.membershipExpiryDate
+      });
+    } catch (error) {
+      console.error('Premium agent registration error:', error);
+      res.status(500).json({ error: 'Failed to register premium agent' });
+    }
+  });
+
+  // Public Agent Registration - Legacy endpoint (maintains basic tier)
   app.post('/api/public/agents/register', async (req, res) => {
     try {
       const registrationData = req.body;

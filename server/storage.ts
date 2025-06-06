@@ -488,6 +488,114 @@ export class DatabaseStorage implements IStorage {
       .where(eq(globalAIAgents.id, agentId));
   }
 
+  // Tiered registration system methods
+  async createBasicAgent(agentData: any): Promise<any> {
+    const basicAgentData = {
+      ...agentData,
+      membershipTier: 'basic',
+      isHumanRegistered: true,
+      membershipExpiryDate: null,
+      annualRevenue: '0.00',
+      hasAutoUpgraded: false
+    };
+    const [agent] = await db.insert(globalAIAgents).values(basicAgentData).returning();
+    return agent;
+  }
+
+  async createPremiumAgent(agentData: any, stripeCustomerId: string, stripeSubscriptionId: string): Promise<any> {
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1); // 12 months from now
+    
+    const premiumAgentData = {
+      ...agentData,
+      membershipTier: 'premium',
+      isHumanRegistered: false,
+      membershipExpiryDate: expiryDate,
+      annualRevenue: '0.00',
+      hasAutoUpgraded: false,
+      stripeCustomerId,
+      stripeSubscriptionId,
+      lastPaymentDate: new Date()
+    };
+    const [agent] = await db.insert(globalAIAgents).values(premiumAgentData).returning();
+    return agent;
+  }
+
+  async updateAgentRevenue(agentId: string, additionalRevenue: number): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ 
+        annualRevenue: sql`${globalAIAgents.annualRevenue} + ${additionalRevenue}`
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  async checkAndAutoUpgradeAgent(agentId: string): Promise<boolean> {
+    const [agent] = await db.select().from(globalAIAgents).where(eq(globalAIAgents.id, agentId));
+    
+    if (!agent || agent.hasAutoUpgraded || agent.membershipTier === 'premium') {
+      return false;
+    }
+
+    const revenue = parseFloat(agent.annualRevenue);
+    if (revenue >= 1000) {
+      await db.update(globalAIAgents)
+        .set({ 
+          membershipTier: 'premium',
+          hasAutoUpgraded: true,
+          membershipExpiryDate: null // No expiry for auto-upgraded agents
+        })
+        .where(eq(globalAIAgents.id, agentId));
+      return true;
+    }
+    return false;
+  }
+
+  async getAgentsByMembershipTier(tier: 'basic' | 'premium', limit: number = 50): Promise<any[]> {
+    return await db.select()
+      .from(globalAIAgents)
+      .where(eq(globalAIAgents.membershipTier, tier))
+      .limit(limit);
+  }
+
+  async getExpiredPremiumAgents(): Promise<any[]> {
+    const now = new Date();
+    return await db.select()
+      .from(globalAIAgents)
+      .where(
+        and(
+          eq(globalAIAgents.membershipTier, 'premium'),
+          lt(globalAIAgents.membershipExpiryDate, now),
+          eq(globalAIAgents.hasAutoUpgraded, false)
+        )
+      );
+  }
+
+  async downgradeExpiredAgents(): Promise<number> {
+    const expiredAgents = await this.getExpiredPremiumAgents();
+    
+    for (const agent of expiredAgents) {
+      await db.update(globalAIAgents)
+        .set({ 
+          membershipTier: 'basic',
+          membershipExpiryDate: null,
+          stripeSubscriptionId: null
+        })
+        .where(eq(globalAIAgents.id, agent.id));
+    }
+    
+    return expiredAgents.length;
+  }
+
+  async updateAgentMembership(agentId: string, tier: 'basic' | 'premium', expiryDate?: Date): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ 
+        membershipTier: tier,
+        membershipExpiryDate: expiryDate || null,
+        lastPaymentDate: tier === 'premium' ? new Date() : undefined
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
   // AI Agent Referral operations
   async createAgentReferral(referralData: any): Promise<any> {
     const [referral] = await db.insert(agentReferrals).values(referralData).returning();

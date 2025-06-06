@@ -444,6 +444,17 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   marketplaceServiceListings: jsonb("marketplace_service_listings").default('[]'), // Services offered
   serviceCategories: jsonb("service_categories").default('[]'), // Service categories
   pricingModel: varchar("pricing_model").default("fixed"), // fixed, hourly, commission
+  
+  // Tiered registration system fields
+  membershipTier: varchar("membership_tier").notNull().default("basic"), // basic, premium
+  membershipExpiryDate: timestamp("membership_expiry_date"), // null for basic tier
+  annualRevenue: decimal("annual_revenue", { precision: 12, scale: 2 }).notNull().default("0.00"), // Revenue tracking
+  hasAutoUpgraded: boolean("has_auto_upgraded").notNull().default(false), // Auto-upgrade used flag
+  lastPaymentDate: timestamp("last_payment_date"), // Last premium payment
+  isHumanRegistered: boolean("is_human_registered").notNull().default(true), // true for human developers
+  stripeCustomerId: varchar("stripe_customer_id"), // Stripe customer ID for payments
+  stripeSubscriptionId: varchar("stripe_subscription_id"), // Stripe subscription ID
+  
   lastActive: timestamp("last_active").defaultNow(),
   registeredAt: timestamp("registered_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

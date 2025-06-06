@@ -29,8 +29,12 @@ export class FeeCalculator {
   static readonly P2P_CRYPTO_FEE_RATE = 0.0025; // 0.25%
   
   // AI Agent ecosystem fees
-  static readonly AI_AGENT_FEE_RATE = 0.02; // 2% for AI agent transactions
+  static readonly AI_AGENT_FEE_RATE = 0.035; // 3.5% platform base fee for AI agent transactions
   static readonly NETWORK_DISCOVERY_FEE = 0.001; // 0.1% for network discovery
+  
+  // Tiered commission rates for AI agents
+  static readonly BASIC_AGENT_COMMISSION_RATE = 0.005; // 0.5% for basic tier
+  static readonly PREMIUM_AGENT_COMMISSION_RATE = 0.015; // 1.5% for premium tier
   
   // Minimum fees
   static readonly MIN_SEND_MONEY_FEE = 0.32;
@@ -90,7 +94,7 @@ export class FeeCalculator {
     };
   }
 
-  // Updated AI Agent fee calculation with 2% rate
+  // Updated AI Agent fee calculation with tiered commission rates
   static calculateAIAgentFee(amount: number, currency: string, agentCommissionRate: number = 0.005): AIAgentFeeCalculation {
     const platformFee = Math.max(amount * this.AI_AGENT_FEE_RATE, this.MIN_AI_AGENT_FEE);
     const agentCommission = amount * agentCommissionRate;
@@ -109,6 +113,15 @@ export class FeeCalculator {
       currency,
       fee: totalFee
     };
+  }
+
+  // Tiered AI Agent fee calculation based on membership tier
+  static calculateTieredAIAgentFee(amount: number, currency: string, membershipTier: 'basic' | 'premium'): AIAgentFeeCalculation {
+    const commissionRate = membershipTier === 'premium' 
+      ? this.PREMIUM_AGENT_COMMISSION_RATE 
+      : this.BASIC_AGENT_COMMISSION_RATE;
+    
+    return this.calculateAIAgentFee(amount, currency, commissionRate);
   }
 
   static calculateNetworkDiscoveryFee(transactionValue: number, currency: string): FeeCalculation {

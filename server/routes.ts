@@ -718,7 +718,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate amount and calculate AI agent fee (2%)
       const serviceAmount = ValidationUtils.validateAmount(amount);
-      const feeCalculation = FeeCalculator.calculateAIAgentFee(serviceAmount);
+      const feeCalculation = { fee: serviceAmount * 0.02, total: serviceAmount * 1.02 }; // 2% AI agent fee
       const totalAmount = Math.round((serviceAmount + feeCalculation.fee) * 100); // Convert to cents
 
       const paymentIntent = await stripe.paymentIntents.create({
@@ -795,14 +795,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const platformFee = parseFloat(fee);
           const agentEarnings = serviceAmount - platformFee;
 
-          // Record agent transaction
-          const transaction = await storage.createAgentTransaction({
-            agentId,
-            userId,
+          // Record agent transaction using regular transaction table
+          const transaction = await storage.createTransaction({
+            fromUserId: userId,
+            toUserId: agentId,
+            toEmail: `agent@${agentId}`,
             amount: serviceAmount.toString(),
-            fee: platformFee.toString(),
-            status: 'completed',
-            paymentMethod: 'stripe_card'
+            message: `AI Agent service: ${agentId}`,
+            transactionType: "agent_service",
+            status: "completed",
           });
 
           console.log(`AI Agent service payment completed: ${serviceAmount} USD, Platform fee: ${platformFee}, Agent earnings: ${agentEarnings}`);

@@ -13,7 +13,7 @@ export const Referrals = lazy(() => import('@/pages/referrals'));
 export const CryptoTransferPage = lazy(() => import('@/pages/crypto-transfer'));
 
 // Demo components (can be lazy loaded since they're not critical path)
-export const DemoDashboard = lazy(() => import('@/pages/demo-dashboard'));
+export const DemoDashboard = lazy(() => import('@/pages/demo-dashboard').then(module => ({ default: module.default })));
 export const DemoTransactionHistory = lazy(() => import('@/pages/demo-transaction-history'));
 export const DemoSendMoney = lazy(() => import('@/pages/demo-send-money'));
 export const DemoBuySell = lazy(() => import('@/pages/demo-buy-sell'));

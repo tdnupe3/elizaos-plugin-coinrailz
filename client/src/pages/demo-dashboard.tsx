@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { demoApi } from "@/lib/demoApiService";
 import { BalanceCardSkeleton, TransactionSkeleton, CryptoHoldingSkeleton } from "@/components/ui/loading-skeleton";
 import { ErrorBoundary, EmptyState, NetworkErrorFallback } from "@/components/ui/error-boundary";
 
-export default function DemoDashboard() {
+function DemoDashboard() {
   const [, setLocation] = useLocation();
   const [user, setUser] = useState<any>(null);
   const [walletBalances, setWalletBalances] = useState<any[]>([]);
@@ -86,7 +86,7 @@ export default function DemoDashboard() {
     }
   };
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
       await loadDemoData();
@@ -96,7 +96,7 @@ export default function DemoDashboard() {
     } finally {
       setRefreshing(false);
     }
-  };
+  }, []);
 
   const formatCurrency = (amount: string | number) => {
     if (amount === undefined || amount === null) return '$0.00';
@@ -115,17 +115,28 @@ export default function DemoDashboard() {
     return num.toFixed(decimals);
   };
 
-  const getChangeColor = (change: number) => {
+  const getChangeColor = useCallback((change: number) => {
     return change >= 0 ? 'text-blue-600' : 'text-slate-600';
-  };
+  }, []);
 
-  const getChangeIcon = (change: number) => {
+  const getChangeIcon = useCallback((change: number) => {
     return change >= 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
-  };
+  }, []);
 
-  const usdWallet = walletBalances.find(w => w.currency === 'USD');
-  const totalCryptoValue = cryptoHoldings.reduce((total, holding) => total + holding.value, 0);
-  const totalPortfolioValue = (usdWallet ? parseFloat(usdWallet.balance) : 0) + totalCryptoValue;
+  const usdWallet = useMemo(() => 
+    walletBalances.find(w => w.currency === 'USD'), 
+    [walletBalances]
+  );
+  
+  const totalCryptoValue = useMemo(() => 
+    cryptoHoldings.reduce((total, holding) => total + holding.value, 0), 
+    [cryptoHoldings]
+  );
+  
+  const totalPortfolioValue = useMemo(() => 
+    (usdWallet ? parseFloat(usdWallet.balance) : 0) + totalCryptoValue, 
+    [usdWallet, totalCryptoValue]
+  );
 
   if (loading) {
     return (
@@ -423,3 +434,5 @@ export default function DemoDashboard() {
     </div>
   );
 }
+
+export default memo(DemoDashboard);

@@ -56,16 +56,11 @@ export const queryClient = new QueryClient({
       },
       refetchOnReconnect: true,
       networkMode: 'online',
-      onError: (error) => {
-        console.error('Query error:', error);
-      },
+
     },
     mutations: {
       retry: 1, // Retry mutations once on failure
       networkMode: 'online',
-      onError: (error) => {
-        console.error('Mutation error:', error);
-      },
     },
   },
 });

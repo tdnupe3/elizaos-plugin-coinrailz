@@ -47,8 +47,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const agentData = await cryptoSignalsAgent.getServicePricing();
       await storage.createGlobalAIAgent({
+        id: agentData.agentId,
         agentName: agentData.agentName,
-        agentId: agentData.agentId,
         description: agentData.description,
         capabilities: ["Technical Analysis", "Sentiment Analysis", "Trading Signals", "Market Research"],
         walletAddress: "0x742d35Cc6634C0532925a3b8D4C9db96F426A01F", // Demo wallet
@@ -560,7 +560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allTransactions = [
         ...fundingTransactions.map(t => ({ ...t, category: 'funding' })),
         ...regularTransactions.map(t => ({ ...t, category: 'transfer' }))
-      ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      ].sort((a, b) => new Date(b.createdAt || new Date()).getTime() - new Date(a.createdAt || new Date()).getTime());
 
       res.json(allTransactions.slice(0, limit));
     } catch (error) {
@@ -1178,11 +1178,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const donationRequest = {
-        agentId,
         amount: parseFloat(amount),
         currency,
-        donorMessage,
-        targetWallet: targetWallet || 'ethereum'
+        recipientAddress: targetWallet || '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F',
+        description: donorMessage || `Donation to agent ${agentId}`
       };
 
       const payment = await nowPaymentsService.createDirectDonation(donationRequest);
@@ -1326,11 +1325,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create NOWPayments fee collection
       const feePayment = await nowPaymentsService.createDirectDonation({
-        agentId: `p2p_transfer_${Date.now()}`,
         amount: feeAmount,
         currency: feePaymentCurrency || 'USDT',
-        donorMessage: `P2P transfer fee for ${amount} ${currency}`,
-        targetWallet: 'ethereum'
+        recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F',
+        description: `P2P transfer fee for ${amount} ${currency}`
       });
 
       // Process the actual transfer (implement based on your P2P logic)
@@ -1380,11 +1378,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create NOWPayments fee collection
       const feePayment = await nowPaymentsService.createDirectDonation({
-        agentId,
         amount: feeAmount,
         currency: feePaymentCurrency || 'USDT',
-        donorMessage: `AI Agent marketplace fee for transaction`,
-        targetWallet: 'ethereum'
+        recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F',
+        description: `AI Agent marketplace fee for transaction`
       });
 
       res.json({
@@ -1803,11 +1800,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const payment = await nowPaymentsService.createDirectDonation({
-        agentId: `subscription_${userId}`,
         amount,
         currency: paymentCurrency || 'USDT',
-        donorMessage: `${planType} subscription payment`,
-        targetWallet: 'ethereum'
+        recipientAddress: '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F',
+        description: `${planType} subscription payment`
       });
 
       res.json({

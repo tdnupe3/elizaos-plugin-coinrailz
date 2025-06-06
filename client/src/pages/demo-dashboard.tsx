@@ -330,6 +330,7 @@ function DemoDashboard() {
           <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Button 
+              key="send-money"
               className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
               variant="outline"
               onClick={() => setLocation('/demo/send')}
@@ -338,6 +339,7 @@ function DemoDashboard() {
               <span className="text-sm">Send Money</span>
             </Button>
             <Button 
+              key="buy-crypto"
               className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
               variant="outline"
               onClick={() => setLocation('/demo/buy-sell')}
@@ -346,6 +348,7 @@ function DemoDashboard() {
               <span className="text-sm">Buy Crypto</span>
             </Button>
             <Button 
+              key="sell-crypto"
               className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
               variant="outline"
               onClick={() => setLocation('/demo/buy-sell')}
@@ -354,6 +357,7 @@ function DemoDashboard() {
               <span className="text-sm">Sell Crypto</span>
             </Button>
             <Button 
+              key="swap"
               className="h-20 flex flex-col gap-2 bg-white hover:bg-gray-50 border-gray-200" 
               variant="outline"
               onClick={() => setLocation('/swap')}

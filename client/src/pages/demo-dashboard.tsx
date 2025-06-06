@@ -25,17 +25,16 @@ export default function DemoDashboard() {
 
   const loadDemoData = async () => {
     try {
-      const [userData, walletData, cryptoData, transactionData, pricesData] = await Promise.all([
-        demoApi.getUser(),
-        demoApi.getWalletBalances(),
-        demoApi.getCryptoHoldings(),
-        demoApi.getTransactions(),
-        demoApi.getCryptoPrices()
+      const [userData, walletData, transactionData, pricesData] = await Promise.all([
+        fetch('/api/demo/user').then(res => res.json()),
+        fetch('/api/demo/balances').then(res => res.json()),
+        fetch('/api/demo/transactions').then(res => res.json()),
+        fetch('/api/demo/crypto-prices').then(res => res.json())
       ]);
 
       setUser(userData);
       setWalletBalances(walletData);
-      setCryptoHoldings(cryptoData);
+      setCryptoHoldings(walletData.filter((balance: any) => balance.currency !== 'USD'));
       setRecentTransactions(transactionData.slice(0, 5));
       setCryptoPrices(pricesData);
     } catch (error) {
@@ -53,7 +52,9 @@ export default function DemoDashboard() {
   };
 
   const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (amount === undefined || amount === null) return '$0.00';
+    const num = typeof amount === 'string' ? parseFloat(amount.replace(/[,$]/g, '')) : amount;
+    if (isNaN(num)) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -61,7 +62,9 @@ export default function DemoDashboard() {
   };
 
   const formatCrypto = (amount: string | number, decimals: number = 8) => {
+    if (amount === undefined || amount === null) return '0.00000000';
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (isNaN(num)) return '0.00000000';
     return num.toFixed(decimals);
   };
 

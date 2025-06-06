@@ -907,6 +907,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Demo API endpoints for testing without authentication
+  app.get('/api/demo/user', async (req, res) => {
+    try {
+      const demoUser = {
+        id: "demo_user_001",
+        email: "demo@coinrailz.com",
+        firstName: "Demo",
+        lastName: "User",
+        usdBalance: "2847.52",
+        createdAt: new Date('2024-01-15'),
+        lastLogin: new Date()
+      };
+      res.json(demoUser);
+    } catch (error) {
+      console.error("Error fetching demo user:", error);
+      res.status(500).json({ message: "Failed to fetch demo user" });
+    }
+  });
+
+  app.get('/api/demo/balances', async (req, res) => {
+    try {
+      const demoBalances = [
+        { currency: "USD", balance: "2847.52", availableBalance: "2800.00", frozenBalance: "47.52" },
+        { currency: "BTC", balance: "0.05432100", availableBalance: "0.05432100", frozenBalance: "0.00000000" },
+        { currency: "ETH", balance: "1.24567890", availableBalance: "1.24567890", frozenBalance: "0.00000000" },
+        { currency: "USDT", balance: "450.00", availableBalance: "450.00", frozenBalance: "0.00000000" }
+      ];
+      res.json(demoBalances);
+    } catch (error) {
+      console.error("Error fetching demo balances:", error);
+      res.status(500).json({ message: "Failed to fetch demo balances" });
+    }
+  });
+
+  app.get('/api/demo/transactions', async (req, res) => {
+    try {
+      const demoTransactions = [
+        {
+          id: "tx_001",
+          fromUserId: "demo_user_001",
+          toEmail: "alice@example.com",
+          amount: "150.00",
+          message: "Payment for services",
+          transactionType: "send",
+          status: "completed",
+          createdAt: new Date('2024-12-01T10:30:00Z')
+        },
+        {
+          id: "tx_002", 
+          fromUserId: "bob_user_002",
+          toUserId: "demo_user_001",
+          amount: "75.50",
+          message: "Refund",
+          transactionType: "receive",
+          status: "completed",
+          createdAt: new Date('2024-11-28T14:20:00Z')
+        },
+        {
+          id: "tx_003",
+          fromUserId: "demo_user_001",
+          toEmail: "charlie@example.com", 
+          amount: "200.00",
+          message: "Monthly payment",
+          transactionType: "send",
+          status: "completed",
+          createdAt: new Date('2024-11-25T09:15:00Z')
+        }
+      ];
+      res.json(demoTransactions);
+    } catch (error) {
+      console.error("Error fetching demo transactions:", error);
+      res.status(500).json({ message: "Failed to fetch demo transactions" });
+    }
+  });
+
+  app.get('/api/demo/crypto-prices', async (req, res) => {
+    try {
+      const demoPrices = {
+        BTC: { price: 43250.00, change24h: 2.45 },
+        ETH: { price: 2380.50, change24h: -1.20 },
+        USDT: { price: 1.00, change24h: 0.02 },
+        SOL: { price: 98.75, change24h: 5.60 }
+      };
+      res.json(demoPrices);
+    } catch (error) {
+      console.error("Error fetching demo crypto prices:", error);
+      res.status(500).json({ message: "Failed to fetch demo crypto prices" });
+    }
+  });
+
   // Transaction listing
   app.get('/api/transactions', isAuthenticated, async (req: any, res) => {
     try {

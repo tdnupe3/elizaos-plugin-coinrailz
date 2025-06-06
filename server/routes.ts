@@ -262,6 +262,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Membership Status Check
+  app.get('/api/agents/membership/status/:agentId', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const agent = await storage.getAgent(agentId);
+      
+      if (!agent) {
+        return res.status(404).json({ error: 'Agent not found' });
+      }
+      
+      const now = new Date();
+      const isExpired = agent.membershipExpiryDate && new Date(agent.membershipExpiryDate) < now;
+      
+      res.json({
+        success: true,
+        membership: {
+          agentId: agent.id,
+          tier: agent.membershipTier,
+          expiryDate: agent.membershipExpiryDate,
+          isExpired,
+          isHumanRegistered: agent.isHumanRegistered,
+          hasAutoUpgraded: agent.hasAutoUpgraded,
+          annualRevenue: agent.annualRevenue,
+          commissionRate: agent.membershipTier === 'premium' ? '1.5%' : '0.5%',
+          lastPaymentDate: agent.lastPaymentDate
+        }
+      });
+    } catch (error) {
+      console.error('Membership status error:', error);
+      res.status(500).json({ error: 'Failed to retrieve membership status' });
+    }
+  });
+
+  // Manual Upgrade to Premium
+  app.post('/api/agents/membership/upgrade', async (req, res) => {
+    try {
+      const { agentId, paymentMethodId } = req.body;
+      
+      if (!agentId || !paymentMethodId) {
+        return res.status(400).json({ error: 'Agent ID and payment method required' });
+      }
+      
+      const agent = await storage.getAgent(agentId);
+      if (!agent) {
+        return res.status(404).json({ error: 'Agent not found' });
+      }
+      
+      if (agent.membershipTier === 'premium') {
+        return res.status(400).json({ error: 'Agent already has premium membership' });
+      }
+      
+      // Create Stripe customer and subscription
+      const customer = await stripe.customers.create({
+        payment_method: paymentMethodId,
+        invoice_settings: { default_payment_method: paymentMethodId }
+      });
+
+      const subscription = await stripe.subscriptions.create({
+        customer: customer.id,
+        items: [{ 
+          price_data: {
+            currency: 'usd',
+            product_data: { name: 'AI Agent Premium Membership' },
+            unit_amount: 2500, // $25.00
+            recurring: { interval: 'year' }
+          }
+        }],
+        payment_behavior: 'default_incomplete',
+        expand: ['latest_invoice.payment_intent']
+      });
+      
+      const expiryDate = new Date();
+      expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      
+      await storage.updateAgentMembership(agentId, 'premium', expiryDate);
+      
+      res.json({
+        success: true,
+        message: 'Agent upgraded to premium membership',
+        subscription: {
+          id: subscription.id,
+          clientSecret: subscription.latest_invoice.payment_intent.client_secret
+        },
+        membershipTier: 'premium',
+        expiryDate,
+        commissionRate: '1.5%'
+      });
+    } catch (error) {
+      console.error('Manual upgrade error:', error);
+      res.status(500).json({ error: 'Failed to upgrade membership' });
+    }
+  });
+
+  // Agent Revenue Tracking
+  app.get('/api/agents/revenue/:agentId', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const agent = await storage.getAgent(agentId);
+      
+      if (!agent) {
+        return res.status(404).json({ error: 'Agent not found' });
+      }
+      
+      const revenue = parseFloat(agent.annualRevenue || '0');
+      const autoUpgradeEligible = revenue >= 1000 && !agent.hasAutoUpgraded && agent.membershipTier === 'basic';
+      
+      res.json({
+        success: true,
+        revenue: {
+          agentId: agent.id,
+          totalRevenue: revenue,
+          formattedRevenue: `$${revenue.toFixed(2)}`,
+          autoUpgradeThreshold: 1000,
+          autoUpgradeEligible,
+          hasAutoUpgraded: agent.hasAutoUpgraded,
+          membershipTier: agent.membershipTier,
+          commissionRate: agent.membershipTier === 'premium' ? '1.5%' : '0.5%'
+        }
+      });
+    } catch (error) {
+      console.error('Revenue tracking error:', error);
+      res.status(500).json({ error: 'Failed to retrieve revenue data' });
+    }
+  });
+
+  // Process Auto-Upgrade (Internal endpoint)
+  app.post('/api/agents/auto-upgrade/:agentId', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const upgraded = await storage.checkAndAutoUpgradeAgent(agentId);
+      
+      if (upgraded) {
+        res.json({
+          success: true,
+          message: 'Agent auto-upgraded to premium membership',
+          membershipTier: 'premium',
+          commissionRate: '1.5%',
+          autoUpgraded: true
+        });
+      } else {
+        res.json({
+          success: false,
+          message: 'Agent not eligible for auto-upgrade',
+          autoUpgraded: false
+        });
+      }
+    } catch (error) {
+      console.error('Auto-upgrade error:', error);
+      res.status(500).json({ error: 'Failed to process auto-upgrade' });
+    }
+  });
+
   // Public Agent Transaction Processing - No authentication required
   app.post('/api/public/agents/transact', async (req, res) => {
     try {

@@ -32,7 +32,7 @@ import {
   type InsertCryptoTransfer,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, sum, sql, lte, gte } from "drizzle-orm";
+import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {

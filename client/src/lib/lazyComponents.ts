@@ -20,5 +20,20 @@ export const DemoBuySell = lazy(() => import('@/pages/demo-buy-sell'));
 export const DemoWalletManagement = lazy(() => import('@/pages/demo-wallet-management'));
 export const DemoCryptoTransfer = lazy(() => import('@/pages/demo-crypto-transfer'));
 
+// AI Agent components
+export const AIAgents = lazy(() => import('@/pages/ai-agents'));
+export const AIAgentMarketplace = lazy(() => import('@/pages/ai-agent-marketplace'));
+export const AIAgentRegistration = lazy(() => import('@/pages/ai-agent-registration'));
+export const EnhancedAIAgentMarketplace = lazy(() => import('@/pages/enhanced-ai-agent-marketplace'));
+export const CryptoSignalsAgent = lazy(() => import('@/pages/crypto-signals-agent'));
+
+// Revenue and Analytics components
+export const RevenueDashboard = lazy(() => import('@/pages/revenue-dashboard'));
+export const ReferralDashboard = lazy(() => import('@/pages/referral-dashboard'));
+export const SystemDashboard = lazy(() => import('@/pages/system-dashboard'));
+
 // Heavy components that are rarely used immediately
 export const MfaSetup = lazy(() => import('@/components/MfaSetup'));
+export const SignupFlowDemo = lazy(() => import('@/pages/signup-flow-demo'));
+export const LegalDisclaimers = lazy(() => import('@/pages/legal-disclaimers'));
+export const ContactUs = lazy(() => import('@/pages/contact-us'));

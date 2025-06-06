@@ -43,6 +43,7 @@ import { lazy } from "react";
 // Lazy load AI agents page
 const AIAgents = lazy(() => import("@/pages/ai-agents"));
 const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
+const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
 const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
@@ -83,6 +84,9 @@ function Router() {
       </Route>
       <Route path="/ai-agent-marketplace">
         {() => <LazyLoadWrapper><AIAgentMarketplace /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/ai-agent-registration">
+        {() => <LazyLoadWrapper><AIAgentRegistration /></LazyLoadWrapper>}
       </Route>
       <Route path="/revenue-dashboard">
         {() => <LazyLoadWrapper><RevenueDashboard /></LazyLoadWrapper>}

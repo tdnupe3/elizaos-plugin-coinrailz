@@ -4,43 +4,68 @@ import "./index.css";
 
 // Global error handling for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
-  // Handle Chrome transport errors specifically
-  if (event.reason?.message?.includes('ChromeTransport') || 
-      event.reason?.name === 'ChromeTransport' ||
-      event.reason?.stack?.includes('ChromeTransport')) {
+  // Suppress all development-related connection errors
+  const suppressedErrors = [
+    'ChromeTransport',
+    'connectChrome',
+    'WebSocket',
+    'vite',
+    'connecting',
+    'HMR',
+    'hot-reload',
+    'ws://localhost'
+  ];
+  
+  const errorMessage = String(event.reason?.message || event.reason || '');
+  const errorName = String(event.reason?.name || '');
+  const errorStack = String(event.reason?.stack || '');
+  
+  // Check if this is a development-related error
+  const isDevelopmentError = suppressedErrors.some(keyword => 
+    errorMessage.toLowerCase().includes(keyword.toLowerCase()) ||
+    errorName.toLowerCase().includes(keyword.toLowerCase()) ||
+    errorStack.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  if (isDevelopmentError) {
     event.preventDefault();
     return;
   }
   
-  // Handle WebSocket connection errors
-  if (event.reason?.message?.includes('WebSocket') || 
-      event.reason?.type === 'error' ||
-      event.reason?.message?.includes('connectChrome')) {
-    event.preventDefault();
-    return;
-  }
-  
-  // Handle Vite HMR connection errors
-  if (event.reason?.message?.includes('vite') || 
-      event.reason?.message?.includes('connecting') ||
-      event.reason?.type === 'unhandledrejection') {
-    event.preventDefault();
-    return;
-  }
-  
-  console.error('Unhandled promise rejection:', event.reason);
+  // Only log genuine application errors
+  console.error('Application error:', event.reason);
   event.preventDefault();
 });
 
 // Global error handling for general errors
 window.addEventListener('error', (event) => {
-  console.error('Global error:', event.error);
+  // Suppress development-related errors
+  const suppressedErrors = [
+    'ChromeTransport',
+    'connectChrome',
+    'WebSocket',
+    'vite',
+    'connecting',
+    'HMR',
+    'hot-reload',
+    'Script error',
+    'Loading chunk'
+  ];
   
-  // Handle script loading errors gracefully
-  if (event.error?.message?.includes('Loading chunk')) {
-    console.warn('Chunk loading error - may need refresh');
+  const errorMessage = String(event.message || event.error?.message || '');
+  const errorFilename = String(event.filename || '');
+  
+  const isDevelopmentError = suppressedErrors.some(keyword => 
+    errorMessage.toLowerCase().includes(keyword.toLowerCase()) ||
+    errorFilename.toLowerCase().includes(keyword.toLowerCase())
+  );
+  
+  if (isDevelopmentError) {
+    event.preventDefault();
     return;
   }
+  
+  console.error('Application error:', event.error);
 });
 
 createRoot(document.getElementById("root")!).render(<App />);

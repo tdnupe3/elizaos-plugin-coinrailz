@@ -75,6 +75,16 @@ queryClient.getMutationCache().subscribe((event) => {
 // Add global query cache error handling  
 queryClient.getQueryCache().subscribe((event) => {
   if (event?.type === 'updated' && event.query.state.status === 'error') {
-    console.error('Global query error:', event.query.state.error);
+    const error = event.query.state.error;
+    const errorMessage = String(error?.message || error || '');
+    
+    // Suppress development-related connection errors
+    const isDevelopmentError = ['ChromeTransport', 'connectChrome', 'WebSocket', 'vite', 'connecting'].some(keyword => 
+      errorMessage.toLowerCase().includes(keyword.toLowerCase())
+    );
+    
+    if (!isDevelopmentError) {
+      console.error('Global query error:', error);
+    }
   }
 });

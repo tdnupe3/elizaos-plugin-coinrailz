@@ -1112,7 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing direct agent transfer:", error);
       res.status(500).json({ 
-        message: error.message || "Failed to process direct agent transfer" 
+        message: (error as Error).message || "Failed to process direct agent transfer" 
       });
     }
   });

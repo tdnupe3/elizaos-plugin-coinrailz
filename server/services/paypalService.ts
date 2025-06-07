@@ -1,0 +1,212 @@
+/**
+ * PayPal Payment Service
+ * Handles PayPal payment processing for the Coin Railz platform
+ */
+
+import { env } from '../environment';
+
+interface PayPalAccessToken {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+}
+
+interface PayPalOrderRequest {
+  intent: 'CAPTURE';
+  purchase_units: Array<{
+    amount: {
+      currency_code: string;
+      value: string;
+    };
+    description?: string;
+  }>;
+  application_context?: {
+    return_url?: string;
+    cancel_url?: string;
+    brand_name?: string;
+    user_action?: 'PAY_NOW' | 'CONTINUE';
+  };
+}
+
+interface PayPalOrder {
+  id: string;
+  status: string;
+  links: Array<{
+    href: string;
+    rel: string;
+    method: string;
+  }>;
+}
+
+class PayPalService {
+  private baseURL: string;
+  private clientId: string;
+  private clientSecret: string;
+  private accessToken: string | null = null;
+  private tokenExpiry: number = 0;
+
+  constructor() {
+    this.clientId = env.PAYPAL_CLIENT_ID || '';
+    this.clientSecret = env.PAYPAL_CLIENT_SECRET || '';
+    this.baseURL = env.PAYPAL_ENVIRONMENT === 'production' 
+      ? 'https://api-m.paypal.com' 
+      : 'https://api-m.sandbox.paypal.com';
+  }
+
+  private async getAccessToken(): Promise<string> {
+    // Return cached token if still valid
+    if (this.accessToken && Date.now() < this.tokenExpiry) {
+      return this.accessToken;
+    }
+
+    if (!this.clientId || !this.clientSecret) {
+      throw new Error('PayPal client credentials not configured');
+    }
+
+    const auth = Buffer.from(`${this.clientId}:${this.clientSecret}`).toString('base64');
+    
+    const response = await fetch(`${this.baseURL}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayPal authentication failed: ${response.status}`);
+    }
+
+    const tokenData: PayPalAccessToken = await response.json();
+    this.accessToken = tokenData.access_token;
+    this.tokenExpiry = Date.now() + (tokenData.expires_in * 1000) - 60000; // 1 minute buffer
+
+    return this.accessToken;
+  }
+
+  async createOrder(orderData: {
+    amount: number;
+    currency: string;
+    description?: string;
+    returnUrl?: string;
+    cancelUrl?: string;
+  }): Promise<PayPalOrder> {
+    const accessToken = await this.getAccessToken();
+
+    const orderRequest: PayPalOrderRequest = {
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: {
+          currency_code: orderData.currency.toUpperCase(),
+          value: orderData.amount.toFixed(2),
+        },
+        description: orderData.description || 'Coin Railz Payment',
+      }],
+      application_context: {
+        return_url: orderData.returnUrl || `${env.FRONTEND_URL}/payment/success`,
+        cancel_url: orderData.cancelUrl || `${env.FRONTEND_URL}/payment/cancel`,
+        brand_name: 'Coin Railz',
+        user_action: 'PAY_NOW',
+      },
+    };
+
+    const response = await fetch(`${this.baseURL}/v2/checkout/orders`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(orderRequest),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`PayPal order creation failed: ${response.status} - ${errorData}`);
+    }
+
+    return await response.json();
+  }
+
+  async captureOrder(orderId: string): Promise<any> {
+    const accessToken = await this.getAccessToken();
+
+    const response = await fetch(`${this.baseURL}/v2/checkout/orders/${orderId}/capture`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`PayPal order capture failed: ${response.status} - ${errorData}`);
+    }
+
+    return await response.json();
+  }
+
+  async getOrderDetails(orderId: string): Promise<any> {
+    const accessToken = await this.getAccessToken();
+
+    const response = await fetch(`${this.baseURL}/v2/checkout/orders/${orderId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayPal order details fetch failed: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async verifyWebhook(headers: any, body: string, webhookId: string): Promise<boolean> {
+    const accessToken = await this.getAccessToken();
+
+    const verificationData = {
+      auth_algo: headers['paypal-auth-algo'],
+      cert_id: headers['paypal-cert-id'],
+      transmission_id: headers['paypal-transmission-id'],
+      transmission_sig: headers['paypal-transmission-sig'],
+      transmission_time: headers['paypal-transmission-time'],
+      webhook_id: webhookId,
+      webhook_event: JSON.parse(body),
+    };
+
+    const response = await fetch(`${this.baseURL}/v1/notifications/verify-webhook-signature`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(verificationData),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    const result = await response.json();
+    return result.verification_status === 'SUCCESS';
+  }
+
+  getApprovalUrl(order: PayPalOrder): string | null {
+    const approvalLink = order.links.find(link => link.rel === 'approve');
+    return approvalLink ? approvalLink.href : null;
+  }
+
+  isConfigured(): boolean {
+    return !!(this.clientId && this.clientSecret);
+  }
+
+  getEnvironment(): string {
+    return env.PAYPAL_ENVIRONMENT || 'sandbox';
+  }
+}
+
+export const paypalService = new PayPalService();

@@ -37,6 +37,7 @@ import DatabaseSecurity from "./middleware/databaseSecurity";
 import { registerDemoRoutes } from './routes-demo';
 import { EnhancedReferralService } from './services/enhancedReferralService';
 import { TransactionCompletionHooks } from './services/transactionCompletionHooks';
+import { paypalService } from './services/paypalService';
 // Notification service will be imported dynamically in route handlers
 
 // Initialize Stripe conditionally
@@ -1298,8 +1299,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
         total: serviceAmount + feeCalculation.fee
       });
     } catch (error: any) {
-      console.error("Error creating AI agent payment intent:", error);
+      console.error("Error creating agent payment intent:", error);
       res.status(500).json({ message: "Error creating payment intent: " + error.message });
+    }
+  });
+
+  // PayPal payment order creation
+  app.post("/api/paypal/create-order", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!paypalService.isConfigured()) {
+        return res.status(400).json({ 
+          message: "PayPal is not configured. Please configure PayPal credentials." 
+        });
+      }
+
+      const { amount, currency = 'USD', description, type = 'general' } = req.body;
+      const userId = req.user.claims.sub;
+
+      // Validate amount
+      const validatedAmount = ValidationUtils.validateAmount(amount);
+      
+      // Calculate fees based on payment type
+      let feeCalculation;
+      if (type === 'p2p_transfer') {
+        feeCalculation = FeeCalculator.calculateSendMoneyFee(validatedAmount);
+      } else if (type === 'ai_agent_service') {
+        feeCalculation = { fee: validatedAmount * 0.02, total: validatedAmount * 1.02 };
+      } else {
+        feeCalculation = { fee: 0, total: validatedAmount };
+      }
+
+      const totalAmount = validatedAmount + feeCalculation.fee;
+
+      const order = await paypalService.createOrder({
+        amount: totalAmount,
+        currency: currency,
+        description: description || 'Coin Railz Payment',
+        returnUrl: `${req.protocol}://${req.get('host')}/payment/paypal/success`,
+        cancelUrl: `${req.protocol}://${req.get('host')}/payment/paypal/cancel`
+      });
+
+      // Store order metadata for completion
+      await storage.createPaymentIntent({
+        id: order.id,
+        userId: userId,
+        amount: validatedAmount,
+        fee: feeCalculation.fee,
+        currency: currency,
+        status: 'pending',
+        paymentMethod: 'paypal',
+        metadata: {
+          type,
+          description,
+          originalRequest: req.body
+        }
+      });
+
+      const approvalUrl = paypalService.getApprovalUrl(order);
+
+      res.json({
+        orderId: order.id,
+        approvalUrl,
+        amount: validatedAmount,
+        fee: feeCalculation.fee,
+        total: totalAmount,
+        status: order.status
+      });
+    } catch (error: any) {
+      console.error("Error creating PayPal order:", error);
+      res.status(500).json({ message: "Error creating PayPal order: " + error.message });
+    }
+  });
+
+  // PayPal order capture (complete payment)
+  app.post("/api/paypal/capture-order/:orderId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user.claims.sub;
+
+      // Verify order belongs to user
+      const paymentIntent = await storage.getPaymentIntent(orderId);
+      if (!paymentIntent || paymentIntent.userId !== userId) {
+        return res.status(404).json({ message: "Payment order not found" });
+      }
+
+      const captureResult = await paypalService.captureOrder(orderId);
+      
+      if (captureResult.status === 'COMPLETED') {
+        // Update payment intent status
+        await storage.updatePaymentIntentStatus(orderId, 'completed');
+
+        // Process the completed payment based on type
+        const metadata = paymentIntent.metadata;
+        if (metadata.type === 'p2p_transfer') {
+          // Handle P2P transfer completion
+          const NotificationService = (await import('./services/notificationService')).notificationService;
+          await NotificationService.createNotification({
+            userId,
+            type: 'payment_sent' as any,
+            title: 'PayPal Payment Sent',
+            message: `Successfully sent $${paymentIntent.amount} via PayPal`,
+            priority: 'medium' as any
+          });
+        } else if (metadata.type === 'ai_agent_service') {
+          // Handle AI agent payment completion
+          const NotificationService = (await import('./services/notificationService')).notificationService;
+          await NotificationService.createNotification({
+            userId,
+            type: 'service_payment' as any,
+            title: 'AI Agent Payment Complete',
+            message: `Payment of $${paymentIntent.amount} completed via PayPal`,
+            priority: 'medium' as any
+          });
+        }
+
+        res.json({
+          success: true,
+          orderId,
+          captureId: captureResult.purchase_units[0].payments.captures[0].id,
+          amount: paymentIntent.amount,
+          status: 'completed'
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: "Payment capture failed",
+          status: captureResult.status
+        });
+      }
+    } catch (error: any) {
+      console.error("Error capturing PayPal order:", error);
+      res.status(500).json({ message: "Error capturing PayPal order: " + error.message });
+    }
+  });
+
+  // PayPal order details
+  app.get("/api/paypal/order/:orderId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user.claims.sub;
+
+      // Verify order belongs to user
+      const paymentIntent = await storage.getPaymentIntent(orderId);
+      if (!paymentIntent || paymentIntent.userId !== userId) {
+        return res.status(404).json({ message: "Payment order not found" });
+      }
+
+      const orderDetails = await paypalService.getOrderDetails(orderId);
+      
+      res.json({
+        orderId,
+        status: orderDetails.status,
+        amount: paymentIntent.amount,
+        fee: paymentIntent.fee,
+        currency: paymentIntent.currency,
+        createdAt: orderDetails.create_time,
+        updatedAt: orderDetails.update_time
+      });
+    } catch (error: any) {
+      console.error("Error fetching PayPal order details:", error);
+      res.status(500).json({ message: "Error fetching order details: " + error.message });
+    }
+  });
+
+  // PayPal webhook handler
+  app.post("/api/paypal/webhook", async (req, res) => {
+    try {
+      const webhookId = process.env.PAYPAL_WEBHOOK_ID;
+      if (!webhookId) {
+        return res.status(400).json({ message: "PayPal webhook not configured" });
+      }
+
+      const isValid = await paypalService.verifyWebhook(req.headers, JSON.stringify(req.body), webhookId);
+      
+      if (!isValid) {
+        return res.status(400).json({ message: "Invalid webhook signature" });
+      }
+
+      const event = req.body;
+      
+      // Handle different webhook events
+      switch (event.event_type) {
+        case 'PAYMENT.CAPTURE.COMPLETED':
+          const orderId = event.resource.supplementary_data.related_ids.order_id;
+          await storage.updatePaymentIntentStatus(orderId, 'completed');
+          break;
+        case 'PAYMENT.CAPTURE.DENIED':
+          const deniedOrderId = event.resource.supplementary_data.related_ids.order_id;
+          await storage.updatePaymentIntentStatus(deniedOrderId, 'failed');
+          break;
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error: any) {
+      console.error("Error processing PayPal webhook:", error);
+      res.status(500).json({ message: "Error processing webhook" });
     }
   });
 

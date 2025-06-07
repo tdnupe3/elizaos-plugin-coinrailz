@@ -1,0 +1,46 @@
+PRIORITY PROMPT FOR COIN RAILZ PRODUCTION OPTIMIZATION
+CRITICAL PRIORITY (Must Fix - Blocking Launch)
+API Key Configuration & Testing
+
+Configure and test NOWPAYMENTS_API_KEY for crypto payment processing
+Verify Stripe live keys are properly configured for production
+Test end-to-end payment flows with real API responses
+Validate all external API connections (CoinGecko, ChangeNOW, etc.)
+Database Schema Completion
+
+Fix any remaining foreign key constraints in agent_referrals table
+Ensure all database indexes are properly created for performance
+Verify referral tracking fields are complete and functional
+HIGH PRIORITY (Should Fix - Performance & Revenue)
+Revenue Stream Optimization
+
+Implement automatic referral reward processing through NOWPayments
+Add transaction hooks to trigger referral payments on every agent transaction
+Complete the perpetual referral system with automated crypto payouts
+Add referral dashboard showing earnings and projections
+Performance Enhancements
+
+Optimize database queries with proper indexing (currently 400-450ms response times)
+Implement advanced caching for frequently accessed data
+Add query optimization for agent discovery and transaction history
+MEDIUM PRIORITY (Nice to Have - User Experience)
+Frontend Polish
+
+Add loading states and error handling for all transaction flows
+Implement mobile responsiveness improvements
+Add real-time WebSocket updates for transaction status
+Create comprehensive onboarding flow for new users
+Advanced Features
+
+Add multi-language support (i18n framework is partially implemented)
+Implement advanced analytics dashboard
+Add KYC/AML verification workflows
+Create admin dashboard for platform monitoring
+LOW PRIORITY (Future Enhancements)
+Compliance & Security
+Enhanced fraud detection algorithms
+Advanced AML monitoring dashboards
+Additional security measures beyond current implementation
+FOCUS AREAS: Prioritize items 1-4 for immediate production readiness. The platform is already 95% functional - these changes will optimize revenue generation and user experience for launch.
+
+CURRENT STATUS: Platform has 4 operational revenue streams generating projected $7K-21K monthly. These optimizations will maximize that potential.

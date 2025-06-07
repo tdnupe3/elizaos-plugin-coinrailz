@@ -2780,6 +2780,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==============================================
+  // PRODUCTION OPTIMIZATION ENDPOINTS
+  // ==============================================
+
+  // API Health Check Endpoint
+  app.get('/api/health/check', async (req, res) => {
+    try {
+      const { APIValidationService } = await import('./services/apiValidation');
+      const healthChecks = await APIValidationService.runFullHealthCheck();
+      
+      const allHealthy = healthChecks.every(check => check.status === 'healthy');
+      
+      res.status(allHealthy ? 200 : 503).json({
+        status: allHealthy ? 'healthy' : 'degraded',
+        services: healthChecks,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      res.status(500).json({
+        status: 'error',
+        error: 'Health check failed',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  });
+
+  // Real-time crypto prices with caching
+  app.get('/api/crypto/prices', async (req, res) => {
+    try {
+      const { APIValidationService } = await import('./services/apiValidation');
+      
+      const prices = await APIValidationService.getCryptoPrices([
+        'bitcoin', 'ethereum', 'cardano', 'polkadot', 'solana', 'chainlink'
+      ]);
+      
+      res.json(prices);
+    } catch (error) {
+      console.error('Error fetching crypto prices:', error);
+      res.status(500).json({ error: 'Failed to fetch cryptocurrency prices' });
+    }
+  });
+
+  // Create crypto payment via NOWPayments
+  app.post('/api/payments/crypto', isAuthenticated, async (req: any, res) => {
+    try {
+      const { amount, currency, orderId, description } = req.body;
+      const { APIValidationService } = await import('./services/apiValidation');
+      
+      const payment = await APIValidationService.createNOWPayment({
+        price_amount: amount,
+        price_currency: 'USD',
+        pay_currency: currency,
+        order_id: orderId,
+        order_description: description,
+      });
+      
+      res.json(payment);
+    } catch (error) {
+      console.error('Error creating crypto payment:', error);
+      res.status(500).json({ error: 'Failed to create crypto payment' });
+    }
+  });
+
+  // Exchange estimate via ChangeNOW
+  app.get('/api/exchange/estimate', async (req, res) => {
+    try {
+      const { from, to, amount } = req.query;
+      const { APIValidationService } = await import('./services/apiValidation');
+      
+      const estimate = await APIValidationService.getExchangeEstimate({
+        from: from as string,
+        to: to as string,
+        amount: parseFloat(amount as string),
+      });
+      
+      res.json(estimate);
+    } catch (error) {
+      console.error('Error getting exchange estimate:', error);
+      res.status(500).json({ error: 'Failed to get exchange estimate' });
+    }
+  });
+
+  // Automated referral processing endpoint
+  app.post('/api/referrals/process-rewards', async (req, res) => {
+    try {
+      const { ReferralProcessor } = await import('./services/referralProcessor');
+      await ReferralProcessor.processPendingRewards();
+      res.json({ success: true, message: 'Referral rewards processed' });
+    } catch (error) {
+      console.error('Error processing referral rewards:', error);
+      res.status(500).json({ error: 'Failed to process referral rewards' });
+    }
+  });
+
+  // Referral dashboard for agents
+  app.get('/api/agents/:agentId/referral-dashboard', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const { ReferralProcessor } = await import('./services/referralProcessor');
+      
+      const dashboard = await ReferralProcessor.getReferralDashboard(agentId);
+      res.json(dashboard);
+    } catch (error) {
+      console.error('Error fetching referral dashboard:', error);
+      res.status(500).json({ error: 'Failed to fetch referral dashboard' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

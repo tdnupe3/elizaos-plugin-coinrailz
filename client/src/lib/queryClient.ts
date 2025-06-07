@@ -99,7 +99,7 @@ if (typeof window !== 'undefined') {
   // Intercept and block network stats requests
   const originalFetch = window.fetch;
   window.fetch = async (input, init) => {
-    const url = typeof input === 'string' ? input : input.url;
+    const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : (input as URL).href);
     if (url.includes('/api/public/network/stats')) {
       console.log('Blocked network stats request to prevent excessive API calls');
       // Return static data instead of making the request

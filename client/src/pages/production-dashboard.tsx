@@ -145,7 +145,7 @@ export default function ProductionDashboard() {
               ) : (
                 <div>
                   <div className="text-2xl font-bold">
-                    {networkStats?.networkStats?.totalTransactions || 0}
+                    {networkStats.totalTransactions || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">Total Transactions</p>
                 </div>

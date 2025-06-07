@@ -1,4 +1,4 @@
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -448,13 +448,39 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="bg-gray-50 border-t border-gray-200 py-8 mt-16">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-sm text-gray-600 mb-2">
-            Coin Railz - Secure cross-platform financial services for global users
-          </p>
-          <p className="text-xs text-gray-500">
-            Supporting both human users and autonomous AI agents worldwide
-          </p>
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-6">
+            <p className="text-sm text-gray-600 mb-2">
+              Coin Railz - Secure cross-platform financial services for global users
+            </p>
+            <p className="text-xs text-gray-500">
+              Supporting both human users and autonomous AI agents worldwide
+            </p>
+          </div>
+          
+          {/* Legal Links */}
+          <div className="border-t border-gray-200 pt-6">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs text-gray-500">
+              <div className="flex items-center gap-4">
+                <Link href="/terms-of-service" className="hover:text-gray-700 hover:underline transition-colors">
+                  Terms of Service
+                </Link>
+                <span className="text-gray-300">|</span>
+                <Link href="/privacy-policy" className="hover:text-gray-700 hover:underline transition-colors">
+                  Privacy Policy
+                </Link>
+                <span className="text-gray-300">|</span>
+                <Link href="/legal-disclaimers" className="hover:text-gray-700 hover:underline transition-colors">
+                  Legal Disclaimers
+                </Link>
+              </div>
+            </div>
+            <div className="text-center mt-4">
+              <p className="text-xs text-gray-400">
+                © 2025 Kellogg Holdings LLC. All rights reserved. Violations of our terms may result in account suspension or termination.
+              </p>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

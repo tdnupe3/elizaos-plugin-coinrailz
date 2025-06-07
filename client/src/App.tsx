@@ -32,8 +32,7 @@ import {
   DemoBuySell,
   DemoWalletManagement,
   DemoCryptoTransfer,
-  TermsOfService,
-  PrivacyPolicy
+
 } from "@/lib/lazyComponents";
 
 // Import signup flow demo directly
@@ -49,6 +48,10 @@ const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
 const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
+
+// Lazy load legal pages
+const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
+const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -108,10 +111,10 @@ function Router() {
       
       {/* Legal pages - accessible to all users */}
       <Route path="/terms-of-service">
-        {() => <LazyLoadWrapper><div>Terms of Service loading...</div></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><TermsOfServicePage /></LazyLoadWrapper>}
       </Route>
       <Route path="/privacy-policy">
-        {() => <LazyLoadWrapper><div>Privacy Policy loading...</div></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><PrivacyPolicyPage /></LazyLoadWrapper>}
       </Route>
 
       {/* Authenticated routes */}

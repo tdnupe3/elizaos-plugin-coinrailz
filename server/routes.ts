@@ -862,8 +862,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'notificationIds array is required' });
       }
 
-      const { notificationService } = await import('./services/notificationService');
-      await notificationService.markAsRead(userId, notificationIds);
+      await NotificationService.markAsRead(userId, notificationIds);
 
       res.json({
         success: true,
@@ -880,8 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
 
-      const { notificationService } = await import('./services/notificationService');
-      await notificationService.markAllAsRead(userId);
+      await NotificationService.markAllAsRead(userId);
 
       res.json({
         success: true,
@@ -898,8 +896,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
 
-      const { notificationService } = await import('./services/notificationService');
-      const settings = await notificationService.getNotificationSettings(userId);
+      const settings = await NotificationService.getUserNotificationSettings(userId);
 
       res.json({
         success: true,
@@ -917,8 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const settingsUpdate = req.body;
 
-      const { notificationService } = await import('./services/notificationService');
-      const updatedSettings = await notificationService.updateNotificationSettings(userId, settingsUpdate);
+      const updatedSettings = await NotificationService.updateNotificationSettings(userId, settingsUpdate);
 
       res.json({
         success: true,
@@ -936,8 +932,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
 
-      const { notificationService } = await import('./services/notificationService');
-      const unreadCount = await notificationService.getUnreadCount(userId);
+      const unreadCount = await NotificationService.getUnreadCount(userId);
 
       res.json({
         success: true,
@@ -1196,11 +1191,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Send notifications
-        await notificationService.notifyTransactionComplete(userId, transaction.id, validatedData.amount, "USD");
-        await notificationService.notifyTransactionComplete(recipient.id, transaction.id, validatedData.amount, "USD");
+        await NotificationService.createNotification({
+          userId,
+          type: 'transaction_completed' as any,
+          title: 'Payment Sent',
+          message: `Successfully sent $${validatedData.amount} USD`,
+          priority: 'medium' as any
+        });
+        await NotificationService.createNotification({
+          userId: recipient.id,
+          type: 'payment_received' as any,
+          title: 'Payment Received',
+          message: `Received $${validatedData.amount} USD`,
+          priority: 'medium' as any
+        });
       } else {
         // Only notify sender if recipient doesn't exist yet
-        await notificationService.notifyTransactionComplete(userId, transaction.id, validatedData.amount, "USD");
+        await NotificationService.createNotification({
+          userId,
+          type: 'transaction_completed' as any,
+          title: 'Payment Sent',
+          message: `Successfully sent $${validatedData.amount} USD`,
+          priority: 'medium' as any
+        });
       }
 
       res.json({ 

@@ -76,9 +76,12 @@ export class EnhancedReferralService {
       // Notify referring agent
       await NotificationService.notifyAIAgentActivity(
         referringAgent.id,
+        referringAgent.agentName,
+        `New human user referred! User will generate rewards after their first qualifying transaction ($${this.rewardConfig.minimumTransaction}+ minimum)`,
         {
           agentName: referringAgent.agentName,
-          activity: `New human user referred! User will generate rewards after their first qualifying transaction ($${this.rewardConfig.minimumTransaction}+ minimum)`,
+          humanUserId: humanUser.id,
+          referralType: 'agent_to_human'
         }
       );
 

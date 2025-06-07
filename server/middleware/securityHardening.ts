@@ -339,11 +339,11 @@ export class SecurityHardening {
     const ipBlockTimeout = 60 * 60 * 1000; // 1 hour
 
     // Clean expired sessions
-    for (const [sessionId, session] of this.activeSessions.entries()) {
+    this.activeSessions.forEach((session, sessionId) => {
       if (now - session.lastActivity > sessionTimeout) {
         this.invalidateSession(sessionId);
       }
-    }
+    });
 
     // Reset suspicious activity tracking
     this.suspiciousActivity.clear();

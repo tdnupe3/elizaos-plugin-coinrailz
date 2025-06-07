@@ -51,11 +51,11 @@ export class CSRFProtection {
    */
   private static cleanupExpiredTokens(): void {
     const now = Date.now();
-    for (const [sessionId, session] of this.sessions) {
+    this.sessions.forEach((session, sessionId) => {
       if (session.expires < now) {
         this.sessions.delete(sessionId);
       }
-    }
+    });
   }
 
   /**

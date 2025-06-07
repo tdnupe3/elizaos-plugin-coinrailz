@@ -91,7 +91,7 @@ export class WebSocketSecurity {
       return token.substring(7);
     }
     
-    return token;
+    return token || null;
   }
 
   /**
@@ -185,14 +185,14 @@ export class WebSocketSecurity {
     const now = Date.now();
     const staleThreshold = 30 * 60 * 1000; // 30 minutes
     
-    for (const [ws, session] of this.sessions.entries()) {
+    this.sessions.forEach((session, ws) => {
       if (now - session.lastReset > staleThreshold) {
         this.sessions.delete(ws);
         if (ws.readyState === WebSocket.OPEN) {
           ws.close(1000, 'Session expired');
         }
       }
-    }
+    });
   }
 }
 

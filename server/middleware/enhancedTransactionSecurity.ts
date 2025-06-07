@@ -391,18 +391,18 @@ export class EnhancedTransactionSecurity {
     const now = Date.now();
 
     // Clean expired locks
-    for (const [key, lock] of this.transactionLocks.entries()) {
+    this.transactionLocks.forEach((lock, key) => {
       if (now - lock.timestamp > this.LOCK_TIMEOUT) {
         this.transactionLocks.delete(key);
       }
-    }
+    });
 
     // Clean expired signatures
-    for (const [key, sig] of this.transactionSignatures.entries()) {
+    this.transactionSignatures.forEach((sig, key) => {
       if (now - sig.timestamp > this.SIGNATURE_TIMEOUT) {
         this.transactionSignatures.delete(key);
       }
-    }
+    });
   }
 }
 

@@ -126,12 +126,13 @@ export class AuthenticationSecurity {
    * Find session by token
    */
   private static findSessionByToken(token: string): TokenSession | undefined {
-    for (const session of this.activeSessions.values()) {
+    let foundSession: TokenSession | undefined = undefined;
+    this.activeSessions.forEach((session) => {
       if (session.token === token) {
-        return session;
+        foundSession = session;
       }
-    }
-    return undefined;
+    });
+    return foundSession;
   }
 
   /**
@@ -152,12 +153,12 @@ export class AuthenticationSecurity {
     const now = Date.now();
     
     // Remove expired sessions
-    for (const [userId, session] of this.activeSessions.entries()) {
+    this.activeSessions.forEach((session, userId) => {
       if (now > session.expires) {
         this.blacklistedTokens.add(session.token);
         this.activeSessions.delete(userId);
       }
-    }
+    });
     
     // Clean up old blacklisted tokens (keep for 24 hours)
     if (this.blacklistedTokens.size > 10000) {

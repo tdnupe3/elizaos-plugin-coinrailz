@@ -190,7 +190,7 @@ export class EnhancedReferralService {
         {
           currency: "USDT",
           referralType: isFirstTransaction ? "Human First Transaction" : "Human Ongoing Transaction",
-          referredUserId: referredUserId
+          referredUserId: data.referredUserId
         }
       );
 

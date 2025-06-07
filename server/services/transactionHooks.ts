@@ -6,7 +6,7 @@
 import { ReferralProcessor } from './referralProcessor';
 import { db } from '../db';
 import { agentTransactions } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 
 export class TransactionHooks {
   /**
@@ -41,11 +41,11 @@ export class TransactionHooks {
   static async onFirstTransactionCompleted(agentId: string): Promise<void> {
     try {
       // Mark first transaction as completed in referral system
-      await db.execute(`
+      await db.execute(sql`
         UPDATE agent_referrals 
         SET first_transaction_completed = true 
-        WHERE referee_agent_id = $1
-      `, [agentId]);
+        WHERE referee_agent_id = ${agentId}
+      `);
 
       console.log(`First transaction completed for agent: ${agentId}`);
     } catch (error) {
@@ -68,7 +68,7 @@ export class TransactionHooks {
       `);
 
       for (const tx of pendingTransactions.rows) {
-        await this.onTransactionCompleted(tx.transaction_id);
+        await TransactionHooks.onTransactionCompleted(tx.transaction_id);
         
         // Mark hooks as processed
         await db.execute(`

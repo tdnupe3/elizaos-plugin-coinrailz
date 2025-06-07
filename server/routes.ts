@@ -3102,7 +3102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const notifications = await NotificationService.getUserNotifications(
         userId, 
         parseInt(limit as string), 
-        parseInt(offset as string)
+        false // unreadOnly parameter instead of offset
       );
       res.json(notifications);
     } catch (error) {

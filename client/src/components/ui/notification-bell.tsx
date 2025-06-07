@@ -29,17 +29,51 @@ export function NotificationBell({ isDemo = false }: NotificationBellProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch notifications
+  // Fetch notifications with proper error handling to prevent unhandled rejections
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: isDemo ? ['/api/demo/notifications'] : ['/api/notifications'],
-    refetchInterval: 300000, // Reduced to 5 minutes
+    refetchInterval: false, // Disable automatic refetching to prevent excessive calls
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
     enabled: true,
+    queryFn: async () => {
+      try {
+        const endpoint = isDemo ? '/api/demo/notifications' : '/api/notifications';
+        const response = await fetch(endpoint, { credentials: 'include' });
+        if (!response.ok) {
+          console.warn(`Notifications fetch failed: ${response.status}`);
+          return [];
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('Notifications fetch error:', error);
+        return [];
+      }
+    }
   });
 
-  // Fetch unread count
+  // Fetch unread count with proper error handling
   const { data: unreadData } = useQuery({
     queryKey: isDemo ? ['/api/demo/notifications/unread-count'] : ['/api/notifications/unread-count'],
-    refetchInterval: 300000, // Reduced to 5 minutes
+    refetchInterval: false, // Disable automatic refetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+    queryFn: async () => {
+      try {
+        const endpoint = isDemo ? '/api/demo/notifications/unread-count' : '/api/notifications/unread-count';
+        const response = await fetch(endpoint, { credentials: 'include' });
+        if (!response.ok) {
+          console.warn(`Unread count fetch failed: ${response.status}`);
+          return { count: 0 };
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('Unread count fetch error:', error);
+        return { count: 0 };
+      }
+    }
   });
 
   // Mark notification as read mutation

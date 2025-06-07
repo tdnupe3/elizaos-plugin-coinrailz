@@ -7,20 +7,46 @@ import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle } from "lu
 export default function ProductionDashboard() {
   const { data: healthCheck = { status: 'unknown', services: [] }, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/health/check'],
-    refetchInterval: 300000, // Increased to 5 minutes
+    refetchInterval: false, // Disable automatic refetching
     retry: false,
-    staleTime: 300000,
+    staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/health/check', { credentials: 'include' });
+        if (!response.ok) {
+          console.warn(`Health check failed: ${response.status}`);
+          return { status: 'unknown', services: [] };
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('Health check error:', error);
+        return { status: 'unknown', services: [] };
+      }
+    }
   });
 
   const { data: cryptoPrices = {}, isLoading: pricesLoading } = useQuery({
     queryKey: ['/api/crypto/prices'],
-    refetchInterval: 300000, // Increased to 5 minutes
+    refetchInterval: false, // Disable automatic refetching
     retry: false,
-    staleTime: 300000,
+    staleTime: Infinity,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/crypto/prices', { credentials: 'include' });
+        if (!response.ok) {
+          console.warn(`Crypto prices fetch failed: ${response.status}`);
+          return {};
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('Crypto prices fetch error:', error);
+        return {};
+      }
+    }
   });
 
   // Network stats completely removed to prevent excessive API calls

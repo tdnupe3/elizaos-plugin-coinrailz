@@ -94,25 +94,31 @@ queryClient.getQueryCache().subscribe((event) => {
   }
 });
 
-// Enhanced error handling for React Query operations
-queryClient.setMutationDefaults(['default'], {
-  mutationFn: async (variables) => {
-    try {
-      return variables;
-    } catch (error) {
-      console.error('Mutation error caught:', error);
-      throw error;
-    }
+// Configure React Query to handle errors gracefully
+queryClient.setDefaultOptions({
+  queries: {
+    retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    staleTime: Infinity,
+    throwOnError: false, // Prevent throwing errors that cause unhandled rejections
+  },
+  mutations: {
+    retry: false,
+    throwOnError: false, // Prevent throwing errors that cause unhandled rejections
   },
 });
 
-// Handle promise rejections at the query level
-const originalInvalidateQueries = queryClient.invalidateQueries.bind(queryClient);
-queryClient.invalidateQueries = async (...args) => {
-  try {
-    return await originalInvalidateQueries(...args);
-  } catch (error) {
-    console.error('Query invalidation error caught:', error);
-    return Promise.resolve();
+// Global error boundary for React Query
+queryClient.getQueryCache().subscribe((event) => {
+  if (event.type === 'observerResultsUpdated' && event.query.state.error) {
+    console.warn('Query error intercepted:', event.query.state.error);
   }
-};
+});
+
+queryClient.getMutationCache().subscribe((event) => {
+  if (event.type === 'observerResultsUpdated' && event.mutation.state.error) {
+    console.warn('Mutation error intercepted:', event.mutation.state.error);
+  }
+});

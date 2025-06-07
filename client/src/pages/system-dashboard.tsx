@@ -50,17 +50,65 @@ interface LogEntry {
 export default function SystemDashboard() {
   const { data: health, refetch: refetchHealth } = useQuery<SystemHealth>({
     queryKey: ['/api/system/health'],
-    refetchInterval: 300000, // Reduced to 5 minutes
+    refetchInterval: false, // Disable automatic refetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/system/health', { credentials: 'include' });
+        if (!response.ok) {
+          console.warn(`System health fetch failed: ${response.status}`);
+          return null;
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('System health fetch error:', error);
+        return null;
+      }
+    }
   });
 
   const { data: metrics, refetch: refetchMetrics } = useQuery<SystemMetrics>({
     queryKey: ['/api/system/metrics'],
-    refetchInterval: 300000, // Reduced to 5 minutes
+    refetchInterval: false, // Disable automatic refetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/system/metrics', { credentials: 'include' });
+        if (!response.ok) {
+          console.warn(`System metrics fetch failed: ${response.status}`);
+          return null;
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('System metrics fetch error:', error);
+        return null;
+      }
+    }
   });
 
   const { data: logs, refetch: refetchLogs } = useQuery<{ logs: LogEntry[] }>({
     queryKey: ['/api/system/logs', { count: 50 }],
-    refetchInterval: 300000, // Reduced to 5 minutes
+    refetchInterval: false, // Disable automatic refetching
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: false,
+    queryFn: async () => {
+      try {
+        const response = await fetch('/api/system/logs?count=50', { credentials: 'include' });
+        if (!response.ok) {
+          console.warn(`System logs fetch failed: ${response.status}`);
+          return { logs: [] };
+        }
+        return await response.json();
+      } catch (error) {
+        console.warn('System logs fetch error:', error);
+        return { logs: [] };
+      }
+    }
   });
 
   const formatUptime = (seconds: number) => {

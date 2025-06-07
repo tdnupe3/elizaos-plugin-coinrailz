@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
 import { AsyncOperationWrapper } from "@/utils/asyncOperationWrapper";
-import { promiseRejectionHandler } from "@/utils/promiseRejectionHandler";
+
 
 // Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";
@@ -173,11 +173,9 @@ function Router() {
 }
 
 function App() {
-  // Initialize comprehensive async operation handling
+  // App component initialization
   useEffect(() => {
-    // Initialize the promise rejection handler to prevent unhandled rejections
-    promiseRejectionHandler.initialize();
-    console.log('Initializing comprehensive async error handling');
+    console.log('Coin Railz platform initialized');
   }, []);
 
   return (

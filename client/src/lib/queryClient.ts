@@ -94,42 +94,49 @@ queryClient.getQueryCache().subscribe((event) => {
   }
 });
 
-// Configure React Query to handle errors gracefully
+// Configure React Query with proper error handling
 queryClient.setDefaultOptions({
   queries: {
-    retry: false,
+    retry: 1,
+    retryDelay: 1000,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchInterval: false,
-    staleTime: Infinity,
-    throwOnError: false, // Prevent throwing errors that cause unhandled rejections
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    throwOnError: false,
+    queryFn: async ({ queryKey }) => {
+      try {
+        const response = await fetch(queryKey[0] as string, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('401: Unauthorized');
+          }
+          if (response.status === 404) {
+            return null;
+          }
+          throw new Error(`${response.status}: ${response.statusText}`);
+        }
+        
+        return await response.json();
+      } catch (error) {
+        // Prevent unhandled rejections by returning null for failed requests
+        if (error instanceof Error && error.message.includes('fetch')) {
+          return null;
+        }
+        throw error;
+      }
+    },
   },
   mutations: {
-    retry: false,
-    throwOnError: false, // Prevent throwing errors that cause unhandled rejections
+    retry: 1,
+    retryDelay: 1000,
+    throwOnError: false,
   },
-});
-
-// Global unhandled rejection prevention
-window.addEventListener('unhandledrejection', (event) => {
-  const reason = String(event.reason?.message || event.reason || '');
-  
-  // Filter out browser extension and development-related errors
-  const ignoredPatterns = [
-    'ChromeTransport',
-    'MetaMask',
-    'Extension context invalidated',
-    'Could not establish connection',
-    'vite',
-    'HMR'
-  ];
-  
-  if (ignoredPatterns.some(pattern => reason.includes(pattern))) {
-    event.preventDefault();
-    return;
-  }
-  
-  // Log other rejections as warnings instead of errors
-  console.warn('Promise rejection handled:', reason);
-  event.preventDefault();
 });

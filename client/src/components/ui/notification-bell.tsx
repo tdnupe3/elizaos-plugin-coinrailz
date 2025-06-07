@@ -32,14 +32,14 @@ export function NotificationBell({ isDemo = false }: NotificationBellProps) {
   // Fetch notifications
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: isDemo ? ['/api/demo/notifications'] : ['/api/notifications'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 300000, // Reduced to 5 minutes
     enabled: true,
   });
 
   // Fetch unread count
   const { data: unreadData } = useQuery({
     queryKey: isDemo ? ['/api/demo/notifications/unread-count'] : ['/api/notifications/unread-count'],
-    refetchInterval: 15000, // Refresh every 15 seconds
+    refetchInterval: 300000, // Reduced to 5 minutes
   });
 
   // Mark notification as read mutation

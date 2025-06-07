@@ -102,13 +102,13 @@ export function AIAgentManager() {
     loadAgents();
     loadAgentActivities();
     loadNetworkAgents();
-    // Set up real-time updates
+    // Set up real-time updates - reduced frequency to prevent rate limiting
     const interval = setInterval(() => {
       loadAgentActivities();
       if (selectedAgent) {
         loadAgentMessages(selectedAgent);
       }
-    }, 5000);
+    }, 300000); // Changed to 5 minutes
 
     return () => clearInterval(interval);
   }, [selectedAgent]);

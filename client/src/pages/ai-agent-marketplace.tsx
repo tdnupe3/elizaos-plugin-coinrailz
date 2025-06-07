@@ -83,7 +83,7 @@ export default function AIAgentMarketplace() {
       const response = await apiRequest('GET', `/api/public/agents/discover?${params}`);
       return await response.json();
     },
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 300000, // Reduced to 5 minutes
   });
 
   // Agent registration mutation

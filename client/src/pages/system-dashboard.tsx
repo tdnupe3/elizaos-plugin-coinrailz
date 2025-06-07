@@ -50,17 +50,17 @@ interface LogEntry {
 export default function SystemDashboard() {
   const { data: health, refetch: refetchHealth } = useQuery<SystemHealth>({
     queryKey: ['/api/system/health'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 300000, // Reduced to 5 minutes
   });
 
   const { data: metrics, refetch: refetchMetrics } = useQuery<SystemMetrics>({
     queryKey: ['/api/system/metrics'],
-    refetchInterval: 10000, // Refresh every 10 seconds
+    refetchInterval: 300000, // Reduced to 5 minutes
   });
 
   const { data: logs, refetch: refetchLogs } = useQuery<{ logs: LogEntry[] }>({
     queryKey: ['/api/system/logs', { count: 50 }],
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 300000, // Reduced to 5 minutes
   });
 
   const formatUptime = (seconds: number) => {

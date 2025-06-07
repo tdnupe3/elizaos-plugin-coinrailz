@@ -100,7 +100,7 @@ export default function EnhancedAIAgentMarketplace() {
       const response = await apiRequest('GET', `/api/public/agents/discover${queryString ? `?${queryString}` : ''}`);
       return await response.json();
     },
-    refetchInterval: 10000,
+    refetchInterval: 300000, // Reduced to 5 minutes
     staleTime: 0,
     gcTime: 0,
   });

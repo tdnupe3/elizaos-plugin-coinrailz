@@ -5,20 +5,28 @@ import { Button } from "@/components/ui/button";
 import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle } from "lucide-react";
 
 export default function ProductionDashboard() {
-  const { data: healthCheck, isLoading: healthLoading } = useQuery({
+  const { data: healthCheck = { status: 'unknown', services: [] }, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/health/check'],
-    refetchInterval: 30000, // Check every 30 seconds
+    refetchInterval: 30000,
+    retry: 1,
+    staleTime: 30000,
   });
 
-  const { data: cryptoPrices, isLoading: pricesLoading } = useQuery({
+  const { data: cryptoPrices = {}, isLoading: pricesLoading } = useQuery({
     queryKey: ['/api/crypto/prices'],
-    refetchInterval: 60000, // Update every minute
+    refetchInterval: 60000,
+    retry: 1,
+    staleTime: 60000,
   });
 
-  const { data: networkStats, isLoading: statsLoading } = useQuery({
+  const { data: networkStatsResponse = { networkStats: {} }, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/public/network/stats'],
     refetchInterval: 30000,
+    retry: 1,
+    staleTime: 30000,
   });
+
+  const networkStats = (networkStatsResponse as any)?.networkStats || {};
 
   const processReferralRewards = async () => {
     try {
@@ -59,16 +67,16 @@ export default function ProductionDashboard() {
               ) : (
                 <div>
                   <div className="text-2xl font-bold">
-                    {healthCheck?.status === 'healthy' ? (
+                    {(healthCheck as any)?.status === 'healthy' ? (
                       <Badge variant="default" className="bg-green-500">Healthy</Badge>
-                    ) : healthCheck?.status === 'degraded' ? (
+                    ) : (healthCheck as any)?.status === 'degraded' ? (
                       <Badge variant="secondary" className="bg-yellow-500">Degraded</Badge>
                     ) : (
                       <Badge variant="destructive">Unknown</Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {Array.isArray(healthCheck?.services) ? healthCheck.services.length : 0} services monitored
+                    {(healthCheck as any)?.services?.length || 0} services monitored
                   </p>
                 </div>
               )}

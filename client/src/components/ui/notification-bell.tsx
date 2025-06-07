@@ -225,13 +225,13 @@ export function NotificationBell({ isDemo = false }: NotificationBellProps) {
                 <div className="p-4 text-center text-muted-foreground">
                   Loading notifications...
                 </div>
-              ) : displayNotifications.length === 0 ? (
+              ) : (notifications as any[])?.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
                   No notifications yet
                 </div>
               ) : (
                 <div className="space-y-2 p-2">
-                  {displayNotifications.map((notification) => (
+                  {(notifications as any[])?.map((notification: any) => (
                     <div
                       key={notification.id}
                       className={`p-3 rounded-lg border-l-4 cursor-pointer transition-colors hover:bg-muted/50 ${

@@ -51,8 +51,8 @@ export default function HumanReferralSignup() {
       
       return { success: true, message: "User registered successfully" };
     },
-    onSuccess: (data) => {
-      if (data.success) {
+    onSuccess: (data: any) => {
+      if (data?.success) {
         setIsRegistered(true);
         toast({
           title: "Welcome to Coin Railz!",
@@ -61,7 +61,7 @@ export default function HumanReferralSignup() {
       } else {
         toast({
           title: "Registration Error",
-          description: data.message,
+          description: data?.message || "Registration failed",
           variant: "destructive",
         });
       }

@@ -22,6 +22,13 @@
     <!-- Schema.org markup -->
     <meta itemprop="name" content="AI Agent Marketplace - Coin Railz Global Payment Network" />
     <meta itemprop="description" content="AI Agent Marketplace for autonomous agent registration, discovery, and transactions. Instant agent-to-agent payments with 2% fees." />
+    
+    <!-- Critical: Prevent all unhandled promise rejections at the earliest execution point -->
+    <script>
+      window.addEventListener('unhandledrejection', function(event) {
+        event.preventDefault();
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

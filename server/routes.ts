@@ -28,6 +28,7 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import { notificationService } from './services/notificationService';
 import Stripe from "stripe";
 
 // Initialize Stripe with secret key
@@ -807,6 +808,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ==============================================
+  // NOTIFICATION SYSTEM ROUTES
+  // ==============================================
+
+  // Get user notifications
+  app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const unreadOnly = req.query.unreadOnly === 'true';
+
+      const { notificationService } = await import('./services/notificationService');
+      const notifications = await notificationService.getUserNotifications(userId, limit, unreadOnly);
+
+      res.json({
+        success: true,
+        notifications,
+        unreadCount: await notificationService.getUnreadCount(userId)
+      });
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Mark notifications as read
+  app.post('/api/notifications/mark-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { notificationIds } = req.body;
+
+      if (!notificationIds || !Array.isArray(notificationIds)) {
+        return res.status(400).json({ message: 'notificationIds array is required' });
+      }
+
+      const { notificationService } = await import('./services/notificationService');
+      await notificationService.markAsRead(userId, notificationIds);
+
+      res.json({
+        success: true,
+        message: 'Notifications marked as read'
+      });
+    } catch (error) {
+      console.error('Error marking notifications as read:', error);
+      res.status(500).json({ message: 'Failed to mark notifications as read' });
+    }
+  });
+
+  // Mark all notifications as read
+  app.post('/api/notifications/mark-all-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+
+      const { notificationService } = await import('./services/notificationService');
+      await notificationService.markAllAsRead(userId);
+
+      res.json({
+        success: true,
+        message: 'All notifications marked as read'
+      });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ message: 'Failed to mark all notifications as read' });
+    }
+  });
+
+  // Get notification settings
+  app.get('/api/notifications/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+
+      const { notificationService } = await import('./services/notificationService');
+      const settings = await notificationService.getNotificationSettings(userId);
+
+      res.json({
+        success: true,
+        settings
+      });
+    } catch (error) {
+      console.error('Error fetching notification settings:', error);
+      res.status(500).json({ message: 'Failed to fetch notification settings' });
+    }
+  });
+
+  // Update notification settings
+  app.put('/api/notifications/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const settingsUpdate = req.body;
+
+      const { notificationService } = await import('./services/notificationService');
+      const updatedSettings = await notificationService.updateNotificationSettings(userId, settingsUpdate);
+
+      res.json({
+        success: true,
+        settings: updatedSettings,
+        message: 'Notification settings updated'
+      });
+    } catch (error) {
+      console.error('Error updating notification settings:', error);
+      res.status(500).json({ message: 'Failed to update notification settings' });
+    }
+  });
+
+  // Get unread notification count
+  app.get('/api/notifications/unread-count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+
+      const { notificationService } = await import('./services/notificationService');
+      const unreadCount = await notificationService.getUnreadCount(userId);
+
+      res.json({
+        success: true,
+        unreadCount
+      });
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+      res.status(500).json({ message: 'Failed to fetch unread count' });
+    }
+  });
+
+  // ==============================================
   // AUTHENTICATED USER ROUTES
   // ==============================================
 
@@ -1051,6 +1174,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           transactionType: "receive",
           status: "completed",
         });
+
+        // Send notifications
+        await notificationService.notifyTransactionComplete(userId, transaction.id, validatedData.amount, "USD");
+        await notificationService.notifyTransactionComplete(recipient.id, transaction.id, validatedData.amount, "USD");
+      } else {
+        // Only notify sender if recipient doesn't exist yet
+        await notificationService.notifyTransactionComplete(userId, transaction.id, validatedData.amount, "USD");
       }
 
       res.json({ 

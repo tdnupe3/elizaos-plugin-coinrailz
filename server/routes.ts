@@ -1626,63 +1626,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Crypto prices (mock data for now)
+  // Admin endpoint to force refresh crypto price cache
+  app.post('/api/admin/crypto/refresh', async (req, res) => {
+    try {
+      const { cryptoPriceCache } = await import('./services/cryptoPriceCache');
+      const freshPrices = await cryptoPriceCache.forceRefresh();
+      const cacheInfo = cryptoPriceCache.getCacheInfo();
+      
+      res.json({
+        success: true,
+        message: 'Cryptocurrency prices refreshed successfully',
+        prices: freshPrices,
+        cacheInfo
+      });
+    } catch (error) {
+      console.error("Error refreshing crypto price cache:", error);
+      res.status(500).json({ 
+        error: "Failed to refresh cryptocurrency prices",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Cached crypto prices with hourly updates
   app.get('/api/crypto/prices', async (req, res) => {
     try {
-      if (!env.COINGECKO_API_KEY) {
-        return res.status(503).json({ 
-          error: "CoinGecko API key required for real-time cryptocurrency data",
-          message: "Please configure COINGECKO_API_KEY environment variable"
-        });
-      }
-
-      const coinGeckoIds = {
-        'BTC': 'bitcoin',
-        'ETH': 'ethereum', 
-        'ADA': 'cardano',
-        'DOT': 'polkadot'
-      };
-
-      const ids = Object.values(coinGeckoIds).join(',');
-      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+      const { cryptoPriceCache } = await import('./services/cryptoPriceCache');
+      const prices = await cryptoPriceCache.getPrices();
+      const cacheInfo = cryptoPriceCache.getCacheInfo();
       
-      const response = await fetch(url, {
-        headers: {
-          'x-cg-demo-api-key': env.COINGECKO_API_KEY
+      res.json({
+        ...prices,
+        _metadata: {
+          lastUpdated: cacheInfo.lastUpdated,
+          nextUpdate: cacheInfo.nextUpdate,
+          cached: cacheInfo.isValid
         }
       });
-
-      if (!response.ok) {
-        throw new Error(`CoinGecko API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      const prices = {
-        BTC: { 
-          price: data.bitcoin?.usd || 0, 
-          change: data.bitcoin?.usd_24h_change || 0 
-        },
-        ETH: { 
-          price: data.ethereum?.usd || 0, 
-          change: data.ethereum?.usd_24h_change || 0 
-        },
-        ADA: { 
-          price: data.cardano?.usd || 0, 
-          change: data.cardano?.usd_24h_change || 0 
-        },
-        DOT: { 
-          price: data.polkadot?.usd || 0, 
-          change: data.polkadot?.usd_24h_change || 0 
-        }
-      };
-
-      res.json(prices);
     } catch (error) {
-      console.error("Error fetching crypto prices:", error);
+      console.error("Error fetching cached crypto prices:", error);
       res.status(500).json({ 
         error: "Failed to fetch cryptocurrency prices",
-        message: error instanceof Error ? error.message : "Unknown error"
+        message: error instanceof Error ? error.message : "Service temporarily unavailable"
       });
     }
   });

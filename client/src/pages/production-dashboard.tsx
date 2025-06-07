@@ -171,7 +171,7 @@ export default function ProductionDashboard() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {healthCheck?.services?.map((service: any) => (
+                  {(healthCheck as any)?.services?.map((service: any) => (
                     <div key={service.service} className="flex justify-between items-center">
                       <span className="font-medium">{service.service}</span>
                       <div className="flex items-center gap-2">

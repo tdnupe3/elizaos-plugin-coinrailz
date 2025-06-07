@@ -28,6 +28,7 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";
 import EnhancedTransactionSecurity from "./middleware/enhancedTransactionSecurity";
 import DataEncryption from "./middleware/dataEncryption";
@@ -838,13 +839,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const limit = parseInt(req.query.limit as string) || 20;
       const unreadOnly = req.query.unreadOnly === 'true';
 
-      const { notificationService } = await import('./services/notificationService');
-      const notifications = await notificationService.getUserNotifications(userId, limit, unreadOnly);
+      const notifications = await NotificationService.getUserNotifications(userId, limit, unreadOnly);
 
       res.json({
         success: true,
         notifications,
-        unreadCount: await notificationService.getUnreadCount(userId)
+        unreadCount: await NotificationService.getUnreadCount(userId)
       });
     } catch (error) {
       console.error('Error fetching notifications:', error);

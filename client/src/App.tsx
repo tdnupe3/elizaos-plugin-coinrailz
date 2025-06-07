@@ -8,7 +8,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
-import { globalErrorHandler } from "@/utils/errorHandler";
+import { globalErrorHandler } from "@/utils/globalErrorHandler";
 import { developmentErrorSuppressor } from "@/utils/developmentErrorSuppressor";
 
 // Critical path components (loaded immediately)

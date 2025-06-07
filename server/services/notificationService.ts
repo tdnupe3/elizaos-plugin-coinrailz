@@ -193,6 +193,44 @@ export class NotificationService {
 
 
   /**
+   * Notify AI agent activity
+   */
+  static async notifyAIAgentActivity(
+    userId: string,
+    agentId: string,
+    activity: string,
+    metadata?: any
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.AI_AGENT_ACTIVITY,
+      title: 'AI Agent Activity',
+      message: `Agent ${agentId}: ${activity}`,
+      priority: NotificationPriority.MEDIUM,
+      metadata: { agentId, activity, ...metadata }
+    });
+  }
+
+  /**
+   * Notify referral earned
+   */
+  static async notifyReferralEarned(
+    userId: string,
+    amount: number,
+    referralType: string,
+    metadata?: any
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.REFERRAL_EARNED,
+      title: 'Referral Reward Earned',
+      message: `You earned $${amount.toFixed(2)} from ${referralType} referral`,
+      priority: NotificationPriority.HIGH,
+      metadata: { amount, referralType, ...metadata }
+    });
+  }
+
+  /**
    * Broadcast system announcement to all users
    */
   static async broadcastSystemAnnouncement(

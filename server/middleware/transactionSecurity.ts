@@ -52,7 +52,7 @@ export class TransactionSecurity {
           return { success: false, error: 'User not found' };
         }
 
-        const currentBalance = parseFloat(user.balance || '0');
+        const currentBalance = parseFloat(user.usdBalance || '0');
         let newBalance: number;
 
         if (operation === 'debit') {
@@ -68,7 +68,7 @@ export class TransactionSecurity {
         const [updatedUser] = await tx
           .update(users)
           .set({ 
-            balance: newBalance.toFixed(8),
+            usdBalance: newBalance.toFixed(2),
             updatedAt: new Date()
           })
           .where(eq(users.id, userId))

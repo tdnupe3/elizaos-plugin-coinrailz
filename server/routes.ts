@@ -28,6 +28,11 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import SecurityHardening from "./middleware/securityHardening";
+import EnhancedTransactionSecurity from "./middleware/enhancedTransactionSecurity";
+import DataEncryption from "./middleware/dataEncryption";
+import AuthenticationSecurity from "./middleware/authenticationSecurity";
+import DatabaseSecurity from "./middleware/databaseSecurity";
 import { registerDemoRoutes } from './routes-demo';
 import { EnhancedReferralService } from './services/enhancedReferralService';
 import { TransactionCompletionHooks } from './services/transactionCompletionHooks';
@@ -40,6 +45,18 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues
   // TODO: Fix database schema for api_integration_logs table
+
+  // SECURITY HARDENING - Apply all security middleware
+  app.use(SecurityHardening.securityHeaders());
+  app.use(SecurityHardening.ipBlockingMiddleware());
+  app.use(SecurityHardening.advancedDDoSProtection());
+  app.use(SecurityHardening.memoryProtection());
+  app.use(SecurityHardening.enhancedCSRFProtection());
+  app.use(DatabaseSecurity.connectionLimiter());
+  app.use(DatabaseSecurity.circuitBreaker());
+  app.use(DataEncryption.piiEncryptionMiddleware());
+  app.use(DataEncryption.responseSanitizationMiddleware());
+  app.use(EnhancedTransactionSecurity.transactionValidationMiddleware());
 
   // Auth middleware
   await setupAuth(app);

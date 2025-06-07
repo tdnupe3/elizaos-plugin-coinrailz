@@ -3134,6 +3134,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced Human User Referral System API Endpoints
+  
+  // Register human user with agent referral code
+  app.post('/api/referrals/register-human', async (req, res) => {
+    try {
+      const { referralCode, userId } = req.body;
+      
+      if (!referralCode || !userId) {
+        return res.status(400).json({ error: 'Referral code and user ID are required' });
+      }
+
+      const result = await EnhancedReferralService.registerHumanReferral(referralCode, userId);
+      
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error('Error registering human referral:', error);
+      res.status(500).json({ error: 'Failed to register human referral' });
+    }
+  });
+
+  // Process human transaction reward
+  app.post('/api/referrals/process-human-transaction', async (req, res) => {
+    try {
+      const { referredUserId, transactionId, transactionAmount, currency } = req.body;
+      
+      if (!referredUserId || !transactionId || !transactionAmount) {
+        return res.status(400).json({ error: 'Required transaction data missing' });
+      }
+
+      const result = await EnhancedReferralService.processHumanTransactionReward({
+        referrerAgentId: '', // Will be determined from user data
+        referredUserId,
+        transactionId,
+        transactionAmount,
+        currency: currency || 'USD'
+      });
+      
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(400).json(result);
+      }
+    } catch (error) {
+      console.error('Error processing human transaction reward:', error);
+      res.status(500).json({ error: 'Failed to process transaction reward' });
+    }
+  });
+
+  // Get combined referral stats (agents + humans)
+  app.get('/api/agents/:agentId/combined-referral-stats', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      
+      const stats = await EnhancedReferralService.getCombinedReferralStats(agentId);
+      res.json(stats);
+    } catch (error) {
+      console.error('Error getting combined referral stats:', error);
+      res.status(500).json({ error: 'Failed to get referral statistics' });
+    }
+  });
+
+  // Generate human referral link
+  app.post('/api/agents/:agentId/generate-human-referral-link', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const { baseUrl } = req.body;
+      
+      const result = await EnhancedReferralService.generateHumanReferralLink(
+        agentId, 
+        baseUrl || 'https://coinrailz.com'
+      );
+      
+      if (result.success) {
+        res.json(result);
+      } else {
+        res.status(404).json({ error: 'Agent not found' });
+      }
+    } catch (error) {
+      console.error('Error generating human referral link:', error);
+      res.status(500).json({ error: 'Failed to generate referral link' });
+    }
+  });
+
+  // Process batch referral rewards for high-volume agents
+  app.post('/api/agents/:agentId/process-batch-rewards', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      
+      const result = await EnhancedReferralService.processBatchRewards(agentId);
+      res.json(result);
+    } catch (error) {
+      console.error('Error processing batch rewards:', error);
+      res.status(500).json({ error: 'Failed to process batch rewards' });
+    }
+  });
+
+  // Get viral growth metrics
+  app.get('/api/referrals/viral-growth-metrics', async (req, res) => {
+    try {
+      const metrics = await EnhancedReferralService.getViralGrowthMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error getting viral growth metrics:', error);
+      res.status(500).json({ error: 'Failed to get viral growth metrics' });
+    }
+  });
+
   // Register demo routes for comprehensive functionality mirroring
   registerDemoRoutes(app);
 

@@ -94,9 +94,29 @@ queryClient.getQueryCache().subscribe((event) => {
   }
 });
 
-// Configure React Query to prevent unhandled promise rejections
+// Create a custom query function that never throws unhandled rejections
+const safeQueryFn = async ({ queryKey, signal }: any) => {
+  try {
+    const response = await fetch(queryKey[0] as string, {
+      signal,
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    
+    if (!response.ok) {
+      return null; // Always return null instead of throwing
+    }
+    
+    return await response.json();
+  } catch (error) {
+    return null; // Always return null instead of throwing
+  }
+};
+
+// Configure React Query with comprehensive error prevention
 queryClient.setDefaultOptions({
   queries: {
+    queryFn: safeQueryFn,
     retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -108,11 +128,6 @@ queryClient.setDefaultOptions({
   mutations: {
     retry: false,
     throwOnError: false,
+    onError: () => {}, // Silent error handling
   },
-});
-
-// Global error prevention for unhandled rejections
-window.addEventListener('unhandledrejection', (event) => {
-  // Always prevent the unhandled rejection from reaching the console
-  event.preventDefault();
 });

@@ -189,6 +189,134 @@ export class NotificationService {
 
     return result[0];
   }
+
+  /**
+   * Send transaction completion notification
+   */
+  static async notifyTransactionCompleted(
+    userId: string,
+    transactionData: {
+      amount: string;
+      currency: string;
+      transactionId: string;
+      type: 'sent' | 'received';
+    }
+  ): Promise<void> {
+    const { amount, currency, transactionId, type } = transactionData;
+    const title = type === 'sent' 
+      ? `Payment Sent Successfully` 
+      : `Payment Received`;
+    
+    const message = type === 'sent'
+      ? `You sent ${amount} ${currency}. Transaction ID: ${transactionId}`
+      : `You received ${amount} ${currency}. Transaction ID: ${transactionId}`;
+
+    await this.createNotification({
+      userId,
+      type: NotificationType.TRANSACTION_COMPLETED,
+      title,
+      message,
+      priority: NotificationPriority.HIGH,
+      metadata: transactionData,
+      actionUrl: `/transaction-history`
+    });
+  }
+
+  /**
+   * Send security alert notification
+   */
+  static async notifySecurityAlert(
+    userId: string,
+    alertData: {
+      alertType: string;
+      description: string;
+      severity: 'low' | 'medium' | 'high' | 'critical';
+    }
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.SECURITY_ALERT,
+      title: `Security Alert: ${alertData.alertType}`,
+      message: alertData.description,
+      priority: alertData.severity === 'critical' 
+        ? NotificationPriority.CRITICAL 
+        : NotificationPriority.HIGH,
+      metadata: alertData,
+      actionUrl: '/settings'
+    });
+  }
+
+  /**
+   * Send AI agent activity notification
+   */
+  static async notifyAIAgentActivity(
+    userId: string,
+    agentData: {
+      agentName: string;
+      activity: string;
+      amount?: string;
+      currency?: string;
+    }
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.AI_AGENT_ACTIVITY,
+      title: `AI Agent Update: ${agentData.agentName}`,
+      message: agentData.activity,
+      priority: NotificationPriority.MEDIUM,
+      metadata: agentData,
+      actionUrl: '/ai-agents'
+    });
+  }
+
+  /**
+   * Send referral earned notification
+   */
+  static async notifyReferralEarned(
+    userId: string,
+    referralData: {
+      amount: string;
+      currency: string;
+      referralType: string;
+      referredUserId?: string;
+    }
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.REFERRAL_EARNED,
+      title: 'Referral Reward Earned!',
+      message: `You earned ${referralData.amount} ${referralData.currency} from ${referralData.referralType}`,
+      priority: NotificationPriority.HIGH,
+      metadata: referralData,
+      actionUrl: '/referrals'
+    });
+  }
+
+  /**
+   * Broadcast system announcement to all users
+   */
+  static async broadcastSystemAnnouncement(
+    title: string,
+    message: string,
+    priority: string = 'medium'
+  ): Promise<void> {
+    // Get all active users
+    const allUsers = await db.select({ id: users.id }).from(users);
+    
+    // Create notifications for all users
+    const notificationPromises = allUsers.map(user =>
+      this.createNotification({
+        userId: user.id,
+        type: NotificationType.SYSTEM_ANNOUNCEMENT,
+        title,
+        message,
+        priority: priority as NotificationPriority,
+        actionUrl: '/dashboard'
+      })
+    );
+
+    await Promise.allSettled(notificationPromises);
+  }
   /**
    * Send transaction completion notification
    */

@@ -144,7 +144,17 @@ export class APIValidationService {
     const startTime = Date.now();
     
     try {
-      const Stripe = require('stripe');
+      if (!process.env.STRIPE_SECRET_KEY) {
+        return {
+          service: 'Stripe',
+          status: 'error',
+          responseTime: Date.now() - startTime,
+          error: 'STRIPE_SECRET_KEY not configured',
+        };
+      }
+
+      // Use dynamic import for ES modules compatibility
+      const { default: Stripe } = await import('stripe');
       const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
       
       // Test with a simple account retrieval

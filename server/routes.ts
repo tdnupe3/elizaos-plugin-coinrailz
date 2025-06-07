@@ -38,10 +38,17 @@ import { registerDemoRoutes } from './routes-demo';
 import { EnhancedReferralService } from './services/enhancedReferralService';
 import { TransactionCompletionHooks } from './services/transactionCompletionHooks';
 // Notification service will be imported dynamically in route handlers
-import Stripe from "stripe";
 
-// Initialize Stripe with secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Initialize Stripe conditionally
+let stripe: any = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  try {
+    const StripeConstructor = require('stripe');
+    stripe = new StripeConstructor(process.env.STRIPE_SECRET_KEY);
+  } catch (error) {
+    console.warn('Stripe initialization failed:', error);
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues

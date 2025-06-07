@@ -24,7 +24,18 @@ export default function Landing() {
   };
 
   // Fetch network stats for AI agent network (optional feature)
-  const { data: networkStats } = useQuery({
+  const { data: networkStats } = useQuery<{
+    success: boolean;
+    networkStats: {
+      totalAgents?: number;
+      activeAgents?: number;
+      totalTransactions?: number;
+      transactionVolume?: string;
+      platformFees?: string;
+      networkHealth?: number;
+      supportedCurrencies?: string[];
+    };
+  }>({
     queryKey: ["/api/public/network/stats"],
     refetchInterval: 300000, // Increased to 5 minutes to prevent rate limiting
     retry: false,
@@ -344,15 +355,15 @@ export default function Landing() {
                 <CardContent>
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
                     <div className="bg-white border border-purple-200 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-purple-700">{networkStats?.networkStats?.totalAgents || 0}</div>
+                      <div className="text-2xl font-bold text-purple-700">{networkStats.networkStats?.totalAgents || 0}</div>
                       <div className="text-sm text-purple-600">Registered Agents</div>
                     </div>
                     <div className="bg-white border border-purple-200 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-green-700">{networkStats?.networkStats?.activeAgents || 0}</div>
+                      <div className="text-2xl font-bold text-green-700">{networkStats.networkStats?.activeAgents || 0}</div>
                       <div className="text-sm text-green-600">Active Now</div>
                     </div>
                     <div className="bg-white border border-purple-200 rounded-lg p-4">
-                      <div className="text-2xl font-bold text-blue-700">{networkStats?.networkStats?.totalTransactions || 0}</div>
+                      <div className="text-2xl font-bold text-blue-700">{networkStats.networkStats?.totalTransactions || 0}</div>
                       <div className="text-sm text-blue-600">Total Transactions</div>
                     </div>
                     <div className="bg-white border border-purple-200 rounded-lg p-4">

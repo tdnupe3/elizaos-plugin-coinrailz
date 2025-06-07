@@ -1,236 +1,351 @@
+/**
+ * Comprehensive Real-Time Notification Service
+ * Handles all platform notifications with WebSocket integration
+ */
 
-import { storage } from "../storage";
+import { db } from "../db";
+import { notifications, notificationSettings, users, type Notification } from "../../shared/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { websocketService } from "./websocketService";
 
-export interface Notification {
-  id?: string;
+export enum NotificationType {
+  TRANSACTION_COMPLETED = 'transaction_completed',
+  TRANSACTION_FAILED = 'transaction_failed',
+  SECURITY_ALERT = 'security_alert',
+  AI_AGENT_ACTIVITY = 'ai_agent_activity',
+  REFERRAL_EARNED = 'referral_earned',
+  ACCOUNT_UPDATE = 'account_update',
+  SYSTEM_ANNOUNCEMENT = 'system_announcement',
+  PAYMENT_RECEIVED = 'payment_received',
+  PAYMENT_SENT = 'payment_sent',
+  KYC_STATUS = 'kyc_status',
+  SUBSCRIPTION_UPDATE = 'subscription_update'
+}
+
+export enum NotificationPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  CRITICAL = 'critical'
+}
+
+export interface CreateNotificationData {
   userId: string;
-  type: 'transaction' | 'security' | 'agent' | 'system' | 'referral';
+  type: NotificationType;
   title: string;
   message: string;
-  data?: any;
-  isRead: boolean;
-  priority: 'low' | 'medium' | 'high' | 'critical';
-  createdAt: Date;
-  expiresAt?: Date;
+  priority?: NotificationPriority;
+  metadata?: any;
+  actionUrl?: string;
 }
 
-export interface NotificationSettings {
-  userId: string;
-  emailNotifications: boolean;
-  pushNotifications: boolean;
-  transactionAlerts: boolean;
-  securityAlerts: boolean;
-  agentAlerts: boolean;
-  marketingEmails: boolean;
-}
-
-class NotificationService {
-  
-  async createNotification(notification: Omit<Notification, 'id' | 'isRead' | 'createdAt'>): Promise<Notification> {
-    const newNotification: Notification = {
-      ...notification,
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+export class NotificationService {
+  /**
+   * Create and send a notification
+   */
+  static async createNotification(data: CreateNotificationData): Promise<Notification> {
+    const notification = await db.insert(notifications).values({
+      userId: data.userId,
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      priority: data.priority || NotificationPriority.MEDIUM,
+      metadata: data.metadata,
+      actionUrl: data.actionUrl,
       isRead: false,
-      createdAt: new Date()
-    };
-
-    // Store in database (would need to add notifications table)
-    await this.storeNotification(newNotification);
+      createdAt: new Date(),
+    }).returning();
 
     // Send real-time notification via WebSocket
-    websocketService.broadcastToUser(notification.userId, {
-      type: 'notification',
-      data: newNotification
-    });
+    await this.sendRealTimeNotification(data.userId, notification[0]);
 
-    return newNotification;
+    return notification[0];
   }
 
-  // Transaction notifications
-  async notifyTransactionComplete(userId: string, transactionId: string, amount: string, currency: string = 'USD') {
-    await this.createNotification({
-      userId,
-      type: 'transaction',
-      title: 'Transaction Completed',
-      message: `Your ${currency} ${amount} transaction has been completed successfully.`,
-      data: { transactionId, amount, currency },
-      priority: 'medium'
-    });
-  }
-
-  async notifyTransactionFailed(userId: string, transactionId: string, reason: string) {
-    await this.createNotification({
-      userId,
-      type: 'transaction',
-      title: 'Transaction Failed',
-      message: `Your transaction failed: ${reason}`,
-      data: { transactionId, reason },
-      priority: 'high'
-    });
-  }
-
-  // Security notifications
-  async notifySecurityAlert(userId: string, alertType: string, details: string) {
-    await this.createNotification({
-      userId,
-      type: 'security',
-      title: 'Security Alert',
-      message: `${alertType}: ${details}`,
-      data: { alertType, details },
-      priority: 'critical'
-    });
-  }
-
-  async notifyLoginAttempt(userId: string, location: string, success: boolean) {
-    await this.createNotification({
-      userId,
-      type: 'security',
-      title: success ? 'Successful Login' : 'Failed Login Attempt',
-      message: `Login ${success ? 'successful' : 'attempt failed'} from ${location}`,
-      data: { location, success, timestamp: new Date() },
-      priority: success ? 'low' : 'high'
-    });
-  }
-
-  // AI Agent notifications
-  async notifyAgentTransaction(userId: string, agentId: string, amount: string, type: 'sent' | 'received') {
-    await this.createNotification({
-      userId,
-      type: 'agent',
-      title: `AI Agent ${type === 'sent' ? 'Payment Sent' : 'Payment Received'}`,
-      message: `Agent ${agentId} ${type === 'sent' ? 'sent' : 'received'} $${amount}`,
-      data: { agentId, amount, type },
-      priority: 'medium'
-    });
-  }
-
-  async notifyAgentRegistration(userId: string, agentId: string, agentName: string) {
-    await this.createNotification({
-      userId,
-      type: 'agent',
-      title: 'AI Agent Registered',
-      message: `Your AI agent "${agentName}" has been successfully registered.`,
-      data: { agentId, agentName },
-      priority: 'medium'
-    });
-  }
-
-  // Referral notifications
-  async notifyReferralReward(userId: string, amount: string, currency: string, referredUserId: string) {
-    await this.createNotification({
-      userId,
-      type: 'referral',
-      title: 'Referral Reward Earned',
-      message: `You earned ${currency} ${amount} from a successful referral!`,
-      data: { amount, currency, referredUserId },
-      priority: 'medium'
-    });
-  }
-
-  async notifyNewReferral(userId: string, referralCode: string) {
-    await this.createNotification({
-      userId,
-      type: 'referral',
-      title: 'New Referral Signup',
-      message: `Someone used your referral code ${referralCode} to sign up!`,
-      data: { referralCode },
-      priority: 'medium'
-    });
-  }
-
-  // System notifications
-  async notifySystemMaintenance(userId: string, maintenanceWindow: string) {
-    await this.createNotification({
-      userId,
-      type: 'system',
-      title: 'Scheduled Maintenance',
-      message: `System maintenance scheduled for ${maintenanceWindow}`,
-      data: { maintenanceWindow },
-      priority: 'medium'
-    });
-  }
-
-  // Get notifications for user
-  async getUserNotifications(userId: string, limit: number = 20, unreadOnly: boolean = false): Promise<Notification[]> {
-    // This would query the database for user notifications
-    // For now, return mock data structure
-    return [];
-  }
-
-  // Mark notifications as read
-  async markAsRead(userId: string, notificationIds: string[]): Promise<void> {
-    // Update database to mark notifications as read
-    for (const notificationId of notificationIds) {
-      await this.updateNotificationStatus(notificationId, true);
+  /**
+   * Send real-time notification via WebSocket
+   */
+  private static async sendRealTimeNotification(userId: string, notification: Notification): Promise<void> {
+    try {
+      websocketService.sendToUser(userId, {
+        type: 'notification',
+        data: notification
+      });
+    } catch (error) {
+      console.error('Failed to send real-time notification:', error);
     }
   }
 
-  // Mark all notifications as read
-  async markAllAsRead(userId: string): Promise<void> {
-    // Update database to mark all user notifications as read
-    await this.markAllUserNotificationsRead(userId);
+  /**
+   * Get user notifications with pagination
+   */
+  static async getUserNotifications(
+    userId: string, 
+    limit: number = 20, 
+    offset: number = 0
+  ): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit)
+      .offset(offset);
   }
 
-  // Get notification settings
-  async getNotificationSettings(userId: string): Promise<NotificationSettings> {
-    // This would query user notification preferences
-    return {
-      userId,
+  /**
+   * Get unread notification count
+   */
+  static async getUnreadCount(userId: string): Promise<number> {
+    const result = await db
+      .select({ count: notifications.id })
+      .from(notifications)
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ));
+
+    return result.length;
+  }
+
+  /**
+   * Mark notification as read
+   */
+  static async markAsRead(notificationId: string, userId: string): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(notifications.id, notificationId),
+        eq(notifications.userId, userId)
+      ))
+      .returning();
+
+    return result.length > 0;
+  }
+
+  /**
+   * Mark all notifications as read for user
+   */
+  static async markAllAsRead(userId: string): Promise<number> {
+    const result = await db
+      .update(notifications)
+      .set({ isRead: true, readAt: new Date() })
+      .where(and(
+        eq(notifications.userId, userId),
+        eq(notifications.isRead, false)
+      ))
+      .returning();
+
+    return result.length;
+  }
+
+  /**
+   * Get user notification settings
+   */
+  static async getUserNotificationSettings(userId: string): Promise<any> {
+    const settings = await db
+      .select()
+      .from(notificationSettings)
+      .where(eq(notificationSettings.userId, userId));
+
+    if (settings.length === 0) {
+      // Create default settings
+      const defaultSettings = await this.createDefaultNotificationSettings(userId);
+      return defaultSettings;
+    }
+
+    return settings[0];
+  }
+
+  /**
+   * Update user notification settings
+   */
+  static async updateNotificationSettings(userId: string, settings: any): Promise<any> {
+    const result = await db
+      .update(notificationSettings)
+      .set({
+        ...settings,
+        updatedAt: new Date()
+      })
+      .where(eq(notificationSettings.userId, userId))
+      .returning();
+
+    if (result.length === 0) {
+      // Create new settings if they don't exist
+      return await this.createDefaultNotificationSettings(userId, settings);
+    }
+
+    return result[0];
+  }
+
+  /**
+   * Create default notification settings
+   */
+  private static async createDefaultNotificationSettings(userId: string, customSettings?: any): Promise<any> {
+    const defaultSettings = {
       emailNotifications: true,
       pushNotifications: true,
+      smsNotifications: false,
       transactionAlerts: true,
       securityAlerts: true,
-      agentAlerts: true,
-      marketingEmails: false
+      marketingEmails: false,
+      agentNotifications: true,
+      referralNotifications: true,
+      ...customSettings
     };
+
+    const result = await db.insert(notificationSettings).values({
+      userId,
+      ...defaultSettings,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+
+    return result[0];
   }
 
-  // Update notification settings
-  async updateNotificationSettings(userId: string, settings: Partial<NotificationSettings>): Promise<NotificationSettings> {
-    // Update user notification preferences in database
-    const currentSettings = await this.getNotificationSettings(userId);
-    const updatedSettings = { ...currentSettings, ...settings };
-    
-    // Save to database
-    await this.saveNotificationSettings(updatedSettings);
-    
-    return updatedSettings;
+  /**
+   * Send transaction completion notification
+   */
+  static async notifyTransactionCompleted(
+    userId: string, 
+    transactionId: string, 
+    amount: string, 
+    currency: string
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.TRANSACTION_COMPLETED,
+      title: 'Transaction Completed',
+      message: `Your transaction of ${amount} ${currency} has been completed successfully.`,
+      priority: NotificationPriority.MEDIUM,
+      metadata: { transactionId, amount, currency },
+      actionUrl: `/transaction-history?id=${transactionId}`
+    });
   }
 
-  // Private helper methods (these would interact with your database)
-  private async storeNotification(notification: Notification): Promise<void> {
-    // Store notification in database
-    // You'll need to add a notifications table to your schema
-    console.log('Storing notification:', notification);
+  /**
+   * Send payment received notification
+   */
+  static async notifyPaymentReceived(
+    userId: string, 
+    amount: string, 
+    currency: string, 
+    fromUser?: string
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.PAYMENT_RECEIVED,
+      title: 'Payment Received',
+      message: `You received ${amount} ${currency}${fromUser ? ` from ${fromUser}` : ''}.`,
+      priority: NotificationPriority.HIGH,
+      metadata: { amount, currency, fromUser },
+      actionUrl: '/transaction-history'
+    });
   }
 
-  private async updateNotificationStatus(notificationId: string, isRead: boolean): Promise<void> {
-    // Update notification read status in database
-    console.log(`Marking notification ${notificationId} as ${isRead ? 'read' : 'unread'}`);
+  /**
+   * Send security alert notification
+   */
+  static async notifySecurityAlert(
+    userId: string, 
+    alertType: string, 
+    details: string
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.SECURITY_ALERT,
+      title: 'Security Alert',
+      message: `${alertType}: ${details}`,
+      priority: NotificationPriority.CRITICAL,
+      metadata: { alertType, details },
+      actionUrl: '/settings'
+    });
   }
 
-  private async markAllUserNotificationsRead(userId: string): Promise<void> {
-    // Mark all notifications for user as read
-    console.log(`Marking all notifications for user ${userId} as read`);
+  /**
+   * Send AI agent activity notification
+   */
+  static async notifyAIAgentActivity(
+    userId: string, 
+    agentName: string, 
+    activity: string, 
+    earnings?: string
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.AI_AGENT_ACTIVITY,
+      title: 'AI Agent Activity',
+      message: `${agentName}: ${activity}${earnings ? ` (Earned: ${earnings})` : ''}`,
+      priority: NotificationPriority.MEDIUM,
+      metadata: { agentName, activity, earnings },
+      actionUrl: '/ai-agents'
+    });
   }
 
-  private async saveNotificationSettings(settings: NotificationSettings): Promise<void> {
-    // Save notification settings to database
-    console.log('Saving notification settings:', settings);
+  /**
+   * Send referral earned notification
+   */
+  static async notifyReferralEarned(
+    userId: string, 
+    amount: string, 
+    referralType: string
+  ): Promise<void> {
+    await this.createNotification({
+      userId,
+      type: NotificationType.REFERRAL_EARNED,
+      title: 'Referral Reward Earned',
+      message: `You earned ${amount} from ${referralType} referral!`,
+      priority: NotificationPriority.HIGH,
+      metadata: { amount, referralType },
+      actionUrl: '/referrals'
+    });
   }
 
-  // Get unread notification count
-  async getUnreadCount(userId: string): Promise<number> {
-    // Query database for unread notification count
-    return 0; // Placeholder
+  /**
+   * Send system announcement
+   */
+  static async broadcastSystemAnnouncement(
+    title: string, 
+    message: string, 
+    priority: NotificationPriority = NotificationPriority.MEDIUM
+  ): Promise<void> {
+    // Get all active users
+    const activeUsers = await db.select({ id: users.id }).from(users);
+
+    // Send notification to all users
+    const notifications = activeUsers.map(user => ({
+      userId: user.id,
+      type: NotificationType.SYSTEM_ANNOUNCEMENT,
+      title,
+      message,
+      priority,
+      isRead: false,
+      createdAt: new Date(),
+    }));
+
+    await db.insert(notifications).values(notifications);
+
+    // Send real-time notifications
+    await websocketService.broadcast({
+      type: 'system_announcement',
+      data: { title, message, priority }
+    });
   }
 
-  // Clean up expired notifications
-  async cleanupExpiredNotifications(): Promise<void> {
-    // Remove expired notifications from database
-    console.log('Cleaning up expired notifications');
+  /**
+   * Clean old notifications (older than 90 days)
+   */
+  static async cleanOldNotifications(): Promise<number> {
+    const ninetyDaysAgo = new Date();
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+    const result = await db
+      .delete(notifications)
+      .where(eq(notifications.createdAt, ninetyDaysAgo))
+      .returning();
+
+    return result.length;
   }
 }
-
-export const notificationService = new NotificationService();

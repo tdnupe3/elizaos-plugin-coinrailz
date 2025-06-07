@@ -419,6 +419,41 @@ export const withdrawFundsSchema = walletWithdrawSchema;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
+// Notifications system
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull(), // transaction_completed, security_alert, etc.
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  priority: varchar("priority").default("medium"), // low, medium, high, critical
+  metadata: jsonb("metadata"),
+  actionUrl: varchar("action_url"),
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const notificationSettings = pgTable("notification_settings", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  emailNotifications: boolean("email_notifications").default(true),
+  pushNotifications: boolean("push_notifications").default(true),
+  smsNotifications: boolean("sms_notifications").default(false),
+  transactionAlerts: boolean("transaction_alerts").default(true),
+  securityAlerts: boolean("security_alerts").default(true),
+  marketingEmails: boolean("marketing_emails").default(false),
+  agentNotifications: boolean("agent_notifications").default(true),
+  referralNotifications: boolean("referral_notifications").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+export type NotificationSettings = typeof notificationSettings.$inferSelect;
+export type InsertNotificationSettings = typeof notificationSettings.$inferInsert;
+
 // Global AI Agent Network Schema
 export const globalAIAgents = pgTable("global_ai_agents", {
   id: varchar("id").primaryKey().notNull(),

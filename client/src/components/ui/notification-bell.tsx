@@ -37,7 +37,7 @@ export function NotificationBell({ isDemo = false }: NotificationBellProps) {
   });
 
   // Fetch unread count
-  const { data: unreadData = { count: 0 } } = useQuery({
+  const { data: unreadData } = useQuery({
     queryKey: isDemo ? ['/api/demo/notifications/unread-count'] : ['/api/notifications/unread-count'],
     refetchInterval: 15000, // Refresh every 15 seconds
   });
@@ -183,8 +183,8 @@ export function NotificationBell({ isDemo = false }: NotificationBellProps) {
     }
   ];
 
-  const displayNotifications = isDemo ? demoNotifications : notifications;
-  const unreadCount = isDemo ? demoNotifications.filter(n => !n.isRead).length : unreadData.count;
+  const displayNotifications = isDemo ? demoNotifications : (notifications || []);
+  const unreadCount = isDemo ? demoNotifications.filter(n => !n.isRead).length : ((unreadData as any)?.count || 0);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>

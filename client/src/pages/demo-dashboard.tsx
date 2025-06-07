@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import { demoApi } from "@/lib/demoApiService";
 import { BalanceCardSkeleton, TransactionSkeleton, CryptoHoldingSkeleton } from "@/components/ui/loading-skeleton";
 import { ErrorBoundary, EmptyState, NetworkErrorFallback } from "@/components/ui/error-boundary";
+import { NotificationBell } from "@/components/ui/notification-bell";
 
 function DemoDashboard() {
   const [, setLocation] = useLocation();
@@ -225,6 +226,7 @@ function DemoDashboard() {
             <span className="text-sm">Testing all features with sample data - no real transactions</span>
           </div>
           <div className="flex items-center gap-2">
+            <NotificationBell isDemo={true} />
             <Button 
               variant="ghost" 
               size="sm"

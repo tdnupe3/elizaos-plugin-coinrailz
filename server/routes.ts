@@ -29,6 +29,7 @@ import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
 import { registerDemoRoutes } from './routes-demo';
+import { EnhancedReferralService } from './services/enhancedReferralService';
 // Notification service will be imported dynamically in route handlers
 import Stripe from "stripe";
 

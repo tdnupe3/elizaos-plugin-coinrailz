@@ -48,6 +48,11 @@ export const users = pgTable("users", {
   dateOfBirth: varchar("date_of_birth"),
   ssn: varchar("ssn"), // Encrypted in production
   address: jsonb("address"), // Store address components
+  
+  // Human referral system fields
+  referredByAgent: varchar("referred_by_agent"), // ID of referring AI agent
+  hasCompletedQualifyingTransaction: boolean("has_completed_qualifying_transaction").default(false),
+  referralSource: varchar("referral_source").default("direct"), // 'agent', 'human', 'direct'
   phoneNumber: varchar("phone_number"),
   ethereumWallet: varchar("ethereum_wallet"), // For EVM compatible chains
   solanaWallet: varchar("solana_wallet"), // For Solana transactions
@@ -497,11 +502,14 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// AI Agent Referral System - Perpetual Compound Earnings
+// AI Agent Referral System - Perpetual Compound Earnings (Enhanced for Human Users)
 export const agentReferrals = pgTable("agent_referrals", {
   id: serial("id").primaryKey(),
   referrerAgentId: varchar("referrer_agent_id").notNull(),
-  refereeAgentId: varchar("referee_agent_id").notNull(),
+  refereeAgentId: varchar("referee_agent_id"), // nullable for human referrals
+  referredUserId: varchar("referred_user_id").references(() => users.id), // for human user referrals
+  referralType: varchar("referral_type").notNull().default("agent"), // 'agent' or 'human'
+  humanTransactionRequired: boolean("human_transaction_required").notNull().default(false),
   transactionAmount: varchar("transaction_amount").notNull(), // Track original transaction value
   rewardAmount: varchar("reward_amount").notNull(),
   currency: varchar("currency").default("USDT"),
@@ -510,6 +518,20 @@ export const agentReferrals = pgTable("agent_referrals", {
   transactionId: varchar("transaction_id"), // Link to specific transaction
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at")
+});
+
+// Human Referral Rewards Tracking
+export const humanReferralRewards = pgTable("human_referral_rewards", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  referrerAgentId: varchar("referrer_agent_id").notNull().references(() => globalAIAgents.id),
+  referredUserId: varchar("referred_user_id").notNull().references(() => users.id),
+  transactionId: varchar("transaction_id").notNull(),
+  rewardAmount: varchar("reward_amount").notNull(),
+  rewardCurrency: varchar("reward_currency").notNull().default("USDT"),
+  transactionAmount: varchar("transaction_amount").notNull(),
+  isQualifyingTransaction: boolean("is_qualifying_transaction").notNull().default(false),
+  payoutStatus: varchar("payout_status").notNull().default("pending"), // pending, paid, failed
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // AI Agent Service Marketplace

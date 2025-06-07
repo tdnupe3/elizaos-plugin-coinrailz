@@ -1,0 +1,122 @@
+PROMPT FOR AI AGENT REFERRAL SYSTEM EXPANSION - HUMAN USER INTEGRATION
+
+Please implement the following comprehensive expansion to the AI agent referral system to enable AI agents to refer both other AI agents AND human users, with transaction-based reward triggers:
+
+1. DATABASE SCHEMA UPDATES
+Update the referral system to track human users in addition to AI agents:
+
+-- Add human user tracking to referrals
+ALTER TABLE agent_referrals ADD COLUMN referred_user_id VARCHAR;
+ALTER TABLE agent_referrals ADD COLUMN referral_type VARCHAR DEFAULT 'agent'; -- 'agent' or 'human'
+ALTER TABLE agent_referrals ADD COLUMN human_transaction_required BOOLEAN DEFAULT false;
+-- Add referral tracking to users table
+ALTER TABLE users ADD COLUMN referred_by_agent VARCHAR;
+ALTER TABLE users ADD COLUMN has_completed_qualifying_transaction BOOLEAN DEFAULT false;
+ALTER TABLE users ADD COLUMN referral_source VARCHAR; -- 'agent' or 'human'
+-- Create human referral rewards tracking
+CREATE TABLE IF NOT EXISTS human_referral_rewards (
+  id SERIAL PRIMARY KEY,
+  referrer_agent_id VARCHAR NOT NULL,
+  referred_user_id VARCHAR NOT NULL,
+  transaction_id VARCHAR NOT NULL,
+  reward_amount VARCHAR NOT NULL,
+  reward_currency VARCHAR DEFAULT 'USDT',
+  transaction_amount VARCHAR NOT NULL,
+  is_qualifying_transaction BOOLEAN DEFAULT false,
+  payout_status VARCHAR DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+2. ENHANCED REFERRAL SERVICE
+Expand aiAgentReferralService.ts to handle human user referrals:
+
+Add processHumanUserReferral() method
+Add processHumanTransactionReward() method
+Add getHumanReferralStats() method
+Modify generateReferralLink() to create human-friendly referral links
+Add transaction threshold validation (minimum transaction amount for rewards)
+3. TRANSACTION COMPLETION HOOKS
+Modify the transaction processing system to:
+
+Check if a human user was referred by an AI agent
+Validate if the transaction meets minimum requirements ($10+ for human referrals)
+Trigger referral rewards only AFTER successful transaction completion
+Process both first-time and ongoing referral rewards for human users
+4. API ENDPOINTS EXPANSION
+Add new routes in routes.ts:
+
+// Human user referral registration
+app.post('/api/referrals/register-human', async (req, res) => {
+  // Register human user with agent referral code
+});
+// Process human transaction reward
+app.post('/api/referrals/process-human-transaction', async (req, res) => {
+  // Trigger reward after human completes qualifying transaction
+});
+// Get combined referral stats (agents + humans)
+app.get('/api/agents/:agentId/combined-referral-stats', async (req, res) => {
+  // Return stats for both agent and human referrals
+});
+// Human referral link generation
+app.post('/api/agents/:agentId/generate-human-referral-link', async (req, res) => {
+  // Generate user-friendly referral links for human acquisition
+});
+5. REWARD CALCULATION LOGIC
+Implement tiered rewards for human referrals:
+
+First human transaction: $5 minimum reward or 2% of transaction value (whichever is higher)
+Subsequent transactions: 1% of transaction value (perpetual passive income)
+Minimum qualifying transaction: $10 USD equivalent
+Maximum reward per transaction: $100
+6. FRONTEND INTEGRATION
+Update the AI agent marketplace to include:
+
+Human referral link generation interface
+Combined referral dashboard showing both agent and human referrals
+Human referral conversion tracking
+Projected earnings calculator for human acquisition
+7. NOWPAYMENTS INTEGRATION
+Enhance reward processing to:
+
+Handle human referral reward payouts automatically
+Support multi-currency reward distribution
+Process batch payouts for high-volume referring agents
+Maintain audit trail for all human referral rewards
+8. VIRAL GROWTH MECHANISMS
+Implement features to maximize viral adoption:
+
+Referral competitions: Monthly leaderboards with bonus rewards
+Compound referral bonuses: Extra rewards for agents who refer both agents and humans
+Social sharing tools: Easy sharing of referral links across platforms
+Performance analytics: Real-time tracking of referral conversion rates
+9. COMPLIANCE AND FRAUD PREVENTION
+Add safeguards to prevent abuse:
+
+Transaction verification: Ensure all referred transactions are legitimate
+IP tracking: Prevent self-referrals and manipulation
+Minimum transaction thresholds: Prevent micro-transaction gaming
+Account verification: KYC requirements for high-value referrals
+10. SUCCESS METRICS TRACKING
+Implement comprehensive analytics:
+
+Human vs agent referral conversion rates
+Average transaction values by referral source
+Lifetime value of referred users
+Referral program ROI analysis
+Viral coefficient measurement
+EXPECTED IMPACT
+This expansion will:
+
+Triple the total addressable market by including human users
+Create compound viral growth as agents recruit both agents and humans
+Generate higher-value transactions from human users ($50-500 avg vs $5-50 for agents)
+Establish sustainable passive income streams for successful referring agents
+Accelerate platform adoption through dual-channel acquisition
+IMPLEMENTATION PRIORITY
+Database schema updates (Critical - Foundation)
+Core referral service expansion (High - Core functionality)
+Transaction completion hooks (High - Revenue generation)
+API endpoints (Medium - External integration)
+Frontend interface (Medium - User experience)
+Advanced analytics (Low - Optimization)
+Please implement these changes with proper error handling, comprehensive testing, and production-ready code quality. The system should be ready for immediate deployment and scaling to handle viral growth scenarios.
+

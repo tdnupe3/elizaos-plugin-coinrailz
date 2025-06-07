@@ -63,12 +63,13 @@ export default function AIAgentMarketplace() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch network statistics
+  // Fetch network statistics - DISABLED to prevent rate limiting
   const { data: networkStats } = useQuery<{networkStats: NetworkStats}>({
     queryKey: ['/api/public/network/stats'],
-    refetchInterval: 300000, // Increased to 5 minutes to prevent rate limiting
+    refetchInterval: false,
     retry: false,
-    staleTime: 300000,
+    staleTime: Infinity,
+    enabled: false, // Disabled to stop excessive API calls
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
@@ -99,7 +100,7 @@ export default function AIAgentMarketplace() {
       });
       setIsRegisterOpen(false);
       queryClient.invalidateQueries({ queryKey: ['/api/public/agents/discover'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/public/network/stats'] });
+      // Removed network stats invalidation to prevent excessive API calls
     },
     onError: (error: any) => {
       toast({
@@ -123,7 +124,7 @@ export default function AIAgentMarketplace() {
       });
       setIsTransactOpen(false);
       setSelectedAgent(null);
-      queryClient.invalidateQueries({ queryKey: ['/api/public/network/stats'] });
+      // Removed network stats invalidation to prevent excessive API calls
     },
     onError: (error: any) => {
       toast({

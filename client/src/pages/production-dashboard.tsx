@@ -25,10 +25,10 @@ export default function ProductionDashboard() {
 
   const { data: networkStatsResponse = { networkStats: {} }, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/public/network/stats'],
-    refetchInterval: 300000, // Increased to 5 minutes to prevent rate limiting
-    retry: false, // Disable retries to prevent cascade failures
-    staleTime: 300000,
-    enabled: true,
+    refetchInterval: false, // Completely disabled to prevent rate limiting
+    retry: false,
+    staleTime: Infinity,
+    enabled: false, // Temporarily disabled to stop excessive API calls
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });

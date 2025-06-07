@@ -56,7 +56,7 @@ export const queryClient = new QueryClient({
         if (error?.message?.includes('403')) return false; // IP blocked
         return failureCount < 1; // Reduce retries to prevent cascade
       },
-      refetchOnReconnect: true,
+      refetchOnReconnect: false,
       networkMode: 'online',
 
     },

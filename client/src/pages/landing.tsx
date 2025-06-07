@@ -23,7 +23,7 @@ export default function Landing() {
     setLocation("/demo-dashboard");
   };
 
-  // Fetch network stats for AI agent network (optional feature)
+  // Fetch network stats for AI agent network (optional feature) - DISABLED to prevent rate limiting
   const { data: networkStats } = useQuery<{
     success: boolean;
     networkStats: {
@@ -37,9 +37,10 @@ export default function Landing() {
     };
   }>({
     queryKey: ["/api/public/network/stats"],
-    refetchInterval: 300000, // Increased to 5 minutes to prevent rate limiting
+    refetchInterval: false,
     retry: false,
-    staleTime: 300000,
+    staleTime: Infinity,
+    enabled: false, // Disabled to stop excessive API calls
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });

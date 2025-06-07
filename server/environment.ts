@@ -20,6 +20,11 @@ export interface EnvironmentConfig {
   STRIPE_WEBHOOK_SECRET?: string;
   VITE_STRIPE_PUBLIC_KEY?: string;
 
+  // PayPal Payment Processing
+  PAYPAL_CLIENT_ID?: string;
+  PAYPAL_CLIENT_SECRET?: string;
+  PAYPAL_ENVIRONMENT?: 'sandbox' | 'production';
+
   // Cryptocurrency APIs
   COINBASE_API_KEY?: string;
   COINBASE_API_SECRET?: string;
@@ -82,6 +87,10 @@ function validateEnvironment(): EnvironmentConfig {
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
     VITE_STRIPE_PUBLIC_KEY: process.env.VITE_STRIPE_PUBLIC_KEY,
+    
+    PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
+    PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
+    PAYPAL_ENVIRONMENT: (process.env.PAYPAL_ENVIRONMENT as EnvironmentConfig['PAYPAL_ENVIRONMENT']) || 'sandbox',
     
     COINBASE_API_KEY: process.env.COINBASE_API_KEY,
     COINBASE_API_SECRET: process.env.COINBASE_API_SECRET,

@@ -52,6 +52,7 @@ const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 // Lazy load legal pages
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
+const ProductionDashboard = lazy(() => import("@/pages/production-dashboard"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -115,6 +116,11 @@ function Router() {
       </Route>
       <Route path="/privacy-policy">
         {() => <LazyLoadWrapper><PrivacyPolicyPage /></LazyLoadWrapper>}
+      </Route>
+      
+      {/* Production dashboard for monitoring */}
+      <Route path="/production">
+        {() => <LazyLoadWrapper><ProductionDashboard /></LazyLoadWrapper>}
       </Route>
 
       {/* Authenticated routes */}

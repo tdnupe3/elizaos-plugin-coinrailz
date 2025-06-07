@@ -2888,6 +2888,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Revenue tracking and optimization
+  app.get('/api/revenue/metrics', async (req, res) => {
+    try {
+      const { period = 'monthly' } = req.query;
+      const { RevenueTracker } = await import('./services/revenueTracker');
+      
+      const metrics = await RevenueTracker.getRevenueMetrics(period as any);
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching revenue metrics:', error);
+      res.status(500).json({ error: 'Failed to fetch revenue metrics' });
+    }
+  });
+
+  // Top performing agents
+  app.get('/api/revenue/top-agents', async (req, res) => {
+    try {
+      const { limit = 10 } = req.query;
+      const { RevenueTracker } = await import('./services/revenueTracker');
+      
+      const agents = await RevenueTracker.getTopPerformingAgents(Number(limit));
+      res.json(agents);
+    } catch (error) {
+      console.error('Error fetching top agents:', error);
+      res.status(500).json({ error: 'Failed to fetch top performing agents' });
+    }
+  });
+
+  // Optimization recommendations
+  app.get('/api/revenue/recommendations', async (req, res) => {
+    try {
+      const { RevenueTracker } = await import('./services/revenueTracker');
+      
+      const recommendations = await RevenueTracker.getOptimizationRecommendations();
+      res.json({ recommendations });
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      res.status(500).json({ error: 'Failed to fetch optimization recommendations' });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

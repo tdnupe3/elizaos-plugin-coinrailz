@@ -40,10 +40,10 @@ export class AutomatedTaskRunner {
    * Stop all automated tasks
    */
   static stopAllTasks(): void {
-    for (const [name, interval] of this.intervals) {
+    this.intervals.forEach((interval, name) => {
       clearInterval(interval);
       console.log(`Stopped task: ${name}`);
-    }
+    });
     this.intervals.clear();
   }
 

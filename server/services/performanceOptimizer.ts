@@ -86,11 +86,11 @@ export class PerformanceOptimizer {
    * Invalidate cache entries by pattern
    */
   static invalidateCache(pattern: string): void {
-    for (const [key] of this.cache) {
+    this.cache.forEach((_, key) => {
       if (key.includes(pattern)) {
         this.cache.delete(key);
       }
-    }
+    });
   }
 
   /**
@@ -182,7 +182,7 @@ export class PerformanceOptimizer {
         transactions: transactions.rows,
         totalCount: totalCount.rows[0]?.count || 0,
         currentPage: page,
-        totalPages: Math.ceil((totalCount.rows[0]?.count || 0) / limit),
+        totalPages: Math.ceil(Number(totalCount.rows[0]?.count || 0) / limit),
       };
     }, 60000); // Cache for 1 minute
   }

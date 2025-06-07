@@ -68,14 +68,14 @@ export class TransactionHooks {
       `);
 
       for (const tx of pendingTransactions.rows) {
-        await TransactionHooks.onTransactionCompleted(tx.transaction_id);
+        await TransactionHooks.onTransactionCompleted(tx.transaction_id as string);
         
         // Mark hooks as processed
-        await db.execute(`
+        await db.execute(sql`
           UPDATE agent_transactions 
           SET metadata = COALESCE(metadata, '{}') || '{"hooks_processed": true}'
-          WHERE transaction_id = $1
-        `, [tx.transaction_id]);
+          WHERE transaction_id = ${tx.transaction_id}
+        `);
       }
 
       console.log(`Processed ${pendingTransactions.rows.length} pending transaction hooks`);

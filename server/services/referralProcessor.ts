@@ -232,7 +232,7 @@ export class ReferralProcessor {
 
       // Process each transaction
       for (const transaction of recentTransactions.rows) {
-        await this.processTransactionReferrals(transaction.transaction_id);
+        await this.processTransactionReferrals(transaction.transaction_id as string);
       }
 
     } catch (error) {

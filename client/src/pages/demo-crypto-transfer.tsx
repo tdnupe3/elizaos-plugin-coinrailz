@@ -224,8 +224,8 @@ export default function DemoCryptoTransfer() {
                     placeholder="0.00000000"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    step="0.00000001"
-                    min="0.00000001"
+                    step="0.01"
+                    min="2.50"
                     required
                   />
                   {selectedCrypto && (

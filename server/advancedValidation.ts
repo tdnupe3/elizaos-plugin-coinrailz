@@ -78,8 +78,9 @@ export class SecurityValidator {
     }
 
     // Check for micro-transactions (potential spam)
-    if (amount < 1) {
-      warnings.push('Micro-transaction detected');
+    if (amount < 2.50) {
+      warnings.push('Below minimum transaction amount');
+      valid = false;
     }
 
     // Check for very large transactions

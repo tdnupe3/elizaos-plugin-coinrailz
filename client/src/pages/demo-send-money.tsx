@@ -26,6 +26,13 @@ export default function DemoSendMoney() {
     if (!amount || !recipient || !recipientPlatform || !method) {
       return;
     }
+    
+    const amountValue = parseFloat(amount);
+    if (amountValue < 2.50) {
+      alert('Minimum transaction $2.50');
+      return;
+    }
+    
     setShowFlowOrchestrator(true);
   };
 
@@ -186,12 +193,12 @@ export default function DemoSendMoney() {
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     step="0.01"
-                    min="0.01"
+                    min="2.50"
                     max="2500"
                     required
                   />
                 </div>
-                <p className="text-xs text-gray-500">Maximum $2,500 per transaction in demo</p>
+                <p className="text-xs text-gray-500">Minimum $2.50, maximum $2,500 per transaction</p>
               </div>
 
               <div className="space-y-2">

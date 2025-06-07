@@ -4,7 +4,7 @@
  */
 
 import { db } from "./db";
-import { users, userViolations, agentRegistrations } from "@shared/schema";
+import { users, userViolations, globalAIAgents } from "@shared/schema";
 import { eq, and, desc, count } from "drizzle-orm";
 
 export enum ViolationType {
@@ -131,12 +131,12 @@ export class ComplianceService {
 
         // Also terminate any AI agents registered by this user
         await db
-          .update(agentRegistrations)
+          .update(globalAIAgents)
           .set({
             status: 'terminated',
             updatedAt: new Date(),
           })
-          .where(eq(agentRegistrations.ownerId, userId));
+          .where(eq(globalAIAgents.id, userId));
         break;
     }
   }

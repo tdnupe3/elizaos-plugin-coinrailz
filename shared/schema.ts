@@ -56,6 +56,8 @@ export const users = pgTable("users", {
   referredBy: varchar("referred_by"),
   referralBonus: decimal("referral_bonus", { precision: 10, scale: 2 }).default("0.00"),
   totalReferrals: integer("total_referrals").default(0),
+  accountStatus: varchar("account_status").default("active"), // active, suspended, terminated
+  suspensionEndDate: timestamp("suspension_end_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -541,6 +543,19 @@ export const agentTransactions = pgTable("agent_transactions", {
   confirmedAt: timestamp("confirmed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// User Violations and Compliance Tracking
+export const userViolations = pgTable("user_violations", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  violationType: varchar("violation_type").notNull(), // minor, moderate, severe, legal
+  description: text("description").notNull(),
+  enforcementAction: varchar("enforcement_action").notNull(), // warning, suspension, termination
+  suspensionEndDate: timestamp("suspension_end_date"),
+  reportedBy: varchar("reported_by"), // system, admin, user_id
+  evidence: text("evidence"), // Supporting evidence or logs
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const agentCommunications = pgTable("agent_communications", {

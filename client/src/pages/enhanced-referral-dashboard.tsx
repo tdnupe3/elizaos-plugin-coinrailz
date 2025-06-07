@@ -64,11 +64,12 @@ export default function EnhancedReferralDashboard() {
   // Generate human referral link mutation
   const generateLinkMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/agents/${selectedAgentId}/generate-human-referral-link`, {
+      const response = await apiRequest("POST", `/api/agents/${selectedAgentId}/generate-human-referral-link`, {
         baseUrl: window.location.origin
       });
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setReferralLink(data.referralLink);
       setReferralCode(data.referralCode);
       toast({
@@ -88,9 +89,10 @@ export default function EnhancedReferralDashboard() {
   // Process batch rewards mutation
   const processBatchMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("POST", `/api/agents/${selectedAgentId}/process-batch-rewards`);
+      const response = await apiRequest("POST", `/api/agents/${selectedAgentId}/process-batch-rewards`);
+      return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       toast({
         title: "Batch Processing Complete",
         description: `Processed ${data.processedCount} pending rewards`,
@@ -170,7 +172,7 @@ export default function EnhancedReferralDashboard() {
               <Card className="bg-white dark:bg-gray-800 shadow-lg">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Agent Referrals</CardTitle>
-                  <Robot className="h-4 w-4 text-purple-600" />
+                  <Bot className="h-4 w-4 text-purple-600" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{referralStats?.agentReferrals.total || 0}</div>

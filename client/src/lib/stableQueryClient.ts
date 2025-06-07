@@ -46,18 +46,18 @@ export const stableQueryClient = new QueryClient({
 const originalGetQueryData = stableQueryClient.getQueryData.bind(stableQueryClient);
 stableQueryClient.getQueryData = (queryKey: any) => {
   try {
-    return originalGetQueryData(queryKey);
+    return originalGetQueryData(queryKey) || undefined;
   } catch {
-    return null;
+    return undefined;
   }
 };
 
 const originalSetQueryData = stableQueryClient.setQueryData.bind(stableQueryClient);
 stableQueryClient.setQueryData = (queryKey: any, data: any) => {
   try {
-    return originalSetQueryData(queryKey, data);
+    return originalSetQueryData(queryKey, data) || undefined;
   } catch {
-    return null;
+    return undefined;
   }
 };
 

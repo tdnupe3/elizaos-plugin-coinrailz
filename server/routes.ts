@@ -1629,17 +1629,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Crypto prices (mock data for now)
   app.get('/api/crypto/prices', async (req, res) => {
     try {
-      // Mock crypto prices - replace with real API when credentials are available
-      const prices = {
-        BTC: { price: 43250, change: 2.5 },
-        ETH: { price: 2580, change: -1.2 },
-        ADA: { price: 0.48, change: 3.1 },
-        DOT: { price: 7.25, change: -0.8 }
+      if (!env.COINGECKO_API_KEY) {
+        return res.status(503).json({ 
+          error: "CoinGecko API key required for real-time cryptocurrency data",
+          message: "Please configure COINGECKO_API_KEY environment variable"
+        });
+      }
+
+      const coinGeckoIds = {
+        'BTC': 'bitcoin',
+        'ETH': 'ethereum', 
+        'ADA': 'cardano',
+        'DOT': 'polkadot'
       };
+
+      const ids = Object.values(coinGeckoIds).join(',');
+      const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'x-cg-demo-api-key': env.COINGECKO_API_KEY
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`CoinGecko API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      const prices = {
+        BTC: { 
+          price: data.bitcoin?.usd || 0, 
+          change: data.bitcoin?.usd_24h_change || 0 
+        },
+        ETH: { 
+          price: data.ethereum?.usd || 0, 
+          change: data.ethereum?.usd_24h_change || 0 
+        },
+        ADA: { 
+          price: data.cardano?.usd || 0, 
+          change: data.cardano?.usd_24h_change || 0 
+        },
+        DOT: { 
+          price: data.polkadot?.usd || 0, 
+          change: data.polkadot?.usd_24h_change || 0 
+        }
+      };
+
       res.json(prices);
     } catch (error) {
       console.error("Error fetching crypto prices:", error);
-      res.status(500).json({ message: "Failed to fetch crypto prices" });
+      res.status(500).json({ 
+        error: "Failed to fetch cryptocurrency prices",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

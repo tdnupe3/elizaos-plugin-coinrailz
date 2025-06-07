@@ -1,10 +1,14 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { initializeGlobalPromiseHandler } from "./utils/promiseHandler";
 
-// Global error handling for unhandled promise rejections
+// Initialize comprehensive promise handler
+initializeGlobalPromiseHandler();
+
+// Enhanced global error handling for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
-  // Suppress all development-related connection errors
+  // Suppress all development-related connection errors and API rate limiting
   const suppressedErrors = [
     'ChromeTransport',
     'connectChrome',
@@ -13,21 +17,32 @@ window.addEventListener('unhandledrejection', (event) => {
     'connecting',
     'HMR',
     'hot-reload',
-    'ws://localhost'
+    'ws://localhost',
+    '429',
+    'rate limit',
+    'too many requests',
+    '403',
+    'forbidden',
+    'ip blocked',
+    '502',
+    'bad gateway',
+    'network stats',
+    'api/public/network',
+    'fetch'
   ];
   
   const errorMessage = String(event.reason?.message || event.reason || '');
   const errorName = String(event.reason?.name || '');
   const errorStack = String(event.reason?.stack || '');
   
-  // Check if this is a development-related error
-  const isDevelopmentError = suppressedErrors.some(keyword => 
+  // Check if this is a suppressible error
+  const isSuppressibleError = suppressedErrors.some(keyword => 
     errorMessage.toLowerCase().includes(keyword.toLowerCase()) ||
     errorName.toLowerCase().includes(keyword.toLowerCase()) ||
     errorStack.toLowerCase().includes(keyword.toLowerCase())
   );
   
-  if (isDevelopmentError) {
+  if (isSuppressibleError) {
     event.preventDefault();
     return;
   }

@@ -46,43 +46,62 @@ export default function TransactionFlowOrchestrator({
     ));
   }, []);
 
-  // P2P Transfer Flow
+  // P2P Transfer Flow with comprehensive error handling
   const p2pTransferMutation = useMutation({
     mutationFn: async (data: any) => {
-      // Step 1: Platform Detection
-      updateStepStatus('platform-detection', 'processing');
-      const platformsResponse = await apiRequest('POST', '/api/p2p/detect-platforms', {
-        recipient: data.recipient
-      });
-      const platforms = await platformsResponse.json();
-      updateStepStatus('platform-detection', 'completed');
+      try {
+        // Step 1: Platform Detection
+        updateStepStatus('platform-detection', 'processing');
+        try {
+          const platformsResponse = await apiRequest('POST', '/api/p2p/detect-platforms', {
+            recipient: data.recipient
+          });
+          const platforms = await platformsResponse.json();
+          updateStepStatus('platform-detection', 'completed');
+          
+          // Step 2: Compliance Check
+          updateStepStatus('compliance-check', 'processing');
+          try {
+            const complianceResponse = await apiRequest('POST', '/api/compliance/check', {
+              userId: data.userId,
+              amount: data.amount,
+              transactionType: 'p2p_transfer',
+              recipient: data.recipient
+            });
+            const complianceResult = await complianceResponse.json();
+            
+            if (complianceResult.blockedTransaction) {
+              throw new Error('Transaction blocked by compliance system');
+            }
+            updateStepStatus('compliance-check', 'completed');
 
-      // Step 2: Compliance Check
-      updateStepStatus('compliance-check', 'processing');
-      const complianceResponse = await apiRequest('POST', '/api/compliance/check', {
-        userId: data.userId,
-        amount: data.amount,
-        transactionType: 'p2p_transfer',
-        recipient: data.recipient
-      });
-      const complianceResult = await complianceResponse.json();
-      
-      if (complianceResult.blockedTransaction) {
-        throw new Error('Transaction blocked by compliance system');
+            // Step 3: Execute Transfer
+            updateStepStatus('execute-transfer', 'processing');
+            try {
+              const transferResponse = await apiRequest('POST', '/api/p2p/transfer', {
+                ...data,
+                selectedPlatform: platforms[0]?.platform,
+                complianceId: complianceResult.id
+              });
+              const transferResult = await transferResponse.json();
+              updateStepStatus('execute-transfer', 'completed');
+              return transferResult;
+            } catch (transferError) {
+              updateStepStatus('execute-transfer', 'failed', transferError instanceof Error ? transferError.message : 'Transfer failed');
+              throw transferError;
+            }
+          } catch (complianceError) {
+            updateStepStatus('compliance-check', 'failed', complianceError instanceof Error ? complianceError.message : 'Compliance check failed');
+            throw complianceError;
+          }
+        } catch (platformError) {
+          updateStepStatus('platform-detection', 'failed', platformError instanceof Error ? platformError.message : 'Platform detection failed');
+          throw platformError;
+        }
+      } catch (error) {
+        console.error('P2P Transfer Flow Error:', error);
+        throw error;
       }
-      updateStepStatus('compliance-check', 'completed');
-
-      // Step 3: Execute Transfer
-      updateStepStatus('execute-transfer', 'processing');
-      const transferResponse = await apiRequest('POST', '/api/p2p/transfer', {
-        ...data,
-        selectedPlatform: platforms[0]?.platform,
-        complianceId: complianceResult.id
-      });
-      const transferResult = await transferResponse.json();
-      updateStepStatus('execute-transfer', 'completed');
-
-      return transferResult;
     },
     onSuccess: () => {
       toast({

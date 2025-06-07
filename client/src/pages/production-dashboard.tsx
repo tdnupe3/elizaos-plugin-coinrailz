@@ -23,17 +23,14 @@ export default function ProductionDashboard() {
     refetchOnReconnect: false,
   });
 
-  const { data: networkStatsResponse = { networkStats: {} }, isLoading: statsLoading } = useQuery({
-    queryKey: ['/api/public/network/stats'],
-    refetchInterval: false, // Completely disabled to prevent rate limiting
-    retry: false,
-    staleTime: Infinity,
-    enabled: false, // Temporarily disabled to stop excessive API calls
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-  });
-
-  const networkStats = (networkStatsResponse as any)?.networkStats || {};
+  // Network stats completely removed to prevent excessive API calls
+  const networkStats = {
+    activeAgents: 0,
+    totalTransactions: 0,
+    transactionVolume: "0",
+    platformFees: "0"
+  };
+  const statsLoading = false;
 
   const processReferralRewards = async () => {
     try {

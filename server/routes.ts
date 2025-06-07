@@ -30,6 +30,7 @@ import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
 import { registerDemoRoutes } from './routes-demo';
 import { EnhancedReferralService } from './services/enhancedReferralService';
+import { TransactionCompletionHooks } from './services/transactionCompletionHooks';
 // Notification service will be imported dynamically in route handlers
 import Stripe from "stripe";
 

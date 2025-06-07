@@ -433,15 +433,15 @@ export default function EnhancedReferralDashboard() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-2xl font-bold">{viralMetrics?.totalHumanReferrals || 0}</div>
+                    <div className="text-2xl font-bold">{(viralMetrics as any)?.totalHumanReferrals || 0}</div>
                     <p className="text-sm text-muted-foreground">Platform Human Referrals</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-2xl font-bold">{viralMetrics?.totalAgentReferrals || 0}</div>
+                    <div className="text-2xl font-bold">{(viralMetrics as any)?.totalAgentReferrals || 0}</div>
                     <p className="text-sm text-muted-foreground">Platform Agent Referrals</p>
                   </div>
                   <div className="text-center p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div className="text-2xl font-bold">{viralMetrics?.viralCoefficient || 0}</div>
+                    <div className="text-2xl font-bold">{(viralMetrics as any)?.viralCoefficient || 0}</div>
                     <p className="text-sm text-muted-foreground">Viral Coefficient</p>
                   </div>
                 </div>

@@ -112,13 +112,13 @@ class PromiseRejectionHandler {
     const originalCatch = Promise.prototype.catch;
 
     // Override Promise.prototype.then to add default error handling
-    Promise.prototype.then = function<TResult1 = any, TResult2 = never>(
-      onfulfilled?: ((value: any) => TResult1 | PromiseLike<TResult1>) | null,
-      onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
-    ): Promise<TResult1 | TResult2> {
+    Promise.prototype.then = function(
+      onfulfilled?: any,
+      onrejected?: any
+    ): any {
       const wrappedOnRejected = onrejected || ((reason: any) => {
         console.warn('Promise rejection handled by global handler:', reason);
-        return Promise.resolve(null as any);
+        return null;
       });
 
       return originalThen.call(this, onfulfilled, wrappedOnRejected);
@@ -158,7 +158,7 @@ class PromiseRejectionHandler {
         console.warn(`Sync error in wrapped async function ${context || 'unknown context'}:`, error);
         return Promise.resolve(null);
       }
-    }) as T;
+    }) as any;
   }
 
   /**

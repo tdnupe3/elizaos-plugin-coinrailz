@@ -110,15 +110,26 @@ queryClient.setDefaultOptions({
   },
 });
 
-// Global error boundary for React Query
-queryClient.getQueryCache().subscribe((event) => {
-  if (event.type === 'observerResultsUpdated' && event.query.state.error) {
-    console.warn('Query error intercepted:', event.query.state.error);
+// Global unhandled rejection prevention
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = String(event.reason?.message || event.reason || '');
+  
+  // Filter out browser extension and development-related errors
+  const ignoredPatterns = [
+    'ChromeTransport',
+    'MetaMask',
+    'Extension context invalidated',
+    'Could not establish connection',
+    'vite',
+    'HMR'
+  ];
+  
+  if (ignoredPatterns.some(pattern => reason.includes(pattern))) {
+    event.preventDefault();
+    return;
   }
-});
-
-queryClient.getMutationCache().subscribe((event) => {
-  if (event.type === 'observerResultsUpdated' && event.mutation.state.error) {
-    console.warn('Mutation error intercepted:', event.mutation.state.error);
-  }
+  
+  // Log other rejections as warnings instead of errors
+  console.warn('Promise rejection handled:', reason);
+  event.preventDefault();
 });

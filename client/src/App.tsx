@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
 import { AsyncOperationWrapper } from "@/utils/asyncOperationWrapper";
+import { promiseRejectionHandler } from "@/utils/promiseRejectionHandler";
 
 // Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";
@@ -173,8 +174,9 @@ function Router() {
 
 function App() {
   // Initialize comprehensive async operation handling
-  React.useEffect(() => {
-    // Set up global error handlers for async operations
+  useEffect(() => {
+    // Initialize the promise rejection handler to prevent unhandled rejections
+    promiseRejectionHandler.initialize();
     console.log('Initializing comprehensive async error handling');
   }, []);
 

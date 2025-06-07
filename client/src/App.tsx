@@ -1,3 +1,4 @@
+import React from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -7,6 +8,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
+import { globalErrorHandler } from "@/utils/errorHandler";
 
 // Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";
@@ -169,6 +171,24 @@ function Router() {
 }
 
 function App() {
+  // Initialize global error handler
+  React.useEffect(() => {
+    globalErrorHandler; // This ensures the error handler is initialized
+    
+    // Add custom toast handler for error messages
+    const handleCustomToast = (event: CustomEvent) => {
+      const { message, variant } = event.detail;
+      // TODO: Integrate with actual toast system
+      console.log(`Toast: ${message} (${variant})`);
+    };
+    
+    window.addEventListener('show-toast', handleCustomToast as EventListener);
+    
+    return () => {
+      window.removeEventListener('show-toast', handleCustomToast as EventListener);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

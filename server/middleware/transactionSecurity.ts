@@ -118,9 +118,9 @@ export class TransactionSecurity {
       return { isValid: false, error: 'Amount must be greater than zero' };
     }
 
-    // Prevent micro-transaction spam (minimum $0.01)
-    if (numAmount < 0.01) {
-      return { isValid: false, error: 'Amount too small (minimum $0.01)' };
+    // Prevent micro-transaction spam (minimum $2.50)
+    if (numAmount < 2.50) {
+      return { isValid: false, error: 'Minimum transaction $2.50' };
     }
 
     // Prevent excessively large amounts (maximum $1M per transaction)

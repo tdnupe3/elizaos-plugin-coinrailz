@@ -12,8 +12,8 @@ export const transactionSchemas = {
   sendMoney: z.object({
     amount: z.string().refine(val => {
       const num = parseFloat(val);
-      return !isNaN(num) && num > 0 && num <= 1000000;
-    }, 'Amount must be between $0.01 and $1,000,000'),
+      return !isNaN(num) && num >= 2.50 && num <= 1000000;
+    }, 'Minimum transaction $2.50'),
     currency: z.enum(['USD', 'EUR', 'GBP']),
     recipientEmail: z.string().email('Invalid email address'),
     message: z.string().max(500, 'Message too long').optional()
@@ -22,8 +22,8 @@ export const transactionSchemas = {
   cryptoTransaction: z.object({
     amount: z.string().refine(val => {
       const num = parseFloat(val);
-      return !isNaN(num) && num > 0 && num <= 1000000;
-    }, 'Amount must be between $0.01 and $1,000,000'),
+      return !isNaN(num) && num >= 2.50 && num <= 1000000;
+    }, 'Minimum transaction $2.50'),
     fromCurrency: z.string().min(3).max(10),
     toCurrency: z.string().min(3).max(10),
     walletAddress: z.string().min(26).max(62).refine(
@@ -37,8 +37,8 @@ export const transactionSchemas = {
     targetAgentId: z.string().min(1).max(50),
     amount: z.string().refine(val => {
       const num = parseFloat(val);
-      return !isNaN(num) && num > 0 && num <= 100000;
-    }, 'Amount must be between $0.01 and $100,000'),
+      return !isNaN(num) && num >= 2.50 && num <= 100000;
+    }, 'Minimum transaction $2.50'),
     currency: z.enum(['USD', 'USDT', 'BTC', 'ETH']),
     purpose: z.string().min(1).max(200)
   })

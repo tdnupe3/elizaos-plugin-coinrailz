@@ -36,7 +36,7 @@ export class AntiSpamService {
         and(
           eq(transactions.fromUserId, userId),
           gte(transactions.createdAt, windowStart),
-          sql`amount < 1.00` // Transactions under $1
+          sql`amount < 2.50` // Transactions under minimum threshold
         )
       );
     

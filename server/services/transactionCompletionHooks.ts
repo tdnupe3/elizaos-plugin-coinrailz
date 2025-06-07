@@ -40,7 +40,7 @@ export class TransactionCompletionHooks {
       // Convert amount to USD for minimum threshold check
       const usdAmount = await this.convertToUSD(transaction.amount, transaction.currency);
       
-      if (usdAmount < 10) {
+      if (usdAmount < 2.50) {
         return; // Below minimum transaction threshold
       }
 

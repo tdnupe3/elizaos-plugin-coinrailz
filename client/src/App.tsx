@@ -31,7 +31,9 @@ import {
   DemoSendMoney,
   DemoBuySell,
   DemoWalletManagement,
-  DemoCryptoTransfer
+  DemoCryptoTransfer,
+  TermsOfService,
+  PrivacyPolicy
 } from "@/lib/lazyComponents";
 
 // Import signup flow demo directly
@@ -103,6 +105,14 @@ function Router() {
       <Route path="/signup-flow" component={SignupFlowDemo} />
       <Route path="/legal-disclaimers" component={LegalDisclaimers} />
       <Route path="/contact-us" component={ContactUs} />
+      
+      {/* Legal pages - accessible to all users */}
+      <Route path="/terms-of-service">
+        {() => <LazyLoadWrapper><div>Terms of Service loading...</div></LazyLoadWrapper>}
+      </Route>
+      <Route path="/privacy-policy">
+        {() => <LazyLoadWrapper><div>Privacy Policy loading...</div></LazyLoadWrapper>}
+      </Route>
 
       {/* Authenticated routes */}
       <Route path="/send">

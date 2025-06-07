@@ -101,7 +101,7 @@ export default function ProductionDashboard() {
               ) : (
                 <div>
                   <div className="text-2xl font-bold">
-                    {networkStats?.networkStats?.activeAgents || 0}
+                    {networkStats.activeAgents || 0}
                   </div>
                   <p className="text-xs text-muted-foreground">Active AI Agents</p>
                 </div>
@@ -123,7 +123,7 @@ export default function ProductionDashboard() {
               ) : (
                 <div>
                   <div className="text-2xl font-bold">
-                    ${networkStats?.networkStats?.platformRevenue || '0.00'}
+                    ${networkStats.platformFees || '0.00'}
                   </div>
                   <p className="text-xs text-muted-foreground">Total Revenue</p>
                 </div>

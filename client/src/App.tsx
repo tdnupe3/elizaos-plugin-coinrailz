@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
 import { globalErrorHandler } from "@/utils/errorHandler";
+import { developmentErrorSuppressor } from "@/utils/developmentErrorSuppressor";
 
 // Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";
@@ -171,9 +172,10 @@ function Router() {
 }
 
 function App() {
-  // Initialize global error handler
+  // Initialize global error handler and development error suppressor
   React.useEffect(() => {
     globalErrorHandler; // This ensures the error handler is initialized
+    developmentErrorSuppressor; // This ensures the development error suppressor is initialized
     
     // Add custom toast handler for error messages
     const handleCustomToast = (event: CustomEvent) => {

@@ -64,11 +64,11 @@ export default function ProductionDashboard() {
                     ) : healthCheck?.status === 'degraded' ? (
                       <Badge variant="secondary" className="bg-yellow-500">Degraded</Badge>
                     ) : (
-                      <Badge variant="destructive">Error</Badge>
+                      <Badge variant="destructive">Unknown</Badge>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {healthCheck?.services?.length || 0} services monitored
+                    {Array.isArray(healthCheck?.services) ? healthCheck.services.length : 0} services monitored
                   </p>
                 </div>
               )}

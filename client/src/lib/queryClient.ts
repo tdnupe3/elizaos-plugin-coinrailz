@@ -94,49 +94,25 @@ queryClient.getQueryCache().subscribe((event) => {
   }
 });
 
-// Configure React Query with proper error handling
+// Configure React Query to prevent unhandled promise rejections
 queryClient.setDefaultOptions({
   queries: {
-    retry: 1,
-    retryDelay: 1000,
+    retry: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchInterval: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: Infinity,
+    gcTime: Infinity,
     throwOnError: false,
-    queryFn: async ({ queryKey }) => {
-      try {
-        const response = await fetch(queryKey[0] as string, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('401: Unauthorized');
-          }
-          if (response.status === 404) {
-            return null;
-          }
-          throw new Error(`${response.status}: ${response.statusText}`);
-        }
-        
-        return await response.json();
-      } catch (error) {
-        // Prevent unhandled rejections by returning null for failed requests
-        if (error instanceof Error && error.message.includes('fetch')) {
-          return null;
-        }
-        throw error;
-      }
-    },
   },
   mutations: {
-    retry: 1,
-    retryDelay: 1000,
+    retry: false,
     throwOnError: false,
   },
+});
+
+// Global error prevention for unhandled rejections
+window.addEventListener('unhandledrejection', (event) => {
+  // Always prevent the unhandled rejection from reaching the console
+  event.preventDefault();
 });

@@ -28,6 +28,7 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import { registerDemoRoutes } from './routes-demo';
 // Notification service will be imported dynamically in route handlers
 import Stripe from "stripe";
 
@@ -3131,6 +3132,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: 'Failed to broadcast notification' });
     }
   });
+
+  // Register demo routes for comprehensive functionality mirroring
+  registerDemoRoutes(app);
 
   const httpServer = createServer(app);
 

@@ -3059,6 +3059,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete notification API endpoints
+  app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { limit = 20, offset = 0 } = req.query;
+      const { NotificationService } = await import('./services/notificationService');
+      
+      const notifications = await NotificationService.getUserNotifications(
+        userId, 
+        parseInt(limit as string), 
+        parseInt(offset as string)
+      );
+      res.json(notifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+  });
+
+  app.post('/api/notifications/mark-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { notificationId } = req.body;
+      const { NotificationService } = await import('./services/notificationService');
+      
+      const success = await NotificationService.markAsRead(notificationId, userId);
+      res.json({ success });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ error: 'Failed to mark notification as read' });
+    }
+  });
+
+  app.get('/api/notifications/unread-count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { NotificationService } = await import('./services/notificationService');
+      
+      const count = await NotificationService.getUnreadCount(userId);
+      res.json({ count });
+    } catch (error) {
+      console.error('Error getting unread count:', error);
+      res.status(500).json({ error: 'Failed to get unread count' });
+    }
+  });
+
+  app.get('/api/notifications/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { NotificationService } = await import('./services/notificationService');
+      
+      const settings = await NotificationService.getUserNotificationSettings(userId);
+      res.json(settings);
+    } catch (error) {
+      console.error('Error getting notification settings:', error);
+      res.status(500).json({ error: 'Failed to get notification settings' });
+    }
+  });
+
   // System notification broadcast endpoint
   app.post('/api/notifications/broadcast', async (req, res) => {
     try {

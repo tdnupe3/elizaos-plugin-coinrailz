@@ -173,10 +173,12 @@ class ConnectionStabilizer {
 export const connectionStabilizer = new ConnectionStabilizer();
 
 // React hook for connection state
-export function useConnectionState() {
-  const [state, setState] = React.useState(connectionStabilizer.getState());
+import { useState, useEffect } from 'react';
 
-  React.useEffect(() => {
+export function useConnectionState() {
+  const [state, setState] = useState(connectionStabilizer.getState());
+
+  useEffect(() => {
     const unsubscribe = connectionStabilizer.subscribe(setState);
     return unsubscribe;
   }, []);

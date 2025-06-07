@@ -41,16 +41,22 @@ import { TransactionCompletionHooks } from './services/transactionCompletionHook
 
 // Initialize Stripe conditionally
 let stripe: any = null;
-if (process.env.STRIPE_SECRET_KEY) {
-  try {
-    const StripeConstructor = require('stripe');
-    stripe = new StripeConstructor(process.env.STRIPE_SECRET_KEY);
-  } catch (error) {
-    console.warn('Stripe initialization failed:', error);
+const initializeStripe = async () => {
+  if (process.env.STRIPE_SECRET_KEY) {
+    try {
+      const { default: Stripe } = await import('stripe');
+      stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      console.log('Stripe initialized successfully');
+    } catch (error) {
+      console.warn('Stripe initialization failed:', error);
+    }
   }
-}
+};
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize Stripe during route registration
+  await initializeStripe();
+  
   // API logging temporarily disabled due to database constraint issues
   // TODO: Fix database schema for api_integration_logs table
 
@@ -1412,7 +1418,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Handle successful payment
       if (event.type === 'payment_intent.succeeded') {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const paymentIntent = event.data.object as any;
         const { userId, recipientEmail, transferAmount, fee, type, agentId } = paymentIntent.metadata;
 
         if (type === 'p2p_transfer') {

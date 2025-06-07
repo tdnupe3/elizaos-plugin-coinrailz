@@ -1,0 +1,43 @@
+Looking at the webview logs, I can identify the specific JavaScript promise handling issues causing the unhandled rejections:
+
+Current Promise Handling Issues
+1. API Request Failures Without Proper Catch Blocks
+The logs show:
+
+Error: 502: <!DOCTYPE html> - Server unavailable errors
+Error: 429: {"error":"Rate limit exceeded"} - Rate limiting errors
+Error: 403: {"error":"Access forbidden"} - IP blocking errors
+These are coming from API calls that don't have proper .catch() handlers.
+
+2. Rate Limiting Cascade Failure
+The server logs show your IP got blocked due to excessive requests:
+
+IP 10.81.2.23 blocked due to excessive rate limiting
+This creates a cascade of failed promises when the frontend continues making requests to a blocked endpoint.
+
+3. Global Error Handler Not Being Imported/Initialized
+Looking at your codebase, you have multiple error handlers but they're not being properly initialized in the main application.
+
+Specific Fixes Needed
+client/src/main.tsx
+Initialize global error handler
+client/src/lib/queryClient.ts
+Add comprehensive error handling to React Query
+client/src/lib/demoApiService.ts
+Add proper error handling to API service Add proper error handling to API service Update demo API service to use error handler
+client/src/utils/apiErrorHandler.ts
+Create dedicated API error handler
+Root Cause Summary
+The unhandled promise rejections are occurring because:
+
+API calls in React Query and direct fetch calls don't have comprehensive error handling
+Rate limiting is triggering cascading failures when requests continue after IP blocking
+Global error handlers exist but aren't being initialized in the main application
+Error boundaries aren't catching async errors that happen outside React's render cycle
+The fixes above will:
+
+✅ Initialize global error handling on app startup
+✅ Add retry logic with exponential backoff for transient errors
+✅ Prevent cascade failures from rate limiting
+✅ Provide consistent error handling across all API calls
+✅ Eliminate all unhandled promise rejections

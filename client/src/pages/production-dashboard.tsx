@@ -7,23 +7,30 @@ import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle } from "lu
 export default function ProductionDashboard() {
   const { data: healthCheck = { status: 'unknown', services: [] }, isLoading: healthLoading } = useQuery({
     queryKey: ['/api/health/check'],
-    refetchInterval: 30000,
-    retry: 1,
-    staleTime: 30000,
+    refetchInterval: 300000, // Increased to 5 minutes
+    retry: false,
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const { data: cryptoPrices = {}, isLoading: pricesLoading } = useQuery({
     queryKey: ['/api/crypto/prices'],
-    refetchInterval: 60000,
-    retry: 1,
-    staleTime: 60000,
+    refetchInterval: 300000, // Increased to 5 minutes
+    retry: false,
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const { data: networkStatsResponse = { networkStats: {} }, isLoading: statsLoading } = useQuery({
     queryKey: ['/api/public/network/stats'],
-    refetchInterval: 30000,
-    retry: 1,
-    staleTime: 30000,
+    refetchInterval: 300000, // Increased to 5 minutes to prevent rate limiting
+    retry: false, // Disable retries to prevent cascade failures
+    staleTime: 300000,
+    enabled: true,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   const networkStats = (networkStatsResponse as any)?.networkStats || {};

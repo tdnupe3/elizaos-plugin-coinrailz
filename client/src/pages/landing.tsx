@@ -26,8 +26,11 @@ export default function Landing() {
   // Fetch network stats for AI agent network (optional feature)
   const { data: networkStats } = useQuery({
     queryKey: ["/api/public/network/stats"],
-    refetchInterval: 30000,
-    retry: false
+    refetchInterval: 300000, // Increased to 5 minutes to prevent rate limiting
+    retry: false,
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   return (

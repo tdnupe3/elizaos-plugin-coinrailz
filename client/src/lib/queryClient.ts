@@ -50,9 +50,11 @@ export const queryClient = new QueryClient({
       staleTime: 5 * 60 * 1000, // 5 minutes instead of infinity for better data freshness
       gcTime: 10 * 60 * 1000, // 10 minutes cache retention
       retry: (failureCount, error) => {
-        // Don't retry on auth errors
+        // Don't retry on auth errors, rate limits, or IP blocks
         if (error?.message?.includes('401')) return false;
-        return failureCount < 2; // Retry up to 2 times
+        if (error?.message?.includes('429')) return false; // Rate limit
+        if (error?.message?.includes('403')) return false; // IP blocked
+        return failureCount < 1; // Reduce retries to prevent cascade
       },
       refetchOnReconnect: true,
       networkMode: 'online',

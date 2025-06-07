@@ -66,7 +66,11 @@ export default function AIAgentMarketplace() {
   // Fetch network statistics
   const { data: networkStats } = useQuery<{networkStats: NetworkStats}>({
     queryKey: ['/api/public/network/stats'],
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 300000, // Increased to 5 minutes to prevent rate limiting
+    retry: false,
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Fetch agents

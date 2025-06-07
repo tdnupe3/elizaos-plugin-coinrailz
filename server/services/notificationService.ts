@@ -5,7 +5,7 @@
 
 import { db } from "../db";
 import { notifications, notificationSettings, users } from "../../shared/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { websocketService } from "../websocketService";
 
 export enum NotificationType {
@@ -69,16 +69,21 @@ export class NotificationService {
   }
 
   /**
-   * Get user notifications with pagination
+   * Get user notifications with pagination and filter options
    */
-  static async getUserNotifications(userId: string, limit: number = 20, offset: number = 0): Promise<any[]> {
+  static async getUserNotifications(userId: string, limit: number = 20, unreadOnly: boolean = false): Promise<any[]> {
+    const whereConditions = [eq(notifications.userId, userId)];
+    
+    if (unreadOnly) {
+      whereConditions.push(eq(notifications.isRead, false));
+    }
+
     return await db
       .select()
       .from(notifications)
-      .where(eq(notifications.userId, userId))
+      .where(and(...whereConditions))
       .orderBy(desc(notifications.createdAt))
-      .limit(limit)
-      .offset(offset);
+      .limit(limit);
   }
 
   /**
@@ -97,15 +102,20 @@ export class NotificationService {
   }
 
   /**
-   * Mark notification as read
+   * Mark notification(s) as read - supports single ID or array of IDs
    */
-  static async markAsRead(notificationId: string, userId: string): Promise<boolean> {
+  static async markAsRead(userId: string, notificationIds: string | string[]): Promise<boolean> {
+    const ids = Array.isArray(notificationIds) ? notificationIds : [notificationIds];
+    
     const result = await db
       .update(notifications)
       .set({ isRead: true, readAt: new Date() })
       .where(and(
-        eq(notifications.id, notificationId),
-        eq(notifications.userId, userId)
+        eq(notifications.userId, userId),
+        // Use a proper IN clause for multiple IDs
+        ids.length === 1 
+          ? eq(notifications.id, ids[0])
+          : sql`${notifications.id} IN (${ids.map(id => `'${id}'`).join(',')})`
       ))
       .returning();
 

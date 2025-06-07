@@ -42,18 +42,16 @@ import LegalDisclaimers from "@/pages/legal-disclaimers";
 import ContactUs from "@/pages/contact-us";
 import { lazy } from "react";
 
-// Lazy load AI agents page
-const AIAgents = lazy(() => import("@/pages/ai-agents"));
-const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
-const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
-const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
-const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
-const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
-
-// Lazy load legal pages
+// Lazy load remaining components
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
 const ProductionDashboard = lazy(() => import("@/pages/production-dashboard"));
+const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
+const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
+const AIAgents = lazy(() => import("@/pages/ai-agents"));
+const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
+const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
+const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();

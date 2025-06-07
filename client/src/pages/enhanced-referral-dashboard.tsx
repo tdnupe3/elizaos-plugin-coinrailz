@@ -394,7 +394,7 @@ export default function EnhancedReferralDashboard() {
             <Card className="bg-white dark:bg-gray-800 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Robot className="h-5 w-5" />
+                  <Bot className="h-5 w-5" />
                   AI Agent Referrals
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">

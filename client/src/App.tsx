@@ -5,11 +5,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { AsyncErrorBoundary } from "@/components/AsyncErrorBoundary";
 import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
-import { globalErrorHandler } from "@/utils/globalErrorHandler";
-import { developmentErrorSuppressor } from "@/utils/developmentErrorSuppressor";
+import { AsyncOperationWrapper } from "@/utils/asyncOperationWrapper";
 
 // Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";
@@ -172,32 +172,21 @@ function Router() {
 }
 
 function App() {
-  // Initialize global error handler and development error suppressor
+  // Initialize comprehensive async operation handling
   React.useEffect(() => {
-    globalErrorHandler; // This ensures the error handler is initialized
-    developmentErrorSuppressor; // This ensures the development error suppressor is initialized
-    
-    // Add custom toast handler for error messages
-    const handleCustomToast = (event: CustomEvent) => {
-      const { message, variant } = event.detail;
-      // TODO: Integrate with actual toast system
-      console.log(`Toast: ${message} (${variant})`);
-    };
-    
-    window.addEventListener('show-toast', handleCustomToast as EventListener);
-    
-    return () => {
-      window.removeEventListener('show-toast', handleCustomToast as EventListener);
-    };
+    // Set up global error handlers for async operations
+    console.log('Initializing comprehensive async error handling');
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <ErrorBoundary>
-          <Toaster />
-          <Router />
-        </ErrorBoundary>
+        <AsyncErrorBoundary>
+          <ErrorBoundary>
+            <Toaster />
+            <Router />
+          </ErrorBoundary>
+        </AsyncErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   );

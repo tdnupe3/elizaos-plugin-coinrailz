@@ -6,6 +6,9 @@ export function useAuth() {
   const { data: user, isLoading, error } = useQuery<AuthUser>({
     queryKey: ["/api/auth/user"],
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
     initialData: () => getStoredUser(),
     queryFn: async () => {
       try {
@@ -30,7 +33,7 @@ export function useAuth() {
         }
         return userData;
       } catch (error) {
-        // Handle network errors gracefully
+        // Handle network errors gracefully - don't throw, return null
         console.warn('Auth check failed:', error);
         clearStoredUser();
         return null;

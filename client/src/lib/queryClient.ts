@@ -12,15 +12,24 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  try {
+    const res = await fetch(url, {
+      method,
+      headers: data ? { "Content-Type": "application/json" } : {},
+      body: data ? JSON.stringify(data) : undefined,
+      credentials: "include",
+      signal: AbortSignal.timeout(30000), // 30 second timeout
+    });
 
-  await throwIfResNotOk(res);
-  return res;
+    await throwIfResNotOk(res);
+    return res;
+  } catch (error) {
+    // Convert all fetch errors to proper Error objects to prevent unhandled rejections
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error(`Request failed: ${String(error)}`);
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

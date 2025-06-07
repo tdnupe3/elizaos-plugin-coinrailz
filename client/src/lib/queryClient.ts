@@ -44,24 +44,18 @@ export const getQueryFn: <T>(options: {
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: getQueryFn({ on401: "returnNull" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchIntervalInBackground: false,
-      staleTime: Infinity, // Prevent automatic refetching
+      staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes cache retention
-      retry: (failureCount, error) => {
-        // Don't retry on auth errors, rate limits, or IP blocks
-        if (error?.message?.includes('401')) return false;
-        if (error?.message?.includes('429')) return false; // Rate limit
-        if (error?.message?.includes('403')) return false; // IP blocked
-        return failureCount < 1; // Reduce retries to prevent cascade
-      },
+      retry: false, // Disable retries completely to prevent cascade failures
       networkMode: 'online',
     },
     mutations: {
-      retry: 1, // Retry mutations once on failure
+      retry: false, // Disable mutation retries
       networkMode: 'online',
     },
   },
@@ -91,34 +85,25 @@ queryClient.getQueryCache().subscribe((event) => {
   }
 });
 
-// Clear and prevent network stats queries to stop excessive API calls
-if (typeof window !== 'undefined') {
-  // Clear any cached network stats queries
-  queryClient.removeQueries({ queryKey: ['/api/public/network/stats'] });
-  
-  // Intercept and block network stats requests
-  const originalFetch = window.fetch;
-  window.fetch = async (input, init) => {
-    const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : (input as URL).href);
-    if (url.includes('/api/public/network/stats')) {
-      console.log('Blocked network stats request to prevent excessive API calls');
-      // Return static data instead of making the request
-      return new Response(JSON.stringify({
-        success: true,
-        networkStats: {
-          activeAgents: 150,
-          totalTransactions: 2847,
-          transactionVolume: "$1.2M",
-          platformFees: "$4,800",
-          networkHealth: 0.95,
-          supportedCurrencies: ["USD", "BTC", "ETH", "USDT"]
-        }
-      }), {
-        status: 200,
-        statusText: 'OK',
-        headers: { 'Content-Type': 'application/json' }
-      });
+// Enhanced error handling for React Query operations
+queryClient.setMutationDefaults(['default'], {
+  mutationFn: async (variables) => {
+    try {
+      return variables;
+    } catch (error) {
+      console.error('Mutation error caught:', error);
+      throw error;
     }
-    return originalFetch(input, init);
-  };
-}
+  },
+});
+
+// Handle promise rejections at the query level
+const originalInvalidateQueries = queryClient.invalidateQueries.bind(queryClient);
+queryClient.invalidateQueries = async (...args) => {
+  try {
+    return await originalInvalidateQueries(...args);
+  } catch (error) {
+    console.error('Query invalidation error caught:', error);
+    return Promise.resolve();
+  }
+};

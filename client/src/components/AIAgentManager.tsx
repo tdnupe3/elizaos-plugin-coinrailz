@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bot, Plus, Send, Activity, Shield, TrendingUp, Wallet, MessageSquare, Clock, Zap, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AIAgent {
   id: string;
@@ -58,6 +59,7 @@ interface AgentActivity {
 }
 
 export function AIAgentManager() {
+  const { user } = useAuth();
   const [agents, setAgents] = useState<AIAgent[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -311,7 +313,7 @@ export function AIAgentManager() {
       console.error('Error initiating transfer:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to initiate transfer",
+        description: error instanceof Error ? error.message : "Failed to initiate transfer",
         variant: "destructive"
       });
     }
@@ -408,7 +410,7 @@ export function AIAgentManager() {
       console.error('Error processing agent transaction:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to process transaction",
+        description: error instanceof Error ? error.message : "Failed to process transaction",
         variant: "destructive"
       });
     }

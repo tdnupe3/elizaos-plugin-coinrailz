@@ -698,20 +698,7 @@ export class DatabaseStorage implements IStorage {
       ));
   }
 
-  async updateServiceOrderStatus(orderId: number, status: string, updateData?: any): Promise<void> {
-    const updateSet: any = { 
-      orderStatus: status,
-      updatedAt: new Date()
-    };
-    
-    if (updateData) {
-      Object.assign(updateSet, updateData);
-    }
-
-    await db.update(agentServiceOrders)
-      .set(updateSet)
-      .where(eq(agentServiceOrders.id, orderId));
-  }
+  // Remove duplicate - this function is defined later with proper signature
 
   async updateServiceListingStats(listingId: number, revenue: number, rating?: number): Promise<void> {
     const updateSet: any = {
@@ -769,14 +756,14 @@ export class DatabaseStorage implements IStorage {
   // Missing agent operations
   async updateAgentStatus(agentId: string, isActive: boolean): Promise<void> {
     await db.update(globalAIAgents)
-      .set({ isActive, updatedAt: new Date() })
+      .set({ status: isActive ? 'active' : 'inactive', updatedAt: new Date() })
       .where(eq(globalAIAgents.id, agentId));
   }
 
   async getUserAgents(userId: string): Promise<any[]> {
-    return await db.select()
-      .from(globalAIAgents)
-      .where(eq(globalAIAgents.userId, userId));
+    // globalAIAgents table doesn't have userId field - agents are independent entities
+    // For now, return empty array since agents aren't tied to specific users
+    return [];
   }
 
   // Missing marketplace service operations
@@ -785,10 +772,11 @@ export class DatabaseStorage implements IStorage {
       // Check if service already exists by name
       const existing = await db.select()
         .from(agentServiceListings)
-        .where(eq(agentServiceListings.title, service.name))
+        .where(eq(agentServiceListings.serviceName, service.name))
         .limit(1);
       
       if (existing.length > 0) {
+        console.log(`Service already exists: ${service.name}`);
         return existing[0]; // Return existing service
       }
 
@@ -796,15 +784,14 @@ export class DatabaseStorage implements IStorage {
         .insert(agentServiceListings)
         .values({
           agentId: 'marketplace-default',
-          title: service.name,
+          serviceName: service.name,
           description: service.description,
           category: service.category,
-          pricing: service.pricing.toString(),
-          deliveryTime: service.deliveryTime,
-          tags: service.tags.join(','),
+          pricingModel: service.pricingModel || 'fixed',
+          basePrice: service.pricing.toString(),
+          currency: 'USDT',
+          estimatedDeliveryTime: service.deliveryTime,
           isActive: service.isActive,
-          createdAt: service.createdAt,
-          updatedAt: service.createdAt
         })
         .returning();
       
@@ -825,12 +812,12 @@ export class DatabaseStorage implements IStorage {
     
     return {
       id: service.id.toString(),
-      name: service.title,
+      name: service.serviceName,
       description: service.description,
       category: service.category,
-      pricing: parseFloat(service.pricing),
-      deliveryTime: service.deliveryTime,
-      tags: service.tags ? service.tags.split(',') : [],
+      pricing: parseFloat(service.basePrice),
+      deliveryTime: service.estimatedDeliveryTime,
+      tags: [], // Tags not stored in current schema
       isActive: service.isActive,
       createdAt: service.createdAt
     };
@@ -843,12 +830,12 @@ export class DatabaseStorage implements IStorage {
     
     return services.map(service => ({
       id: service.id.toString(),
-      name: service.title,
+      name: service.serviceName,
       description: service.description,
       category: service.category,
-      pricing: parseFloat(service.pricing),
-      deliveryTime: service.deliveryTime,
-      tags: service.tags ? service.tags.split(',') : [],
+      pricing: parseFloat(service.basePrice),
+      deliveryTime: service.estimatedDeliveryTime,
+      tags: [], // Tags not stored in current schema
       isActive: service.isActive,
       createdAt: service.createdAt
     }));
@@ -857,7 +844,7 @@ export class DatabaseStorage implements IStorage {
   async getUserServiceOrders(userId: string): Promise<any[]> {
     return await db.select()
       .from(agentServiceOrders)
-      .where(eq(agentServiceOrders.buyerId, userId))
+      .where(eq(agentServiceOrders.buyerAgentId, userId))
       .orderBy(desc(agentServiceOrders.createdAt));
   }
 

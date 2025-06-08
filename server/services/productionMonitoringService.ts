@@ -1,21 +1,47 @@
 /**
- * Production Monitoring Service
- * Comprehensive health monitoring, alerting, and performance tracking
+ * Production-Grade Monitoring and Analytics Service
+ * Comprehensive platform health monitoring and business metrics tracking
  */
 
-import { db } from "../db";
-import { users, transactions, globalAiAgents } from "@shared/schema";
-import { eq, gte, lte, count, sum, avg } from "drizzle-orm";
+import { db } from '../db';
+import { 
+  users, 
+  transactions, 
+  agentServiceOrders, 
+  globalAIAgents,
+  type User,
+  type Transaction
+} from '@shared/schema';
+import { eq, gte, count, sum, desc, and } from 'drizzle-orm';
 
-export interface SystemHealthStatus {
+interface SystemHealth {
   status: 'healthy' | 'degraded' | 'unhealthy';
+  uptime: number;
+  memoryUsage: NodeJS.MemoryUsage;
+  databaseStatus: 'connected' | 'disconnected' | 'error';
+  apiResponseTimes: { [endpoint: string]: number };
+  errorRate: number;
+  activeConnections: number;
   timestamp: string;
-  services: ServiceStatus[];
-  metrics: SystemMetrics;
-  alerts: Alert[];
 }
 
-export interface ServiceStatus {
+interface BusinessMetrics {
+  totalTransactions: number;
+  totalRevenue: string;
+  dailyActiveUsers: number;
+  agentRegistrations: number;
+  averageTransactionValue: string;
+  topPerformingAgents: Array<{ id: string; volume: string; orders: number }>;
+  revenueByStream: {
+    aiAgents: string;
+    p2pTransfers: string;
+    cryptoSwaps: string;
+    platformFees: string;
+  };
+  timestamp: string;
+}
+
+interface ServiceStatus {
   name: string;
   status: 'healthy' | 'degraded' | 'unhealthy';
   responseTime: number;
@@ -23,364 +49,346 @@ export interface ServiceStatus {
   errorCount: number;
 }
 
-export interface SystemMetrics {
-  uptime: number;
-  memoryUsage: NodeJS.MemoryUsage;
-  cpuUsage: number;
-  databaseConnections: number;
-  activeUsers: number;
-  transactionVolume: {
-    last24h: number;
-    last7d: number;
-    last30d: number;
-  };
-  apiResponseTimes: {
-    avg: number;
-    p95: number;
-    p99: number;
-  };
-}
-
-export interface Alert {
-  id: string;
+interface AlertData {
   level: 'info' | 'warning' | 'error' | 'critical';
   message: string;
   timestamp: string;
-  resolved: boolean;
-  source: string;
+  metadata?: any;
 }
 
-export class ProductionMonitoringService {
-  private static instance: ProductionMonitoringService;
+class ProductionMonitoringService {
   private startTime: number = Date.now();
-  private alerts: Alert[] = [];
-  private responseTimeBuffer: number[] = [];
+  private apiResponseTimes: Map<string, number[]> = new Map();
   private errorCounts: Map<string, number> = new Map();
-
-  static getInstance(): ProductionMonitoringService {
-    if (!ProductionMonitoringService.instance) {
-      ProductionMonitoringService.instance = new ProductionMonitoringService();
-    }
-    return ProductionMonitoringService.instance;
-  }
+  private alerts: AlertData[] = [];
+  private serviceStatuses: Map<string, ServiceStatus> = new Map();
 
   /**
    * Get comprehensive system health status
    */
-  async getSystemHealth(): Promise<SystemHealthStatus> {
-    const services = await this.checkAllServices();
-    const metrics = await this.getSystemMetrics();
-    const recentAlerts = this.getActiveAlerts();
+  async getSystemHealth(): Promise<SystemHealth> {
+    const memoryUsage = process.memoryUsage();
+    const uptime = Date.now() - this.startTime;
+    
+    // Test database connectivity
+    let databaseStatus: 'connected' | 'disconnected' | 'error' = 'connected';
+    try {
+      await db.select({ count: count() }).from(users).limit(1);
+    } catch (error) {
+      databaseStatus = 'error';
+      this.recordAlert('error', 'Database connectivity test failed', { error: String(error) });
+    }
+
+    // Calculate error rate
+    const totalErrors = Array.from(this.errorCounts.values()).reduce((sum, count) => sum + count, 0);
+    const totalRequests = Array.from(this.apiResponseTimes.values())
+      .reduce((sum, times) => sum + times.length, 0);
+    const errorRate = totalRequests > 0 ? (totalErrors / totalRequests) * 100 : 0;
+
+    // Get average API response times
+    const apiResponseTimes: { [endpoint: string]: number } = {};
+    this.apiResponseTimes.forEach((times, endpoint) => {
+      const avgTime = times.reduce((sum, time) => sum + time, 0) / times.length;
+      apiResponseTimes[endpoint] = Math.round(avgTime);
+    });
 
     // Determine overall system status
-    const unhealthyServices = services.filter(s => s.status === 'unhealthy').length;
-    const degradedServices = services.filter(s => s.status === 'degraded').length;
-
-    let overallStatus: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-    if (unhealthyServices > 0) {
-      overallStatus = 'unhealthy';
-    } else if (degradedServices > 2) {
-      overallStatus = 'degraded';
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    if (databaseStatus === 'error' || errorRate > 10) {
+      status = 'unhealthy';
+    } else if (errorRate > 5 || Object.values(apiResponseTimes).some(time => time > 2000)) {
+      status = 'degraded';
     }
 
     return {
-      status: overallStatus,
-      timestamp: new Date().toISOString(),
-      services,
-      metrics,
-      alerts: recentAlerts
-    };
-  }
-
-  /**
-   * Check status of all critical services
-   */
-  private async checkAllServices(): Promise<ServiceStatus[]> {
-    const services = [
-      { name: 'Database', check: () => this.checkDatabase() },
-      { name: 'Stripe', check: () => this.checkStripe() },
-      { name: 'NOWPayments', check: () => this.checkNOWPayments() },
-      { name: 'CoinGecko', check: () => this.checkCoinGecko() },
-      { name: 'ChangeNOW', check: () => this.checkChangeNOW() },
-      { name: 'Authentication', check: () => this.checkAuthentication() }
-    ];
-
-    const results = await Promise.allSettled(
-      services.map(async service => {
-        const startTime = Date.now();
-        try {
-          await service.check();
-          const responseTime = Date.now() - startTime;
-          return {
-            name: service.name,
-            status: responseTime > 5000 ? 'degraded' : 'healthy' as const,
-            responseTime,
-            lastCheck: new Date().toISOString(),
-            errorCount: this.errorCounts.get(service.name) || 0
-          };
-        } catch (error) {
-          this.incrementErrorCount(service.name);
-          return {
-            name: service.name,
-            status: 'unhealthy' as const,
-            responseTime: Date.now() - startTime,
-            lastCheck: new Date().toISOString(),
-            errorCount: this.errorCounts.get(service.name) || 0
-          };
-        }
-      })
-    );
-
-    return results.map(result => 
-      result.status === 'fulfilled' ? result.value : {
-        name: 'Unknown',
-        status: 'unhealthy' as const,
-        responseTime: 0,
-        lastCheck: new Date().toISOString(),
-        errorCount: 0
-      }
-    );
-  }
-
-  /**
-   * Get comprehensive system metrics
-   */
-  private async getSystemMetrics(): Promise<SystemMetrics> {
-    const uptime = (Date.now() - this.startTime) / 1000;
-    const memoryUsage = process.memoryUsage();
-    
-    // Get transaction volume metrics
-    const now = new Date();
-    const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    const [volume24h, volume7d, volume30d, activeUsers] = await Promise.all([
-      this.getTransactionVolume(last24h, now),
-      this.getTransactionVolume(last7d, now),
-      this.getTransactionVolume(last30d, now),
-      this.getActiveUserCount()
-    ]);
-
-    return {
+      status,
       uptime,
       memoryUsage,
-      cpuUsage: process.cpuUsage().user / 1000000, // Convert to seconds
-      databaseConnections: 5, // Would get from actual pool status
-      activeUsers,
-      transactionVolume: {
-        last24h: volume24h,
-        last7d: volume7d,
-        last30d: volume30d
-      },
-      apiResponseTimes: {
-        avg: this.getAverageResponseTime(),
-        p95: this.getPercentileResponseTime(95),
-        p99: this.getPercentileResponseTime(99)
-      }
+      databaseStatus,
+      apiResponseTimes,
+      errorRate: Math.round(errorRate * 100) / 100,
+      activeConnections: 0, // Would be populated from WebSocket service
+      timestamp: new Date().toISOString()
     };
   }
 
   /**
-   * Individual service health checks
+   * Get comprehensive business metrics
    */
-  private async checkDatabase(): Promise<void> {
-    await db.select().from(users).limit(1);
-  }
+  async getBusinessMetrics(): Promise<BusinessMetrics> {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  private async checkStripe(): Promise<void> {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('Stripe not configured');
-    }
-    // Would make actual Stripe API call
-  }
-
-  private async checkNOWPayments(): Promise<void> {
-    if (!process.env.NOWPAYMENTS_API_KEY) {
-      throw new Error('NOWPayments not configured');
-    }
-    const response = await fetch('https://api.nowpayments.io/v1/status');
-    if (!response.ok) {
-      throw new Error(`NOWPayments API error: ${response.status}`);
-    }
-  }
-
-  private async checkCoinGecko(): Promise<void> {
-    const response = await fetch('https://api.coingecko.com/api/v3/ping');
-    if (!response.ok) {
-      throw new Error(`CoinGecko API error: ${response.status}`);
-    }
-  }
-
-  private async checkChangeNOW(): Promise<void> {
-    if (!process.env.CHANGENOW_API_KEY) {
-      throw new Error('ChangeNOW not configured');
-    }
-    const response = await fetch('https://api.changenow.io/v1/currencies');
-    if (!response.ok) {
-      throw new Error(`ChangeNOW API error: ${response.status}`);
-    }
-  }
-
-  private async checkAuthentication(): Promise<void> {
-    // Check if session store is accessible
-    if (!process.env.SESSION_SECRET) {
-      throw new Error('Authentication not configured');
-    }
-  }
-
-  /**
-   * Get transaction volume for date range
-   */
-  private async getTransactionVolume(startDate: Date, endDate: Date): Promise<number> {
     try {
-      const result = await db
-        .select({ totalAmount: sum(transactions.amount) })
-        .from(transactions)
-        .where(
-          gte(transactions.createdAt, startDate.toISOString())
-        );
-      
-      return parseFloat(result[0]?.totalAmount || '0');
-    } catch (error) {
-      return 0;
-    }
-  }
+      // Get transaction metrics
+      const [transactionMetrics] = await db
+        .select({
+          totalCount: count(),
+          totalAmount: sum(transactions.amount),
+        })
+        .from(transactions);
 
-  /**
-   * Get active user count (users active in last 24 hours)
-   */
-  private async getActiveUserCount(): Promise<number> {
-    try {
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const result = await db
+      // Get daily active users (users with transactions today)
+      const [dailyActiveUsers] = await db
         .select({ count: count() })
-        .from(users)
-        .where(gte(users.updatedAt, yesterday.toISOString()));
-      
-      return result[0]?.count || 0;
+        .from(transactions)
+        .where(gte(transactions.createdAt, today));
+
+      // Get agent registrations this month
+      const [agentRegistrations] = await db
+        .select({ count: count() })
+        .from(globalAIAgents)
+        .where(gte(globalAIAgents.registeredAt, thisMonth));
+
+      // Get top performing agents by order volume
+      const topAgents = await db
+        .select({
+          agentId: agentServiceOrders.agentId,
+          totalOrders: count(),
+          totalVolume: sum(agentServiceOrders.amount)
+        })
+        .from(agentServiceOrders)
+        .where(gte(agentServiceOrders.createdAt, thisMonth))
+        .groupBy(agentServiceOrders.agentId)
+        .orderBy(desc(count()))
+        .limit(5);
+
+      // Calculate revenue streams
+      const totalRevenue = Number(transactionMetrics.totalAmount || 0);
+      const averageTransactionValue = transactionMetrics.totalCount > 0 
+        ? totalRevenue / transactionMetrics.totalCount 
+        : 0;
+
+      // Estimate revenue distribution (would be more precise with actual categorization)
+      const aiAgentsRevenue = totalRevenue * 0.4; // Estimated 40% from AI services
+      const p2pRevenue = totalRevenue * 0.35;     // Estimated 35% from P2P transfers
+      const cryptoRevenue = totalRevenue * 0.15;  // Estimated 15% from crypto swaps
+      const platformRevenue = totalRevenue * 0.1; // Estimated 10% platform fees
+
+      return {
+        totalTransactions: transactionMetrics.totalCount || 0,
+        totalRevenue: totalRevenue.toFixed(2),
+        dailyActiveUsers: dailyActiveUsers.count || 0,
+        agentRegistrations: agentRegistrations.count || 0,
+        averageTransactionValue: averageTransactionValue.toFixed(2),
+        topPerformingAgents: topAgents.map(agent => ({
+          id: agent.agentId,
+          volume: (Number(agent.totalVolume) || 0).toFixed(2),
+          orders: agent.totalOrders || 0
+        })),
+        revenueByStream: {
+          aiAgents: aiAgentsRevenue.toFixed(2),
+          p2pTransfers: p2pRevenue.toFixed(2),
+          cryptoSwaps: cryptoRevenue.toFixed(2),
+          platformFees: platformRevenue.toFixed(2)
+        },
+        timestamp: new Date().toISOString()
+      };
     } catch (error) {
-      return 0;
+      this.recordAlert('error', 'Failed to gather business metrics', { error: String(error) });
+      
+      // Return safe defaults
+      return {
+        totalTransactions: 0,
+        totalRevenue: '0.00',
+        dailyActiveUsers: 0,
+        agentRegistrations: 0,
+        averageTransactionValue: '0.00',
+        topPerformingAgents: [],
+        revenueByStream: {
+          aiAgents: '0.00',
+          p2pTransfers: '0.00',
+          cryptoSwaps: '0.00',
+          platformFees: '0.00'
+        },
+        timestamp: new Date().toISOString()
+      };
     }
   }
 
   /**
-   * Response time tracking
+   * Record API response time for monitoring
    */
-  recordResponseTime(responseTime: number): void {
-    this.responseTimeBuffer.push(responseTime);
+  recordApiResponseTime(endpoint: string, responseTime: number): void {
+    if (!this.apiResponseTimes.has(endpoint)) {
+      this.apiResponseTimes.set(endpoint, []);
+    }
     
-    // Keep only last 1000 response times
-    if (this.responseTimeBuffer.length > 1000) {
-      this.responseTimeBuffer.shift();
+    const times = this.apiResponseTimes.get(endpoint)!;
+    times.push(responseTime);
+    
+    // Keep only last 100 response times
+    if (times.length > 100) {
+      times.shift();
+    }
+
+    // Alert on slow responses
+    if (responseTime > 5000) {
+      this.recordAlert('warning', `Slow API response: ${endpoint}`, { 
+        responseTime, 
+        endpoint 
+      });
     }
   }
 
-  private getAverageResponseTime(): number {
-    if (this.responseTimeBuffer.length === 0) return 0;
+  /**
+   * Record error occurrence
+   */
+  recordError(endpoint: string, error: string): void {
+    const current = this.errorCounts.get(endpoint) || 0;
+    this.errorCounts.set(endpoint, current + 1);
     
-    const sum = this.responseTimeBuffer.reduce((a, b) => a + b, 0);
-    return sum / this.responseTimeBuffer.length;
-  }
-
-  private getPercentileResponseTime(percentile: number): number {
-    if (this.responseTimeBuffer.length === 0) return 0;
-    
-    const sorted = [...this.responseTimeBuffer].sort((a, b) => a - b);
-    const index = Math.ceil((percentile / 100) * sorted.length) - 1;
-    return sorted[index] || 0;
+    this.recordAlert('error', `API error in ${endpoint}`, { 
+      error, 
+      count: current + 1 
+    });
   }
 
   /**
-   * Alert management
+   * Record system alert
    */
-  createAlert(level: Alert['level'], message: string, source: string): void {
-    const alert: Alert = {
-      id: `alert_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+  recordAlert(level: AlertData['level'], message: string, metadata?: any): void {
+    this.alerts.push({
       level,
       message,
       timestamp: new Date().toISOString(),
-      resolved: false,
-      source
-    };
+      metadata
+    });
 
-    this.alerts.push(alert);
-    
-    // Keep only last 100 alerts
-    if (this.alerts.length > 100) {
+    // Keep only last 1000 alerts
+    if (this.alerts.length > 1000) {
       this.alerts.shift();
     }
 
     // Log critical alerts
     if (level === 'critical' || level === 'error') {
-      console.error(`[${level.toUpperCase()}] ${source}: ${message}`);
+      console.error(`[MONITOR] ${level.toUpperCase()}: ${message}`, metadata || '');
     }
-  }
-
-  private getActiveAlerts(): Alert[] {
-    return this.alerts
-      .filter(alert => !alert.resolved)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 20);
-  }
-
-  resolveAlert(alertId: string): void {
-    const alert = this.alerts.find(a => a.id === alertId);
-    if (alert) {
-      alert.resolved = true;
-    }
-  }
-
-  private incrementErrorCount(service: string): void {
-    const current = this.errorCounts.get(service) || 0;
-    this.errorCounts.set(service, current + 1);
   }
 
   /**
-   * Performance monitoring middleware
+   * Get recent alerts
    */
-  performanceMiddleware() {
+  getRecentAlerts(limit: number = 50): AlertData[] {
+    return this.alerts
+      .slice(-limit)
+      .reverse(); // Most recent first
+  }
+
+  /**
+   * Get service status overview
+   */
+  getServiceStatuses(): ServiceStatus[] {
+    return Array.from(this.serviceStatuses.values());
+  }
+
+  /**
+   * Update service status
+   */
+  updateServiceStatus(name: string, status: ServiceStatus['status'], responseTime: number): void {
+    const existing = this.serviceStatuses.get(name);
+    const errorCount = status === 'healthy' ? 0 : (existing?.errorCount || 0) + 1;
+
+    this.serviceStatuses.set(name, {
+      name,
+      status,
+      responseTime,
+      lastCheck: new Date().toISOString(),
+      errorCount
+    });
+  }
+
+  /**
+   * Express middleware for automatic monitoring
+   */
+  createMonitoringMiddleware() {
     return (req: any, res: any, next: any) => {
       const startTime = Date.now();
+      const endpoint = `${req.method} ${req.path}`;
 
-      res.on('finish', () => {
+      // Override res.end to capture response time
+      const originalEnd = res.end;
+      res.end = function(...args: any[]) {
         const responseTime = Date.now() - startTime;
-        this.recordResponseTime(responseTime);
-
-        // Create alerts for slow responses
-        if (responseTime > 10000) {
-          this.createAlert('warning', `Slow response: ${req.path} took ${responseTime}ms`, 'Performance');
+        
+        // Record metrics
+        productionMonitoringService.recordApiResponseTime(endpoint, responseTime);
+        
+        // Record errors for 4xx/5xx responses
+        if (res.statusCode >= 400) {
+          productionMonitoringService.recordError(endpoint, `HTTP ${res.statusCode}`);
         }
-
-        // Create alerts for errors
-        if (res.statusCode >= 500) {
-          this.createAlert('error', `Server error: ${req.path} returned ${res.statusCode}`, 'API');
-        }
-      });
+        
+        return originalEnd.apply(this, args);
+      };
 
       next();
     };
   }
 
   /**
-   * Automated health check with alerting
+   * Get monitoring dashboard data
    */
-  async runHealthCheck(): Promise<void> {
-    const health = await this.getSystemHealth();
-    
-    if (health.status === 'unhealthy') {
-      this.createAlert('critical', 'System health check failed', 'HealthCheck');
-    } else if (health.status === 'degraded') {
-      this.createAlert('warning', 'System performance degraded', 'HealthCheck');
+  async getDashboardData() {
+    const [systemHealth, businessMetrics] = await Promise.all([
+      this.getSystemHealth(),
+      this.getBusinessMetrics()
+    ]);
+
+    return {
+      systemHealth,
+      businessMetrics,
+      recentAlerts: this.getRecentAlerts(20),
+      serviceStatuses: this.getServiceStatuses(),
+      timestamp: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Perform health check
+   */
+  async performHealthCheck(): Promise<{ status: string; checks: any }> {
+    const checks = {
+      database: 'unknown',
+      memory: 'unknown',
+      responseTime: 'unknown'
+    };
+
+    try {
+      // Database check
+      await db.select({ count: count() }).from(users).limit(1);
+      checks.database = 'healthy';
+    } catch (error) {
+      checks.database = 'unhealthy';
     }
 
-    // Check individual services
-    health.services.forEach(service => {
-      if (service.status === 'unhealthy') {
-        this.createAlert('error', `Service ${service.name} is unhealthy`, 'ServiceCheck');
-      } else if (service.status === 'degraded') {
-        this.createAlert('warning', `Service ${service.name} is degraded`, 'ServiceCheck');
-      }
-    });
+    // Memory check
+    const memUsage = process.memoryUsage();
+    const memoryUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
+    checks.memory = memoryUsagePercent < 80 ? 'healthy' : 'degraded';
+
+    // Response time check
+    const avgResponseTime = Array.from(this.apiResponseTimes.values())
+      .flat()
+      .reduce((sum, time, _, arr) => sum + time / arr.length, 0);
+    checks.responseTime = avgResponseTime < 1000 ? 'healthy' : 'degraded';
+
+    const overallStatus = Object.values(checks).includes('unhealthy') 
+      ? 'unhealthy' 
+      : Object.values(checks).includes('degraded') 
+        ? 'degraded' 
+        : 'healthy';
+
+    return {
+      status: overallStatus,
+      checks
+    };
   }
 }
+
+// Export singleton instance
+export const productionMonitoringService = new ProductionMonitoringService();
+
+// Export types for use in routes
+export type { SystemHealth, BusinessMetrics, ServiceStatus, AlertData };

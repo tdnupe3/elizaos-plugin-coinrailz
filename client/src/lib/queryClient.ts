@@ -70,4 +70,5 @@ export const queryClient = new QueryClient({
       throwOnError: false, // Prevent throwing errors to component level
     },
   },
+
 });

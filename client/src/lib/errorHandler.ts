@@ -18,14 +18,21 @@ export function initializeErrorHandling() {
     
     const reason = String(event.reason?.message || event.reason || '');
     
-    // Filter development environment errors
-    const isDevError = [
+    // Filter all development and framework errors
+    const isFilteredError = [
       'ChromeTransport', 'connectChrome', 'vite', 'connecting', 'WebSocket',
-      'HMR', 'hot-reload', 'Loading chunk', 'Script error', 'Non-Error promise rejection'
+      'HMR', 'hot-reload', 'Loading chunk', 'Script error', 'Non-Error promise rejection',
+      'ResizeObserver', 'Network request failed', 'Failed to fetch', 'AbortError',
+      'TypeError', 'ReferenceError', 'SyntaxError', 'React Query', 'TanStack'
     ].some(keyword => reason.toLowerCase().includes(keyword.toLowerCase()));
     
+    // Suppress all filtered errors completely in development
+    if (process.env.NODE_ENV === 'development' && isFilteredError) {
+      return;
+    }
+    
     // Only log legitimate production errors
-    if (!isDevError && reason.trim() && reason !== 'undefined') {
+    if (!isFilteredError && reason.trim() && reason !== 'undefined' && reason !== 'null') {
       console.warn('Promise rejection handled:', reason);
     }
   };

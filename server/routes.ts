@@ -28,6 +28,7 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";
 import EnhancedTransactionSecurity from "./middleware/enhancedTransactionSecurity";
@@ -3580,6 +3581,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error getting viral growth metrics:', error);
       res.status(500).json({ error: 'Failed to get viral growth metrics' });
+    }
+  });
+
+  // Production monitoring dashboard API
+  app.get('/api/admin/monitoring/dashboard', async (req, res) => {
+    try {
+      const dashboardData = await productionMonitoringService.getDashboardData();
+      res.json(dashboardData);
+    } catch (error) {
+      console.error('Error fetching monitoring dashboard:', error);
+      res.status(500).json({ message: 'Failed to fetch monitoring data' });
+    }
+  });
+
+  // System health check endpoint
+  app.get('/api/health', async (req, res) => {
+    try {
+      const healthCheck = await productionMonitoringService.performHealthCheck();
+      res.json(healthCheck);
+    } catch (error) {
+      console.error('Health check failed:', error);
+      res.status(500).json({ status: 'unhealthy', error: 'Health check failed' });
+    }
+  });
+
+  // Business metrics endpoint
+  app.get('/api/admin/metrics/business', async (req, res) => {
+    try {
+      const metrics = await productionMonitoringService.getBusinessMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Error fetching business metrics:', error);
+      res.status(500).json({ message: 'Failed to fetch business metrics' });
     }
   });
 

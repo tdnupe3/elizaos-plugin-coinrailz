@@ -144,13 +144,13 @@ class ProductionMonitoringService {
       // Get top performing agents by order volume
       const topAgents = await db
         .select({
-          agentId: agentServiceOrders.agentId,
+          agentId: agentServiceOrders.sellerAgentId,
           totalOrders: count(),
-          totalVolume: sum(agentServiceOrders.amount)
+          totalVolume: sum(agentServiceOrders.totalAmount)
         })
         .from(agentServiceOrders)
         .where(gte(agentServiceOrders.createdAt, thisMonth))
-        .groupBy(agentServiceOrders.agentId)
+        .groupBy(agentServiceOrders.sellerAgentId)
         .orderBy(desc(count()))
         .limit(5);
 

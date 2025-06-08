@@ -14,10 +14,19 @@ class RateLimiter {
   private readonly windowMs: number;
   private readonly maxRequests: number;
   private suspiciousIPs = new Set<string>();
+  private readonly isDevelopment: boolean;
 
   constructor(windowMs: number = 60000, maxRequests: number = 100) {
-    this.windowMs = windowMs;
-    this.maxRequests = maxRequests;
+    this.isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // Adjust limits for development environment
+    if (this.isDevelopment) {
+      this.windowMs = windowMs * 2; // Double the window
+      this.maxRequests = maxRequests * 5; // 5x more requests allowed
+    } else {
+      this.windowMs = windowMs;
+      this.maxRequests = maxRequests;
+    }
     
     // Clean up expired entries every minute
     setInterval(() => this.cleanup(), 60000);
@@ -47,7 +56,17 @@ class RateLimiter {
   }
 
   private detectSuspiciousActivity(req: Request, fingerprint: string): boolean {
+    // Skip suspicious activity detection in development
+    if (this.isDevelopment) {
+      return false;
+    }
+    
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    
+    // Allow localhost/development IPs
+    if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.')) {
+      return false;
+    }
     
     // Check for rapid User-Agent rotation (common bypass technique)
     const recentEntries = Object.values(this.store).filter(entry => 
@@ -55,14 +74,14 @@ class RateLimiter {
       Date.now() - entry.resetTime < this.windowMs
     );
     
-    if (recentEntries.length > 5) {
+    if (recentEntries.length > 10) { // Increased threshold
       this.suspiciousIPs.add(ip);
       return true;
     }
     
-    // Check for suspicious patterns
+    // More lenient bot detection
     const userAgent = req.get('User-Agent') || '';
-    if (userAgent.length < 10 || userAgent.includes('bot') || userAgent.includes('curl')) {
+    if (userAgent.length < 5 || userAgent.includes('malicious')) {
       return true;
     }
     
@@ -79,16 +98,22 @@ class RateLimiter {
 
   middleware() {
     return (req: Request, res: Response, next: NextFunction) => {
+      // Skip rate limiting completely in development for localhost
+      const ip = req.ip || req.connection.remoteAddress || 'unknown';
+      if (this.isDevelopment && (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.'))) {
+        return next();
+      }
+      
       const key = this.getKey(req);
       const fingerprint = this.generateFingerprint(req);
       const now = Date.now();
       
-      // Check for suspicious activity
+      // Check for suspicious activity (only in production)
       if (this.detectSuspiciousActivity(req, fingerprint)) {
         return res.status(429).json({
           error: 'Suspicious activity detected',
           message: 'Request blocked due to suspicious patterns',
-          retryAfter: 3600 // 1 hour block for suspicious activity
+          retryAfter: 3600
         });
       }
       
@@ -103,13 +128,18 @@ class RateLimiter {
       }
 
       if (this.store[key].count >= this.maxRequests) {
-        // Increment suspicious activity counter
         this.store[key].suspiciousActivity++;
+        
+        // More lenient error handling in development
+        const message = this.isDevelopment 
+          ? `Rate limit exceeded (dev mode: ${this.maxRequests} requests per ${this.windowMs / 1000}s)`
+          : `Rate limit exceeded. Maximum ${this.maxRequests} requests per ${this.windowMs / 1000} seconds.`;
         
         return res.status(429).json({
           error: 'Too many requests',
-          message: `Rate limit exceeded. Maximum ${this.maxRequests} requests per ${this.windowMs / 1000} seconds.`,
-          retryAfter: Math.ceil((this.store[key].resetTime - now) / 1000)
+          message,
+          retryAfter: Math.ceil((this.store[key].resetTime - now) / 1000),
+          development: this.isDevelopment
         });
       }
 

@@ -22,7 +22,8 @@ const cryptoCurrencies = [
 const paymentMethods = [
   { id: 'bank', name: 'Bank Transfer', icon: Building2, fee: 'Free', time: '1-3 business days' },
   { id: 'debit', name: 'Debit Card', icon: CreditCard, fee: 'Instant', time: 'Instant' },
-  { id: 'credit', name: 'Credit Card', icon: CreditCard, fee: 'Instant', time: 'Instant' }
+  { id: 'credit', name: 'Credit Card', icon: CreditCard, fee: 'Instant', time: 'Instant' },
+  { id: 'paypal', name: 'PayPal', icon: CreditCard, fee: 'Instant', time: 'Instant' }
 ];
 
 export default function BuySellPage() {

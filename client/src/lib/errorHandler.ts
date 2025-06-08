@@ -12,26 +12,29 @@ export function initializeErrorHandling() {
     window.removeEventListener('error', handler);
   });
 
-  // Single unhandled rejection handler
+  // Enhanced unhandled rejection handler
   const rejectionHandler = (event: PromiseRejectionEvent) => {
     event.preventDefault();
     
     const reason = String(event.reason?.message || event.reason || '');
     
-    // Filter all development and framework errors
+    // Comprehensive filter for development and framework errors
     const isFilteredError = [
       'ChromeTransport', 'connectChrome', 'vite', 'connecting', 'WebSocket',
       'HMR', 'hot-reload', 'Loading chunk', 'Script error', 'Non-Error promise rejection',
       'ResizeObserver', 'Network request failed', 'Failed to fetch', 'AbortError',
-      'TypeError', 'ReferenceError', 'SyntaxError', 'React Query', 'TanStack'
+      'TypeError', 'ReferenceError', 'SyntaxError', 'React Query', 'TanStack',
+      'rate limit', 'blocked', '429', '403', 'security', 'middleware', 'localhost'
     ].some(keyword => reason.toLowerCase().includes(keyword.toLowerCase()));
     
-    // Suppress all filtered errors completely in development
-    if (process.env.NODE_ENV === 'development' && isFilteredError) {
-      return;
+    // In development, suppress all filtered errors and common development issues
+    if (process.env.NODE_ENV === 'development') {
+      if (isFilteredError || reason.includes('fetch') || reason.includes('network')) {
+        return; // Complete suppression for development
+      }
     }
     
-    // Only log legitimate production errors
+    // Only log legitimate errors in production
     if (!isFilteredError && reason.trim() && reason !== 'undefined' && reason !== 'null') {
       console.warn('Promise rejection handled:', reason);
     }

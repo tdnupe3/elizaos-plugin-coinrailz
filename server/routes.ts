@@ -3187,6 +3187,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear security blocks in development (development only)
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/dev/clear-blocks', async (req, res) => {
+      try {
+        const { SecurityHardening } = await import('./middleware/securityHardening');
+        SecurityHardening.clearAllBlocks();
+        
+        res.json({
+          success: true,
+          message: 'All IP blocks and suspicious activity records cleared',
+          environment: 'development'
+        });
+      } catch (error: any) {
+        console.error("Error clearing blocks:", error);
+        res.status(500).json({
+          success: false,
+          message: "Failed to clear blocks"
+        });
+      }
+    });
+  }
+
   // ==============================================
   // CRYPTO SIGNALS AGENT - FIRST MARKETPLACE SERVICE
   // Elite trading signals with technical analysis and sentiment

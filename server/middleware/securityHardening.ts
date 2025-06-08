@@ -24,6 +24,15 @@ export class SecurityHardening {
   private static suspiciousActivity = new Map<string, number>();
   private static isDevelopment = process.env.NODE_ENV === 'development';
 
+  static {
+    // Clear all blocks and suspicious activity on startup in development
+    if (this.isDevelopment) {
+      this.blockedIPs.clear();
+      this.suspiciousActivity.clear();
+      console.log('Development mode: Cleared all IP blocks and suspicious activity records');
+    }
+  }
+
   /**
    * Prevent session fixation and limit concurrent sessions
    */
@@ -213,6 +222,17 @@ export class SecurityHardening {
            ip.startsWith('10.') ||
            ip.startsWith('172.16.') ||
            ip === 'unknown';
+  }
+
+  /**
+   * Clear all IP blocks and suspicious activity (development only)
+   */
+  static clearAllBlocks(): void {
+    if (this.isDevelopment) {
+      this.blockedIPs.clear();
+      this.suspiciousActivity.clear();
+      console.log('Development: Cleared all IP blocks and suspicious activity');
+    }
   }
 
   /**

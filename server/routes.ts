@@ -62,7 +62,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues
   // TODO: Fix database schema for api_integration_logs table
 
-  // SECURITY HARDENING - Apply all security middleware
+  // SMART ROUTING AND LOAD BALANCING
+  const { routingMiddleware, loadBalancingMiddleware } = await import('./middleware/smartRouting');
+  app.use(routingMiddleware);
+  app.use(loadBalancingMiddleware);
+
+  // SECURITY HARDENING - Apply all security middleware (development-aware)
   app.use(SecurityHardening.securityHeaders());
   app.use(SecurityHardening.ipBlockingMiddleware());
   app.use(SecurityHardening.advancedDDoSProtection());
@@ -3132,6 +3137,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         message: error.message || "Failed to fetch currencies"
+      });
+    }
+  });
+
+  // ==============================================
+  // ADMIN MONITORING AND ROUTING METRICS
+  // ==============================================
+
+  // Get real-time routing performance metrics
+  app.get('/api/admin/routing/metrics', async (req, res) => {
+    try {
+      const { smartRouter } = await import('./middleware/smartRouting');
+      const metrics = smartRouter.getMetrics();
+      
+      res.json({
+        success: true,
+        metrics,
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV
+      });
+    } catch (error: any) {
+      console.error("Error fetching routing metrics:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch routing metrics"
+      });
+    }
+  });
+
+  // Reset routing metrics (admin only)
+  app.post('/api/admin/routing/reset', async (req, res) => {
+    try {
+      const { smartRouter } = await import('./middleware/smartRouting');
+      const { route } = req.body;
+      
+      smartRouter.resetMetrics(route);
+      
+      res.json({
+        success: true,
+        message: route ? `Metrics reset for route: ${route}` : 'All metrics reset'
+      });
+    } catch (error: any) {
+      console.error("Error resetting routing metrics:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to reset routing metrics"
       });
     }
   });

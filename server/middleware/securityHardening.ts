@@ -22,6 +22,7 @@ export class SecurityHardening {
   private static userSessionMap = new Map<string, Set<string>>();
   private static blockedIPs = new Set<string>();
   private static suspiciousActivity = new Map<string, number>();
+  private static isDevelopment = process.env.NODE_ENV === 'development';
 
   /**
    * Prevent session fixation and limit concurrent sessions
@@ -142,16 +143,24 @@ export class SecurityHardening {
    */
   static advancedDDoSProtection() {
     return rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
+      windowMs: this.isDevelopment ? 30 * 60 * 1000 : 15 * 60 * 1000, // 30 min dev, 15 min prod
       max: (req) => {
         const ip = req.ip || 'unknown';
         
-        // Different limits based on endpoint sensitivity
-        if (req.path.includes('/api/transactions')) return 10;
-        if (req.path.includes('/api/auth')) return 5;
-        if (req.path.includes('/api/admin')) return 3;
+        // Skip rate limiting for localhost in development
+        if (this.isDevelopment && this.isLocalhost(ip)) {
+          return 10000; // Very high limit for localhost
+        }
         
-        return 100; // Default limit
+        // Development has higher limits
+        const multiplier = this.isDevelopment ? 10 : 1;
+        
+        // Different limits based on endpoint sensitivity
+        if (req.path.includes('/api/transactions')) return 10 * multiplier;
+        if (req.path.includes('/api/auth')) return 5 * multiplier;
+        if (req.path.includes('/api/admin')) return 3 * multiplier;
+        
+        return 100 * multiplier; // Default limit
       },
       message: {
         error: 'Rate limit exceeded',
@@ -159,30 +168,70 @@ export class SecurityHardening {
       },
       standardHeaders: true,
       legacyHeaders: false,
+      skip: (req) => {
+        // Skip rate limiting completely for Vite HMR and development tools
+        if (this.isDevelopment) {
+          const ip = req.ip || 'unknown';
+          const userAgent = req.get('User-Agent') || '';
+          
+          if (this.isLocalhost(ip) || 
+              userAgent.includes('node') || 
+              userAgent.includes('vite') ||
+              req.path.includes('/@vite') ||
+              req.path.includes('/__vite')) {
+            return true;
+          }
+        }
+        return false;
+      },
       handler: (req, res) => {
         const ip = req.ip || 'unknown';
-        this.trackSuspiciousActivity(ip);
+        if (!this.isDevelopment || !this.isLocalhost(ip)) {
+          this.trackSuspiciousActivity(ip);
+        }
         
         res.status(429).json({
           error: 'Rate limit exceeded',
-          message: 'Too many requests. Please try again later.',
-          retryAfter: Math.ceil(15 * 60) // 15 minutes
+          message: this.isDevelopment 
+            ? 'Rate limit exceeded (development mode with higher limits)'
+            : 'Too many requests. Please try again later.',
+          retryAfter: Math.ceil(this.isDevelopment ? 30 * 60 : 15 * 60),
+          development: this.isDevelopment
         });
       }
     });
   }
 
   /**
+   * Check if IP is localhost or private network
+   */
+  private static isLocalhost(ip: string): boolean {
+    return ip === '127.0.0.1' || 
+           ip === '::1' || 
+           ip === '::ffff:127.0.0.1' ||
+           ip.startsWith('192.168.') || 
+           ip.startsWith('10.') ||
+           ip.startsWith('172.16.') ||
+           ip === 'unknown';
+  }
+
+  /**
    * Track and block suspicious IPs
    */
   private static trackSuspiciousActivity(ip: string): void {
+    // Skip tracking for localhost in development
+    if (this.isDevelopment && this.isLocalhost(ip)) {
+      return;
+    }
+
     const current = this.suspiciousActivity.get(ip) || 0;
     this.suspiciousActivity.set(ip, current + 1);
 
-    // Block IP after 5 rate limit violations
-    if (current >= 5) {
+    // Block IP after more violations in development
+    const threshold = this.isDevelopment ? 20 : 5;
+    if (current >= threshold) {
       this.blockedIPs.add(ip);
-      console.warn(`IP ${ip} blocked due to excessive rate limiting`);
+      console.warn(`IP ${ip} blocked due to excessive rate limiting (threshold: ${threshold})`);
     }
   }
 
@@ -193,10 +242,16 @@ export class SecurityHardening {
     return (req: Request, res: Response, next: NextFunction) => {
       const ip = req.ip || req.connection.remoteAddress;
       
+      // Skip IP blocking for localhost in development
+      if (this.isDevelopment && ip && this.isLocalhost(ip)) {
+        return next();
+      }
+      
       if (ip && this.blockedIPs.has(ip)) {
         return res.status(403).json({
           error: 'Access forbidden',
-          message: 'IP address has been blocked due to suspicious activity'
+          message: 'IP address has been blocked due to suspicious activity',
+          development: this.isDevelopment
         });
       }
       

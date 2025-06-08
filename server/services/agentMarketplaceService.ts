@@ -62,6 +62,188 @@ export class AgentMarketplaceService {
     }
   }
 
+  // Register pre-built marketplace services
+  async registerMarketplaceServices(): Promise<void> {
+    try {
+      // Data Processing and Analysis Bot - $50/task
+      await this.listService('agent_data_processor_001', {
+        serviceName: 'Advanced Data Processing & Analysis',
+        description: 'Professional CSV processing, data cleaning, report generation, statistical analysis, and web scraping services. Handles complex datasets up to 100MB with detailed insights.',
+        category: 'data-processing',
+        subcategory: 'analysis',
+        pricingModel: 'fixed',
+        basePrice: '50',
+        currency: 'USDT',
+        estimatedDeliveryTime: '2-4 hours',
+        availabilityStatus: 'available',
+        requiredInputs: [
+          { name: 'dataset', type: 'file', description: 'CSV, Excel, or JSON file' },
+          { name: 'analysis_type', type: 'select', options: ['statistical', 'trend', 'correlation', 'predictive'] },
+          { name: 'output_format', type: 'select', options: ['report', 'charts', 'dashboard'] }
+        ],
+        sampleOutputs: [
+          { type: 'report', description: 'Comprehensive analysis report with insights' },
+          { type: 'visualization', description: 'Charts and graphs' },
+          { type: 'processed_data', description: 'Cleaned and enhanced dataset' }
+        ],
+        successMetrics: [
+          'Data accuracy improvement percentage',
+          'Processing completion time',
+          'Client satisfaction rating'
+        ]
+      });
+
+      // AI Model Training with Prompts - $150/service
+      await this.listService('agent_model_trainer_001', {
+        serviceName: 'AI Model Training & Prompt Engineering',
+        description: 'Custom AI model training with curated prompt examples. Includes 50+ high-quality prompts, model fine-tuning guidance, and performance optimization strategies.',
+        category: 'ai-training',
+        subcategory: 'model-development',
+        pricingModel: 'fixed',
+        basePrice: '150',
+        currency: 'USDT',
+        estimatedDeliveryTime: '24-48 hours',
+        availabilityStatus: 'available',
+        requiredInputs: [
+          { name: 'model_type', type: 'select', options: ['text-generation', 'classification', 'sentiment', 'custom'] },
+          { name: 'domain', type: 'text', description: 'Industry or use case domain' },
+          { name: 'training_goals', type: 'textarea', description: 'Specific objectives and outcomes' }
+        ],
+        sampleOutputs: [
+          { type: 'prompt_library', description: '50+ optimized prompts for your use case' },
+          { type: 'training_guide', description: 'Step-by-step model training instructions' },
+          { type: 'performance_benchmarks', description: 'Expected accuracy and performance metrics' }
+        ],
+        successMetrics: [
+          'Model accuracy improvement',
+          'Training time reduction',
+          'Prompt effectiveness score'
+        ]
+      });
+
+      // Traditional Market Analysis Bot - $75/analysis
+      await this.listService('agent_traditional_markets_001', {
+        serviceName: 'Traditional Market Analysis & Signals',
+        description: 'Professional stock market analysis, forex signals, commodity trends, and traditional asset portfolio optimization. Covers NYSE, NASDAQ, Forex, and commodity markets.',
+        category: 'trading',
+        subcategory: 'traditional-markets',
+        pricingModel: 'fixed',
+        basePrice: '75',
+        currency: 'USDT',
+        estimatedDeliveryTime: '1-3 hours',
+        availabilityStatus: 'available',
+        requiredInputs: [
+          { name: 'market_type', type: 'select', options: ['stocks', 'forex', 'commodities', 'bonds'] },
+          { name: 'symbols', type: 'text', description: 'Comma-separated list of symbols (e.g., AAPL, MSFT)' },
+          { name: 'analysis_period', type: 'select', options: ['1day', '1week', '1month', '3months'] }
+        ],
+        sampleOutputs: [
+          { type: 'market_analysis', description: 'Detailed technical and fundamental analysis' },
+          { type: 'trading_signals', description: 'Buy/sell/hold recommendations with confidence levels' },
+          { type: 'risk_assessment', description: 'Portfolio risk analysis and optimization suggestions' }
+        ],
+        successMetrics: [
+          'Signal accuracy percentage',
+          'Risk-adjusted returns',
+          'Market timing precision'
+        ]
+      });
+
+    } catch (error) {
+      console.error('Error registering marketplace services:', error);
+    }
+
+    // Register automation services
+    try {
+      // Social Media Automation - $25/setup
+      await this.listService('agent_social_automation_001', {
+        serviceName: 'Social Media Automation Setup',
+        description: 'Complete social media automation including post scheduling, engagement tracking, content curation, and cross-platform management for Twitter, LinkedIn, and Instagram.',
+        category: 'automation',
+        subcategory: 'social-media',
+        pricingModel: 'fixed',
+        basePrice: '25',
+        currency: 'USDT',
+        estimatedDeliveryTime: '2-6 hours',
+        availabilityStatus: 'available',
+        requiredInputs: [
+          { name: 'platforms', type: 'multiselect', options: ['twitter', 'linkedin', 'instagram', 'facebook'] },
+          { name: 'content_type', type: 'select', options: ['financial', 'tech', 'general', 'custom'] },
+          { name: 'posting_frequency', type: 'select', options: ['daily', 'weekly', 'custom'] }
+        ],
+        sampleOutputs: [
+          { type: 'automation_script', description: 'Ready-to-deploy automation code' },
+          { type: 'content_calendar', description: '30-day content schedule' },
+          { type: 'analytics_dashboard', description: 'Performance tracking setup' }
+        ],
+        successMetrics: [
+          'Engagement rate improvement',
+          'Time saved per week',
+          'Content consistency score'
+        ]
+      });
+
+      // Email Marketing Automation - $35/campaign
+      await this.listService('agent_email_automation_001', {
+        serviceName: 'Email Marketing Automation',
+        description: 'Complete email marketing automation including drip campaigns, segmentation, A/B testing, and performance analytics. Integrates with major email platforms.',
+        category: 'automation',
+        subcategory: 'email-marketing',
+        pricingModel: 'fixed',
+        basePrice: '35',
+        currency: 'USDT',
+        estimatedDeliveryTime: '4-8 hours',
+        availabilityStatus: 'available',
+        requiredInputs: [
+          { name: 'email_platform', type: 'select', options: ['mailchimp', 'sendgrid', 'constant_contact', 'custom'] },
+          { name: 'campaign_type', type: 'select', options: ['welcome_series', 'nurture', 'promotional', 'newsletter'] },
+          { name: 'target_audience', type: 'textarea', description: 'Audience description and segmentation criteria' }
+        ],
+        sampleOutputs: [
+          { type: 'automation_workflow', description: 'Complete email sequence and triggers' },
+          { type: 'email_templates', description: 'Professional email designs' },
+          { type: 'performance_tracking', description: 'Analytics and optimization recommendations' }
+        ],
+        successMetrics: [
+          'Open rate improvement',
+          'Click-through rate increase',
+          'Conversion rate optimization'
+        ]
+      });
+
+      // Task Scheduling Automation - $20/task
+      await this.listService('agent_task_scheduler_001', {
+        serviceName: 'Task Scheduling & Workflow Automation',
+        description: 'Automated task scheduling, workflow optimization, and process automation for repetitive business tasks. Includes integration with popular productivity tools.',
+        category: 'automation',
+        subcategory: 'workflow',
+        pricingModel: 'fixed',
+        basePrice: '20',
+        currency: 'USDT',
+        estimatedDeliveryTime: '1-3 hours',
+        availabilityStatus: 'available',
+        requiredInputs: [
+          { name: 'task_type', type: 'select', options: ['data_backup', 'report_generation', 'file_management', 'api_monitoring'] },
+          { name: 'schedule', type: 'select', options: ['hourly', 'daily', 'weekly', 'monthly'] },
+          { name: 'integration_tools', type: 'multiselect', options: ['slack', 'discord', 'email', 'webhook'] }
+        ],
+        sampleOutputs: [
+          { type: 'automation_script', description: 'Ready-to-run automation code' },
+          { type: 'monitoring_dashboard', description: 'Task execution monitoring' },
+          { type: 'error_handling', description: 'Robust error handling and notifications' }
+        ],
+        successMetrics: [
+          'Task completion reliability',
+          'Time saved per execution',
+          'Error reduction percentage'
+        ]
+      });
+
+    } catch (error) {
+      console.error('Error registering automation services:', error);
+    }
+  }
+
   // Streamlined agent registration - minimal friction
   async quickRegisterAgent(registrationData: QuickRegistration): Promise<{
     success: boolean;

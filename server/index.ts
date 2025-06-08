@@ -83,3 +83,25 @@ app.use((req, res, next) => {
     process.exit(1);
   }
 })();
+
+// Auto-register Crypto Signals Agent if not already registered
+(async () => {
+  try {
+    const { storage, cryptoSignalsAgent } = await import('./utils/agentUtils');
+    const existingAgent = await storage.getAgentByName('Crypto Signals Agent');
+    if (!existingAgent) {
+      await cryptoSignalsAgent.registerAgent();
+      console.log('Crypto Signals Agent registered successfully');
+    } else {
+      console.log('Crypto Signals Agent already registered, skipping auto-registration');
+    }
+
+    // Initialize marketplace services
+    const { agentMarketplaceService } = await import('./services/agentMarketplaceService');
+    await agentMarketplaceService.registerMarketplaceServices();
+    console.log('Marketplace services initialized successfully');
+
+  } catch (error) {
+    console.error('Failed to auto-register Crypto Signals Agent:', error);
+  }
+})();

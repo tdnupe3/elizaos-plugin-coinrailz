@@ -35,7 +35,7 @@ function StripePaymentForm({
 
   const handleStripePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!stripe || !elements) return;
 
     try {
@@ -125,7 +125,7 @@ export function PaymentMethodSelector(props: PaymentMethodSelectorProps) {
         </div>
 
         <Tabs defaultValue="stripe" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="stripe" className="flex items-center gap-2">
               <CreditCard className="w-4 h-4" />
               Credit/Debit Card
@@ -135,6 +135,12 @@ export function PaymentMethodSelector(props: PaymentMethodSelectorProps) {
                 <path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.304 2.42 1.012 4.287-.023.143-.047.288-.077.437-.983 5.05-4.349 6.797-8.647 6.797h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106zm14.146-14.42a3.35 3.35 0 0 0-.1-.025c-.687-.162-1.413-.24-2.16-.24h-2.19c-.524 0-.968.382-1.05.9l-1.12 7.106h4.61c2.57 0 4.578-.543 5.69-1.81 1.01-1.15 1.304-2.42 1.012-4.287-.292-1.866-1.048-3.228-2.42-4.15-1.33-.895-3.117-1.344-5.272-1.344z"/>
               </svg>
               PayPal
+            </TabsTrigger>
+                        <TabsTrigger value="bank_transfer" className="flex items-center gap-2">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-8H4V6h16v4z"/>
+              </svg>
+              Bank Transfer
             </TabsTrigger>
           </TabsList>
 
@@ -146,6 +152,19 @@ export function PaymentMethodSelector(props: PaymentMethodSelectorProps) {
 
           <TabsContent value="paypal" className="mt-6">
             <PayPalPayment {...props} />
+          </TabsContent>
+          <TabsContent value="bank_transfer" className="mt-6">
+              <div>
+                  <p>
+                      To complete the payment, please send the funds to the bank account details
+                      provided. Once the transfer is confirmed, your service will be activated.
+                  </p>
+                  <p>
+                      Bank Name: [Your Bank Name]
+                      Account Number: [Your Account Number]
+                      Routing Number: [Your Routing Number]
+                  </p>
+              </div>
           </TabsContent>
         </Tabs>
       </CardContent>

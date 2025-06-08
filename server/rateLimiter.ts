@@ -98,17 +98,16 @@ class RateLimiter {
 
   middleware() {
     return (req: Request, res: Response, next: NextFunction) => {
-      // Skip rate limiting completely in development for localhost
-      const ip = req.ip || req.connection.remoteAddress || 'unknown';
-      if (this.isDevelopment && (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.'))) {
+      // DEVELOPMENT MODE: BYPASS ALL RATE LIMITING
+      if (this.isDevelopment) {
         return next();
       }
       
+      // PRODUCTION MODE: Apply full rate limiting
       const key = this.getKey(req);
       const fingerprint = this.generateFingerprint(req);
       const now = Date.now();
       
-      // Check for suspicious activity (only in production)
       if (this.detectSuspiciousActivity(req, fingerprint)) {
         return res.status(429).json({
           error: 'Suspicious activity detected',
@@ -130,16 +129,10 @@ class RateLimiter {
       if (this.store[key].count >= this.maxRequests) {
         this.store[key].suspiciousActivity++;
         
-        // More lenient error handling in development
-        const message = this.isDevelopment 
-          ? `Rate limit exceeded (dev mode: ${this.maxRequests} requests per ${this.windowMs / 1000}s)`
-          : `Rate limit exceeded. Maximum ${this.maxRequests} requests per ${this.windowMs / 1000} seconds.`;
-        
         return res.status(429).json({
           error: 'Too many requests',
-          message,
-          retryAfter: Math.ceil((this.store[key].resetTime - now) / 1000),
-          development: this.isDevelopment
+          message: `Rate limit exceeded. Maximum ${this.maxRequests} requests per ${this.windowMs / 1000} seconds.`,
+          retryAfter: Math.ceil((this.store[key].resetTime - now) / 1000)
         });
       }
 

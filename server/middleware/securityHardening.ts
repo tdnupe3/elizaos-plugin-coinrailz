@@ -151,25 +151,23 @@ export class SecurityHardening {
    * Advanced DDoS protection with behavioral analysis
    */
   static advancedDDoSProtection() {
+    // DEVELOPMENT MODE: Return no-op middleware
+    if (this.isDevelopment) {
+      return (req: Request, res: Response, next: NextFunction) => {
+        next();
+      };
+    }
+    
+    // PRODUCTION MODE: Apply full rate limiting
     return rateLimit({
-      windowMs: this.isDevelopment ? 30 * 60 * 1000 : 15 * 60 * 1000, // 30 min dev, 15 min prod
+      windowMs: 15 * 60 * 1000, // 15 minutes
       max: (req) => {
-        const ip = req.ip || 'unknown';
-        
-        // Skip rate limiting for localhost in development
-        if (this.isDevelopment && this.isLocalhost(ip)) {
-          return 10000; // Very high limit for localhost
-        }
-        
-        // Development has higher limits
-        const multiplier = this.isDevelopment ? 10 : 1;
-        
         // Different limits based on endpoint sensitivity
-        if (req.path.includes('/api/transactions')) return 10 * multiplier;
-        if (req.path.includes('/api/auth')) return 5 * multiplier;
-        if (req.path.includes('/api/admin')) return 3 * multiplier;
+        if (req.path.includes('/api/transactions')) return 10;
+        if (req.path.includes('/api/auth')) return 5;
+        if (req.path.includes('/api/admin')) return 3;
         
-        return 100 * multiplier; // Default limit
+        return 100; // Default limit
       },
       message: {
         error: 'Rate limit exceeded',
@@ -177,35 +175,14 @@ export class SecurityHardening {
       },
       standardHeaders: true,
       legacyHeaders: false,
-      skip: (req) => {
-        // Skip rate limiting completely for Vite HMR and development tools
-        if (this.isDevelopment) {
-          const ip = req.ip || 'unknown';
-          const userAgent = req.get('User-Agent') || '';
-          
-          if (this.isLocalhost(ip) || 
-              userAgent.includes('node') || 
-              userAgent.includes('vite') ||
-              req.path.includes('/@vite') ||
-              req.path.includes('/__vite')) {
-            return true;
-          }
-        }
-        return false;
-      },
       handler: (req, res) => {
         const ip = req.ip || 'unknown';
-        if (!this.isDevelopment || !this.isLocalhost(ip)) {
-          this.trackSuspiciousActivity(ip);
-        }
+        this.trackSuspiciousActivity(ip);
         
         res.status(429).json({
           error: 'Rate limit exceeded',
-          message: this.isDevelopment 
-            ? 'Rate limit exceeded (development mode with higher limits)'
-            : 'Too many requests. Please try again later.',
-          retryAfter: Math.ceil(this.isDevelopment ? 30 * 60 : 15 * 60),
-          development: this.isDevelopment
+          message: 'Too many requests. Please try again later.',
+          retryAfter: 900
         });
       }
     });

@@ -12,7 +12,18 @@ export class ProductionSecurityService {
    * Enhanced rate limiting with tiered restrictions
    */
   static createTieredRateLimit() {
-    // Standard API rate limiting
+    // DEVELOPMENT MODE: Return no-op middleware
+    const noOpMiddleware = (req: Request, res: Response, next: NextFunction) => next();
+    
+    if (process.env.NODE_ENV === 'development') {
+      return { 
+        standardLimit: noOpMiddleware, 
+        authLimit: noOpMiddleware, 
+        transactionLimit: noOpMiddleware 
+      };
+    }
+
+    // PRODUCTION MODE: Apply full rate limiting
     const standardLimit = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: 100, // 100 requests per window
@@ -25,7 +36,6 @@ export class ProductionSecurityService {
       legacyHeaders: false,
     });
 
-    // Strict rate limiting for authentication endpoints
     const authLimit = rateLimit({
       windowMs: 15 * 60 * 1000,
       max: 5, // Only 5 auth attempts per window
@@ -37,7 +47,6 @@ export class ProductionSecurityService {
       skipSuccessfulRequests: true,
     });
 
-    // Financial transaction rate limiting
     const transactionLimit = rateLimit({
       windowMs: 60 * 1000, // 1 minute
       max: 10, // 10 transactions per minute

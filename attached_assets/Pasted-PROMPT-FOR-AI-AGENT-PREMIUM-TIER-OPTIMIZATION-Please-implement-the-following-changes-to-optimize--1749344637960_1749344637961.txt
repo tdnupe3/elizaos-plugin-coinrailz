@@ -1,0 +1,45 @@
+PROMPT FOR AI AGENT PREMIUM TIER OPTIMIZATION
+
+Please implement the following changes to optimize the AI agent premium tier registration and marketplace integration:
+
+1. Update Agent Marketplace Service Registration
+
+Modify server/services/agentMarketplaceService.ts to automatically register the pre-built marketplace services when the server starts
+Add a call to registerMarketplaceServices() in the server initialization
+Ensure all 7 pre-built services are available immediately upon platform launch
+2. Enhance Premium Agent Benefits
+
+Update the premium registration process in server/routes.ts to include marketplace service access
+Add automatic service listing capabilities for premium agents
+Implement priority placement in service discovery for premium tier agents
+3. Revenue Integration
+
+Connect the existing tiered fee structure (3.5% marketplace fee) with the premium agent system
+Ensure premium agents get reduced commission rates on their service sales
+Implement automatic revenue tracking for premium tier performance
+4. Service Categories to Add
+The platform should offer these exact services at launch:
+
+Data Processing & Analysis Bot - $50/task (2-4 hours delivery)
+AI Model Training & Prompt Engineering - $150/service (24-48 hours delivery)
+Traditional Market Analysis & Signals - $75/analysis (1-3 hours delivery)
+Social Media Automation Setup - $25/setup (2-6 hours delivery)
+Email Marketing Automation - $35/campaign (4-8 hours delivery)
+Task Scheduling & Workflow Automation - $20/task (1-3 hours delivery)
+5. Integration Points
+
+Connect the existing PayPal/NOWPayments infrastructure with service purchases
+Ensure the referral system works with service transactions
+Link the existing agent metrics tracking with marketplace performance
+6. Technical Requirements
+
+Maintain the existing $25 annual premium registration fee
+Keep the current tiered fee structure for profitability
+Preserve all existing authentication and security measures
+Use the established database schema and API routes
+7. Missing File Fix
+
+Create server/utils/agentUtils.ts to resolve the module import error
+Include basic agent utility functions for registration and management
+The goal is to have a fully functional AI agent marketplace where premium agents can immediately start offering and purchasing services, generating platform revenue through the existing fee structure while maintaining the $25 premium tier value proposition.
+

@@ -92,6 +92,8 @@ export interface IStorage {
   // AI Agent operations
   getAgent(agentId: string): Promise<any>;
   createAgent(agentData: any): Promise<any>;
+  updateAgentStatus(agentId: string, isActive: boolean): Promise<void>;
+  getUserAgents(userId: string): Promise<any[]>;
   getGlobalAIAgent(agentId: string): Promise<any>;
   createGlobalAIAgent(agentData: any): Promise<any>;
   updateAgentReferralCode(agentId: string, referralCode: string): Promise<void>;
@@ -115,9 +117,15 @@ export interface IStorage {
   createServiceOrder(orderData: any): Promise<any>;
   getServiceOrder(orderId: string): Promise<any>;
   getAgentServiceOrders(agentId: string): Promise<any[]>;
-  updateServiceOrderStatus(orderId: number, status: string, updateData?: any): Promise<void>;
+  getUserServiceOrders(userId: string): Promise<any[]>;
+  updateServiceOrderStatus(orderId: string | number, status: string, updateData?: any): Promise<void>;
   updateServiceListingStats(listingId: number, revenue: number, rating?: number): Promise<void>;
   getTrendingServices(limit: number): Promise<any[]>;
+  
+  // Marketplace Service operations
+  createMarketplaceService(service: any): Promise<any>;
+  getMarketplaceService(serviceId: string): Promise<any>;
+  getMarketplaceServices(): Promise<any[]>;
 
   // Tiered registration system methods
   createBasicAgent(agentData: any): Promise<any>;
@@ -756,6 +764,119 @@ export class DatabaseStorage implements IStorage {
         confirmedAt: status === "confirmed" ? new Date() : undefined
       })
       .where(eq(cryptoTransfers.id, id));
+  }
+
+  // Missing agent operations
+  async updateAgentStatus(agentId: string, isActive: boolean): Promise<void> {
+    await db.update(globalAIAgents)
+      .set({ isActive, updatedAt: new Date() })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  async getUserAgents(userId: string): Promise<any[]> {
+    return await db.select()
+      .from(globalAIAgents)
+      .where(eq(globalAIAgents.userId, userId));
+  }
+
+  // Missing marketplace service operations
+  async createMarketplaceService(service: any): Promise<any> {
+    try {
+      // Check if service already exists by name
+      const existing = await db.select()
+        .from(agentServiceListings)
+        .where(eq(agentServiceListings.title, service.name))
+        .limit(1);
+      
+      if (existing.length > 0) {
+        return existing[0]; // Return existing service
+      }
+
+      const [newService] = await db
+        .insert(agentServiceListings)
+        .values({
+          agentId: 'marketplace-default',
+          title: service.name,
+          description: service.description,
+          category: service.category,
+          pricing: service.pricing.toString(),
+          deliveryTime: service.deliveryTime,
+          tags: service.tags.join(','),
+          isActive: service.isActive,
+          createdAt: service.createdAt,
+          updatedAt: service.createdAt
+        })
+        .returning();
+      
+      return newService;
+    } catch (error) {
+      console.error('Error creating marketplace service:', error);
+      throw error;
+    }
+  }
+
+  async getMarketplaceService(serviceId: string): Promise<any> {
+    const [service] = await db.select()
+      .from(agentServiceListings)
+      .where(eq(agentServiceListings.id, parseInt(serviceId)))
+      .limit(1);
+    
+    if (!service) return null;
+    
+    return {
+      id: service.id.toString(),
+      name: service.title,
+      description: service.description,
+      category: service.category,
+      pricing: parseFloat(service.pricing),
+      deliveryTime: service.deliveryTime,
+      tags: service.tags ? service.tags.split(',') : [],
+      isActive: service.isActive,
+      createdAt: service.createdAt
+    };
+  }
+
+  async getMarketplaceServices(): Promise<any[]> {
+    const services = await db.select()
+      .from(agentServiceListings)
+      .where(eq(agentServiceListings.isActive, true));
+    
+    return services.map(service => ({
+      id: service.id.toString(),
+      name: service.title,
+      description: service.description,
+      category: service.category,
+      pricing: parseFloat(service.pricing),
+      deliveryTime: service.deliveryTime,
+      tags: service.tags ? service.tags.split(',') : [],
+      isActive: service.isActive,
+      createdAt: service.createdAt
+    }));
+  }
+
+  async getUserServiceOrders(userId: string): Promise<any[]> {
+    return await db.select()
+      .from(agentServiceOrders)
+      .where(eq(agentServiceOrders.buyerId, userId))
+      .orderBy(desc(agentServiceOrders.createdAt));
+  }
+
+  // Override updateServiceOrderStatus to handle both string and number orderIds
+  async updateServiceOrderStatus(orderId: string | number, status: string, updateData?: any): Promise<void> {
+    const orderIdNum = typeof orderId === 'string' ? parseInt(orderId) : orderId;
+    
+    const updateSet: any = { 
+      orderStatus: status,
+      updatedAt: new Date()
+    };
+    
+    if (updateData) {
+      Object.assign(updateSet, updateData);
+    }
+
+    await db.update(agentServiceOrders)
+      .set(updateSet)
+      .where(eq(agentServiceOrders.id, orderIdNum));
   }
 }
 

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 export default function ProductionDashboard() {
   const { data: healthCheck = { status: 'unknown', services: [] }, isLoading: healthLoading } = useQuery({
@@ -64,7 +65,7 @@ export default function ProductionDashboard() {
         method: 'POST',
         credentials: 'include',
       });
-      
+
       if (response.ok) {
         alert('Referral rewards processed successfully');
       }
@@ -72,6 +73,28 @@ export default function ProductionDashboard() {
       alert('Error processing referral rewards');
     }
   };
+
+  const { data: session } = useSession();
+  const isAuthenticated = !!session?.user;
+
+  // Check if user has admin access
+  const { data: user } = useQuery({
+    queryKey: ['/api/user'],
+    enabled: !!isAuthenticated,
+  });
+
+  const adminEmails = ['travis@kelloggholdings.com', 'travis.kellogg1@gmail.com'];
+  const isAdmin = adminEmails.includes(user?.email);
+
+  if (!isAdmin) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="text-red-500 font-bold text-2xl">
+          Unauthorized Access
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">

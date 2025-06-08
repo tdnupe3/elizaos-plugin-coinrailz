@@ -62,14 +62,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues
   // TODO: Fix database schema for api_integration_logs table
 
-  // DEVELOPMENT MODE: SKIP ALL SECURITY MIDDLEWARE
+  // DEVELOPMENT MODE: NO SECURITY MIDDLEWARE AT ALL
   if (process.env.NODE_ENV === 'development') {
-    console.log('DEVELOPMENT MODE: Skipping all security middleware to prevent rate limiting');
-    
-    // Only apply basic security headers in development
-    app.use(SecurityHardening.securityHeaders());
-    
-    // Skip all other security middleware that causes rate limiting
+    console.log('DEVELOPMENT MODE: Completely skipping ALL security middleware to eliminate rate limiting');
+    // No security middleware applied in development to prevent any rate limiting
   } else {
     // PRODUCTION: Apply full security stack
     const { routingMiddleware, loadBalancingMiddleware } = await import('./middleware/smartRouting');

@@ -60,74 +60,14 @@ export const queryClient = new QueryClient({
       refetchIntervalInBackground: false,
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes cache retention
-      retry: false, // Disable retries completely to prevent cascade failures
+      retry: false,
       networkMode: 'online',
+      throwOnError: false, // Prevent throwing errors to component level
     },
     mutations: {
-      retry: false, // Disable mutation retries
+      retry: false,
       networkMode: 'online',
+      throwOnError: false, // Prevent throwing errors to component level
     },
-  },
-});
-
-// Add global mutation cache error handling
-queryClient.getMutationCache().subscribe((event) => {
-  if (event?.type === 'updated' && event.mutation.state.status === 'error') {
-    console.error('Global mutation error:', event.mutation.state.error);
-  }
-});
-
-// Add global query cache error handling  
-queryClient.getQueryCache().subscribe((event) => {
-  if (event?.type === 'updated' && event.query.state.status === 'error') {
-    const error = event.query.state.error;
-    const errorMessage = String(error?.message || error || '');
-    
-    // Suppress development-related connection errors
-    const isDevelopmentError = ['ChromeTransport', 'connectChrome', 'WebSocket', 'vite', 'connecting'].some(keyword => 
-      errorMessage.toLowerCase().includes(keyword.toLowerCase())
-    );
-    
-    if (!isDevelopmentError) {
-      console.error('Global query error:', error);
-    }
-  }
-});
-
-// Create a custom query function that never throws unhandled rejections
-const safeQueryFn = async ({ queryKey, signal }: any) => {
-  try {
-    const response = await fetch(queryKey[0] as string, {
-      signal,
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    
-    if (!response.ok) {
-      return null; // Always return null instead of throwing
-    }
-    
-    return await response.json();
-  } catch (error) {
-    return null; // Always return null instead of throwing
-  }
-};
-
-// Configure React Query with comprehensive error prevention
-queryClient.setDefaultOptions({
-  queries: {
-    queryFn: safeQueryFn,
-    retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchInterval: false,
-    staleTime: Infinity,
-    gcTime: Infinity,
-    throwOnError: false,
-  },
-  mutations: {
-    retry: false,
-    throwOnError: false,
-    onError: () => {}, // Silent error handling
   },
 });

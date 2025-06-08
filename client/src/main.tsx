@@ -1,14 +1,9 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { productionStabilizer } from "./lib/productionStabilizer";
-import "./lib/viteStabilizer";
+import { initializeErrorHandling } from "./lib/errorHandler";
 
-// Initialize production stabilizer to eliminate development artifacts
-console.log("Production stabilizer initialized");
-
-// Initialize comprehensive promise stabilization
-import { initializePromiseStabilizer } from "./lib/promiseStabilizer";
-initializePromiseStabilizer();
+// Initialize single error handling system
+initializeErrorHandling();
 
 createRoot(document.getElementById("root")!).render(<App />);

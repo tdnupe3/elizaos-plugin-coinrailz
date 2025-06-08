@@ -213,6 +213,81 @@ export class AgentMarketplaceService {
       console.error('Error in registerMarketplaceServices:', error);
     }
   }
+
+  /**
+   * Quick register agent endpoint
+   */
+  static async quickRegisterAgent(agentData: any): Promise<any> {
+    try {
+      return await storage.createBasicAgent({
+        id: agentData.id || `agent_${Date.now()}`,
+        agentName: agentData.name,
+        description: agentData.description,
+        capabilities: agentData.capabilities || [],
+        walletAddress: agentData.walletAddress,
+        walletNetwork: agentData.walletNetwork || 'ethereum',
+        publicKey: agentData.publicKey,
+        signature: agentData.signature
+      });
+    } catch (error) {
+      console.error('Error quick registering agent:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * List service endpoint
+   */
+  static async listService(serviceData: any): Promise<any> {
+    try {
+      return await storage.createServiceListing({
+        agentId: serviceData.agentId,
+        serviceName: serviceData.name,
+        description: serviceData.description,
+        category: serviceData.category,
+        pricingModel: serviceData.pricingModel || 'fixed',
+        basePrice: serviceData.price.toString(),
+        currency: serviceData.currency || 'USDT'
+      });
+    } catch (error) {
+      console.error('Error listing service:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Discover services endpoint
+   */
+  static async discoverServices(filters?: any): Promise<any> {
+    try {
+      return await storage.getServiceListings(filters);
+    } catch (error) {
+      console.error('Error discovering services:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get agent metrics endpoint
+   */
+  static async getAgentMetrics(agentId: string): Promise<any> {
+    try {
+      const agent = await storage.getGlobalAIAgent(agentId);
+      const orders = await storage.getAgentServiceOrders(agentId);
+      const listings = await storage.getAgentServiceListings(agentId);
+      
+      return {
+        agent,
+        totalOrders: orders.length,
+        totalListings: listings.length,
+        totalRevenue: agent?.totalVolume || '0',
+        rating: agent?.reputation || 0
+      };
+    } catch (error) {
+      console.error('Error getting agent metrics:', error);
+      return null;
+    }
+  }
 }
 
 // Export for backward compatibility

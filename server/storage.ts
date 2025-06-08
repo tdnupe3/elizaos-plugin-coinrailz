@@ -136,6 +136,11 @@ export interface IStorage {
   getExpiredPremiumAgents(): Promise<any[]>;
   downgradeExpiredAgents(): Promise<number>;
   updateAgentMembership(agentId: string, tier: 'basic' | 'premium', expiryDate?: Date): Promise<void>;
+
+  // Payment Intent operations
+  createPaymentIntent(intentData: any): Promise<any>;
+  getPaymentIntent(intentId: string): Promise<any>;
+  updatePaymentIntentStatus(intentId: string, status: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -864,6 +869,37 @@ export class DatabaseStorage implements IStorage {
     await db.update(agentServiceOrders)
       .set(updateSet)
       .where(eq(agentServiceOrders.id, orderIdNum));
+  }
+
+  // Payment Intent operations
+  async createPaymentIntent(intentData: any): Promise<any> {
+    // Store payment intent data in the funding transactions table for now
+    const [intent] = await db.insert(fundingTransactions).values({
+      userId: intentData.userId,
+      walletId: intentData.walletId || 1, // Default wallet for payment intents
+      amount: intentData.amount.toString(),
+      currency: intentData.currency || 'USD',
+      type: 'deposit',
+      method: 'stripe',
+      status: 'pending'
+    }).returning();
+    
+    return intent;
+  }
+
+  async getPaymentIntent(intentId: string): Promise<any> {
+    const [intent] = await db.select()
+      .from(fundingTransactions)
+      .where(eq(fundingTransactions.id, parseInt(intentId)))
+      .limit(1);
+    
+    return intent;
+  }
+
+  async updatePaymentIntentStatus(intentId: string, status: string): Promise<void> {
+    await db.update(fundingTransactions)
+      .set({ status })
+      .where(eq(fundingTransactions.id, parseInt(intentId)));
   }
 }
 

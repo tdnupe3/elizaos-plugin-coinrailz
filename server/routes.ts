@@ -62,22 +62,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API logging temporarily disabled due to database constraint issues
   // TODO: Fix database schema for api_integration_logs table
 
-  // SMART ROUTING AND LOAD BALANCING
-  const { routingMiddleware, loadBalancingMiddleware } = await import('./middleware/smartRouting');
-  app.use(routingMiddleware);
-  app.use(loadBalancingMiddleware);
-
-  // SECURITY HARDENING - Apply all security middleware (development-aware)
-  app.use(SecurityHardening.securityHeaders());
-  app.use(SecurityHardening.ipBlockingMiddleware());
-  app.use(SecurityHardening.advancedDDoSProtection());
-  app.use(SecurityHardening.memoryProtection());
-  app.use(SecurityHardening.enhancedCSRFProtection());
-  app.use(DatabaseSecurity.connectionLimiter());
-  app.use(DatabaseSecurity.circuitBreaker());
-  app.use(DataEncryption.piiEncryptionMiddleware());
-  app.use(DataEncryption.responseSanitizationMiddleware());
-  app.use(EnhancedTransactionSecurity.transactionValidationMiddleware());
+  // DEVELOPMENT MODE: SKIP ALL SECURITY MIDDLEWARE
+  if (process.env.NODE_ENV === 'development') {
+    console.log('DEVELOPMENT MODE: Skipping all security middleware to prevent rate limiting');
+    
+    // Only apply basic security headers in development
+    app.use(SecurityHardening.securityHeaders());
+    
+    // Skip all other security middleware that causes rate limiting
+  } else {
+    // PRODUCTION: Apply full security stack
+    const { routingMiddleware, loadBalancingMiddleware } = await import('./middleware/smartRouting');
+    app.use(routingMiddleware);
+    app.use(loadBalancingMiddleware);
+    
+    app.use(SecurityHardening.securityHeaders());
+    app.use(SecurityHardening.ipBlockingMiddleware());
+    app.use(SecurityHardening.advancedDDoSProtection());
+    app.use(SecurityHardening.memoryProtection());
+    app.use(SecurityHardening.enhancedCSRFProtection());
+    app.use(DatabaseSecurity.connectionLimiter());
+    app.use(DatabaseSecurity.circuitBreaker());
+    app.use(DataEncryption.piiEncryptionMiddleware());
+    app.use(DataEncryption.responseSanitizationMiddleware());
+    app.use(EnhancedTransactionSecurity.transactionValidationMiddleware());
+  }
 
   // Auth middleware
   await setupAuth(app);

@@ -1315,6 +1315,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PayPal configuration test endpoint
+  app.get("/api/paypal/test-config", async (req, res) => {
+    try {
+      const isConfigured = paypalService.isConfigured();
+      const environment = paypalService.getEnvironment();
+      
+      if (isConfigured) {
+        // Test authentication by getting access token
+        try {
+          await paypalService.getAccessToken();
+          res.json({
+            configured: true,
+            environment,
+            authenticated: true,
+            message: "PayPal service is fully configured and operational"
+          });
+        } catch (error: any) {
+          res.json({
+            configured: true,
+            environment,
+            authenticated: false,
+            message: "PayPal credentials configured but authentication failed",
+            error: error.message
+          });
+        }
+      } else {
+        res.json({
+          configured: false,
+          environment,
+          authenticated: false,
+          message: "PayPal credentials not configured"
+        });
+      }
+    } catch (error: any) {
+      res.status(500).json({
+        error: "Failed to test PayPal configuration",
+        message: error.message
+      });
+    }
+  });
+
   // PayPal payment order creation
   app.post("/api/paypal/create-order", isAuthenticated, async (req: any, res) => {
     try {

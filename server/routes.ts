@@ -1473,6 +1473,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PayPal payout creation for P2P transfers
+  app.post("/api/paypal/create-payout", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!paypalService.isConfigured()) {
+        return res.status(400).json({ 
+          message: "PayPal is not configured. Please configure PayPal credentials." 
+        });
+      }
+
+      const { recipientEmail, amount, currency = 'USD', note } = req.body;
+      const userId = req.user.claims.sub;
+
+      if (!recipientEmail || !amount) {
+        return res.status(400).json({ 
+          message: "Recipient email and amount are required" 
+        });
+      }
+
+      // Validate amount
+      const transferAmount = ValidationUtils.validateAmount(amount);
+      const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
+      const totalCost = transferAmount + feeCalculation.fee;
+
+      // Check user balance
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const userBalance = parseFloat(currentUser.usdBalance || "0");
+      if (userBalance < totalCost) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+
+      // Create PayPal payout
+      const payout = await paypalService.createPayout({
+        recipientEmail,
+        amount: transferAmount,
+        currency,
+        note: note || `Payment from ${currentUser.firstName} ${currentUser.lastName}`,
+        senderItemId: `p2p_${userId}_${Date.now()}`
+      });
+
+      // Deduct from sender balance
+      const newBalance = userBalance - totalCost;
+      await storage.updateUserBalance(userId, newBalance, "USD");
+
+      // Create transaction record
+      await storage.createTransaction({
+        fromUserId: userId,
+        toUserId: null,
+        toEmail: recipientEmail,
+        amount: transferAmount.toString(),
+        message: note || "PayPal P2P transfer",
+        transactionType: "send",
+        status: "pending",
+      });
+
+      res.json({
+        success: true,
+        payoutBatchId: payout.batch_header.payout_batch_id,
+        amount: transferAmount,
+        fee: feeCalculation.fee,
+        status: payout.batch_header.batch_status,
+        estimatedCompletion: "1-3 minutes"
+      });
+    } catch (error: any) {
+      console.error("Error creating PayPal payout:", error);
+      res.status(500).json({ message: "Error creating PayPal payout: " + error.message });
+    }
+  });
+
+  // PayPal payout status check
+  app.get("/api/paypal/payout/:payoutBatchId/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const { payoutBatchId } = req.params;
+      const status = await paypalService.getPayoutStatus(payoutBatchId);
+      
+      res.json({
+        success: true,
+        status: status.batch_header.batch_status,
+        items: status.items.map((item: any) => ({
+          payoutItemId: item.payout_item_id,
+          status: item.transaction_status,
+          amount: item.payout_item.amount.value,
+          currency: item.payout_item.amount.currency,
+          recipient: item.payout_item.receiver
+        }))
+      });
+    } catch (error: any) {
+      console.error("Error fetching PayPal payout status:", error);
+      res.status(500).json({ message: "Error fetching payout status: " + error.message });
+    }
+  });
+
   // PayPal webhook handler
   app.post("/api/paypal/webhook", async (req, res) => {
     try {
@@ -1498,6 +1593,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         case 'PAYMENT.CAPTURE.DENIED':
           const deniedOrderId = event.resource.supplementary_data.related_ids.order_id;
           await storage.updatePaymentIntentStatus(deniedOrderId, 'failed');
+          break;
+        case 'PAYMENT.PAYOUTS-ITEM.SUCCEEDED':
+          // Handle successful payout
+          console.log('PayPal payout succeeded:', event.resource);
+          break;
+        case 'PAYMENT.PAYOUTS-ITEM.FAILED':
+          // Handle failed payout
+          console.log('PayPal payout failed:', event.resource);
           break;
       }
 

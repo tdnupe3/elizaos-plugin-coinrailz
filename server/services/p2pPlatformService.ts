@@ -254,33 +254,23 @@ export class P2PPlatformService {
 
   private async processPayPalTransfer(request: TransferRequest, messageId: string): Promise<any> {
     try {
-      // PayPal payout integration
-      const payoutData = {
-        sender_batch_header: {
-          sender_batch_id: messageId,
-          email_subject: "You have a payment from Coin Railz",
-          email_message: request.message || "You've received a payment"
-        },
-        items: [{
-          recipient_type: "EMAIL",
-          amount: {
-            value: request.amount.toString(),
-            currency: "USD"
-          },
-          receiver: request.recipient.email,
-          note: request.message || "Payment from Coin Railz",
-          sender_item_id: messageId
-        }]
-      };
-
-      // This would use PayPal's Payouts API in production
-      console.log('PayPal payout would be sent:', payoutData);
+      const { paypalService } = await import('./paypalService');
+      
+      // Create actual PayPal payout
+      const payout = await paypalService.createPayout({
+        recipientEmail: request.recipient.email,
+        amount: request.amount,
+        currency: "USD",
+        note: request.message || "Payment from Coin Railz",
+        senderItemId: messageId
+      });
 
       return {
         status: 'pending',
         transactionId: messageId,
         estimatedCompletion: '1-3 minutes',
-        paypalBatchId: messageId
+        paypalBatchId: payout.batch_header.payout_batch_id,
+        paypalStatus: payout.batch_header.batch_status
       };
     } catch (error) {
       console.error('PayPal transfer error:', error);

@@ -207,6 +207,86 @@ class PayPalService {
   getEnvironment(): string {
     return env.PAYPAL_ENVIRONMENT || 'sandbox';
   }
+
+  async createPayout(payoutData: {
+    recipientEmail: string;
+    amount: number;
+    currency: string;
+    note?: string;
+    senderItemId?: string;
+  }): Promise<any> {
+    const accessToken = await this.getAccessToken();
+
+    const payout = {
+      sender_batch_header: {
+        sender_batch_id: payoutData.senderItemId || `batch_${Date.now()}`,
+        email_subject: "You have a payment from Coin Railz",
+        email_message: payoutData.note || "You've received a payment via Coin Railz"
+      },
+      items: [{
+        recipient_type: "EMAIL",
+        amount: {
+          value: payoutData.amount.toFixed(2),
+          currency: payoutData.currency.toUpperCase()
+        },
+        receiver: payoutData.recipientEmail,
+        note: payoutData.note || "Payment from Coin Railz",
+        sender_item_id: payoutData.senderItemId || `item_${Date.now()}`
+      }]
+    };
+
+    const response = await fetch(`${this.baseURL}/v1/payments/payouts`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payout),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`PayPal payout failed: ${response.status} - ${errorData}`);
+    }
+
+    return await response.json();
+  }
+
+  async getPayoutStatus(payoutBatchId: string): Promise<any> {
+    const accessToken = await this.getAccessToken();
+
+    const response = await fetch(`${this.baseURL}/v1/payments/payouts/${payoutBatchId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayPal payout status fetch failed: ${response.status}`);
+    }
+
+    return await response.json();
+  }
+
+  async getPayoutItem(payoutItemId: string): Promise<any> {
+    const accessToken = await this.getAccessToken();
+
+    const response = await fetch(`${this.baseURL}/v1/payments/payouts-item/${payoutItemId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`PayPal payout item fetch failed: ${response.status}`);
+    }
+
+    return await response.json();
+  }
 }
 
 export const paypalService = new PayPalService();

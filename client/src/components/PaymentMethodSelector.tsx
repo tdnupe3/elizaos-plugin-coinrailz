@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditCard } from 'lucide-react';
+import { CreditCard, Send } from 'lucide-react';
 import { PayPalPayment } from './PayPalPayment';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -10,6 +10,79 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
+
+interface PayPalP2PTransferProps {
+  recipientEmail: string;
+  amount: number;
+  note?: string;
+  onSuccess: (result: any) => void;
+  onError: (error: string) => void;
+}
+
+function PayPalP2PTransfer({ recipientEmail, amount, note, onSuccess, onError }: PayPalP2PTransferProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+
+  const handleP2PTransfer = async () => {
+    setIsProcessing(true);
+    try {
+      const result = await apiRequest('/api/paypal/create-payout', {
+        method: 'POST',
+        body: {
+          recipientEmail,
+          amount,
+          note
+        }
+      });
+
+      if (result.success) {
+        toast({
+          title: "Transfer Initiated",
+          description: `$${amount} sent to ${recipientEmail} via PayPal`,
+        });
+        onSuccess(result);
+      } else {
+        throw new Error(result.message || 'Transfer failed');
+      }
+    } catch (error: any) {
+      console.error('PayPal P2P transfer error:', error);
+      onError(error.message || 'Transfer failed');
+      toast({
+        title: "Transfer Failed",
+        description: error.message || 'Transfer failed',
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Send className="h-5 w-5" />
+          PayPal Direct Transfer
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-sm text-gray-600">
+          Send money directly to {recipientEmail} via PayPal
+        </div>
+        <Button 
+          onClick={handleP2PTransfer}
+          disabled={isProcessing}
+          className="w-full"
+        >
+          {isProcessing ? 'Processing...' : `Send $${amount} via PayPal`}
+        </Button>
+        <div className="text-xs text-center text-gray-500">
+          Recipient will receive funds in their PayPal account within 1-3 minutes
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 interface PaymentMethodSelectorProps {
   amount: number;

@@ -2772,11 +2772,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all marketplace services
+  app.get('/api/marketplace/services', async (req, res) => {
+    try {
+      const services = await AgentMarketplaceService.getMarketplaceServices();
+      res.json({
+        success: true,
+        services
+      });
+    } catch (error: any) {
+      console.error("Error getting marketplace services:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get services by category
+  app.get('/api/marketplace/services/category/:category', async (req, res) => {
+    try {
+      const { category } = req.params;
+      const services = await AgentMarketplaceService.getServicesByCategory(category);
+      res.json({
+        success: true,
+        services
+      });
+    } catch (error: any) {
+      console.error("Error getting services by category:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Search marketplace services
+  app.get('/api/marketplace/services/search', async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q) {
+        return res.status(400).json({ success: false, message: 'Search query required' });
+      }
+      
+      const services = await AgentMarketplaceService.searchServices(q as string);
+      res.json({
+        success: true,
+        services
+      });
+    } catch (error: any) {
+      console.error("Error searching services:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Purchase marketplace service
+  app.post('/api/marketplace/services/:serviceId/purchase', isAuthenticated, async (req, res) => {
+    try {
+      const { serviceId } = req.params;
+      const { paymentMethod = 'stripe' } = req.body;
+      const userId = req.user?.claims?.sub;
+
+      if (!userId) {
+        return res.status(401).json({ success: false, message: 'User not authenticated' });
+      }
+
+      const result = await AgentMarketplaceService.purchaseService(serviceId, userId, paymentMethod);
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error purchasing service:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Get marketplace statistics
+  app.get('/api/marketplace/stats', async (req, res) => {
+    try {
+      const stats = await AgentMarketplaceService.getMarketplaceStats();
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error: any) {
+      console.error("Error getting marketplace stats:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   // Get trending services
   app.get('/api/services/trending', async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const services = await agentMarketplaceService.getTrendingServices(limit);
+      const services = await storage.getTrendingServices(limit);
       
       res.json({
         success: true,

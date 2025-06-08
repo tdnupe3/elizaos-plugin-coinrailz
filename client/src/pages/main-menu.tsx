@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
-import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3 } from "lucide-react";
+import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -57,6 +57,14 @@ export default function MainMenu() {
       icon: BarChart3,
       color: 'bg-blue-500 hover:bg-blue-600',
       route: '/portfolio-analytics'
+    },
+    {
+      id: 'ai-marketplace',
+      title: 'AI Marketplace',
+      description: 'Premium AI-powered services & automated solutions',
+      icon: Bot,
+      color: 'bg-purple-500 hover:bg-purple-600',
+      route: '/ai-marketplace'
     }
   ];
 

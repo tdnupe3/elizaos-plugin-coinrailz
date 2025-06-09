@@ -87,7 +87,8 @@ travis@kelloggholdings.com | 205-202-1093
 1. **Regulatory First**: Built for compliance from day one
 2. **Real Banking**: Direct PNC partnership, not just third-party
 3. **Enterprise Grade**: ISO 20022 messaging, white-label ready
-4. **Speed to Market**: MVP functional, 6-12 month head start
+4. **Patent Protection**: Application #63/820,228 filed (June 9, 2025)
+5. **Speed to Market**: MVP functional, 6-12 month head start
 
 ---
 
@@ -138,6 +139,7 @@ travis@kelloggholdings.com | 205-202-1093
 - Money Transmitter License obtained (Alabama)
 - PNC Bank partnership and API integration
 - MVP platform fully functional and tested
+- **Patent Application Filed**: #63/820,228 (June 9, 2025)
 - ISO 20022 compliance infrastructure
 - Enterprise security and monitoring systems
 
@@ -290,6 +292,7 @@ travis@kelloggholdings.com | 205-202-1093
 **🎯 PROVEN EXECUTION**
 - Functional MVP with real banking integration
 - Licensed Money Transmitter with active compliance
+- **Patent Application Filed**: #63/820,228 (June 9, 2025)
 
 **🏦 UNIQUE MARKET POSITION**
 - Only platform bridging traditional banking & crypto safely

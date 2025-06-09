@@ -1,9 +1,10 @@
-
 import { storage } from '../storage';
 import { loggingService } from './loggingService';
 import { complianceService } from './complianceService';
 import { TransactionMonitor } from '../utils/transactionMonitor';
 import { FeeCalculator } from '../utils/feeCalculator';
+import { db } from '../db';
+import { featureQuarantine } from '../middleware/featureQuarantine';
 
 export interface AIAgentTransaction {
   id: string;
@@ -84,7 +85,7 @@ class AIAgentService {
 
       // Risk assessment for AI transactions
       const riskScore = await this.assessAITransactionRisk(fromAgentId, toAgentId, parseFloat(amount));
-      
+
       if (riskScore > 0.8) {
         throw new Error('Transaction blocked due to high risk score');
       }
@@ -109,7 +110,7 @@ class AIAgentService {
 
       // Enhanced compliance check for AI transactions
       const complianceResult = await complianceService.checkAITransaction(transaction);
-      
+
       if (!complianceResult.approved) {
         transaction.status = 'failed';
         transaction.metadata.complianceFlags = complianceResult.flags;
@@ -156,7 +157,7 @@ class AIAgentService {
     // Cross-owner transactions are higher risk
     const fromAgent = await this.getAgent(fromAgentId);
     const toAgent = await this.getAgent(toAgentId);
-    
+
     if (fromAgent?.ownerId !== toAgent?.ownerId) {
       riskScore += 0.1;
     }
@@ -224,25 +225,32 @@ class AIAgentService {
   private agentMessages: Map<string, AgentMessage[]> = new Map();
 
   async registerAgent(agentData: Omit<AIAgent, 'id' | 'createdAt'>): Promise<AIAgent> {
-    const agent: AIAgent = {
-      id: `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      ...agentData,
-      createdAt: new Date().toISOString()
-    };
+    return await featureQuarantine.executeWithQuarantine('ai-agents', async () => {
+    try {
+      const agent: AIAgent = {
+        id: `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        ...agentData,
+        createdAt: new Date().toISOString()
+      };
 
-    // Store in registry
-    this.agentRegistry.set(agent.id, agent);
-    
-    // Initialize message history
-    this.agentMessages.set(agent.id, []);
+      // Store in registry
+      this.agentRegistry.set(agent.id, agent);
 
-    await loggingService.log('INFO', 'AI Agent registered in network', { 
-      agentId: agent.id, 
-      type: agent.type,
-      canTransact: agent.permissions.includes('transfer_funds')
+      // Initialize message history
+      this.agentMessages.set(agent.id, []);
+
+      await loggingService.log('INFO', 'AI Agent registered in network', { 
+        agentId: agent.id, 
+        type: agent.type,
+        canTransact: agent.permissions.includes('transfer_funds')
+      });
+
+      return agent;
+    } catch (error) {
+      console.error('Agent registration failed:', error);
+      throw error;
+    }
     });
-    
-    return agent;
   }
 
   async discoverAgents(searchCriteria?: {
@@ -287,7 +295,7 @@ class AIAgentService {
 
     // Risk assessment for autonomous transactions
     const riskScore = await this.assessAITransactionRisk(sourceAgentId, targetAgentId, amount);
-    
+
     const transaction: AIAgentTransaction = {
       id: `ai_transfer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       fromAgentId: sourceAgentId,
@@ -307,12 +315,12 @@ class AIAgentService {
 
     // Enhanced compliance check
     const complianceResult = await complianceService.checkAITransaction(transaction);
-    
+
     if (!complianceResult.approved) {
       transaction.status = 'failed';
       transaction.metadata.complianceFlags = complianceResult.flags;
       this.agentTransactions.push(transaction);
-      
+
       await loggingService.log('WARN', 'Agent-to-agent transaction failed compliance', { 
         transactionId: transaction.id,
         flags: complianceResult.flags 
@@ -325,11 +333,11 @@ class AIAgentService {
       try {
         const feeCalculation = FeeCalculator.calculateAIAgentFee(amount);
         await this.processAITransaction(transaction, feeCalculation.fee);
-        
+
         // Notify both agents
         await this.notifyAgent(sourceAgentId, `Transfer of $${amount} to ${targetAgent.name} completed successfully.`);
         await this.notifyAgent(targetAgentId, `Received $${amount} from ${sourceAgent.name} for: ${purpose}`);
-        
+
       } catch (error) {
         transaction.status = 'failed';
         await loggingService.log('ERROR', 'Agent-to-agent transaction processing failed', {
@@ -340,7 +348,7 @@ class AIAgentService {
     }
 
     this.agentTransactions.push(transaction);
-    
+
     await loggingService.log('INFO', 'Agent-to-agent transaction initiated', {
       transactionId: transaction.id,
       fromAgent: sourceAgentId,
@@ -361,13 +369,13 @@ class AIAgentService {
     }
 
     const requestMessage = `Transaction request from ${requestingAgent.name}: $${amount} for ${purpose}. Do you approve?`;
-    
+
     // Send request to target agent
     await this.sendAgentToAgentMessage(requestingAgentId, targetAgentId, requestMessage);
-    
+
     // Simulate agent decision making (in real implementation, this would be more sophisticated)
     const approvalDecision = await this.simulateAgentDecision(targetAgent, amount, purpose);
-    
+
     if (approvalDecision.approved) {
       const transaction = await this.initiateAgentToAgentTransfer(
         requestingAgentId, 
@@ -376,13 +384,13 @@ class AIAgentService {
         purpose, 
         true
       );
-      
+
       await this.sendAgentToAgentMessage(
         targetAgentId, 
         requestingAgentId, 
         `Transaction approved and processed. Reference: ${transaction.id}`
       );
-      
+
       return { approved: true, transaction };
     } else {
       await this.sendAgentToAgentMessage(
@@ -390,7 +398,7 @@ class AIAgentService {
         requestingAgentId, 
         `Transaction declined: ${approvalDecision.reason}`
       );
-      
+
       return { approved: false, reason: approvalDecision.reason };
     }
   }
@@ -398,19 +406,19 @@ class AIAgentService {
   private async simulateAgentDecision(agent: AIAgent, amount: number, purpose: string): Promise<{ approved: boolean; reason?: string }> {
     // Simulate intelligent agent decision making
     // In a real implementation, this would use ML models or rule engines
-    
+
     if (amount > 1000 && agent.type === 'compliance_monitor') {
       return { approved: false, reason: 'Amount exceeds compliance threshold' };
     }
-    
+
     if (agent.type === 'treasury_manager' && amount > 5000) {
       return { approved: false, reason: 'Requires manual treasury approval' };
     }
-    
+
     if (purpose.toLowerCase().includes('unauthorized') || purpose.toLowerCase().includes('test')) {
       return { approved: false, reason: 'Purpose flagged as potentially suspicious' };
     }
-    
+
     // Default approval for legitimate requests
     return { approved: true };
   }
@@ -435,10 +443,10 @@ class AIAgentService {
     // Store message in both agents' histories
     const fromMessages = this.agentMessages.get(fromAgentId) || [];
     const toMessages = this.agentMessages.get(toAgentId) || [];
-    
+
     fromMessages.push(agentMessage);
     toMessages.push({ ...agentMessage, agentId: toAgentId });
-    
+
     this.agentMessages.set(fromAgentId, fromMessages);
     this.agentMessages.set(toAgentId, toMessages);
 

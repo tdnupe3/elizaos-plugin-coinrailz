@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle } from "lucide-react";
+import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle, Shield } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 export default function ProductionDashboard() {
@@ -22,6 +22,14 @@ export default function ProductionDashboard() {
         }
         return await response.json();
       } catch (error) {
+
+  // Feature Health Monitoring
+  const { data: featureHealth = [], isLoading: featureHealthLoading } = useQuery({
+    queryKey: ['/api/admin/feature-health'],
+    enabled: !!isAdmin,
+    refetchInterval: 30000 // Check every 30 seconds
+  });
+
         console.warn('Health check error:', error);
         return { status: 'unknown', services: [] };
       }
@@ -189,6 +197,46 @@ export default function ProductionDashboard() {
               {statsLoading ? (
                 <div className="animate-pulse">
                   <div className="h-6 bg-gray-200 rounded mb-2"></div>
+
+          {/* Feature Health Status */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <Shield className="h-5 w-5 mr-2 text-blue-600" />
+              Feature Quarantine Status
+            </h3>
+            
+            {featureHealthLoading ? (
+              <div className="text-gray-500">Loading feature status...</div>
+            ) : (
+              <div className="space-y-3">
+                {featureHealth.map((feature: any) => (
+                  <div key={feature.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      <div className={`w-3 h-3 rounded-full mr-3 ${
+                        feature.status === 'healthy' ? 'bg-green-500' :
+                        feature.status === 'degraded' ? 'bg-yellow-500' : 'bg-red-500'
+                      }`} />
+                      <span className="font-medium">{feature.name}</span>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant={
+                        feature.status === 'healthy' ? 'default' :
+                        feature.status === 'degraded' ? 'secondary' : 'destructive'
+                      }>
+                        {feature.status}
+                      </Badge>
+                      {feature.errorCount > 0 && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          {feature.errorCount} errors
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
                   <div className="h-4 bg-gray-200 rounded"></div>
                 </div>
               ) : (

@@ -27,10 +27,19 @@ export function initializeErrorHandling() {
       'rate limit', 'blocked', '429', '403', 'security', 'middleware', 'localhost'
     ].some(keyword => reason.toLowerCase().includes(keyword.toLowerCase()));
     
-    // In development, suppress all filtered errors and common development issues
+    // Environment-specific handling
     if (process.env.NODE_ENV === 'development') {
       if (isFilteredError || reason.includes('fetch') || reason.includes('network')) {
-        return; // Complete suppression for development
+        return; // Suppress development noise
+      }
+    } else {
+      // Production: Log critical errors for monitoring
+      if (!isFilteredError && reason.trim() && !reason.includes('network') && !reason.includes('fetch')) {
+        console.error('Production error:', reason);
+        // Send to monitoring service in production
+        if (typeof window !== 'undefined' && (window as any).productionErrorLogger) {
+          (window as any).productionErrorLogger(reason);
+        }
       }
     }
     

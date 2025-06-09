@@ -7,7 +7,16 @@ export interface ServiceError {
   details?: any;
 }
 
-export class ErrorHandler {
+export interface ServiceError {
+  message: string;
+  code: string;
+  statusCode: number;
+  details?: any;
+}
+
+import { Response } from 'express';
+
+class ErrorHandler {
   static handleDatabaseError(error: any): ServiceError {
     // PostgreSQL specific error codes
     if (error.code === '23505') {

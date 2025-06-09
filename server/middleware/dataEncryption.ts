@@ -46,19 +46,37 @@ export class DataEncryption {
     tag: string;
   } {
     const iv = crypto.randomBytes(this.config.ivLength);
-    const cipher = crypto.createCipher(this.config.algorithm, this.encryptionKey);
+    const cipher = crypto.createCipherGCM(this.config.algorithm, this.encryptionKey, iv);
+
+    if (additionalData) {
+      cipher.setAAD(Buffer.from(additionalData, 'utf8'));
+    }
 
     let encrypted = cipher.update(plaintext, 'utf8', 'hex');
     encrypted += cipher.final('hex');
     
-    // Generate a simple hash as tag for compatibility
-    const tag = crypto.createHash('sha256').update(encrypted + iv.toString('hex')).digest('hex').substring(0, 32);
+    const tag = cipher.getAuthTag().toString('hex');
 
     return {
       encrypted,
       iv: iv.toString('hex'),
       tag: tag
     };
+  }
+
+  static decrypt(encryptedData: { encrypted: string; iv: string; tag: string }, additionalData?: string): string {
+    const decipher = crypto.createDecipherGCM(this.config.algorithm, this.encryptionKey, Buffer.from(encryptedData.iv, 'hex'));
+    
+    if (additionalData) {
+      decipher.setAAD(Buffer.from(additionalData, 'utf8'));
+    }
+    
+    decipher.setAuthTag(Buffer.from(encryptedData.tag, 'hex'));
+
+    let decrypted = decipher.update(encryptedData.encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
   }
 
   /**

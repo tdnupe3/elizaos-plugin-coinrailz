@@ -2,6 +2,65 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile optimizations */
+@layer base {
+  /* Touch-friendly buttons */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent zoom on input focus */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  
+  /* Mobile-friendly scrolling */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    overflow-scrolling: touch;
+  }
+  
+  /* Hardware acceleration for smooth animations */
+  .mobile-accelerated {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
+  }
+}
+
+@layer utilities {
+  /* Touch manipulation utilities */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+  
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+  
+  /* Safe area utilities */
+  .safe-top {
+    padding-top: max(1rem, var(--safe-area-inset-top));
+  }
+  
+  .safe-bottom {
+    padding-bottom: max(1rem, var(--safe-area-inset-bottom));
+  }
+  
+  .safe-left {
+    padding-left: max(1rem, var(--safe-area-inset-left));
+  }
+  
+  .safe-right {
+    padding-right: max(1rem, var(--safe-area-inset-right));
+  }
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 224 71.4% 4.1%;

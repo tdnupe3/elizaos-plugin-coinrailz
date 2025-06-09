@@ -4,6 +4,8 @@ import { Footer } from "@/components/Footer";
 import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useMobileOptimization } from "@/hooks/useMobileOptimization";
 
 export default function MainMenu() {
   const { user } = useAuth();

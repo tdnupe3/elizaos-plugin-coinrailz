@@ -13,10 +13,12 @@ import {
   Settings, 
   Shield,
   LogOut,
-  X
+  X,
+  Smartphone
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface NavigationItem {
   id: string;
@@ -30,6 +32,14 @@ export default function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+
+  // Haptic feedback for mobile interactions
+  const triggerHaptic = () => {
+    if ('vibrate' in navigator && isMobile) {
+      navigator.vibrate(10); // Short vibration
+    }
+  };
 
   const navigationItems: NavigationItem[] = [
     {
@@ -72,6 +82,7 @@ export default function MobileNavigation() {
   ];
 
   const handleNavigation = (route: string) => {
+    triggerHaptic();
     setLocation(route);
     setIsOpen(false);
   };
@@ -86,8 +97,8 @@ export default function MobileNavigation() {
           </Button>
         </SheetTrigger>
         
-        <SheetContent side="left" className="w-80 p-0">
-          <div className="flex flex-col h-full">
+        <SheetContent side="left" className="w-80 p-0 touch-pan-y">
+          <div className="flex flex-col h-full overscroll-contain">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
               <div className="flex items-center space-x-3">
@@ -118,7 +129,7 @@ export default function MobileNavigation() {
                   <button
                     key={item.id}
                     onClick={() => handleNavigation(item.route)}
-                    className="w-full flex items-center space-x-3 px-3 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors group"
+                    className="w-full flex items-center space-x-3 px-4 py-4 text-left rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 group touch-manipulation min-h-[48px]"
                   >
                     <item.icon className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
                     <span className="flex-1 text-gray-700 group-hover:text-gray-900 font-medium">

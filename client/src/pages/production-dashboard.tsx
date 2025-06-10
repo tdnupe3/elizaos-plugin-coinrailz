@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle, Shield } from "lucide-react";
-import { useSession } from "next-auth/react";
+import { useAuth } from '../hooks/useAuth';
 
 export default function ProductionDashboard() {
   const { data: healthCheck = { status: 'unknown', services: [] }, isLoading: healthLoading } = useQuery({
@@ -82,23 +82,37 @@ export default function ProductionDashboard() {
     }
   };
 
-  const { data: session } = useSession();
-  const isAuthenticated = !!session?.user;
+  const { user, isLoading } = useAuth();
 
   // Check if user has admin access
-  const { data: user } = useQuery({
+  const { data: userDetails } = useQuery({
     queryKey: ['/api/user'],
-    enabled: !!isAuthenticated,
+    enabled: !!user,
   });
 
   const adminEmails = ['travis@kelloggholdings.com', 'travis.kellogg1@gmail.com'];
-  const isAdmin = adminEmails.includes(user?.email);
+  const isAdmin = adminEmails.includes(userDetails?.email);
 
-  if (!isAdmin) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-red-500 font-bold text-2xl">
-          Unauthorized Access
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-6">You must be logged in to access the production dashboard.</p>
+          <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+            Sign In
+          </button>
         </div>
       </div>
     );
@@ -204,7 +218,7 @@ export default function ProductionDashboard() {
               <Shield className="h-5 w-5 mr-2 text-blue-600" />
               Feature Quarantine Status
             </h3>
-            
+
             {featureHealthLoading ? (
               <div className="text-gray-500">Loading feature status...</div>
             ) : (

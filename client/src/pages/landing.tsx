@@ -452,7 +452,6 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Patent Protection Notice - Bottom of Page */}
         
       </div>
 

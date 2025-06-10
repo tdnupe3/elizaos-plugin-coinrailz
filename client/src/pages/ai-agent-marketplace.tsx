@@ -82,7 +82,9 @@ export default function AIAgentMarketplace() {
       const params = new URLSearchParams();
       if (filterType !== 'all') params.set('type', filterType);
       if (filterCapability !== 'all') params.set('capability', filterCapability);
-      const response = await apiRequest('GET', `/api/public/agents/discover?${params}`);
+      const response = await fetch(`/api/public/agents/discover?${params}`, {
+        credentials: 'include'
+      });
       return await response.json();
     },
     refetchInterval: 300000, // Reduced to 5 minutes
@@ -91,7 +93,12 @@ export default function AIAgentMarketplace() {
   // Agent registration mutation
   const registerMutation = useMutation({
     mutationFn: async (agentData: any) => {
-      const response = await apiRequest('POST', '/api/public/agents/register', agentData);
+      const response = await fetch('/api/public/agents/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(agentData)
+      });
       return await response.json();
     },
     onSuccess: (data) => {
@@ -483,23 +490,6 @@ export default function AIAgentMarketplace() {
         </Card>
 
         <div className="space-y-8">
-          {/* Patent Disclaimer */}
-          <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5">🛡️</div>
-              <div className="text-sm">
-                <p className="text-blue-800 font-medium mb-1">Patent Protected Technology</p>
-                <p className="text-blue-700 leading-relaxed">
-                  The P2P interoperability platform and AI agent marketplace with integrated financial 
-                  services infrastructure are protected by patent. Additional patents filed. 
-                  Unauthorized use, reproduction, or distribution of this technology is prohibited.
-                </p>
-                <p className="text-blue-600 text-xs mt-2">
-                  © 2025 Kellogg Holdings LLC. All rights reserved.
-                </p>
-              </div>
-            </div>
-          </div>
 
           {/* Hero Section */}
           <div className="text-center space-y-4">
@@ -616,6 +606,7 @@ export default function AIAgentMarketplace() {
             <p className="text-gray-600">Try adjusting your search or filters</p>
           </div>
         )}
+        </div>
       </div>
 
       {/* Transaction Dialog */}

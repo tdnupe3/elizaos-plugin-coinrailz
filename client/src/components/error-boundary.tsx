@@ -28,20 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Enhanced error logging for debugging
-    const errorReport = {
-      errorId: this.state.errorId,
-      timestamp: new Date().toISOString(),
-      message: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-    };
-
-    console.error('Application Error Report:', errorReport);
-    
-    // In production, this would be sent to error reporting service
+    console.error('React Error:', error.message);
     this.setState({ errorInfo });
   }
 

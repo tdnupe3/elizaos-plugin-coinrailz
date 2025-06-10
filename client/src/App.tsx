@@ -117,7 +117,7 @@ function Router() {
       <Route path="/signup-flow" component={SignupFlowDemo} />
       <Route path="/legal-disclaimers" component={LegalDisclaimers} />
       <Route path="/contact-us" component={ContactUs} />
-      
+
       {/* Legal pages - accessible to all users */}
       <Route path="/terms-of-service">
         {() => <LazyLoadWrapper><TermsOfServicePage /></LazyLoadWrapper>}
@@ -125,7 +125,7 @@ function Router() {
       <Route path="/privacy-policy">
         {() => <LazyLoadWrapper><PrivacyPolicyPage /></LazyLoadWrapper>}
       </Route>
-      
+
       {/* Production dashboard for monitoring */}
       <Route path="/production">
         {() => <LazyLoadWrapper><ProductionDashboard /></LazyLoadWrapper>}

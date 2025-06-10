@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { CreditCard, Bot, Star, CheckCircle, Users, TrendingUp, Zap, Shield } from "lucide-react";
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
-import { PatentDisclaimer } from "@/components/PatentDisclaimer";
+
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
 

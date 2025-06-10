@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import DonationButton from '@/components/DonationButton';
 import { Link } from 'wouter';
-import { PatentDisclaimer } from "@/components/PatentDisclaimer";
+
 
 interface Agent {
   id: string;
@@ -484,7 +484,22 @@ export default function AIAgentMarketplace() {
 
         <div className="space-y-8">
           {/* Patent Disclaimer */}
-          <PatentDisclaimer />
+          <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5">🛡️</div>
+              <div className="text-sm">
+                <p className="text-blue-800 font-medium mb-1">Patent Protected Technology</p>
+                <p className="text-blue-700 leading-relaxed">
+                  The P2P interoperability platform and AI agent marketplace with integrated financial 
+                  services infrastructure are protected by patent. Additional patents filed. 
+                  Unauthorized use, reproduction, or distribution of this technology is prohibited.
+                </p>
+                <p className="text-blue-600 text-xs mt-2">
+                  © 2025 Kellogg Holdings LLC. All rights reserved.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Hero Section */}
           <div className="text-center space-y-4">

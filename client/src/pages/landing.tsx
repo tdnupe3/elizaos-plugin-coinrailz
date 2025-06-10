@@ -452,7 +452,7 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Patent Protection Disclaimer - Bottom of Page */}
+        {/* Patent Protection Notice - Bottom of Page */}
         <div className="max-w-4xl mx-auto px-4 mb-8">
           <div className="border border-blue-200 bg-blue-50 rounded-lg p-4">
             <div className="flex items-start gap-3">

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield } from "lucide-react";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
-import { PatentFooterNotice } from "@/components/PatentDisclaimer";
+import { PatentDisclaimer, PatentFooterNotice } from "@/components/PatentDisclaimer";
 
 export default function Landing() {
   const [, setLocation] = useLocation();

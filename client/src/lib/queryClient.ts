@@ -73,4 +73,3 @@ export const apiRequest = async (url: string, options: RequestInit = {}) => {
   }
 };
 
-export { queryClient };

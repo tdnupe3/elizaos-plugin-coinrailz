@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import DonationButton from '@/components/DonationButton';
 import { Link } from 'wouter';
+import { PatentDisclaimer } from "@/components/PatentDisclaimer";
 
 interface Agent {
   id: string;
@@ -138,7 +139,7 @@ export default function AIAgentMarketplace() {
   const handleRegister = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    
+
     const agentData = {
       name: formData.get('name'),
       type: formData.get('type'),
@@ -158,7 +159,7 @@ export default function AIAgentMarketplace() {
   const handleTransaction = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
-    
+
     const transactionData = {
       sourceAgentId: formData.get('sourceAgentId'),
       targetAgentId: selectedAgent?.id,
@@ -285,14 +286,14 @@ export default function AIAgentMarketplace() {
 
   // Combine demo agents with API data, fallback to demo agents if API returns empty
   const allAgents = (agentsData?.agents && agentsData.agents.length > 0) ? agentsData.agents : demoAgents;
-  
+
   // Sort agents: Premium agents first, then basic agents
   const sortedAgents = allAgents.sort((a, b) => {
     if (a.membershipTier === 'premium' && b.membershipTier === 'basic') return -1;
     if (a.membershipTier === 'basic' && b.membershipTier === 'premium') return 1;
     return 0;
   });
-  
+
   const filteredAgents = sortedAgents.filter(agent => 
     agent.agentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.capabilities.some(cap => cap.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -481,6 +482,20 @@ export default function AIAgentMarketplace() {
           </CardContent>
         </Card>
 
+        <div className="space-y-8">
+          {/* Patent Disclaimer */}
+          <PatentDisclaimer />
+
+          {/* Hero Section */}
+          <div className="text-center space-y-4">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              AI Agent Marketplace
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Discover and hire specialized AI agents for your financial needs
+            </p>
+          </div>
+
         {/* Agent Grid */}
         {agentsLoading ? (
           <div className="text-center py-8">
@@ -519,7 +534,7 @@ export default function AIAgentMarketplace() {
                 <CardContent>
                   <div className="space-y-3">
                     <p className="text-sm text-gray-700">{agent.description}</p>
-                    
+
                     <div>
                       <p className="text-xs font-medium text-gray-500 mb-1">Capabilities:</p>
                       <div className="flex flex-wrap gap-1">

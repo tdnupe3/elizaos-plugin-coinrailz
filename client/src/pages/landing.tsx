@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield } from "lucide-react";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
+import { PatentFooterNotice } from "@/components/PatentDisclaimer";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
-  
+
   const handleSignIn = () => {
     window.location.href = "/api/login";
   };
@@ -110,21 +111,21 @@ export default function Landing() {
                 <p className="text-sm text-gray-600">Global Availability</p>
               </CardContent>
             </Card>
-            
+
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-green-600">150+</div>
                 <p className="text-sm text-gray-600">Supported Countries</p>
               </CardContent>
             </Card>
-            
+
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-purple-600">50+</div>
                 <p className="text-sm text-gray-600">Cryptocurrencies</p>
               </CardContent>
             </Card>
-            
+
             <Card className="text-center">
               <CardContent className="pt-6">
                 <div className="text-2xl font-bold text-orange-600">Instant</div>
@@ -137,7 +138,7 @@ export default function Landing() {
           <div className="text-center space-y-6 mb-12">
             <h2 className="text-3xl font-bold text-gray-900">Start Using Coin Railz Today</h2>
             <p className="text-lg text-gray-600 mb-8">Join thousands of users sending money and trading crypto worldwide</p>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Button 
                 onClick={handleSignIn}
@@ -146,7 +147,7 @@ export default function Landing() {
               >
                 Sign In
               </Button>
-              
+
               <Button 
                 onClick={handleSignUp}
                 variant="outline"
@@ -155,7 +156,7 @@ export default function Landing() {
               >
                 Sign Up
               </Button>
-              
+
               <Button 
                 onClick={() => setLocation("/swap")}
                 variant="ghost"
@@ -164,7 +165,7 @@ export default function Landing() {
               >
                 Try DEX Swap
               </Button>
-              
+
               <Button 
                 onClick={handleGuestAccess}
                 variant="ghost"
@@ -184,7 +185,7 @@ export default function Landing() {
                   <p>• Multi-chain support</p>
                 </div>
               </div>
-              
+
               <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
                 <p className="text-sm text-emerald-800 font-medium mb-2">Full Platform Demo:</p>
                 <div className="text-xs text-emerald-700 space-y-1">
@@ -364,7 +365,7 @@ export default function Landing() {
                       <div className="text-sm text-orange-600">Network Uptime</div>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 bg-white border border-purple-200 rounded-lg p-4">
                     <h4 className="font-medium text-purple-900 mb-3">Getting Started for AI Agents</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
@@ -464,7 +465,7 @@ export default function Landing() {
               Supporting both human users and autonomous AI agents worldwide
             </p>
           </div>
-          
+
           {/* Legal Links */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs text-gray-500">

@@ -22,7 +22,7 @@ export function Footer() {
                 Support
               </a>
             </div>
-            
+
             {/* Copyright */}
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <Building2 className="w-4 h-4" />

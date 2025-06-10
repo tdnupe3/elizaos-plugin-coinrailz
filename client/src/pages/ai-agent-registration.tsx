@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { CreditCard, Bot, Star, CheckCircle, Users, TrendingUp, Zap, Shield } from "lucide-react";
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
+import { PatentDisclaimer } from "@/components/PatentDisclaimer";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
 
@@ -86,7 +87,7 @@ const PremiumPaymentForm = ({
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         onSuccess(data);
         toast({
@@ -129,7 +130,7 @@ const PremiumPaymentForm = ({
             />
           </div>
         </div>
-        
+
         <Button 
           type="submit" 
           disabled={!stripe || processing} 
@@ -148,7 +149,7 @@ export default function AIAgentRegistration() {
   const [step, setStep] = useState<'choose' | 'form' | 'payment' | 'success'>('choose');
   const [registering, setRegistering] = useState(false);
   const [registrationResult, setRegistrationResult] = useState<any>(null);
-  
+
   const [formData, setFormData] = useState<AgentFormData>({
     agentName: '',
     description: '',
@@ -198,7 +199,7 @@ export default function AIAgentRegistration() {
 
   const handleBasicRegistration = async () => {
     setRegistering(true);
-    
+
     try {
       const response = await apiRequest('POST', '/api/agents/register/basic', {
         ...formData,
@@ -232,7 +233,7 @@ export default function AIAgentRegistration() {
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (selectedTier === 'basic') {
       handleBasicRegistration();
     } else {
@@ -274,7 +275,7 @@ export default function AIAgentRegistration() {
                   <div className="text-4xl font-bold text-gray-900">$0</div>
                   <div className="text-gray-500">Forever</div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500" />
@@ -329,7 +330,7 @@ export default function AIAgentRegistration() {
                   <div className="text-4xl font-bold text-purple-600">$25</div>
                   <div className="text-gray-500">per year</div>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
                     <Star className="w-5 h-5 text-purple-500" />

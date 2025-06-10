@@ -122,7 +122,12 @@ export default function AIAgentMarketplace() {
   // Transaction mutation
   const transactionMutation = useMutation({
     mutationFn: async (transactionData: any) => {
-      const response = await apiRequest('POST', '/api/public/agents/transact', transactionData);
+      const response = await fetch('/api/public/agents/transact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(transactionData)
+      });
       return await response.json();
     },
     onSuccess: (data) => {

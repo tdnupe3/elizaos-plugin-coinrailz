@@ -1,4 +1,3 @@
-
 import { Shield, FileText } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -11,8 +10,8 @@ export function PatentDisclaimer() {
           <div className="text-sm">
             <p className="text-blue-800 font-medium mb-1">Patent Protected Technology</p>
             <p className="text-blue-700 leading-relaxed">
-              The P2P interoperability platform and integrated financial services infrastructure are 
-              protected by patent-pending technology. Additional patents pending. 
+              The P2P interoperability platform and AI agent marketplace with integrated financial 
+              services infrastructure are protected by patent. Additional patents filed. 
               Unauthorized use, reproduction, or distribution of this technology is prohibited.
             </p>
             <p className="text-blue-600 text-xs mt-2">

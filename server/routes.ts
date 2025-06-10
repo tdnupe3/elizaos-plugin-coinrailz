@@ -3197,7 +3197,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { serviceId } = req.params;
       const { paymentMethod = 'stripe' } = req.body;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
 
       if (!userId) {
         return res.status(401).json({ success: false, message: 'User not authenticated' });

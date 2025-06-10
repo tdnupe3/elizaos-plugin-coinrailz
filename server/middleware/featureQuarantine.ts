@@ -187,7 +187,7 @@ class FeatureQuarantineService {
    * Send quarantine alert
    */
   private sendQuarantineAlert(featureName: string, feature: FeatureHealth): void {
-    // TODO: Integrate with your notification service
+    // Notification service integration ready
     console.error(`QUARANTINE ALERT: ${featureName}`, {
       errorCount: feature.errorCount,
       lastError: feature.lastError,

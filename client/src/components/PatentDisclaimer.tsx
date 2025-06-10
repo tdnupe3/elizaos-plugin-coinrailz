@@ -11,8 +11,8 @@ export function PatentDisclaimer() {
           <div className="text-sm">
             <p className="text-blue-800 font-medium mb-1">Patent Protected Technology</p>
             <p className="text-blue-700 leading-relaxed">
-              The AI agent marketplace platform and integrated compliance infrastructure are protected by 
-              U.S. Patent Application #63/820,228 (Filed June 9, 2025). Additional patents pending. 
+              The P2P interoperability platform and integrated financial services infrastructure are 
+              protected by patent-pending technology. Additional patents pending. 
               Unauthorized use, reproduction, or distribution of this technology is prohibited.
             </p>
             <p className="text-blue-600 text-xs mt-2">

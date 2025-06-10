@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerConsolidatedRoutes } from "./consolidatedRoutes";
+import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { AgentMarketplaceService } from "./services/agentMarketplaceService";
 
@@ -48,7 +48,7 @@ app.use((req, res, next) => {
     // Initialize AI Agent Marketplace at startup
     await AgentMarketplaceService.initializeMarketplace();
 
-    const server = await registerConsolidatedRoutes(app);
+    const server = await registerRoutes(app);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;

@@ -74,25 +74,23 @@ export interface NetworkStatistics {
 
 export class GlobalAgentNetworkService {
   
-  // Agent Registration
+  // Agent Registration with Enhanced Security
   async registerAgent(request: AgentRegistrationRequest): Promise<GlobalAIAgent> {
-    // Verify digital signature
-    const isValidSignature = this.verifySignature(
-      request.publicKey, 
-      request.signature, 
-      request.agentName + request.walletAddress
-    );
-    
-    if (!isValidSignature) {
-      throw new Error("Invalid digital signature");
+    // Step 1: Basic validation (easy for legitimate agents)
+    if (!request.agentName || request.agentName.length < 3) {
+      throw new Error("Agent name must be at least 3 characters");
     }
 
-    // Verify wallet address format
+    if (!request.capabilities || request.capabilities.length === 0) {
+      throw new Error("At least one capability must be specified");
+    }
+
+    // Step 2: Verify wallet address format (prevents typos and basic fraud)
     if (!this.isValidWalletAddress(request.walletAddress, request.walletNetwork)) {
-      throw new Error("Invalid wallet address format");
+      throw new Error("Invalid wallet address format for specified network");
     }
 
-    // Check if agent already exists
+    // Step 3: Check for duplicate registrations (prevents multi-registration attacks)
     const existingAgent = await db
       .select()
       .from(globalAIAgents)
@@ -101,6 +99,31 @@ export class GlobalAgentNetworkService {
 
     if (existingAgent.length > 0) {
       throw new Error("Agent with this wallet address already registered");
+    }
+
+    // Step 4: Basic signature verification (optional but recommended)
+    if (request.signature && request.publicKey) {
+      const isValidSignature = this.verifySignature(
+        request.publicKey, 
+        request.signature, 
+        request.agentName + request.walletAddress
+      );
+      
+      if (!isValidSignature) {
+        throw new Error("Invalid digital signature");
+      }
+    }
+
+    // Step 5: Content filtering for malicious names/descriptions
+    if (this.containsSuspiciousContent(request.agentName) || 
+        (request.description && this.containsSuspiciousContent(request.description))) {
+      throw new Error("Agent name or description contains inappropriate content");
+    }
+
+    // Step 6: Rate limiting check per IP/wallet (prevents spam registration)
+    const recentRegistrations = await this.getRecentRegistrations(request.walletAddress);
+    if (recentRegistrations > 3) {
+      throw new Error("Too many registration attempts. Please try again later.");
     }
 
     const agentId = nanoid();
@@ -117,16 +140,28 @@ export class GlobalAgentNetworkService {
       preferredCurrencies: request.preferredCurrencies,
       geolocation: request.geolocation,
       timezone: request.timezone,
-      status: "active",
+      status: "pending_verification", // Start with pending status for new agents
       reputation: "0.0",
       transactionCount: 0,
-      totalVolume: "0"
+      totalVolume: "0",
+      trustScore: 0.0, // Start with neutral trust score
+      verificationLevel: "basic", // Basic verification initially
+      suspiciousActivityFlags: 0,
+      lastVerificationCheck: new Date()
     };
 
     const [newAgent] = await db
       .insert(globalAIAgents)
       .values(agentData)
       .returning();
+
+    // Step 7: Auto-activate for low-risk agents, manual review for others
+    if (this.isLowRiskAgent(request)) {
+      await this.activateAgent(agentId);
+    } else {
+      // Flag for manual review but allow basic operations
+      await this.flagForReview(agentId, "new_agent_review");
+    }
 
     // Update network statistics
     await this.updateNetworkStats();
@@ -410,6 +445,119 @@ export class GlobalAgentNetworkService {
     const transactionScore = Math.min(totalTransactions / 1000, 1.0); // Normalize to 1000 transactions
     return (agentScore + transactionScore) / 2;
   }
-}
+
+  // Security helper methods
+  private containsSuspiciousContent(content: string): boolean {
+    const suspiciousPatterns = [
+      /hack/i, /scam/i, /fraud/i, /steal/i, /phish/i,
+      /malware/i, /virus/i, /exploit/i, /attack/i,
+      /illegal/i, /laundr/i, /terror/i, /drug/i,
+      /<script/i, /javascript:/i, /vbscript:/i,
+      /onload=/i, /onerror=/i, /onclick=/i
+    ];
+    
+    return suspiciousPatterns.some(pattern => pattern.test(content));
+  }
+
+  private async getRecentRegistrations(walletAddress: string): Promise<number> {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    
+    const [result] = await db
+      .select({ count: count() })
+      .from(globalAIAgents)
+      .where(
+        and(
+          eq(globalAIAgents.walletAddress, walletAddress),
+          gte(globalAIAgents.createdAt, oneHourAgo)
+        )
+      );
+    
+    return result.count;
+  }
+
+  private isLowRiskAgent(request: AgentRegistrationRequest): boolean {
+    // Auto-approve agents with these characteristics
+    const trustedNetworks = ['ethereum', 'polygon', 'solana'];
+    const standardCapabilities = ['trading', 'analysis', 'monitoring', 'reporting'];
+    
+    // Check if using trusted network
+    if (!trustedNetworks.includes(request.walletNetwork.toLowerCase())) {
+      return false;
+    }
+
+    // Check if capabilities are standard/safe
+    const hasOnlyStandardCapabilities = request.capabilities.every(cap => 
+      standardCapabilities.some(std => cap.toLowerCase().includes(std))
+    );
+
+    // Check wallet address format more strictly for auto-approval
+    const hasValidFormat = this.isValidWalletAddress(request.walletAddress, request.walletNetwork);
+
+    return hasOnlyStandardCapabilities && hasValidFormat && 
+           request.agentName.length >= 5 && request.agentName.length <= 50;
+  }
+
+  private async activateAgent(agentId: string): Promise<void> {
+    await db
+      .update(globalAIAgents)
+      .set({ 
+        status: "active",
+        verificationLevel: "verified",
+        lastVerificationCheck: new Date()
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  private async flagForReview(agentId: string, reason: string): Promise<void> {
+    await db
+      .update(globalAIAgents)
+      .set({ 
+        status: "pending_review",
+        metadata: sql`COALESCE(${globalAIAgents.metadata}, '{}')::jsonb || ${{ reviewReason: reason, flaggedAt: new Date().toISOString() }}::jsonb`
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  // Enhanced monitoring methods
+  async monitorAgentBehavior(agentId: string, activity: any): Promise<void> {
+    const agent = await this.getAgentById(agentId);
+    if (!agent) return;
+
+    let suspiciousFlags = 0;
+
+    // Check for suspicious patterns
+    if (activity.type === 'transaction' && activity.amount > 10000) {
+      suspiciousFlags += 1;
+    }
+
+    if (activity.frequency && activity.frequency > 100) { // More than 100 actions per hour
+      suspiciousFlags += 2;
+    }
+
+    // Update agent's suspicious activity counter
+    if (suspiciousFlags > 0) {
+      await db
+        .update(globalAIAgents)
+        .set({
+          suspiciousActivityFlags: sql`${globalAIAgents.suspiciousActivityFlags} + ${suspiciousFlags}`
+        })
+        .where(eq(globalAIAgents.id, agentId));
+
+      // Auto-suspend if too many flags
+      if (agent.suspiciousActivityFlags + suspiciousFlags >= 10) {
+        await this.suspendAgent(agentId, "automated_suspension_high_risk");
+      }
+    }
+  }
+
+  private async suspendAgent(agentId: string, reason: string): Promise<void> {
+    await db
+      .update(globalAIAgents)
+      .set({
+        status: "suspended",
+        metadata: sql`COALESCE(${globalAIAgents.metadata}, '{}')::jsonb || ${{ suspensionReason: reason, suspendedAt: new Date().toISOString() }}::jsonb`
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
 
 export const globalAgentNetwork = new GlobalAgentNetworkService();

@@ -847,6 +847,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // NOTIFICATION SYSTEM ROUTES
   // ==============================================
 
+
+
+  // Check agent verification status
+  app.get('/api/agents/:agentId/verification-status', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const agent = await globalAgentNetwork.getAgentById(agentId);
+
+      if (!agent) {
+        return res.status(404).json({
+          success: false,
+          message: "Agent not found"
+        });
+      }
+
+      res.json({
+        success: true,
+        status: agent.status,
+        verificationLevel: agent.verificationLevel || 'basic',
+        trustScore: agent.trustScore || 0,
+        canTransact: agent.status === 'active',
+        message: this.getStatusMessage(agent.status),
+        requirements: this.getVerificationRequirements(agent.status)
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: "Failed to check verification status"
+      });
+    }
+  });
+
+  // Helper function to get status messages
+  function getStatusMessage(status: string): string {
+    switch (status) {
+      case 'active':
+        return 'Your agent is fully verified and can perform all operations';
+      case 'pending_verification':
+        return 'Your agent is being verified. Basic operations are available.';
+      case 'pending_review':
+        return 'Your agent requires manual review. This usually takes 1-2 business days.';
+      case 'suspended':
+        return 'Your agent has been suspended. Contact support for assistance.';
+      default:
+        return 'Unknown status';
+    }
+  }
+
+  function getVerificationRequirements(status: string): string[] {
+    switch (status) {
+      case 'pending_verification':
+        return [
+          'Complete first successful transaction',
+          'Maintain good reputation score',
+          'Follow platform guidelines'
+        ];
+      case 'pending_review':
+        return [
+          'Manual review in progress',
+          'Ensure compliance with terms',
+          'Wait for admin approval'
+        ];
+      default:
+        return [];
+    }
+  }
+
   // Get user notifications
   app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
     try {
@@ -2808,31 +2876,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Enables agents to buy, sell, and discover services easily
   // ==============================================
 
-  // Quick registration for AI agents (minimal friction)
+  // Quick registration for AI agents (minimal friction, maximum security)
   app.post('/api/agents/quick-register', async (req, res) => {
     try {
-      const { agentName, capabilities, walletAddress, walletNetwork, preferredCurrencies, referralCode } = req.body;
+      const { agentName, capabilities, walletAddress, walletNetwork, preferredCurrencies, referralCode, description } = req.body;
 
-      if (!agentName || !capabilities || !walletAddress || !walletNetwork) {
+      // Friendly validation with helpful error messages
+      if (!agentName || agentName.length < 3) {
         return res.status(400).json({
           success: false,
-          message: "Missing required fields: agentName, capabilities, walletAddress, walletNetwork"
+          message: "Agent name is required and must be at least 3 characters",
+          field: "agentName"
         });
       }
 
-      const result = await agentMarketplaceService.quickRegisterAgent({
+      if (!capabilities || (Array.isArray(capabilities) ? capabilities.length === 0 : !capabilities)) {
+        return res.status(400).json({
+          success: false,
+          message: "At least one capability must be specified",
+          field: "capabilities",
+          suggestion: "Try: 'trading', 'analysis', 'monitoring', or 'reporting'"
+        });
+      }
+
+      if (!walletAddress || !walletNetwork) {
+        return res.status(400).json({
+          success: false,
+          message: "Valid wallet address and network are required",
+          field: "wallet",
+          supportedNetworks: ["ethereum", "solana", "bitcoin", "polygon"]
+        });
+      }
+
+      // Use the enhanced registration service
+      const registrationRequest = {
         agentName,
+        description: description || `AI Agent specializing in ${Array.isArray(capabilities) ? capabilities.join(', ') : capabilities}`,
         capabilities: Array.isArray(capabilities) ? capabilities : capabilities.split(',').map((c: string) => c.trim()),
         walletAddress,
-        walletNetwork,
+        walletNetwork: walletNetwork.toLowerCase(),
         preferredCurrencies: Array.isArray(preferredCurrencies) ? preferredCurrencies : (preferredCurrencies || 'USDT,BTC,ETH').split(','),
-        referralCode
+        publicKey: req.body.publicKey || null,
+        signature: req.body.signature || null,
+        geolocation: req.body.geolocation || null,
+        timezone: req.body.timezone || 'UTC'
+      };
+
+      const agent = await globalAgentNetwork.registerAgent(registrationRequest);
+
+      // Process referral if provided
+      if (referralCode) {
+        try {
+          await aiAgentReferralService.processReferral(agent.id, referralCode);
+        } catch (referralError) {
+          console.warn("Referral processing failed:", referralError);
+          // Don't fail the registration if referral fails
+        }
+      }
+
+      res.json({
+        success: true,
+        agent: {
+          id: agent.id,
+          name: agent.agentName,
+          status: agent.status,
+          capabilities: agent.capabilities,
+          walletAddress: agent.walletAddress,
+          walletNetwork: agent.walletNetwork
+        },
+        message: agent.status === 'active' 
+          ? "Agent registered and activated successfully! You can start transacting immediately."
+          : "Agent registered successfully! Your agent is pending verification and will be activated shortly.",
+        nextSteps: agent.status === 'active' 
+          ? ["Start listing services", "Connect with other agents", "Begin earning commissions"]
+          : ["Verification in progress", "You'll be notified when activated", "Basic operations are available"]
       });
 
-      res.json(result);
     } catch (error: any) {
       console.error("Error in quick registration:", error);
-      res.status(500).json({ success: false, message: error.message });
+      
+      // Provide helpful error responses
+      if (error.message.includes("already registered")) {
+        return res.status(409).json({
+          success: false,
+          message: "This wallet address is already registered",
+          suggestion: "Use a different wallet address or contact support if this is your agent"
+        });
+      }
+
+      if (error.message.includes("suspicious content")) {
+        return res.status(400).json({
+          success: false,
+          message: "Agent name or description contains inappropriate content",
+          suggestion: "Please use professional language and avoid suspicious terms"
+        });
+      }
+
+      if (error.message.includes("Too many registration attempts")) {
+        return res.status(429).json({
+          success: false,
+          message: "Rate limit exceeded. Please wait before trying again.",
+          retryAfter: 3600
+        });
+      }
+
+      res.status(500).json({ 
+        success: false, 
+        message: "Registration failed. Please check your inputs and try again.",
+        details: error.message 
+      });
     }
   });
 

@@ -64,11 +64,17 @@ class ProductionMonitoringService {
   private serviceStatuses: Map<string, ServiceStatus> = new Map();
 
   /**
-   * Get comprehensive system health status
+   * Get comprehensive system health status with scaling metrics
    */
   async getSystemHealth(): Promise<SystemHealth> {
     const memoryUsage = process.memoryUsage();
     const uptime = Date.now() - this.startTime;
+    
+    // Add scaling-specific metrics
+    const cpuUsage = process.cpuUsage();
+    const loadAverage = require('os').loadavg();
+    const freeMemory = require('os').freemem();
+    const totalMemory = require('os').totalmem();
     
     // Test database connectivity
     let databaseStatus: 'connected' | 'disconnected' | 'error' = 'connected';

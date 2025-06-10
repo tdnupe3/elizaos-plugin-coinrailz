@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from './use-mobile';
 
@@ -65,6 +64,30 @@ export function useMobileOptimization() {
       }, { passive: false });
     }
   }, [isMobile]);
+
+  // Enhanced Progressive Web App features for scaling
+  const enablePWA = useCallback(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          setIsPWAEnabled(true);
+
+          // Enable background sync for offline transactions
+          if ('sync' in window.ServiceWorkerRegistration.prototype) {
+            registration.sync.register('background-transaction-sync');
+          }
+
+          // Enable push notifications for transaction alerts
+          if ('PushManager' in window) {
+            registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: process.env.VITE_VAPID_PUBLIC_KEY
+            });
+          }
+        })
+        .catch(console.error);
+    }
+  }, []);
 
   return {
     isMobile,

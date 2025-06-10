@@ -162,12 +162,19 @@ export class SecurityHardening {
     return rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
       max: (req) => {
-        // Different limits based on endpoint sensitivity
-        if (req.path.includes('/api/transactions')) return 10;
-        if (req.path.includes('/api/auth')) return 5;
-        if (req.path.includes('/api/admin')) return 3;
+        // Scaling-optimized rate limits
+        const userTier = (req as any).user?.accountTier || 'basic';
         
-        return 100; // Default limit
+        if (req.path.includes('/api/transactions')) {
+          return userTier === 'premium' ? 50 : 20; // Higher limits for premium
+        }
+        if (req.path.includes('/api/auth')) return 10;
+        if (req.path.includes('/api/admin')) return 5;
+        if (req.path.includes('/api/agents')) {
+          return userTier === 'premium' ? 200 : 100; // AI agents need higher limits
+        }
+        
+        return userTier === 'premium' ? 500 : 200; // Tiered default limits
       },
       message: {
         error: 'Rate limit exceeded',

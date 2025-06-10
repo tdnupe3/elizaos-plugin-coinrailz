@@ -457,6 +457,8 @@ export default function Landing() {
         <div className="max-w-4xl mx-auto px-4 mb-8">
           <PatentDisclaimer />
         </div>
+          <PatentDisclaimer />
+        </div>
       </div>
 
       {/* Footer */}

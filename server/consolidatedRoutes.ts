@@ -9,14 +9,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
 import { FeeCalculator } from "./utils/feeCalculator";
-import { nowPaymentsService } from "./services/nowPaymentsService";
-import { websocketService } from "./services/websocketService";
 import { env, hasStripeCredentials } from "./environment";
-import { loggingService } from "./services/loggingService";
-import { complianceService } from "./services/complianceService";
-import { referralService } from "./services/referralService";
-import { ValidationUtils } from "./utils/validation";
-import { TransactionMonitor } from "./utils/transactionMonitor";
 import { 
   sendMoneySchema, 
   buyCryptoSchema, 
@@ -25,8 +18,9 @@ import {
   walletWithdrawSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { pncBankService } from './services/pncBankService';
-import { dexAggregatorService } from './services/dexAggregatorService';
+
+// Import payment services
+import { nowPaymentsService } from './services/nowPaymentsService';
 import { changeNowService } from './services/changeNowService';
 import { solanaService } from './services/solanaService';
 import { aiAgentService } from './services/aiAgentService';

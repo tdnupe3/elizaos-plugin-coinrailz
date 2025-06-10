@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield } from "lucide-react";
+import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail } from "lucide-react";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
 
 export default function Landing() {
@@ -173,6 +173,18 @@ export default function Landing() {
               >
                 Demo Mode
               </Button>
+            </div>
+
+            <div className="mt-6">
+              <Link href="/contact-us">
+                <Button 
+                  variant="outline"
+                  className="bg-white border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-3 text-base font-medium"
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  Get Support
+                </Button>
+              </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
@@ -471,6 +483,10 @@ export default function Landing() {
           <div className="border-t border-gray-200 pt-6">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs text-gray-500">
               <div className="flex items-center gap-4">
+                <Link href="/contact-us" className="hover:text-blue-700 hover:underline transition-colors font-medium">
+                  Contact Support
+                </Link>
+                <span className="text-gray-300">|</span>
                 <Link href="/terms-of-service" className="hover:text-gray-700 hover:underline transition-colors">
                   Terms of Service
                 </Link>

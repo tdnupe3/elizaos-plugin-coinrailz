@@ -60,6 +60,11 @@ export default function Landing() {
             </p>
           </div>
 
+          {/* Patent Protection Disclaimer */}
+          <div className="mb-8">
+            <PatentDisclaimer />
+          </div>
+
           {/* Core Platform Features */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             <Card className="text-center">

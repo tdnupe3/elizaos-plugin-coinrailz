@@ -53,6 +53,15 @@ class PayPalService {
       : 'https://api-m.sandbox.paypal.com';
   }
 
+  async testAuthentication(): Promise<boolean> {
+    try {
+      await this.getAccessToken();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
   private async getAccessToken(): Promise<string> {
     // Return cached token if still valid
     if (this.accessToken && Date.now() < this.tokenExpiry) {

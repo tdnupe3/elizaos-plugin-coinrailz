@@ -41,6 +41,25 @@ import { TransactionCompletionHooks } from './services/transactionCompletionHook
 import { paypalService } from './services/paypalService';
 // Notification service will be imported dynamically in route handlers
 
+// Helper functions for agent verification status
+function getStatusMessage(status: string): string {
+  switch (status) {
+    case 'active': return 'Agent is verified and active';
+    case 'pending': return 'Agent verification pending';
+    case 'suspended': return 'Agent temporarily suspended';
+    case 'inactive': return 'Agent not currently active';
+    default: return 'Unknown status';
+  }
+}
+
+function getVerificationRequirements(status: string): string[] {
+  switch (status) {
+    case 'pending': return ['Complete KYC verification', 'Submit wallet verification', 'Provide service documentation'];
+    case 'suspended': return ['Contact compliance team', 'Resolve outstanding issues'];
+    default: return [];
+  }
+}
+
 // Initialize Stripe conditionally
 let stripe: any = null;
 const initializeStripe = async () => {
@@ -865,11 +884,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         status: agent.status,
-        verificationLevel: agent.verificationLevel || 'basic',
-        trustScore: agent.trustScore || 0,
+        verificationLevel: agent.complianceLevel || 'basic',
+        trustScore: 0, // Default trust score
         canTransact: agent.status === 'active',
-        message: this.getStatusMessage(agent.status),
-        requirements: this.getVerificationRequirements(agent.status)
+        message: getStatusMessage(agent.status),
+        requirements: getVerificationRequirements(agent.status)
       });
 
     } catch (error: any) {
@@ -1441,12 +1460,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isConfigured) {
         // Test authentication by getting access token
         try {
-          await paypalService.getAccessToken();
+          const isAuthenticated = await paypalService.testAuthentication();
           res.json({
             configured: true,
             environment,
-            authenticated: true,
-            message: "PayPal service is fully configured and operational"
+            authenticated: isAuthenticated,
+            message: isAuthenticated ? "PayPal service is fully configured and operational" : "PayPal authentication failed"
           });
         } catch (error: any) {
           res.json({
@@ -1562,7 +1581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const metadata = paymentIntent.metadata;
         if (metadata.type === 'p2p_transfer') {
           // Handle P2P transfer completion
-          const NotificationService = (await import('./services/notificationService')).notificationService;
+          const { NotificationService } = await import('./services/notificationService');
           await NotificationService.createNotification({
             userId,
             type: 'payment_sent' as any,
@@ -1572,7 +1591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         } else if (metadata.type === 'ai_agent_service') {
           // Handle AI agent payment completion
-          const NotificationService = (await import('./services/notificationService')).notificationService;
+          const { NotificationService } = await import('./services/notificationService');
           await NotificationService.createNotification({
             userId,
             type: 'service_payment' as any,

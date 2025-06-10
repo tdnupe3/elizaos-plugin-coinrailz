@@ -559,5 +559,6 @@ export class GlobalAgentNetworkService {
       })
       .where(eq(globalAIAgents.id, agentId));
   }
+}
 
 export const globalAgentNetwork = new GlobalAgentNetworkService();

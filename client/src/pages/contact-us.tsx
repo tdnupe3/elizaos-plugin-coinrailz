@@ -4,16 +4,29 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Footer } from "@/components/Footer";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { useMutation } from "@tanstack/react-query";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { Link } from "wouter";
+import { 
+  Mail, 
+  Phone, 
+  Clock, 
+  Send, 
+  ArrowLeft,
+  MessageCircle,
+  Shield,
+  CreditCard,
+  Bot,
+  AlertCircle,
+  HelpCircle
+} from "lucide-react";
 
 interface ContactForm {
   name: string;
   email: string;
   subject: string;
+  category: string;
   message: string;
 }
 
@@ -23,19 +36,26 @@ export default function ContactUs() {
     name: "",
     email: "",
     subject: "",
+    category: "",
     message: ""
   });
 
   const submitMutation = useMutation({
     mutationFn: async (data: ContactForm) => {
-      return await apiRequest("POST", "/api/contact", data);
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data)
+      });
+      return await response.json();
     },
     onSuccess: () => {
       toast({
         title: "Message Sent",
         description: "Thank you for contacting us. We'll respond within 24 hours.",
       });
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      setFormData({ name: "", email: "", subject: "", category: "", message: "" });
     },
     onError: (error) => {
       toast({
@@ -64,13 +84,25 @@ export default function ContactUs() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="flex-1 p-6">
-        <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Contact Us</h1>
-            <p className="text-gray-600">Get in touch with our support team</p>
+          <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <Link href="/">
+                <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Home
+                </Button>
+              </Link>
+            </div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+              Contact Support
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Get help with your account, payments, or technical issues. Our team is here to assist you.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -109,10 +141,29 @@ export default function ContactUs() {
                   </div>
 
                   <div>
-                    <Label htmlFor="subject">Subject</Label>
+                    <Label htmlFor="category">Category *</Label>
+                    <Select onValueChange={(value) => handleInputChange('category', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select inquiry type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="general">General Inquiry</SelectItem>
+                        <SelectItem value="technical">Technical Support</SelectItem>
+                        <SelectItem value="payment">Payment Issues</SelectItem>
+                        <SelectItem value="ai-agent">AI Agent Support</SelectItem>
+                        <SelectItem value="security">Security Concerns</SelectItem>
+                        <SelectItem value="business">Business Partnership</SelectItem>
+                        <SelectItem value="compliance">Compliance & Legal</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="subject">Subject *</Label>
                     <Input
                       id="subject"
                       type="text"
+                      required
                       value={formData.subject}
                       onChange={(e) => handleInputChange("subject", e.target.value)}
                       placeholder="Brief description of your inquiry"
@@ -238,7 +289,6 @@ export default function ContactUs() {
           </div>
         </div>
       </div>
-      <Footer />
     </div>
   );
 }

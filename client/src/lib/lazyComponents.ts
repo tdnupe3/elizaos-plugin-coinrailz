@@ -40,12 +40,3 @@ export const LegalDisclaimers = lazy(() => import('@/pages/legal-disclaimers'));
 export const ContactUs = lazy(() => import('@/pages/contact-us'));
 export const TermsOfService = lazy(() => import('@/pages/terms-of-service'));
 export const PrivacyPolicy = lazy(() => import('@/pages/privacy-policy'));
-
-// Additional heavy components for lazy loading
-export const PortfolioAnalytics = lazy(() => import('@/pages/portfolio-analytics'));
-export const FundsManagement = lazy(() => import('@/pages/funds-management'));
-export const Settings = lazy(() => import('@/pages/settings'));
-export const CryptoWallet = lazy(() => import('@/pages/crypto-wallet'));
-export const TransactionHistory = lazy(() => import('@/pages/transaction-history'));
-export const BuySell = lazy(() => import('@/pages/buy-sell'));
-export const Swap = lazy(() => import('@/pages/swap'));

@@ -78,8 +78,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Stripe during route registration
   await initializeStripe();
   
-  // API logging temporarily disabled due to database constraint issues
-  // TODO: Fix database schema for api_integration_logs table
+  // API logging disabled in development mode for performance
 
   // DEVELOPMENT MODE: NO SECURITY MIDDLEWARE AT ALL
   if (process.env.NODE_ENV === 'development') {
@@ -2995,7 +2994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process referral if provided
       if (referralCode) {
         try {
-          await aiAgentReferralService.processReferral(agent.id, referralCode);
+          await aiAgentReferralService.recordReferral(agent.id, referralCode);
         } catch (referralError) {
           console.warn("Referral processing failed:", referralError);
           // Don't fail the registration if referral fails
@@ -3062,7 +3061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { agentId } = req.params;
       const serviceData = req.body;
 
-      const result = await agentMarketplaceService.listService(agentId, serviceData);
+      const result = await agentMarketplaceService.createService(serviceData);
       res.json(result);
     } catch (error: any) {
       console.error("Error listing service:", error);
@@ -3150,7 +3149,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all marketplace services
   app.get('/api/marketplace/services', async (req, res) => {
     try {
-      const services = await AgentMarketplaceService.getMarketplaceServices();
+      const services = await agentMarketplaceService.getMarketplaceServices();
       res.json({
         success: true,
         services
@@ -3165,7 +3164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/marketplace/services/category/:category', async (req, res) => {
     try {
       const { category } = req.params;
-      const services = await AgentMarketplaceService.getServicesByCategory(category);
+      const services = await agentMarketplaceService.getServicesByCategory(category);
       res.json({
         success: true,
         services
@@ -3184,7 +3183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: 'Search query required' });
       }
       
-      const services = await AgentMarketplaceService.searchServices(q as string);
+      const services = await agentMarketplaceService.searchServices(q as string);
       res.json({
         success: true,
         services
@@ -3206,7 +3205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ success: false, message: 'User not authenticated' });
       }
 
-      const result = await AgentMarketplaceService.purchaseService(serviceId, userId, paymentMethod);
+      const result = await agentMarketplaceService.purchaseService(serviceId, userId, paymentMethod);
       res.json(result);
     } catch (error: any) {
       console.error("Error purchasing service:", error);
@@ -3217,7 +3216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get marketplace statistics
   app.get('/api/marketplace/stats', async (req, res) => {
     try {
-      const stats = await AgentMarketplaceService.getMarketplaceStats();
+      const stats = await agentMarketplaceService.getMarketplaceStats();
       res.json({
         success: true,
         stats

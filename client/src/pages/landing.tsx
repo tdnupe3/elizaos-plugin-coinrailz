@@ -484,7 +484,11 @@ export default function Landing() {
                 </Link>
               </div>
             </div>
-            <div className="text-center mt-4">
+            <div className="text-center mt-4 space-y-2">
+              <p className="text-xs text-gray-500">
+                <span className="font-medium">Coin Railz™</span> is a trademark of Kellogg Holdings LLC. 
+                P2P interoperability and AI Agent Marketplace are patent protected.
+              </p>
               <p className="text-xs text-gray-400">
                 © 2025 Kellogg Holdings LLC. All rights reserved. Violations of our terms may result in account suspension or termination.
               </p>

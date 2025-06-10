@@ -171,6 +171,9 @@ function Router() {
 
       {/* AI Agent Chat Widget - Available on all pages */}
       <ChatWidget isDemo={window.location.pathname.includes('/demo')} />
+      
+      {/* Contact Support Widget - Available on all pages */}
+      <ContactWidget />
     </>
   );
 }

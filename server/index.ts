@@ -47,7 +47,7 @@ app.use((req, res, next) => {
   try {
     // Initialize AI Agent Marketplace at startup
     await AgentMarketplaceService.initializeMarketplace();
-    
+
     const server = await registerRoutes(app);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

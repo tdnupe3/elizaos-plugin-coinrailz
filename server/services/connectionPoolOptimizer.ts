@@ -7,6 +7,12 @@ import { Pool } from 'pg';
 
 export class ConnectionPoolOptimizer {
   private static pool: Pool | null = null;
+  private static poolStats = {
+    queriesExecuted: 0,
+    averageQueryTime: 0,
+    errors: 0,
+    lastHealthCheck: Date.now()
+  };
 
   /**
    * Initialize optimized connection pool for scaling
@@ -15,22 +21,24 @@ export class ConnectionPoolOptimizer {
     if (!this.pool) {
       this.pool = new Pool({
         connectionString: process.env.DATABASE_URL,
-        // Scaling-optimized pool settings
-        max: 20, // Maximum connections
-        min: 5,  // Minimum connections
-        idle: 10000, // 10 seconds idle timeout
-        connect_timeout: 60000, // 60 seconds connect timeout
-        acquireTimeoutMillis: 30000, // 30 seconds acquire timeout
+        // Enhanced scaling-optimized pool settings
+        max: 25, // Increased maximum connections
+        min: 8,  // Increased minimum connections
+        idle: 8000, // Reduced idle timeout for faster turnover
+        connect_timeout: 45000, // Reduced connect timeout
+        acquireTimeoutMillis: 20000, // Reduced acquire timeout
         
         // Health check configuration
         allowExitOnIdle: false,
         
         // Connection validation
-        application_name: 'coinrailz_production',
+        application_name: 'coinrailz_production_optimized',
         
-        // Performance optimization
-        statement_timeout: 30000, // 30 seconds
-        query_timeout: 25000, // 25 seconds
+        // Enhanced performance optimization
+        statement_timeout: 25000, // Reduced statement timeout
+        query_timeout: 20000, // Reduced query timeout
+        keepAlive: true,
+        keepAliveInitialDelayMillis: 0,
         
         // SSL configuration for production
         ssl: process.env.NODE_ENV === 'production' ? {

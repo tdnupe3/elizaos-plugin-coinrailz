@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookUser, Shield, Send } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BookUser, Shield, Send, Zap, Clock, TrendingDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sendMoneySchema, type SendMoney } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +20,8 @@ export function SendMoneyForm() {
   const { toast } = useToast();
   const [showModal, setShowModal] = useState(false);
   const [lastTransaction, setLastTransaction] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'usd' | 'xrp' | 'crypto'>('usd');
+  const [feeCalculation, setFeeCalculation] = useState<any>(null);
 
   const form = useForm<SendMoney>({
     resolver: zodResolver(sendMoneySchema),
@@ -30,9 +33,35 @@ export function SendMoneyForm() {
     },
   });
 
+  // Real-time XRP fee calculation
+  const { data: xrpFees } = useQuery({
+    queryKey: ['/api/fees/calculate-xrp', form.watch('amount')],
+    queryFn: async () => {
+      const amount = parseFloat(form.watch('amount'));
+      if (!amount || amount <= 0) return null;
+      
+      const response = await fetch('/api/fees/calculate-xrp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+      
+      const data = await response.json();
+      return data.success ? data.fees : null;
+    },
+    enabled: paymentMethod === 'xrp' && !!form.watch('amount') && parseFloat(form.watch('amount')) > 0
+  });
+
   const sendMoneyMutation = useMutation({
     mutationFn: async (data: SendMoney) => {
-      const response = await apiRequest("POST", "/api/transactions/send", data);
+      const endpoint = paymentMethod === 'xrp' ? '/api/xrp/send' : '/api/transactions/send';
+      const payload = paymentMethod === 'xrp' ? {
+        ...data,
+        paymentMethod: 'xrp',
+        amount: parseFloat(data.amount)
+      } : data;
+      
+      const response = await apiRequest("POST", endpoint, payload);
       return response.json();
     },
     onSuccess: (data) => {
@@ -66,8 +95,31 @@ export function SendMoneyForm() {
           <div className="flex items-center justify-between">
             <CardTitle className="text-xl font-semibold text-neutral-800">Send Money</CardTitle>
             <div className="flex space-x-2">
-              <Button size="sm" className="bg-blue-600 text-white">USD</Button>
-              <Button size="sm" variant="outline">Crypto</Button>
+              <Button 
+                size="sm" 
+                onClick={() => setPaymentMethod('usd')}
+                className={paymentMethod === 'usd' ? "bg-blue-600 text-white" : ""}
+                variant={paymentMethod === 'usd' ? "default" : "outline"}
+              >
+                USD
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => setPaymentMethod('xrp')}
+                className={paymentMethod === 'xrp' ? "bg-blue-600 text-white" : ""}
+                variant={paymentMethod === 'xrp' ? "default" : "outline"}
+              >
+                <Zap className="w-3 h-3 mr-1" />
+                XRP
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => setPaymentMethod('crypto')}
+                className={paymentMethod === 'crypto' ? "bg-blue-600 text-white" : ""}
+                variant={paymentMethod === 'crypto' ? "default" : "outline"}
+              >
+                Crypto
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -121,14 +173,65 @@ export function SendMoneyForm() {
               
               {/* Fee Breakdown */}
               {form.watch("amount") && parseFloat(form.watch("amount")) > 0 && (
-                <div className="mt-4 space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-emerald-700 font-medium">Total Cost:</span>
-                    <span className="text-emerald-700 font-semibold">${(parseFloat(form.watch("amount")) + parseFloat(form.watch("amount")) * 0.01).toFixed(2)}</span>
-                  </div>
-                  <p className="text-xs text-gray-400">
-                    Includes 1% Coin Railz fee. See terms for details.
-                  </p>
+                <div className="mt-4">
+                  {paymentMethod === 'xrp' && xrpFees ? (
+                    <div className="bg-gradient-to-r from-blue-50 to-emerald-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Zap className="w-4 h-4 text-blue-600" />
+                          <span className="font-medium text-blue-800">XRP Lightning Transfer</span>
+                        </div>
+                        <Badge className="bg-emerald-100 text-emerald-700 text-xs">
+                          <Clock className="w-3 h-3 mr-1" />
+                          3-5 seconds
+                        </Badge>
+                      </div>
+                      
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Amount:</span>
+                          <span className="font-medium">${parseFloat(form.watch("amount")).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Service Fee:</span>
+                          <span className="font-medium">${xrpFees.serviceFee?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Platform Fee:</span>
+                          <span className="font-medium">${xrpFees.platformFee?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Network Fee:</span>
+                          <span className="font-medium">${xrpFees.networkFee?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <div className="border-t pt-2 flex justify-between">
+                          <span className="font-semibold text-blue-800">Total Cost:</span>
+                          <span className="font-bold text-blue-800">${xrpFees.totalCost?.toFixed(2) || '0.00'}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-3 flex items-center space-x-4 text-xs">
+                        <div className="flex items-center text-emerald-600">
+                          <TrendingDown className="w-3 h-3 mr-1" />
+                          <span>{xrpFees.savingsPercentage || 0}% savings vs wire</span>
+                        </div>
+                        <div className="flex items-center text-blue-600">
+                          <Zap className="w-3 h-3 mr-1" />
+                          <span>Instant settlement</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-emerald-700 font-medium">Total Cost:</span>
+                        <span className="text-emerald-700 font-semibold">${(parseFloat(form.watch("amount")) + parseFloat(form.watch("amount")) * 0.01).toFixed(2)}</span>
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        Includes 1% Coin Railz fee. See terms for details.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

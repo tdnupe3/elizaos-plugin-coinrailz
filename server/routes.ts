@@ -436,8 +436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(EnhancedTransactionSecurity.transactionValidationMiddleware());
   }
 
-  // Global error handling (applied in all environments)
-  app.use(ProductionErrorHandler.notFoundHandler());
+  // Global error handling for uncaught errors only
   app.use(ProductionErrorHandler.errorHandler());
 
   // Auth middleware

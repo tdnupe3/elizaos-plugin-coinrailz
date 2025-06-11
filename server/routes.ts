@@ -44,6 +44,7 @@ import { apiHealthMonitor } from './services/apiHealthMonitor';
 import { ProductionErrorHandler, requestTimeout, requestLogger } from './middleware/productionErrorHandler';
 import { productionOptimizer } from './services/productionOptimizer';
 import { WebhookValidator } from './services/webhookValidator';
+import { ProductionValidator } from './services/productionValidator';
 // Notification service will be imported dynamically in route handlers
 
 // Helper functions for agent verification status
@@ -220,6 +221,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Production readiness validation endpoint
+  app.get('/api/production/readiness', async (req, res) => {
+    try {
+      const readiness = await ProductionValidator.validateProductionReadiness();
+      
+      const statusCode = readiness.overall === 'ready' ? 200 :
+                        readiness.overall === 'warning' ? 206 : 503;
+      
+      res.status(statusCode).json({
+        success: true,
+        readiness,
+        checklist: ProductionValidator.getProductionChecklist()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Production validation failed',
+        message: error.message
+      });
+    }
+  });
+
+  // Webhook endpoints with validation
+  app.post('/api/webhooks/stripe', 
+    WebhookValidator.webhookRateLimit(),
+    WebhookValidator.webhookValidationMiddleware('stripe'),
+    async (req, res) => {
+      try {
+        const event = req.body;
+        WebhookValidator.logWebhookEvent('stripe', event.type, event, true);
+        
+        // Process Stripe webhook events
+        switch (event.type) {
+          case 'payment_intent.succeeded':
+            console.log('Payment succeeded:', event.data.object.id);
+            break;
+          case 'payment_intent.payment_failed':
+            console.log('Payment failed:', event.data.object.id);
+            break;
+          default:
+            console.log('Unhandled Stripe event:', event.type);
+        }
+        
+        res.json({ received: true });
+      } catch (error: any) {
+        console.error('Stripe webhook error:', error);
+        res.status(500).json({ error: 'Webhook processing failed' });
+      }
+    }
+  );
+
+  app.post('/api/webhooks/paypal',
+    WebhookValidator.webhookRateLimit(),
+    WebhookValidator.webhookValidationMiddleware('paypal'),
+    async (req, res) => {
+      try {
+        const event = req.body;
+        WebhookValidator.logWebhookEvent('paypal', event.event_type, event, true);
+        
+        // Process PayPal webhook events
+        console.log('PayPal webhook received:', event.event_type);
+        
+        res.json({ received: true });
+      } catch (error: any) {
+        console.error('PayPal webhook error:', error);
+        res.status(500).json({ error: 'Webhook processing failed' });
+      }
+    }
+  );
+
+  app.post('/api/webhooks/nowpayments',
+    WebhookValidator.webhookRateLimit(),
+    WebhookValidator.webhookValidationMiddleware('nowpayments'),
+    async (req, res) => {
+      try {
+        const event = req.body;
+        WebhookValidator.logWebhookEvent('nowpayments', 'payment_update', event, true);
+        
+        // Process NOWPayments webhook events
+        console.log('NOWPayments webhook received:', event.payment_status);
+        
+        res.json({ received: true });
+      } catch (error: any) {
+        console.error('NOWPayments webhook error:', error);
+        res.status(500).json({ error: 'Webhook processing failed' });
+      }
+    }
+  );
+
+  app.post('/api/webhooks/changenow',
+    WebhookValidator.webhookRateLimit(), 
+    WebhookValidator.webhookValidationMiddleware('changenow'),
+    async (req, res) => {
+      try {
+        const event = req.body;
+        WebhookValidator.logWebhookEvent('changenow', 'exchange_update', event, true);
+        
+        // Process ChangeNOW webhook events
+        console.log('ChangeNOW webhook received:', event.status);
+        
+        res.json({ received: true });
+      } catch (error: any) {
+        console.error('ChangeNOW webhook error:', error);
+        res.status(500).json({ error: 'Webhook processing failed' });
+      }
+    }
+  );
 
     app.use(DatabaseSecurity.circuitBreaker());
     app.use(DataEncryption.piiEncryptionMiddleware());

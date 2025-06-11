@@ -88,3 +88,15 @@ app.use((req, res, next) => {
   }
 })();
 
+// Initialize marketplace services
+(async () => {
+  try {
+    const { agentMarketplaceService } = await import('./services/agentMarketplaceService');
+    await agentMarketplaceService.registerMarketplaceServices();
+    console.log('Marketplace services initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize marketplace services:', error);
+  }
+})().catch(error => {
+  console.error('Unhandled promise rejection in marketplace initialization:', error);
+});

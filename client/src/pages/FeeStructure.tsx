@@ -268,11 +268,11 @@ export default function FeeStructure() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">XRP:</span>
-                        <span className="font-medium text-green-600">$1.05</span>
+                        <span className="font-medium text-green-600">$5.75</span>
                       </div>
                       <div className="flex justify-between font-medium">
                         <span>Savings:</span>
-                        <span className="text-green-600">$23.95 (95.8%)</span>
+                        <span className="text-green-600">$19.25 (77.0%)</span>
                       </div>
                     </div>
                   </div>
@@ -286,11 +286,11 @@ export default function FeeStructure() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">XRP:</span>
-                        <span className="font-medium text-green-600">$2.50</span>
+                        <span className="font-medium text-green-600">$8.75</span>
                       </div>
                       <div className="flex justify-between font-medium">
                         <span>Savings:</span>
-                        <span className="text-green-600">$22.50 (90.0%)</span>
+                        <span className="text-green-600">$16.25 (65.0%)</span>
                       </div>
                     </div>
                   </div>
@@ -304,11 +304,11 @@ export default function FeeStructure() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">XRP:</span>
-                        <span className="font-medium text-green-600">$5.00</span>
+                        <span className="font-medium text-green-600">$12.50</span>
                       </div>
                       <div className="flex justify-between font-medium">
                         <span>Savings:</span>
-                        <span className="text-green-600">$25.00 (83.3%)</span>
+                        <span className="text-green-600">$17.50 (58.3%)</span>
                       </div>
                     </div>
                   </div>

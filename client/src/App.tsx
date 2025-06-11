@@ -48,6 +48,7 @@ import { lazy } from "react";
 // Lazy load remaining components
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
+const RecruitmentTest = lazy(() => import("@/pages/RecruitmentTest"));
 const ProductionDashboard = lazy(() => import("@/pages/production-dashboard"));
 const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
 const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
@@ -111,6 +112,9 @@ function Router() {
       </Route>
       <Route path="/crypto-signals-agent">
         {() => <LazyLoadWrapper><CryptoSignalsAgent /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/recruitment-test">
+        {() => <LazyLoadWrapper><RecruitmentTest /></LazyLoadWrapper>}
       </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}

@@ -57,6 +57,7 @@ const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
 const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
+const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -118,6 +119,9 @@ function Router() {
       </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/fees">
+        {() => <LazyLoadWrapper><FeeStructure /></LazyLoadWrapper>}
       </Route>
       <Route path="/signup-flow" component={SignupFlowDemo} />
       <Route path="/legal-disclaimers" component={LegalDisclaimers} />

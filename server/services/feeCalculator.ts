@@ -34,6 +34,12 @@ export class FeeCalculator {
   private static readonly PLATFORM_BASE_FEE = 0.01;
   
   /**
+   * XRP fee structure: Ultra-low network fees (~$0.0002) + 0.5% platform fee
+   */
+  private static readonly XRP_NETWORK_FEE = 0.0002; // ~$0.0002 per transaction
+  private static readonly XRP_PLATFORM_FEE = 0.005; // 0.5% platform fee
+  
+  /**
    * Calculate fees for Stripe credit card transactions with tiered service fees
    */
   static calculateStripeFees(amount: number): FeeCalculation {
@@ -120,6 +126,32 @@ export class FeeCalculator {
   }
   
   /**
+   * Calculate fees for XRP transactions (ultra-low fees)
+   */
+  static calculateXRPFees(amount: number): FeeCalculation {
+    const processingFee = this.XRP_NETWORK_FEE; // Ultra-low network fee (~$0.0002)
+    const convenienceFee = 0; // No convenience fee for XRP
+    
+    // Competitive platform fee for XRP to encourage adoption
+    const platformFee = Math.round(amount * this.XRP_PLATFORM_FEE * 100) / 100; // 0.5% platform fee
+    
+    const totalFee = processingFee + platformFee;
+    const totalAmount = amount + totalFee;
+    const netAmount = totalAmount - processingFee;
+    
+    return {
+      originalAmount: amount,
+      processingFee,
+      convenienceFee,
+      platformFee,
+      totalFee,
+      totalAmount,
+      netAmount,
+      paymentMethod: 'xrp'
+    };
+  }
+
+  /**
    * Calculate fees for cryptocurrency transactions (no processing fees)
    */
   static calculateCryptoFees(amount: number): FeeCalculation {
@@ -154,6 +186,8 @@ export class FeeCalculator {
         return this.calculateStripeFees(amount);
       case 'paypal':
         return this.calculatePayPalFees(amount);
+      case 'xrp':
+        return this.calculateXRPFees(amount);
       case 'crypto':
         return this.calculateCryptoFees(amount);
       default:

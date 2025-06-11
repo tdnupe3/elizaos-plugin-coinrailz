@@ -28,6 +28,8 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import { XRPLedgerService } from "./services/xrpLedgerService";
+import { XRPPaymentService } from "./services/xrpPaymentService";
 import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";

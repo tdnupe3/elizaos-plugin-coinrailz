@@ -43,6 +43,7 @@ import {
 import SignupFlowDemo from "@/pages/signup-flow-demo";
 import LegalDisclaimers from "@/pages/legal-disclaimers";
 import ContactUs from "@/pages/contact-us";
+import WalletManagement from "@/pages/wallet-management";
 import { lazy } from "react";
 
 // Lazy load remaining components
@@ -139,6 +140,7 @@ function Router() {
       </Route>
 
       {/* Authenticated routes */}
+      <Route path="/wallet-management" component={WalletManagement} />
       <Route path="/send">
         {() => <LazyLoadWrapper><SendMoney /></LazyLoadWrapper>}
       </Route>

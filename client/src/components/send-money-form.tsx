@@ -283,8 +283,19 @@ export function SendMoneyForm() {
               className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center space-x-2"
               disabled={sendMoneyMutation.isPending}
             >
-              <Send className="w-4 h-4" />
-              <span>{sendMoneyMutation.isPending ? "Sending..." : "Send Money"}</span>
+              {paymentMethod === 'xrp' ? (
+                <Zap className="w-4 h-4" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              <span>
+                {sendMoneyMutation.isPending 
+                  ? "Sending..." 
+                  : paymentMethod === 'xrp' 
+                    ? "Send via XRP Lightning" 
+                    : "Send Money"
+                }
+              </span>
             </Button>
           </form>
         </CardContent>

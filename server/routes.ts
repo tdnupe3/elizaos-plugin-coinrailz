@@ -32,6 +32,7 @@ import { XRPServiceSimple } from "./services/xrpServiceSimple";
 import { XRPEndpoints } from "./services/xrpEndpoints";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
 import { PlatformWalletService } from "./services/platformWalletService";
+import { RealXRPWallet } from "./services/realXRPWallet";
 import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";
@@ -4583,6 +4584,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to get fee statistics'
+      });
+    }
+  });
+
+  // Generate real production XRP wallet
+  app.post('/api/admin/generate-production-wallet', async (req, res) => {
+    try {
+      const wallet = RealXRPWallet.generateProductionWallet();
+      
+      res.json({
+        success: true,
+        wallet: {
+          address: wallet.address,
+          publicKey: wallet.publicKey,
+          seed: wallet.seed
+        },
+        instructions: [
+          'IMPORTANT: Save these credentials securely!',
+          'The seed phrase is your private key - never share it',
+          'Store the seed phrase in a secure password manager',
+          'Add the address and seed to your environment variables',
+          'This wallet can receive real XRP transactions'
+        ]
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to generate production wallet'
       });
     }
   });

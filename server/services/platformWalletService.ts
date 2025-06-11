@@ -24,51 +24,19 @@ export class PlatformWalletService {
       return this.platformWallet;
     }
 
-    // Check if wallet exists in environment
-    const existingAddress = process.env.PLATFORM_XRP_ADDRESS;
-    const existingSeed = process.env.PLATFORM_XRP_SEED;
+    // Use production wallet directly - funded with 15.980002 XRP
+    const productionAddress = 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW';
+    const productionSeed = 'sEdTq1EhVYY8wvhqbkntGUqYjWgCRSR';
 
-    if (existingAddress && existingSeed) {
-      this.platformWallet = {
-        address: existingAddress,
-        publicKey: process.env.PLATFORM_XRP_PUBLIC_KEY || 'stored_public_key',
-        seed: existingSeed,
-        isActive: true,
-        createdAt: process.env.PLATFORM_WALLET_CREATED || new Date().toISOString()
-      };
-      
-      console.log(`Platform XRP wallet loaded: ${existingAddress}`);
-      return this.platformWallet;
-    }
-
-    // Create new platform wallet
-    const newWallet = await XRPServiceSimple.createWallet();
-    
     this.platformWallet = {
-      address: newWallet.address,
-      publicKey: newWallet.publicKey,
-      seed: newWallet.seed,
+      address: productionAddress,
+      publicKey: 'EDB328AF24FD69B13F48414B65F77AC1614C9B94AC3F55F2114E0077D4C0646400',
+      seed: productionSeed,
       isActive: true,
-      createdAt: new Date().toISOString()
+      createdAt: '2025-06-11T21:26:00.000Z'
     };
-
-    // Log the wallet details for secure storage
-    console.log('='.repeat(80));
-    console.log('NEW PLATFORM XRP WALLET CREATED');
-    console.log('='.repeat(80));
-    console.log('IMPORTANT: Save these credentials securely!');
-    console.log('');
-    console.log(`Address: ${this.platformWallet.address}`);
-    console.log(`Public Key: ${this.platformWallet.publicKey}`);
-    console.log(`Seed (KEEP SECRET): ${this.platformWallet.seed}`);
-    console.log('');
-    console.log('Add these to your environment variables:');
-    console.log(`PLATFORM_XRP_ADDRESS=${this.platformWallet.address}`);
-    console.log(`PLATFORM_XRP_PUBLIC_KEY=${this.platformWallet.publicKey}`);
-    console.log(`PLATFORM_XRP_SEED=${this.platformWallet.seed}`);
-    console.log(`PLATFORM_WALLET_CREATED=${this.platformWallet.createdAt}`);
-    console.log('='.repeat(80));
-
+    
+    console.log(`Platform XRP wallet loaded (FUNDED): ${productionAddress}`);
     return this.platformWallet;
   }
 
@@ -97,45 +65,40 @@ export class PlatformWalletService {
   }> {
     const wallet = await this.initializePlatformWallet();
     
-    // If using production wallet, get real balance from XRP Ledger
-    if (wallet.address === process.env.PLATFORM_XRP_ADDRESS) {
-      try {
-        const response = await fetch('https://s1.ripple.com:51234', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            method: 'account_info',
-            params: [{
-              account: wallet.address,
-              ledger_index: 'validated'
-            }]
-          })
-        });
+    // Get real balance from XRP Ledger for production wallet
+    try {
+      const response = await fetch('https://s1.ripple.com:51234', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'account_info',
+          params: [{
+            account: wallet.address,
+            ledger_index: 'validated'
+          }]
+        })
+      });
+      
+      const data = await response.json();
+      if (data.result && data.result.account_data) {
+        const balanceDrops = parseInt(data.result.account_data.Balance);
+        const balanceXRP = balanceDrops / 1000000; // Convert drops to XRP
+        const balanceUSD = await XRPServiceSimple.xrpToUSD(balanceXRP);
         
-        const data = await response.json();
-        if (data.result && data.result.account_data) {
-          const balanceDrops = parseInt(data.result.account_data.Balance);
-          const balanceXRP = balanceDrops / 1000000; // Convert drops to XRP
-          const balanceUSD = await XRPServiceSimple.xrpToUSD(balanceXRP);
-          
-          return {
-            xrp: balanceXRP,
-            usd: balanceUSD,
-            address: wallet.address
-          };
-        }
-      } catch (error) {
-        console.error('Error fetching real XRP balance:', error);
+        return {
+          xrp: balanceXRP,
+          usd: balanceUSD,
+          address: wallet.address
+        };
       }
+    } catch (error) {
+      console.error('Error fetching real XRP balance:', error);
     }
     
-    // Fallback to mock balance for development wallets
-    const balance = await XRPServiceSimple.getBalance(wallet.address);
-    const balanceUSD = await XRPServiceSimple.xrpToUSD(balance);
-    
+    // Fallback in case of API issues
     return {
-      xrp: balance,
-      usd: balanceUSD,
+      xrp: 0,
+      usd: 0,
       address: wallet.address
     };
   }

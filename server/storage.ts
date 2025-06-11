@@ -502,6 +502,51 @@ export class DatabaseStorage implements IStorage {
       .where(eq(globalAIAgents.id, agentId));
   }
 
+  // Wallet management operations
+  async updateUserWallet(userId: string, walletType: string, walletAddress: string | null): Promise<void> {
+    const updateData: any = {};
+    
+    switch (walletType.toLowerCase()) {
+      case 'xrp':
+        updateData.xrpWallet = walletAddress;
+        break;
+      case 'ethereum':
+        updateData.ethereumWallet = walletAddress;
+        break;
+      case 'solana':
+        updateData.solanaWallet = walletAddress;
+        break;
+      case 'bitcoin':
+        updateData.bitcoinAddress = walletAddress;
+        break;
+      default:
+        throw new Error(`Unsupported wallet type: ${walletType}`);
+    }
+
+    await db.update(users)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async getUserWallet(userId: string, walletType: string): Promise<string | null> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    
+    if (!user) return null;
+    
+    switch (walletType.toLowerCase()) {
+      case 'xrp':
+        return user.xrpWallet || null;
+      case 'ethereum':
+        return user.ethereumWallet || null;
+      case 'solana':
+        return user.solanaWallet || null;
+      case 'bitcoin':
+        return user.bitcoinAddress || null;
+      default:
+        return null;
+    }
+  }
+
   async incrementAgentReferralCount(agentId: string): Promise<void> {
     await db.update(globalAIAgents)
       .set({ 

@@ -57,6 +57,7 @@ export const users = pgTable("users", {
   ethereumWallet: varchar("ethereum_wallet"), // For EVM compatible chains
   solanaWallet: varchar("solana_wallet"), // For Solana transactions
   bitcoinAddress: varchar("bitcoin_address"), // For Bitcoin transactions
+  xrpWallet: varchar("xrp_wallet"), // For XRP Ledger transactions
   referralCode: varchar("referral_code").unique(),
   referredBy: varchar("referred_by"),
   referralBonus: decimal("referral_bonus", { precision: 10, scale: 2 }).default("0.00"),

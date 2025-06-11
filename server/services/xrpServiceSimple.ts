@@ -49,6 +49,105 @@ export class XRPServiceSimple {
   }
 
   /**
+   * Get account information from XRP Ledger
+   */
+  static async getAccountInfo(walletAddress: string): Promise<{ success: boolean; balance: number; error?: string }> {
+    try {
+      // Validate address format
+      if (!walletAddress || !walletAddress.startsWith('r') || walletAddress.length < 25) {
+        return {
+          success: false,
+          balance: 0,
+          error: 'Invalid XRP address format'
+        };
+      }
+
+      // Use public XRP Ledger API to get account info
+      const response = await fetch(`https://s1.ripple.com:51234/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          method: 'account_info',
+          params: [{
+            account: walletAddress,
+            strict: true,
+            ledger_index: 'current',
+            queue: true
+          }]
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.result && data.result.account_data) {
+        const balanceDrops = parseInt(data.result.account_data.Balance);
+        const balanceXRP = balanceDrops / 1000000; // Convert drops to XRP
+        
+        return {
+          success: true,
+          balance: balanceXRP
+        };
+      } else {
+        return {
+          success: false,
+          balance: 0,
+          error: 'Account not found or insufficient balance'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting XRP account info:', error);
+      return {
+        success: false,
+        balance: 0,
+        error: 'Failed to fetch account information'
+      };
+    }
+  }
+
+  /**
+   * Get transaction information
+   */
+  static async getTransactionInfo(transactionHash: string): Promise<{ success: boolean; transaction?: any; error?: string }> {
+    try {
+      const response = await fetch(`https://s1.ripple.com:51234/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          method: 'tx',
+          params: [{
+            transaction: transactionHash,
+            binary: false
+          }]
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.result && data.result.validated) {
+        return {
+          success: true,
+          transaction: data.result
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Transaction not found or not validated'
+        };
+      }
+    } catch (error) {
+      console.error('Error getting transaction info:', error);
+      return {
+        success: false,
+        error: 'Failed to fetch transaction information'
+      };
+    }
+  }
+
+  /**
    * Validate XRP address format
    */
   static validateAddress(address: string): boolean {

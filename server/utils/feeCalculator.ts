@@ -30,6 +30,10 @@ export class FeeCalculator {
   
   // AI Agent ecosystem fees
   static readonly AI_AGENT_FEE_RATE = 0.035; // 3.5% platform base fee for AI agent transactions
+  
+  // Payment method surcharges
+  static readonly CREDIT_CARD_SURCHARGE = 0.029; // 2.9% to cover Stripe costs
+  static readonly CRYPTO_PAYMENT_DISCOUNT = -0.005; // 0.5% discount for crypto payments
   static readonly NETWORK_DISCOVERY_FEE = 0.001; // 0.1% for network discovery
   
   // Tiered commission rates for AI agents
@@ -94,24 +98,40 @@ export class FeeCalculator {
     };
   }
 
-  // Updated AI Agent fee calculation with tiered commission rates
-  static calculateAIAgentFee(amount: number, currency: string, agentCommissionRate: number = 0.005): AIAgentFeeCalculation {
-    const platformFee = Math.max(amount * this.AI_AGENT_FEE_RATE, this.MIN_AI_AGENT_FEE);
+  // Updated AI Agent fee calculation with payment method surcharges
+  static calculateAIAgentFee(amount: number, currency: string, agentCommissionRate: number = 0.005, paymentMethod: 'card' | 'crypto' | 'bank' = 'card'): AIAgentFeeCalculation {
+    let platformFee = Math.max(amount * this.AI_AGENT_FEE_RATE, this.MIN_AI_AGENT_FEE);
+    
+    // Add payment method surcharge/discount
+    let paymentSurcharge = 0;
+    if (paymentMethod === 'card') {
+      paymentSurcharge = amount * this.CREDIT_CARD_SURCHARGE;
+    } else if (paymentMethod === 'crypto') {
+      paymentSurcharge = amount * this.CRYPTO_PAYMENT_DISCOUNT; // Negative = discount
+    }
+    
     const agentCommission = amount * agentCommissionRate;
     const networkFee = amount * this.NETWORK_DISCOVERY_FEE;
     const gasFee = this.estimateGasFee(currency);
-    const totalFee = platformFee + agentCommission + networkFee + gasFee;
+    const totalFee = platformFee + agentCommission + networkFee + gasFee + paymentSurcharge;
     
     return {
       amount,
-      platformFee,
+      platformFee: platformFee + paymentSurcharge,
       agentCommission,
       networkFee,
       gasFee,
       totalFee,
       netAmount: amount - totalFee,
       currency,
-      fee: totalFee
+      fee: totalFee,
+      breakdown: {
+        platformFee: platformFee,
+        gasFee: gasFee,
+        agentCommission: agentCommission,
+        networkFee: networkFee,
+        paymentSurcharge: paymentSurcharge
+      }
     };
   }
 
@@ -209,9 +229,11 @@ export class FeeCalculator {
   }
 
   static formatFeeBreakdown(calculation: AIAgentFeeCalculation): string {
+    const breakdown = calculation.breakdown || {};
     return `
 Transaction Amount: ${calculation.amount} ${calculation.currency}
-Platform Fee (2%): ${calculation.platformFee} ${calculation.currency}
+Platform Fee (3.5%): ${breakdown.platformFee || 0} ${calculation.currency}
+Payment Processing: ${breakdown.paymentSurcharge || 0} ${calculation.currency}
 Agent Commission: ${calculation.agentCommission} ${calculation.currency}
 Network Fee: ${calculation.networkFee} ${calculation.currency}
 Gas Fee: ${calculation.gasFee} ${calculation.currency}
@@ -219,5 +241,19 @@ Total Fees: ${calculation.totalFee} ${calculation.currency}
 Net Amount: ${calculation.netAmount} ${calculation.currency}
 Fee Collection Wallet: ${this.getFeeWalletAddress(calculation.currency)}
     `.trim();
+  }
+
+  // Calculate payment method specific fee
+  static calculatePaymentMethodFee(amount: number, method: 'card' | 'crypto' | 'bank'): number {
+    switch (method) {
+      case 'card':
+        return amount * this.CREDIT_CARD_SURCHARGE;
+      case 'crypto':
+        return amount * this.CRYPTO_PAYMENT_DISCOUNT; // Negative = discount
+      case 'bank':
+        return 0; // No surcharge for direct bank transfers
+      default:
+        return 0;
+    }
   }
 }

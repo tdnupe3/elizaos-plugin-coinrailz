@@ -39,6 +39,7 @@ import { registerDemoRoutes } from './routes-demo';
 import { EnhancedReferralService } from './services/enhancedReferralService';
 import { TransactionCompletionHooks } from './services/transactionCompletionHooks';
 import { paypalService } from './services/paypalService';
+import recruitmentRoutes from './routes/recruitment';
 // Notification service will be imported dynamically in route handlers
 
 // Helper functions for agent verification status
@@ -96,6 +97,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(SecurityHardening.memoryProtection());
     app.use(SecurityHardening.enhancedCSRFProtection());
     app.use(DatabaseSecurity.connectionLimiter());
+
+  // AI Agent Recruitment Routes
+  app.use('/api/recruitment', recruitmentRoutes);
+
     app.use(DatabaseSecurity.circuitBreaker());
     app.use(DataEncryption.piiEncryptionMiddleware());
     app.use(DataEncryption.responseSanitizationMiddleware());

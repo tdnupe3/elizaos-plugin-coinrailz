@@ -45,6 +45,7 @@ import { ProductionErrorHandler, requestTimeout, requestLogger } from './middlew
 import { productionOptimizer } from './services/productionOptimizer';
 import { WebhookValidator } from './services/webhookValidator';
 import { ProductionValidator } from './services/productionValidator';
+import { productionLoadTester } from './services/loadTester';
 // Notification service will be imported dynamically in route handlers
 
 // Helper functions for agent verification status
@@ -246,6 +247,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         error: 'Production validation failed',
+        message: error.message
+      });
+    }
+  });
+
+  // Production load testing endpoint
+  app.post('/api/load-test/comprehensive', async (req, res) => {
+    try {
+      console.log('Starting comprehensive load testing...');
+      const testResults = await productionLoadTester.runComprehensiveLoadTest();
+      
+      const statusCode = testResults.overall === 'pass' ? 200 : 206;
+      
+      res.status(statusCode).json({
+        success: true,
+        loadTest: testResults,
+        timestamp: new Date().toISOString(),
+        recommendations: testResults.overall === 'pass' 
+          ? ['Platform ready for production deployment']
+          : ['Address failing tests before deployment']
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Load testing failed',
+        message: error.message
+      });
+    }
+  });
+
+  // Business logic validation endpoint
+  app.get('/api/validate/business-logic', async (req, res) => {
+    try {
+      // Test profitability across all scenarios
+      const scenarios = [
+        { amount: 5, method: 'stripe', name: 'Minimum Transaction' },
+        { amount: 25, method: 'paypal', name: 'Small Transaction' },
+        { amount: 100, method: 'crypto', name: 'Medium Transaction' },
+        { amount: 500, method: 'stripe', name: 'Large Transaction' },
+        { amount: 1000, method: 'crypto', name: 'Enterprise Transaction' }
+      ];
+
+      const results = scenarios.map(scenario => {
+        const feeCalc = FeeCalculator.calculateP2PFees(scenario.amount, scenario.method);
+        
+        // Calculate processing costs
+        let processingCost = 0;
+        if (scenario.method === 'stripe' || scenario.method === 'paypal') {
+          processingCost = scenario.amount * 0.029 + 0.30;
+        }
+        
+        const profit = feeCalc.totalFee - processingCost;
+        const margin = (profit / feeCalc.totalFee) * 100;
+        
+        return {
+          scenario: scenario.name,
+          amount: scenario.amount,
+          method: scenario.method,
+          platformFee: feeCalc.totalFee,
+          processingCost,
+          profit,
+          margin: parseFloat(margin.toFixed(2)),
+          profitable: profit > 0 && margin > 30
+        };
+      });
+
+      const allProfitable = results.every(r => r.profitable);
+      const avgMargin = results.reduce((sum, r) => sum + r.margin, 0) / results.length;
+      
+      // Calculate daily break-even
+      const avgProfit = results.reduce((sum, r) => sum + r.profit, 0) / results.length;
+      const dailyOperatingCost = 50; // Estimated daily costs
+      const breakEvenTransactions = Math.ceil(dailyOperatingCost / avgProfit);
+      
+      res.json({
+        success: true,
+        businessLogic: {
+          valid: allProfitable,
+          averageMargin: parseFloat(avgMargin.toFixed(2)),
+          scenarios: results,
+          breakEven: {
+            transactionsPerDay: breakEvenTransactions,
+            volumePerDay: breakEvenTransactions * 100, // Assuming $100 avg
+            monthlyRevenuePotential: breakEvenTransactions * avgProfit * 30
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Business logic validation failed',
         message: error.message
       });
     }

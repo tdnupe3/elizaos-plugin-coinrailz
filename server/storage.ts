@@ -197,21 +197,51 @@ export class DatabaseStorage implements IStorage {
     return newWallet;
   }
 
-  async updateWalletBalance(userId: string, currency: string, amount: string, operation: 'add' | 'subtract'): Promise<WalletBalance> {
-    const operator = operation === 'add' ? '+' : '-';
-    const [wallet] = await db
-      .update(walletBalances)
-      .set({ 
-        balance: sql`${walletBalances.balance} ${sql.raw(operator)} ${amount}`,
-        availableBalance: sql`${walletBalances.availableBalance} ${sql.raw(operator)} ${amount}`,
-        updatedAt: new Date()
-      })
+  async updateWalletBalance(userId: string, currency: string, amount: string, operation: 'add' | 'subtract' | 'set'): Promise<WalletBalance> {
+    let updateData: any = { updatedAt: new Date() };
+    
+    if (operation === 'set') {
+      updateData.balance = amount;
+      updateData.availableBalance = amount;
+    } else {
+      const operator = operation === 'add' ? '+' : '-';
+      updateData.balance = sql`${walletBalances.balance} ${sql.raw(operator)} ${amount}`;
+      updateData.availableBalance = sql`${walletBalances.availableBalance} ${sql.raw(operator)} ${amount}`;
+    }
+
+    // First check if wallet balance record exists
+    const existing = await db.select().from(walletBalances)
       .where(and(
         eq(walletBalances.userId, userId),
         eq(walletBalances.currency, currency)
-      ))
-      .returning();
-    return wallet;
+      )).limit(1);
+
+    if (existing.length === 0) {
+      // Create new wallet balance record
+      const [newWallet] = await db
+        .insert(walletBalances)
+        .values({
+          userId,
+          currency,
+          balance: amount,
+          availableBalance: amount,
+          frozenBalance: "0.00000000",
+          isActive: true
+        })
+        .returning();
+      return newWallet;
+    } else {
+      // Update existing record
+      const [wallet] = await db
+        .update(walletBalances)
+        .set(updateData)
+        .where(and(
+          eq(walletBalances.userId, userId),
+          eq(walletBalances.currency, currency)
+        ))
+        .returning();
+      return wallet;
+    }
   }
 
   async freezeWalletFunds(userId: string, currency: string, amount: string): Promise<void> {

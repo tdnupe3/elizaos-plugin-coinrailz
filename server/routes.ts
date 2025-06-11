@@ -28,6 +28,7 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
+import { UserWalletService } from './services/userWalletService';
 import { XRPServiceSimple } from "./services/xrpServiceSimple";
 import { XRPEndpoints } from "./services/xrpEndpoints";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
@@ -5034,6 +5035,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         success: false, 
         message: error.message || 'Failed to validate address' 
+      });
+    }
+  });
+
+  // XRP Wallet Management Routes
+  app.get('/api/wallets/xrp', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const walletInfo = await UserWalletService.getUserXRPWallet(userId);
+      
+      if (walletInfo) {
+        res.json({
+          success: true,
+          ...walletInfo
+        });
+      } else {
+        res.json({
+          success: true,
+          isConnected: false,
+          address: null,
+          balance: 0
+        });
+      }
+    } catch (error: any) {
+      console.error('Error getting XRP wallet:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get wallet information'
+      });
+    }
+  });
+
+  app.post('/api/wallets/xrp/connect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { walletAddress } = req.body;
+
+      if (!walletAddress) {
+        return res.status(400).json({
+          success: false,
+          message: 'Wallet address is required'
+        });
+      }
+
+      const result = await UserWalletService.connectXRPWallet(userId, walletAddress);
+      
+      if (result.success) {
+        res.json({
+          success: true,
+          message: result.message,
+          walletInfo: result.walletInfo
+        });
+      } else {
+        res.status(400).json({
+          success: false,
+          message: result.message
+        });
+      }
+    } catch (error: any) {
+      console.error('Error connecting XRP wallet:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to connect wallet'
+      });
+    }
+  });
+
+  app.post('/api/wallets/xrp/disconnect', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await UserWalletService.disconnectXRPWallet(userId);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error disconnecting XRP wallet:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to disconnect wallet'
+      });
+    }
+  });
+
+  app.post('/api/wallets/xrp/refresh', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const result = await UserWalletService.refreshXRPBalance(userId);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error('Error refreshing XRP balance:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to refresh balance'
       });
     }
   });

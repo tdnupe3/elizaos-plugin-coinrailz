@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { BookUser, Shield, Send, Zap, Clock, TrendingDown } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BookUser, Shield, Send, Zap, Clock, TrendingDown, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sendMoneySchema, type SendMoney } from "@shared/schema";
@@ -52,13 +53,39 @@ export function SendMoneyForm() {
     enabled: paymentMethod === 'xrp' && !!form.watch('amount') && parseFloat(form.watch('amount')) > 0
   });
 
+  // Check user's XRP wallet status
+  const { data: xrpWallet } = useQuery({
+    queryKey: ['/api/wallets/xrp', user?.id],
+    queryFn: async () => {
+      const response = await fetch('/api/wallets/xrp');
+      return response.json();
+    },
+    enabled: !!user && paymentMethod === 'xrp'
+  });
+
   const sendMoneyMutation = useMutation({
     mutationFn: async (data: SendMoney) => {
+      // For XRP payments, check wallet connection first
+      if (paymentMethod === 'xrp') {
+        if (!xrpWallet?.isConnected) {
+          throw new Error('Please connect your XRP wallet first in Wallet Management');
+        }
+        
+        // Check sufficient balance
+        const requiredAmount = parseFloat(data.amount);
+        const totalCost = xrpFees?.totalCost || requiredAmount;
+        
+        if (xrpWallet.balance < totalCost) {
+          throw new Error(`Insufficient XRP balance. Required: ${totalCost.toFixed(6)} XRP, Available: ${xrpWallet.balance.toFixed(6)} XRP`);
+        }
+      }
+
       const endpoint = paymentMethod === 'xrp' ? '/api/xrp/send' : '/api/transactions/send';
       const payload = paymentMethod === 'xrp' ? {
         ...data,
         paymentMethod: 'xrp',
-        amount: parseFloat(data.amount)
+        amount: parseFloat(data.amount),
+        fromWallet: xrpWallet?.address
       } : data;
       
       const response = await apiRequest("POST", endpoint, payload);
@@ -277,11 +304,28 @@ export function SendMoneyForm() {
               </div>
             </div>
 
+            {/* XRP Wallet Connection Alert */}
+            {paymentMethod === 'xrp' && !xrpWallet?.isConnected && (
+              <Alert>
+                <AlertCircle className="w-4 h-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Connect your XRP wallet to enable lightning-fast transfers</span>
+                  <Button 
+                    size="sm" 
+                    onClick={() => window.open('/wallet-management', '_blank')}
+                    className="ml-2"
+                  >
+                    Connect Wallet
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Submit Button */}
             <Button 
               type="submit" 
               className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 flex items-center justify-center space-x-2"
-              disabled={sendMoneyMutation.isPending}
+              disabled={sendMoneyMutation.isPending || (paymentMethod === 'xrp' && !xrpWallet?.isConnected)}
             >
               {paymentMethod === 'xrp' ? (
                 <Zap className="w-4 h-4" />
@@ -292,7 +336,9 @@ export function SendMoneyForm() {
                 {sendMoneyMutation.isPending 
                   ? "Sending..." 
                   : paymentMethod === 'xrp' 
-                    ? "Send via XRP Lightning" 
+                    ? !xrpWallet?.isConnected
+                      ? "Connect XRP Wallet First"
+                      : "Send via XRP Lightning" 
                     : "Send Money"
                 }
               </span>

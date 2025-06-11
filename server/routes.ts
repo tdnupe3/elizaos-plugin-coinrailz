@@ -29,6 +29,8 @@ import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
 import { XRPServiceSimple } from "./services/xrpServiceSimple";
+import { XRPEndpoints } from "./services/xrpEndpoints";
+import { registerXRPRoutes } from "./xrpRoutesReplacement";
 import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";
@@ -4537,18 +4539,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   })();
 
-  // Create XRP wallet
+  // Register all XRP endpoints with simplified service
+  registerXRPRoutes(app, isAuthenticated);
+
+  // Legacy XRP wallet endpoint (keeping for compatibility)
   app.post('/api/xrp/wallet/create', isAuthenticated, async (req: any, res) => {
     try {
       const wallet = await XRPServiceSimple.createWallet();
       
       res.json({
         success: true,
-        wallet: {
-          address: wallet.address,
-          publicKey: wallet.publicKey,
-          seed: wallet.seed
-        }
+        wallet
       });
     } catch (error: any) {
       console.error('Error creating XRP wallet:', error);

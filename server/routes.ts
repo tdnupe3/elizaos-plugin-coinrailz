@@ -31,6 +31,7 @@ import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
 import { XRPServiceSimple } from "./services/xrpServiceSimple";
 import { XRPEndpoints } from "./services/xrpEndpoints";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
+import { PlatformWalletService } from "./services/platformWalletService";
 import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";
@@ -4529,18 +4530,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ultra-low fees (~$0.0002) with 3-5 second settlement
   // ==============================================
 
-  // Initialize XRP service on startup
+  // Initialize XRP service and platform wallet on startup
   (async () => {
     try {
       await XRPServiceSimple.initialize();
       console.log('XRP service initialized successfully');
+      
+      // Initialize platform wallet for fee collection
+      await PlatformWalletService.initializePlatformWallet();
+      console.log('Platform XRP wallet initialized for fee collection');
     } catch (error) {
-      console.error('Failed to initialize XRP service:', error);
+      console.error('Failed to initialize XRP services:', error);
     }
   })();
 
   // Register all XRP endpoints with simplified service
   registerXRPRoutes(app, isAuthenticated);
+
+  // Platform wallet management endpoints
+  app.get('/api/admin/platform-wallet', async (req, res) => {
+    try {
+      const wallet = await PlatformWalletService.getPlatformWallet();
+      const balance = await PlatformWalletService.getPlatformBalance();
+      const feeInfo = await PlatformWalletService.getFeeCollectionInfo();
+      
+      res.json({
+        success: true,
+        wallet: {
+          address: wallet.address,
+          isActive: wallet.isActive,
+          createdAt: wallet.createdAt
+        },
+        balance,
+        feeInfo
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to get platform wallet info'
+      });
+    }
+  });
+
+  app.get('/api/admin/platform-wallet/stats', async (req, res) => {
+    try {
+      const stats = await PlatformWalletService.getFeeStats();
+      res.json({
+        success: true,
+        stats
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to get fee statistics'
+      });
+    }
+  });
 
   // Legacy XRP wallet endpoint (keeping for compatibility)
   app.post('/api/xrp/wallet/create', isAuthenticated, async (req: any, res) => {

@@ -4523,6 +4523,333 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ==============================================
+  // XRP LEDGER INTEGRATION - CROSS-BORDER PAYMENTS
+  // Ultra-low fees (~$0.0002) with 3-5 second settlement
+  // ==============================================
+
+  // Initialize XRP Ledger on startup
+  (async () => {
+    try {
+      await XRPLedgerService.initialize();
+      console.log('XRP Ledger service initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize XRP Ledger service:', error);
+    }
+  })();
+
+  // Create XRP wallet
+  app.post('/api/xrp/wallet/create', isAuthenticated, async (req: any, res) => {
+    try {
+      const wallet = await XRPLedgerService.createWallet();
+      
+      res.json({
+        success: true,
+        wallet: {
+          address: wallet.address,
+          publicKey: wallet.publicKey,
+          seed: wallet.seed
+        }
+      });
+    } catch (error: any) {
+      console.error('Error creating XRP wallet:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to create XRP wallet' 
+      });
+    }
+  });
+
+  // Get XRP balance
+  app.get('/api/xrp/balance/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      if (!XRPLedgerService.validateAddress(address)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid XRP address'
+        });
+      }
+
+      const balance = await XRPLedgerService.getBalance(address);
+      const balanceUSD = await XRPLedgerService.xrpToUSD(balance);
+      
+      res.json({
+        success: true,
+        balance: {
+          xrp: balance,
+          usd: balanceUSD
+        }
+      });
+    } catch (error: any) {
+      console.error('Error getting XRP balance:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get balance' 
+      });
+    }
+  });
+
+  // Send XRP payment (3-5 second settlement)
+  app.post('/api/xrp/send', isAuthenticated, async (req: any, res) => {
+    try {
+      const { senderSeed, recipientAddress, amount, currency, memo } = req.body;
+      
+      const validation = XRPPaymentService.validatePaymentParams({
+        amount: parseFloat(amount),
+        toAddress: recipientAddress,
+        currency: currency || 'XRP'
+      });
+
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: validation.errors.join(', ')
+        });
+      }
+
+      const paymentRequest = {
+        fromAddress: XRPLedgerService.getWalletFromSeed(senderSeed).address,
+        fromSeed: senderSeed,
+        toAddress: recipientAddress,
+        amount: parseFloat(amount),
+        currency: currency || 'XRP',
+        memo
+      };
+
+      const result = await XRPPaymentService.processPayment(paymentRequest);
+      
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+
+      res.json({
+        success: true,
+        transaction: {
+          hash: result.transactionHash,
+          amount: result.amount,
+          fee: result.fee,
+          exchangeRate: result.exchangeRate,
+          settlementTime: '3-5 seconds'
+        }
+      });
+    } catch (error: any) {
+      console.error('Error sending XRP payment:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to send payment' 
+      });
+    }
+  });
+
+  // Cross-border payment with cost comparison
+  app.post('/api/xrp/cross-border', isAuthenticated, async (req: any, res) => {
+    try {
+      const { fromCountry, toCountry, amount, currency, recipientAddress, memo } = req.body;
+
+      if (!fromCountry || !toCountry || !amount || !recipientAddress) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields'
+        });
+      }
+
+      const payment = {
+        fromCountry,
+        toCountry,
+        amount: parseFloat(amount),
+        currency: currency || 'USD',
+        recipientAddress,
+        memo
+      };
+
+      const result = await XRPPaymentService.processCrossBorderPayment(payment);
+      const costComparison = await XRPPaymentService.calculateCostComparison(parseFloat(amount));
+      const corridor = await XRPPaymentService.getCorridorOptimization(fromCountry, toCountry, parseFloat(amount));
+
+      res.json({
+        success: true,
+        payment: result,
+        costComparison,
+        corridor,
+        advantages: [
+          '3-5 second settlement vs 3-7 business days',
+          `Save ${costComparison.savings.percentage.toFixed(1)}% on fees`,
+          '24/7 availability vs banking hours only',
+          'Real-time tracking and confirmation'
+        ]
+      });
+    } catch (error: any) {
+      console.error('Error processing cross-border payment:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to process cross-border payment' 
+      });
+    }
+  });
+
+  // Get current XRP/USD exchange rate
+  app.get('/api/xrp/rate', async (req, res) => {
+    try {
+      const rate = await XRPLedgerService.getXRPUSDRate();
+      
+      res.json({
+        success: true,
+        rate: {
+          xrpToUsd: rate,
+          usdToXrp: 1 / rate,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error('Error getting XRP rate:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get exchange rate' 
+      });
+    }
+  });
+
+  // Calculate XRP transaction fees (ultra-low)
+  app.post('/api/xrp/fees/calculate', async (req, res) => {
+    try {
+      const { amount } = req.body;
+
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid amount required'
+        });
+      }
+
+      const fees = FeeCalculator.calculateXRPFees(parseFloat(amount));
+      const networkFee = await XRPLedgerService.calculateTransactionFee();
+      const costComparison = await XRPPaymentService.calculateCostComparison(parseFloat(amount));
+
+      res.json({
+        success: true,
+        fees: {
+          amount: fees.originalAmount,
+          platformFee: fees.platformFee,
+          networkFee: networkFee,
+          totalFee: fees.totalFee,
+          total: fees.totalAmount
+        },
+        costComparison,
+        advantages: [
+          `Ultra-low network fee: ~$${networkFee.toFixed(6)}`,
+          `${costComparison.savings.percentage.toFixed(1)}% cheaper than traditional transfers`,
+          'Instant settlement vs days for wire transfers'
+        ]
+      });
+    } catch (error: any) {
+      console.error('Error calculating XRP fees:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to calculate fees' 
+      });
+    }
+  });
+
+  // Get XRP transaction history
+  app.get('/api/xrp/transactions/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      if (!XRPLedgerService.validateAddress(address)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid XRP address'
+        });
+      }
+
+      const transactions = await XRPLedgerService.getTransactionHistory(address, limit);
+      
+      res.json({
+        success: true,
+        transactions,
+        address,
+        count: transactions.length
+      });
+    } catch (error: any) {
+      console.error('Error getting transaction history:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get transaction history' 
+      });
+    }
+  });
+
+  // Process XRP-based AI agent referral payout
+  app.post('/api/xrp/agent/referral-payout', isAuthenticated, async (req: any, res) => {
+    try {
+      const { agentAddress, rewardAmount, transactionId, platformSeed } = req.body;
+
+      if (!agentAddress || !rewardAmount || !transactionId || !platformSeed) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields'
+        });
+      }
+
+      const result = await XRPPaymentService.processAgentReferralPayout(
+        agentAddress,
+        parseFloat(rewardAmount),
+        transactionId,
+        platformSeed
+      );
+
+      res.json({
+        success: result.success,
+        transaction: result.success ? {
+          hash: result.transactionHash,
+          amount: result.amount,
+          fee: result.fee,
+          recipient: agentAddress,
+          type: 'referral_payout'
+        } : null,
+        error: result.error
+      });
+    } catch (error: any) {
+      console.error('Error processing XRP referral payout:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to process referral payout' 
+      });
+    }
+  });
+
+  // Validate XRP address
+  app.post('/api/xrp/validate-address', async (req, res) => {
+    try {
+      const { address } = req.body;
+
+      if (!address) {
+        return res.status(400).json({
+          success: false,
+          message: 'Address required'
+        });
+      }
+
+      const isValid = XRPLedgerService.validateAddress(address);
+      
+      res.json({
+        success: true,
+        valid: isValid,
+        address,
+        format: isValid ? 'Valid XRP address format' : 'Invalid XRP address format'
+      });
+    } catch (error: any) {
+      console.error('Error validating XRP address:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to validate address' 
+      });
+    }
+  });
+
   // Register demo routes for comprehensive functionality mirroring
   registerDemoRoutes(app);
 

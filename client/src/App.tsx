@@ -120,9 +120,7 @@ function Router() {
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
-      <Route path="/fees">
-        {() => <LazyLoadWrapper><FeeStructure /></LazyLoadWrapper>}
-      </Route>
+
       <Route path="/signup-flow" component={SignupFlowDemo} />
       <Route path="/legal-disclaimers" component={LegalDisclaimers} />
       <Route path="/contact-us" component={ContactUs} />

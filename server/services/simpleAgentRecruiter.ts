@@ -66,31 +66,54 @@ export class SimpleAgentRecruiter {
   private async searchGitHubAgents(): Promise<any[]> {
     const agents: any[] = [];
     
+    if (!process.env.GITHUB_TOKEN) {
+      console.log("GitHub token not configured. Using unauthenticated API (limited rate)");
+      console.log("To enable full GitHub recruitment, add GITHUB_TOKEN to environment");
+    }
+    
     for (const term of this.discoveryChannels.github.searchTerms) {
       try {
+        const headers: any = {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'CoinRailz-Recruiter/1.0'
+        };
+        
+        if (process.env.GITHUB_TOKEN) {
+          headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+        }
+        
         const response = await fetch(
-          `${this.discoveryChannels.github.apiUrl}?q=${term}+language:python+language:javascript&sort=updated&per_page=20`
+          `${this.discoveryChannels.github.apiUrl}?q=${term}+language:python+language:javascript&sort=updated&per_page=20`,
+          { headers }
         );
         
         if (response.ok) {
           const data = await response.json();
           
           for (const repo of data.items || []) {
-            agents.push({
-              type: 'github',
-              name: repo.full_name,
-              owner: repo.owner.login,
-              email: null, // Will need to get from commits or profile
-              profile: repo.html_url,
-              description: repo.description,
-              stars: repo.stargazers_count,
-              language: repo.language,
-              lastUpdated: repo.updated_at
-            });
+            // Filter for quality repositories
+            if (repo.stargazers_count >= 3 && repo.owner.type === 'User') {
+              agents.push({
+                type: 'github',
+                name: repo.full_name,
+                owner: repo.owner.login,
+                email: null, // Will fetch from profile
+                profile: repo.owner.html_url,
+                repoUrl: repo.html_url,
+                description: repo.description,
+                stars: repo.stargazers_count,
+                language: repo.language,
+                lastUpdated: repo.updated_at,
+                searchTerm: term
+              });
+            }
           }
+        } else if (response.status === 403) {
+          console.log(`GitHub API rate limit reached for search term: ${term}`);
+          break; // Stop if rate limited
         }
         
-        await this.delay(1000); // GitHub rate limiting
+        await this.delay(process.env.GITHUB_TOKEN ? 1000 : 2000); // Longer delay without token
       } catch (error) {
         console.error(`Error searching GitHub for ${term}:`, error);
       }
@@ -241,13 +264,92 @@ recruitment@coinrailz.com
   }
 
   private async contactGitHubUser(agent: any, message: string): Promise<void> {
-    // For GitHub, we'd typically:
-    // 1. Check if they have an email in their profile
-    // 2. Look at recent commits for email
-    // 3. Create an issue on their repo (as last resort)
-    
-    console.log(`📬 Preparing GitHub outreach for ${agent.name}`);
-    // This would integrate with GitHub API to get user email or create issues
+    try {
+      // Try to get user email from GitHub profile
+      const email = await this.getGitHubUserEmail(agent.owner);
+      
+      if (email) {
+        console.log(`📧 Found email for ${agent.owner}: ${email}`);
+        await this.sendEmailRecruitment(email, message);
+      } else {
+        // Fallback: Create recruitment issue on their most starred repo
+        console.log(`📝 Creating recruitment issue for ${agent.owner} on ${agent.name}`);
+        await this.createRecruitmentIssue(agent, message);
+      }
+    } catch (error) {
+      console.error(`Error contacting GitHub user ${agent.owner}:`, error);
+    }
+  }
+
+  private async getGitHubUserEmail(username: string): Promise<string | null> {
+    if (!process.env.GITHUB_TOKEN) {
+      console.log("GitHub token required to fetch user emails");
+      return null;
+    }
+
+    try {
+      const response = await fetch(`https://api.github.com/users/${username}`, {
+        headers: {
+          'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'CoinRailz-Recruiter/1.0'
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        return userData.email;
+      }
+    } catch (error) {
+      console.error(`Error fetching GitHub user ${username}:`, error);
+    }
+
+    return null;
+  }
+
+  private async createRecruitmentIssue(agent: any, message: string): Promise<void> {
+    if (!process.env.GITHUB_TOKEN) {
+      console.log("GitHub token required to create issues");
+      return;
+    }
+
+    try {
+      const issueBody = `
+Hello ${agent.owner}!
+
+I came across your ${agent.language} project "${agent.name}" and was impressed by your work${agent.description ? ` on ${agent.description}` : ''}.
+
+${message}
+
+Feel free to close this issue after reading. Thanks for your time!
+
+---
+*This is an automated recruitment message. If you'd prefer not to receive these, please let us know.*
+      `.trim();
+
+      const response = await fetch(`https://api.github.com/repos/${agent.name}/issues`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'CoinRailz-Recruiter/1.0',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: 'Invitation: Monetize Your AI/Bot on Coin Railz Marketplace',
+          body: issueBody,
+          labels: ['invitation', 'opportunity']
+        })
+      });
+
+      if (response.ok) {
+        console.log(`✅ Created recruitment issue for ${agent.owner}`);
+      } else {
+        console.log(`❌ Failed to create issue for ${agent.owner}: ${response.status}`);
+      }
+    } catch (error) {
+      console.error(`Error creating GitHub issue for ${agent.owner}:`, error);
+    }
   }
 
   private async contactRedditUser(agent: any, message: string): Promise<void> {

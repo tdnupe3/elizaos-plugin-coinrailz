@@ -54,4 +54,45 @@ router.get('/recruitment-status', async (req, res) => {
   }
 });
 
+// Test GitHub discovery system
+router.post('/test-github-discovery', async (req, res) => {
+  try {
+    console.log("Testing GitHub agent discovery...");
+    
+    // Run agent discovery
+    const discoveredAgents = await agentRecruiter.discoverPotentialAgents();
+    
+    res.json({
+      success: true,
+      message: "GitHub discovery test completed",
+      results: {
+        totalDiscovered: discoveredAgents.length,
+        githubTokenConfigured: !!process.env.GITHUB_TOKEN,
+        sampleAgents: discoveredAgents.slice(0, 5).map(agent => ({
+          type: agent.type,
+          owner: agent.owner,
+          repoName: agent.name,
+          description: agent.description?.substring(0, 100) + "...",
+          stars: agent.stars,
+          language: agent.language,
+          searchTerm: agent.searchTerm
+        })),
+        apiStatus: {
+          github: process.env.GITHUB_TOKEN ? "authenticated" : "unauthenticated (limited)",
+          reddit: "public API (no auth needed)",
+          twitter: "requires paid API access",
+          email: "waiting for coinrailz.com setup"
+        }
+      }
+    });
+  } catch (error) {
+    console.error("GitHub discovery test error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Discovery test failed",
+      error: error.message 
+    });
+  }
+});
+
 export default router;

@@ -4560,20 +4560,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get XRP balance
+  // Get XRP balance (using simplified service)
   app.get('/api/xrp/balance/:address', async (req, res) => {
     try {
       const { address } = req.params;
       
-      if (!XRPLedgerService.validateAddress(address)) {
+      if (!XRPServiceSimple.validateAddress(address)) {
         return res.status(400).json({
           success: false,
           message: 'Invalid XRP address'
         });
       }
 
-      const balance = await XRPLedgerService.getBalance(address);
-      const balanceUSD = await XRPLedgerService.xrpToUSD(balance);
+      const balance = await XRPServiceSimple.getBalance(address);
+      const balanceUSD = await XRPServiceSimple.xrpToUSD(balance);
       
       res.json({
         success: true,

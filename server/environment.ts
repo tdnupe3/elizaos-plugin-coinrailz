@@ -90,7 +90,7 @@ function validateEnvironment(): EnvironmentConfig {
     
     PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
     PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
-    PAYPAL_ENVIRONMENT: (process.env.PAYPAL_ENVIRONMENT as EnvironmentConfig['PAYPAL_ENVIRONMENT']) || 'sandbox',
+    PAYPAL_ENVIRONMENT: (process.env.PAYPAL_ENVIRONMENT as EnvironmentConfig['PAYPAL_ENVIRONMENT']) || 'production',
     
     COINBASE_API_KEY: process.env.COINBASE_API_KEY,
     COINBASE_API_SECRET: process.env.COINBASE_API_SECRET,

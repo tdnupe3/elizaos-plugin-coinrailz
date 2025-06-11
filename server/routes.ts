@@ -33,6 +33,7 @@ import { XRPEndpoints } from "./services/xrpEndpoints";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
 import { PlatformWalletService } from "./services/platformWalletService";
 import { RealXRPWallet } from "./services/realXRPWallet";
+import { FeeCalculator } from "./services/feeCalculator";
 import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";
@@ -4584,6 +4585,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({
         success: false,
         message: error.message || 'Failed to get fee statistics'
+      });
+    }
+  });
+
+  // Enhanced XRP Fee Calculator with Tiered Structure
+  app.post('/api/fees/calculate-xrp', async (req, res) => {
+    try {
+      const { amount } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid amount. Must be greater than 0.'
+        });
+      }
+
+      const fees = FeeCalculator.calculateXRPFees(amount);
+      const optimal = FeeCalculator.calculateOptimalAmount(amount);
+      
+      res.json({
+        success: true,
+        fees,
+        optimization: optimal,
+        feeEfficiency: {
+          percentage: Math.round((fees.totalFee / amount) * 10000) / 100,
+          tier: amount < 50 ? 'small' : amount <= 250 ? 'medium' : 'large',
+          description: fees.feeBreakdown?.description
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to calculate XRP fees'
+      });
+    }
+  });
+
+  // Compare All Payment Methods
+  app.post('/api/fees/compare-methods', async (req, res) => {
+    try {
+      const { amount } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid amount. Must be greater than 0.'
+        });
+      }
+
+      const comparison = FeeCalculator.compareAllMethods(amount);
+      
+      res.json({
+        success: true,
+        amount,
+        comparison,
+        insights: {
+          bestMethod: comparison.recommended,
+          xrpAdvantage: comparison.xrp.savings?.percentageSaved || 0,
+          traditionalWireFee: comparison.xrp.savings?.vsCompetitor || 0
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to compare payment methods'
+      });
+    }
+  });
+
+  // Fee Structure Information
+  app.get('/api/fees/structure', async (req, res) => {
+    try {
+      res.json({
+        success: true,
+        feeStructure: {
+          xrp: {
+            tiers: [
+              {
+                range: 'Under $50',
+                serviceFee: '$2.50-$3.50',
+                platformFee: '0.2%',
+                networkFee: '~$0.0002',
+                description: 'Small transactions with ledger convenience fee'
+              },
+              {
+                range: '$50-$250',
+                serviceFee: '$0.75-$1.50',
+                platformFee: '0.3%',
+                networkFee: '~$0.0002',
+                description: 'Medium transactions with reduced fees'
+              },
+              {
+                range: 'Over $250',
+                serviceFee: '$0',
+                platformFee: '0.5%',
+                networkFee: '~$0.0002',
+                description: 'Large transactions with competitive rates'
+              }
+            ],
+            advantages: [
+              'Ultra-low network fees (~$0.0002)',
+              'Instant settlement (3-5 seconds)',
+              '80-95% savings vs traditional wire transfers',
+              'Transparent fee structure',
+              'No hidden charges'
+            ]
+          },
+          traditional: {
+            wireTransfer: {
+              typical: '$25-$50 + 3-5%',
+              speed: '1-5 business days',
+              hidden: 'Exchange rate margins, correspondent bank fees'
+            }
+          }
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to get fee structure'
       });
     }
   });

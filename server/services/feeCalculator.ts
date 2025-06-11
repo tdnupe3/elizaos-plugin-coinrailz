@@ -12,6 +12,17 @@ export interface FeeCalculation {
   totalAmount: number;
   netAmount: number; // Amount after all fees
   paymentMethod: string;
+  feeBreakdown?: {
+    networkFee: number;
+    serviceFee: number;
+    platformFee: number;
+    description: string;
+  };
+  savings?: {
+    vsWireTransfer: number;
+    vsCompetitor: number;
+    percentageSaved: number;
+  };
 }
 
 export class FeeCalculator {
@@ -34,10 +45,10 @@ export class FeeCalculator {
   private static readonly PLATFORM_BASE_FEE = 0.01;
   
   /**
-   * XRP fee structure: Ultra-low network fees (~$0.0002) + 0.5% platform fee
+   * XRP fee structure: Ultra-low network fees (~$0.0002) + tiered platform fees
    */
   private static readonly XRP_NETWORK_FEE = 0.0002; // ~$0.0002 per transaction
-  private static readonly XRP_PLATFORM_FEE = 0.005; // 0.5% platform fee
+  private static readonly XRP_PLATFORM_FEE = 0.005; // 0.5% platform fee for large transactions
   
   /**
    * Calculate fees for Stripe credit card transactions with tiered service fees
@@ -126,29 +137,132 @@ export class FeeCalculator {
   }
   
   /**
-   * Calculate fees for XRP transactions (ultra-low fees)
+   * Calculate fees for XRP transactions with enhanced tiered structure
    */
   static calculateXRPFees(amount: number): FeeCalculation {
     const processingFee = this.XRP_NETWORK_FEE; // Ultra-low network fee (~$0.0002)
-    const convenienceFee = 0; // No convenience fee for XRP
     
-    // Competitive platform fee for XRP to encourage adoption
-    const platformFee = Math.round(amount * this.XRP_PLATFORM_FEE * 100) / 100; // 0.5% platform fee
+    let serviceFee = 0;
+    let platformFee = 0;
     
-    const totalFee = processingFee + platformFee;
+    if (amount < 50) {
+      // Small transactions under $50: Add ledger/convenience fee for profitability
+      serviceFee = amount < 25 ? 3.50 : 2.50; // $3.50 for <$25, $2.50 for $25-$49
+      platformFee = Math.round(amount * 0.002 * 100) / 100; // Reduced 0.2% platform fee
+    } else if (amount >= 50 && amount <= 250) {
+      // Medium transactions $50-$250: Service fee + reduced platform fee
+      serviceFee = amount < 100 ? 1.50 : 0.75; // $1.50 for $50-$99, $0.75 for $100-$250
+      platformFee = Math.round(amount * 0.003 * 100) / 100; // 0.3% platform fee
+    } else {
+      // Large transactions over $250: Standard 0.5% platform fee (most competitive)
+      serviceFee = 0; // No service fee for large transactions
+      platformFee = Math.round(amount * this.XRP_PLATFORM_FEE * 100) / 100; // 0.5% platform fee
+    }
+    
+    const totalFee = processingFee + serviceFee + platformFee;
     const totalAmount = amount + totalFee;
     const netAmount = totalAmount - processingFee;
+    
+    // Calculate savings vs traditional wire transfer (typically $25-50 + 3-5%)
+    const wireTransferFee = Math.max(25, amount * 0.03); // $25 minimum or 3%
+    const savings = wireTransferFee - totalFee;
+    const percentageSaved = Math.round((savings / wireTransferFee) * 100);
     
     return {
       originalAmount: amount,
       processingFee,
-      convenienceFee,
+      convenienceFee: serviceFee, // Service fee displayed as convenience fee
       platformFee,
       totalFee,
       totalAmount,
       netAmount,
-      paymentMethod: 'xrp'
+      paymentMethod: 'xrp',
+      feeBreakdown: {
+        networkFee: processingFee,
+        serviceFee: serviceFee,
+        platformFee: platformFee,
+        description: FeeCalculator.getXRPFeeDescription(amount)
+      },
+      savings: {
+        vsWireTransfer: savings,
+        vsCompetitor: wireTransferFee,
+        percentageSaved: percentageSaved
+      }
     };
+  }
+
+  /**
+   * Get XRP fee description based on transaction amount
+   */
+  static getXRPFeeDescription(amount: number): string {
+    if (amount < 50) {
+      return `Small transaction fee includes ledger convenience fee for instant XRP settlement`;
+    } else if (amount >= 50 && amount <= 250) {
+      return `Medium transaction with service fee plus ultra-low XRP network fee`;
+    } else {
+      return `Large transaction with competitive 0.5% platform fee and ultra-low XRP network fee`;
+    }
+  }
+
+  /**
+   * Calculate optimal transaction amount to minimize fee percentage
+   */
+  static calculateOptimalAmount(targetAmount: number): {
+    suggested: number;
+    currentFeePercentage: number;
+    suggestedFeePercentage: number;
+    savings: number;
+  } {
+    const currentFees = this.calculateXRPFees(targetAmount);
+    const currentPercentage = (currentFees.totalFee / targetAmount) * 100;
+    
+    // Suggest rounding to next fee tier if beneficial
+    let suggestedAmount = targetAmount;
+    
+    if (targetAmount < 50 && targetAmount > 40) {
+      suggestedAmount = 50; // Move to medium tier
+    } else if (targetAmount < 250 && targetAmount > 230) {
+      suggestedAmount = 250; // Move to large tier
+    }
+    
+    const suggestedFees = this.calculateXRPFees(suggestedAmount);
+    const suggestedPercentage = (suggestedFees.totalFee / suggestedAmount) * 100;
+    const savings = currentFees.totalFee - suggestedFees.totalFee;
+    
+    return {
+      suggested: suggestedAmount,
+      currentFeePercentage: Math.round(currentPercentage * 100) / 100,
+      suggestedFeePercentage: Math.round(suggestedPercentage * 100) / 100,
+      savings: Math.round(savings * 100) / 100
+    };
+  }
+
+  /**
+   * Compare all payment methods for a given amount
+   */
+  static compareAllMethods(amount: number): {
+    xrp: FeeCalculation;
+    stripe: FeeCalculation;
+    paypal: FeeCalculation;
+    crypto: FeeCalculation;
+    recommended: string;
+  } {
+    const xrp = this.calculateXRPFees(amount);
+    const stripe = this.calculateStripeFees(amount);
+    const paypal = this.calculatePayPalFees(amount);
+    const crypto = this.calculateCryptoFees(amount);
+    
+    // Determine recommended method (lowest total fee)
+    const methods = [
+      { name: 'xrp', fee: xrp.totalFee },
+      { name: 'stripe', fee: stripe.totalFee },
+      { name: 'paypal', fee: paypal.totalFee },
+      { name: 'crypto', fee: crypto.totalFee }
+    ];
+    
+    const recommended = methods.sort((a, b) => a.fee - b.fee)[0].name;
+    
+    return { xrp, stripe, paypal, crypto, recommended };
   }
 
   /**

@@ -40,6 +40,8 @@ import { EnhancedReferralService } from './services/enhancedReferralService';
 import { TransactionCompletionHooks } from './services/transactionCompletionHooks';
 import { paypalService } from './services/paypalService';
 import recruitmentRoutes from './routes/recruitment';
+import { apiHealthMonitor } from './services/apiHealthMonitor';
+import { ProductionErrorHandler, requestTimeout, requestLogger } from './middleware/productionErrorHandler';
 // Notification service will be imported dynamically in route handlers
 
 // Helper functions for agent verification status

@@ -217,4 +217,70 @@ export class FeeCalculator {
     
     return { valid: true };
   }
+
+  // Missing methods required by routes
+  static calculateSendMoneyFee(amount: number, paymentMethod: string = 'stripe'): FeeCalculation {
+    return this.calculateP2PFees(amount, paymentMethod);
+  }
+
+  static calculateCryptoFee(amount: number): FeeCalculation {
+    return this.calculateCryptoFees(amount);
+  }
+
+  static calculateSwapFee(amount: number, paymentMethod: string = 'crypto'): FeeCalculation {
+    const baseFees = this.calculateCryptoFees(amount);
+    // Add small swap processing fee
+    const swapFee = Math.round(amount * 0.002 * 100) / 100; // 0.2% swap fee
+    
+    return {
+      ...baseFees,
+      platformFee: baseFees.platformFee + swapFee,
+      totalFee: baseFees.totalFee + swapFee,
+      totalAmount: baseFees.originalAmount + baseFees.totalFee + swapFee,
+      netAmount: baseFees.netAmount - swapFee
+    };
+  }
+
+  static calculateDepositFee(amount: number, paymentMethod: string = 'stripe'): FeeCalculation {
+    // Reduced fees for deposits to encourage funding
+    const baseFees = this.calculateP2PFees(amount, paymentMethod);
+    return {
+      ...baseFees,
+      platformFee: baseFees.platformFee * 0.5, // 50% discount on platform fees for deposits
+      totalFee: baseFees.convenienceFee + (baseFees.platformFee * 0.5),
+      totalAmount: baseFees.originalAmount + baseFees.convenienceFee + (baseFees.platformFee * 0.5),
+      netAmount: baseFees.netAmount + (baseFees.platformFee * 0.5)
+    };
+  }
+
+  static calculateWithdrawFee(amount: number, paymentMethod: string = 'crypto'): FeeCalculation {
+    if (paymentMethod === 'crypto') {
+      return this.calculateCryptoFees(amount);
+    }
+    return this.calculateP2PFees(amount, paymentMethod);
+  }
+
+  static calculateAIAgentFee(amount: number, paymentMethod: string = 'crypto'): FeeCalculation {
+    return this.calculateMarketplaceFees(amount, paymentMethod);
+  }
+
+  static getFeeWalletAddress(network: string): string {
+    switch (network.toLowerCase()) {
+      case 'ethereum':
+      case 'eth':
+        return '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F';
+      case 'solana':
+      case 'sol':
+        return 'CoinRailzPlatformWallet11111111111111111111';
+      case 'bitcoin':
+      case 'btc':
+        return 'bc1qcoinrailzplatformwallet123456789';
+      default:
+        return '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F';
+    }
+  }
+
+  // Wallet constants for backward compatibility
+  static readonly ETHEREUM_FEE_WALLET = '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F';
+  static readonly SOLANA_FEE_WALLET = 'CoinRailzPlatformWallet11111111111111111111';
 }

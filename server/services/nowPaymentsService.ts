@@ -29,7 +29,7 @@ export class NOWPaymentsService {
     this.apiKey = env.NOWPAYMENTS_API_KEY;
   }
 
-  private async makeRequest(endpoint: string, method: 'GET' | 'POST' = 'GET', data?: any) {
+  private async makeRequest(endpoint: string, method: 'GET' | 'POST' = 'GET', data?: any, retries: number = 3) {
     const url = `${this.baseUrl}${endpoint}`;
     
     const headers: Record<string, string> = {
@@ -46,14 +46,45 @@ export class NOWPaymentsService {
       config.body = JSON.stringify(data);
     }
 
-    const response = await fetch(url, config);
-    
-    if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(`NOWPayments API error: ${response.status} - ${errorData}`);
-    }
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, config);
+        
+        if (!response.ok) {
+          const errorData = await response.text();
+          
+          // Handle rate limiting with exponential backoff
+          if (response.status === 429 && attempt < retries) {
+            const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+            console.log(`Rate limited, retrying in ${delay}ms (attempt ${attempt}/${retries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          // Handle temporary server errors
+          if (response.status >= 500 && attempt < retries) {
+            const delay = 2000 * attempt;
+            console.log(`Server error ${response.status}, retrying in ${delay}ms (attempt ${attempt}/${retries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          
+          throw new Error(`NOWPayments API error: ${response.status} - ${errorData}`);
+        }
 
-    return response.json();
+        return response.json();
+      } catch (error: any) {
+        if (attempt === retries) {
+          console.error(`NOWPayments request failed after ${retries} attempts:`, error);
+          throw error;
+        }
+        
+        // Network errors - retry with delay
+        const delay = 1000 * attempt;
+        console.log(`Request failed, retrying in ${delay}ms (attempt ${attempt}/${retries}):`, error.message);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
 
   async getPayoutStatus(payoutId: string): Promise<PayoutResponse> {
@@ -181,12 +212,33 @@ export class NOWPaymentsService {
     }
   }
 
-  async verifyWebhook(payload: any, signature: string): Promise<boolean> {
+  async verifyWebhook(payload: string, signature: string): Promise<boolean> {
     try {
-      // Basic verification - implement proper signature verification
-      return payload && signature && typeof payload === 'object';
+      if (!signature || !payload) {
+        return false;
+      }
+
+      // NOWPayments uses HMAC-SHA512 for webhook verification
+      const crypto = await import('crypto');
+      const ipnSecret = env.NOWPAYMENTS_IPN_SECRET;
+      
+      if (!ipnSecret) {
+        console.warn('NOWPayments IPN secret not configured, skipping signature verification');
+        return true; // Allow in development/testing
+      }
+
+      const expectedSignature = crypto
+        .createHmac('sha512', ipnSecret)
+        .update(payload)
+        .digest('hex');
+
+      // Compare signatures using constant-time comparison
+      return crypto.timingSafeEqual(
+        Buffer.from(signature, 'hex'),
+        Buffer.from(expectedSignature, 'hex')
+      );
     } catch (error) {
-      console.error('Failed to verify webhook:', error);
+      console.error('Webhook verification failed:', error);
       return false;
     }
   }

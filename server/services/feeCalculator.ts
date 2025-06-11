@@ -34,25 +34,40 @@ export class FeeCalculator {
   private static readonly PLATFORM_BASE_FEE = 0.01;
   
   /**
-   * Calculate fees for Stripe credit card transactions
+   * Calculate fees for Stripe credit card transactions with tiered service fees
    */
   static calculateStripeFees(amount: number): FeeCalculation {
     const processingFee = Math.round((amount * this.STRIPE_PERCENTAGE + this.STRIPE_FIXED) * 100) / 100;
     
-    // Convenience fee covers processing costs + small buffer
-    const convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
+    // Tiered fee structure to ensure profitability
+    let convenienceFee = 0;
+    let serviceFee = 0;
+    
+    if (amount < 25) {
+      // Very small transactions: Higher service fee to ensure profitability
+      convenienceFee = Math.round((amount * 0.035 + 0.50) * 100) / 100; // 3.5% + $0.50
+      serviceFee = 1.50; // $1.50 service fee for transactions under $25
+    } else if (amount < 50) {
+      // Small transactions: Moderate service fee
+      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
+      serviceFee = 0.75; // $0.75 service fee for transactions $25-$49
+    } else {
+      // Standard transactions: Normal fee structure
+      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
+      serviceFee = 0; // No additional service fee for $50+
+    }
     
     // Platform fee on original amount
     const platformFee = Math.round(amount * this.PLATFORM_BASE_FEE * 100) / 100;
     
-    const totalFee = convenienceFee + platformFee;
+    const totalFee = convenienceFee + serviceFee + platformFee;
     const totalAmount = amount + totalFee;
     const netAmount = totalAmount - processingFee;
     
     return {
       originalAmount: amount,
       processingFee,
-      convenienceFee,
+      convenienceFee: convenienceFee + serviceFee, // Combined for display
       platformFee,
       totalFee,
       totalAmount,
@@ -62,25 +77,40 @@ export class FeeCalculator {
   }
   
   /**
-   * Calculate fees for PayPal transactions
+   * Calculate fees for PayPal transactions with tiered service fees
    */
   static calculatePayPalFees(amount: number): FeeCalculation {
     const processingFee = Math.round((amount * this.PAYPAL_PERCENTAGE + this.PAYPAL_FIXED) * 100) / 100;
     
-    // Convenience fee covers processing costs + small buffer
-    const convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
+    // Tiered fee structure matching Stripe for consistency
+    let convenienceFee = 0;
+    let serviceFee = 0;
+    
+    if (amount < 25) {
+      // Very small transactions: Higher service fee to ensure profitability
+      convenienceFee = Math.round((amount * 0.035 + 0.50) * 100) / 100; // 3.5% + $0.50
+      serviceFee = 1.50; // $1.50 service fee for transactions under $25
+    } else if (amount < 50) {
+      // Small transactions: Moderate service fee
+      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
+      serviceFee = 0.75; // $0.75 service fee for transactions $25-$49
+    } else {
+      // Standard transactions: Normal fee structure
+      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
+      serviceFee = 0; // No additional service fee for $50+
+    }
     
     // Platform fee on original amount
     const platformFee = Math.round(amount * this.PLATFORM_BASE_FEE * 100) / 100;
     
-    const totalFee = convenienceFee + platformFee;
+    const totalFee = convenienceFee + serviceFee + platformFee;
     const totalAmount = amount + totalFee;
     const netAmount = totalAmount - processingFee;
     
     return {
       originalAmount: amount,
       processingFee,
-      convenienceFee,
+      convenienceFee: convenienceFee + serviceFee, // Combined for display
       platformFee,
       totalFee,
       totalAmount,

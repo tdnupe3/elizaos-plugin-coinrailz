@@ -42,6 +42,8 @@ import { paypalService } from './services/paypalService';
 import recruitmentRoutes from './routes/recruitment';
 import { apiHealthMonitor } from './services/apiHealthMonitor';
 import { ProductionErrorHandler, requestTimeout, requestLogger } from './middleware/productionErrorHandler';
+import { productionOptimizer } from './services/productionOptimizer';
+import { WebhookValidator } from './services/webhookValidator';
 // Notification service will be imported dynamically in route handlers
 
 // Helper functions for agent verification status
@@ -102,6 +104,122 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI Agent Recruitment Routes
   app.use('/api/recruitment', recruitmentRoutes);
+
+  // Production Health Monitoring
+  app.get('/api/health', async (req, res) => {
+    try {
+      const systemHealth = apiHealthMonitor.getSystemHealth();
+      const statusCode = systemHealth.overall === 'healthy' ? 200 : 
+                        systemHealth.overall === 'degraded' ? 206 : 503;
+      
+      res.status(statusCode).json({
+        success: true,
+        health: systemHealth,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Health check failed',
+        message: error.message
+      });
+    }
+  });
+
+  // Detailed service health status
+  app.get('/api/health/services', async (req, res) => {
+    try {
+      const status = apiHealthMonitor.getCriticalServicesStatus();
+      res.json({
+        success: true,
+        services: status,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Service health check failed',
+        message: error.message
+      });
+    }
+  });
+
+  // Individual service health
+  app.get('/api/health/:serviceName', async (req, res) => {
+    try {
+      const { serviceName } = req.params;
+      const serviceHealth = apiHealthMonitor.getServiceHealth(serviceName);
+      
+      if (!serviceHealth) {
+        return res.status(404).json({
+          success: false,
+          error: 'Service not found',
+          availableServices: ['stripe', 'paypal', 'nowpayments', 'changenow', 'database', 'coingecko']
+        });
+      }
+
+      const statusCode = serviceHealth.status === 'healthy' ? 200 :
+                        serviceHealth.status === 'degraded' ? 206 : 503;
+
+      res.status(statusCode).json({
+        success: true,
+        service: serviceHealth,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Health check failed',
+        message: error.message
+      });
+    }
+  });
+
+  // Performance metrics endpoint
+  app.get('/api/metrics', async (req, res) => {
+    try {
+      const metrics = productionOptimizer.getMetrics();
+      const cacheStats = productionOptimizer.getCacheStats();
+      const memoryStats = productionOptimizer.monitorMemoryUsage();
+      
+      res.json({
+        success: true,
+        metrics: {
+          performance: metrics,
+          cache: cacheStats,
+          memory: memoryStats,
+          uptime: process.uptime(),
+          nodeVersion: process.version
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Metrics collection failed',
+        message: error.message
+      });
+    }
+  });
+
+  // Cache management endpoint
+  app.post('/api/cache/clear', async (req, res) => {
+    try {
+      productionOptimizer.resetMetrics();
+      
+      res.json({
+        success: true,
+        message: 'Cache cleared successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Cache clear failed',
+        message: error.message
+      });
+    }
+  });
 
     app.use(DatabaseSecurity.circuitBreaker());
     app.use(DataEncryption.piiEncryptionMiddleware());

@@ -305,7 +305,7 @@ export class APIHealthMonitor {
     const degraded: string[] = [];
     const healthy: string[] = [];
 
-    for (const [serviceName, health] of this.healthChecks) {
+    this.healthChecks.forEach((health, serviceName) => {
       switch (health.status) {
         case 'down':
           critical.push(serviceName);
@@ -317,16 +317,16 @@ export class APIHealthMonitor {
           healthy.push(serviceName);
           break;
       }
-    }
+    });
 
     return { critical, degraded, healthy };
   }
 
   stop() {
     // Clear all monitoring intervals
-    for (const intervalId of this.checkIntervals.values()) {
+    this.checkIntervals.forEach((intervalId) => {
       clearInterval(intervalId);
-    }
+    });
     this.checkIntervals.clear();
   }
 }

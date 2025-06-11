@@ -92,6 +92,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // No security middleware applied in development to prevent any rate limiting
   } else {
     // PRODUCTION: Apply full security stack
+    console.log('PRODUCTION MODE: Enabling comprehensive security middleware');
+    
+    // Add production error handling and monitoring
+    app.use(requestLogger());
+    app.use(requestTimeout(30000));
+    app.use(productionOptimizer.performanceMiddleware());
+    
     const { routingMiddleware, loadBalancingMiddleware } = await import('./middleware/smartRouting');
     app.use(routingMiddleware);
     app.use(loadBalancingMiddleware);
@@ -335,6 +342,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(DataEncryption.responseSanitizationMiddleware());
     app.use(EnhancedTransactionSecurity.transactionValidationMiddleware());
   }
+
+  // Global error handling (applied in all environments)
+  app.use(ProductionErrorHandler.notFoundHandler());
+  app.use(ProductionErrorHandler.errorHandler());
 
   // Auth middleware
   await setupAuth(app);

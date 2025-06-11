@@ -96,6 +96,40 @@ export class PlatformWalletService {
     address: string;
   }> {
     const wallet = await this.initializePlatformWallet();
+    
+    // If using production wallet, get real balance from XRP Ledger
+    if (wallet.address === process.env.PLATFORM_XRP_ADDRESS) {
+      try {
+        const response = await fetch('https://s1.ripple.com:51234', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            method: 'account_info',
+            params: [{
+              account: wallet.address,
+              ledger_index: 'validated'
+            }]
+          })
+        });
+        
+        const data = await response.json();
+        if (data.result && data.result.account_data) {
+          const balanceDrops = parseInt(data.result.account_data.Balance);
+          const balanceXRP = balanceDrops / 1000000; // Convert drops to XRP
+          const balanceUSD = await XRPServiceSimple.xrpToUSD(balanceXRP);
+          
+          return {
+            xrp: balanceXRP,
+            usd: balanceUSD,
+            address: wallet.address
+          };
+        }
+      } catch (error) {
+        console.error('Error fetching real XRP balance:', error);
+      }
+    }
+    
+    // Fallback to mock balance for development wallets
     const balance = await XRPServiceSimple.getBalance(wallet.address);
     const balanceUSD = await XRPServiceSimple.xrpToUSD(balance);
     

@@ -9,20 +9,19 @@ console.log('Enhanced XRP Fee Structure Test');
 console.log('='.repeat(80));
 
 testAmounts.forEach(amount => {
-  // Simulate the fee calculation logic
+  // Corrected fee calculation logic for proper profitability
   let serviceFee = 0;
   let platformFee = 0;
   const networkFee = 0.0002;
   
-  if (amount < 50) {
-    serviceFee = amount < 25 ? 3.50 : 2.50;
-    platformFee = Math.round(amount * 0.002 * 100) / 100;
-  } else if (amount >= 50 && amount <= 250) {
-    serviceFee = amount < 100 ? 1.50 : 0.75;
-    platformFee = Math.round(amount * 0.003 * 100) / 100;
+  if (amount < 100) {
+    // Under $100: $3 service fee + 1% platform fee
+    serviceFee = 3.00;
+    platformFee = Math.round(amount * 0.01 * 100) / 100;
   } else {
-    serviceFee = 0;
-    platformFee = Math.round(amount * 0.005 * 100) / 100;
+    // $100 and above: $5 service fee + 0.75% platform fee
+    serviceFee = 5.00;
+    platformFee = Math.round(amount * 0.0075 * 100) / 100;
   }
   
   const totalFee = networkFee + serviceFee + platformFee;
@@ -43,9 +42,20 @@ testAmounts.forEach(amount => {
   console.log('-'.repeat(40));
 });
 
+console.log('\nRevenue Analysis (After 5% Referral Payouts):');
+testAmounts.forEach(amount => {
+  let serviceFee = amount < 100 ? 3.00 : 5.00;
+  let platformFee = amount < 100 ? Math.round(amount * 0.01 * 100) / 100 : Math.round(amount * 0.0075 * 100) / 100;
+  let totalRevenue = serviceFee + platformFee;
+  let referralPayout = totalRevenue * 0.05; // 5% commission
+  let netRevenue = totalRevenue - referralPayout;
+  
+  console.log(`$${amount} transaction: $${totalRevenue.toFixed(2)} gross → $${netRevenue.toFixed(2)} net (after $${referralPayout.toFixed(2)} referral)`);
+});
+
 console.log('\nKey Benefits:');
+console.log('- Corrected fee structure ensures profitability');
+console.log('- Accounts for referral payouts while maintaining margins');
 console.log('- Ultra-low network fees (~$0.0002)');
 console.log('- Instant settlement (3-5 seconds)');
-console.log('- 80-95% savings vs traditional wire transfers');
-console.log('- Transparent fee structure');
 console.log('- All fees collected to funded production wallet');

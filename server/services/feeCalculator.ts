@@ -145,18 +145,15 @@ export class FeeCalculator {
     let serviceFee = 0;
     let platformFee = 0;
     
-    if (amount < 50) {
-      // Small transactions under $50: Add ledger/convenience fee for profitability
-      serviceFee = amount < 25 ? 3.50 : 2.50; // $3.50 for <$25, $2.50 for $25-$49
-      platformFee = Math.round(amount * 0.002 * 100) / 100; // Reduced 0.2% platform fee
-    } else if (amount >= 50 && amount <= 250) {
-      // Medium transactions $50-$250: Service fee + reduced platform fee
-      serviceFee = amount < 100 ? 1.50 : 0.75; // $1.50 for $50-$99, $0.75 for $100-$250
-      platformFee = Math.round(amount * 0.003 * 100) / 100; // 0.3% platform fee
+    // Corrected fee structure for proper profitability
+    if (amount < 100) {
+      // Under $100: $3 service fee + 1% platform fee
+      serviceFee = 3.00;
+      platformFee = Math.round(amount * 0.01 * 100) / 100; // 1% platform fee
     } else {
-      // Large transactions over $250: Standard 0.5% platform fee (most competitive)
-      serviceFee = 0; // No service fee for large transactions
-      platformFee = Math.round(amount * this.XRP_PLATFORM_FEE * 100) / 100; // 0.5% platform fee
+      // $100 and above: $5 service fee + 0.75% platform fee
+      serviceFee = 5.00;
+      platformFee = Math.round(amount * 0.0075 * 100) / 100; // 0.75% platform fee
     }
     
     const totalFee = processingFee + serviceFee + platformFee;
@@ -195,12 +192,10 @@ export class FeeCalculator {
    * Get XRP fee description based on transaction amount
    */
   static getXRPFeeDescription(amount: number): string {
-    if (amount < 50) {
-      return `Small transaction fee includes ledger convenience fee for instant XRP settlement`;
-    } else if (amount >= 50 && amount <= 250) {
-      return `Medium transaction with service fee plus ultra-low XRP network fee`;
+    if (amount < 100) {
+      return `Under $100: $3 service fee + 1% platform fee. Ensures profitability while covering referral payouts and operational costs.`;
     } else {
-      return `Large transaction with competitive 0.5% platform fee and ultra-low XRP network fee`;
+      return `$100+: $5 service fee + 0.75% platform fee. Higher service fee generates solid revenue after referral commissions.`;
     }
   }
 
@@ -216,13 +211,12 @@ export class FeeCalculator {
     const currentFees = this.calculateXRPFees(targetAmount);
     const currentPercentage = (currentFees.totalFee / targetAmount) * 100;
     
-    // Suggest rounding to next fee tier if beneficial
+    // With the new fee structure, suggest moving to $100+ tier if close
     let suggestedAmount = targetAmount;
     
-    if (targetAmount < 50 && targetAmount > 40) {
-      suggestedAmount = 50; // Move to medium tier
-    } else if (targetAmount < 250 && targetAmount > 230) {
-      suggestedAmount = 250; // Move to large tier
+    if (targetAmount >= 80 && targetAmount < 100) {
+      // Close to $100 threshold - check if it's beneficial to round up
+      suggestedAmount = 100;
     }
     
     const suggestedFees = this.calculateXRPFees(suggestedAmount);

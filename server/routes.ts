@@ -4663,25 +4663,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           xrp: {
             tiers: [
               {
-                range: 'Under $50',
-                serviceFee: '$2.50-$3.50',
-                platformFee: '0.2%',
+                range: 'Under $100',
+                serviceFee: '$3.00',
+                platformFee: '1.0%',
                 networkFee: '~$0.0002',
-                description: 'Small transactions with ledger convenience fee'
+                description: 'Covers operational costs and referral payouts while maintaining profitability'
               },
               {
-                range: '$50-$250',
-                serviceFee: '$0.75-$1.50',
-                platformFee: '0.3%',
+                range: '$100 and above',
+                serviceFee: '$5.00',
+                platformFee: '0.75%',
                 networkFee: '~$0.0002',
-                description: 'Medium transactions with reduced fees'
-              },
-              {
-                range: 'Over $250',
-                serviceFee: '$0',
-                platformFee: '0.5%',
-                networkFee: '~$0.0002',
-                description: 'Large transactions with competitive rates'
+                description: 'Higher service fee ensures solid revenue after referral commissions'
               }
             ],
             advantages: [

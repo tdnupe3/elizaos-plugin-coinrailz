@@ -28,8 +28,7 @@ import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
 import { cryptoSignalsAgent } from './services/cryptoSignalsAgent';
-import { XRPLedgerService } from "./services/xrpLedgerService";
-import { XRPPaymentService } from "./services/xrpPaymentService";
+import { XRPServiceSimple } from "./services/xrpServiceSimple";
 import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";
@@ -4528,20 +4527,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Ultra-low fees (~$0.0002) with 3-5 second settlement
   // ==============================================
 
-  // Initialize XRP Ledger on startup
+  // Initialize XRP service on startup
   (async () => {
     try {
-      await XRPLedgerService.initialize();
-      console.log('XRP Ledger service initialized successfully');
+      await XRPServiceSimple.initialize();
+      console.log('XRP service initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize XRP Ledger service:', error);
+      console.error('Failed to initialize XRP service:', error);
     }
   })();
 
   // Create XRP wallet
   app.post('/api/xrp/wallet/create', isAuthenticated, async (req: any, res) => {
     try {
-      const wallet = await XRPLedgerService.createWallet();
+      const wallet = await XRPServiceSimple.createWallet();
       
       res.json({
         success: true,

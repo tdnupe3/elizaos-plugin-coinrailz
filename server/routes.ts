@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
-import { FeeCalculator } from "./utils/feeCalculator";
+import { FeeCalculator } from "./services/feeCalculator";
 import { nowPaymentsService } from "./services/nowPaymentsService";
 import { websocketService } from "./services/websocketService";
 import { env, hasStripeCredentials } from "./environment";
@@ -858,6 +858,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating agent heartbeat:", error);
       res.status(500).json({ error: "Failed to update agent status" });
+    }
+  });
+
+  // ==============================================
+  // FEE CALCULATION SYSTEM - CREDIT CARD CONVENIENCE FEES
+  // ==============================================
+
+  // Calculate fees for any transaction
+  app.post('/api/fees/calculate', async (req, res) => {
+    try {
+      const { amount, paymentMethod, transactionType = 'p2p' } = req.body;
+
+      if (!amount || !paymentMethod) {
+        return res.status(400).json({
+          success: false,
+          message: "Amount and payment method are required"
+        });
+      }
+
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Amount must be a positive number"
+        });
+      }
+
+      // Validate minimum amount
+      const validation = FeeCalculator.validateAmount(parsedAmount, paymentMethod);
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: validation.message
+        });
+      }
+
+      // Calculate fees based on transaction type
+      const feeCalculation = transactionType === 'marketplace' 
+        ? FeeCalculator.calculateMarketplaceFees(parsedAmount, paymentMethod)
+        : FeeCalculator.calculateP2PFees(parsedAmount, paymentMethod);
+
+      // Get user-friendly breakdown
+      const breakdown = FeeCalculator.getFeeBreakdown(parsedAmount, paymentMethod, transactionType);
+
+      res.json({
+        success: true,
+        calculation: feeCalculation,
+        breakdown,
+        paymentMethod,
+        transactionType
+      });
+
+    } catch (error: any) {
+      console.error("Error calculating fees:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to calculate fees"
+      });
+    }
+  });
+
+  // Get fee rates and minimums for all payment methods
+  app.get('/api/fees/rates', async (req, res) => {
+    try {
+      const rates = {
+        stripe: {
+          processingFee: "2.9% + $0.30",
+          convenienceFee: "3.2% + $0.35",
+          platformFee: "1%",
+          minimum: FeeCalculator.getMinimumAmount('stripe')
+        },
+        paypal: {
+          processingFee: "2.9% + $0.30", 
+          convenienceFee: "3.2% + $0.35",
+          platformFee: "1%",
+          minimum: FeeCalculator.getMinimumAmount('paypal')
+        },
+        crypto: {
+          processingFee: "0%",
+          convenienceFee: "0%",
+          platformFee: "0.5%",
+          minimum: FeeCalculator.getMinimumAmount('crypto')
+        }
+      };
+
+      res.json({
+        success: true,
+        rates,
+        note: "Convenience fees cover credit card processing costs to ensure platform profitability"
+      });
+
+    } catch (error: any) {
+      console.error("Error fetching fee rates:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch fee rates"
+      });
+    }
+  });
+
+  // Validate transaction amount against minimums
+  app.post('/api/fees/validate', async (req, res) => {
+    try {
+      const { amount, paymentMethod } = req.body;
+
+      if (!amount || !paymentMethod) {
+        return res.status(400).json({
+          success: false,
+          message: "Amount and payment method are required"
+        });
+      }
+
+      const parsedAmount = parseFloat(amount);
+      const validation = FeeCalculator.validateAmount(parsedAmount, paymentMethod);
+
+      res.json({
+        success: true,
+        valid: validation.valid,
+        message: validation.message,
+        minimum: FeeCalculator.getMinimumAmount(paymentMethod)
+      });
+
+    } catch (error: any) {
+      console.error("Error validating amount:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to validate amount"
+      });
     }
   });
 

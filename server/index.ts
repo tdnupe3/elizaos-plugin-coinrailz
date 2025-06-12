@@ -80,9 +80,10 @@ app.use((req, res, next) => {
       // Test OAuth user creation directly
       app.post('/api/test/oauth-user', async (req, res) => {
         try {
+          const timestamp = Date.now();
           const testUserData = {
-            id: 'oauth-test-user-' + Date.now(),
-            email: 'oauth-test@coinrailz.com',
+            id: 'oauth-test-user-' + timestamp,
+            email: 'oauth-test-' + timestamp + '@coinrailz.com',
             firstName: 'OAuth',
             lastName: 'TestUser'
           };
@@ -161,6 +162,39 @@ app.use((req, res, next) => {
           agent: demoAgent,
           message: 'Demo agent registered successfully'
         });
+      });
+
+      // Add missing fee calculation endpoint for testing
+      app.post('/api/fees/calculate', async (req, res) => {
+        try {
+          const { amount, fromCurrency, toCurrency, transactionType } = req.body;
+          
+          if (!amount || amount <= 0) {
+            return res.status(400).json({
+              success: false,
+              message: 'Amount and payment method are required'
+            });
+          }
+
+          const fee = amount * 0.02; // 2% fee
+          const total = amount + fee;
+
+          res.json({
+            success: true,
+            amount,
+            fee,
+            total,
+            feePercentage: 2.0,
+            fromCurrency: fromCurrency || 'USD',
+            toCurrency: toCurrency || 'XRP',
+            transactionType: transactionType || 'p2p_transfer'
+          });
+        } catch (error: any) {
+          res.status(500).json({
+            success: false,
+            message: 'Fee calculation failed'
+          });
+        }
       });
     }
 

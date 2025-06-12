@@ -16,14 +16,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Production-optimized connection pool
+// Production-optimized connection pool for Neon
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 5, // Reduced for Neon stability
-  min: 1,
-  idleTimeoutMillis: 60000,
-  connectionTimeoutMillis: 30000,
-  allowExitOnIdle: false,
+  max: 3, // Further reduced for Neon stability
+  min: 0,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 15000,
+  allowExitOnIdle: true,
   maxUses: 7500
 });
 

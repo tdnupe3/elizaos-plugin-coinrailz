@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { pool } from "./db";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -29,13 +30,13 @@ export function getSession() {
     throw new Error('DATABASE_URL environment variable is required');
   }
 
-  // Use database session store with improved error handling
+  // Use shared pool for session store to prevent connection overload
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: true,
+    pool: pool, // Reuse existing connection pool
     ttl: sessionTtl,
     tableName: "sessions",
+    createTableIfMissing: false, // Table already exists
     errorLog: (error: any) => {
       console.error("Session store error:", error);
     }

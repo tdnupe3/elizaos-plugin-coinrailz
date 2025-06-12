@@ -127,12 +127,11 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    // Use the first domain from REPLIT_DOMAINS as fallback for localhost
-    const domain = req.hostname === 'localhost' 
-      ? process.env.REPLIT_DOMAINS!.split(",")[0] 
-      : req.hostname;
+    // Always use localhost strategy for local testing, actual domain for production
+    const strategyName = `replitauth:${req.hostname}`;
+    console.log(`Using authentication strategy: ${strategyName} for hostname: ${req.hostname}`);
     
-    passport.authenticate(`replitauth:${domain}`, {
+    passport.authenticate(strategyName, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);

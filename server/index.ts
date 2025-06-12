@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { AgentMarketplaceService } from "./services/agentMarketplaceService";
 import { CommissionScheduler } from "./services/commissionScheduler";
+import { storage } from "./storage";
 
 console.log('Starting server with environment:', {
   NODE_ENV: process.env.NODE_ENV,
@@ -74,6 +75,32 @@ app.use((req, res, next) => {
           token: demoUserToken,
           message: 'Demo user authenticated for testing'
         });
+      });
+
+      // Test OAuth user creation directly
+      app.post('/api/test/oauth-user', async (req, res) => {
+        try {
+          const testUserData = {
+            id: 'oauth-test-user-' + Date.now(),
+            email: 'oauth-test@coinrailz.com',
+            firstName: 'OAuth',
+            lastName: 'TestUser'
+          };
+          
+          const newUser = await storage.upsertUser(testUserData);
+          
+          res.json({
+            success: true,
+            user: newUser,
+            message: 'OAuth test user created successfully'
+          });
+        } catch (error: any) {
+          res.status(500).json({
+            success: false,
+            error: error.message,
+            message: 'Failed to create OAuth test user'
+          });
+        }
       });
 
       app.post('/api/demo/xrp/send', (req, res) => {

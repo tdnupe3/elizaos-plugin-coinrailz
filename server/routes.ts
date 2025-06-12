@@ -2584,6 +2584,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Agent marketplace endpoints
+  app.get('/api/agents/active', async (req, res) => {
+    try {
+      const activeAgents = await storage.getActiveGlobalAIAgents();
+      res.json({
+        success: true,
+        agents: activeAgents,
+        count: activeAgents.length
+      });
+    } catch (error) {
+      console.error("Error getting active agents:", error);
+      res.status(500).json({ success: false, error: 'Failed to get active agents' });
+    }
+  });
+
+  app.get('/api/agents/marketplace/stats', async (req, res) => {
+    try {
+      const globalAgents = await storage.getGlobalAIAgents();
+      const activeAgents = globalAgents.filter(agent => agent.status === 'active').length;
+      
+      res.json({
+        success: true,
+        stats: {
+          totalAgents: globalAgents.length,
+          activeAgents,
+          totalTransactions: globalAgents.reduce((sum, agent) => sum + (agent.transactionCount || 0), 0),
+          totalVolume: globalAgents.reduce((sum, agent) => sum + parseFloat(agent.totalVolume || '0'), 0),
+          averageRating: globalAgents.reduce((sum, agent) => sum + (agent.reputation || 0), 0) / globalAgents.length || 0
+        }
+      });
+    } catch (error) {
+      console.error("Error getting marketplace stats:", error);
+      res.status(500).json({ success: false, error: 'Failed to get marketplace stats' });
+    }
+  });
+
   // Commission management endpoints
   app.get('/api/commissions/pending', isAuthenticated, async (req: any, res) => {
     try {

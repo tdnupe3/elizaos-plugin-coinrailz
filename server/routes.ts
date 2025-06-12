@@ -33,6 +33,8 @@ import { XRPServiceSimple } from "./services/xrpServiceSimple";
 import { XRPEndpoints } from "./services/xrpEndpoints";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
 import { PlatformWalletService } from "./services/platformWalletService";
+import { CommissionBatchProcessor } from "./services/commissionBatchProcessor";
+import { CommissionScheduler } from "./services/commissionScheduler";
 import { RealXRPWallet } from "./services/realXRPWallet";
 import { FeeCalculator } from "./services/feeCalculator";
 import { productionMonitoringService } from './services/productionMonitoringService';
@@ -2579,6 +2581,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error applying referral:", error);
       res.status(500).json({ message: "Failed to apply referral" });
+    }
+  });
+
+  // Commission management endpoints
+  app.get('/api/commissions/pending', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
+      const pendingCommissions = await CommissionBatchProcessor.getUserPendingCommissions(userId);
+      res.json(pendingCommissions);
+    } catch (error) {
+      console.error("Error fetching pending commissions:", error);
+      res.status(500).json({ message: "Failed to fetch pending commissions" });
+    }
+  });
+
+  app.get('/api/commissions/scheduler-status', isAuthenticated, async (req, res) => {
+    try {
+      const status = CommissionScheduler.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching scheduler status:", error);
+      res.status(500).json({ message: "Failed to fetch scheduler status" });
+    }
+  });
+
+  // Admin endpoint for manual commission payout trigger
+  app.post('/api/admin/commissions/trigger-payout', async (req, res) => {
+    try {
+      const result = await CommissionScheduler.triggerManualPayout();
+      res.json({
+        success: true,
+        message: 'Manual commission payout triggered',
+        result
+      });
+    } catch (error) {
+      console.error("Error triggering manual payout:", error);
+      res.status(500).json({ message: "Failed to trigger manual payout" });
     }
   });
 

@@ -261,23 +261,36 @@ export class CommissionBatchProcessor {
     minimumThreshold: number;
   }> {
     try {
-      // Get pending human referral commissions
+      // Get pending human referral commissions (using paidAt IS NULL)
       const [humanPending] = await db
         .select({
-          totalAmount: sql<number>`COALESCE(SUM(CASE WHEN ${referrals.status} = 'completed' AND ${referrals.isPaidOut} = false THEN CAST(${referrals.bonusAmount} AS DECIMAL) ELSE 0 END), 0)`,
-          commissionCount: sql<number>`COUNT(CASE WHEN ${referrals.status} = 'completed' AND ${referrals.isPaidOut} = false THEN 1 END)`,
+          totalAmount: sql<number>`COALESCE(SUM(CAST(${referrals.bonusAmount} AS DECIMAL)), 0)`,
+          commissionCount: sql<number>`COUNT(*)`,
         })
         .from(referrals)
-        .where(eq(referrals.referrerId, userId));
+        .where(
+          and(
+            eq(referrals.referrerId, userId),
+            eq(referrals.status, 'completed'),
+            sql`${referrals.paidAt} IS NULL`
+          )
+        );
 
       // Get pending AI agent referral commissions
       const [agentPending] = await db
         .select({
-          totalAmount: sql<number>`COALESCE(SUM(CASE WHEN ${agentReferrals.status} = 'completed' AND ${agentReferrals.isPaidOut} = false THEN CAST(${agentReferrals.rewardAmount} AS DECIMAL) ELSE 0 END), 0)`,
-          commissionCount: sql<number>`COUNT(CASE WHEN ${agentReferrals.status} = 'completed' AND ${agentReferrals.isPaidOut} = false THEN 1 END)`,
+          totalAmount: sql<number>`COALESCE(SUM(CAST(${agentReferrals.rewardAmount} AS DECIMAL)), 0)`,
+          commissionCount: sql<number>`COUNT(*)`,
         })
         .from(agentReferrals)
-        .where(eq(agentReferrals.referrerAgentId, userId));
+        .where(
+          and(
+            eq(agentReferrals.referrerAgentId, userId),
+            eq(agentReferrals.isCompleted, true),
+            sql`${agentReferrals.completedAt} IS NOT NULL`,
+            sql`${agentReferrals.completedAt} < NOW() - INTERVAL '1 week'`
+          )
+        );
 
       const totalPending = (humanPending?.totalAmount || 0) + (agentPending?.totalAmount || 0);
       const commissionCount = (humanPending?.commissionCount || 0) + (agentPending?.commissionCount || 0);

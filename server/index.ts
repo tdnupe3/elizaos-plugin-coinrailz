@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { AgentMarketplaceService } from "./services/agentMarketplaceService";
+import { CommissionScheduler } from "./services/commissionScheduler";
 
 console.log('Starting server with environment:', {
   NODE_ENV: process.env.NODE_ENV,
@@ -47,6 +48,9 @@ app.use((req, res, next) => {
   try {
     // Initialize AI Agent Marketplace at startup
     await AgentMarketplaceService.initializeMarketplace();
+
+    // Start commission payment scheduler
+    CommissionScheduler.start();
 
     const server = await registerRoutes(app);
 

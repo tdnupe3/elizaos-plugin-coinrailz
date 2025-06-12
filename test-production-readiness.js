@@ -3,8 +3,8 @@
  * Tests authentication, payments, commissions, and end-to-end flows
  */
 
-const http = require('http');
-const https = require('https');
+import http from 'http';
+import https from 'https';
 
 // Test configuration
 const BASE_URL = 'http://localhost:5000';
@@ -263,9 +263,9 @@ async function runProductionReadinessTests() {
     console.log('✗ Authentication system has issues');
   }
 
-  const xrpBalance = testResults.xrp.tests.find(t => t.testName === 'Real Wallet Balance');
-  if (xrpBalance && xrpBalance.passed) {
-    console.log(`✓ XRP wallet funded with ${xrpBalance.details.balance} XRP ($${xrpBalance.details.usdValue.toFixed(2)})`);
+  const xrpBalanceTest = testResults.xrp.tests.find(t => t.testName === 'Real Wallet Balance');
+  if (xrpBalanceTest && xrpBalanceTest.passed) {
+    console.log(`✓ XRP wallet funded with ${xrpBalanceTest.details.balance} XRP ($${xrpBalanceTest.details.usdValue.toFixed(2)})`);
   } else {
     console.log('✗ XRP wallet funding issue detected');
   }

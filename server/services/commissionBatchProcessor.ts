@@ -99,7 +99,7 @@ export class CommissionBatchProcessor {
         .groupBy(referrals.referrerId)
         .having(sql`SUM(CAST(${referrals.bonusAmount} AS DECIMAL)) >= ${this.MIN_PAYOUT_THRESHOLD}`);
 
-      // Query for AI agent referral commissions (using status = 'completed' and isPaidOut = false)
+      // Query for AI agent referral commissions (using status = 'completed' only - no payout tracking yet)
       const agentCommissions = await db
         .select({
           userId: agentReferrals.referrerAgentId,
@@ -107,12 +107,7 @@ export class CommissionBatchProcessor {
           commissionCount: sql<number>`COUNT(*)`,
         })
         .from(agentReferrals)
-        .where(
-          and(
-            eq(agentReferrals.status, 'completed'),
-            eq(agentReferrals.isPaidOut, false)
-          )
-        )
+        .where(eq(agentReferrals.status, 'completed'))
         .groupBy(agentReferrals.referrerAgentId)
         .having(sql`SUM(CAST(${agentReferrals.rewardAmount} AS DECIMAL)) >= ${this.MIN_PAYOUT_THRESHOLD}`);
 
@@ -230,15 +225,14 @@ export class CommissionBatchProcessor {
           )
         );
 
-      // Mark AI agent referral commissions as paid by setting isPaidOut = true
+      // Mark AI agent referral commissions as paid by changing status from 'completed' to 'paid'
       await db
         .update(agentReferrals)
-        .set({ isPaidOut: true })
+        .set({ status: 'paid' })
         .where(
           and(
             eq(agentReferrals.referrerAgentId, userId),
-            eq(agentReferrals.status, 'completed'),
-            eq(agentReferrals.isPaidOut, false)
+            eq(agentReferrals.status, 'completed')
           )
         );
     } catch (error) {
@@ -271,7 +265,7 @@ export class CommissionBatchProcessor {
           )
         );
 
-      // Get pending AI agent referral commissions
+      // Get pending AI agent referral commissions (status = 'completed' means unpaid)
       const [agentPending] = await db
         .select({
           totalAmount: sql<number>`COALESCE(SUM(CAST(${agentReferrals.rewardAmount} AS DECIMAL)), 0)`,
@@ -281,8 +275,7 @@ export class CommissionBatchProcessor {
         .where(
           and(
             eq(agentReferrals.referrerAgentId, userId),
-            eq(agentReferrals.status, 'completed'),
-            eq(agentReferrals.isPaidOut, false)
+            eq(agentReferrals.status, 'completed')
           )
         );
 

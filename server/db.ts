@@ -3,9 +3,12 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
+// Production-ready Neon configuration
 neonConfig.webSocketConstructor = ws;
 neonConfig.useSecureWebSocket = true;
 neonConfig.pipelineConnect = false;
+neonConfig.pipelineTLS = false;
+neonConfig.fetchConnectionCache = true;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -13,11 +16,33 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
+// Production-optimized connection pool
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
+  max: 5, // Reduced for Neon stability
+  min: 1,
+  idleTimeoutMillis: 60000,
+  connectionTimeoutMillis: 30000,
+  allowExitOnIdle: false,
+  maxUses: 7500
 });
 
 export const db = drizzle({ client: pool, schema });
+
+// Handle pool errors gracefully
+pool.on('error', (err) => {
+  console.error('Database pool error:', err);
+});
+
+// Graceful shutdown handler
+process.on('SIGINT', async () => {
+  console.log('Closing database pool...');
+  await pool.end();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('Closing database pool...');
+  await pool.end();
+  process.exit(0);
+});

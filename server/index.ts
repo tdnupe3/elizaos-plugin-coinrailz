@@ -4,6 +4,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import { AgentMarketplaceService } from "./services/agentMarketplaceService";
 import { CommissionScheduler } from "./services/commissionScheduler";
 import { storage } from "./storage";
+import { dbHealthMonitor } from "./services/databaseHealthMonitor";
+import { pool } from "./db";
 
 console.log('Starting server with environment:', {
   NODE_ENV: process.env.NODE_ENV,
@@ -47,6 +49,10 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
+    // Start database health monitoring
+    dbHealthMonitor.startMonitoring();
+    console.log('Database health monitoring initialized');
+
     // Initialize AI Agent Marketplace at startup
     await AgentMarketplaceService.initializeMarketplace();
 

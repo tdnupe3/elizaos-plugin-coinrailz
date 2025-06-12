@@ -26,25 +26,8 @@ const getOidcConfig = memoize(
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 
-  if (!process.env.DATABASE_URL) {
-    throw new Error('DATABASE_URL environment variable is required');
-  }
-
-  // Use shared pool for session store to prevent connection overload
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    pool: pool, // Reuse existing connection pool
-    ttl: sessionTtl,
-    tableName: "sessions",
-    createTableIfMissing: false, // Table already exists
-    errorLog: (error: any) => {
-      console.error("Session store error:", error);
-    }
-  });
-
   return session({
     secret: process.env.SESSION_SECRET!,
-    store: sessionStore,
     resave: false,
     saveUninitialized: false,
     rolling: true,

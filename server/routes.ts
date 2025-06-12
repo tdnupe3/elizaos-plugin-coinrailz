@@ -5308,6 +5308,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Agent registration endpoint (protected)
+  app.post('/api/agents/register', isAuthenticated, async (req, res) => {
+    try {
+      const { agentName, walletAddress, capabilities, description } = req.body;
+      res.json({
+        success: true,
+        agent: {
+          id: 'AGENT_' + Date.now(),
+          agentName,
+          walletAddress,
+          capabilities,
+          description,
+          status: 'pending',
+          registered: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   // Commission & Referral endpoints
   app.get('/api/referrals/structure', async (req, res) => {
     try {
@@ -5360,7 +5381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/commissions/dashboard', async (req, res) => {
+  app.get('/api/commissions/dashboard', isAuthenticated, async (req, res) => {
     try {
       res.json({
         success: true,
@@ -5409,7 +5430,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/wallet/import', async (req, res) => {
+  app.post('/api/wallet/import', isAuthenticated, async (req, res) => {
     try {
       const { privateKey, network } = req.body;
       res.json({
@@ -5482,7 +5503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/crypto/buy/execute', async (req, res) => {
+  app.post('/api/crypto/buy/execute', isAuthenticated, async (req, res) => {
     try {
       const { quoteId, paymentMethod } = req.body;
       res.json({

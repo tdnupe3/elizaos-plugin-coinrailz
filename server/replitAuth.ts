@@ -38,10 +38,6 @@ export function getSession() {
     tableName: "sessions",
     errorLog: (error: any) => {
       console.error("Session store error:", error);
-    },
-    // Add connection configuration for production
-    pg: {
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
     }
   });
 

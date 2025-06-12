@@ -504,6 +504,16 @@ export class DatabaseStorage implements IStorage {
     return agent;
   }
 
+  async getGlobalAIAgents(): Promise<any[]> {
+    return await db.select().from(globalAIAgents).orderBy(desc(globalAIAgents.createdAt));
+  }
+
+  async getActiveGlobalAIAgents(): Promise<any[]> {
+    return await db.select().from(globalAIAgents)
+      .where(eq(globalAIAgents.isActive, true))
+      .orderBy(desc(globalAIAgents.trustScore));
+  }
+
   async createGlobalAIAgent(agentData: any): Promise<any> {
     const [agent] = await db.insert(globalAIAgents).values(agentData).returning();
     return agent;

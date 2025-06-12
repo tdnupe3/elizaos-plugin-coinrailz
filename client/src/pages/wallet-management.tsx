@@ -1,6 +1,7 @@
 import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { XRPWalletConnection } from "@/components/xrp-wallet-connection";
+import { CommissionDashboard } from "@/components/CommissionDashboard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,10 +29,6 @@ export default function WalletManagement() {
   // Get user's wallet balances
   const { data: walletBalances } = useQuery({
     queryKey: ['/api/wallets/balances', user?.id],
-    queryFn: async () => {
-      const response = await apiRequest('GET', '/api/wallets/balances');
-      return response.json();
-    },
     enabled: !!user
   });
 
@@ -93,10 +90,14 @@ export default function WalletManagement() {
 
             {/* Wallet Connection Tabs */}
             <Tabs defaultValue="xrp" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="xrp" className="flex items-center space-x-1">
                   <Zap className="w-3 h-3" />
                   <span>XRP</span>
+                </TabsTrigger>
+                <TabsTrigger value="earnings" className="flex items-center space-x-1">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>Earnings</span>
                 </TabsTrigger>
                 <TabsTrigger value="ethereum">Ethereum</TabsTrigger>
                 <TabsTrigger value="solana">Solana</TabsTrigger>
@@ -105,6 +106,10 @@ export default function WalletManagement() {
 
               <TabsContent value="xrp" className="mt-6">
                 <XRPWalletConnection />
+              </TabsContent>
+
+              <TabsContent value="earnings" className="mt-6">
+                <CommissionDashboard />
               </TabsContent>
 
               <TabsContent value="ethereum" className="mt-6">

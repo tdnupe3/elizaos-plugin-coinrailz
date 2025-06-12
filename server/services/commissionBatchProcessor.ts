@@ -99,7 +99,7 @@ export class CommissionBatchProcessor {
         .groupBy(referrals.referrerId)
         .having(sql`SUM(CAST(${referrals.bonusAmount} AS DECIMAL)) >= ${this.MIN_PAYOUT_THRESHOLD}`);
 
-      // Query for AI agent referral commissions (using isCompleted = true and completedAt IS NOT NULL for unpaid)
+      // Query for AI agent referral commissions (using status = 'completed' and isPaidOut = false)
       const agentCommissions = await db
         .select({
           userId: agentReferrals.referrerAgentId,
@@ -109,9 +109,8 @@ export class CommissionBatchProcessor {
         .from(agentReferrals)
         .where(
           and(
-            eq(agentReferrals.isCompleted, true),
-            sql`${agentReferrals.completedAt} IS NOT NULL`,
-            sql`${agentReferrals.completedAt} < NOW() - INTERVAL '1 week'` // Only process completed referrals older than 1 week
+            eq(agentReferrals.status, 'completed'),
+            eq(agentReferrals.isPaidOut, false)
           )
         )
         .groupBy(agentReferrals.referrerAgentId)
@@ -231,19 +230,15 @@ export class CommissionBatchProcessor {
           )
         );
 
-      // Mark AI agent referral commissions as paid by updating a custom field
-      // For now, we'll use a simple approach - update completedAt to mark as processed
+      // Mark AI agent referral commissions as paid by setting isPaidOut = true
       await db
         .update(agentReferrals)
-        .set({ 
-          completedAt: new Date(),
-          // Add a metadata field to track payout status if needed
-        })
+        .set({ isPaidOut: true })
         .where(
           and(
             eq(agentReferrals.referrerAgentId, userId),
-            eq(agentReferrals.isCompleted, true),
-            sql`${agentReferrals.completedAt} < NOW() - INTERVAL '1 week'`
+            eq(agentReferrals.status, 'completed'),
+            eq(agentReferrals.isPaidOut, false)
           )
         );
     } catch (error) {
@@ -286,9 +281,8 @@ export class CommissionBatchProcessor {
         .where(
           and(
             eq(agentReferrals.referrerAgentId, userId),
-            eq(agentReferrals.isCompleted, true),
-            sql`${agentReferrals.completedAt} IS NOT NULL`,
-            sql`${agentReferrals.completedAt} < NOW() - INTERVAL '1 week'`
+            eq(agentReferrals.status, 'completed'),
+            eq(agentReferrals.isPaidOut, false)
           )
         );
 

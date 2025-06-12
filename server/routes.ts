@@ -5279,6 +5279,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === DEMO TESTING ENDPOINTS (Development Only) ===
+  
+  // Demo user authentication for testing complete flows
+  app.post('/api/demo/authenticate', async (req, res) => {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    
+    const demoUser = {
+      id: 'demo-user-123',
+      email: 'demo@coinrailz.com',
+      firstName: 'Demo',
+      lastName: 'User',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Store demo user in session for testing
+    req.session.demoUser = demoUser;
+    
+    res.json({
+      success: true,
+      user: demoUser,
+      message: 'Demo user authenticated for testing'
+    });
+  });
+
+  // Demo-authenticated XRP send for testing
+  app.post('/api/demo/xrp/send', async (req, res) => {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    
+    try {
+      const { toAddress, amount, memo } = req.body;
+      
+      if (!req.session.demoUser) {
+        return res.status(401).json({ message: 'Demo authentication required' });
+      }
+      
+      // Validate inputs
+      if (!toAddress || !amount) {
+        return res.status(400).json({
+          success: false,
+          message: 'toAddress and amount are required'
+        });
+      }
+      
+      // For demo, simulate transaction
+      const mockTransaction = {
+        hash: 'DEMO_TX_' + Date.now(),
+        from: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
+        to: toAddress,
+        amount: amount,
+        fee: 0.000012,
+        memo: memo || '',
+        status: 'success',
+        timestamp: new Date().toISOString()
+      };
+      
+      res.json({
+        success: true,
+        transaction: mockTransaction,
+        message: 'Demo XRP transaction simulated successfully'
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Demo transaction failed' 
+      });
+    }
+  });
+
+  // Demo agent registration for testing
+  app.post('/api/demo/agents/register', async (req, res) => {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    
+    try {
+      if (!req.session.demoUser) {
+        return res.status(401).json({ message: 'Demo authentication required' });
+      }
+      
+      const { agentName, walletAddress, capabilities, description } = req.body;
+      
+      const demoAgent = {
+        id: 'DEMO_AGENT_' + Date.now(),
+        agentName,
+        walletAddress,
+        capabilities: capabilities || [],
+        description: description || '',
+        owner: req.session.demoUser.id,
+        status: 'active',
+        createdAt: new Date().toISOString()
+      };
+      
+      res.json({
+        success: true,
+        agent: demoAgent,
+        message: 'Demo agent registered successfully'
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Demo agent registration failed' 
+      });
+    }
+  });
+
   // === MISSING API ENDPOINTS - ADD JSON RESPONSES ===
   
   // DEX Aggregator endpoints - Real ChangeNOW API integration

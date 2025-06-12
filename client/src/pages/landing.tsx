@@ -425,7 +425,7 @@ export default function Landing() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-green-700">Earn from referrals</span>
-                    <Badge className="bg-green-100 text-green-800">5% commission</Badge>
+                    <Badge className="bg-green-100 text-green-800">1% commission</Badge>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-green-700">Ongoing residual income</span>

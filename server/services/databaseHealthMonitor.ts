@@ -35,7 +35,7 @@ export class DatabaseHealthMonitor {
   startMonitoring(): void {
     this.healthCheckInterval = setInterval(() => {
       this.performHealthCheck();
-    }, 30000); // Check every 30 seconds
+    }, 300000); // Check every 5 minutes to reduce noise
 
     console.log('Database health monitoring started');
   }

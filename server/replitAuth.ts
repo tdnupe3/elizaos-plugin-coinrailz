@@ -100,32 +100,51 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
+  // Register strategies for all domains AND localhost
+  const domains = process.env.REPLIT_DOMAINS!.split(",");
+  const allDomains = [...domains, 'localhost'];
+  
+  console.log('Registering authentication strategies for domains:', allDomains);
+  
+  for (const domain of allDomains) {
+    const strategyName = `replitauth:${domain}`;
     const strategy = new Strategy(
       {
-        name: `replitauth:${domain}`,
+        name: strategyName,
         config,
         scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
+        callbackURL: domain === 'localhost' 
+          ? `https://${domains[0]}/api/callback`
+          : `https://${domain}/api/callback`,
       },
       verify,
     );
     passport.use(strategy);
+    console.log(`Registered strategy: ${strategyName}`);
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    // Use the first domain from REPLIT_DOMAINS as fallback for localhost
+    const domain = req.hostname === 'localhost' 
+      ? process.env.REPLIT_DOMAINS!.split(",")[0] 
+      : req.hostname;
+    
+    passport.authenticate(`replitauth:${domain}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    // Use the first domain from REPLIT_DOMAINS as fallback for localhost
+    const domain = req.hostname === 'localhost' 
+      ? process.env.REPLIT_DOMAINS!.split(",")[0] 
+      : req.hostname;
+      
+    passport.authenticate(`replitauth:${domain}`, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);

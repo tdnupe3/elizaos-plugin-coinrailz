@@ -96,10 +96,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // API logging disabled in development mode for performance
 
-  // DEVELOPMENT MODE: NO SECURITY MIDDLEWARE AT ALL
+  // DEVELOPMENT MODE: Skip rate limiting but preserve authentication
   if (process.env.NODE_ENV === 'development') {
-    console.log('DEVELOPMENT MODE: Completely skipping ALL security middleware to eliminate rate limiting');
-    // No security middleware applied in development to prevent any rate limiting
+    console.log('DEVELOPMENT MODE: Skipping rate limiting but preserving authentication');
+    // Skip rate limiting middleware only, authentication still required
   } else {
     // PRODUCTION: Apply full security stack
     console.log('PRODUCTION MODE: Enabling comprehensive security middleware');

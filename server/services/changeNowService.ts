@@ -60,7 +60,10 @@ export class ChangeNowService {
   private readonly partnerId = 'coinrailz'; // Your platform identifier
 
   constructor() {
-    this.apiKey = process.env.CHANGENOW_API_KEY || 'ca3accd403855c72d0cb8eecdecf3477334875902197b7e02c689e9e626bd0db';
+    if (!process.env.CHANGENOW_API_KEY) {
+      throw new Error('CHANGENOW_API_KEY environment variable is required');
+    }
+    this.apiKey = process.env.CHANGENOW_API_KEY;
   }
 
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {

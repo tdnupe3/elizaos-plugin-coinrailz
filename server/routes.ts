@@ -5091,6 +5091,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get XRP wallet balance
+  app.get('/api/xrp/balance/:address?', async (req, res) => {
+    try {
+      const address = req.params.address || 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW'; // Default to platform wallet
+      
+      if (!XRPLedgerService.validateAddress(address)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid XRP address'
+        });
+      }
+
+      const balance = await XRPLedgerService.getBalance(address);
+      
+      res.json({
+        success: true,
+        address,
+        balance: {
+          xrp: balance,
+          usd: balance * 2.26 // Approximate USD value
+        }
+      });
+    } catch (error: any) {
+      console.error('Error getting XRP balance:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get balance' 
+      });
+    }
+  });
+
+  // Get platform wallet balance (convenience endpoint)
+  app.get('/api/xrp/balance', async (req, res) => {
+    try {
+      const platformAddress = 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW';
+      const balance = await XRPLedgerService.getBalance(platformAddress);
+      
+      res.json({
+        success: true,
+        address: platformAddress,
+        balance: {
+          xrp: balance,
+          usd: balance * 2.26 // Approximate USD value
+        }
+      });
+    } catch (error: any) {
+      console.error('Error getting platform XRP balance:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get platform balance' 
+      });
+    }
+  });
+
   // Validate XRP address
   app.post('/api/xrp/validate-address', async (req, res) => {
     try {

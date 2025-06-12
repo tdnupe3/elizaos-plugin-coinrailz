@@ -52,6 +52,85 @@ app.use((req, res, next) => {
     // Start commission payment scheduler
     CommissionScheduler.start();
 
+    // Register demo routes first (development only)
+    if (process.env.NODE_ENV === 'development') {
+      app.post('/api/demo/authenticate', (req, res) => {
+        const demoUser = {
+          id: 'demo-user-123',
+          email: 'demo@coinrailz.com',
+          firstName: 'Demo',
+          lastName: 'User',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+        
+        (req.session as any).demoUser = demoUser;
+        
+        res.json({
+          success: true,
+          user: demoUser,
+          message: 'Demo user authenticated for testing'
+        });
+      });
+
+      app.post('/api/demo/xrp/send', (req, res) => {
+        const { toAddress, amount, memo } = req.body;
+        
+        if (!(req.session as any).demoUser) {
+          return res.status(401).json({ message: 'Demo authentication required' });
+        }
+        
+        if (!toAddress || !amount) {
+          return res.status(400).json({
+            success: false,
+            message: 'toAddress and amount are required'
+          });
+        }
+        
+        const mockTransaction = {
+          hash: 'DEMO_TX_' + Date.now(),
+          from: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
+          to: toAddress,
+          amount: amount,
+          fee: 0.000012,
+          memo: memo || '',
+          status: 'success',
+          timestamp: new Date().toISOString()
+        };
+        
+        res.json({
+          success: true,
+          transaction: mockTransaction,
+          message: 'Demo XRP transaction simulated successfully'
+        });
+      });
+
+      app.post('/api/demo/agents/register', (req, res) => {
+        if (!(req.session as any).demoUser) {
+          return res.status(401).json({ message: 'Demo authentication required' });
+        }
+        
+        const { agentName, walletAddress, capabilities, description } = req.body;
+        
+        const demoAgent = {
+          id: 'DEMO_AGENT_' + Date.now(),
+          agentName,
+          walletAddress,
+          capabilities: capabilities || [],
+          description: description || '',
+          owner: (req.session as any).demoUser.id,
+          status: 'active',
+          createdAt: new Date().toISOString()
+        };
+        
+        res.json({
+          success: true,
+          agent: demoAgent,
+          message: 'Demo agent registered successfully'
+        });
+      });
+    }
+
     const server = await registerRoutes(app);
 
     // API route handler middleware - catch unhandled API routes before Vite

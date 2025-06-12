@@ -54,6 +54,8 @@ app.use((req, res, next) => {
 
     // Register demo routes first (development only)
     if (process.env.NODE_ENV === 'development') {
+      let demoUserToken: string | null = null;
+      
       app.post('/api/demo/authenticate', (req, res) => {
         const demoUser = {
           id: 'demo-user-123',
@@ -64,19 +66,21 @@ app.use((req, res, next) => {
           updatedAt: new Date()
         };
         
-        (req.session as any).demoUser = demoUser;
+        demoUserToken = 'demo-token-' + Date.now();
         
         res.json({
           success: true,
           user: demoUser,
+          token: demoUserToken,
           message: 'Demo user authenticated for testing'
         });
       });
 
       app.post('/api/demo/xrp/send', (req, res) => {
         const { toAddress, amount, memo } = req.body;
+        const authHeader = req.headers.authorization;
         
-        if (!(req.session as any).demoUser) {
+        if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== demoUserToken) {
           return res.status(401).json({ message: 'Demo authentication required' });
         }
         
@@ -106,7 +110,9 @@ app.use((req, res, next) => {
       });
 
       app.post('/api/demo/agents/register', (req, res) => {
-        if (!(req.session as any).demoUser) {
+        const authHeader = req.headers.authorization;
+        
+        if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== demoUserToken) {
           return res.status(401).json({ message: 'Demo authentication required' });
         }
         
@@ -118,7 +124,7 @@ app.use((req, res, next) => {
           walletAddress,
           capabilities: capabilities || [],
           description: description || '',
-          owner: (req.session as any).demoUser.id,
+          owner: 'demo-user-123',
           status: 'active',
           createdAt: new Date().toISOString()
         };

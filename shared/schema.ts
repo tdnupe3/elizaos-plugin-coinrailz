@@ -207,6 +207,7 @@ export const referrals = pgTable("referrals", {
   referralCode: varchar("referral_code").notNull(),
   status: varchar("status").default("pending"), // pending, completed, paid
   bonusAmount: decimal("bonus_amount", { precision: 10, scale: 2 }).default("5.00"),
+  isPaidOut: boolean("is_paid_out").default(false),
   completedAt: timestamp("completed_at"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -514,7 +515,9 @@ export const agentReferrals = pgTable("agent_referrals", {
   transactionAmount: varchar("transaction_amount").notNull(), // Track original transaction value
   rewardAmount: varchar("reward_amount").notNull(),
   currency: varchar("currency").default("USDT"),
+  status: varchar("status").default("pending"), // pending, completed, paid
   isCompleted: boolean("is_completed").default(false),
+  isPaidOut: boolean("is_paid_out").default(false),
   isFirstTransaction: boolean("is_first_transaction").default(false), // Track if this was first transaction
   transactionId: varchar("transaction_id"), // Link to specific transaction
   createdAt: timestamp("created_at").defaultNow(),

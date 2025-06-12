@@ -5133,7 +5133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get real XRP balance from production wallet
       const response = await fetch(`https://api.xrpscan.com/api/v1/account/${platformAddress}`);
       const data = await response.json();
-      const balance = parseFloat(data.xrpBalance) || 15.98;
+      const balance = parseFloat(data.xrpBalance) || 100;
       
       // Get real USD conversion rate
       const usdRate = await XRPServiceSimple.getXRPUSDRate();

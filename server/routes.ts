@@ -2602,16 +2602,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/agents/marketplace/stats', async (req, res) => {
     try {
       const globalAgents = await storage.getGlobalAIAgents();
-      const activeAgents = globalAgents.filter(agent => agent.status === 'active').length;
+      const activeAgents = globalAgents.filter((agent: any) => agent.status === 'active').length;
+      
+      const totalTransactions = globalAgents.reduce((sum: number, agent: any) => sum + (agent.transactionCount || 0), 0);
+      const totalVolume = globalAgents.reduce((sum: number, agent: any) => sum + parseFloat(agent.totalVolume || '0'), 0);
+      const averageRating = globalAgents.length > 0 
+        ? globalAgents.reduce((sum: number, agent: any) => sum + parseFloat(agent.reputation || '0'), 0) / globalAgents.length 
+        : 0;
       
       res.json({
         success: true,
         stats: {
           totalAgents: globalAgents.length,
           activeAgents,
-          totalTransactions: globalAgents.reduce((sum, agent) => sum + (agent.transactionCount || 0), 0),
-          totalVolume: globalAgents.reduce((sum, agent) => sum + parseFloat(agent.totalVolume || '0'), 0),
-          averageRating: globalAgents.reduce((sum, agent) => sum + (agent.reputation || 0), 0) / globalAgents.length || 0
+          totalTransactions,
+          totalVolume,
+          averageRating: Math.round(averageRating * 100) / 100
         }
       });
     } catch (error) {

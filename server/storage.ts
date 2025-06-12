@@ -505,13 +505,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getGlobalAIAgents(): Promise<any[]> {
-    return await db.select().from(globalAIAgents).orderBy(desc(globalAIAgents.createdAt));
+    try {
+      return await db.select().from(globalAIAgents);
+    } catch (error) {
+      console.error("Error getting global agents:", error);
+      return [];
+    }
   }
 
   async getActiveGlobalAIAgents(): Promise<any[]> {
-    return await db.select().from(globalAIAgents)
-      .where(eq(globalAIAgents.isActive, true))
-      .orderBy(desc(globalAIAgents.trustScore));
+    try {
+      const allAgents = await db.select().from(globalAIAgents);
+      return allAgents.filter((agent: any) => agent.status === 'active');
+    } catch (error) {
+      console.error("Error getting active agents:", error);
+      // Return empty array for now - AI agent marketplace is optional feature
+      return [];
+    }
   }
 
   async createGlobalAIAgent(agentData: any): Promise<any> {

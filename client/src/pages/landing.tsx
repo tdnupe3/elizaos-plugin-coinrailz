@@ -67,7 +67,7 @@ export default function Landing() {
                 <CardTitle className="text-lg">Send Money</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600">Cross-platform P2P transfers with 0.25% fee</p>
+                <p className="text-sm text-gray-600">Cross-platform P2P transfers</p>
               </CardContent>
             </Card>
 
@@ -127,8 +127,8 @@ export default function Landing() {
 
             <Card className="text-center">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-orange-600">Instant</div>
-                <p className="text-sm text-gray-600">Transactions</p>
+                <div className="text-2xl font-bold text-orange-600">XRP</div>
+                <p className="text-sm text-gray-600">FULLY Integrated</p>
               </CardContent>
             </Card>
           </div>
@@ -424,15 +424,15 @@ export default function Landing() {
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-700">Refer a friend</span>
-                    <Badge className="bg-green-100 text-green-800">$10 bonus</Badge>
+                    <span className="text-sm text-green-700">Earn from referrals</span>
+                    <Badge className="bg-green-100 text-green-800">5% commission</Badge>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-700">They complete first transaction</span>
-                    <Badge className="bg-green-100 text-green-800">$5 each</Badge>
+                    <span className="text-sm text-green-700">Ongoing residual income</span>
+                    <Badge className="bg-green-100 text-green-800">Every transaction</Badge>
                   </div>
                   <div className="text-xs text-green-600">
-                    Unlimited referrals • Instant payouts • Stack bonuses
+                    Unlimited referrals • Lifetime commissions • Passive income
                   </div>
                 </div>
               </CardContent>

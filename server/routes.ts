@@ -5215,21 +5215,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === MISSING API ENDPOINTS - ADD JSON RESPONSES ===
   
-  // DEX Aggregator endpoints
+  // DEX Aggregator endpoints - Real ChangeNOW API integration
   app.post('/api/dex/quote', async (req, res) => {
     try {
       const { fromToken, toToken, amount } = req.body;
+      
+      const response = await fetch('https://api.changenow.io/v1/exchange-amount/' + amount + '/' + fromToken.toLowerCase() + '_' + toToken.toLowerCase(), {
+        headers: {
+          'x-changenow-api-key': process.env.CHANGENOW_API_KEY!
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get real exchange quote');
+      }
+      
+      const data = await response.json();
+      
       res.json({
         success: true,
         quote: {
           fromToken,
           toToken,
           fromAmount: amount,
-          toAmount: amount * 0.95,
-          rate: 0.95,
-          fees: amount * 0.003,
-          priceImpact: 0.1,
-          estimatedGas: '0.002 ETH'
+          toAmount: data.estimatedAmount,
+          rate: data.estimatedAmount / amount,
+          fees: 0,
+          priceImpact: 0,
+          estimatedGas: 'N/A',
+          provider: 'ChangeNOW'
         }
       });
     } catch (error: any) {
@@ -5681,8 +5695,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Register demo routes for comprehensive functionality mirroring
-  registerDemoRoutes(app);
+  // Demo routes disabled for production - using real API integrations
 
   const httpServer = createServer(app);
 

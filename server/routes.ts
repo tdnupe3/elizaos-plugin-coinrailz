@@ -6667,6 +6667,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Instant Payment System Endpoints
+  app.post('/api/data-purchase/create-payment', async (req, res) => {
+    try {
+      const { InstantPaymentService } = await import('./services/instantPaymentService');
+      const purchase = req.body;
+      
+      const paymentSession = await InstantPaymentService.createPaymentSession(purchase);
+      res.json({
+        success: true,
+        payment: paymentSession
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Payment creation failed', message: error.message });
+    }
+  });
+
+  app.post('/api/data-purchase/instant-trial', async (req, res) => {
+    try {
+      const { InstantPaymentService } = await import('./services/instantPaymentService');
+      const { customerEmail, productType } = req.body;
+      
+      const trial = await InstantPaymentService.createInstantTrial(customerEmail, productType);
+      res.json({
+        success: true,
+        trial
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Trial creation failed', message: error.message });
+    }
+  });
+
+  app.post('/api/data-purchase/verify-payment', async (req, res) => {
+    try {
+      const { InstantPaymentService } = await import('./services/instantPaymentService');
+      const { sessionId } = req.body;
+      
+      const verification = await InstantPaymentService.verifyPaymentAndActivate(sessionId);
+      res.json(verification);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Payment verification failed', message: error.message });
+    }
+  });
+
+  app.get('/api/data-purchase/analytics/:apiKey', async (req, res) => {
+    try {
+      const { InstantPaymentService } = await import('./services/instantPaymentService');
+      const { apiKey } = req.params;
+      
+      const analytics = await InstantPaymentService.getCustomerAnalytics(apiKey);
+      res.json(analytics);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Analytics retrieval failed', message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

@@ -6607,6 +6607,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Data Sales Agent Endpoints
+  app.post('/api/ai-sales/inquiry', async (req, res) => {
+    try {
+      const { AIDataSalesAgent } = await import('./services/aiDataSalesAgent');
+      const inquiry = req.body;
+      
+      const result = await AIDataSalesAgent.handleCustomerInquiry(inquiry);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Sales inquiry processing failed', message: error.message });
+    }
+  });
+
+  app.post('/api/ai-sales/negotiate', async (req, res) => {
+    try {
+      const { AIDataSalesAgent } = await import('./services/aiDataSalesAgent');
+      const { customerId, requestedPrice, volume } = req.body;
+      
+      const result = await AIDataSalesAgent.handlePriceNegotiation(customerId, requestedPrice, volume);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Price negotiation failed', message: error.message });
+    }
+  });
+
+  app.post('/api/ai-sales/complete-sale', async (req, res) => {
+    try {
+      const { AIDataSalesAgent } = await import('./services/aiDataSalesAgent');
+      const { customerId, selectedProducts, agreedPricing } = req.body;
+      
+      const result = await AIDataSalesAgent.processSale(customerId, selectedProducts, agreedPricing);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Sale processing failed', message: error.message });
+    }
+  });
+
+  app.post('/api/ai-sales/support', async (req, res) => {
+    try {
+      const { AIDataSalesAgent } = await import('./services/aiDataSalesAgent');
+      const { customerId, issue } = req.body;
+      
+      const result = await AIDataSalesAgent.handleCustomerSupport(customerId, issue);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Customer support failed', message: error.message });
+    }
+  });
+
+  app.get('/api/ai-sales/metrics', async (req, res) => {
+    try {
+      const { AIDataSalesAgent } = await import('./services/aiDataSalesAgent');
+      
+      const metrics = await AIDataSalesAgent.getSalesMetrics();
+      res.json(metrics);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Sales metrics failed', message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

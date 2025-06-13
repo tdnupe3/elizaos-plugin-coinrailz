@@ -200,6 +200,47 @@ export class FeeCalculator {
   }
 
   /**
+   * Universal transaction fee calculator
+   */
+  static calculateTransactionFee(params: {
+    amount: number;
+    currency: string;
+    paymentMethod: string;
+    userTier?: string;
+    transactionType?: string;
+  }): { fee: number; total: number; feePercentage: number } {
+    const { amount, paymentMethod } = params;
+    
+    if (amount <= 0) {
+      throw new Error('Invalid transaction amount');
+    }
+
+    let feeCalculation: FeeCalculation;
+    
+    switch (paymentMethod.toLowerCase()) {
+      case 'xrp':
+        feeCalculation = this.calculateXRPFees(amount);
+        break;
+      case 'stripe':
+        feeCalculation = this.calculateStripeFees(amount);
+        break;
+      case 'paypal':
+        feeCalculation = this.calculatePayPalFees(amount);
+        break;
+      default:
+        feeCalculation = this.calculateStripeFees(amount); // Default to Stripe
+    }
+
+    const feePercentage = Math.round((feeCalculation.totalFee / amount) * 100);
+    
+    return {
+      fee: feeCalculation.totalFee,
+      total: feeCalculation.totalAmount,
+      feePercentage
+    };
+  }
+
+  /**
    * Calculate optimal transaction amount to minimize fee percentage
    */
   static calculateOptimalAmount(targetAmount: number): {

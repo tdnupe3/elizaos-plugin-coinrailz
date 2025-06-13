@@ -5640,9 +5640,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Store demo user in session for testing
     req.session.demoUser = demoUser;
     
+    // Generate simple demo token
+    const demoToken = `demo-token-${Date.now()}`;
+    req.session.demoToken = demoToken;
+    
     res.json({
       success: true,
       user: demoUser,
+      token: demoToken,
       message: 'Demo user authenticated for testing'
     });
   });

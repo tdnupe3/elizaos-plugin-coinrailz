@@ -102,6 +102,39 @@ export default function Landing() {
             </Card>
           </div>
 
+          {/* Regulatory Compliance Section */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-8">
+            <div className="text-center mb-4">
+              <Shield className="w-12 h-12 mx-auto text-green-600 mb-2" />
+              <h2 className="text-2xl font-bold text-green-900">Fully Licensed & Compliant</h2>
+              <p className="text-green-700">Operating under all required financial services regulations</p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="text-center">
+                <div className="bg-white rounded-lg p-4 border border-green-300">
+                  <h3 className="font-bold text-green-900 mb-2">FinCEN Registration</h3>
+                  <p className="text-sm text-green-700">Money Services Business (MSB)</p>
+                  <p className="text-xs text-green-600 mt-1">US Department of Treasury</p>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <div className="bg-white rounded-lg p-4 border border-green-300">
+                  <h3 className="font-bold text-green-900 mb-2">Money Transmitter License</h3>
+                  <p className="text-sm text-green-700">Active State License</p>
+                  <p className="text-xs text-green-600 mt-1">Full Compliance Operations</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-center mt-4">
+              <p className="text-xs text-green-600">
+                AML/KYC Compliant • OFAC Sanctions Screening • FATF Travel Rule Enabled
+              </p>
+            </div>
+          </div>
+
           {/* Platform Statistics */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
             <Card className="text-center">

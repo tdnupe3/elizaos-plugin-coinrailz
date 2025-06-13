@@ -266,7 +266,7 @@ app.use((req, res, next) => {
       // P2P Transfer System Implementation
       app.post('/api/transfers/p2p', async (req, res) => {
         try {
-          const { recipientId, amount, currency, network, memo } = req.body;
+          const { recipientId, amount, currency, network, memo, paymentMethod = 'xrp' } = req.body;
           
           if (!recipientId || !amount || !currency || !network) {
             return res.status(400).json({
@@ -283,9 +283,40 @@ app.use((req, res, next) => {
             });
           }
 
-          const feePercentage = 2;
-          const platformFee = transferAmount * (feePercentage / 100);
-          const totalAmount = transferAmount + platformFee;
+          // Enhanced Fee Structure for Operational Sustainability
+          const percentageFee = transferAmount * 0.025; // 2.5% percentage fee (increased from 2%)
+          const serviceFee = 2.50; // Fixed service fee per transaction
+          const platformUsageFee = 1.00; // Platform usage fee for infrastructure
+          
+          // Payment method surcharges
+          let paymentSurcharge = 0;
+          let surchargeDescription = '';
+          
+          switch(paymentMethod.toLowerCase()) {
+            case 'credit_card':
+            case 'card':
+              paymentSurcharge = (transferAmount * 0.01) + 0.30; // 1% + $0.30
+              surchargeDescription = 'Credit Card Processing Fee';
+              break;
+            case 'debit_card':
+              paymentSurcharge = (transferAmount * 0.005) + 0.30; // 0.5% + $0.30
+              surchargeDescription = 'Debit Card Processing Fee';
+              break;
+            case 'paypal':
+              paymentSurcharge = (transferAmount * 0.015) + 0.49; // 1.5% + $0.49
+              surchargeDescription = 'PayPal Processing Fee';
+              break;
+            case 'xrp':
+            case 'crypto':
+            case 'bank_transfer':
+            default:
+              paymentSurcharge = 0;
+              surchargeDescription = 'No additional payment fees for XRP';
+              break;
+          }
+          
+          const totalFees = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
+          const totalAmount = transferAmount + totalFees;
           const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           
           if (network.toLowerCase() === 'xrp') {
@@ -302,10 +333,23 @@ app.use((req, res, next) => {
                 transactionId,
                 status: 'completed',
                 amount: transferAmount,
-                platformFee,
-                totalAmount,
+                fees: {
+                  percentageFee: parseFloat(percentageFee.toFixed(2)),
+                  serviceFee: serviceFee,
+                  platformUsageFee: platformUsageFee,
+                  paymentSurcharge: parseFloat(paymentSurcharge.toFixed(2)),
+                  totalFees: parseFloat(totalFees.toFixed(2))
+                },
+                feeBreakdown: {
+                  'Transaction Fee (2.5%)': `$${percentageFee.toFixed(2)}`,
+                  'Service Fee': `$${serviceFee.toFixed(2)}`,
+                  'Platform Usage Fee': `$${platformUsageFee.toFixed(2)}`,
+                  [surchargeDescription]: paymentSurcharge > 0 ? `$${paymentSurcharge.toFixed(2)}` : 'FREE'
+                },
+                totalAmount: parseFloat(totalAmount.toFixed(2)),
                 currency,
                 network,
+                paymentMethod,
                 recipient: recipientId,
                 memo,
                 estimatedSettlement: '3-5 seconds',
@@ -318,10 +362,23 @@ app.use((req, res, next) => {
                 transactionId,
                 status: 'pending',
                 amount: transferAmount,
-                platformFee,
-                totalAmount,
+                fees: {
+                  percentageFee: parseFloat(percentageFee.toFixed(2)),
+                  serviceFee: serviceFee,
+                  platformUsageFee: platformUsageFee,
+                  paymentSurcharge: parseFloat(paymentSurcharge.toFixed(2)),
+                  totalFees: parseFloat(totalFees.toFixed(2))
+                },
+                feeBreakdown: {
+                  'Transaction Fee (2.5%)': `$${percentageFee.toFixed(2)}`,
+                  'Service Fee': `$${serviceFee.toFixed(2)}`,
+                  'Platform Usage Fee': `$${platformUsageFee.toFixed(2)}`,
+                  [surchargeDescription]: paymentSurcharge > 0 ? `$${paymentSurcharge.toFixed(2)}` : 'FREE'
+                },
+                totalAmount: parseFloat(totalAmount.toFixed(2)),
                 currency,
                 network,
+                paymentMethod,
                 recipient: recipientId,
                 memo,
                 estimatedSettlement: '3-5 seconds',

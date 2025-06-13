@@ -240,6 +240,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Business logic audit endpoint
+  app.get('/api/audit/business-logic', async (req, res) => {
+    try {
+      const { BusinessLogicValidator } = await import('./businessLogicValidator');
+      const audit = await BusinessLogicValidator.runComprehensiveAudit();
+      
+      const statusCode = audit.overall === 'ready' ? 200 :
+                        audit.overall === 'needs_fixes' ? 206 : 503;
+      
+      res.status(statusCode).json({
+        success: true,
+        audit,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Business logic audit failed',
+        message: error.message
+      });
+    }
+  });
+
   // Production readiness validation endpoint
   app.get('/api/production/readiness', async (req, res) => {
     try {

@@ -6722,6 +6722,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Profit Optimization Analysis Endpoints
+  app.get('/api/internal/unit-economics', async (req, res) => {
+    try {
+      const { ProfitOptimizationService } = await import('./services/profitOptimizationService');
+      
+      const unitEconomics = ProfitOptimizationService.calculateUnitEconomics();
+      res.json({
+        success: true,
+        unitEconomics
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Unit economics analysis failed', message: error.message });
+    }
+  });
+
+  app.get('/api/internal/minimum-order-strategies', async (req, res) => {
+    try {
+      const { ProfitOptimizationService } = await import('./services/profitOptimizationService');
+      
+      const strategies = ProfitOptimizationService.createMinimumOrderStrategies();
+      const psychology = ProfitOptimizationService.analyzeMinimumOrderPsychology();
+      const risks = ProfitOptimizationService.calculateBusinessRisk();
+      
+      res.json({
+        success: true,
+        strategies,
+        psychology,
+        risks
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Strategy analysis failed', message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

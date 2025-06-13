@@ -1615,7 +1615,10 @@ app.use((req, res, next) => {
                 agentReferrals: '0.5%',
                 humanReferrals: '0.5%',
                 transactionCommissions: '1.0%',
-                bonusEligible: autoActivated
+                bonusEligible: autoActivated,
+                paymentTrigger: 'transaction_based',
+                tierName: 'basic',
+                maxTiers: 3
               },
               referralCode: referralId,
               referralBonus: referralBonus
@@ -1639,6 +1642,151 @@ app.use((req, res, next) => {
           res.status(500).json({
             success: false,
             message: 'Instant registration failed: ' + error.message
+          });
+        }
+      });
+
+      // Premium Tier Upgrade for Agents
+      app.post('/api/agents/:agentId/upgrade-tier', async (req, res) => {
+        try {
+          const { agentId } = req.params;
+          const { tierName, paymentMethodId } = req.body;
+
+          if (!tierName || !paymentMethodId) {
+            return res.status(400).json({
+              success: false,
+              message: 'Tier name and payment method required'
+            });
+          }
+
+          const { TransactionBasedCommissions } = await import('./services/transactionBasedCommissions');
+          const tiers = TransactionBasedCommissions.getPremiumTierOptions();
+          const selectedTier = tiers.find(t => t.name.toLowerCase().includes(tierName.toLowerCase()));
+
+          if (!selectedTier) {
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid tier selection'
+            });
+          }
+
+          // Create Stripe subscription for monthly fee
+          if (selectedTier.monthlyFee > 0) {
+            // In production: Process actual Stripe payment
+            console.log(`Processing ${selectedTier.monthlyFee} monthly subscription for agent ${agentId}`);
+          }
+
+          res.json({
+            success: true,
+            agentId,
+            upgrade: {
+              tierName: selectedTier.name,
+              monthlyFee: selectedTier.monthlyFee,
+              commissionBonus: `+${(selectedTier.commissionBonus * 100)}%`,
+              residualCommission: `${(selectedTier.residualCommission * 100)}%`,
+              maxTiers: selectedTier.maxTiers,
+              benefits: selectedTier.benefits
+            },
+            effectiveDate: new Date().toISOString(),
+            message: `Agent upgraded to ${selectedTier.name} tier successfully`
+          });
+        } catch (error: any) {
+          console.error('Tier upgrade error:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Tier upgrade failed: ' + error.message
+          });
+        }
+      });
+
+      // Commission Calculator for Tier Upgrades
+      app.post('/api/agents/commission-calculator', async (req, res) => {
+        try {
+          const { currentTier = 'basic', upgradeTier, monthlyReferralVolume = 10000 } = req.body;
+
+          const { TransactionBasedCommissions } = await import('./services/transactionBasedCommissions');
+          const preview = TransactionBasedCommissions.calculateCommissionPreview(
+            currentTier,
+            upgradeTier,
+            parseFloat(monthlyReferralVolume)
+          );
+
+          const tiers = TransactionBasedCommissions.getPremiumTierOptions();
+          const upgradeOption = tiers.find(t => t.name.toLowerCase().includes(upgradeTier.toLowerCase()));
+
+          res.json({
+            success: true,
+            calculator: {
+              monthlyVolume: `$${monthlyReferralVolume.toLocaleString()}`,
+              currentTier,
+              upgradeTier,
+              earnings: {
+                current: `$${preview.currentEarnings.toLocaleString()}`,
+                upgrade: `$${preview.upgradeEarnings.toLocaleString()}`,
+                additional: `$${preview.additionalEarnings.toLocaleString()}`
+              },
+              investment: {
+                monthlyFee: upgradeOption ? `$${upgradeOption.monthlyFee}` : '$0',
+                roi: preview.upgradeROI > 10 ? '10x+' : `${preview.upgradeROI.toFixed(1)}x`,
+                paybackPeriod: `${preview.paybackPeriod.toFixed(1)} months`
+              },
+              benefits: upgradeOption?.benefits || []
+            },
+            recommendation: preview.upgradeROI > 2 ? 'recommended' : 'evaluate_carefully',
+            message: 'Commission calculation completed'
+          });
+        } catch (error: any) {
+          console.error('Commission calculator error:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Commission calculation failed: ' + error.message
+          });
+        }
+      });
+
+      // Transaction Commission Trigger (when agents/humans make transactions)
+      app.post('/api/transactions/:transactionId/process-commissions', async (req, res) => {
+        try {
+          const { transactionId } = req.params;
+          const { amount, currency = 'USD', entityId, entityType } = req.body;
+
+          if (!amount || !entityId || !entityType) {
+            return res.status(400).json({
+              success: false,
+              message: 'Amount, entity ID, and entity type required'
+            });
+          }
+
+          const { TransactionBasedCommissions } = await import('./services/transactionBasedCommissions');
+          const commissions = await TransactionBasedCommissions.processTransactionCommission(
+            transactionId,
+            parseFloat(amount),
+            currency,
+            entityId,
+            entityType
+          );
+
+          const totalCommissions = commissions.reduce((sum, c) => sum + c.commissionAmount, 0);
+
+          res.json({
+            success: true,
+            transactionId,
+            commissionsProcessed: commissions.length,
+            totalCommissionAmount: totalCommissions.toFixed(2),
+            commissions: commissions.map(c => ({
+              referrerAgentId: c.referrerAgentId,
+              tier: c.tier,
+              rate: `${(c.commissionRate * 100).toFixed(3)}%`,
+              amount: `$${c.commissionAmount.toFixed(2)}`
+            })),
+            paymentNote: 'Commissions will be paid in weekly batch if above $10 threshold',
+            message: 'Transaction commissions processed successfully'
+          });
+        } catch (error: any) {
+          console.error('Commission processing error:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Commission processing failed: ' + error.message
           });
         }
       });

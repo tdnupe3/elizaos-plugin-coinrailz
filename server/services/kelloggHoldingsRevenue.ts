@@ -32,19 +32,19 @@ export class KelloggHoldingsRevenueService {
   };
 
   /**
-   * Route AI agent commission to Kellogg Holdings
+   * Process AI agent marketplace transaction (agent gets paid, platform takes fee)
    */
   static async processAIAgentCommission(
     agentId: string,
     transactionAmount: number,
     serviceType: string,
     currency: string = 'USD'
-  ): Promise<{ success: boolean; kelloggRevenue: number; transactionId: string }> {
+  ): Promise<{ success: boolean; agentRevenue: number; kelloggRevenue: number; transactionId: string }> {
     try {
-      // Platform takes 100% of AI agent marketplace fees
-      // This is standard for AI agent platforms - Kellogg Holdings owns the infrastructure
-      const platformCommissionRate = 1.0; // 100% to Kellogg Holdings
-      const kelloggRevenue = transactionAmount * platformCommissionRate;
+      // Platform takes marketplace fee, agent gets the rest (like Upwork/Fiverr model)
+      const platformFeeRate = 0.15; // 15% platform fee to Kellogg Holdings
+      const kelloggRevenue = transactionAmount * platformFeeRate;
+      const agentRevenue = transactionAmount - kelloggRevenue;
       
       const transactionId = `KH_AI_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
       
@@ -55,23 +55,25 @@ export class KelloggHoldingsRevenueService {
         amount: transactionAmount,
         currency,
         agentId,
-        description: `AI Agent ${serviceType} commission - 100% to Kellogg Holdings`,
+        description: `AI Agent ${serviceType} - Agent: ${agentRevenue} ${currency}, Platform Fee: ${kelloggRevenue} ${currency}`,
         kelloggHoldingsShare: kelloggRevenue,
         timestamp: new Date()
       };
       
       await this.recordRevenueTransaction(revenueTransaction);
       
-      console.log(`Kellogg Holdings Revenue: AI Agent Commission`, {
+      console.log(`AI Agent Marketplace Transaction`, {
         agentId,
         serviceType,
-        transactionAmount,
-        kelloggRevenue,
-        percentage: '100%'
+        totalTransaction: transactionAmount,
+        agentReceives: agentRevenue,
+        platformFee: kelloggRevenue,
+        platformFeeRate: '15%'
       });
       
       return {
         success: true,
+        agentRevenue,
         kelloggRevenue,
         transactionId
       };
@@ -80,6 +82,7 @@ export class KelloggHoldingsRevenueService {
       console.error('Kellogg Holdings commission processing failed:', error);
       return {
         success: false,
+        agentRevenue: 0,
         kelloggRevenue: 0,
         transactionId: ''
       };

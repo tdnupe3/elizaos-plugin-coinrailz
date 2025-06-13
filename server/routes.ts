@@ -6866,10 +6866,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         result,
-        message: '100% commission routed to Kellogg Holdings LLC'
+        message: `Agent receives $${result.agentRevenue}, Platform fee $${result.kelloggRevenue} to Kellogg Holdings`
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Commission processing failed', message: error.message });
+    }
+  });
+
+  // AI Agent Payment System Endpoints
+  app.post('/api/agents/process-marketplace-transaction', async (req, res) => {
+    try {
+      const { AIAgentPaymentService } = await import('./services/aiAgentPaymentService');
+      const paymentRequest = req.body;
+      
+      const result = await AIAgentPaymentService.processMarketplaceTransaction(paymentRequest);
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Marketplace transaction failed', message: error.message });
+    }
+  });
+
+  app.get('/api/agents/payment-methods', async (req, res) => {
+    try {
+      const { AIAgentPaymentService } = await import('./services/aiAgentPaymentService');
+      
+      const paymentMethods = AIAgentPaymentService.getSupportedPaymentMethods();
+      
+      res.json({
+        success: true,
+        paymentMethods,
+        message: 'AI agents can receive payments via XRP, Stripe, PayPal, or crypto'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Payment methods retrieval failed', message: error.message });
+    }
+  });
+
+  app.post('/api/agents/validate-payment-preference', async (req, res) => {
+    try {
+      const { AIAgentPaymentService } = await import('./services/aiAgentPaymentService');
+      const { paymentPreference } = req.body;
+      
+      const validation = AIAgentPaymentService.validatePaymentPreference(paymentPreference);
+      
+      res.json({
+        success: true,
+        validation
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Payment preference validation failed', message: error.message });
     }
   });
 

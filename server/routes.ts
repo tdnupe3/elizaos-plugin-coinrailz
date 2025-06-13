@@ -6919,6 +6919,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Service Delivery System Endpoints
+  app.post('/api/orders/create', async (req, res) => {
+    try {
+      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      const orderData = req.body;
+      
+      const order = await ServiceDeliverySystem.createServiceOrder(orderData);
+      
+      res.json({
+        success: true,
+        order,
+        nextStep: 'Complete payment to begin service delivery'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Order creation failed', message: error.message });
+    }
+  });
+
+  app.post('/api/orders/:orderId/verify-payment', async (req, res) => {
+    try {
+      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      const { orderId } = req.params;
+      const { paymentTransactionId } = req.body;
+      
+      const result = await ServiceDeliverySystem.verifyPaymentAndNotifyAgent(orderId, paymentTransactionId);
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Payment verification failed', message: error.message });
+    }
+  });
+
+  app.post('/api/orders/:orderId/deliver', async (req, res) => {
+    try {
+      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      const { orderId } = req.params;
+      const { deliveryData, agentSignature } = req.body;
+      
+      const result = await ServiceDeliverySystem.receiveServiceDelivery(orderId, deliveryData, agentSignature);
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Service delivery failed', message: error.message });
+    }
+  });
+
+  app.post('/api/orders/:orderId/complete', async (req, res) => {
+    try {
+      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      const { orderId } = req.params;
+      const { customerId, rating, feedback } = req.body;
+      
+      const result = await ServiceDeliverySystem.confirmServiceCompletion(orderId, customerId, rating, feedback);
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Service completion failed', message: error.message });
+    }
+  });
+
+  app.get('/api/orders/delivery-methods', async (req, res) => {
+    try {
+      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      
+      const deliveryMethods = ServiceDeliverySystem.getDeliveryMethods();
+      
+      res.json({
+        success: true,
+        deliveryMethods,
+        description: 'Available delivery methods by service type'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get delivery methods', message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

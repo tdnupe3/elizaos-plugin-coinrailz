@@ -48,6 +48,19 @@ export class FeeCalculator {
    * XRP fee structure: Ultra-low network fees (~$0.0002) + tiered platform fees
    */
   private static readonly XRP_NETWORK_FEE = 0.0002; // ~$0.0002 per transaction
+  
+  /**
+   * Ethereum fee structure: Dynamic gas fees + competitive platform rates
+   */
+  private static readonly ETH_BASE_GAS = 21000; // Base gas for ETH transfer
+  private static readonly ETH_TOKEN_GAS = 65000; // Gas for ERC-20 token transfer
+  private static readonly ETH_PLATFORM_FEE = 0.0175; // 1.75% - competitive for DeFi
+  
+  /**
+   * Stablecoin fee structure: Enterprise-grade rates for USDC/USDT/DAI
+   */
+  private static readonly STABLECOIN_PLATFORM_FEE = 0.015; // 1.5% - enterprise competitive
+  private static readonly STABLECOIN_MIN_FEE = 0.50; // $0.50 minimum for small transactions
   private static readonly XRP_PLATFORM_FEE = 0.005; // 0.5% platform fee for large transactions
   
   /**
@@ -200,6 +213,72 @@ export class FeeCalculator {
   }
 
   /**
+   * Calculate fees for Ethereum transactions
+   */
+  static calculateEthereumFees(amount: number, gasPrice?: number): FeeCalculation {
+    const currentGasPrice = gasPrice || 20; // 20 gwei default
+    const gasCostUSD = (this.ETH_BASE_GAS * currentGasPrice * 2555) / 1e18; // Using current ETH price
+    
+    const platformFee = amount * this.ETH_PLATFORM_FEE;
+    const totalFee = gasCostUSD + platformFee;
+    
+    return {
+      originalAmount: amount,
+      processingFee: gasCostUSD,
+      convenienceFee: 0,
+      platformFee,
+      totalFee,
+      totalAmount: amount + totalFee,
+      netAmount: amount,
+      paymentMethod: 'ethereum',
+      feeBreakdown: {
+        networkFee: gasCostUSD,
+        serviceFee: 0,
+        platformFee,
+        description: `Gas: ${currentGasPrice} gwei + 1.75% platform fee`
+      },
+      savings: {
+        vsWireTransfer: Math.max(0, 25 - totalFee),
+        vsCompetitor: Math.max(0, (amount * 0.025) - totalFee),
+        percentageSaved: Math.max(0, ((amount * 0.025 - totalFee) / (amount * 0.025)) * 100)
+      }
+    };
+  }
+
+  /**
+   * Calculate fees for stablecoin transactions (USDC/USDT/DAI)
+   */
+  static calculateStablecoinFees(amount: number, gasPrice?: number): FeeCalculation {
+    const currentGasPrice = gasPrice || 20; // 20 gwei default
+    const gasCostUSD = (this.ETH_TOKEN_GAS * currentGasPrice * 2555) / 1e18; // Token transfer gas
+    
+    const platformFee = Math.max(amount * this.STABLECOIN_PLATFORM_FEE, this.STABLECOIN_MIN_FEE);
+    const totalFee = gasCostUSD + platformFee;
+    
+    return {
+      originalAmount: amount,
+      processingFee: gasCostUSD,
+      convenienceFee: 0,
+      platformFee,
+      totalFee,
+      totalAmount: amount + totalFee,
+      netAmount: amount,
+      paymentMethod: 'stablecoin',
+      feeBreakdown: {
+        networkFee: gasCostUSD,
+        serviceFee: 0,
+        platformFee,
+        description: `Gas: ${currentGasPrice} gwei + 1.5% platform fee (min $0.50)`
+      },
+      savings: {
+        vsWireTransfer: Math.max(0, 25 - totalFee),
+        vsCompetitor: Math.max(0, (amount * 0.029) - totalFee), // vs Stripe
+        percentageSaved: Math.max(0, ((amount * 0.029 - totalFee) / (amount * 0.029)) * 100)
+      }
+    };
+  }
+
+  /**
    * Universal transaction fee calculator
    */
   static calculateTransactionFee(params: {
@@ -208,8 +287,9 @@ export class FeeCalculator {
     paymentMethod: string;
     userTier?: string;
     transactionType?: string;
+    gasPrice?: number;
   }): { fee: number; total: number; feePercentage: number } {
-    const { amount, paymentMethod } = params;
+    const { amount, paymentMethod, gasPrice } = params;
     
     if (amount <= 0) {
       throw new Error('Invalid transaction amount');
@@ -220,6 +300,16 @@ export class FeeCalculator {
     switch (paymentMethod.toLowerCase()) {
       case 'xrp':
         feeCalculation = this.calculateXRPFees(amount);
+        break;
+      case 'ethereum':
+      case 'eth':
+        feeCalculation = this.calculateEthereumFees(amount, gasPrice);
+        break;
+      case 'usdc':
+      case 'usdt':
+      case 'dai':
+      case 'stablecoin':
+        feeCalculation = this.calculateStablecoinFees(amount, gasPrice);
         break;
       case 'stripe':
         feeCalculation = this.calculateStripeFees(amount);
@@ -275,14 +365,18 @@ export class FeeCalculator {
   /**
    * Compare all payment methods for a given amount
    */
-  static compareAllMethods(amount: number): {
+  static compareAllMethods(amount: number, gasPrice?: number): {
     xrp: FeeCalculation;
+    ethereum: FeeCalculation;
+    stablecoin: FeeCalculation;
     stripe: FeeCalculation;
     paypal: FeeCalculation;
     crypto: FeeCalculation;
     recommended: string;
   } {
     const xrp = this.calculateXRPFees(amount);
+    const ethereum = this.calculateEthereumFees(amount, gasPrice);
+    const stablecoin = this.calculateStablecoinFees(amount, gasPrice);
     const stripe = this.calculateStripeFees(amount);
     const paypal = this.calculatePayPalFees(amount);
     const crypto = this.calculateCryptoFees(amount);
@@ -290,6 +384,8 @@ export class FeeCalculator {
     // Determine recommended method (lowest total fee)
     const methods = [
       { name: 'xrp', fee: xrp.totalFee },
+      { name: 'ethereum', fee: ethereum.totalFee },
+      { name: 'stablecoin', fee: stablecoin.totalFee },
       { name: 'stripe', fee: stripe.totalFee },
       { name: 'paypal', fee: paypal.totalFee },
       { name: 'crypto', fee: crypto.totalFee }
@@ -297,7 +393,7 @@ export class FeeCalculator {
     
     const recommended = methods.sort((a, b) => a.fee - b.fee)[0].name;
     
-    return { xrp, stripe, paypal, crypto, recommended };
+    return { xrp, ethereum, stablecoin, stripe, paypal, crypto, recommended };
   }
 
   /**

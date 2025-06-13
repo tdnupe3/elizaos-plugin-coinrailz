@@ -467,8 +467,20 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   agentName: varchar("agent_name").notNull(),
   description: text("description"),
   capabilities: jsonb("capabilities").notNull(), // Array of service capabilities
-  walletAddress: varchar("wallet_address").notNull(),
-  walletNetwork: varchar("wallet_network").notNull().default("ethereum"), // ethereum, solana, bitcoin
+  // Multi-blockchain wallet support for enhanced payment processing
+  primaryWalletAddress: varchar("primary_wallet_address").notNull(),
+  ethereumWallet: varchar("ethereum_wallet"), // For USDC/USDT/DAI payments
+  xrpWallet: varchar("xrp_wallet"), // For ultra-low cost settlements
+  solanaWallet: varchar("solana_wallet"), // For additional DeFi integrations
+  bitcoinAddress: varchar("bitcoin_address"), // For Bitcoin payments
+  walletNetwork: varchar("wallet_network").notNull().default("ethereum"), // Primary network preference
+  
+  // RWA (Real World Assets) integration capabilities
+  rwaCapabilities: jsonb("rwa_capabilities").default('[]'), // ["treasury_bills", "real_estate", "commodities"]
+  supportedTokenStandards: jsonb("supported_token_standards").default('["ERC-20", "ERC-721", "ERC-1155"]'),
+  defiProtocolIntegrations: jsonb("defi_protocol_integrations").default('[]'), // ["uniswap_v3", "curve_finance", "aave"]
+  
+  // Enhanced service specifications
   apiEndpoint: varchar("api_endpoint"),
   publicKey: text("public_key").notNull(), // For digital signature verification
   signature: text("signature").notNull(), // Registration signature
@@ -476,7 +488,13 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   reputation: decimal("reputation", { precision: 3, scale: 2 }).notNull().default("0.0"), // 0-5 rating system
   transactionCount: integer("transaction_count").notNull().default(0),
   totalVolume: varchar("total_volume").notNull().default("0"), // Total transaction volume
-  preferredCurrencies: jsonb("preferred_currencies").notNull(), // Supported currencies array
+  
+  // Enhanced currency and payment support
+  preferredCurrencies: jsonb("preferred_currencies").notNull(), // ["USDC", "USDT", "DAI", "XRP", "ETH"]
+  acceptedStablecoins: jsonb("accepted_stablecoins").default('["USDC", "USDT", "DAI"]'),
+  minimumTransactionAmount: varchar("minimum_transaction_amount").default("1.00"),
+  maximumTransactionAmount: varchar("maximum_transaction_amount").default("1000000.00"),
+  
   complianceLevel: varchar("compliance_level").notNull().default("basic"), // basic, enhanced, institutional
   geolocation: varchar("geolocation"), // ISO country code
   timezone: varchar("timezone"),

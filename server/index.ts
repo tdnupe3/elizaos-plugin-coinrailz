@@ -7,6 +7,13 @@ import { storage } from "./storage";
 import { dbHealthMonitor } from "./services/databaseHealthMonitor";
 import { pool } from "./db";
 import { registerEnhancedFeeEndpoint } from "./enhancedFeeEndpoint";
+import { platformCore } from "./platformCore";
+import { 
+  getCachedService, 
+  ConnectionPool, 
+  performanceMonitor,
+  lazyLoader 
+} from "./performanceOptimizer";
 
 console.log('Starting server with environment:', {
   NODE_ENV: process.env.NODE_ENV,
@@ -50,14 +57,21 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Start database health monitoring
+    // Initialize performance optimization
+    console.log('Initializing performance optimizations...');
+    await platformCore.initialize();
+    
+    // Start database health monitoring with connection pooling
+    const connectionPool = ConnectionPool.getInstance();
     dbHealthMonitor.startMonitoring();
-    console.log('Database health monitoring initialized');
+    console.log('Database health monitoring initialized with connection pooling');
 
-    // Initialize AI Agent Marketplace at startup
-    await AgentMarketplaceService.initializeMarketplace();
+    // Initialize AI Agent Marketplace with caching
+    await performanceMonitor.measureAsync('marketplace-init', async () => {
+      await AgentMarketplaceService.initializeMarketplace();
+    });
 
-    // Start commission payment scheduler
+    // Start commission payment scheduler with batch processing
     CommissionScheduler.start();
 
     // Register demo routes first (development only)

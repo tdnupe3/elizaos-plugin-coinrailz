@@ -184,7 +184,8 @@ export class BatchProcessor {
   }
 
   private async flushAllBatches() {
-    for (const batchKey of this.batches.keys()) {
+    const batchKeys = Array.from(this.batches.keys());
+    for (const batchKey of batchKeys) {
       await this.flushBatch(batchKey);
     }
   }

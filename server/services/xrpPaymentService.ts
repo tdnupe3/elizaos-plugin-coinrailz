@@ -44,20 +44,17 @@ export class XRPPaymentService {
     fromUserId?: string;
   }): Promise<any> {
     try {
-      // Use platform wallet for demo transactions
-      const platformWallet = {
-        address: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
-        seed: process.env.XRP_PLATFORM_SEED || 'demo-seed'
-      };
-
       // Validate recipient address
       if (!XRPLedgerService.validateAddress(params.toAddress)) {
         throw new Error('Invalid recipient address');
       }
 
+      // Use platform wallet for demo transactions
+      const platformSeed = process.env.PLATFORM_XRP_SEED || 'sEdTq1EhVYY8wvhqbkntGUqYjWgCRSR';
+      
       // Send the XRP payment
       const transaction = await XRPLedgerService.sendPayment(
-        platformWallet.seed,
+        platformSeed,
         params.toAddress,
         params.amount,
         params.memo || ''
@@ -65,7 +62,7 @@ export class XRPPaymentService {
 
       return {
         hash: transaction.hash,
-        from: platformWallet.address,
+        from: process.env.PLATFORM_XRP_ADDRESS || 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
         to: params.toAddress,
         amount: params.amount,
         fee: parseFloat(transaction.fee),

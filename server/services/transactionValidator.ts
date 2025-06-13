@@ -13,6 +13,8 @@ export interface TransactionValidationResult {
 export interface TransactionLimits {
   minAmount: number;
   maxAmount: number;
+  dailyMonitoringThreshold: number;   // Track but don't block
+  monthlyMonitoringThreshold: number; // Track but don't block
   maxVelocity: number; // transactions per minute
   manualReviewThreshold: number;
 }
@@ -21,6 +23,8 @@ export class TransactionValidator {
   private static readonly LIMITS: TransactionLimits = {
     minAmount: 5.00,                      // $5 minimum
     maxAmount: 10000.00,                  // $10K maximum (AML threshold) - FIAT ONLY
+    dailyMonitoringThreshold: 25000.00,   // $25K daily monitoring (NO BLOCKING)
+    monthlyMonitoringThreshold: 100000.00, // $100K monthly monitoring (NO BLOCKING)
     maxVelocity: 10,                      // 10 transactions per minute max (increased for volume)
     manualReviewThreshold: 5000.00        // $5K manual review threshold
   };

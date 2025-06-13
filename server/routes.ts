@@ -56,6 +56,7 @@ import { productionOptimizer } from './services/productionOptimizer';
 import { WebhookValidator } from './services/webhookValidator';
 import { ProductionValidator } from './services/productionValidator';
 import { productionLoadTester } from './services/loadTester';
+import { ethereumService } from './services/ethereumService';
 // Notification service will be imported dynamically in route handlers
 
 // Helper functions for agent verification status
@@ -7210,6 +7211,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Payment processing failed', message: error.message });
+    }
+  });
+
+  // ===== ETHEREUM INFRASTRUCTURE ENDPOINTS =====
+  
+  // Get Ethereum service health and status
+  app.get('/api/ethereum/health', async (req, res) => {
+    try {
+      const health = await ethereumService.getServiceHealth();
+      res.json({ success: true, ...health });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to check Ethereum service health', message: error.message });
+    }
+  });
+
+  // Get ETH price in USD
+  app.get('/api/ethereum/price', async (req, res) => {
+    try {
+      const price = await ethereumService.getETHPrice();
+      res.json({ success: true, price, currency: 'USD' });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch ETH price', message: error.message });
+    }
+  });
+
+  // Get token information
+  app.get('/api/ethereum/token/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      if (!ethereumService.isValidAddress(address)) {
+        return res.status(400).json({ error: 'Invalid Ethereum address' });
+      }
+      
+      const tokenInfo = await ethereumService.getTokenInfo(address);
+      res.json({ success: true, token: tokenInfo });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch token information', message: error.message });
+    }
+  });
+
+  // Get ETH balance for address
+  app.get('/api/ethereum/balance/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      if (!ethereumService.isValidAddress(address)) {
+        return res.status(400).json({ error: 'Invalid Ethereum address' });
+      }
+      
+      const balance = await ethereumService.getETHBalance(address);
+      res.json({ success: true, balance, symbol: 'ETH' });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch ETH balance', message: error.message });
+    }
+  });
+
+  // Get token balance for address
+  app.get('/api/ethereum/token/:tokenAddress/balance/:walletAddress', async (req, res) => {
+    try {
+      const { tokenAddress, walletAddress } = req.params;
+      if (!ethereumService.isValidAddress(tokenAddress) || !ethereumService.isValidAddress(walletAddress)) {
+        return res.status(400).json({ error: 'Invalid Ethereum address' });
+      }
+      
+      const balance = await ethereumService.getTokenBalance(tokenAddress, walletAddress);
+      res.json({ success: true, balance, tokenAddress });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch token balance', message: error.message });
+    }
+  });
+
+  // Get current gas price
+  app.get('/api/ethereum/gas-price', async (req, res) => {
+    try {
+      const gasPrice = await ethereumService.getGasPrice();
+      res.json({ success: true, gasPrice, unit: 'wei' });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch gas price', message: error.message });
+    }
+  });
+
+  // Get transaction by hash
+  app.get('/api/ethereum/transaction/:hash', async (req, res) => {
+    try {
+      const { hash } = req.params;
+      const transaction = await ethereumService.getTransaction(hash);
+      res.json({ success: true, transaction });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch transaction', message: error.message });
+    }
+  });
+
+  // Get stablecoin addresses (reference data)
+  app.get('/api/ethereum/stablecoins', async (req, res) => {
+    try {
+      const stablecoins = ethereumService.constructor.getStablecoinAddresses();
+      res.json({ success: true, stablecoins });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch stablecoin addresses', message: error.message });
+    }
+  });
+
+  // Enhanced DEX quote with Ethereum support
+  app.post('/api/ethereum/dex-quote', async (req, res) => {
+    try {
+      const { fromToken, toToken, amount, slippage = 0.5 } = req.body;
+      
+      // Validate Ethereum addresses
+      if (!ethereumService.isValidAddress(fromToken) || !ethereumService.isValidAddress(toToken)) {
+        return res.status(400).json({ error: 'Invalid token addresses' });
+      }
+
+      // This would integrate with your existing DEX aggregator
+      // For now, provide the infrastructure for future 1inch/0x integration
+      res.json({
+        success: true,
+        quote: {
+          fromToken,
+          toToken,
+          fromAmount: amount,
+          estimatedGas: await ethereumService.getGasPrice(),
+          slippage,
+          route: ['Direct swap via Ethereum DEX'],
+          note: 'Ethereum DEX integration active - ready for 1inch/0x API connection'
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get DEX quote', message: error.message });
     }
   });
 

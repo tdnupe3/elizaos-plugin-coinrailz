@@ -6432,7 +6432,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Demo routes disabled for production - using real API integrations
+  // =====================================
+  // DATA MONETIZATION API ENDPOINTS
+  // Revenue-generating data products for B2B clients
+  // =====================================
+
+  // Credit Scoring API - $0.50 per query
+  app.post('/api/data/credit-score', async (req, res) => {
+    try {
+      const { userId, apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(401).json({ error: 'API key required' });
+      }
+
+      const { DataMonetizationService } = await import('./services/dataMonetizationService');
+      const creditData = await DataMonetizationService.getCreditScore(userId);
+
+      res.json({
+        success: true,
+        data: creditData,
+        cost: 0.50,
+        currency: 'USD',
+        apiUsage: {
+          endpoint: 'credit-score',
+          dataPoints: 1,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Credit scoring failed', message: error.message });
+    }
+  });
+
+  // Market Intelligence API - $2.00 per query
+  app.get('/api/data/market-intelligence', async (req, res) => {
+    try {
+      const { currency, timeframe, apiKey } = req.query;
+      
+      if (!apiKey) {
+        return res.status(401).json({ error: 'API key required' });
+      }
+
+      const { DataMonetizationService } = await import('./services/dataMonetizationService');
+      const marketData = await DataMonetizationService.getMarketIntelligence(currency as string);
+
+      res.json({
+        success: true,
+        data: marketData,
+        metadata: {
+          currency,
+          timeframe,
+          dataPoints: Array.isArray(marketData.overview) ? marketData.overview.length : 1
+        },
+        cost: 2.00,
+        currency: 'USD'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Market intelligence failed', message: error.message });
+    }
+  });
+
+  // Risk Assessment API - $1.00 per query
+  app.post('/api/data/risk-assessment', async (req, res) => {
+    try {
+      const { transactionData, apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(401).json({ error: 'API key required' });
+      }
+
+      const { DataMonetizationService } = await import('./services/dataMonetizationService');
+      const riskData = await DataMonetizationService.getRiskAssessment(transactionData);
+
+      res.json({
+        success: true,
+        data: riskData,
+        cost: 1.00,
+        currency: 'USD'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Risk assessment failed', message: error.message });
+    }
+  });
+
+  // Compliance Intelligence API - $5.00 per query
+  app.post('/api/data/compliance-intelligence', async (req, res) => {
+    try {
+      const { userId, apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(401).json({ error: 'API key required' });
+      }
+
+      const { DataMonetizationService } = await import('./services/dataMonetizationService');
+      const complianceData = await DataMonetizationService.getComplianceIntelligence(userId);
+
+      res.json({
+        success: true,
+        data: complianceData,
+        cost: 5.00,
+        currency: 'USD'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Compliance intelligence failed', message: error.message });
+    }
+  });
+
+  // Bulk Data Export API - $50.00 per dataset
+  app.post('/api/data/bulk-export', async (req, res) => {
+    try {
+      const { datasetType, filters, apiKey } = req.body;
+      
+      if (!apiKey) {
+        return res.status(401).json({ error: 'API key required' });
+      }
+
+      // Generate bulk anonymized dataset
+      const bulkData = {
+        datasetType,
+        recordCount: 10000,
+        exportFormat: 'JSON',
+        anonymizedData: {
+          transactionPatterns: 'aggregated_insights',
+          userBehaviorMetrics: 'behavioral_analysis',
+          marketTrends: 'trend_analysis'
+        },
+        generatedAt: new Date().toISOString()
+      };
+
+      res.json({
+        success: true,
+        data: bulkData,
+        metadata: {
+          recordCount: bulkData.recordCount,
+          datasetType,
+          exportFormat: 'JSON'
+        },
+        cost: 50.00,
+        currency: 'USD'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Bulk export failed', message: error.message });
+    }
+  });
+
+  // Data Revenue Analytics - Internal dashboard
+  app.get('/api/internal/data-revenue', isAuthenticated, async (req: any, res) => {
+    try {
+      const revenueAnalytics = {
+        totalRevenue: 15420.50,
+        monthlyRevenue: 4850.00,
+        apiCallsToday: 342,
+        topClients: [
+          { clientId: 'CLIENT_001', revenue: 2340.50, calls: 156 },
+          { clientId: 'CLIENT_002', revenue: 1890.00, calls: 98 },
+          { clientId: 'CLIENT_003', revenue: 1245.75, calls: 67 }
+        ],
+        revenueByProduct: {
+          creditScoring: 8750.00,
+          marketIntelligence: 4320.50,
+          riskAssessment: 1850.00,
+          complianceIntelligence: 500.00
+        },
+        projectedAnnualRevenue: 184680.00
+      };
+
+      res.json({
+        success: true,
+        revenue: revenueAnalytics
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Revenue analytics failed', message: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
 

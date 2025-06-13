@@ -754,3 +754,132 @@ export type InsertReferral = typeof referrals.$inferInsert;
 export type CryptoTransfer = typeof cryptoTransfers.$inferSelect;
 export type InsertCryptoTransfer = z.infer<typeof insertCryptoTransferSchema>;
 export type CryptoTransferRequest = z.infer<typeof cryptoTransferSchema>;
+
+// =====================================
+// DATA MONETIZATION TABLES
+// =====================================
+
+// Analytics Datasets - Anonymized data for sale
+export const analyticsDatasets = pgTable("analytics_datasets", {
+  id: serial("id").primaryKey(),
+  datasetType: varchar("dataset_type").notNull(), // transaction_insights, user_behavior, market_intelligence
+  dataHash: varchar("data_hash").notNull().unique(),
+  aggregatedData: jsonb("aggregated_data").notNull(),
+  timeRange: varchar("time_range"), // daily, weekly, monthly
+  currency: varchar("currency"),
+  volume: decimal("volume", { precision: 20, scale: 8 }),
+  transactionCount: integer("transaction_count"),
+  averageAmount: decimal("average_amount", { precision: 15, scale: 2 }),
+  volatility: decimal("volatility", { precision: 5, scale: 4 }),
+  riskScore: integer("risk_score"),
+  geolocation: jsonb("geolocation"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  datasetTypeIndex: index("dataset_type_idx").on(table.datasetType),
+  timeRangeIndex: index("time_range_idx").on(table.timeRange),
+  currencyIndex: index("currency_analytics_idx").on(table.currency),
+}));
+
+// API Usage Tracking - Revenue from data sales
+export const apiUsageTracking = pgTable("api_usage_tracking", {
+  id: serial("id").primaryKey(),
+  clientId: varchar("client_id").notNull(),
+  apiEndpoint: varchar("api_endpoint").notNull(),
+  requestMethod: varchar("request_method").notNull(),
+  responseTime: integer("response_time"),
+  dataPointsReturned: integer("data_points_returned"),
+  pricePaid: decimal("price_paid", { precision: 10, scale: 2 }),
+  billingStatus: varchar("billing_status").default("pending"),
+  ipAddress: varchar("ip_address"),
+  userAgent: text("user_agent"),
+  requestTimestamp: timestamp("request_timestamp").defaultNow(),
+  processedAt: timestamp("processed_at"),
+}, (table) => ({
+  clientIndex: index("client_usage_idx").on(table.clientId),
+  endpointIndex: index("endpoint_usage_idx").on(table.apiEndpoint),
+  timestampIndex: index("usage_timestamp_idx").on(table.requestTimestamp),
+}));
+
+// Credit Scoring Data - Premium product
+export const creditScoringData = pgTable("credit_scoring_data", {
+  id: serial("id").primaryKey(),
+  userHash: varchar("user_hash").notNull(),
+  creditScore: integer("credit_score").notNull(),
+  scoreFactors: jsonb("score_factors"),
+  confidence: decimal("confidence", { precision: 3, scale: 2 }),
+  transactionHistory: jsonb("transaction_history"),
+  riskProfile: varchar("risk_profile"),
+  incomeEstimate: decimal("income_estimate", { precision: 12, scale: 2 }),
+  debtToIncomeRatio: decimal("debt_to_income_ratio", { precision: 5, scale: 4 }),
+  paymentBehavior: jsonb("payment_behavior"),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  validUntil: timestamp("valid_until"),
+}, (table) => ({
+  userHashIndex: index("user_hash_credit_idx").on(table.userHash),
+  scoreIndex: index("credit_score_idx").on(table.creditScore),
+  riskProfileIndex: index("risk_profile_idx").on(table.riskProfile),
+}));
+
+// Market Intelligence Data
+export const marketIntelligence = pgTable("market_intelligence", {
+  id: serial("id").primaryKey(),
+  currency: varchar("currency").notNull(),
+  timeframe: varchar("timeframe").notNull(),
+  volume: decimal("volume", { precision: 20, scale: 8 }).notNull(),
+  averageTransactionSize: decimal("average_transaction_size", { precision: 15, scale: 2 }),
+  totalTransactions: integer("total_transactions").notNull(),
+  uniqueUsers: integer("unique_users"),
+  volatilityIndex: decimal("volatility_index", { precision: 5, scale: 4 }),
+  sentimentScore: decimal("sentiment_score", { precision: 3, scale: 2 }),
+  trendDirection: varchar("trend_direction"),
+  priceImpactScore: decimal("price_impact_score", { precision: 5, scale: 4 }),
+  liquidityScore: decimal("liquidity_score", { precision: 5, scale: 4 }),
+  adoptionRate: decimal("adoption_rate", { precision: 5, scale: 4 }),
+  crossCurrencyFlows: jsonb("cross_currency_flows"),
+  geographicDistribution: jsonb("geographic_distribution"),
+  timeOfDayPatterns: jsonb("time_of_day_patterns"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  currencyTimeframeIndex: index("currency_timeframe_idx").on(table.currency, table.timeframe),
+  volumeIndex: index("volume_intelligence_idx").on(table.volume),
+  createdAtIndex: index("intelligence_created_idx").on(table.createdAt),
+}));
+
+// Risk Assessment Data
+export const riskAssessmentData = pgTable("risk_assessment_data", {
+  id: serial("id").primaryKey(),
+  assessmentHash: varchar("assessment_hash").notNull().unique(),
+  transactionType: varchar("transaction_type").notNull(),
+  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
+  currency: varchar("currency").notNull(),
+  riskScore: integer("risk_score").notNull(),
+  riskFactors: jsonb("risk_factors").notNull(),
+  amlRisk: integer("aml_risk"),
+  kycRecommendation: varchar("kyc_recommendation"),
+  sanctionsCheckResult: boolean("sanctions_check_result"),
+  pepsCheckResult: boolean("peps_check_result"),
+  velocityScore: integer("velocity_score"),
+  geolocationRisk: integer("geolocation_risk"),
+  deviceFingerprintRisk: integer("device_fingerprint_risk"),
+  behavioralAnomalyScore: integer("behavioral_anomaly_score"),
+  recommendation: varchar("recommendation").notNull(),
+  confidenceLevel: decimal("confidence_level", { precision: 3, scale: 2 }),
+  reviewRequired: boolean("review_required").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  riskScoreIndex: index("risk_score_idx").on(table.riskScore),
+  transactionTypeIndex: index("transaction_type_risk_idx").on(table.transactionType),
+  currencyRiskIndex: index("currency_risk_idx").on(table.currency),
+}));
+
+// Data monetization types
+export type AnalyticsDataset = typeof analyticsDatasets.$inferSelect;
+export type InsertAnalyticsDataset = typeof analyticsDatasets.$inferInsert;
+export type ApiUsageTracking = typeof apiUsageTracking.$inferSelect;
+export type InsertApiUsageTracking = typeof apiUsageTracking.$inferInsert;
+export type CreditScoringData = typeof creditScoringData.$inferSelect;
+export type InsertCreditScoringData = typeof creditScoringData.$inferInsert;
+export type MarketIntelligence = typeof marketIntelligence.$inferSelect;
+export type InsertMarketIntelligence = typeof marketIntelligence.$inferInsert;
+export type RiskAssessmentData = typeof riskAssessmentData.$inferSelect;
+export type InsertRiskAssessmentData = typeof riskAssessmentData.$inferInsert;

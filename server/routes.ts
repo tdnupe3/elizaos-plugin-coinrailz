@@ -5652,12 +5652,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Simple XRP send for testing - no auth required for demo
-  app.post('/api/demo/xrp/send', async (req, res) => {
+  // Working XRP transaction endpoint
+  app.post('/api/xrp/demo-send', async (req, res) => {
     try {
       const { toAddress, amount, memo } = req.body;
       
-      // Validate inputs
       if (!toAddress || !amount) {
         return res.status(400).json({
           success: false,
@@ -5665,7 +5664,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Use the actual XRP service to process the transaction
       const result = await XRPPaymentService.sendXRP({
         toAddress,
         amount: parseFloat(amount),

@@ -35,6 +35,52 @@ interface CrossBorderPayment {
 
 export class XRPPaymentService {
   /**
+   * Simple XRP send function for demo transactions
+   */
+  static async sendXRP(params: {
+    toAddress: string;
+    amount: number;
+    memo?: string;
+    fromUserId?: string;
+  }): Promise<any> {
+    try {
+      // Use platform wallet for demo transactions
+      const platformWallet = {
+        address: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
+        seed: process.env.XRP_PLATFORM_SEED || 'demo-seed'
+      };
+
+      // Validate recipient address
+      if (!XRPLedgerService.validateAddress(params.toAddress)) {
+        throw new Error('Invalid recipient address');
+      }
+
+      // Send the XRP payment
+      const transaction = await XRPLedgerService.sendPayment(
+        platformWallet.seed,
+        params.toAddress,
+        params.amount,
+        params.memo || ''
+      );
+
+      return {
+        hash: transaction.hash,
+        from: platformWallet.address,
+        to: params.toAddress,
+        amount: params.amount,
+        fee: parseFloat(transaction.fee),
+        memo: params.memo || '',
+        status: 'success',
+        timestamp: new Date().toISOString()
+      };
+
+    } catch (error: any) {
+      console.error('XRP send error:', error);
+      throw new Error(error.message || 'XRP transaction failed');
+    }
+  }
+
+  /**
    * Process XRP payment with automatic currency conversion
    */
   static async processPayment(request: XRPPaymentRequest): Promise<XRPPaymentResponse> {

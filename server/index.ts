@@ -242,15 +242,29 @@ app.use((req, res, next) => {
             });
           }
 
-          const fee = amount * 0.02; // 2% fee
+          // Enhanced fee structure for sustainable profitability
+          const percentageFee = amount * 0.045; // 4.5% transaction fee
+          const serviceFee = 5.00; // $5.00 service fee
+          const platformUsageFee = 2.50; // $2.50 platform usage fee
+          
+          // Payment method surcharges
+          let paymentSurcharge = 0;
+          if (paymentMethod === 'credit_card') {
+            paymentSurcharge = amount * 0.01 + 0.30; // 1% + $0.30
+          } else if (paymentMethod === 'paypal') {
+            paymentSurcharge = amount * 0.015 + 0.49; // 1.5% + $0.49
+          }
+          
+          const fee = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
           const total = amount + fee;
+          const feePercentage = (fee / amount) * 100;
 
           res.json({
             success: true,
             amount,
             fee,
             total,
-            feePercentage: 2.0,
+            feePercentage: parseFloat(feePercentage.toFixed(2)),
             fromCurrency: fromCurrency || 'USD',
             toCurrency: toCurrency || 'XRP',
             transactionType: transactionType || 'p2p_transfer'

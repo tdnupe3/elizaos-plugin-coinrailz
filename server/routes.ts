@@ -1213,53 +1213,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // FEE CALCULATION SYSTEM - CREDIT CARD CONVENIENCE FEES
   // ==============================================
 
-  // Calculate fees for any transaction
+  // ENHANCED: Fee calculation with sustainable profit margins (4.5% + fixed fees)
   app.post('/api/fees/calculate', async (req, res) => {
     try {
-      const { amount, paymentMethod, transactionType = 'p2p' } = req.body;
+      const { amount, paymentMethod = 'credit_card', currency = 'USD' } = req.body;
 
-      if (!amount || !paymentMethod) {
-        return res.status(400).json({
-          success: false,
-          message: "Amount and payment method are required"
-        });
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: 'Invalid amount' });
       }
 
-      const parsedAmount = parseFloat(amount);
-      if (isNaN(parsedAmount) || parsedAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: "Amount must be a positive number"
-        });
+      const transactionAmount = parseFloat(amount);
+      
+      // Enhanced fee structure for sustainable profitability
+      const percentageFee = transactionAmount * 0.045; // 4.5% transaction fee
+      const serviceFee = 5.00; // $5.00 service fee
+      const platformUsageFee = 2.50; // $2.50 platform usage fee
+      
+      // Payment method surcharges
+      let paymentSurcharge = 0;
+      let surchargeDescription = 'No surcharge';
+      
+      if (paymentMethod === 'credit_card') {
+        paymentSurcharge = transactionAmount * 0.01 + 0.30; // 1% + $0.30
+        surchargeDescription = 'Credit card processing fee';
+      } else if (paymentMethod === 'paypal') {
+        paymentSurcharge = transactionAmount * 0.015 + 0.49; // 1.5% + $0.49
+        surchargeDescription = 'PayPal processing fee';
       }
-
-      // Validate minimum amount
-      const validation = FeeCalculator.validateAmount(parsedAmount, paymentMethod);
-      if (!validation.valid) {
-        return res.status(400).json({
-          success: false,
-          message: validation.message
-        });
-      }
-
-      // Calculate fees based on transaction type
-      const feeCalculation = transactionType === 'marketplace' 
-        ? FeeCalculator.calculateMarketplaceFees(parsedAmount, paymentMethod)
-        : FeeCalculator.calculateP2PFees(parsedAmount, paymentMethod);
-
-      // Get user-friendly breakdown
-      const breakdown = FeeCalculator.getFeeBreakdown(parsedAmount, paymentMethod, transactionType);
+      
+      const totalFees = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
+      const totalAmount = transactionAmount + totalFees;
+      
+      // Calculate net platform revenue after worst-case commission payouts
+      const commissionRates = [0.004, 0.002, 0.001, 0.0005, 0.0005, 0.0005, 0.0005];
+      const eliteBonusMultiplier = 1.5; // +50% for Elite agents
+      let totalCommissions = 0;
+      commissionRates.forEach(rate => {
+        totalCommissions += transactionAmount * rate * eliteBonusMultiplier;
+      });
+      
+      const netPlatformRevenue = totalFees - totalCommissions;
 
       res.json({
         success: true,
-        calculation: feeCalculation,
-        breakdown,
-        paymentMethod,
-        transactionType
+        amount: transactionAmount,
+        fee: totalFees, // For backwards compatibility
+        totalFees: totalFees,
+        total: totalAmount,
+        feePercentage: parseFloat(((totalFees / transactionAmount) * 100).toFixed(2)),
+        currency: currency,
+        fromCurrency: 'USD',
+        toCurrency: 'XRP',
+        transactionType: 'p2p_transfer',
+        feeBreakdown: {
+          percentageFee: parseFloat(percentageFee.toFixed(2)),
+          serviceFee: serviceFee,
+          platformUsageFee: platformUsageFee,
+          paymentSurcharge: parseFloat(paymentSurcharge.toFixed(2)),
+          surchargeDescription: surchargeDescription
+        },
+        netPlatformRevenue: parseFloat(netPlatformRevenue.toFixed(2)),
+        competitive: {
+          westernUnion: '4-8%',
+          paypalIntl: '5-7%',
+          wireTransfer: '3-5%',
+          coinRailz: ((totalFees / transactionAmount) * 100).toFixed(1) + '%'
+        }
       });
 
     } catch (error: any) {
-      console.error("Error calculating fees:", error);
+      console.error("Enhanced fee calculation error:", error);
       res.status(500).json({
         success: false,
         message: "Failed to calculate fees"

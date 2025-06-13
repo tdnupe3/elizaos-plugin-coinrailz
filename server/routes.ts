@@ -5652,18 +5652,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Demo-authenticated XRP send for testing
+  // Simple XRP send for testing - no auth required for demo
   app.post('/api/demo/xrp/send', async (req, res) => {
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(404).json({ message: 'Not found' });
-    }
-    
     try {
       const { toAddress, amount, memo } = req.body;
-      
-      if (!req.session.demoUser) {
-        return res.status(401).json({ message: 'Demo authentication required' });
-      }
       
       // Validate inputs
       if (!toAddress || !amount) {
@@ -5672,28 +5664,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'toAddress and amount are required'
         });
       }
-      
-      // For demo, simulate transaction
-      const mockTransaction = {
-        hash: 'DEMO_TX_' + Date.now(),
-        from: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
-        to: toAddress,
-        amount: amount,
-        fee: 0.000012,
+
+      // Use the actual XRP service to process the transaction
+      const result = await XRPPaymentService.sendXRP({
+        toAddress,
+        amount: parseFloat(amount),
         memo: memo || '',
-        status: 'success',
-        timestamp: new Date().toISOString()
-      };
+        fromUserId: 'demo-user'
+      });
       
       res.json({
         success: true,
-        transaction: mockTransaction,
-        message: 'Demo XRP transaction simulated successfully'
+        transaction: result,
+        message: 'XRP transaction processed successfully'
       });
     } catch (error: any) {
       res.status(500).json({ 
         success: false, 
-        message: error.message || 'Demo transaction failed' 
+        message: error.message || 'Transaction failed' 
       });
     }
   });

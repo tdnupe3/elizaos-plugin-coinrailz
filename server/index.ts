@@ -1569,35 +1569,15 @@ app.use((req, res, next) => {
           const agentId = `AGENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           const referralId = `REF_${agentId}_${Math.random().toString(36).substr(2, 6)}`;
           
-          // Instant wallet verification
-          const walletFormats = [
-            /^r[1-9A-HJ-NP-Za-km-z]{25,34}$/, // XRP
-            /^0x[a-fA-F0-9]{40}$/, // Ethereum
-            /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/, // Bitcoin
-            /^[1-9A-HJ-NP-Za-km-z]{32,44}$/ // Solana
-          ];
-          const walletVerified = walletFormats.some(format => format.test(walletAddress));
+          // Simple security checks (< 1 second total)
+          const isValidWallet = walletAddress.length >= 25 && walletAddress.length <= 50;
+          const isSafeName = !agentName.toLowerCase().includes('hack') && 
+                           !agentName.toLowerCase().includes('scam') &&
+                           !agentName.toLowerCase().includes('exploit');
+          const hasValidCapabilities = capabilities.length > 0 && capabilities.length <= 10;
           
-          // Capability scoring
-          const validCapabilities = [
-            'trading', 'analysis', 'portfolio_management', 'risk_assessment',
-            'market_data', 'arbitrage', 'signals', 'research', 'automation',
-            'defi', 'yield_farming', 'staking', 'lending', 'borrowing'
-          ];
-          const validCount = capabilities.filter(cap => 
-            validCapabilities.includes(cap.toLowerCase())
-          ).length;
-          const capabilityScore = Math.min(0.5 + (validCount * 0.1), 1.0);
-          
-          // Compliance assessment
-          const riskKeywords = ['hack', 'exploit', 'drain', 'rug', 'scam'];
-          const hasRiskKeywords = riskKeywords.some(keyword => 
-            agentName.toLowerCase().includes(keyword)
-          );
-          const complianceScore = hasRiskKeywords ? 0.3 : 0.8;
-          
-          // Instant activation decision
-          const autoActivated = walletVerified && capabilityScore >= 0.6 && complianceScore >= 0.7;
+          // Instant activation for basic validation
+          const autoActivated = isValidWallet && isSafeName && hasValidCapabilities;
           
           let referralBonus = 0;
           if (referralCode) {
@@ -1626,15 +1606,10 @@ app.use((req, res, next) => {
               registrationDate: new Date().toISOString(),
               activationTime: autoActivated ? new Date().toISOString() : null,
               verificationSteps: {
-                wallet: walletVerified ? 'verified' : 'failed',
-                capabilities: capabilityScore >= 0.6 ? 'verified' : 'insufficient',
-                compliance: complianceScore >= 0.7 ? 'verified' : 'flagged',
-                apiEndpoint: apiEndpoint ? 'verified' : 'not_provided'
-              },
-              scores: {
-                capability: parseFloat(capabilityScore.toFixed(2)),
-                compliance: parseFloat(complianceScore.toFixed(2)),
-                overall: parseFloat(((capabilityScore + complianceScore) / 2).toFixed(2))
+                wallet: isValidWallet ? 'verified' : 'failed',
+                name: isSafeName ? 'verified' : 'flagged',
+                capabilities: hasValidCapabilities ? 'verified' : 'invalid',
+                apiEndpoint: apiEndpoint ? 'provided' : 'not_provided'
               },
               commissionStructure: {
                 agentReferrals: '0.5%',

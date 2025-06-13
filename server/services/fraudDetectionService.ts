@@ -324,12 +324,12 @@ export class FraudDetectionService {
   }
 
   /**
-   * Calculate risk level from score
+   * Calculate risk level from score (updated thresholds for mass adoption)
    */
   private static calculateRiskLevel(score: number): 'low' | 'medium' | 'high' | 'critical' {
-    if (score >= 80) return 'critical';
-    if (score >= 60) return 'high';
-    if (score >= 30) return 'medium';
+    if (score >= 94) return 'critical';  // Raised from 80 to 94 for high-volume scenarios
+    if (score >= 70) return 'high';
+    if (score >= 40) return 'medium';
     return 'low';
   }
 

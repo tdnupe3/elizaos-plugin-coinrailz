@@ -73,12 +73,13 @@
 
 ## PRODUCTION LAUNCH CONSTRAINTS
 
-### Mandatory Launch Limits
-- **Transaction Cap:** $1,000 per transaction maximum
-- **Daily Volume:** 100 transactions per day platform-wide
-- **User Limits:** 10 new registrations per day
-- **Geographic Scope:** US-only initially
-- **Payment Methods:** Credit card and XRP only (PayPal disabled)
+### Mass Adoption Configuration
+- **Fiat Transaction Cap:** $10,000 per transaction (AML compliance)
+- **Crypto Transaction Cap:** No limits (supports large-volume scenarios)
+- **Daily Monitoring:** $25,000 threshold triggers enhanced tracking
+- **Monthly Monitoring:** $100,000 threshold triggers enhanced tracking
+- **Manual Review:** Transactions >$5,000 require manual approval
+- **Fraud Threshold:** 94+ risk score triggers automatic blocking (raised for legitimate high-volume users)
 
 ### Required Monitoring
 - **Real-time:** Transaction volume and fraud alerts

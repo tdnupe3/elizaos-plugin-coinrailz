@@ -13,18 +13,20 @@ export interface TransactionValidationResult {
 export interface TransactionLimits {
   minAmount: number;
   maxAmount: number;
-  dailyLimit: number;
-  monthlyLimit: number;
+  dailyMonitoringThreshold: number;   // No limit, just monitoring
+  monthlyMonitoringThreshold: number; // No limit, just monitoring
   maxVelocity: number; // transactions per minute
+  manualReviewThreshold: number;
 }
 
 export class TransactionValidator {
   private static readonly LIMITS: TransactionLimits = {
-    minAmount: 5.00,        // $5 minimum
-    maxAmount: 10000.00,    // $10K maximum (AML threshold)
-    dailyLimit: 25000.00,   // $25K daily limit
-    monthlyLimit: 100000.00, // $100K monthly limit
-    maxVelocity: 5          // 5 transactions per minute max
+    minAmount: 5.00,                      // $5 minimum
+    maxAmount: 10000.00,                  // $10K maximum (AML threshold) - FIAT ONLY
+    dailyMonitoringThreshold: 25000.00,   // $25K daily monitoring (no blocking)
+    monthlyMonitoringThreshold: 100000.00, // $100K monthly monitoring (no blocking)
+    maxVelocity: 10,                      // 10 transactions per minute max (increased for volume)
+    manualReviewThreshold: 5000.00        // $5K manual review threshold
   };
 
   private static userTransactionHistory = new Map<string, {
@@ -59,11 +61,12 @@ export class TransactionValidator {
       };
     }
 
-    // Maximum amount validation
-    if (amount > this.LIMITS.maxAmount) {
+    // Maximum amount validation - ONLY for fiat transactions
+    const isCrypto = ['crypto', 'xrp', 'bitcoin', 'ethereum'].includes(paymentMethod.toLowerCase());
+    if (!isCrypto && amount > this.LIMITS.maxAmount) {
       return { 
         valid: false, 
-        error: `Maximum transaction amount is $${this.LIMITS.maxAmount} (AML compliance)` 
+        error: `Maximum fiat transaction amount is $${this.LIMITS.maxAmount} (AML compliance)` 
       };
     }
 
@@ -73,10 +76,10 @@ export class TransactionValidator {
       warnings.push('Amount rounded to nearest cent for precision');
     }
 
-    // User-specific limits validation
-    const limitCheck = this.validateUserLimits(userId, adjustedAmount);
-    if (!limitCheck.valid) {
-      return limitCheck;
+    // Monitoring thresholds (no blocking, just tracking)
+    const monitoringCheck = this.checkMonitoringThresholds(userId, adjustedAmount);
+    if (monitoringCheck.warnings.length > 0) {
+      warnings.push(...monitoringCheck.warnings);
     }
 
     // Velocity validation
@@ -85,9 +88,19 @@ export class TransactionValidator {
       return velocityCheck;
     }
 
+    // Manual review threshold
+    if (adjustedAmount >= this.LIMITS.manualReviewThreshold) {
+      warnings.push('Transaction flagged for manual review (>$5K)');
+    }
+
     // AML threshold warning
     if (adjustedAmount >= 3000) {
       warnings.push('Large transaction - additional monitoring applied');
+    }
+
+    // Crypto transaction special handling
+    if (isCrypto && adjustedAmount > 50000) {
+      warnings.push('Large crypto transaction - enhanced monitoring applied');
     }
 
     return {
@@ -98,12 +111,13 @@ export class TransactionValidator {
   }
 
   /**
-   * Validate user daily/monthly limits
+   * Check monitoring thresholds (no blocking, just tracking and alerting)
    */
-  private static validateUserLimits(
+  private static checkMonitoringThresholds(
     userId: string,
     amount: number
-  ): TransactionValidationResult {
+  ): { warnings: string[] } {
+    const warnings: string[] = [];
     const today = new Date().toISOString().split('T')[0];
     const thisMonth = new Date().toISOString().substring(0, 7);
 
@@ -127,25 +141,19 @@ export class TransactionValidator {
       userHistory.monthly = { amount: 0, count: 0, month: thisMonth };
     }
 
-    // Check daily limit
+    // Check daily monitoring threshold
     const newDailyAmount = userHistory.daily.amount + amount;
-    if (newDailyAmount > this.LIMITS.dailyLimit) {
-      return {
-        valid: false,
-        error: `Daily limit exceeded. Remaining: $${(this.LIMITS.dailyLimit - userHistory.daily.amount).toFixed(2)}`
-      };
+    if (newDailyAmount > this.LIMITS.dailyMonitoringThreshold) {
+      warnings.push(`Account exceeds daily monitoring threshold ($${this.LIMITS.dailyMonitoringThreshold}) - enhanced tracking enabled`);
     }
 
-    // Check monthly limit
+    // Check monthly monitoring threshold
     const newMonthlyAmount = userHistory.monthly.amount + amount;
-    if (newMonthlyAmount > this.LIMITS.monthlyLimit) {
-      return {
-        valid: false,
-        error: `Monthly limit exceeded. Remaining: $${(this.LIMITS.monthlyLimit - userHistory.monthly.amount).toFixed(2)}`
-      };
+    if (newMonthlyAmount > this.LIMITS.monthlyMonitoringThreshold) {
+      warnings.push(`Account exceeds monthly monitoring threshold ($${this.LIMITS.monthlyMonitoringThreshold}) - enhanced tracking enabled`);
     }
 
-    return { valid: true };
+    return { warnings };
   }
 
   /**
@@ -277,33 +285,39 @@ export class TransactionValidator {
   }
 
   /**
-   * Get user transaction summary
+   * Get user transaction summary with monitoring thresholds
    */
   static getUserTransactionSummary(userId: string): {
     dailyUsed: number;
-    dailyRemaining: number;
+    dailyMonitoringThreshold: number;
     monthlyUsed: number;
-    monthlyRemaining: number;
+    monthlyMonitoringThreshold: number;
     recentTransactionCount: number;
+    isUnderMonitoring: boolean;
   } {
     const userHistory = this.userTransactionHistory.get(userId);
     
     if (!userHistory) {
       return {
         dailyUsed: 0,
-        dailyRemaining: this.LIMITS.dailyLimit,
+        dailyMonitoringThreshold: this.LIMITS.dailyMonitoringThreshold,
         monthlyUsed: 0,
-        monthlyRemaining: this.LIMITS.monthlyLimit,
-        recentTransactionCount: 0
+        monthlyMonitoringThreshold: this.LIMITS.monthlyMonitoringThreshold,
+        recentTransactionCount: 0,
+        isUnderMonitoring: false
       };
     }
 
+    const isUnderMonitoring = userHistory.daily.amount > this.LIMITS.dailyMonitoringThreshold || 
+                             userHistory.monthly.amount > this.LIMITS.monthlyMonitoringThreshold;
+
     return {
       dailyUsed: userHistory.daily.amount,
-      dailyRemaining: this.LIMITS.dailyLimit - userHistory.daily.amount,
+      dailyMonitoringThreshold: this.LIMITS.dailyMonitoringThreshold,
       monthlyUsed: userHistory.monthly.amount,
-      monthlyRemaining: this.LIMITS.monthlyLimit - userHistory.monthly.amount,
-      recentTransactionCount: userHistory.recent.length
+      monthlyMonitoringThreshold: this.LIMITS.monthlyMonitoringThreshold,
+      recentTransactionCount: userHistory.recent.length,
+      isUnderMonitoring
     };
   }
 }

@@ -6,6 +6,7 @@ import { CommissionScheduler } from "./services/commissionScheduler";
 import { storage } from "./storage";
 import { dbHealthMonitor } from "./services/databaseHealthMonitor";
 import { pool } from "./db";
+import { registerEnhancedFeeEndpoint } from "./enhancedFeeEndpoint";
 
 console.log('Starting server with environment:', {
   NODE_ENV: process.env.NODE_ENV,
@@ -230,51 +231,45 @@ app.use((req, res, next) => {
         }
       });
 
-      // Add missing fee calculation endpoint for testing
-      app.post('/api/fees/calculate', async (req, res) => {
-        try {
-          const { amount, fromCurrency, toCurrency, transactionType } = req.body;
-          
-          if (!amount || amount <= 0) {
-            return res.status(400).json({
-              success: false,
-              message: 'Amount and payment method are required'
-            });
-          }
-
-          // Enhanced fee structure for sustainable profitability
-          const percentageFee = amount * 0.045; // 4.5% transaction fee
-          const serviceFee = 5.00; // $5.00 service fee
-          const platformUsageFee = 2.50; // $2.50 platform usage fee
-          
-          // Payment method surcharges
-          let paymentSurcharge = 0;
-          if (paymentMethod === 'credit_card') {
-            paymentSurcharge = amount * 0.01 + 0.30; // 1% + $0.30
-          } else if (paymentMethod === 'paypal') {
-            paymentSurcharge = amount * 0.015 + 0.49; // 1.5% + $0.49
-          }
-          
-          const fee = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
-          const total = amount + fee;
-          const feePercentage = (fee / amount) * 100;
-
-          res.json({
-            success: true,
-            amount,
-            fee,
-            total,
-            feePercentage: parseFloat(feePercentage.toFixed(2)),
-            fromCurrency: fromCurrency || 'USD',
-            toCurrency: toCurrency || 'XRP',
-            transactionType: transactionType || 'p2p_transfer'
-          });
-        } catch (error: any) {
-          res.status(500).json({
+      // Enhanced fee calculation for sustainable profitability
+      app.post('/api/fees/calculate', (req, res) => {
+        const { amount, paymentMethod = 'credit_card' } = req.body;
+        
+        if (!amount || amount <= 0) {
+          return res.status(400).json({
             success: false,
-            message: 'Fee calculation failed'
+            message: 'Invalid amount'
           });
         }
+
+        // Enhanced fee structure: 4.5% + fixed fees for sustainable margins
+        const transactionAmount = parseFloat(amount);
+        const percentageFee = transactionAmount * 0.045; // 4.5%
+        const serviceFee = 5.00; // $5.00
+        const platformUsageFee = 2.50; // $2.50
+        
+        // Payment surcharges
+        let paymentSurcharge = 0;
+        if (paymentMethod === 'credit_card') {
+          paymentSurcharge = transactionAmount * 0.01 + 0.30;
+        } else if (paymentMethod === 'paypal') {
+          paymentSurcharge = transactionAmount * 0.015 + 0.49;
+        }
+        
+        const totalFee = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
+        const total = transactionAmount + totalFee;
+        const feePercentage = (totalFee / transactionAmount) * 100;
+
+        res.json({
+          success: true,
+          amount: transactionAmount,
+          fee: parseFloat(totalFee.toFixed(2)),
+          total: parseFloat(total.toFixed(2)),
+          feePercentage: parseFloat(feePercentage.toFixed(2)),
+          fromCurrency: 'USD',
+          toCurrency: 'XRP',
+          transactionType: 'p2p_transfer'
+        });
       });
 
       // P2P Transfer System Implementation

@@ -18,13 +18,13 @@ export interface ReferralReward {
 }
 
 export class ReferralProcessor {
-  // Referral commission rates by tier
+  // Sustainable referral commission rates by tier (from 2% platform fee)
   private static readonly COMMISSION_RATES = {
-    1: 0.05, // 5% first tier
-    2: 0.03, // 3% second tier
-    3: 0.02, // 2% third tier
-    4: 0.01, // 1% fourth tier
-    5: 0.005, // 0.5% fifth tier
+    1: 0.01,   // 1.0% first tier (50% of platform fee)
+    2: 0.005,  // 0.5% second tier (25% of platform fee)
+    3: 0.0025, // 0.25% third tier (12.5% of platform fee)
+    4: 0.00125,// 0.125% fourth tier (6.25% of platform fee)
+    5: 0.00125 // 0.125% fifth tier (6.25% of platform fee)
   };
 
   /**

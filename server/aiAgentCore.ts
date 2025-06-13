@@ -108,12 +108,12 @@ export class AIAgentCore {
   }
 
   /**
-   * Process simple referral (5% commission)
+   * Process simple referral (1% commission)
    */
   static async processReferral(referrerAgentId: string, referredUserId: string, transactionAmount: number): Promise<{ success: boolean; commission?: number; error?: string }> {
     try {
-      // Simple 5% commission calculation
-      const commission = Math.round(transactionAmount * 0.05 * 100) / 100;
+      // Simple 1% commission calculation
+      const commission = Math.round(transactionAmount * 0.01 * 100) / 100;
       
       // Record referral
       await storage.createReferral({

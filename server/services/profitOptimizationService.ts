@@ -98,72 +98,92 @@ export class ProfitOptimizationService {
   }
 
   /**
-   * Create irresistible minimum order packages
+   * Create irresistible sub-$1000 packages with natural upgrade paths
    */
   static createMinimumOrderStrategies(): MinimumOrderStrategy[] {
     const economics = this.calculateUnitEconomics();
     
     return [
       {
-        productBundle: 'Credit Intelligence Starter',
-        minimumQueries: 1000,
+        productBundle: 'Credit Scoring Validation Pack',
+        minimumQueries: 250,
         pricePerQuery: 1.49,
-        totalOrderValue: 1490,
-        yourProfit: 1454, // $1.454 profit per query
-        customerSavings: 3010, // vs $4.50 competitor pricing
+        totalOrderValue: 373,
+        yourProfit: 364, // $1.454 profit per query
+        customerSavings: 752, // vs $4.50 competitor pricing
         mustBuyFactors: [
-          '1000 queries = 3+ months of testing for typical use case',
-          'Immediate ROI: Save $3,010 vs competitors in first month',
-          'Risk-free: 94% accuracy guarantee with money-back policy',
-          'Complete package: Includes compliance reporting worth $500/month'
+          '250 queries = Perfect for 2-week validation test',
+          'Immediate ROI: Save $752 vs competitors on first package',
+          'Quick proof of concept: Validate 92% accuracy claims',
+          'Low commitment: Prove value before larger investment',
+          'Natural upgrade: Most customers need 500-1000 queries/month'
         ],
-        competitiveAdvantage: '67% cost savings vs industry standard'
+        competitiveAdvantage: 'Risk-free validation at 67% below market rates'
       },
       {
-        productBundle: 'Market Intelligence Professional',
-        minimumQueries: 2500,
-        pricePerQuery: 2.39, // Slight volume discount
-        totalOrderValue: 5975,
-        yourProfit: 5725, // $2.29 profit per query
-        customerSavings: 10275, // vs $6.50 competitor pricing
+        productBundle: 'Market Intelligence Starter',
+        minimumQueries: 300,
+        pricePerQuery: 2.49,
+        totalOrderValue: 747,
+        yourProfit: 717, // $2.39 profit per query
+        customerSavings: 1203, // vs $6.50 competitor pricing
         mustBuyFactors: [
-          '2500 queries = Full quarter of enterprise-level data',
-          'Volume savings: $10,275 compared to competitor rates',
-          'Exclusive features: 30-second updates + cross-chain flows',
-          'Enterprise support: Dedicated account manager included'
+          '300 queries = 1-2 weeks of active trading data',
+          'Immediate savings: $1,203 vs competitor rates',
+          'Real-time advantage: 30-second updates prove superiority',
+          'Perfect sizing: Forces monthly repurchase for active traders',
+          'Upgrade trigger: Heavy users need 1000+ queries/month'
         ],
-        competitiveAdvantage: '63% cost savings with superior data freshness'
+        competitiveAdvantage: '62% cost savings with superior data freshness'
       },
       {
-        productBundle: 'Risk Assessment Enterprise',
-        minimumQueries: 5000,
-        pricePerQuery: 1.79, // Better volume discount
-        totalOrderValue: 8950,
-        yourProfit: 8575, // $1.715 profit per query
-        customerSavings: 16050, // vs $5.00 competitor pricing
+        productBundle: 'Risk Assessment Essential',
+        minimumQueries: 400,
+        pricePerQuery: 1.89,
+        totalOrderValue: 756,
+        yourProfit: 726, // $1.815 profit per query
+        customerSavings: 1244, // vs $5.00 competitor pricing
         mustBuyFactors: [
-          '5000 queries = Complete fraud prevention system',
-          'Massive savings: $16,050 vs current market leaders',
-          'Regulatory compliance: Built-in AML reporting saves $2,000/month',
-          'Scale pricing: Locks in enterprise rates for 12 months'
+          '400 queries = 1-2 weeks of fraud monitoring',
+          'Massive savings: $1,244 vs market leaders',
+          'Compliance included: AML reporting saves $500/month',
+          'Quick deployment: Immediate fraud reduction results',
+          'Growth path: High-volume users need 2000+ queries/month'
         ],
-        competitiveAdvantage: '64% cost savings with regulatory compliance included'
+        competitiveAdvantage: '62% cost savings with regulatory compliance included'
       },
       {
-        productBundle: 'Multi-Product Intelligence Suite',
-        minimumQueries: 10000, // Mixed queries across all products
-        pricePerQuery: 1.99, // Average blended rate
-        totalOrderValue: 19900,
-        yourProfit: 18050, // Average $1.805 profit per query
-        customerSavings: 35100, // vs competitor average of $5.50
+        productBundle: 'Multi-Data Sampler Pack',
+        minimumQueries: 500, // Mixed queries: 200 credit + 150 market + 150 risk
+        pricePerQuery: 1.99, // Blended rate
+        totalOrderValue: 995,
+        yourProfit: 945, // Average $1.89 profit per query
+        customerSavings: 1755, // vs competitor average of $5.50
         mustBuyFactors: [
-          '10,000 mixed queries = Complete financial intelligence platform',
-          'Ultimate savings: $35,100 vs piecing together competitor services',
-          'Unified platform: Single API, single billing, single support contact',
-          'Data consistency: All products use same underlying transaction data',
-          'Volume commitment: Guarantees priority processing and support'
+          '500 mixed queries = Test all data products at once',
+          'Ultimate comparison: $1,755 savings vs piecing together competitors',
+          'Single platform: One API, one billing, one support contact',
+          'Data consistency: All products use same transaction foundation',
+          'Perfect sizing: Just under $1000 psychological barrier',
+          'Expansion ready: Most customers upgrade to 2000+ queries/month'
         ],
         competitiveAdvantage: '64% cost savings with unified platform benefits'
+      },
+      {
+        productBundle: 'Monthly Growth Pack',
+        minimumQueries: 600,
+        pricePerQuery: 1.79, // Volume discount for commitment
+        totalOrderValue: 974,
+        yourProfit: 929, // $1.715 profit per query
+        customerSavings: 2026, // vs competitor average
+        mustBuyFactors: [
+          '600 queries = Sized for monthly consumption patterns',
+          'Growth pricing: $1.79/query rewards commitment',
+          'Just under $1000: Avoids procurement approval barriers',
+          'Perfect fit: Designed for 20-30 queries per business day',
+          'Upgrade incentive: Heavy users will need additional packages'
+        ],
+        competitiveAdvantage: 'Strategic pricing for monthly business cycles'
       }
     ];
   }

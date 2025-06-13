@@ -6756,6 +6756,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Usage Monitoring and Upgrade System Endpoints
+  app.get('/api/internal/usage-monitoring', async (req, res) => {
+    try {
+      const { UsageMonitoringService } = await import('./services/usageMonitoringService');
+      
+      const usageAlerts = await UsageMonitoringService.monitorCustomerUsage();
+      const upgradeOpportunities = await UsageMonitoringService.generateUpgradeOpportunities();
+      const revenuePotential = await UsageMonitoringService.calculateUpgradeRevenuePotential();
+      
+      res.json({
+        success: true,
+        usageAlerts,
+        upgradeOpportunities,
+        revenuePotential
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Usage monitoring failed', message: error.message });
+    }
+  });
+
+  app.post('/api/internal/generate-upgrade-message', async (req, res) => {
+    try {
+      const { UsageMonitoringService } = await import('./services/usageMonitoringService');
+      const { opportunity } = req.body;
+      
+      const upgradeMessage = UsageMonitoringService.generateUpgradeMessage(opportunity);
+      res.json({
+        success: true,
+        upgradeMessage
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Upgrade message generation failed', message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

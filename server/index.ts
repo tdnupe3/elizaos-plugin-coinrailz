@@ -391,10 +391,23 @@ app.use((req, res, next) => {
               transactionId,
               status: 'pending',
               amount: transferAmount,
-              platformFee,
-              totalAmount,
+              fees: {
+                percentageFee: parseFloat(percentageFee.toFixed(2)),
+                serviceFee: serviceFee,
+                platformUsageFee: platformUsageFee,
+                paymentSurcharge: parseFloat(paymentSurcharge.toFixed(2)),
+                totalFees: parseFloat(totalFees.toFixed(2))
+              },
+              feeBreakdown: {
+                'Transaction Fee (2.5%)': `$${percentageFee.toFixed(2)}`,
+                'Service Fee': `$${serviceFee.toFixed(2)}`,
+                'Platform Usage Fee': `$${platformUsageFee.toFixed(2)}`,
+                [surchargeDescription]: paymentSurcharge > 0 ? `$${paymentSurcharge.toFixed(2)}` : 'FREE'
+              },
+              totalAmount: parseFloat(totalAmount.toFixed(2)),
               currency,
               network,
+              paymentMethod,
               recipient: recipientId,
               memo,
               estimatedSettlement: network === 'bitcoin' ? '10-60 minutes' : '1-5 minutes',

@@ -316,12 +316,14 @@ export class AIDataSalesAgent {
       
       // Set up customer in database
       await db.insert(apiUsageTracking).values({
-        customerId,
-        apiKey,
-        endpoint: 'account_setup',
-        queryCount: 0,
-        revenue: 0,
-        timestamp: new Date()
+        clientId: customerId,
+        apiEndpoint: 'account_setup',
+        requestMethod: 'POST',
+        responseTime: 0,
+        dataPointsReturned: 0,
+        pricePaid: 0,
+        billingStatus: 'setup',
+        requestTimestamp: new Date()
       });
       
       const welcome = `Welcome to Coin Railz Data Services!\n\nYour secure API access is now active:\n**API Key:** ${apiKey}\n\n**Security & Quality Guarantees:**\n✅ Bank-grade encryption for all data transmission\n✅ 94% accuracy guarantee with audit trail\n✅ Real-time updates every 30 seconds\n✅ Full regulatory compliance (AML/BSA)\n✅ 100 free queries to validate data quality\n\n**Your Premium Data Products:**\n${selectedProducts.map(p => `• ${p}`).join('\n')}\n\n**Instant Setup:**\n1. Use API key in 'X-API-Key' header\n2. All endpoints ready for immediate use\n3. Billing activates after trial period\n\n**Enterprise Support:** 24/7 technical assistance\n**Documentation:** Complete integration guide included\n\nYour first query is ready to execute.`;

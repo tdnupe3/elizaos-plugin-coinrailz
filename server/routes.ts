@@ -6941,19 +6941,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Service Delivery System Endpoints
+  // Database-Integrated Service Delivery Endpoints
   app.post('/api/orders/create', async (req, res) => {
     try {
-      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      const { DatabaseServiceDelivery } = await import('./services/databaseServiceDelivery');
       const orderData = req.body;
       
-      const order = await ServiceDeliverySystem.createServiceOrder(orderData);
+      const result = await DatabaseServiceDelivery.createServiceOrder(orderData);
       
-      res.json({
-        success: true,
-        order,
-        nextStep: 'Complete payment to begin service delivery'
-      });
+      if (result.success) {
+        res.json({
+          success: true,
+          order: result.order,
+          orderId: result.orderId,
+          nextStep: 'Complete payment to begin service delivery'
+        });
+      } else {
+        res.status(400).json({ success: false, error: 'Order creation failed' });
+      }
     } catch (error: any) {
       res.status(500).json({ error: 'Order creation failed', message: error.message });
     }
@@ -6961,15 +6966,158 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/orders/:orderId/verify-payment', async (req, res) => {
     try {
-      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      const { DatabaseServiceDelivery } = await import('./services/databaseServiceDelivery');
       const { orderId } = req.params;
       const { paymentTransactionId } = req.body;
       
-      const result = await ServiceDeliverySystem.verifyPaymentAndNotifyAgent(orderId, paymentTransactionId);
+      const result = await DatabaseServiceDelivery.verifyPaymentAndNotifyAgent(orderId, paymentTransactionId);
       
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: 'Payment verification failed', message: error.message });
+    }
+  });
+
+  app.post('/api/orders/:orderId/deliver', async (req, res) => {
+    try {
+      const { DatabaseServiceDelivery } = await import('./services/databaseServiceDelivery');
+      const { orderId } = req.params;
+      const { agentId, deliveryData, evidenceUrls } = req.body;
+      
+      const result = await DatabaseServiceDelivery.submitServiceDelivery(
+        orderId, 
+        agentId, 
+        deliveryData, 
+        evidenceUrls || []
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Service delivery failed', message: error.message });
+    }
+  });
+
+  app.post('/api/orders/:orderId/acknowledge', async (req, res) => {
+    try {
+      const { DatabaseServiceDelivery } = await import('./services/databaseServiceDelivery');
+      const { orderId } = req.params;
+      const { customerId, rating, feedback } = req.body;
+      
+      const result = await DatabaseServiceDelivery.customerAcknowledgeDelivery(
+        orderId,
+        customerId,
+        rating,
+        feedback
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Acknowledgment failed', message: error.message });
+    }
+  });
+
+  app.post('/api/orders/:orderId/dispute', async (req, res) => {
+    try {
+      const { DatabaseServiceDelivery } = await import('./services/databaseServiceDelivery');
+      const { orderId } = req.params;
+      const { customerId, reason, customerEvidence } = req.body;
+      
+      const result = await DatabaseServiceDelivery.fileDeliveryDispute(
+        orderId,
+        customerId,
+        reason,
+        customerEvidence || []
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Dispute filing failed', message: error.message });
+    }
+  });
+
+  // Customer Notification Endpoints
+  app.get('/api/notifications/:customerId', async (req, res) => {
+    try {
+      const { CustomerNotificationService } = await import('./services/customerNotificationService');
+      const { customerId } = req.params;
+      const { limit, offset, unreadOnly, type, since } = req.query;
+      
+      const options = {
+        limit: limit ? parseInt(limit as string) : undefined,
+        offset: offset ? parseInt(offset as string) : undefined,
+        unreadOnly: unreadOnly === 'true',
+        type: type as string,
+        since: since ? new Date(since as string) : undefined
+      };
+      
+      const result = await CustomerNotificationService.getCustomerNotifications(customerId, options);
+      
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get notifications', message: error.message });
+    }
+  });
+
+  app.post('/api/notifications/:notificationId/read', async (req, res) => {
+    try {
+      const { CustomerNotificationService } = await import('./services/customerNotificationService');
+      const { notificationId } = req.params;
+      const { customerId } = req.body;
+      
+      const result = await CustomerNotificationService.markAsRead(
+        parseInt(notificationId),
+        customerId
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to mark notification as read', message: error.message });
+    }
+  });
+
+  app.post('/api/notifications/:customerId/mark-all-read', async (req, res) => {
+    try {
+      const { CustomerNotificationService } = await import('./services/customerNotificationService');
+      const { customerId } = req.params;
+      
+      const result = await CustomerNotificationService.markAllAsRead(customerId);
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to mark all notifications as read', message: error.message });
+    }
+  });
+
+  app.delete('/api/notifications/:notificationId', async (req, res) => {
+    try {
+      const { CustomerNotificationService } = await import('./services/customerNotificationService');
+      const { notificationId } = req.params;
+      const { customerId } = req.body;
+      
+      const result = await CustomerNotificationService.deleteNotification(
+        parseInt(notificationId),
+        customerId
+      );
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to delete notification', message: error.message });
+    }
+  });
+
+  app.post('/api/notifications/send', async (req, res) => {
+    try {
+      const { CustomerNotificationService } = await import('./services/customerNotificationService');
+      const notificationData = req.body;
+      
+      const result = await CustomerNotificationService.sendNotification(notificationData);
+      
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to send notification', message: error.message });
     }
   });
 

@@ -872,6 +872,111 @@ export const riskAssessmentData = pgTable("risk_assessment_data", {
   currencyRiskIndex: index("currency_risk_idx").on(table.currency),
 }));
 
+// Service Delivery Orders
+export const serviceOrders = pgTable("service_orders", {
+  id: serial("id").primaryKey(),
+  orderId: varchar("order_id").notNull().unique(),
+  agentId: varchar("agent_id").notNull(),
+  customerId: varchar("customer_id").notNull(),
+  serviceType: varchar("service_type").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency").default("USD"),
+  status: varchar("status").default("pending_payment"), // pending_payment, payment_confirmed, in_progress, delivered, completed, cancelled, disputed
+  deliveryMethod: varchar("delivery_method").notNull(),
+  deliveryInstructions: jsonb("delivery_instructions"),
+  paymentTransactionId: varchar("payment_transaction_id"),
+  deliveredAt: timestamp("delivered_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  orderIdIndex: index("order_id_idx").on(table.orderId),
+  agentIdIndex: index("agent_id_idx").on(table.agentId),
+  customerIdIndex: index("customer_id_idx").on(table.customerId),
+  statusIndex: index("order_status_idx").on(table.status),
+}));
+
+// Delivery Verification Records
+export const deliveryVerifications = pgTable("delivery_verifications", {
+  id: serial("id").primaryKey(),
+  orderId: varchar("order_id").references(() => serviceOrders.orderId).notNull(),
+  deliveryHash: varchar("delivery_hash").notNull().unique(),
+  agentSignature: varchar("agent_signature").notNull(),
+  deliveryData: jsonb("delivery_data"),
+  evidenceUrls: jsonb("evidence_urls"), // Array of evidence URLs
+  evidenceScore: integer("evidence_score").default(50), // 0-100
+  verificationMethod: varchar("verification_method").default("automatic"), // automatic, manual_review
+  verifiedAt: timestamp("verified_at").defaultNow(),
+  disputeDeadline: timestamp("dispute_deadline").notNull(),
+  escrowStatus: varchar("escrow_status").default("held"), // held, released, disputed
+}, (table) => ({
+  orderIdIndex: index("delivery_order_idx").on(table.orderId),
+  deliveryHashIndex: index("delivery_hash_idx").on(table.deliveryHash),
+  disputeDeadlineIndex: index("dispute_deadline_idx").on(table.disputeDeadline),
+}));
+
+// Customer Risk Profiles
+export const customerRiskProfiles = pgTable("customer_risk_profiles", {
+  id: serial("id").primaryKey(),
+  customerId: varchar("customer_id").notNull().unique(),
+  disputeHistory: integer("dispute_history").default(0),
+  successfulTransactions: integer("successful_transactions").default(0),
+  riskScore: integer("risk_score").default(0), // 0-100
+  requiresEscrowExtension: boolean("requires_escrow_extension").default(false),
+  blacklisted: boolean("blacklisted").default(false),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+}, (table) => ({
+  customerIdIndex: index("customer_risk_idx").on(table.customerId),
+  riskScoreIndex: index("risk_score_customer_idx").on(table.riskScore),
+}));
+
+// Service Delivery Disputes
+export const serviceDisputes = pgTable("service_disputes", {
+  id: serial("id").primaryKey(),
+  disputeId: varchar("dispute_id").notNull().unique(),
+  orderId: varchar("order_id").references(() => serviceOrders.orderId).notNull(),
+  customerId: varchar("customer_id").notNull(),
+  agentId: varchar("agent_id").notNull(),
+  reason: text("reason").notNull(),
+  customerEvidence: jsonb("customer_evidence"), // Array of evidence URLs/descriptions
+  agentResponse: text("agent_response"),
+  agentEvidence: jsonb("agent_evidence"),
+  status: varchar("status").default("open"), // open, under_review, resolved_favor_agent, resolved_favor_customer, escalated
+  resolution: text("resolution"),
+  resolvedBy: varchar("resolved_by"), // auto, admin_user_id
+  requiresManualReview: boolean("requires_manual_review").default(true),
+  autoResolution: varchar("auto_resolution"),
+  filedAt: timestamp("filed_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+}, (table) => ({
+  disputeIdIndex: index("dispute_id_idx").on(table.disputeId),
+  orderIdIndex: index("dispute_order_idx").on(table.orderId),
+  statusIndex: index("dispute_status_idx").on(table.status),
+  filedAtIndex: index("dispute_filed_idx").on(table.filedAt),
+}));
+
+// Customer Notifications
+export const customerNotifications = pgTable("customer_notifications", {
+  id: serial("id").primaryKey(),
+  customerId: varchar("customer_id").notNull(),
+  type: varchar("type").notNull(), // delivery_confirmed, dispute_deadline, payment_released, dispute_update
+  title: varchar("title").notNull(),
+  message: text("message").notNull(),
+  relatedOrderId: varchar("related_order_id"),
+  relatedDisputeId: varchar("related_dispute_id"),
+  priority: varchar("priority").default("normal"), // low, normal, high, urgent
+  read: boolean("read").default(false),
+  emailSent: boolean("email_sent").default(false),
+  smsSent: boolean("sms_sent").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+}, (table) => ({
+  customerIdIndex: index("notification_customer_idx").on(table.customerId),
+  typeIndex: index("notification_type_idx").on(table.type),
+  readIndex: index("notification_read_idx").on(table.read),
+  createdAtIndex: index("notification_created_idx").on(table.createdAt),
+}));
+
 // Data monetization types
 export type AnalyticsDataset = typeof analyticsDatasets.$inferSelect;
 export type InsertAnalyticsDataset = typeof analyticsDatasets.$inferInsert;
@@ -883,3 +988,15 @@ export type MarketIntelligence = typeof marketIntelligence.$inferSelect;
 export type InsertMarketIntelligence = typeof marketIntelligence.$inferInsert;
 export type RiskAssessmentData = typeof riskAssessmentData.$inferSelect;
 export type InsertRiskAssessmentData = typeof riskAssessmentData.$inferInsert;
+
+// Service delivery types
+export type ServiceOrder = typeof serviceOrders.$inferSelect;
+export type InsertServiceOrder = typeof serviceOrders.$inferInsert;
+export type DeliveryVerification = typeof deliveryVerifications.$inferSelect;
+export type InsertDeliveryVerification = typeof deliveryVerifications.$inferInsert;
+export type CustomerRiskProfile = typeof customerRiskProfiles.$inferSelect;
+export type InsertCustomerRiskProfile = typeof customerRiskProfiles.$inferInsert;
+export type ServiceDispute = typeof serviceDisputes.$inferSelect;
+export type InsertServiceDispute = typeof serviceDisputes.$inferInsert;
+export type CustomerNotification = typeof customerNotifications.$inferSelect;
+export type InsertCustomerNotification = typeof customerNotifications.$inferInsert;

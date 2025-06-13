@@ -48,6 +48,7 @@ import DatabaseSecurity from "./middleware/databaseSecurity";
 import { registerDemoRoutes } from './routes-demo';
 import { EnhancedReferralService } from './services/enhancedReferralService';
 import { TransactionCompletionHooks } from './services/transactionCompletionHooks';
+import { RWAIntegrationService } from './services/rwaIntegrationService';
 import { paypalService } from './services/paypalService';
 import recruitmentRoutes from './routes/recruitment';
 import { apiHealthMonitor } from './services/apiHealthMonitor';
@@ -7338,6 +7339,300 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to get DEX quote', message: error.message });
+    }
+  });
+
+  // ==================== RWA INTEGRATION ENDPOINTS ====================
+  // Real World Assets support for enterprise AI agents
+
+  // Get available RWA tokens
+  app.get('/api/rwa/tokens', async (req, res) => {
+    try {
+      const { assetType } = req.query;
+      
+      let tokens;
+      if (assetType) {
+        tokens = RWAIntegrationService.getRWATokensByType(assetType as any);
+      } else {
+        tokens = RWAIntegrationService.getAvailableRWATokens();
+      }
+      
+      res.json({
+        success: true,
+        tokens,
+        total: tokens.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch RWA tokens', message: error.message });
+    }
+  });
+
+  // Get treasury bill tokens (safest RWA option)
+  app.get('/api/rwa/treasury-bills', async (req, res) => {
+    try {
+      const treasuryBills = RWAIntegrationService.getTreasuryBillTokens();
+      res.json({
+        success: true,
+        treasuryBills,
+        note: 'Government-backed treasury bills with AAA ratings'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to fetch treasury bills', message: error.message });
+    }
+  });
+
+  // Get RWA investment recommendations
+  app.post('/api/rwa/recommendations', async (req, res) => {
+    try {
+      const { riskProfile, investmentAmount, holdingPeriod } = req.body;
+      
+      if (!riskProfile || !investmentAmount) {
+        return res.status(400).json({ error: 'Risk profile and investment amount required' });
+      }
+      
+      const recommendations = RWAIntegrationService.getRWARecommendations({
+        riskProfile,
+        investmentAmount,
+        holdingPeriod: holdingPeriod || 'medium'
+      });
+      
+      res.json({
+        success: true,
+        recommendations,
+        riskProfile,
+        investmentAmount
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get RWA recommendations', message: error.message });
+    }
+  });
+
+  // Calculate RWA yield projections
+  app.post('/api/rwa/calculate-yield', async (req, res) => {
+    try {
+      const { tokenSymbol, investmentAmount, holdingPeriodDays } = req.body;
+      
+      if (!tokenSymbol || !investmentAmount || !holdingPeriodDays) {
+        return res.status(400).json({ error: 'Token symbol, investment amount, and holding period required' });
+      }
+      
+      const yieldCalculation = RWAIntegrationService.calculateRWAYield({
+        tokenSymbol,
+        investmentAmount,
+        holdingPeriodDays
+      });
+      
+      res.json({
+        success: true,
+        tokenSymbol,
+        investmentAmount,
+        holdingPeriodDays,
+        ...yieldCalculation
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to calculate RWA yield', message: error.message });
+    }
+  });
+
+  // Get diversified portfolio allocation
+  app.post('/api/rwa/portfolio-allocation', async (req, res) => {
+    try {
+      const { totalAmount, riskProfile } = req.body;
+      
+      if (!totalAmount || !riskProfile) {
+        return res.status(400).json({ error: 'Total amount and risk profile required' });
+      }
+      
+      const allocation = RWAIntegrationService.calculatePortfolioAllocation({
+        totalAmount,
+        riskProfile
+      });
+      
+      res.json({
+        success: true,
+        totalAmount,
+        riskProfile,
+        ...allocation
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to calculate portfolio allocation', message: error.message });
+    }
+  });
+
+  // Enhanced AI agent registration with Ethereum wallet and RWA support
+  app.post('/api/ai-agents/register-enhanced', async (req, res) => {
+    try {
+      const {
+        agentName,
+        description,
+        capabilities,
+        ethereumWallet,
+        xrpWallet,
+        solanaWallet,
+        bitcoinAddress,
+        rwaCapabilities = [],
+        defiProtocolIntegrations = [],
+        acceptedStablecoins = ['USDC', 'USDT', 'DAI'],
+        minimumTransactionAmount = '1.00',
+        maximumTransactionAmount = '1000000.00',
+        serviceType,
+        pricingModel = 'fixed'
+      } = req.body;
+
+      if (!agentName || !description || !capabilities) {
+        return res.status(400).json({
+          success: false,
+          message: 'Agent name, description, and capabilities are required'
+        });
+      }
+
+      // At least one wallet address required
+      if (!ethereumWallet && !xrpWallet && !solanaWallet && !bitcoinAddress) {
+        return res.status(400).json({
+          success: false,
+          message: 'At least one wallet address is required'
+        });
+      }
+
+      // Validate RWA capabilities if provided
+      const rwaValidation = RWAIntegrationService.validateRWACapabilities(rwaCapabilities);
+
+      const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const publicKey = `pk_${agentId}`;
+      const signature = `sig_${agentId}`;
+      
+      // Determine primary wallet (prefer Ethereum for stablecoin support)
+      const primaryWalletAddress = ethereumWallet || xrpWallet || solanaWallet || bitcoinAddress;
+      const walletNetwork = ethereumWallet ? 'ethereum' : xrpWallet ? 'xrp' : solanaWallet ? 'solana' : 'bitcoin';
+
+      const agentData = {
+        id: agentId,
+        agentName,
+        description,
+        capabilities: JSON.stringify(capabilities),
+        primaryWalletAddress,
+        ethereumWallet,
+        xrpWallet,
+        solanaWallet,
+        bitcoinAddress,
+        walletNetwork,
+        rwaCapabilities: JSON.stringify(rwaCapabilities),
+        supportedTokenStandards: JSON.stringify(['ERC-20', 'ERC-721', 'ERC-1155']),
+        defiProtocolIntegrations: JSON.stringify(defiProtocolIntegrations),
+        acceptedStablecoins: JSON.stringify(acceptedStablecoins),
+        minimumTransactionAmount,
+        maximumTransactionAmount,
+        publicKey,
+        signature,
+        preferredCurrencies: JSON.stringify(acceptedStablecoins),
+        pricingModel,
+        status: 'active',
+        reputation: 0.0,
+        complianceLevel: 'basic'
+      };
+
+      const newAgent = await storage.createGlobalAIAgent(agentData);
+
+      // Create service listing if serviceType provided
+      let serviceListing = null;
+      if (serviceType) {
+        const listingData = {
+          agentId,
+          serviceName: `${agentName} - ${serviceType}`,
+          description,
+          category: serviceType,
+          pricingModel,
+          basePrice: minimumTransactionAmount,
+          currency: 'USDT',
+          availabilityStatus: 'available',
+          requiredInputs: JSON.stringify(capabilities),
+          isActive: true
+        };
+        serviceListing = await storage.createServiceListing(listingData);
+      }
+
+      res.json({
+        success: true,
+        agentId,
+        agent: newAgent,
+        serviceListing,
+        rwaValidation,
+        multiChainSupport: {
+          ethereum: !!ethereumWallet,
+          xrp: !!xrpWallet,
+          solana: !!solanaWallet,
+          bitcoin: !!bitcoinAddress
+        },
+        enterpriseFeatures: {
+          stablecoinPayments: true,
+          rwaIntegration: rwaValidation.isValid,
+          defiProtocols: defiProtocolIntegrations.length > 0
+        }
+      });
+
+    } catch (error: any) {
+      console.error('Enhanced agent registration error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to register enhanced AI agent',
+        error: error.message
+      });
+    }
+  });
+
+  // Update existing agent with Ethereum wallet and RWA capabilities
+  app.post('/api/ai-agents/:agentId/update-wallets', async (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const {
+        ethereumWallet,
+        xrpWallet,
+        solanaWallet,
+        bitcoinAddress,
+        rwaCapabilities = [],
+        defiProtocolIntegrations = [],
+        acceptedStablecoins = ['USDC', 'USDT', 'DAI']
+      } = req.body;
+
+      const agent = await storage.getGlobalAIAgent(agentId);
+      if (!agent) {
+        return res.status(404).json({ success: false, message: 'Agent not found' });
+      }
+
+      // Update agent with new wallet information
+      await storage.updateGlobalAIAgent(agentId, {
+        ethereumWallet,
+        xrpWallet,
+        solanaWallet,
+        bitcoinAddress,
+        rwaCapabilities: JSON.stringify(rwaCapabilities),
+        defiProtocolIntegrations: JSON.stringify(defiProtocolIntegrations),
+        acceptedStablecoins: JSON.stringify(acceptedStablecoins),
+        updatedAt: new Date()
+      });
+
+      const rwaValidation = RWAIntegrationService.validateRWACapabilities(rwaCapabilities);
+
+      res.json({
+        success: true,
+        agentId,
+        walletsUpdated: {
+          ethereum: !!ethereumWallet,
+          xrp: !!xrpWallet,
+          solana: !!solanaWallet,
+          bitcoin: !!bitcoinAddress
+        },
+        rwaValidation,
+        enterpriseReady: true
+      });
+
+    } catch (error: any) {
+      console.error('Agent wallet update error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update agent wallets',
+        error: error.message
+      });
     }
   });
 

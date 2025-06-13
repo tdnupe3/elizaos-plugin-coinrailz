@@ -284,8 +284,8 @@ export class RWAIntegrationService {
     // Calculate expected yield
     const weightedYield = allocation.reduce((sum, item) => {
       const weight = item.percentage / 100;
-      const yield = item.token.yieldRate || 0;
-      return sum + (weight * yield);
+      const yieldRate = item.token.yieldRate || 0;
+      return sum + (weight * yieldRate);
     }, 0);
 
     // Diversification score (0-100)

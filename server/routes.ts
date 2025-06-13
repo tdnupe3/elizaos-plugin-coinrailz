@@ -38,7 +38,6 @@ import { PlatformWalletService } from "./services/platformWalletService";
 import { CommissionBatchProcessor } from "./services/commissionBatchProcessor";
 import { CommissionScheduler } from "./services/commissionScheduler";
 import { RealXRPWallet } from "./services/realXRPWallet";
-import { FeeCalculator } from "./services/feeCalculator";
 import { productionMonitoringService } from './services/productionMonitoringService';
 import { NotificationService } from './services/notificationService';
 import SecurityHardening from "./middleware/securityHardening";

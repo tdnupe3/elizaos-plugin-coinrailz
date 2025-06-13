@@ -7381,29 +7381,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get RWA investment recommendations
-  app.post('/api/rwa/recommendations', async (req, res) => {
+  // Get educational RWA information (COMPLIANCE: Educational only)
+  app.post('/api/rwa/educational-info', async (req, res) => {
     try {
-      const { riskProfile, investmentAmount, holdingPeriod } = req.body;
+      const { riskProfile, researchAmount, timeframe } = req.body;
       
-      if (!riskProfile || !investmentAmount) {
-        return res.status(400).json({ error: 'Risk profile and investment amount required' });
+      if (!riskProfile || !researchAmount) {
+        return res.status(400).json({ error: 'Risk profile and research amount required for educational information' });
       }
       
-      const recommendations = RWAIntegrationService.getRWARecommendations({
+      const educationalInfo = RWAIntegrationService.getRWAEducationalInfo({
         riskProfile,
-        investmentAmount,
-        holdingPeriod: holdingPeriod || 'medium'
+        researchAmount,
+        timeframe: timeframe || 'medium'
       });
       
       res.json({
         success: true,
-        recommendations,
-        riskProfile,
-        investmentAmount
+        educationalInfo,
+        compliance: 'EDUCATIONAL ONLY - Not investment advice or recommendations'
       });
     } catch (error: any) {
-      res.status(500).json({ error: 'Failed to get RWA recommendations', message: error.message });
+      res.status(500).json({ error: 'Failed to get educational RWA information', message: error.message });
     }
   });
 

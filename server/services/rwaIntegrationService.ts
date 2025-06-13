@@ -1,6 +1,8 @@
 /**
- * Real World Asset (RWA) Integration Service
- * Supports tokenized treasury bills, real estate, commodities, and other RWAs
+ * Real World Asset (RWA) Educational Service
+ * COMPLIANCE: Information-only service for educational purposes
+ * Does NOT facilitate transactions - only provides data and suggestions
+ * AI agents can offer RWA services separately with proper credentials
  */
 
 export interface RWAToken {
@@ -169,60 +171,69 @@ export class RWAIntegrationService {
   }
 
   /**
-   * Get RWA investment recommendations for AI agents
+   * Get educational RWA information for research purposes only
+   * COMPLIANCE: Educational information only - not investment recommendations
    */
-  static getRWARecommendations(params: {
+  static getRWAEducationalInfo(params: {
     riskProfile: 'conservative' | 'moderate' | 'aggressive';
-    investmentAmount: string;
-    holdingPeriod: 'short' | 'medium' | 'long'; // < 6 months, 6-18 months, > 18 months
-  }): RWAToken[] {
-    const amount = parseFloat(params.investmentAmount);
-    let recommendations: RWAToken[] = [];
+    researchAmount: string;
+    timeframe: 'short' | 'medium' | 'long';
+  }): {
+    tokens: RWAToken[];
+    disclaimer: string;
+  } {
+    const amount = parseFloat(params.researchAmount);
+    let tokens: RWAToken[] = [];
 
     if (params.riskProfile === 'conservative') {
-      // Focus on treasury bills and government-backed assets
-      recommendations = this.getTreasuryBillTokens()
+      // Educational info on treasury bills and government-backed assets
+      tokens = this.getTreasuryBillTokens()
         .filter(token => parseFloat(token.minimumInvestment) <= amount)
         .sort((a, b) => (b.yieldRate || 0) - (a.yieldRate || 0));
     } else if (params.riskProfile === 'moderate') {
-      // Mix of treasury bills and high-grade real estate
+      // Educational mix of treasury bills and real estate
       const treasuryBills = this.getTreasuryBillTokens()
         .filter(token => parseFloat(token.minimumInvestment) <= amount);
       const realEstate = this.getRealEstateTokens()
         .filter(token => parseFloat(token.minimumInvestment) <= amount && token.rating);
       
-      recommendations = [...treasuryBills, ...realEstate]
+      tokens = [...treasuryBills, ...realEstate]
         .sort((a, b) => (b.yieldRate || 0) - (a.yieldRate || 0));
     } else {
-      // All asset types for aggressive investors
-      recommendations = this.getAvailableRWATokens()
+      // Educational info on all asset types
+      tokens = this.getAvailableRWATokens()
         .filter(token => parseFloat(token.minimumInvestment) <= amount)
         .sort((a, b) => (b.yieldRate || 0) - (a.yieldRate || 0));
     }
 
-    return recommendations.slice(0, 5); // Top 5 recommendations
+    return {
+      tokens: tokens.slice(0, 5),
+      disclaimer: "EDUCATIONAL ONLY: This information is for educational purposes only and does not constitute investment advice, financial advice, trading advice, or any other sort of advice. Consult with licensed financial advisors or securities brokers for investment decisions."
+    };
   }
 
   /**
-   * Calculate diversified RWA portfolio allocation
+   * Educational portfolio allocation examples for research purposes
+   * COMPLIANCE: Educational examples only - not investment advice
    */
-  static calculatePortfolioAllocation(params: {
-    totalAmount: string;
+  static getEducationalPortfolioExamples(params: {
+    researchAmount: string;
     riskProfile: 'conservative' | 'moderate' | 'aggressive';
   }): {
-    allocation: Array<{
+    examples: Array<{
       token: RWAToken;
-      allocatedAmount: string;
+      exampleAmount: string;
       percentage: number;
     }>;
-    expectedAnnualYield: string;
-    diversificationScore: number;
+    educationalYieldExample: string;
+    diversificationExample: number;
+    disclaimer: string;
   } {
-    const totalAmount = parseFloat(params.totalAmount);
-    const recommendations = this.getRWARecommendations({
+    const researchAmount = parseFloat(params.researchAmount);
+    const educationalInfo = this.getRWAEducationalInfo({
       riskProfile: params.riskProfile,
-      investmentAmount: params.totalAmount,
-      holdingPeriod: 'medium'
+      researchAmount: params.researchAmount,
+      timeframe: 'medium'
     });
 
     let allocation: Array<{

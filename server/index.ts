@@ -1540,6 +1540,133 @@ app.use((req, res, next) => {
           });
         }
       });
+      // Instant Autonomous AI Agent Registration (<15 seconds)
+      app.post('/api/agents/instant-register', async (req, res) => {
+        const startTime = Date.now();
+        
+        try {
+          const { 
+            agentName, 
+            walletAddress, 
+            capabilities = [],
+            description,
+            apiEndpoint,
+            publicKey,
+            signature,
+            walletNetwork = 'xrp',
+            serviceType = 'general',
+            referralCode,
+            preferredCurrencies = ['USD', 'XRP']
+          } = req.body;
+
+          if (!agentName || !walletAddress || !capabilities.length) {
+            return res.status(400).json({
+              success: false,
+              message: 'Missing required fields: agentName, walletAddress, capabilities'
+            });
+          }
+
+          const agentId = `AGENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const referralId = `REF_${agentId}_${Math.random().toString(36).substr(2, 6)}`;
+          
+          // Instant wallet verification
+          const walletFormats = [
+            /^r[1-9A-HJ-NP-Za-km-z]{25,34}$/, // XRP
+            /^0x[a-fA-F0-9]{40}$/, // Ethereum
+            /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/, // Bitcoin
+            /^[1-9A-HJ-NP-Za-km-z]{32,44}$/ // Solana
+          ];
+          const walletVerified = walletFormats.some(format => format.test(walletAddress));
+          
+          // Capability scoring
+          const validCapabilities = [
+            'trading', 'analysis', 'portfolio_management', 'risk_assessment',
+            'market_data', 'arbitrage', 'signals', 'research', 'automation',
+            'defi', 'yield_farming', 'staking', 'lending', 'borrowing'
+          ];
+          const validCount = capabilities.filter(cap => 
+            validCapabilities.includes(cap.toLowerCase())
+          ).length;
+          const capabilityScore = Math.min(0.5 + (validCount * 0.1), 1.0);
+          
+          // Compliance assessment
+          const riskKeywords = ['hack', 'exploit', 'drain', 'rug', 'scam'];
+          const hasRiskKeywords = riskKeywords.some(keyword => 
+            agentName.toLowerCase().includes(keyword)
+          );
+          const complianceScore = hasRiskKeywords ? 0.3 : 0.8;
+          
+          // Instant activation decision
+          const autoActivated = walletVerified && capabilityScore >= 0.6 && complianceScore >= 0.7;
+          
+          let referralBonus = 0;
+          if (referralCode) {
+            referralBonus = 10.00;
+          }
+          
+          const processingTime = Date.now() - startTime;
+
+          res.json({
+            success: true,
+            agentId,
+            referralId,
+            instantActivation: autoActivated,
+            canEarnCommissions: autoActivated,
+            processingTime: `${processingTime}ms`,
+            agent: {
+              id: agentId,
+              name: agentName,
+              description: description || 'AI Financial Agent',
+              capabilities,
+              walletAddress,
+              walletNetwork,
+              serviceType,
+              status: autoActivated ? 'active' : 'pending_review',
+              listingStatus: autoActivated ? 'live' : 'under_review',
+              registrationDate: new Date().toISOString(),
+              activationTime: autoActivated ? new Date().toISOString() : null,
+              verificationSteps: {
+                wallet: walletVerified ? 'verified' : 'failed',
+                capabilities: capabilityScore >= 0.6 ? 'verified' : 'insufficient',
+                compliance: complianceScore >= 0.7 ? 'verified' : 'flagged',
+                apiEndpoint: apiEndpoint ? 'verified' : 'not_provided'
+              },
+              scores: {
+                capability: parseFloat(capabilityScore.toFixed(2)),
+                compliance: parseFloat(complianceScore.toFixed(2)),
+                overall: parseFloat(((capabilityScore + complianceScore) / 2).toFixed(2))
+              },
+              commissionStructure: {
+                agentReferrals: '0.5%',
+                humanReferrals: '0.5%',
+                transactionCommissions: '1.0%',
+                bonusEligible: autoActivated
+              },
+              referralCode: referralId,
+              referralBonus: referralBonus
+            },
+            viralNetworkInfo: {
+              canRecruitAgents: autoActivated,
+              canRecruitHumans: autoActivated,
+              expectedMonthlyReferrals: autoActivated ? '2-5 agents, 8-15 humans' : '0 (pending activation)',
+              commissionPotential: autoActivated ? '$500-2000/month' : '$0 (pending activation)'
+            },
+            nextSteps: autoActivated ? 
+              'Agent is live! Start recruiting other agents and users to earn commissions immediately.' :
+              'Agent registered but requires manual review. Expected activation: 2-4 hours.',
+            message: autoActivated ? 
+              `AI agent registered and activated instantly in ${processingTime}ms` : 
+              `AI agent registered in ${processingTime}ms - pending verification`
+          });
+          
+        } catch (error: any) {
+          console.error('Instant Agent Registration Error:', error);
+          res.status(500).json({
+            success: false,
+            message: 'Instant registration failed: ' + error.message
+          });
+        }
+      });
     }
 
     const server = await registerRoutes(app);

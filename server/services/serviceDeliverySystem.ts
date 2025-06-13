@@ -16,7 +16,7 @@ export interface ServiceOrder {
   status: 'pending_payment' | 'payment_confirmed' | 'in_progress' | 'delivered' | 'completed' | 'disputed';
   paymentMethod: string;
   paymentTransactionId?: string;
-  deliveryMethod: 'api_endpoint' | 'file_upload' | 'real_time_data' | 'consultation' | 'webhook' | 'email';
+  deliveryMethod: 'api_endpoint' | 'file_upload' | 'real_time_data' | 'consultation' | 'webhook' | 'email' | 'direct_message' | 'scheduled_delivery' | 'batch_processing';
   deliveryInstructions: any;
   createdAt: Date;
   paidAt?: Date;
@@ -54,7 +54,15 @@ export class ServiceDeliverySystem {
     
     const order: ServiceOrder = {
       orderId,
-      ...orderData,
+      agentId: orderData.agentId,
+      customerId: orderData.customerId,
+      serviceType: orderData.serviceType,
+      serviceDescription: orderData.serviceDescription,
+      amount: orderData.amount,
+      currency: orderData.currency,
+      paymentMethod: orderData.paymentMethod,
+      deliveryMethod: orderData.deliveryMethod as any,
+      deliveryInstructions: orderData.deliveryInstructions,
       status: 'pending_payment',
       createdAt: new Date()
     };
@@ -188,6 +196,30 @@ export class ServiceDeliverySystem {
           deliveryConfirmation: true
         };
 
+      case 'direct_message':
+        return {
+          messageEndpoint: `/api/orders/${order.orderId}/message`,
+          encryptedChannel: true,
+          realTimeNotification: true,
+          token: this.generateDeliveryToken(order.orderId)
+        };
+
+      case 'scheduled_delivery':
+        return {
+          scheduleEndpoint: `/api/orders/${order.orderId}/schedule`,
+          deliveryTime: order.deliveryInstructions.scheduledTime,
+          timezone: order.deliveryInstructions.timezone || 'UTC',
+          reminderEnabled: true
+        };
+
+      case 'batch_processing':
+        return {
+          batchEndpoint: `/api/orders/${order.orderId}/batch`,
+          processingMode: order.deliveryInstructions.batchMode || 'sequential',
+          chunkSize: order.deliveryInstructions.chunkSize || 1000,
+          progressTracking: true
+        };
+
       default:
         return {
           method: 'manual',
@@ -302,16 +334,91 @@ export class ServiceDeliverySystem {
   }
 
   /**
-   * Get available delivery methods for different service types
+   * Get available delivery methods - ALL methods available to ALL agents
    */
   static getDeliveryMethods(): Record<string, string[]> {
+    const allDeliveryMethods = [
+      'api_endpoint',
+      'file_upload', 
+      'real_time_data',
+      'consultation',
+      'webhook',
+      'email',
+      'direct_message',
+      'scheduled_delivery',
+      'batch_processing'
+    ];
+
     return {
-      'data_analysis': ['api_endpoint', 'file_upload', 'email'],
-      'trading_signals': ['real_time_data', 'webhook', 'api_endpoint'],
-      'consultation': ['consultation', 'email'],
-      'reports': ['file_upload', 'email', 'api_endpoint'],
-      'automation_setup': ['webhook', 'api_endpoint', 'consultation'],
-      'custom_development': ['file_upload', 'api_endpoint', 'consultation']
+      'universal': allDeliveryMethods,
+      'data_analysis': allDeliveryMethods,
+      'trading_signals': allDeliveryMethods,
+      'consultation': allDeliveryMethods,
+      'reports': allDeliveryMethods,
+      'automation_setup': allDeliveryMethods,
+      'custom_development': allDeliveryMethods,
+      'ai_services': allDeliveryMethods,
+      'research': allDeliveryMethods,
+      'content_creation': allDeliveryMethods,
+      'technical_support': allDeliveryMethods,
+      'marketing': allDeliveryMethods,
+      'financial_analysis': allDeliveryMethods
+    };
+  }
+
+  /**
+   * Get all available payment methods for AI agents
+   */
+  static getPaymentMethods(): Record<string, any> {
+    return {
+      'fiat': [
+        {
+          method: 'stripe',
+          name: 'Credit/Debit Cards',
+          currencies: ['USD', 'EUR', 'GBP', 'CAD', 'AUD'],
+          processingTime: 'instant',
+          fees: '2.9% + $0.30'
+        },
+        {
+          method: 'paypal',
+          name: 'PayPal',
+          currencies: ['USD', 'EUR', 'GBP', 'CAD', 'AUD'],
+          processingTime: 'instant',
+          fees: '2.9% + $0.30'
+        }
+      ],
+      'crypto': [
+        {
+          method: 'xrp',
+          name: 'XRP Ledger',
+          currencies: ['XRP'],
+          processingTime: '3-5 seconds',
+          fees: '$0.0002 per transaction'
+        },
+        {
+          method: 'changenow',
+          name: 'ChangeNOW Exchange',
+          currencies: ['BTC', 'ETH', 'USDT', 'USDC', 'LTC', 'BCH', 'XRP'],
+          processingTime: '2-30 minutes',
+          fees: '0.25-0.5%'
+        },
+        {
+          method: 'nowpayments',
+          name: 'NOWPayments',
+          currencies: ['BTC', 'ETH', 'USDT', 'USDC', 'LTC', 'BCH', 'XRP', 'ADA', 'DOT'],
+          processingTime: '1-60 minutes',
+          fees: '0.5-1.5%'
+        }
+      ],
+      'instant_settlement': [
+        {
+          method: 'xrp_instant',
+          name: 'XRP Instant Settlement',
+          description: 'Ultra-fast cross-border payments',
+          processingTime: '3-5 seconds',
+          fees: '$0.0002'
+        }
+      ]
     };
   }
 

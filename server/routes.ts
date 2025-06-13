@@ -6988,10 +6988,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         deliveryMethods,
-        description: 'Available delivery methods by service type'
+        description: 'All delivery methods available to all AI agents'
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to get delivery methods', message: error.message });
+    }
+  });
+
+  app.get('/api/agents/payment-options', async (req, res) => {
+    try {
+      const { ServiceDeliverySystem } = await import('./services/serviceDeliverySystem');
+      
+      const paymentMethods = ServiceDeliverySystem.getPaymentMethods();
+      
+      res.json({
+        success: true,
+        paymentMethods,
+        description: 'All payment options available to AI agents'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get payment methods', message: error.message });
+    }
+  });
+
+  app.get('/api/agents/payment-support', async (req, res) => {
+    try {
+      const { AIAgentPaymentProcessor } = await import('./services/aiAgentPaymentProcessor');
+      
+      const paymentSupport = AIAgentPaymentProcessor.getPaymentSupport();
+      
+      res.json({
+        success: true,
+        ...paymentSupport,
+        description: 'Complete payment method support for customers and agents'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Failed to get payment support', message: error.message });
+    }
+  });
+
+  app.post('/api/agents/process-comprehensive-payment', async (req, res) => {
+    try {
+      const { AIAgentPaymentProcessor } = await import('./services/aiAgentPaymentProcessor');
+      
+      const paymentRequest = req.body;
+      const result = await AIAgentPaymentProcessor.processAgentPayment(paymentRequest);
+      
+      res.json({
+        success: true,
+        ...result
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Payment processing failed', message: error.message });
     }
   });
 

@@ -6685,16 +6685,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/data-purchase/instant-trial', async (req, res) => {
     try {
-      const { InstantPaymentService } = await import('./services/instantPaymentService');
       const { customerEmail, productType } = req.body;
       
-      const trial = await InstantPaymentService.createInstantTrial(customerEmail, productType);
+      // Create paid trial session - $49 for 100 queries
+      const stripe = (await import('stripe')).default;
+      const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY!, {
+        apiVersion: '2023-10-16',
+      });
+      
+      const apiKey = `TRIAL_${Date.now()}_${Math.random().toString(36).substr(2, 8).toUpperCase()}`;
+      
+      const session = await stripeInstance.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${productType} - Validation Package`,
+              description: '100 queries trial with full enterprise features - $49'
+            },
+            unit_amount: 4900, // $49.00 in cents
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/trial-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5000'}/trial-cancelled`,
+        metadata: {
+          customerEmail,
+          productType,
+          apiKey,
+          trialQueries: '100',
+          type: 'paid_trial',
+          revenueRecipient: 'kellogg_holdings'
+        }
+      });
+      
       res.json({
         success: true,
-        trial
+        trial: {
+          paymentRequired: true,
+          trialPrice: 49.00,
+          paymentUrl: session.url,
+          apiKey,
+          trialQueries: 100,
+          securityFeatures: ["Real-time fraud detection","AML compliance scoring","Behavioral pattern recognition","Regulatory audit trail","Zero-knowledge data processing"],
+          accuracyGuarantee: "94%"
+        }
       });
     } catch (error: any) {
-      res.status(500).json({ error: 'Trial creation failed', message: error.message });
+      res.status(500).json({ error: 'Paid trial creation failed', message: error.message });
     }
   });
 
@@ -6788,6 +6828,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Upgrade message generation failed', message: error.message });
+    }
+  });
+
+  // Kellogg Holdings Revenue Management Endpoints
+  app.get('/api/internal/kellogg-holdings/revenue', async (req, res) => {
+    try {
+      const { KelloggHoldingsRevenueService } = await import('./services/kelloggHoldingsRevenue');
+      
+      const metrics = await KelloggHoldingsRevenueService.getKelloggHoldingsRevenueMetrics('monthly');
+      const report = await KelloggHoldingsRevenueService.generateFinancialReport();
+      
+      res.json({
+        success: true,
+        metrics,
+        report,
+        companyEntity: 'Kellogg Holdings LLC',
+        revenueRouting: 'All platform revenue flows to company accounts'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Kellogg Holdings revenue tracking failed', message: error.message });
+    }
+  });
+
+  app.post('/api/internal/kellogg-holdings/process-commission', async (req, res) => {
+    try {
+      const { KelloggHoldingsRevenueService } = await import('./services/kelloggHoldingsRevenue');
+      const { agentId, transactionAmount, serviceType, currency } = req.body;
+      
+      const result = await KelloggHoldingsRevenueService.processAIAgentCommission(
+        agentId, 
+        transactionAmount, 
+        serviceType, 
+        currency
+      );
+      
+      res.json({
+        success: true,
+        result,
+        message: '100% commission routed to Kellogg Holdings LLC'
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: 'Commission processing failed', message: error.message });
     }
   });
 

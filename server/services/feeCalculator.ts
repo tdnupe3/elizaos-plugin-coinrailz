@@ -40,9 +40,9 @@ export class FeeCalculator {
   private static readonly PAYPAL_FIXED = 0.30;
   
   /**
-   * Platform base fee: 1% (can be adjusted per transaction type)
+   * Platform base fee: 4.5% + fixed fees for sustainable profitability
    */
-  private static readonly PLATFORM_BASE_FEE = 0.01;
+  private static readonly PLATFORM_BASE_FEE = 0.045;
   
   /**
    * XRP fee structure: Ultra-low network fees (~$0.0002) + tiered platform fees

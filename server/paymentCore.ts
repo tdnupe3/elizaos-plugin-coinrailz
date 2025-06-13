@@ -115,6 +115,11 @@ export class PaymentCore {
    * Calculate fees for any amount
    */
   static calculateFee(amount: number): number {
-    return Math.round(amount * 0.01 * 100) / 100; // 1% fee
+    // Enhanced fee structure for sustainable profitability
+    const percentageFee = amount * 0.045; // 4.5% transaction fee
+    const serviceFee = 5.00; // $5.00 service fee
+    const platformUsageFee = 2.50; // $2.50 platform usage fee
+    const totalFee = percentageFee + serviceFee + platformUsageFee;
+    return Math.round(totalFee * 100) / 100;
   }
 }

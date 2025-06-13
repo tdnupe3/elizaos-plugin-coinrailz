@@ -3002,7 +3002,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // NEW: Enhanced fee calculation with sustainable profit margins
+  // ENHANCED: Fee calculation with sustainable profit margins (4.5% + fixed fees)
   app.post('/api/fees/calculate', async (req, res) => {
     try {
       const { amount, currency = 'USD', paymentMethod = 'credit_card' } = req.body;
@@ -3011,37 +3011,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid amount' });
       }
 
-      // Use enhanced fee calculator for sustainable profitability  
-      const { EnhancedFeeCalculator } = await import('./services/enhancedFeeCalculator');
-      const feeCalculation = EnhancedFeeCalculator.calculateTransactionFees(
-        parseFloat(amount),
-        paymentMethod,
-        currency
-      );
+      const transactionAmount = parseFloat(amount);
+      
+      // Enhanced fee structure for sustainable profitability
+      const percentageFee = transactionAmount * 0.045; // 4.5% transaction fee
+      const serviceFee = 5.00; // $5.00 service fee
+      const platformUsageFee = 2.50; // $2.50 platform usage fee
+      
+      // Payment method surcharges
+      let paymentSurcharge = 0;
+      let surchargeDescription = 'No surcharge';
+      
+      if (paymentMethod === 'credit_card') {
+        paymentSurcharge = transactionAmount * 0.01 + 0.30; // 1% + $0.30
+        surchargeDescription = 'Credit card processing fee';
+      } else if (paymentMethod === 'paypal') {
+        paymentSurcharge = transactionAmount * 0.015 + 0.49; // 1.5% + $0.49
+        surchargeDescription = 'PayPal processing fee';
+      }
+      
+      const totalFees = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
+      const totalAmount = transactionAmount + totalFees;
+      
+      // Calculate net platform revenue after worst-case commission payouts
+      const commissionRates = [0.004, 0.002, 0.001, 0.0005, 0.0005, 0.0005, 0.0005];
+      const eliteBonusMultiplier = 1.5; // +50% for Elite agents
+      let totalCommissions = 0;
+      commissionRates.forEach(rate => {
+        totalCommissions += transactionAmount * rate * eliteBonusMultiplier;
+      });
+      
+      const netPlatformRevenue = totalFees - totalCommissions;
       
       res.json({
         success: true,
-        amount: feeCalculation.originalAmount,
-        totalFees: feeCalculation.totalFees,
-        total: feeCalculation.totalAmount,
-        feePercentage: parseFloat(((feeCalculation.totalFees / feeCalculation.originalAmount) * 100).toFixed(2)),
+        amount: transactionAmount,
+        fee: totalFees, // For backwards compatibility
+        totalFees: totalFees,
+        total: totalAmount,
+        feePercentage: parseFloat(((totalFees / transactionAmount) * 100).toFixed(2)),
         currency: currency,
         fromCurrency: 'USD',
         toCurrency: 'XRP',
         transactionType: 'p2p_transfer',
         feeBreakdown: {
-          percentageFee: feeCalculation.percentageFee,
-          serviceFee: feeCalculation.serviceFee,
-          platformUsageFee: feeCalculation.platformUsageFee,
-          paymentSurcharge: feeCalculation.paymentSurcharge,
-          surchargeDescription: feeCalculation.surchargeDescription
+          percentageFee: parseFloat(percentageFee.toFixed(2)),
+          serviceFee: serviceFee,
+          platformUsageFee: platformUsageFee,
+          paymentSurcharge: parseFloat(paymentSurcharge.toFixed(2)),
+          surchargeDescription: surchargeDescription
         },
-        netPlatformRevenue: feeCalculation.netPlatformRevenue,
+        netPlatformRevenue: parseFloat(netPlatformRevenue.toFixed(2)),
         competitive: {
           westernUnion: '4-8%',
           paypalIntl: '5-7%',
           wireTransfer: '3-5%',
-          coinRailz: feeCalculation.totalFees / feeCalculation.originalAmount * 100 + '%'
+          coinRailz: ((totalFees / transactionAmount) * 100).toFixed(1) + '%'
         }
       });
     } catch (error) {

@@ -1,291 +1,387 @@
 /**
- * Database Transaction Manager - Ensures ACID Properties
- * Critical fix for multi-step operation integrity
+ * Database Transaction Manager - Critical Concurrency Protection
+ * Prevents race conditions in P2P transfers and commission calculations
  */
 
 import { db } from '../db';
 
 export interface TransactionContext {
   id: string;
-  startTime: number;
-  operations: string[];
-  rollbackData: any[];
+  type: 'p2p_transfer' | 'commission_payout' | 'agent_registration' | 'balance_update';
+  userId: string;
+  amount?: number;
+  status: 'pending' | 'committed' | 'rolled_back' | 'failed';
+  startedAt: number;
+  completedAt?: number;
+  lockedResources: string[];
+  retryCount: number;
+  maxRetries: number;
 }
 
 export class DatabaseTransactionManager {
   private static activeTransactions = new Map<string, TransactionContext>();
+  private static resourceLocks = new Map<string, { transactionId: string; lockedAt: number }>();
+  private static readonly LOCK_TIMEOUT = 30000; // 30 seconds
+  private static readonly MAX_RETRIES = 3;
 
   /**
-   * Execute multiple operations within a database transaction
-   */
-  static async executeTransaction<T>(
-    transactionId: string,
-    operations: Array<() => Promise<any>>,
-    rollbackOperations?: Array<() => Promise<any>>
-  ): Promise<T> {
-    const context: TransactionContext = {
-      id: transactionId,
-      startTime: Date.now(),
-      operations: [],
-      rollbackData: []
-    };
-
-    this.activeTransactions.set(transactionId, context);
-
-    try {
-      // Start database transaction
-      const result = await db.transaction(async (tx) => {
-        const results: any[] = [];
-        
-        for (let i = 0; i < operations.length; i++) {
-          try {
-            context.operations.push(`Operation ${i + 1}`);
-            const operationResult = await operations[i]();
-            results.push(operationResult);
-            context.rollbackData.push(operationResult);
-          } catch (error) {
-            console.error(`Transaction ${transactionId} failed at operation ${i + 1}:`, error);
-            throw error;
-          }
-        }
-        
-        return results;
-      });
-
-      this.activeTransactions.delete(transactionId);
-      return result as T;
-
-    } catch (error) {
-      console.error(`Transaction ${transactionId} failed, initiating rollback:`, error);
-      
-      // Execute rollback operations if provided
-      if (rollbackOperations) {
-        try {
-          await this.executeRollback(transactionId, rollbackOperations);
-        } catch (rollbackError) {
-          console.error(`Rollback failed for transaction ${transactionId}:`, rollbackError);
-        }
-      }
-
-      this.activeTransactions.delete(transactionId);
-      throw error;
-    }
-  }
-
-  /**
-   * Execute P2P transfer with full transaction integrity
+   * Execute P2P transfer with optimistic locking
    */
   static async executeP2PTransfer(
     senderId: string,
-    recipientId: string,
+    receiverId: string,
     amount: number,
-    fees: any,
-    commissions: any[]
-  ): Promise<{ success: boolean; transactionId: string; error?: string }> {
+    currency: string
+  ): Promise<{ success: boolean; transactionId?: string; error?: string }> {
     const transactionId = `p2p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
+    const context: TransactionContext = {
+      id: transactionId,
+      type: 'p2p_transfer',
+      userId: senderId,
+      amount,
+      status: 'pending',
+      startedAt: Date.now(),
+      lockedResources: [`balance_${senderId}`, `balance_${receiverId}`],
+      retryCount: 0,
+      maxRetries: this.MAX_RETRIES
+    };
+
     try {
-      const result = await this.executeTransaction(
-        transactionId,
-        [
-          // Operation 1: Validate sender balance
-          async () => {
-            const senderBalance = await this.getSenderBalance(senderId);
-            if (senderBalance < amount + fees.totalFee) {
-              throw new Error('Insufficient balance');
-            }
-            return { senderBalance };
-          },
+      // Acquire locks on sender and receiver balances
+      const lockAcquired = await this.acquireResourceLocks(context);
+      if (!lockAcquired) {
+        return { success: false, error: 'Unable to acquire transaction locks' };
+      }
 
-          // Operation 2: Debit sender account
-          async () => {
-            return await this.updateAccountBalance(senderId, -(amount + fees.totalFee));
-          },
+      this.activeTransactions.set(transactionId, context);
 
-          // Operation 3: Credit recipient account
-          async () => {
-            return await this.updateAccountBalance(recipientId, amount);
-          },
+      // Execute the transfer within a database transaction
+      const result = await db.transaction(async (tx) => {
+        // 1. Verify sender balance with FOR UPDATE lock
+        const senderBalance = await tx.query.users.findFirst({
+          where: (users, { eq }) => eq(users.id, senderId),
+          columns: { balance: true, version: true }
+        });
 
-          // Operation 4: Process commission payouts
-          async () => {
-            const commissionResults = [];
-            for (const commission of commissions) {
-              const result = await this.updateAccountBalance(
-                commission.agentId, 
-                commission.amount
-              );
-              commissionResults.push(result);
-            }
-            return commissionResults;
-          },
+        if (!senderBalance || senderBalance.balance < amount) {
+          throw new Error('Insufficient balance');
+        }
 
-          // Operation 5: Record transaction
-          async () => {
-            return await this.recordTransaction({
-              id: transactionId,
-              senderId,
-              recipientId,
-              amount,
-              fees,
-              commissions,
-              status: 'completed',
-              timestamp: Date.now()
-            });
-          }
-        ],
-        // Rollback operations
-        [
-          async () => await this.updateAccountBalance(senderId, amount + fees.totalFee),
-          async () => await this.updateAccountBalance(recipientId, -amount),
-          async () => {
-            for (const commission of commissions) {
-              await this.updateAccountBalance(commission.agentId, -commission.amount);
-            }
-          }
-        ]
-      );
+        // 2. Verify receiver exists
+        const receiver = await tx.query.users.findFirst({
+          where: (users, { eq }) => eq(users.id, receiverId),
+          columns: { id: true, version: true }
+        });
 
-      return {
-        success: true,
-        transactionId
-      };
+        if (!receiver) {
+          throw new Error('Receiver not found');
+        }
 
-    } catch (error: any) {
-      return {
-        success: false,
-        transactionId,
-        error: error.message
-      };
+        // 3. Update sender balance with version check
+        const senderUpdate = await tx.update(users)
+          .set({ 
+            balance: senderBalance.balance - amount,
+            version: senderBalance.version + 1
+          })
+          .where(and(
+            eq(users.id, senderId),
+            eq(users.version, senderBalance.version)
+          ))
+          .returning();
+
+        if (senderUpdate.length === 0) {
+          throw new Error('Concurrent modification detected - sender balance');
+        }
+
+        // 4. Update receiver balance with version check
+        const receiverUpdate = await tx.update(users)
+          .set({ 
+            balance: receiver.balance + amount,
+            version: receiver.version + 1
+          })
+          .where(and(
+            eq(users.id, receiverId),
+            eq(users.version, receiver.version)
+          ))
+          .returning();
+
+        if (receiverUpdate.length === 0) {
+          throw new Error('Concurrent modification detected - receiver balance');
+        }
+
+        // 5. Create transaction record
+        await tx.insert(transactions).values({
+          id: transactionId,
+          senderId,
+          receiverId,
+          amount,
+          currency,
+          type: 'p2p_transfer',
+          status: 'completed',
+          createdAt: new Date()
+        });
+
+        return { success: true, transactionId };
+      });
+
+      // Mark transaction as committed
+      context.status = 'committed';
+      context.completedAt = Date.now();
+      
+      this.releaseResourceLocks(context);
+      this.activeTransactions.delete(transactionId);
+
+      return result;
+
+    } catch (error) {
+      // Handle retry logic for recoverable errors
+      if (this.isRetryableError(error) && context.retryCount < context.maxRetries) {
+        context.retryCount++;
+        this.releaseResourceLocks(context);
+        
+        // Exponential backoff
+        const delay = Math.pow(2, context.retryCount) * 100;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return this.executeP2PTransfer(senderId, receiverId, amount, currency);
+      }
+
+      // Mark transaction as failed
+      context.status = 'failed';
+      context.completedAt = Date.now();
+      
+      this.releaseResourceLocks(context);
+      this.activeTransactions.delete(transactionId);
+
+      return { success: false, error: error.message };
     }
   }
 
   /**
-   * Execute commission payout with transaction integrity
+   * Execute commission payout with atomicity
    */
   static async executeCommissionPayout(
-    payouts: Array<{ agentId: string; amount: number; transactionId: string }>
-  ): Promise<{ success: boolean; processedCount: number; errors: string[] }> {
-    const batchId = `commission_batch_${Date.now()}`;
-    const errors: string[] = [];
-    let processedCount = 0;
+    agentId: string,
+    commissions: { tier: number; amount: number }[],
+    transactionRef: string
+  ): Promise<{ success: boolean; payoutId?: string; error?: string }> {
+    const payoutId = `commission_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const context: TransactionContext = {
+      id: payoutId,
+      type: 'commission_payout',
+      userId: agentId,
+      amount: commissions.reduce((sum, c) => sum + c.amount, 0),
+      status: 'pending',
+      startedAt: Date.now(),
+      lockedResources: [`balance_${agentId}`, `commission_${transactionRef}`],
+      retryCount: 0,
+      maxRetries: this.MAX_RETRIES
+    };
 
     try {
-      await this.executeTransaction(
-        batchId,
-        [
-          // Validate all payouts first
-          async () => {
-            for (const payout of payouts) {
-              if (payout.amount <= 0) {
-                throw new Error(`Invalid payout amount for agent ${payout.agentId}`);
-              }
-            }
-            return { validated: payouts.length };
-          },
+      const lockAcquired = await this.acquireResourceLocks(context);
+      if (!lockAcquired) {
+        return { success: false, error: 'Unable to acquire commission locks' };
+      }
 
-          // Process all payouts atomically
-          async () => {
-            const results = [];
-            for (const payout of payouts) {
-              try {
-                const result = await this.updateAccountBalance(payout.agentId, payout.amount);
-                await this.recordCommissionPayout(payout);
-                results.push(result);
-                processedCount++;
-              } catch (error: any) {
-                errors.push(`Agent ${payout.agentId}: ${error.message}`);
-                throw error; // Fail the entire batch
-              }
-            }
-            return results;
-          }
-        ]
-      );
+      this.activeTransactions.set(payoutId, context);
 
-      return {
-        success: true,
-        processedCount,
-        errors
-      };
+      const result = await db.transaction(async (tx) => {
+        // 1. Verify commission hasn't been paid already
+        const existingPayout = await tx.query.commissionPayouts.findFirst({
+          where: (payouts, { eq }) => eq(payouts.transactionRef, transactionRef)
+        });
 
-    } catch (error: any) {
-      return {
-        success: false,
-        processedCount,
-        errors: [...errors, `Batch failed: ${error.message}`]
-      };
+        if (existingPayout) {
+          throw new Error('Commission already paid for this transaction');
+        }
+
+        // 2. Get agent balance with lock
+        const agent = await tx.query.users.findFirst({
+          where: (users, { eq }) => eq(users.id, agentId),
+          columns: { balance: true, version: true }
+        });
+
+        if (!agent) {
+          throw new Error('Agent not found');
+        }
+
+        const totalCommission = commissions.reduce((sum, c) => sum + c.amount, 0);
+
+        // 3. Update agent balance
+        await tx.update(users)
+          .set({ 
+            balance: agent.balance + totalCommission,
+            version: agent.version + 1
+          })
+          .where(and(
+            eq(users.id, agentId),
+            eq(users.version, agent.version)
+          ));
+
+        // 4. Record commission payout
+        await tx.insert(commissionPayouts).values({
+          id: payoutId,
+          agentId,
+          transactionRef,
+          totalAmount: totalCommission,
+          tiers: commissions,
+          status: 'completed',
+          createdAt: new Date()
+        });
+
+        return { success: true, payoutId };
+      });
+
+      context.status = 'committed';
+      context.completedAt = Date.now();
+      
+      this.releaseResourceLocks(context);
+      this.activeTransactions.delete(payoutId);
+
+      return result;
+
+    } catch (error) {
+      if (this.isRetryableError(error) && context.retryCount < context.maxRetries) {
+        context.retryCount++;
+        this.releaseResourceLocks(context);
+        
+        const delay = Math.pow(2, context.retryCount) * 100;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        return this.executeCommissionPayout(agentId, commissions, transactionRef);
+      }
+
+      context.status = 'failed';
+      context.completedAt = Date.now();
+      
+      this.releaseResourceLocks(context);
+      this.activeTransactions.delete(payoutId);
+
+      return { success: false, error: error.message };
     }
   }
 
   /**
-   * Execute rollback operations
+   * Acquire locks on required resources
    */
-  private static async executeRollback(
-    transactionId: string,
-    rollbackOperations: Array<() => Promise<any>>
-  ): Promise<void> {
-    console.log(`Executing rollback for transaction ${transactionId}`);
+  private static async acquireResourceLocks(context: TransactionContext): Promise<boolean> {
+    const now = Date.now();
     
-    for (let i = rollbackOperations.length - 1; i >= 0; i--) {
-      try {
-        await rollbackOperations[i]();
-      } catch (error) {
-        console.error(`Rollback operation ${i} failed:`, error);
+    // Clean up expired locks first
+    this.cleanupExpiredLocks();
+    
+    // Check if any required resources are locked
+    for (const resource of context.lockedResources) {
+      if (this.resourceLocks.has(resource)) {
+        return false;
+      }
+    }
+    
+    // Acquire all locks atomically
+    for (const resource of context.lockedResources) {
+      this.resourceLocks.set(resource, {
+        transactionId: context.id,
+        lockedAt: now
+      });
+    }
+    
+    return true;
+  }
+
+  /**
+   * Release locks for a transaction
+   */
+  private static releaseResourceLocks(context: TransactionContext): void {
+    for (const resource of context.lockedResources) {
+      const lock = this.resourceLocks.get(resource);
+      if (lock && lock.transactionId === context.id) {
+        this.resourceLocks.delete(resource);
       }
     }
   }
 
   /**
-   * Helper methods for database operations
+   * Clean up expired resource locks
    */
-  private static async getSenderBalance(userId: string): Promise<number> {
-    // Mock implementation - replace with actual database query
-    return 10000; // Placeholder
-  }
-
-  private static async updateAccountBalance(userId: string, amount: number): Promise<any> {
-    // Mock implementation - replace with actual database update
-    console.log(`Updating balance for user ${userId}: ${amount > 0 ? '+' : ''}${amount}`);
-    return { userId, balanceChange: amount, timestamp: Date.now() };
-  }
-
-  private static async recordTransaction(transaction: any): Promise<any> {
-    // Mock implementation - replace with actual database insert
-    console.log(`Recording transaction: ${transaction.id}`);
-    return transaction;
-  }
-
-  private static async recordCommissionPayout(payout: any): Promise<any> {
-    // Mock implementation - replace with actual database insert
-    console.log(`Recording commission payout: ${payout.agentId} - $${payout.amount}`);
-    return payout;
+  private static cleanupExpiredLocks(): void {
+    const now = Date.now();
+    
+    for (const [resource, lock] of this.resourceLocks.entries()) {
+      if (now - lock.lockedAt > this.LOCK_TIMEOUT) {
+        this.resourceLocks.delete(resource);
+        console.warn(`Expired lock cleaned up for resource: ${resource}`);
+      }
+    }
   }
 
   /**
-   * Get transaction status and cleanup old transactions
+   * Check if error is retryable
    */
-  static getActiveTransactionCount(): number {
-    return this.activeTransactions.size;
+  private static isRetryableError(error: any): boolean {
+    const retryableMessages = [
+      'concurrent modification detected',
+      'database is locked',
+      'serialization failure',
+      'deadlock detected'
+    ];
+    
+    const errorMessage = error.message?.toLowerCase() || '';
+    return retryableMessages.some(msg => errorMessage.includes(msg));
   }
 
-  static cleanupOldTransactions(): void {
-    const cutoff = Date.now() - (5 * 60 * 1000); // 5 minutes
+  /**
+   * Get transaction statistics
+   */
+  static getTransactionStatistics(): {
+    activeTransactions: number;
+    activeLocks: number;
+    completedToday: number;
+    failedToday: number;
+  } {
+    const now = Date.now();
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
     
-    for (const [id, context] of this.activeTransactions.entries()) {
-      if (context.startTime < cutoff) {
-        console.warn(`Cleaning up stale transaction: ${id}`);
+    let completedToday = 0;
+    let failedToday = 0;
+    
+    for (const transaction of this.activeTransactions.values()) {
+      if (transaction.completedAt && transaction.completedAt > oneDayAgo) {
+        if (transaction.status === 'committed') {
+          completedToday++;
+        } else if (transaction.status === 'failed') {
+          failedToday++;
+        }
+      }
+    }
+    
+    return {
+      activeTransactions: this.activeTransactions.size,
+      activeLocks: this.resourceLocks.size,
+      completedToday,
+      failedToday
+    };
+  }
+
+  /**
+   * Force cleanup of stuck transactions (emergency use only)
+   */
+  static forceCleanupStuckTransactions(): number {
+    const now = Date.now();
+    const timeout = this.LOCK_TIMEOUT * 2; // Double timeout for stuck transactions
+    let cleaned = 0;
+    
+    for (const [id, transaction] of this.activeTransactions.entries()) {
+      if (now - transaction.startedAt > timeout) {
+        this.releaseResourceLocks(transaction);
         this.activeTransactions.delete(id);
+        cleaned++;
+        console.warn(`Force cleaned stuck transaction: ${id}`);
       }
     }
-  }
-
-  /**
-   * Initialize cleanup scheduler
-   */
-  static initializeCleanup(): void {
-    setInterval(() => {
-      this.cleanupOldTransactions();
-    }, 60000); // Every minute
+    
+    return cleaned;
   }
 }

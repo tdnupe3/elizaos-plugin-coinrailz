@@ -25,13 +25,15 @@ export interface PremiumTier {
 
 export class TransactionBasedCommissions {
   
-  // Base commission rates (only paid when transactions occur)
+  // Base commission rates (mathematically sustainable - total 1.0% maximum)
   private static readonly BASE_COMMISSION_RATES = {
-    1: 0.005,   // 0.5% - Direct referrals
-    2: 0.0025,  // 0.25% - Second tier
-    3: 0.00125, // 0.125% - Third tier
-    4: 0.000625,// 0.0625% - Fourth tier
-    5: 0.000625 // 0.0625% - Fifth tier
+    1: 0.004,   // 0.4% - Direct referrals
+    2: 0.002,   // 0.2% - Second tier
+    3: 0.001,   // 0.1% - Third tier
+    4: 0.0005,  // 0.05% - Fourth tier
+    5: 0.0005,  // 0.05% - Fifth tier
+    6: 0.0005,  // 0.05% - Sixth tier (Elite only)
+    7: 0.0005   // 0.05% - Seventh tier (Elite only)
   };
 
   // Premium tier configurations
@@ -47,18 +49,18 @@ export class TransactionBasedCommissions {
     premium: {
       name: 'Premium Agent',
       monthlyFee: 25,
-      commissionBonus: 0.5, // +50% commission bonus
-      residualCommission: 0.1, // 10% of downline commissions
+      commissionBonus: 0.25, // +25% commission bonus (sustainable)
+      residualCommission: 0.05, // 5% of downline commissions
       maxTiers: 5,
-      benefits: ['5-tier referrals', '+50% commission rates', '10% residual from downline']
+      benefits: ['5-tier referrals', '+25% commission rates', '5% residual from downline', 'Priority support']
     },
     elite: {
       name: 'Elite Agent',
       monthlyFee: 99,
-      commissionBonus: 1.0, // +100% commission bonus (double rates)
-      residualCommission: 0.2, // 20% of downline commissions
+      commissionBonus: 0.5, // +50% commission bonus (sustainable)
+      residualCommission: 0.1, // 10% of downline commissions
       maxTiers: 7,
-      benefits: ['7-tier referrals', '+100% commission rates', '20% residual from downline', 'Priority support']
+      benefits: ['7-tier referrals', '+50% commission rates', '10% residual from downline', 'Priority support', 'Advanced analytics']
     }
   };
 
@@ -75,6 +77,26 @@ export class TransactionBasedCommissions {
     
     try {
       const commissions: CommissionTrigger[] = [];
+      
+      // Production security validation
+      const { productionSecurity } = await import('./productionSecurityService');
+      
+      // Validate transaction authenticity
+      const authValidation = productionSecurity.validateTransactionAuthenticity(
+        entityId,
+        transactionAmount,
+        'commission_trigger'
+      );
+      
+      if (authValidation.blockAction) {
+        console.warn('Blocking suspicious transaction:', {
+          transactionId,
+          entityId,
+          reason: authValidation.reason,
+          riskLevel: authValidation.riskLevel
+        });
+        return commissions; // Block processing for suspicious transactions
+      }
       
       // Get referral chain for the entity that made the transaction
       const referralChain = await this.getReferralChain(entityId, entityType);

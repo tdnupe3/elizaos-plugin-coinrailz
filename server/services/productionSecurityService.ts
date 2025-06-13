@@ -1,239 +1,382 @@
 /**
  * Production Security Service
- * Comprehensive security hardening for production deployment
+ * Critical security controls for live deployment
  */
 
-import { Request, Response, NextFunction } from 'express';
-import rateLimit from 'express-rate-limit';
-import helmet from 'helmet';
+export interface SecurityValidation {
+  isValid: boolean;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  reason: string;
+  blockAction: boolean;
+}
+
+export interface ReferralChainValidation {
+  isValid: boolean;
+  hasLoop: boolean;
+  chainLength: number;
+  suspiciousPatterns: string[];
+}
 
 export class ProductionSecurityService {
+  
+  // Track referral relationships to detect loops
+  private static referralGraph = new Map<string, Set<string>>();
+  
+  // Track recent transactions to detect spam
+  private static recentTransactions = new Map<string, Array<{ amount: number; timestamp: number }>>();
+  
+  // Track wallet addresses for validation
+  private static validatedWallets = new Map<string, { valid: boolean; lastChecked: number }>();
+
   /**
-   * Enhanced rate limiting with tiered restrictions
+   * Validate referral chain for loops and suspicious patterns
    */
-  static createTieredRateLimit() {
-    // DEVELOPMENT MODE: Return no-op middleware
-    const noOpMiddleware = (req: Request, res: Response, next: NextFunction) => next();
+  static validateReferralChain(
+    referrerId: string, 
+    refereeId: string
+  ): ReferralChainValidation {
     
-    if (process.env.NODE_ENV === 'development') {
-      return { 
-        standardLimit: noOpMiddleware, 
-        authLimit: noOpMiddleware, 
-        transactionLimit: noOpMiddleware 
+    // Check for direct loop (A refers B, B refers A)
+    const referrerConnections = this.referralGraph.get(referrerId) || new Set();
+    const refereeConnections = this.referralGraph.get(refereeId) || new Set();
+    
+    const hasDirectLoop = referrerConnections.has(refereeId) || refereeConnections.has(referrerId);
+    
+    // Check for indirect loops using BFS
+    const hasIndirectLoop = this.detectIndirectLoop(referrerId, refereeId);
+    
+    // Calculate chain depth
+    const chainLength = this.calculateChainLength(referrerId);
+    
+    const suspiciousPatterns = [];
+    
+    if (hasDirectLoop) {
+      suspiciousPatterns.push('Direct referral loop detected');
+    }
+    
+    if (hasIndirectLoop) {
+      suspiciousPatterns.push('Indirect referral loop detected');
+    }
+    
+    if (chainLength > 10) {
+      suspiciousPatterns.push('Unusually deep referral chain');
+    }
+    
+    // Update referral graph
+    if (!hasDirectLoop && !hasIndirectLoop) {
+      if (!this.referralGraph.has(referrerId)) {
+        this.referralGraph.set(referrerId, new Set());
+      }
+      this.referralGraph.get(referrerId)!.add(refereeId);
+    }
+    
+    return {
+      isValid: suspiciousPatterns.length === 0,
+      hasLoop: hasDirectLoop || hasIndirectLoop,
+      chainLength,
+      suspiciousPatterns
+    };
+  }
+
+  /**
+   * Validate transaction authenticity to prevent fake volume
+   */
+  static validateTransactionAuthenticity(
+    entityId: string,
+    amount: number,
+    transactionType: string
+  ): SecurityValidation {
+    
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000;
+    
+    // Get recent transactions for this entity
+    if (!this.recentTransactions.has(entityId)) {
+      this.recentTransactions.set(entityId, []);
+    }
+    
+    const recentTxns = this.recentTransactions.get(entityId)!;
+    
+    // Clean old transactions (older than 1 hour)
+    const filteredTxns = recentTxns.filter(tx => now - tx.timestamp < oneHour);
+    this.recentTransactions.set(entityId, filteredTxns);
+    
+    // Check for suspicious patterns
+    const suspiciousPatterns = [];
+    
+    // Pattern 1: Too many small transactions
+    const smallTxns = filteredTxns.filter(tx => tx.amount < 10);
+    if (smallTxns.length > 10) {
+      suspiciousPatterns.push('Excessive micro-transactions');
+    }
+    
+    // Pattern 2: Exact amount repetition
+    const exactMatches = filteredTxns.filter(tx => tx.amount === amount);
+    if (exactMatches.length >= 3) {
+      suspiciousPatterns.push('Repeated exact amounts');
+    }
+    
+    // Pattern 3: High frequency
+    if (filteredTxns.length > 50) {
+      suspiciousPatterns.push('High transaction frequency');
+    }
+    
+    // Pattern 4: Round number patterns
+    if (amount % 100 === 0 && amount < 1000) {
+      const roundAmounts = filteredTxns.filter(tx => tx.amount % 100 === 0);
+      if (roundAmounts.length > 5) {
+        suspiciousPatterns.push('Suspicious round number pattern');
+      }
+    }
+    
+    // Add this transaction to history
+    filteredTxns.push({ amount, timestamp: now });
+    
+    const riskLevel = suspiciousPatterns.length >= 3 ? 'CRITICAL' : 
+                     suspiciousPatterns.length >= 2 ? 'HIGH' : 
+                     suspiciousPatterns.length >= 1 ? 'MEDIUM' : 'LOW';
+    
+    return {
+      isValid: riskLevel !== 'CRITICAL',
+      riskLevel,
+      reason: suspiciousPatterns.join(', ') || 'Transaction appears authentic',
+      blockAction: riskLevel === 'CRITICAL'
+    };
+  }
+
+  /**
+   * Validate wallet address and cache results
+   */
+  static async validateWalletAddress(
+    walletAddress: string,
+    networkType: string = 'XRP'
+  ): Promise<SecurityValidation> {
+    
+    const cacheKey = `${walletAddress}_${networkType}`;
+    const cached = this.validatedWallets.get(cacheKey);
+    const oneDay = 24 * 60 * 60 * 1000;
+    
+    // Use cached result if less than 24 hours old
+    if (cached && Date.now() - cached.lastChecked < oneDay) {
+      return {
+        isValid: cached.valid,
+        riskLevel: cached.valid ? 'LOW' : 'HIGH',
+        reason: cached.valid ? 'Valid wallet (cached)' : 'Invalid wallet (cached)',
+        blockAction: !cached.valid
       };
     }
-
-    // PRODUCTION MODE: Apply full rate limiting
-    const standardLimit = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // 100 requests per window
-      message: {
-        error: 'Rate limit exceeded',
-        message: 'Too many requests. Please try again later.',
-        retryAfter: 900
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-    });
-
-    const authLimit = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 5, // Only 5 auth attempts per window
-      message: {
-        error: 'Authentication rate limit exceeded',
-        message: 'Too many authentication attempts. Please try again later.',
-        retryAfter: 900
-      },
-      skipSuccessfulRequests: true,
-    });
-
-    const transactionLimit = rateLimit({
-      windowMs: 60 * 1000, // 1 minute
-      max: 10, // 10 transactions per minute
-      message: {
-        error: 'Transaction rate limit exceeded',
-        message: 'Too many transaction requests. Please wait before trying again.',
-        retryAfter: 60
-      },
-    });
-
-    return { standardLimit, authLimit, transactionLimit };
-  }
-
-  /**
-   * Production-grade security headers
-   */
-  static configureSecurityHeaders() {
-    return helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-          fontSrc: ["'self'", "https://fonts.gstatic.com"],
-          imgSrc: ["'self'", "data:", "https:"],
-          scriptSrc: ["'self'"],
-          connectSrc: ["'self'", "https://api.stripe.com", "https://api.coingecko.com"],
-          frameSrc: ["https://js.stripe.com", "https://hooks.stripe.com"],
-        },
-      },
-      hsts: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true
-      },
-      noSniff: true,
-      xssFilter: true,
-      referrerPolicy: { policy: "strict-origin-when-cross-origin" }
-    });
-  }
-
-  /**
-   * Enhanced input validation middleware
-   */
-  static validateFinancialInput() {
-    return (req: Request, res: Response, next: NextFunction) => {
-      const { amount, currency } = req.body;
-
-      if (amount !== undefined) {
-        // Validate amount format and limits
-        const numericAmount = parseFloat(amount);
-        if (isNaN(numericAmount) || numericAmount <= 0 || numericAmount > 1000000) {
-          return res.status(400).json({
-            error: 'Invalid amount',
-            message: 'Amount must be a positive number less than $1,000,000'
-          });
-        }
-
-        // Check for decimal precision (max 8 decimal places for crypto)
-        const decimalPrecision = (amount.toString().split('.')[1] || '').length;
-        if (decimalPrecision > 8) {
-          return res.status(400).json({
-            error: 'Invalid precision',
-            message: 'Amount cannot have more than 8 decimal places'
-          });
-        }
-      }
-
-      if (currency !== undefined) {
-        // Validate currency format
-        const validCurrencies = ['USD', 'BTC', 'ETH', 'SOL', 'USDC', 'USDT'];
-        if (!validCurrencies.includes(currency.toUpperCase())) {
-          return res.status(400).json({
-            error: 'Invalid currency',
-            message: 'Currency not supported'
-          });
-        }
-      }
-
-      next();
+    
+    // Validate wallet format
+    const walletPatterns = {
+      XRP: /^r[1-9A-HJ-NP-Za-km-z]{25,34}$/,
+      ETH: /^0x[a-fA-F0-9]{40}$/,
+      BTC: /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/
     };
-  }
-
-  /**
-   * Enhanced user validation middleware
-   */
-  static validateUserOperations() {
-    return (req: Request, res: Response, next: NextFunction) => {
-      const user = (req as any).user;
-
-      if (!user) {
-        return res.status(401).json({
-          error: 'Authentication required',
-          message: 'Please log in to continue'
-        });
-      }
-
-      // Check if user account is in good standing
-      if (user.status === 'suspended') {
-        return res.status(403).json({
-          error: 'Account suspended',
-          message: 'Your account has been suspended. Please contact support.'
-        });
-      }
-
-      // Check KYC status for financial operations
-      if (req.path.includes('/api/transaction') || req.path.includes('/api/wallet')) {
-        if (user.kycStatus !== 'verified') {
-          return res.status(403).json({
-            error: 'KYC verification required',
-            message: 'Please complete identity verification to perform this action'
-          });
-        }
-      }
-
-      next();
-    };
-  }
-
-  /**
-   * API endpoint monitoring and logging
-   */
-  static logSecurityEvents() {
-    return (req: Request, res: Response, next: NextFunction) => {
-      const startTime = Date.now();
-
-      res.on('finish', () => {
-        const duration = Date.now() - startTime;
-        const logData = {
-          timestamp: new Date().toISOString(),
-          method: req.method,
-          url: req.url,
-          statusCode: res.statusCode,
-          duration,
-          userAgent: req.get('User-Agent'),
-          ip: req.ip,
-          userId: (req as any).user?.id
-        };
-
-        // Log security-relevant events
-        if (res.statusCode >= 400) {
-          console.warn('Security event:', logData);
-        }
-
-        // Log slow requests
-        if (duration > 5000) {
-          console.warn('Slow request:', logData);
-        }
-      });
-
-      next();
-    };
-  }
-
-  /**
-   * Environment variable validation for production
-   */
-  static validateProductionEnvironment(): boolean {
-    const requiredVars = [
-      'DATABASE_URL',
-      'SESSION_SECRET',
-      'STRIPE_SECRET_KEY',
-      'NODE_ENV'
-    ];
-
-    const missing = requiredVars.filter(varName => !process.env[varName]);
-
-    if (missing.length > 0) {
-      console.error('Missing required environment variables:', missing);
-      return false;
+    
+    const pattern = walletPatterns[networkType as keyof typeof walletPatterns];
+    const isValidFormat = pattern ? pattern.test(walletAddress) : false;
+    
+    // Additional checks for suspicious patterns
+    const suspiciousPatterns = [];
+    
+    // Check for obvious test/fake addresses
+    const testPatterns = ['test', 'fake', 'demo', '000000', '111111'];
+    if (testPatterns.some(pattern => walletAddress.toLowerCase().includes(pattern))) {
+      suspiciousPatterns.push('Test/fake address pattern');
     }
+    
+    // Check for repeated characters (likely invalid)
+    const repeatedChar = /(.)\1{5,}/.test(walletAddress);
+    if (repeatedChar) {
+      suspiciousPatterns.push('Repeated character pattern');
+    }
+    
+    const isValid = isValidFormat && suspiciousPatterns.length === 0;
+    
+    // Cache result
+    this.validatedWallets.set(cacheKey, {
+      valid: isValid,
+      lastChecked: Date.now()
+    });
+    
+    return {
+      isValid,
+      riskLevel: isValid ? 'LOW' : 'HIGH',
+      reason: isValid ? 'Valid wallet address' : 
+              suspiciousPatterns.length > 0 ? suspiciousPatterns.join(', ') : 'Invalid format',
+      blockAction: !isValid
+    };
+  }
 
-    // Validate environment-specific requirements
-    if (process.env.NODE_ENV === 'production') {
-      const productionVars = [
-        'PGHOST',
-        'PGUSER',
-        'PGPASSWORD',
-        'PGDATABASE'
-      ];
+  /**
+   * Comprehensive commission calculation validation
+   */
+  static validateCommissionCalculation(
+    transactionAmount: number,
+    commissionRate: number,
+    tierLevel: number,
+    premiumMultiplier: number = 1
+  ): SecurityValidation {
+    
+    const maxAllowedRate = 0.02; // 2% maximum commission rate
+    const finalRate = commissionRate * premiumMultiplier;
+    
+    const issues = [];
+    
+    if (finalRate > maxAllowedRate) {
+      issues.push('Commission rate exceeds 2% maximum');
+    }
+    
+    if (tierLevel > 7) {
+      issues.push('Tier level exceeds maximum allowed (7)');
+    }
+    
+    if (transactionAmount < 0.01) {
+      issues.push('Transaction amount below minimum');
+    }
+    
+    if (transactionAmount > 1000000) {
+      issues.push('Transaction amount suspiciously high');
+    }
+    
+    const commissionAmount = transactionAmount * finalRate;
+    if (commissionAmount > transactionAmount * 0.05) {
+      issues.push('Commission exceeds 5% of transaction value');
+    }
+    
+    return {
+      isValid: issues.length === 0,
+      riskLevel: issues.length >= 2 ? 'HIGH' : issues.length >= 1 ? 'MEDIUM' : 'LOW',
+      reason: issues.length > 0 ? issues.join(', ') : 'Commission calculation valid',
+      blockAction: issues.length >= 2
+    };
+  }
 
-      const missingProd = productionVars.filter(varName => !process.env[varName]);
-      if (missingProd.length > 0) {
-        console.error('Missing production environment variables:', missingProd);
-        return false;
+  /**
+   * Rate limiting for premium tier upgrades
+   */
+  static validateTierUpgrade(
+    agentId: string,
+    fromTier: string,
+    toTier: string
+  ): SecurityValidation {
+    
+    const tierHierarchy = ['basic', 'premium', 'elite'];
+    const fromIndex = tierHierarchy.indexOf(fromTier.toLowerCase());
+    const toIndex = tierHierarchy.indexOf(toTier.toLowerCase());
+    
+    const issues = [];
+    
+    if (fromIndex === -1 || toIndex === -1) {
+      issues.push('Invalid tier specified');
+    }
+    
+    if (toIndex <= fromIndex) {
+      issues.push('Cannot downgrade or stay same tier');
+    }
+    
+    if (toIndex - fromIndex > 1) {
+      issues.push('Cannot skip tier levels');
+    }
+    
+    // Check upgrade frequency (prevent rapid up/down cycling)
+    // This would require database tracking in production
+    
+    return {
+      isValid: issues.length === 0,
+      riskLevel: issues.length > 0 ? 'MEDIUM' : 'LOW',
+      reason: issues.length > 0 ? issues.join(', ') : 'Tier upgrade valid',
+      blockAction: issues.length > 0
+    };
+  }
+
+  /**
+   * Detect indirect loops using breadth-first search
+   */
+  private static detectIndirectLoop(
+    startId: string, 
+    targetId: string, 
+    maxDepth: number = 10
+  ): boolean {
+    
+    const visited = new Set<string>();
+    const queue = [{ id: startId, depth: 0 }];
+    
+    while (queue.length > 0) {
+      const { id, depth } = queue.shift()!;
+      
+      if (depth >= maxDepth) continue;
+      if (visited.has(id)) continue;
+      
+      visited.add(id);
+      
+      const connections = this.referralGraph.get(id);
+      if (!connections) continue;
+      
+      for (const connectedId of connections) {
+        if (connectedId === targetId) {
+          return true; // Loop detected
+        }
+        
+        if (!visited.has(connectedId)) {
+          queue.push({ id: connectedId, depth: depth + 1 });
+        }
       }
     }
+    
+    return false;
+  }
 
-    return true;
+  /**
+   * Calculate referral chain length
+   */
+  private static calculateChainLength(agentId: string): number {
+    const visited = new Set<string>();
+    let maxDepth = 0;
+    
+    const dfs = (id: string, depth: number) => {
+      if (visited.has(id) || depth > 15) return;
+      
+      visited.add(id);
+      maxDepth = Math.max(maxDepth, depth);
+      
+      const connections = this.referralGraph.get(id);
+      if (connections) {
+        for (const connectedId of connections) {
+          dfs(connectedId, depth + 1);
+        }
+      }
+    };
+    
+    dfs(agentId, 0);
+    return maxDepth;
+  }
+
+  /**
+   * Clean up old data to prevent memory leaks
+   */
+  static cleanupOldData(): void {
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    const oneDay = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    
+    // Clean old transaction history
+    for (const [entityId, transactions] of this.recentTransactions.entries()) {
+      const filtered = transactions.filter(tx => now - tx.timestamp < oneWeek);
+      if (filtered.length === 0) {
+        this.recentTransactions.delete(entityId);
+      } else {
+        this.recentTransactions.set(entityId, filtered);
+      }
+    }
+    
+    // Clean old wallet validations
+    for (const [wallet, validation] of this.validatedWallets.entries()) {
+      if (now - validation.lastChecked > oneDay) {
+        this.validatedWallets.delete(wallet);
+      }
+    }
   }
 }
+
+export const productionSecurity = ProductionSecurityService;

@@ -27,10 +27,10 @@ export interface ReferralCommissionStructure {
 }
 
 export class EnhancedFeeCalculator {
-  // Enhanced fee structure constants
-  private static readonly PERCENTAGE_FEE_RATE = 0.025; // 2.5%
-  private static readonly SERVICE_FEE = 2.50; // Fixed service fee
-  private static readonly PLATFORM_USAGE_FEE = 1.00; // Platform usage fee
+  // Enhanced fee structure constants for sustainable profitability
+  private static readonly PERCENTAGE_FEE_RATE = 0.045; // 4.5% transaction fee
+  private static readonly SERVICE_FEE = 5.00; // $5.00 service fee
+  private static readonly PLATFORM_USAGE_FEE = 2.50; // $2.50 platform usage fee
   
   // Payment method surcharge rates
   private static readonly PAYMENT_SURCHARGES = {

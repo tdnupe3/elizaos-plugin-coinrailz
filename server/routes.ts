@@ -2956,7 +2956,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Fee calculation endpoints
+  // Enhanced fee calculation endpoints with sustainable profit margins
   app.post('/api/calculate-fee', async (req: any, res) => {
     try {
       const { amount, type } = req.body;
@@ -2999,6 +2999,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error calculating fee:", error);
       res.status(500).json({ message: "Failed to calculate fee" });
+    }
+  });
+
+  // NEW: Enhanced fee calculation with sustainable profit margins
+  app.post('/api/fees/calculate', async (req, res) => {
+    try {
+      const { amount, currency = 'USD', paymentMethod = 'credit_card' } = req.body;
+      
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: 'Invalid amount' });
+      }
+
+      // Use enhanced fee calculator for sustainable profitability  
+      const { EnhancedFeeCalculator } = await import('./services/enhancedFeeCalculator');
+      const feeCalculation = EnhancedFeeCalculator.calculateTransactionFees(
+        parseFloat(amount),
+        paymentMethod,
+        currency
+      );
+      
+      res.json({
+        success: true,
+        amount: feeCalculation.originalAmount,
+        totalFees: feeCalculation.totalFees,
+        total: feeCalculation.totalAmount,
+        feePercentage: parseFloat(((feeCalculation.totalFees / feeCalculation.originalAmount) * 100).toFixed(2)),
+        currency: currency,
+        fromCurrency: 'USD',
+        toCurrency: 'XRP',
+        transactionType: 'p2p_transfer',
+        feeBreakdown: {
+          percentageFee: feeCalculation.percentageFee,
+          serviceFee: feeCalculation.serviceFee,
+          platformUsageFee: feeCalculation.platformUsageFee,
+          paymentSurcharge: feeCalculation.paymentSurcharge,
+          surchargeDescription: feeCalculation.surchargeDescription
+        },
+        netPlatformRevenue: feeCalculation.netPlatformRevenue,
+        competitive: {
+          westernUnion: '4-8%',
+          paypalIntl: '5-7%',
+          wireTransfer: '3-5%',
+          coinRailz: feeCalculation.totalFees / feeCalculation.originalAmount * 100 + '%'
+        }
+      });
+    } catch (error) {
+      console.error('Enhanced fee calculation error:', error);
+      res.status(500).json({ message: 'Failed to calculate fee' });
     }
   });
 

@@ -231,46 +231,8 @@ app.use((req, res, next) => {
         }
       });
 
-      // Enhanced fee calculation for sustainable profitability
-      app.post('/api/fees/calculate', (req, res) => {
-        const { amount, paymentMethod = 'credit_card' } = req.body;
-        
-        if (!amount || amount <= 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Invalid amount'
-          });
-        }
-
-        // Enhanced fee structure: 4.5% + fixed fees for sustainable margins
-        const transactionAmount = parseFloat(amount);
-        const percentageFee = transactionAmount * 0.045; // 4.5%
-        const serviceFee = 5.00; // $5.00
-        const platformUsageFee = 2.50; // $2.50
-        
-        // Payment surcharges
-        let paymentSurcharge = 0;
-        if (paymentMethod === 'credit_card') {
-          paymentSurcharge = transactionAmount * 0.01 + 0.30;
-        } else if (paymentMethod === 'paypal') {
-          paymentSurcharge = transactionAmount * 0.015 + 0.49;
-        }
-        
-        const totalFee = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
-        const total = transactionAmount + totalFee;
-        const feePercentage = (totalFee / transactionAmount) * 100;
-
-        res.json({
-          success: true,
-          amount: transactionAmount,
-          fee: parseFloat(totalFee.toFixed(2)),
-          total: parseFloat(total.toFixed(2)),
-          feePercentage: parseFloat(feePercentage.toFixed(2)),
-          fromCurrency: 'USD',
-          toCurrency: 'XRP',
-          transactionType: 'p2p_transfer'
-        });
-      });
+      // Register enhanced fee endpoint before routes to ensure it takes precedence
+      registerEnhancedFeeEndpoint(app);
 
       // P2P Transfer System Implementation
       app.post('/api/transfers/p2p', async (req, res) => {

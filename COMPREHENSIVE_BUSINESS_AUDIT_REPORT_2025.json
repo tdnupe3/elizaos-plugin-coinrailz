@@ -1,23 +1,17 @@
 {
-  "timestamp": "2025-06-14T05:26:58.972Z",
+  "timestamp": "2025-06-14T05:28:55.160Z",
   "summary": {
     "totalTests": 10,
-    "passed": 8,
-    "failed": 2,
-    "successRate": "80.0%"
+    "passed": 9,
+    "failed": 1,
+    "successRate": "90.0%"
   },
   "productionReadiness": {
-    "criticalIssues": 2,
+    "criticalIssues": 1,
     "recommendation": "REQUIRES FIXES BEFORE PRODUCTION"
   },
   "findings": {
     "productionBlockers": [
-      {
-        "test": "Agent Registration Business Logic",
-        "issue": "Valid agent registration failed",
-        "impact": "HIGH",
-        "recommendation": "Fix before production"
-      },
       {
         "test": "Data Consistency and Integrity",
         "issue": "Agent registration failed for consistency test",

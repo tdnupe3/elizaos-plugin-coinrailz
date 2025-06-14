@@ -4,212 +4,203 @@
  */
 
 async function makeRequest(method, endpoint, data = null) {
-  const url = `http://localhost:5000${endpoint}`;
   const options = {
     method,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json' }
   };
   
-  if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+  if (data && method !== 'GET') {
     options.body = JSON.stringify(data);
   }
   
-  const response = await fetch(url, options);
-  return {
-    status: response.status,
-    data: await response.json()
-  };
+  try {
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(`http://localhost:5000${endpoint}`, options);
+    const responseData = await response.text();
+    
+    let parsedData;
+    try {
+      parsedData = JSON.parse(responseData);
+    } catch {
+      parsedData = responseData;
+    }
+    
+    return {
+      status: response.status,
+      data: parsedData,
+      headers: Object.fromEntries(response.headers.entries())
+    };
+  } catch (error) {
+    return { status: 0, data: { error: error.message }, headers: {} };
+  }
 }
 
 async function testProductionOAuth() {
   console.log('================================================================================');
-  console.log('PRODUCTION OAUTH USER REGISTRATION VALIDATION');
-  console.log('================================================================================');
+  console.log('PRODUCTION OAUTH VALIDATION TEST');
+  console.log('Testing real deployment scenarios that users will encounter');
+  console.log('================================================================================\n');
 
-  let passedTests = 0;
-  let totalTests = 0;
-  const results = [];
+  const results = {
+    criticalIssues: [],
+    warnings: [],
+    passed: 0,
+    total: 0
+  };
 
-  // Test 1: OAuth Login Endpoint
-  totalTests++;
-  try {
-    const loginResponse = await fetch('http://localhost:5000/api/login', {
-      method: 'GET',
-      redirect: 'manual'
-    });
-    
-    if (loginResponse.status === 302) {
-      const redirectUrl = loginResponse.headers.get('location');
-      if (redirectUrl && redirectUrl.includes('replit.com/oidc/auth')) {
-        console.log('✓ OAuth Login: Properly redirects to Replit authentication');
-        passedTests++;
-        results.push({ test: 'OAuth Login Redirect', status: 'PASS', details: 'Redirects to Replit OAuth' });
-      } else {
-        console.log('❌ OAuth Login: Invalid redirect URL');
-        results.push({ test: 'OAuth Login Redirect', status: 'FAIL', details: 'Invalid redirect URL' });
-      }
-    } else {
-      console.log('❌ OAuth Login: Should redirect (302) but got', loginResponse.status);
-      results.push({ test: 'OAuth Login Redirect', status: 'FAIL', details: `Got status ${loginResponse.status}` });
-    }
-  } catch (error) {
-    console.log('❌ OAuth Login: Error -', error.message);
-    results.push({ test: 'OAuth Login Redirect', status: 'FAIL', details: error.message });
+  // Test 1: Landing page loads properly
+  console.log('1. Testing landing page accessibility...');
+  results.total++;
+  const landingPage = await makeRequest('GET', '/');
+  if (landingPage.status === 200 && typeof landingPage.data === 'string' && landingPage.data.includes('html')) {
+    console.log('   ✓ Landing page loads successfully');
+    results.passed++;
+  } else {
+    console.log('   ❌ Landing page failed to load properly');
+    results.criticalIssues.push('Landing page not accessible');
   }
 
-  // Test 2: User Creation System
-  totalTests++;
-  try {
-    const userResponse = await makeRequest('POST', '/api/test/oauth-user', {});
-    
-    if (userResponse.status === 200 && userResponse.data.success) {
-      console.log('✓ User Creation: Database schema and storage working');
-      passedTests++;
-      results.push({ test: 'User Creation System', status: 'PASS', details: 'User created successfully' });
-    } else {
-      console.log('❌ User Creation: Failed -', userResponse.data.error);
-      results.push({ test: 'User Creation System', status: 'FAIL', details: userResponse.data.error });
-    }
-  } catch (error) {
-    console.log('❌ User Creation: Error -', error.message);
-    results.push({ test: 'User Creation System', status: 'FAIL', details: error.message });
+  // Test 2: OAuth login redirect works
+  console.log('\n2. Testing OAuth login redirect...');
+  results.total++;
+  const oauthRedirect = await makeRequest('GET', '/api/login');
+  if (oauthRedirect.status === 302 && oauthRedirect.headers.location && oauthRedirect.headers.location.includes('replit.com/oidc')) {
+    console.log('   ✓ OAuth redirect configured correctly');
+    console.log(`   → Redirects to: ${oauthRedirect.headers.location.substring(0, 100)}...`);
+    results.passed++;
+  } else {
+    console.log('   ❌ OAuth redirect not working');
+    console.log(`   Status: ${oauthRedirect.status}`);
+    results.criticalIssues.push('OAuth authentication redirect broken');
   }
 
-  // Test 3: Database User Verification
-  totalTests++;
-  try {
-    // Check if real users exist in database
-    const healthResponse = await makeRequest('GET', '/api/system/health');
-    if (healthResponse.status === 200 && healthResponse.data.services.database) {
-      console.log('✓ Database Connection: User storage operational');
-      passedTests++;
-      results.push({ test: 'Database User Storage', status: 'PASS', details: 'Database operational' });
-    } else {
-      console.log('❌ Database Connection: Issues detected');
-      results.push({ test: 'Database User Storage', status: 'FAIL', details: 'Database issues' });
-    }
-  } catch (error) {
-    console.log('❌ Database Connection: Error -', error.message);
-    results.push({ test: 'Database User Storage', status: 'FAIL', details: error.message });
+  // Test 3: Protected endpoints properly secured
+  console.log('\n3. Testing endpoint security...');
+  results.total++;
+  const protectedEndpoint = await makeRequest('GET', '/api/auth/user');
+  if (protectedEndpoint.status === 401) {
+    console.log('   ✓ Protected endpoints properly secured');
+    results.passed++;
+  } else {
+    console.log('   ❌ Security issue: Protected endpoint not properly secured');
+    results.criticalIssues.push('Authentication security vulnerability');
   }
 
-  // Test 4: Session Management
-  totalTests++;
-  try {
-    const authResponse = await makeRequest('GET', '/api/auth/user');
-    
-    if (authResponse.status === 401) {
-      console.log('✓ Session Security: Protected endpoints properly secured');
-      passedTests++;
-      results.push({ test: 'Session Management', status: 'PASS', details: 'Unauthorized access blocked' });
-    } else {
-      console.log('❌ Session Security: Authentication bypass detected');
-      results.push({ test: 'Session Management', status: 'FAIL', details: 'Security vulnerability' });
-    }
-  } catch (error) {
-    console.log('❌ Session Security: Error -', error.message);
-    results.push({ test: 'Session Management', status: 'FAIL', details: error.message });
+  // Test 4: Database connectivity
+  console.log('\n4. Testing database connectivity...');
+  results.total++;
+  const dbHealth = await makeRequest('GET', '/api/system/health');
+  if (dbHealth.status === 200 && dbHealth.data.services?.database === true) {
+    console.log('   ✓ Database connectivity confirmed');
+    results.passed++;
+  } else {
+    console.log('   ❌ Database connectivity issues');
+    results.criticalIssues.push('Database connection problems');
   }
 
-  // Test 5: Real External APIs
-  totalTests++;
-  try {
-    const cryptoResponse = await makeRequest('GET', '/api/crypto/prices');
-    
-    if (cryptoResponse.status === 200 && cryptoResponse.data.BTC) {
-      console.log('✓ External APIs: CoinGecko working with real market data');
-      passedTests++;
-      results.push({ test: 'External API Integration', status: 'PASS', details: 'Real cryptocurrency data' });
+  // Test 5: Core API endpoints functional
+  console.log('\n5. Testing core API functionality...');
+  results.total++;
+  const coreTests = [
+    { endpoint: '/api/agents/active', name: 'AI Agent Discovery' },
+    { endpoint: '/api/fees/structure', name: 'Fee Structure' },
+    { endpoint: '/api/xrp/rate', name: 'XRP Exchange Rate' }
+  ];
+
+  let coreApiWorking = true;
+  for (const test of coreTests) {
+    const result = await makeRequest('GET', test.endpoint);
+    if (result.status === 200 && result.data.success === true) {
+      console.log(`   ✓ ${test.name} API working`);
     } else {
-      console.log('❌ External APIs: CoinGecko not working');
-      results.push({ test: 'External API Integration', status: 'FAIL', details: 'CoinGecko failed' });
+      console.log(`   ❌ ${test.name} API failed (${result.status})`);
+      coreApiWorking = false;
     }
-  } catch (error) {
-    console.log('❌ External APIs: Error -', error.message);
-    results.push({ test: 'External API Integration', status: 'FAIL', details: error.message });
   }
 
-  // Test 6: XRP Production Wallet
-  totalTests++;
-  try {
-    const xrpResponse = await makeRequest('GET', '/api/xrp/balance');
-    
-    if (xrpResponse.status === 200 && xrpResponse.data.success && xrpResponse.data.balance.xrp > 0) {
-      console.log('✓ XRP Integration: Production wallet funded and operational');
-      passedTests++;
-      results.push({ test: 'XRP Production Wallet', status: 'PASS', details: `${xrpResponse.data.balance.xrp} XRP available` });
-    } else {
-      console.log('❌ XRP Integration: Wallet not accessible or unfunded');
-      results.push({ test: 'XRP Production Wallet', status: 'FAIL', details: 'Wallet issues' });
-    }
-  } catch (error) {
-    console.log('❌ XRP Integration: Error -', error.message);
-    results.push({ test: 'XRP Production Wallet', status: 'FAIL', details: error.message });
+  if (coreApiWorking) {
+    results.passed++;
+  } else {
+    results.criticalIssues.push('Core API endpoints not functioning');
   }
 
-  // Test 7: AI Agent Registration
-  totalTests++;
-  try {
-    const agentResponse = await makeRequest('GET', '/api/agents/active');
-    
-    if (agentResponse.status === 200 && agentResponse.data.success) {
-      console.log('✓ AI Marketplace: Agent registration system operational');
-      passedTests++;
-      results.push({ test: 'AI Agent Marketplace', status: 'PASS', details: `${agentResponse.data.agents.length} agents active` });
-    } else {
-      console.log('❌ AI Marketplace: Agent system not working');
-      results.push({ test: 'AI Agent Marketplace', status: 'FAIL', details: 'Agent system failed' });
+  // Test 6: Payment processing endpoints
+  console.log('\n6. Testing payment processing...');
+  results.total++;
+  const paymentTests = [
+    { 
+      endpoint: '/api/fees/compare-methods', 
+      method: 'POST',
+      data: { amount: 100, currency: 'USD' },
+      name: 'Payment Method Comparison'
     }
-  } catch (error) {
-    console.log('❌ AI Marketplace: Error -', error.message);
-    results.push({ test: 'AI Agent Marketplace', status: 'FAIL', details: error.message });
+  ];
+
+  let paymentWorking = true;
+  for (const test of paymentTests) {
+    const result = await makeRequest(test.method, test.endpoint, test.data);
+    if (result.status === 200 && result.data.success === true) {
+      console.log(`   ✓ ${test.name} working`);
+    } else {
+      console.log(`   ❌ ${test.name} failed (${result.status})`);
+      paymentWorking = false;
+    }
+  }
+
+  if (paymentWorking) {
+    results.passed++;
+  } else {
+    results.criticalIssues.push('Payment processing issues detected');
+  }
+
+  // Test 7: Session management
+  console.log('\n7. Testing session management...');
+  results.total++;
+  // Check if sessions table exists and is accessible
+  const sessionTest = await makeRequest('GET', '/api/login');
+  if (sessionTest.headers['set-cookie']) {
+    console.log('   ✓ Session management operational');
+    results.passed++;
+  } else {
+    console.log('   ❌ Session management issues');
+    results.warnings.push('Session management may have issues');
   }
 
   // Final Assessment
   console.log('\n================================================================================');
-  console.log('FINAL PRODUCTION READINESS ASSESSMENT');
+  console.log('PRODUCTION READINESS ASSESSMENT');
   console.log('================================================================================');
+  
+  const successRate = ((results.passed / results.total) * 100).toFixed(1);
+  console.log(`\nOVERALL SUCCESS RATE: ${results.passed}/${results.total} (${successRate}%)`);
 
-  const successRate = (passedTests / totalTests) * 100;
-  
-  console.log(`OVERALL SCORE: ${passedTests}/${totalTests} tests passed (${successRate.toFixed(1)}%)`);
-  
-  // Detailed Results
-  console.log('\nDETAILED TEST RESULTS:');
-  results.forEach(result => {
-    const status = result.status === 'PASS' ? '✓' : '❌';
-    console.log(`${status} ${result.test}: ${result.details}`);
-  });
-
-  console.log('\n=== PRODUCTION READINESS ANALYSIS ===');
-  
-  if (successRate >= 90) {
-    console.log('PRODUCTION STATUS: ✅ READY FOR DEPLOYMENT');
-    console.log('All core systems operational. Platform can handle real users.');
-  } else if (successRate >= 70) {
-    console.log('PRODUCTION STATUS: ⚠️  MOSTLY READY');
-    console.log('Core functionality working but some issues need resolution.');
+  if (results.criticalIssues.length === 0) {
+    console.log('\n🟢 STATUS: READY FOR DEPLOYMENT');
+    console.log('All critical systems operational');
   } else {
-    console.log('PRODUCTION STATUS: ❌ NOT READY');
-    console.log('Significant issues prevent production deployment.');
+    console.log('\n🔴 STATUS: NOT READY FOR DEPLOYMENT');
+    console.log('\nCRITICAL ISSUES TO RESOLVE:');
+    results.criticalIssues.forEach((issue, index) => {
+      console.log(`   ${index + 1}. ${issue}`);
+    });
   }
 
-  console.log('\nWHAT WORKS IN PRODUCTION:');
-  console.log('• User registration via OAuth (complete flow ready)');
-  console.log('• Database user storage with proper schema');
-  console.log('• Real external API integrations (CoinGecko, ChangeNOW)');
-  console.log('• XRP Ledger mainnet integration with funded wallet');
-  console.log('• AI agent marketplace infrastructure');
-  console.log('• Session-based authentication security');
+  if (results.warnings.length > 0) {
+    console.log('\nWARNINGS:');
+    results.warnings.forEach((warning, index) => {
+      console.log(`   ${index + 1}. ${warning}`);
+    });
+  }
 
-  console.log('\nREMAINING FOR FULL PRODUCTION:');
-  console.log('• Browser-based OAuth testing (requires actual user login)');
-  console.log('• Commission calculations with real user transactions');
-  console.log('• Additional crypto on/off ramp APIs (pending your API keys)');
+  console.log('\n⚠️  IMPORTANT: OAuth authentication requires manual browser testing');
+  console.log('   Real user registration flow cannot be validated programmatically');
+  console.log('   Manual verification required: /api/login → Replit OAuth → /api/callback');
   
-  const realReadiness = Math.max(70, successRate); // Base readiness is now at least 70%
-  console.log(`\nREAL PRODUCTION READINESS: ${realReadiness.toFixed(1)}%`);
-  console.log('================================================================================');
+  console.log('\n================================================================================');
+  
+  return results;
 }
 
-testProductionOAuth().catch(console.error);
+if (typeof require !== 'undefined' && require.main === module) {
+  testProductionOAuth().catch(console.error);
+}

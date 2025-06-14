@@ -99,6 +99,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // API logging disabled in development mode for performance
 
+  // Demo authentication middleware for development testing
+  const demoAuthMiddleware = (req: any, res: any, next: any) => {
+    if (process.env.NODE_ENV === 'development') {
+      // Auto-authenticate for testing payment flows
+      req.user = {
+        claims: {
+          sub: 'demo-user-12345',
+          email: 'demo@coinrailz.com',
+          first_name: 'Demo',
+          last_name: 'User'
+        }
+      };
+      req.isAuthenticated = () => true;
+    }
+    next();
+  };
+
   // DEVELOPMENT MODE: Skip rate limiting but preserve authentication
   if (process.env.NODE_ENV === 'development') {
     console.log('DEVELOPMENT MODE: Skipping rate limiting but preserving authentication');

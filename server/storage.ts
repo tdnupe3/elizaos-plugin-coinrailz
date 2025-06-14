@@ -41,6 +41,8 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getUserTransactions(userId: string): Promise<Transaction[]>;
+  getUserAIAgents(userId: string): Promise<any[]>;
   
   // Digital Wallet operations
   getUserWalletBalances(userId: string): Promise<WalletBalance[]>;
@@ -170,6 +172,32 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async getUserTransactions(userId: string): Promise<Transaction[]> {
+    const userTransactions = await db
+      .select()
+      .from(transactions)
+      .where(or(eq(transactions.fromUserId, userId), eq(transactions.toUserId, userId)))
+      .orderBy(desc(transactions.createdAt))
+      .limit(50);
+    return userTransactions;
+  }
+
+  async getUserAIAgents(userId: string): Promise<any[]> {
+    const userAgents = await db
+      .select()
+      .from(globalAIAgents)
+      .where(eq(globalAIAgents.createdBy, userId))
+      .orderBy(desc(globalAIAgents.registeredAt));
+    return userAgents;
+  }
+
+  async updateTransactionStatus(transactionId: string, status: string): Promise<void> {
+    await db
+      .update(transactions)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(transactions.id, transactionId));
   }
 
   // Digital Wallet operations

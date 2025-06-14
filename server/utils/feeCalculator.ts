@@ -261,4 +261,61 @@ Fee Collection Wallet: ${this.getFeeWalletAddress(calculation.currency)}
   static roundToTwoDecimals(amount: number): number {
     return Math.round(amount * 100) / 100;
   }
+
+  // Compare all payment methods for optimal cost
+  static compareAllMethods(amount: number, currency: string = 'USD') {
+    const methods = [
+      {
+        name: 'XRP',
+        fee: this.calculateXRPFee(amount),
+        speed: '3-5 seconds',
+        type: 'crypto'
+      },
+      {
+        name: 'Credit Card',
+        fee: this.calculateCreditCardFee(amount),
+        speed: 'Instant',
+        type: 'fiat'
+      },
+      {
+        name: 'Bank Transfer',
+        fee: this.calculateBankTransferFee(amount),
+        speed: '1-3 business days',
+        type: 'fiat'
+      },
+      {
+        name: 'PayPal',
+        fee: this.calculatePayPalFee(amount),
+        speed: 'Instant',
+        type: 'fiat'
+      }
+    ];
+
+    // Sort by total cost (amount + fee)
+    methods.sort((a, b) => (amount + a.fee) - (amount + b.fee));
+
+    return {
+      amount,
+      currency,
+      methods,
+      recommended: methods[0]
+    };
+  }
+
+  // Individual method calculations
+  static calculateXRPFee(amount: number): number {
+    return Math.max(amount * 0.001, 0.01); // 0.1% with $0.01 minimum
+  }
+
+  static calculateCreditCardFee(amount: number): number {
+    return Math.max(amount * 0.029, 0.30); // 2.9% with $0.30 minimum
+  }
+
+  static calculateBankTransferFee(amount: number): number {
+    return Math.max(amount * 0.005, 1.00); // 0.5% with $1.00 minimum
+  }
+
+  static calculatePayPalFee(amount: number): number {
+    return Math.max(amount * 0.025, 0.50); // 2.5% with $0.50 minimum
+  }
 }

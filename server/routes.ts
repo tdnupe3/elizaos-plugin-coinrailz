@@ -5359,8 +5359,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         comparison,
         insights: {
           bestMethod: comparison.recommended,
-          xrpAdvantage: comparison.xrp.savings?.percentageSaved || 0,
-          traditionalWireFee: comparison.xrp.savings?.vsCompetitor || 0
+          savings: `${((comparison.methods[comparison.methods.length - 1].fee - comparison.methods[0].fee) / amount * 100).toFixed(2)}%`,
+          cheapestFee: comparison.methods[0].fee,
+          mostExpensiveFee: comparison.methods[comparison.methods.length - 1].fee
         }
       });
     } catch (error: any) {

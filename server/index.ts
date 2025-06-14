@@ -302,7 +302,7 @@ app.use((req, res, next) => {
 
           const totalFees = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
           const totalAmount = transferAmount + totalFees;
-          const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const transactionId = 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
           if (network.toLowerCase() === 'xrp') {
             try {
@@ -937,7 +937,7 @@ app.use((req, res, next) => {
           }
 
           const bridgeFee = parseFloat(amount) * 0.005; // 0.5% bridge fee
-          const transactionId = `bridge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const transactionId = 'bridge_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
           res.json({
             success: true,
@@ -1031,7 +1031,7 @@ app.use((req, res, next) => {
             });
           }
 
-          const agentId = `AGENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const agentId = 'AGENT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
           res.json({
             success: true,
@@ -1080,8 +1080,8 @@ app.use((req, res, next) => {
             });
           }
 
-          const deliveryId = `delivery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const apiEndpoint = `https://api.coinrailz.com/services/${agentId}/data`;
+          const deliveryId = 'delivery_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          const apiEndpoint = 'https://api.coinrailz.com/services/' + agentId + '/data';
 
           res.json({
             success: true,
@@ -1095,15 +1095,15 @@ app.use((req, res, next) => {
               status: 'active',
               apiEndpoint,
               deliveryChannels: {
-                webhook: `${apiEndpoint}/webhook`,
-                dashboard: `https://dashboard.coinrailz.com/services/${agentId}`,
+                webhook: apiEndpoint + '/webhook',
+                dashboard: 'https://dashboard.coinrailz.com/services/' + agentId,
                 email: 'enabled',
                 sms: 'enabled',
                 mobile: 'enabled'
               },
               authentication: {
-                apiKey: `ck_${Math.random().toString(36).substr(2, 32)}`,
-                webhookSecret: `whsec_${Math.random().toString(36).substr(2, 32)}`
+                apiKey: 'ck_' + Math.random().toString(36).substr(2, 32),
+                webhookSecret: 'whsec_' + Math.random().toString(36).substr(2, 32)
               },
               rateLimit: '1000 calls/hour',
               dataFormat: 'JSON',
@@ -1133,7 +1133,7 @@ app.use((req, res, next) => {
             });
           }
 
-          const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
           res.json({
             success: true,

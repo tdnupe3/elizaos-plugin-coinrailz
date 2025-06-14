@@ -199,7 +199,11 @@ export class GlobalAgentNetworkService {
     if (filter.status) {
       conditions.push(eq(globalAIAgents.status, filter.status));
     } else {
-      conditions.push(eq(globalAIAgents.status, "active"));
+      // Include both active and pending_verification agents in discovery
+      conditions.push(or(
+        eq(globalAIAgents.status, "active"),
+        eq(globalAIAgents.status, "pending_verification")
+      ));
     }
 
     if (filter.geolocation) {

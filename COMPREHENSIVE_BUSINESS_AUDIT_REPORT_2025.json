@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-06-14T05:28:55.160Z",
+  "timestamp": "2025-06-14T05:29:43.166Z",
   "summary": {
     "totalTests": 10,
     "passed": 9,
@@ -14,7 +14,7 @@
     "productionBlockers": [
       {
         "test": "Data Consistency and Integrity",
-        "issue": "Agent registration failed for consistency test",
+        "issue": "Registered agent not found in discovery",
         "impact": "HIGH",
         "recommendation": "Fix before production"
       }

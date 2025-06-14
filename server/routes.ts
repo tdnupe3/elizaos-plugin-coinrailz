@@ -2016,6 +2016,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Amount and recipient email are required" });
       }
 
+      // Validate email format - CRITICAL SECURITY FIX
+      ValidationUtils.validateEmail(recipientEmail);
+      
       // Validate amount
       const transferAmount = ValidationUtils.validateAmount(amount);
       const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);

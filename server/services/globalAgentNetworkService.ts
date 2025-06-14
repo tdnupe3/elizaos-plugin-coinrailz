@@ -94,7 +94,7 @@ export class GlobalAgentNetworkService {
     const existingAgent = await db
       .select()
       .from(globalAIAgents)
-      .where(eq(globalAIAgents.walletAddress, request.walletAddress))
+      .where(eq(globalAIAgents.primaryWalletAddress, request.walletAddress))
       .limit(1);
 
     if (existingAgent.length > 0) {
@@ -132,7 +132,7 @@ export class GlobalAgentNetworkService {
       agentName: request.agentName,
       description: request.description,
       capabilities: request.capabilities,
-      walletAddress: request.walletAddress,
+      primaryWalletAddress: request.walletAddress,
       walletNetwork: request.walletNetwork,
       apiEndpoint: request.apiEndpoint,
       publicKey: request.publicKey,
@@ -467,8 +467,8 @@ export class GlobalAgentNetworkService {
       .from(globalAIAgents)
       .where(
         and(
-          eq(globalAIAgents.walletAddress, walletAddress),
-          gte(globalAIAgents.createdAt, oneHourAgo)
+          eq(globalAIAgents.primaryWalletAddress, walletAddress),
+          gte(globalAIAgents.registeredAt, oneHourAgo)
         )
       );
     

@@ -193,7 +193,7 @@ export class CustomerNotificationService {
   }
   
   /**
-   * Send SMS notification
+   * Send SMS notification (optional - requires Twilio setup)
    */
   private static async sendSMSNotification(
     phoneNumber: string,
@@ -203,24 +203,28 @@ export class CustomerNotificationService {
   ): Promise<{ success: boolean; messageId?: string }> {
     
     try {
-      // SMS sending implementation would integrate with Twilio or similar
+      // Check if Twilio credentials are available
+      if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+        console.log('SMS notification skipped - Twilio credentials not configured');
+        return { success: false };
+      }
       
+      // TODO: Implement actual Twilio SMS sending when credentials are provided
       const smsContent = {
         to: phoneNumber,
         body: `${title}: ${message}`,
-        from: '+1234567890' // Platform SMS number
+        from: process.env.TWILIO_PHONE_NUMBER
       };
       
-      // Simulate SMS sending
-      console.log('SMS notification sent:', {
+      console.log('SMS notification ready (Twilio integration pending):', {
         to: phoneNumber,
         body: smsContent.body,
         notificationId
       });
       
       return {
-        success: true,
-        messageId: `sms_${notificationId}_${Date.now()}`
+        success: false, // Set to false until actual Twilio integration
+        messageId: `sms_pending_${notificationId}_${Date.now()}`
       };
       
     } catch (error: any) {

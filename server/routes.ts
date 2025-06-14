@@ -762,6 +762,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
+      // CRITICAL SECURITY FIX: Sanitize all string inputs to prevent SQL injection
+      if (typeof registrationData.agentName === 'string') {
+        registrationData.agentName = ValidationUtils.sanitizeInput(registrationData.agentName);
+      }
+      if (typeof registrationData.description === 'string') {
+        registrationData.description = ValidationUtils.sanitizeInput(registrationData.description);
+      }
+      if (typeof registrationData.publicKey === 'string') {
+        registrationData.publicKey = ValidationUtils.sanitizeInput(registrationData.publicKey);
+      }
+      if (typeof registrationData.signature === 'string') {
+        registrationData.signature = ValidationUtils.sanitizeInput(registrationData.signature);
+      }
+
       const newAgent = await globalAgentNetwork.registerAgent(registrationData);
       
       res.status(201).json({

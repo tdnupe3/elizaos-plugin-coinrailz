@@ -56,13 +56,13 @@ export class FeeCalculator {
     const totalFee = platformFee + gasFee;
     
     return {
-      amount,
-      platformFee,
-      gasFee,
-      totalFee,
-      netAmount: amount - totalFee,
+      amount: this.roundToTwoDecimals(amount),
+      platformFee: this.roundToTwoDecimals(platformFee),
+      gasFee: this.roundToTwoDecimals(gasFee),
+      totalFee: this.roundToTwoDecimals(totalFee),
+      netAmount: this.roundToTwoDecimals(amount - totalFee),
       currency,
-      fee: totalFee
+      fee: this.roundToTwoDecimals(totalFee)
     };
   }
 
@@ -72,13 +72,13 @@ export class FeeCalculator {
     const totalFee = platformFee + gasFee;
     
     return {
-      amount,
-      platformFee,
-      gasFee,
-      totalFee,
-      netAmount: amount - totalFee,
+      amount: this.roundToTwoDecimals(amount),
+      platformFee: this.roundToTwoDecimals(platformFee),
+      gasFee: this.roundToTwoDecimals(gasFee),
+      totalFee: this.roundToTwoDecimals(totalFee),
+      netAmount: this.roundToTwoDecimals(amount - totalFee),
       currency,
-      fee: totalFee
+      fee: this.roundToTwoDecimals(totalFee)
     };
   }
 
@@ -202,13 +202,13 @@ export class FeeCalculator {
     const totalFee = platformFee + gasFee;
     
     return {
-      amount,
-      platformFee,
-      gasFee,
-      totalFee,
-      netAmount: amount - totalFee,
+      amount: this.roundToTwoDecimals(amount),
+      platformFee: this.roundToTwoDecimals(platformFee),
+      gasFee: this.roundToTwoDecimals(gasFee),
+      totalFee: this.roundToTwoDecimals(totalFee),
+      netAmount: this.roundToTwoDecimals(amount - totalFee),
       currency,
-      fee: totalFee
+      fee: this.roundToTwoDecimals(totalFee)
     };
   }
 
@@ -255,5 +255,10 @@ Fee Collection Wallet: ${this.getFeeWalletAddress(calculation.currency)}
       default:
         return 0;
     }
+  }
+
+  // CRITICAL FIX: Round all financial calculations to exactly 2 decimal places
+  static roundToTwoDecimals(amount: number): number {
+    return Math.round(amount * 100) / 100;
   }
 }

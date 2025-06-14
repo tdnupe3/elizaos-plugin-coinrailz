@@ -46,6 +46,31 @@ export class ValidationUtils {
     }
   }
 
+  // CRITICAL SECURITY: Sanitize input to prevent SQL injection
+  static sanitizeInput(input: string): string {
+    if (typeof input !== 'string') {
+      throw new Error('Input must be a string');
+    }
+    
+    // Remove or escape dangerous SQL characters
+    return input
+      .replace(/['";\\]/g, '') // Remove quotes and backslashes
+      .replace(/--/g, '') // Remove SQL comments
+      .replace(/\/\*/g, '') // Remove start of block comments
+      .replace(/\*\//g, '') // Remove end of block comments
+      .replace(/xp_/gi, '') // Remove stored procedure calls
+      .replace(/sp_/gi, '') // Remove stored procedure calls
+      .replace(/EXEC/gi, '') // Remove EXEC commands
+      .replace(/EXECUTE/gi, '') // Remove EXECUTE commands
+      .replace(/DROP/gi, '') // Remove DROP commands
+      .replace(/DELETE/gi, '') // Remove DELETE commands
+      .replace(/INSERT/gi, '') // Remove INSERT commands
+      .replace(/UPDATE/gi, '') // Remove UPDATE commands
+      .replace(/UNION/gi, '') // Remove UNION commands
+      .replace(/SELECT/gi, '') // Remove SELECT commands
+      .trim();
+  }
+
   // Validate user balance operations
   static validateBalanceOperation(
     currentBalance: string | null, 

@@ -874,40 +874,137 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI Agent Registration Pricing Structure
+  app.get('/api/agents/registration/pricing', async (req, res) => {
+    try {
+      const pricingTiers = {
+        basic: {
+          name: 'Basic Agent Registration',
+          price: 0, // Free registration
+          currency: 'USD',
+          features: [
+            'Basic agent listing',
+            '0.5% commission rate',
+            'Standard payment processing',
+            'Basic marketplace visibility',
+            'Community support'
+          ],
+          limitations: [
+            'Limited to 100 transactions per month',
+            'Standard processing times',
+            'Basic analytics'
+          ]
+        },
+        premium: {
+          name: 'Premium Agent Registration',
+          price: 2500, // $25.00 per year
+          currency: 'USD',
+          interval: 'year',
+          features: [
+            'Priority agent listing',
+            '1.5% commission rate',
+            'Instant payment processing',
+            'Enhanced marketplace visibility',
+            'Priority support',
+            'Advanced analytics',
+            'Multi-chain wallet support',
+            'RWA integration capabilities'
+          ],
+          limitations: []
+        },
+        enterprise: {
+          name: 'Enterprise Agent Registration',
+          price: 10000, // $100.00 per year
+          currency: 'USD',
+          interval: 'year',
+          features: [
+            'Featured agent placement',
+            '2.0% commission rate',
+            'White-label branding options',
+            'Dedicated account manager',
+            'Custom API integrations',
+            'Advanced compliance tools',
+            'Unlimited transactions',
+            'Real-time settlements'
+          ],
+          limitations: []
+        }
+      };
+
+      res.json({
+        success: true,
+        pricingTiers,
+        registrationOptions: {
+          freeRegistration: {
+            enabled: true,
+            description: 'AI agents can register for free with basic features'
+          },
+          paidUpgrades: {
+            enabled: true,
+            description: 'Optional paid upgrades for enhanced features and commission rates'
+          }
+        },
+        businessLogic: {
+          freeRegistrationRationale: 'Lower barrier to entry grows the marketplace ecosystem',
+          paidUpgradeValue: 'Higher commission rates and premium features justify subscription cost',
+          revenueModel: 'Platform profits from transaction volume, not registration barriers'
+        }
+      });
+    } catch (error) {
+      console.error('Pricing structure error:', error);
+      res.status(500).json({ error: 'Failed to retrieve pricing information' });
+    }
+  });
+
   // Manual Upgrade to Premium
   app.post('/api/agents/membership/upgrade', async (req, res) => {
     try {
-      const { agentId, paymentMethodId } = req.body;
+      const { agentId, paymentMethodId, tier = 'premium' } = req.body;
       
       if (!agentId || !paymentMethodId) {
         return res.status(400).json({ error: 'Agent ID and payment method required' });
       }
       
-      const agent = await storage.getAgent(agentId);
+      const agent = await storage.getGlobalAIAgent(agentId);
       if (!agent) {
         return res.status(404).json({ error: 'Agent not found' });
       }
       
-      if (agent.membershipTier === 'premium') {
-        return res.status(400).json({ error: 'Agent already has premium membership' });
+      if (agent.membershipTier === tier) {
+        return res.status(400).json({ error: `Agent already has ${tier} membership` });
+      }
+
+      // Pricing structure
+      const pricing = {
+        premium: { amount: 2500, name: 'Premium Agent Membership' },
+        enterprise: { amount: 10000, name: 'Enterprise Agent Membership' }
+      };
+
+      const selectedPricing = pricing[tier as keyof typeof pricing];
+      if (!selectedPricing) {
+        return res.status(400).json({ error: 'Invalid membership tier' });
       }
       
       // Create Stripe customer and subscription
       const customer = await stripe.customers.create({
         payment_method: paymentMethodId,
-        invoice_settings: { default_payment_method: paymentMethodId }
+        invoice_settings: { default_payment_method: paymentMethodId },
+        metadata: {
+          agentId: agentId,
+          agentName: agent.agentName
+        }
       });
 
       // Create product and price for upgrade
       const upgradeProduct = await stripe.products.create({
-        name: 'AI Agent Premium Upgrade',
-        description: 'Upgrade to premium membership'
+        name: selectedPricing.name,
+        description: `Upgrade to ${tier} membership for AI agent ${agent.agentName}`
       });
 
       const upgradePrice = await stripe.prices.create({
         currency: 'usd',
         product: upgradeProduct.id,
-        unit_amount: 2500, // $25.00
+        unit_amount: selectedPricing.amount,
         recurring: { interval: 'year' }
       });
 
@@ -915,13 +1012,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         customer: customer.id,
         items: [{ price: upgradePrice.id }],
         payment_behavior: 'default_incomplete',
-        expand: ['latest_invoice.payment_intent']
+        expand: ['latest_invoice.payment_intent'],
+        metadata: {
+          agentId: agentId,
+          tier: tier
+        }
       });
       
       const expiryDate = new Date();
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
       
-      await storage.updateAgentMembership(agentId, 'premium', expiryDate);
+      // Update agent membership in database
+      await storage.updateAgentMembership(agentId, tier as 'premium' | 'enterprise', expiryDate);
       
       const upgradeLatestInvoice = subscription.latest_invoice;
       let upgradeClientSecret = null;
@@ -932,17 +1034,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
           upgradeClientSecret = upgradePaymentIntent.client_secret;
         }
       }
+
+      const commissionRates = {
+        premium: '1.5%',
+        enterprise: '2.0%'
+      };
       
       res.json({
         success: true,
-        message: 'Agent upgraded to premium membership',
+        message: `Agent upgraded to ${tier} membership`,
         subscription: {
           id: subscription.id,
           clientSecret: upgradeClientSecret
         },
-        membershipTier: 'premium',
+        membershipTier: tier,
         expiryDate,
-        commissionRate: '1.5%'
+        commissionRate: commissionRates[tier as keyof typeof commissionRates],
+        annualCost: `$${(selectedPricing.amount / 100).toFixed(2)}`,
+        features: tier === 'premium' ? 
+          ['1.5% commission rate', 'Priority listing', 'Advanced analytics'] :
+          ['2.0% commission rate', 'Featured placement', 'White-label options', 'Dedicated support']
       });
     } catch (error) {
       console.error('Manual upgrade error:', error);

@@ -125,12 +125,11 @@ export class FeeCalculator {
       netAmount: amount - totalFee,
       currency,
       fee: totalFee,
-      breakdown: {
+      feeBreakdown: {
         platformFee: platformFee,
         gasFee: gasFee,
         agentCommission: agentCommission,
-        networkFee: networkFee,
-        paymentSurcharge: paymentSurcharge
+        networkFee: networkFee
       }
     };
   }

@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
-import { FeeCalculator } from "./services/feeCalculator";
+import { FeeCalculator } from "./utils/feeCalculator";
 import { nowPaymentsService } from "./services/nowPaymentsService";
 import { websocketService } from "./services/websocketService";
 import { env, hasStripeCredentials } from "./environment";
@@ -2006,22 +2006,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test payment calculation endpoint (bypasses Stripe for testing)
+  app.post("/api/test-payment-calculation", async (req: any, res) => {
+    try {
+      const { amount, recipientEmail } = req.body;
+
+      // Validate input
+      if (!amount || !recipientEmail) {
+        return res.status(400).json({ message: "Amount and recipient email are required" });
+      }
+
+      // Validate amount
+      const transferAmount = ValidationUtils.validateAmount(amount);
+      const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
+
+      res.json({ 
+        success: true,
+        amount: transferAmount,
+        fee: feeCalculation.fee,
+        totalFee: feeCalculation.totalFee,
+        platformFee: feeCalculation.platformFee,
+        gasFee: feeCalculation.gasFee,
+        total: transferAmount + feeCalculation.fee,
+        currency: feeCalculation.currency
+      });
+    } catch (error: any) {
+      console.error("Error calculating payment:", error);
+      res.status(500).json({ message: "Error calculating payment: " + error.message });
+    }
+  });
+
   // Stripe payment intent creation for P2P transfers
   app.post("/api/create-payment-intent", demoAuthMiddleware, async (req: any, res) => {
     try {
       const { amount, recipientEmail } = req.body;
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
 
+      // Validate input
+      if (!amount || !recipientEmail) {
+        return res.status(400).json({ message: "Amount and recipient email are required" });
+      }
+
       // Validate amount
       const transferAmount = ValidationUtils.validateAmount(amount);
       const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
+      
+      if (!feeCalculation || typeof feeCalculation.fee !== 'number') {
+        throw new Error("Invalid fee calculation result");
+      }
+      
       const totalAmount = Math.round((transferAmount + feeCalculation.fee) * 100); // Convert to cents
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: totalAmount,
         currency: "usd",
         metadata: {
-          userId,
+          userId: userId || 'demo-user',
           recipientEmail,
           transferAmount: transferAmount.toString(),
           fee: feeCalculation.fee.toString(),

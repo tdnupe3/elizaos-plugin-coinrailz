@@ -199,8 +199,7 @@ export class GlobalAgentNetworkService {
     if (filter.status) {
       conditions.push(eq(globalAIAgents.status, filter.status));
     } else {
-      // Include both active and pending_verification agents in discovery
-      // Using SQL raw query to avoid import issues
+      // Include both active and pending_verification agents in discovery by default
       conditions.push(sql`${globalAIAgents.status} IN ('active', 'pending_verification')`);
     }
 
@@ -208,9 +207,9 @@ export class GlobalAgentNetworkService {
       conditions.push(eq(globalAIAgents.geolocation, filter.geolocation));
     }
 
-    // Simple direct query approach
+    // Execute query with proper conditions
     const agents = await db.select().from(globalAIAgents)
-      .where(conditions.length > 0 ? and(...conditions) : sql`${globalAIAgents.status} IN ('active', 'pending_verification')`)
+      .where(and(...conditions))
       .orderBy(desc(globalAIAgents.lastActive))
       .limit(filter.limit || 50)
       .offset(filter.offset || 0);

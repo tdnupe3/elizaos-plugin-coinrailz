@@ -806,7 +806,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         capabilities: req.query.capabilities ? (req.query.capabilities as string).split(',') : undefined,
         currencies: req.query.currencies ? (req.query.currencies as string).split(',') : undefined,
         geolocation: req.query.geolocation as string,
-        status: req.query.status as string || 'active',
+        status: req.query.status as string, // Remove default 'active' to include all visible agents
         limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
         offset: req.query.offset ? parseInt(req.query.offset as string) : 0
       };

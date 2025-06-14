@@ -1,20 +1,26 @@
 {
-  "timestamp": "2025-06-14T05:03:58.638Z",
+  "timestamp": "2025-06-14T05:23:14.699Z",
   "summary": {
     "totalTests": 10,
-    "passed": 8,
-    "failed": 2,
-    "successRate": "80.0%"
+    "passed": 7,
+    "failed": 3,
+    "successRate": "70.0%"
   },
   "productionReadiness": {
-    "criticalIssues": 1,
+    "criticalIssues": 2,
     "recommendation": "REQUIRES FIXES BEFORE PRODUCTION"
   },
   "findings": {
     "productionBlockers": [
       {
+        "test": "Agent Registration Business Logic",
+        "issue": "Valid agent registration failed",
+        "impact": "HIGH",
+        "recommendation": "Fix before production"
+      },
+      {
         "test": "Data Consistency and Integrity",
-        "issue": "Registered agent not found in discovery",
+        "issue": "Agent registration failed for consistency test",
         "impact": "HIGH",
         "recommendation": "Fix before production"
       }
@@ -22,7 +28,7 @@
     "businessRisks": [
       {
         "test": "Concurrency and Race Conditions",
-        "issue": "Race condition detected: 5 concurrent registrations succeeded, should be 1",
+        "issue": "Race condition detected: 0 concurrent registrations succeeded, should be 1",
         "impact": "MEDIUM"
       }
     ],

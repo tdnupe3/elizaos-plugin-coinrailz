@@ -413,6 +413,10 @@ export class GlobalAgentNetworkService {
   }
 
   private isValidWalletAddress(address: string, network: string): boolean {
+    if (!address || typeof address !== 'string') {
+      return false;
+    }
+
     switch (network.toLowerCase()) {
       case 'ethereum':
         return /^0x[a-fA-F0-9]{40}$/.test(address);
@@ -420,8 +424,13 @@ export class GlobalAgentNetworkService {
         return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
       case 'bitcoin':
         return /^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/.test(address) || /^bc1[a-z0-9]{39,59}$/.test(address);
+      case 'xrp':
+      case 'ripple':
+        // XRP addresses start with 'r' and are 25-34 characters long
+        return /^r[rpshnaf39wBUDNEGHJKLM4PQRST7VWXYZ2bcdeCg65jkm8oFqi1tuvAxyz]{24,33}$/.test(address);
       default:
-        return true; // Allow unknown networks for flexibility
+        // SECURITY FIX: Do not allow unknown networks - require explicit validation
+        return false;
     }
   }
 

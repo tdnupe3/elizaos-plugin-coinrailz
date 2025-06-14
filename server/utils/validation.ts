@@ -52,12 +52,18 @@ export class ValidationUtils {
       throw new Error('Input must be a string');
     }
     
-    // Remove or escape dangerous SQL characters
+    // Remove or escape dangerous SQL characters and path traversal attempts
     return input
       .replace(/['";\\]/g, '') // Remove quotes and backslashes
       .replace(/--/g, '') // Remove SQL comments
       .replace(/\/\*/g, '') // Remove start of block comments
       .replace(/\*\//g, '') // Remove end of block comments
+      .replace(/\.\./g, '') // Remove path traversal attempts
+      .replace(/[\/\\]/g, '') // Remove path separators
+      .replace(/\$\{.*?\}/g, '') // Remove template injection attempts
+      .replace(/<script.*?>/gi, '') // Remove script tags
+      .replace(/javascript:/gi, '') // Remove javascript protocols
+      .replace(/data:/gi, '') // Remove data URIs
       .replace(/xp_/gi, '') // Remove stored procedure calls
       .replace(/sp_/gi, '') // Remove stored procedure calls
       .replace(/EXEC/gi, '') // Remove EXEC commands

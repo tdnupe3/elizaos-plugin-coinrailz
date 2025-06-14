@@ -5914,6 +5914,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === DEMO TESTING ENDPOINTS (Development Only) ===
   
+  // Demo authentication endpoint for sign up/sign in
+  app.post('/api/demo-auth', async (req, res) => {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(404).json({ message: 'Not found' });
+    }
+    
+    const demoUser = {
+      id: 'demo-user-123',
+      email: 'demo@coinrailz.com',
+      firstName: 'Demo',
+      lastName: 'User',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // Store demo user in session for testing
+    req.session.demoUser = demoUser;
+    
+    // Generate simple demo token
+    const demoToken = `demo-token-${Date.now()}`;
+    req.session.demoToken = demoToken;
+    
+    res.json({
+      success: true,
+      user: demoUser,
+      token: demoToken,
+      message: 'Demo user authenticated for testing'
+    });
+  });
+
   // Demo user authentication for testing complete flows
   app.post('/api/demo/authenticate', async (req, res) => {
     if (process.env.NODE_ENV !== 'development') {

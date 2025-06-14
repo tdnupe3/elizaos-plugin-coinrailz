@@ -82,7 +82,11 @@ export class FeeCalculator {
       totalFee: this.roundToTwoDecimals(totalFee),
       netAmount: this.roundToTwoDecimals(amount - totalFee),
       currency,
-      fee: this.roundToTwoDecimals(totalFee)
+      fee: this.roundToTwoDecimals(totalFee),
+      breakdown: {
+        platformFee: this.roundToTwoDecimals(platformFee),
+        gasFee: this.roundToTwoDecimals(gasFee)
+      }
     };
   }
 
@@ -98,7 +102,11 @@ export class FeeCalculator {
       totalFee,
       netAmount: amount - totalFee,
       currency: fromCurrency,
-      fee: totalFee
+      fee: totalFee,
+      breakdown: {
+        platformFee,
+        gasFee
+      }
     };
   }
 
@@ -159,7 +167,11 @@ export class FeeCalculator {
       totalFee,
       netAmount: transactionValue - totalFee,
       currency,
-      fee: totalFee
+      fee: totalFee,
+      breakdown: {
+        platformFee,
+        gasFee
+      }
     };
   }
 
@@ -211,7 +223,11 @@ export class FeeCalculator {
       totalFee: this.roundToTwoDecimals(totalFee),
       netAmount: this.roundToTwoDecimals(amount - totalFee),
       currency,
-      fee: this.roundToTwoDecimals(totalFee)
+      fee: this.roundToTwoDecimals(totalFee),
+      breakdown: {
+        platformFee: this.roundToTwoDecimals(platformFee),
+        gasFee: this.roundToTwoDecimals(gasFee)
+      }
     };
   }
 

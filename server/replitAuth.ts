@@ -118,12 +118,11 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    // Use the first domain from REPLIT_DOMAINS as fallback for localhost
-    const domain = req.hostname === 'localhost' 
-      ? process.env.REPLIT_DOMAINS!.split(",")[0] 
-      : req.hostname;
+    // Use consistent strategy name matching the login endpoint
+    const strategyName = `replitauth:${req.hostname}`;
+    console.log(`Using callback strategy: ${strategyName} for hostname: ${req.hostname}`);
       
-    passport.authenticate(`replitauth:${domain}`, {
+    passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);

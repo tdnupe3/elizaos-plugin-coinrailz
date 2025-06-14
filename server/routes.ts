@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -20,6 +20,7 @@ import {
   walletWithdrawSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { db } from "./db";
 import { pncBankService } from './services/pncBankService';
 import { dexAggregatorService } from './services/dexAggregatorService';
 import { changeNowService } from './services/changeNowService';
@@ -96,6 +97,10 @@ const initializeStripe = async () => {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize Stripe during route registration
   await initializeStripe();
+  
+  // Essential middleware for request body parsing
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   
   // API logging disabled in development mode for performance
 
@@ -3172,8 +3177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (error) {
         status.systems.database = {
           status: 'degraded',
-          latency: Date.now() - Date.now(),
-          error: 'Connection issue'
+          latency: Date.now() - dbStart
         };
       }
 

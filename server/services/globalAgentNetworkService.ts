@@ -200,7 +200,10 @@ export class GlobalAgentNetworkService {
       conditions.push(eq(globalAIAgents.status, filter.status));
     } else {
       // Include both active and pending_verification agents in discovery by default
-      conditions.push(sql`${globalAIAgents.status} IN ('active', 'pending_verification')`);
+      conditions.push(or(
+        eq(globalAIAgents.status, 'active'),
+        eq(globalAIAgents.status, 'pending_verification')
+      ));
     }
 
     if (filter.geolocation) {

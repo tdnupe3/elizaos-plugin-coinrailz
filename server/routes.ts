@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
-import { FeeCalculator } from "./utils/feeCalculator";
+import { FeeCalculator } from "./services/feeCalculator";
 import { nowPaymentsService } from "./services/nowPaymentsService";
 import { websocketService } from "./services/websocketService";
 import { env, hasStripeCredentials } from "./environment";
@@ -5450,7 +5450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Compare All Payment Methods
+  // Compare All Payment Methods (Primary endpoint)
   app.post('/api/fees/compare-methods', async (req, res) => {
     try {
       const { amount } = req.body;
@@ -5470,9 +5470,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         comparison,
         insights: {
           bestMethod: comparison.recommended,
-          savings: `${((comparison.methods[comparison.methods.length - 1].fee - comparison.methods[0].fee) / amount * 100).toFixed(2)}%`,
-          cheapestFee: comparison.methods[0].fee,
-          mostExpensiveFee: comparison.methods[comparison.methods.length - 1].fee
+          savings: `${((comparison.xrp.totalFee - comparison.stripe.totalFee) / amount * 100).toFixed(2)}%`,
+          cheapestFee: Math.min(comparison.xrp.totalFee, comparison.ethereum.totalFee, comparison.stripe.totalFee, comparison.paypal.totalFee),
+          mostExpensiveFee: Math.max(comparison.xrp.totalFee, comparison.ethereum.totalFee, comparison.stripe.totalFee, comparison.paypal.totalFee)
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to compare payment methods'
+      });
+    }
+  });
+
+  // Alternative endpoint for backward compatibility
+  app.post('/api/payment-methods/compare', async (req, res) => {
+    try {
+      const { amount, currency = 'USD', fromCountry = 'US', toCountry = 'US' } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid amount. Must be greater than 0.'
+        });
+      }
+
+      const comparison = FeeCalculator.compareAllMethods(amount);
+      
+      // Format response for compatibility
+      const methods = [
+        { name: 'XRP', fee: comparison.xrp.totalFee, speed: '3-5 seconds', type: 'crypto' },
+        { name: 'Ethereum', fee: comparison.ethereum.totalFee, speed: '1-2 minutes', type: 'crypto' },
+        { name: 'Stablecoin', fee: comparison.stablecoin.totalFee, speed: '1-2 minutes', type: 'crypto' },
+        { name: 'Stripe', fee: comparison.stripe.totalFee, speed: 'Instant', type: 'card' },
+        { name: 'PayPal', fee: comparison.paypal.totalFee, speed: 'Instant', type: 'digital' }
+      ].sort((a, b) => a.fee - b.fee);
+      
+      res.json({
+        success: true,
+        amount,
+        currency,
+        methods,
+        recommended: comparison.recommended,
+        bestMethod: methods[0].name,
+        savings: `$${(methods[methods.length - 1].fee - methods[0].fee).toFixed(2)}`,
+        metadata: {
+          fromCountry,
+          toCountry,
+          timestamp: new Date().toISOString()
         }
       });
     } catch (error: any) {

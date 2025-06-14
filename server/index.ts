@@ -1151,7 +1151,7 @@ app.use((req, res, next) => {
               registrationDate: new Date().toISOString(),
               lastLogin: new Date().toISOString()
             },
-            token: `auth_token_${Date.now()}`,
+            token: 'auth_token_' + Date.now(),
             message: 'User registration completed successfully'
           });
         } catch (error: any) {
@@ -1188,8 +1188,8 @@ app.use((req, res, next) => {
             });
           }
 
-          const agentId = `AGENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const referralId = `REF_${agentId}_${Math.random().toString(36).substr(2, 6)}`;
+          const agentId = 'AGENT_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+          const referralId = 'REF_' + agentId + '_' + Math.random().toString(36).substr(2, 6);
 
           // Simple security checks (< 1 second total)
           const isValidWallet = walletAddress.length >= 25 && walletAddress.length <= 50;
@@ -1214,7 +1214,7 @@ app.use((req, res, next) => {
             referralId,
             instantActivation: autoActivated,
             canEarnCommissions: autoActivated,
-            processingTime: `${processingTime}ms`,
+            processingTime: processingTime + 'ms',
             agent: {
               id: agentId,
               name: agentName,
@@ -1255,8 +1255,8 @@ app.use((req, res, next) => {
               'Agent is live! Start recruiting other agents and users to earn commissions immediately.' :
               'Agent registered but requires manual review. Expected activation: 2-4 hours.',
             message: autoActivated ? 
-              `AI agent registered and activated instantly in ${processingTime}ms` : 
-              `AI agent registered in ${processingTime}ms - pending verification`
+              ('AI agent registered and activated instantly in ' + processingTime + 'ms') : 
+              ('AI agent registered in ' + processingTime + 'ms - pending verification')
           });
 
         } catch (error: any) {
@@ -1295,7 +1295,7 @@ app.use((req, res, next) => {
           // Create Stripe subscription for monthly fee
           if (selectedTier.monthlyFee > 0) {
             // In production: Process actual Stripe payment
-            console.log(`Processing ${selectedTier.monthlyFee} monthly subscription for agent ${agentId}`);
+            console.log('Processing ' + selectedTier.monthlyFee + ' monthly subscription for agent ' + agentId);
           }
 
           res.json({
@@ -1304,13 +1304,13 @@ app.use((req, res, next) => {
             upgrade: {
               tierName: selectedTier.name,
               monthlyFee: selectedTier.monthlyFee,
-              commissionBonus: `+${(selectedTier.commissionBonus * 100)}%`,
-              residualCommission: `${(selectedTier.residualCommission * 100)}%`,
+              commissionBonus: '+' + (selectedTier.commissionBonus * 100) + '%',
+              residualCommission: (selectedTier.residualCommission * 100) + '%',
               maxTiers: selectedTier.maxTiers,
               benefits: selectedTier.benefits
             },
             effectiveDate: new Date().toISOString(),
-            message: `Agent upgraded to ${selectedTier.name} tier successfully`
+            message: 'Agent upgraded to ' + selectedTier.name + ' tier successfully'
           });
         } catch (error: any) {
           console.error('Tier upgrade error:', error);
@@ -1330,7 +1330,7 @@ app.use((req, res, next) => {
     app.use('/api/*', (req, res) => {
       res.status(404).json({ 
         success: false, 
-        message: `API endpoint not found: ${req.originalUrl}` 
+        message: 'API endpoint not found: ' + req.originalUrl 
       });
     });
 
@@ -1364,7 +1364,7 @@ app.use((req, res, next) => {
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
-      log(`serving on port ${port}`);
+      log('serving on port ' + port);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

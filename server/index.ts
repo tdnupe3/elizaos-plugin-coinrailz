@@ -39,9 +39,9 @@ app.use((req, res, next) => {
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+      let logLine = req.method + ' ' + path + ' ' + res.statusCode + ' in ' + duration + 'ms';
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        logLine += ' :: ' + JSON.stringify(capturedJsonResponse);
       }
 
       if (logLine.length > 80) {
@@ -309,7 +309,7 @@ app.use((req, res, next) => {
               // For XRP transfers, we simulate the transfer process
               // In production, this would connect to XRPL
               const result = {
-                txHash: `XRP_${transactionId}`,
+                txHash: 'XRP_' + transactionId,
                 success: true
               };
 
@@ -338,7 +338,7 @@ app.use((req, res, next) => {
                 recipient: recipientId,
                 memo,
                 estimatedSettlement: '3-5 seconds',
-                txHash: result?.txHash || `XRP_${transactionId}`,
+                txHash: result?.txHash || 'XRP_' + transactionId,
                 message: 'XRP transfer completed successfully'
               });
             } catch (xrpError: any) {
@@ -396,7 +396,7 @@ app.use((req, res, next) => {
               recipient: recipientId,
               memo,
               estimatedSettlement: network === 'bitcoin' ? '10-60 minutes' : '1-5 minutes',
-              message: `${network.toUpperCase()} transfer infrastructure ready`
+              message: network.toUpperCase() transfer infrastructure ready`
             });
           }
         } catch (error: any) {
@@ -476,7 +476,7 @@ app.use((req, res, next) => {
               id: walletId,
               network: network.toLowerCase(),
               address,
-              label: label || `${network.toUpperCase()} Wallet`,
+              label: label || network.toUpperCase() Wallet`,
               balance: '0.00',
               isActive: true,
               addedAt: new Date().toISOString()

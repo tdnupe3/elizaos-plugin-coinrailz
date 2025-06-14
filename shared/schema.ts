@@ -426,8 +426,7 @@ export const withdrawFundsSchema = walletWithdrawSchema;
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 
-// Customer Notification System - Required for institutional features
-// Standard notifications table
+// Notification system for institutional features
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
   userId: varchar("user_id").notNull().references(() => users.id),

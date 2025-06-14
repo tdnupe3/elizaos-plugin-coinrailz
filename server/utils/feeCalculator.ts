@@ -8,7 +8,7 @@ export interface FeeCalculation {
   netAmount: number;
   currency: string;
   fee: number;
-  breakdown?: {
+  breakdown: {
     platformFee: number;
     gasFee: number;
     agentCommission?: number;
@@ -62,7 +62,11 @@ export class FeeCalculator {
       totalFee: this.roundToTwoDecimals(totalFee),
       netAmount: this.roundToTwoDecimals(amount - totalFee),
       currency,
-      fee: this.roundToTwoDecimals(totalFee)
+      fee: this.roundToTwoDecimals(totalFee),
+      breakdown: {
+        platformFee: this.roundToTwoDecimals(platformFee),
+        gasFee: this.roundToTwoDecimals(gasFee)
+      }
     };
   }
 
@@ -125,7 +129,7 @@ export class FeeCalculator {
       netAmount: amount - totalFee,
       currency,
       fee: totalFee,
-      feeBreakdown: {
+      breakdown: {
         platformFee: platformFee,
         gasFee: gasFee,
         agentCommission: agentCommission,
@@ -223,16 +227,19 @@ export class FeeCalculator {
       totalFee,
       netAmount: amount - totalFee,
       currency,
-      fee: totalFee
+      fee: totalFee,
+      breakdown: {
+        platformFee,
+        gasFee
+      }
     };
   }
 
   static formatFeeBreakdown(calculation: AIAgentFeeCalculation): string {
-    const breakdown = calculation.breakdown || {};
+    const breakdown = calculation.breakdown;
     return `
 Transaction Amount: ${calculation.amount} ${calculation.currency}
-Platform Fee (3.5%): ${breakdown.platformFee || 0} ${calculation.currency}
-Payment Processing: ${breakdown.paymentSurcharge || 0} ${calculation.currency}
+Platform Fee (3.5%): ${breakdown.platformFee} ${calculation.currency}
 Agent Commission: ${calculation.agentCommission} ${calculation.currency}
 Network Fee: ${calculation.networkFee} ${calculation.currency}
 Gas Fee: ${calculation.gasFee} ${calculation.currency}

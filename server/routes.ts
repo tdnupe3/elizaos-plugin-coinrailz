@@ -109,11 +109,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: 'demo@coinrailz.com',
           first_name: 'Demo',
           last_name: 'User'
-        }
+        },
+        expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
       };
       req.isAuthenticated = () => true;
+      console.log('Demo auth applied for:', req.path);
+      return next();
     }
-    next();
+    // In production, fall back to normal auth
+    return isAuthenticated(req, res, next);
   };
 
   // DEVELOPMENT MODE: Skip rate limiting but preserve authentication
@@ -2003,7 +2007,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe payment intent creation for P2P transfers
-  app.post("/api/create-payment-intent", isAuthenticated, async (req: any, res) => {
+  app.post("/api/create-payment-intent", demoAuthMiddleware, async (req: any, res) => {
     try {
       const { amount, recipientEmail } = req.body;
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;
@@ -2038,7 +2042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe payment intent for AI agent services
-  app.post("/api/agents/create-payment-intent", isAuthenticated, async (req: any, res) => {
+  app.post("/api/agents/create-payment-intent", demoAuthMiddleware, async (req: any, res) => {
     try {
       const { agentId, serviceType, amount } = req.body;
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;

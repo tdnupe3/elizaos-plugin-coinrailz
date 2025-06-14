@@ -6152,13 +6152,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Create test OAuth user
-      const user = await storage.createUser({
+      const user = await storage.upsertUser({
         id: `oauth_${Date.now()}`,
-        username,
         email,
-        profileImageUrl: profile?.image || null,
         firstName: profile?.firstName || null,
         lastName: profile?.lastName || null,
+        profileImageUrl: profile?.image || null,
         createdAt: new Date(),
         updatedAt: new Date()
       });

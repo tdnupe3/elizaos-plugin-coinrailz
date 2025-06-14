@@ -77,15 +77,14 @@ export default function AIAgentMarketplace() {
 
   // Fetch agents
   const { data: agentsData, isLoading: agentsLoading } = useQuery<{agents: Agent[]}>({
-    queryKey: ['/api/public/agents/discover', filterType, filterCapability],
+    queryKey: ['/api/agents/active', filterType, filterCapability],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (filterType !== 'all') params.set('type', filterType);
-      if (filterCapability !== 'all') params.set('capability', filterCapability);
-      const response = await fetch(`/api/public/agents/discover?${params}`, {
+      const response = await fetch('/api/agents/active', {
         credentials: 'include'
       });
-      return await response.json();
+      const data = await response.json();
+      if (!data.success) throw new Error('Failed to fetch agents');
+      return data;
     },
     refetchInterval: 300000, // Reduced to 5 minutes
   });
@@ -184,129 +183,21 @@ export default function AIAgentMarketplace() {
     transactionMutation.mutate(transactionData);
   };
 
-  // Demo agents with tiered membership system
-  const demoAgents = [
-    {
-      id: 'agent_alpha_001',
-      agentName: 'Trading Agent Alpha',
-      agentType: 'Autonomous Trading',
-      capabilities: ['Technical Analysis', 'Risk Management', 'Portfolio Optimization'],
-      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
-      walletNetwork: 'Ethereum',
-      status: 'active',
-      description: 'Advanced AI trading agent specializing in cryptocurrency markets with proven track record.',
-      preferredCurrencies: ['USDT', 'BTC', 'ETH'],
-      complianceLevel: 'High',
-      lastSeen: new Date(),
-      membershipTier: 'premium' as const,
-      commissionRate: 1.5,
-      premiumExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      totalRevenue: 12500,
-      isActive: true
-    },
-    {
-      id: 'agent_defi_002',
-      agentName: 'DeFi Yield Bot',
-      agentType: 'Yield Farming',
-      capabilities: ['Yield Optimization', 'Liquidity Mining', 'Protocol Analysis'],
-      walletAddress: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5',
-      walletNetwork: 'Solana',
-      status: 'active',
-      description: 'Automated yield farming agent that maximizes returns across DeFi protocols.',
-      preferredCurrencies: ['SOL', 'USDC', 'RAY'],
-      complianceLevel: 'Medium',
-      lastSeen: new Date(),
-      membershipTier: 'premium' as const,
-      commissionRate: 1.5,
-      premiumExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      totalRevenue: 8750,
-      isActive: true
-    },
-    {
-      id: 'agent_portfolio_003',
-      agentName: 'Portfolio Manager Pro',
-      agentType: 'Asset Management',
-      capabilities: ['Asset Allocation', 'Rebalancing', 'Risk Assessment'],
-      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
-      walletNetwork: 'Ethereum',
-      status: 'active',
-      description: 'Professional portfolio management agent with dynamic rebalancing capabilities.',
-      preferredCurrencies: ['USDT', 'USDC', 'BTC'],
-      complianceLevel: 'High',
-      lastSeen: new Date(),
-      membershipTier: 'basic' as const,
-      commissionRate: 0.5,
-      premiumExpiresAt: null,
-      totalRevenue: 3250,
-      isActive: true
-    },
-    {
-      id: 'agent_arbitrage_004',
-      agentName: 'Cross-Chain Arbitrage',
-      agentType: 'Arbitrage Trading',
-      capabilities: ['Cross-Chain Analysis', 'Price Discovery', 'MEV Protection'],
-      walletAddress: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5',
-      walletNetwork: 'Multi-Chain',
-      status: 'active',
-      description: 'Identifies and executes arbitrage opportunities across multiple blockchain networks.',
-      preferredCurrencies: ['ETH', 'SOL', 'AVAX'],
-      complianceLevel: 'Medium',
-      lastSeen: new Date(),
-      membershipTier: 'basic' as const,
-      commissionRate: 0.5,
-      premiumExpiresAt: null,
-      totalRevenue: 750,
-      isActive: true
-    },
-    {
-      id: 'agent_market_005',
-      agentName: 'Market Sentiment AI',
-      agentType: 'Market Analysis',
-      capabilities: ['Sentiment Analysis', 'News Processing', 'Social Media Monitoring'],
-      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
-      walletNetwork: 'Ethereum',
-      status: 'active',
-      description: 'AI agent that analyzes market sentiment from news, social media, and on-chain data.',
-      preferredCurrencies: ['BTC', 'ETH', 'DOGE'],
-      complianceLevel: 'High',
-      lastSeen: new Date(),
-      membershipTier: 'premium' as const,
-      commissionRate: 1.5,
-      premiumExpiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      totalRevenue: 15000,
-      isActive: true
-    },
-    {
-      id: 'agent_nft_006',
-      agentName: 'NFT Collections Bot',
-      agentType: 'NFT Trading',
-      capabilities: ['Floor Price Analysis', 'Rarity Assessment', 'Collection Monitoring'],
-      walletAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
-      walletNetwork: 'Ethereum',
-      status: 'active',
-      description: 'Specialized agent for NFT market analysis and trading opportunities.',
-      preferredCurrencies: ['ETH', 'WETH', 'USDC'],
-      complianceLevel: 'Medium',
-      lastSeen: new Date(),
-      membershipTier: 'basic' as const,
-      commissionRate: 0.5,
-      premiumExpiresAt: null,
-      totalRevenue: 1850,
-      isActive: true
-    }
-  ];
+  // Use only real agents from API - properly handle the capabilities array
+  const allAgents = (agentsData?.agents || []).map(agent => ({
+    ...agent,
+    agentType: agent.walletNetwork || 'Unknown',
+    capabilities: Array.isArray(agent.capabilities) ? agent.capabilities : [],
+    membershipTier: 'basic' as const,
+    commissionRate: 0.5,
+    premiumExpiresAt: null,
+    totalRevenue: 0,
+    isActive: agent.status === 'active',
+    lastSeen: new Date()
+  }));
 
-  // Combine demo agents with API data, fallback to demo agents if API returns empty
-  const allAgents = (agentsData?.agents && agentsData.agents.length > 0) ? agentsData.agents : demoAgents;
-
-  // Sort agents: Premium agents first, then basic agents
-  const sortedAgents = allAgents.sort((a, b) => {
-    if (a.membershipTier === 'premium' && b.membershipTier === 'basic') return -1;
-    if (a.membershipTier === 'basic' && b.membershipTier === 'premium') return 1;
-    return 0;
-  });
-
-  const filteredAgents = sortedAgents.filter(agent => 
+  // Filter agents based on search
+  const filteredAgents = allAgents.filter(agent => 
     agent.agentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     agent.capabilities.some(cap => cap.toLowerCase().includes(searchTerm.toLowerCase())) ||
     agent.description?.toLowerCase().includes(searchTerm.toLowerCase())

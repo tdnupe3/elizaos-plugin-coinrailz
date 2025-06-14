@@ -5495,15 +5495,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const comparison = FeeCalculator.compareAllMethods(amount);
+      // Simple fee calculations without complex dependencies
+      const stripeFee = amount * 0.029 + 0.30;
+      const paypalFee = amount * 0.035 + 0.49;
+      const xrpFee = amount >= 100 ? amount * 0.0075 + 5 : amount * 0.01 + 3;
+      const ethereumFee = amount * 0.0175 + 2;
+      const cryptoFee = amount * 0.005;
       
-      // Format response for compatibility
       const methods = [
-        { name: 'XRP', fee: comparison.xrp.totalFee, speed: '3-5 seconds', type: 'crypto' },
-        { name: 'Ethereum', fee: comparison.ethereum.totalFee, speed: '1-2 minutes', type: 'crypto' },
-        { name: 'Stablecoin', fee: comparison.stablecoin.totalFee, speed: '1-2 minutes', type: 'crypto' },
-        { name: 'Stripe', fee: comparison.stripe.totalFee, speed: 'Instant', type: 'card' },
-        { name: 'PayPal', fee: comparison.paypal.totalFee, speed: 'Instant', type: 'digital' }
+        { name: 'XRP', fee: xrpFee, speed: '3-5 seconds', type: 'crypto' },
+        { name: 'Ethereum', fee: ethereumFee, speed: '1-2 minutes', type: 'crypto' },
+        { name: 'Crypto', fee: cryptoFee, speed: '1-2 minutes', type: 'crypto' },
+        { name: 'Stripe', fee: stripeFee, speed: 'Instant', type: 'card' },
+        { name: 'PayPal', fee: paypalFee, speed: 'Instant', type: 'digital' }
       ].sort((a, b) => a.fee - b.fee);
       
       res.json({
@@ -5511,7 +5515,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         amount,
         currency,
         methods,
-        recommended: comparison.recommended,
+        recommended: methods[0].name,
         bestMethod: methods[0].name,
         savings: `$${(methods[methods.length - 1].fee - methods[0].fee).toFixed(2)}`,
         metadata: {

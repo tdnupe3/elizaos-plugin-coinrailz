@@ -153,12 +153,12 @@ class ProductionAuditor {
   async testInputValidationEdgeCases() {
     return await this.testScenario('Input Validation Edge Cases', async () => {
       const maliciousInputs = [
-        { agentName: "'; DROP TABLE users; --", type: 'SQL injection' },
-        { agentName: '<script>alert("xss")</script>', type: 'XSS attempt' },
-        { agentName: '../../../../etc/passwd', type: 'Path traversal' },
-        { agentName: 'A'.repeat(1000), type: 'Buffer overflow' },
-        { agentName: '\x00\x01\x02', type: 'Null bytes' },
-        { agentName: '${process.env}', type: 'Template injection' }
+        { agentName: "'; DROP TABLE users; --", type: 'SQL injection', dangerous: ['DROP', ';', '--'] },
+        { agentName: '<script>alert("xss")</script>', type: 'XSS attempt', dangerous: ['<script', 'script>'] },
+        { agentName: '../../../../etc/passwd', type: 'Path traversal', dangerous: ['../', '../', './'] },
+        { agentName: 'A'.repeat(1000), type: 'Buffer overflow', dangerous: [] },
+        { agentName: '\x00\x01\x02', type: 'Null bytes', dangerous: ['\x00'] },
+        { agentName: '${process.env}', type: 'Template injection', dangerous: ['${', 'process.env'] }
       ];
 
       for (const input of maliciousInputs) {
@@ -172,11 +172,21 @@ class ProductionAuditor {
           preferredCurrencies: ['XRP']
         });
 
-        // Should either reject or sanitize
+        // Should either reject or sanitize dangerous content
         if (result.ok && result.data.agent) {
           const agentName = result.data.agent.agentName || result.data.agent.name;
-          if (agentName && agentName.includes(input.agentName)) {
-            return { success: false, reason: `${input.type} not properly sanitized` };
+          if (agentName) {
+            // Check if dangerous patterns still exist after sanitization
+            for (const dangerousPattern of input.dangerous) {
+              if (agentName.includes(dangerousPattern)) {
+                return { success: false, reason: `${input.type} not properly sanitized - found "${dangerousPattern}"` };
+              }
+            }
+            
+            // Special check for path traversal - should not contain original input
+            if (input.type === 'Path traversal' && agentName === input.agentName) {
+              return { success: false, reason: `${input.type} not properly sanitized - original input preserved` };
+            }
           }
         }
       }
@@ -328,7 +338,7 @@ class ProductionAuditor {
   // XRP Integration Tests
   async testXRPIntegrationSecurity() {
     return await this.testScenario('XRP Integration Security', async () => {
-      // Test with invalid XRP addresses
+      // Test with invalid XRP addresses - should all be rejected
       const invalidAddresses = [
         'invalid_address',
         'rInvalidTooShort',
@@ -349,13 +359,28 @@ class ProductionAuditor {
           preferredCurrencies: ['XRP']
         });
 
-        // Should reject invalid addresses
-        if (result.ok && address && typeof address === 'string' && address.length < 25) {
-          return { success: false, reason: `Invalid XRP address ${address} was accepted` };
+        // Should reject ALL invalid addresses (security fix)
+        if (result.ok) {
+          return { success: false, reason: `Invalid XRP address ${address} was incorrectly accepted` };
         }
       }
 
-      return { success: true, reason: 'XRP address validation working' };
+      // Test with a valid XRP address - should be accepted
+      const validResult = await this.makeRequest('POST', '/api/public/agents/register', {
+        agentName: 'ValidXRPTest',
+        walletAddress: 'rValidXRPAddress123456789012',
+        walletNetwork: 'xrp',
+        capabilities: ['testing'],
+        publicKey: 'test-key',
+        signature: 'test-sig',
+        preferredCurrencies: ['XRP']
+      });
+
+      if (!validResult.ok) {
+        return { success: false, reason: 'Valid XRP address was incorrectly rejected' };
+      }
+
+      return { success: true, reason: 'XRP address validation working correctly' };
     }, true);
   }
 

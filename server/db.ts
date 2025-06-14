@@ -16,15 +16,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Ultra-conservative connection pool for Neon stability
+// Optimized connection pool for production stability
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 1, // Single connection to prevent overload
-  min: 0,
-  idleTimeoutMillis: 20000,
-  connectionTimeoutMillis: 10000,
-  allowExitOnIdle: true,
-  maxUses: 1000
+  max: 3, // Increased for concurrent operations
+  min: 1, // Keep one connection alive
+  idleTimeoutMillis: 30000, // Extended idle timeout
+  connectionTimeoutMillis: 15000, // Extended connection timeout
+  allowExitOnIdle: false, // Keep connections alive
+  maxUses: 500, // Reduced reuse count
+  maxLifetimeSeconds: 300 // 5 minute connection lifetime
 });
 
 export const db = drizzle({ client: pool, schema });

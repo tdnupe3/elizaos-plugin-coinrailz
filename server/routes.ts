@@ -5916,9 +5916,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Demo authentication endpoint for sign up/sign in
   app.post('/api/demo-auth', async (req, res) => {
-    if (process.env.NODE_ENV !== 'development') {
-      return res.status(404).json({ message: 'Not found' });
-    }
+    // Always available for testing purposes
+    console.log('Demo auth endpoint hit');
     
     const demoUser = {
       id: 'demo-user-123',

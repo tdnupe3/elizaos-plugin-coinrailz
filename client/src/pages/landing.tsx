@@ -12,41 +12,11 @@ export default function Landing() {
   const [, setLocation] = useLocation();
 
   const handleSignIn = () => {
-    // Use demo authentication for development
-    fetch("/api/demo-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include"
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        window.location.href = "/";
-      }
-    })
-    .catch(err => {
-      // Fallback to OAuth if demo auth fails
-      window.location.href = "/api/login";
-    });
+    window.location.href = "/api/login";
   };
 
   const handleSignUp = () => {
-    // Use demo authentication for development
-    fetch("/api/demo-auth", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include"
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        window.location.href = "/";
-      }
-    })
-    .catch(err => {
-      // Fallback to OAuth if demo auth fails
-      window.location.href = "/api/login";
-    });
+    window.location.href = "/api/login";
   };
 
   const handleGuestAccess = () => {

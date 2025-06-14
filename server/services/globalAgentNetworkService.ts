@@ -15,7 +15,7 @@ import {
   type InsertAgentContract,
   type NetworkStats
 } from "@shared/schema";
-import { eq, desc, and, gte, lte, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, gte, lte, sql, count } from "drizzle-orm";
 import { FeeCalculator, type AIAgentFeeCalculation } from "../utils/feeCalculator";
 import { nanoid } from "nanoid";
 import crypto from "crypto";
@@ -200,10 +200,8 @@ export class GlobalAgentNetworkService {
       conditions.push(eq(globalAIAgents.status, filter.status));
     } else {
       // Include both active and pending_verification agents in discovery
-      conditions.push(or(
-        eq(globalAIAgents.status, "active"),
-        eq(globalAIAgents.status, "pending_verification")
-      ));
+      // Using SQL raw query to avoid import issues
+      conditions.push(sql`${globalAIAgents.status} IN ('active', 'pending_verification')`);
     }
 
     if (filter.geolocation) {
@@ -212,7 +210,7 @@ export class GlobalAgentNetworkService {
 
     // Simple direct query approach
     const agents = await db.select().from(globalAIAgents)
-      .where(conditions.length > 0 ? and(...conditions) : eq(globalAIAgents.status, "active"))
+      .where(conditions.length > 0 ? and(...conditions) : sql`${globalAIAgents.status} IN ('active', 'pending_verification')`)
       .orderBy(desc(globalAIAgents.lastActive))
       .limit(filter.limit || 50)
       .offset(filter.offset || 0);

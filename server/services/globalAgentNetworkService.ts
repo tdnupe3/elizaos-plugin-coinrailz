@@ -90,16 +90,19 @@ export class GlobalAgentNetworkService {
       throw new Error("Invalid wallet address format for specified network");
     }
 
-    // Step 3: Check for duplicate registrations (prevents multi-registration attacks)
-    const existingAgent = await db
-      .select()
-      .from(globalAIAgents)
-      .where(eq(globalAIAgents.primaryWalletAddress, request.walletAddress))
-      .limit(1);
+    // Step 3: CRITICAL RACE CONDITION FIX - Use database transaction with SELECT FOR UPDATE
+    return await db.transaction(async (tx) => {
+      // Check for duplicate registrations with row-level locking
+      const existingAgent = await tx
+        .select()
+        .from(globalAIAgents)
+        .where(eq(globalAIAgents.primaryWalletAddress, request.walletAddress))
+        .for('update')
+        .limit(1);
 
-    if (existingAgent.length > 0) {
-      throw new Error("Agent with this wallet address already registered");
-    }
+      if (existingAgent.length > 0) {
+        throw new Error("Agent with this wallet address already registered");
+      }
 
     // Step 4: Basic signature verification (development bypass)
     if (request.signature && request.publicKey && process.env.NODE_ENV !== 'development') {
@@ -120,51 +123,52 @@ export class GlobalAgentNetworkService {
       throw new Error("Agent name or description contains inappropriate content");
     }
 
-    // Step 6: Rate limiting check per IP/wallet (prevents spam registration)
-    const recentRegistrations = await this.getRecentRegistrations(request.walletAddress);
-    if (recentRegistrations > 3) {
-      throw new Error("Too many registration attempts. Please try again later.");
-    }
+      // Step 6: Rate limiting check per IP/wallet (prevents spam registration)
+      const recentRegistrations = await this.getRecentRegistrations(request.walletAddress);
+      if (recentRegistrations > 3) {
+        throw new Error("Too many registration attempts. Please try again later.");
+      }
 
-    const agentId = nanoid();
-    const agentData: InsertGlobalAIAgent = {
-      id: agentId,
-      agentName: request.agentName,
-      description: request.description,
-      capabilities: request.capabilities,
-      primaryWalletAddress: request.walletAddress,
-      walletNetwork: request.walletNetwork,
-      apiEndpoint: request.apiEndpoint,
-      publicKey: request.publicKey,
-      signature: request.signature,
-      preferredCurrencies: request.preferredCurrencies,
-      geolocation: request.geolocation,
-      timezone: request.timezone,
-      status: "pending_verification",
-      reputation: "0.0",
-      transactionCount: 0,
-      totalVolume: "0",
-      complianceLevel: "basic",
-      registeredAt: new Date()
-    };
+      const agentId = nanoid();
+      const agentData: InsertGlobalAIAgent = {
+        id: agentId,
+        agentName: request.agentName,
+        description: request.description,
+        capabilities: request.capabilities,
+        primaryWalletAddress: request.walletAddress,
+        walletNetwork: request.walletNetwork,
+        apiEndpoint: request.apiEndpoint,
+        publicKey: request.publicKey,
+        signature: request.signature,
+        preferredCurrencies: request.preferredCurrencies,
+        geolocation: request.geolocation,
+        timezone: request.timezone,
+        status: "pending_verification",
+        reputation: "0.0",
+        transactionCount: 0,
+        totalVolume: "0",
+        complianceLevel: "basic",
+        registeredAt: new Date()
+      };
 
-    const [newAgent] = await db
-      .insert(globalAIAgents)
-      .values(agentData)
-      .returning();
+      const [newAgent] = await tx
+        .insert(globalAIAgents)
+        .values(agentData)
+        .returning();
 
-    // Step 7: Auto-activate for low-risk agents, manual review for others
-    if (this.isLowRiskAgent(request)) {
-      await this.activateAgent(agentId);
-    } else {
-      // Flag for manual review but allow basic operations
-      await this.flagForReview(agentId, "new_agent_review");
-    }
+      // Step 7: Auto-activate for low-risk agents, manual review for others
+      if (this.isLowRiskAgent(request)) {
+        await this.activateAgent(agentId);
+      } else {
+        // Flag for manual review but allow basic operations
+        await this.flagForReview(agentId, "new_agent_review");
+      }
 
-    // Update network statistics
-    await this.updateNetworkStats();
+      // Update network statistics
+      await this.updateNetworkStats();
 
-    return newAgent;
+      return newAgent;
+    }); // Close transaction
   }
 
   // Agent Discovery

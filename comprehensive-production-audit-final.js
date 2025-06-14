@@ -368,7 +368,7 @@ class ProductionAuditor {
       // Test with a valid XRP address - should be accepted
       const validResult = await this.makeRequest('POST', '/api/public/agents/register', {
         agentName: 'ValidXRPTest',
-        walletAddress: 'rValidXRPAddress123456789012',
+        walletAddress: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW', // Use actual valid XRP address
         walletNetwork: 'xrp',
         capabilities: ['testing'],
         publicKey: 'test-key',

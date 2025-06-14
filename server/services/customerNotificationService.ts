@@ -193,7 +193,7 @@ export class CustomerNotificationService {
   }
   
   /**
-   * Send SMS notification (optional - requires Twilio setup)
+   * Send SMS notification via Twilio
    */
   private static async sendSMSNotification(
     phoneNumber: string,
@@ -208,28 +208,41 @@ export class CustomerNotificationService {
         console.log('SMS notification skipped - Twilio credentials not configured');
         return { success: false };
       }
+
+      // Import Twilio client
+      const twilio = require('twilio');
+      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
       
-      // TODO: Implement actual Twilio SMS sending when credentials are provided
+      // Format phone number (ensure it has country code)
+      const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber.replace(/\D/g, '')}`;
+      
       const smsContent = {
-        to: phoneNumber,
         body: `${title}: ${message}`,
-        from: process.env.TWILIO_PHONE_NUMBER
+        from: process.env.TWILIO_PHONE_NUMBER,
+        to: formattedPhone
       };
       
-      console.log('SMS notification ready (Twilio integration pending):', {
-        to: phoneNumber,
-        body: smsContent.body,
+      // Send SMS via Twilio
+      const twilioMessage = await client.messages.create(smsContent);
+      
+      console.log('SMS notification sent successfully:', {
+        to: formattedPhone,
+        messageId: twilioMessage.sid,
+        status: twilioMessage.status,
         notificationId
       });
       
       return {
-        success: false, // Set to false until actual Twilio integration
-        messageId: `sms_pending_${notificationId}_${Date.now()}`
+        success: true,
+        messageId: twilioMessage.sid
       };
       
     } catch (error: any) {
       console.error('SMS sending failed:', error);
-      return { success: false };
+      return { 
+        success: false,
+        error: error.message 
+      };
     }
   }
   

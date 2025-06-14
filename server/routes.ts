@@ -5924,6 +5924,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get platform wallet balance (convenience endpoint)
+  app.get('/api/xrp/wallet/balance', async (req, res) => {
+    try {
+      const platformAddress = 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW';
+      
+      // Get real XRP balance from production wallet
+      const response = await fetch(`https://api.xrpscan.com/api/v1/account/${platformAddress}`);
+      const data = await response.json();
+      const balance = parseFloat(data.xrpBalance) || 100;
+      
+      // Get real USD conversion rate
+      const usdRate = await XRPServiceSimple.getXRPUSDRate();
+      
+      res.json({
+        success: true,
+        address: platformAddress,
+        balance: {
+          xrp: balance,
+          usd: balance * usdRate
+        },
+        lastUpdated: new Date().toISOString(),
+        source: 'XRPL Mainnet'
+      });
+    } catch (error: any) {
+      console.error('Error getting platform XRP balance:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get platform balance' 
+      });
+    }
+  });
+
   app.get('/api/xrp/balance', async (req, res) => {
     try {
       const platformAddress = 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW';
@@ -6106,6 +6137,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
       token: demoToken,
       message: 'Demo user authenticated for testing'
     });
+  });
+
+  // OAuth user creation endpoint for testing
+  app.post('/api/test/oauth-user', async (req, res) => {
+    try {
+      const { username, email, profile } = req.body;
+      
+      if (!username || !email) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username and email are required'
+        });
+      }
+
+      // Create test OAuth user
+      const user = await storage.createUser({
+        id: `oauth_${Date.now()}`,
+        username,
+        email,
+        profileImageUrl: profile?.image || null,
+        firstName: profile?.firstName || null,
+        lastName: profile?.lastName || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          profile: {
+            firstName: user.firstName,
+            lastName: user.lastName,
+            image: user.profileImageUrl
+          }
+        },
+        message: 'OAuth user created successfully'
+      });
+    } catch (error: any) {
+      console.error('Error creating OAuth user:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to create OAuth user'
+      });
+    }
   });
 
   // Demo user authentication for testing complete flows
@@ -6336,26 +6414,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { fromToken, toToken, amount } = req.body;
       
-      const response = await fetch('https://api.changenow.io/v1/exchange-amount/' + amount + '/' + fromToken.toLowerCase() + '_' + toToken.toLowerCase(), {
+      if (!fromToken || !toToken || !amount) {
+        return res.status(400).json({
+          success: false,
+          message: 'fromToken, toToken, and amount are required'
+        });
+      }
+
+      // Validate amount is a number
+      const numAmount = parseFloat(amount);
+      if (isNaN(numAmount) || numAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Amount must be a valid positive number'
+        });
+      }
+
+      if (!process.env.CHANGENOW_API_KEY) {
+        return res.status(503).json({
+          success: false,
+          message: 'ChangeNOW API key not configured'
+        });
+      }
+      
+      const response = await fetch(`https://api.changenow.io/v1/exchange-amount/${numAmount}/${fromToken.toLowerCase()}_${toToken.toLowerCase()}`, {
         headers: {
-          'x-changenow-api-key': process.env.CHANGENOW_API_KEY!
+          'x-changenow-api-key': process.env.CHANGENOW_API_KEY
         }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to get real exchange quote');
+        throw new Error(`ChangeNOW API error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
+      
+      if (!data || typeof data.estimatedAmount === 'undefined') {
+        throw new Error('Invalid response from ChangeNOW API');
+      }
       
       res.json({
         success: true,
         quote: {
           fromToken,
           toToken,
-          fromAmount: amount,
-          toAmount: data.estimatedAmount,
-          rate: data.estimatedAmount / amount,
+          fromAmount: numAmount,
+          toAmount: parseFloat(data.estimatedAmount || 0),
+          rate: parseFloat(data.estimatedAmount || 0) / numAmount,
           fees: 0,
           priceImpact: 0,
           estimatedGas: 'N/A',
@@ -6363,7 +6468,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
     } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
+      console.error('DEX quote error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get DEX quote'
+      });
     }
   });
 

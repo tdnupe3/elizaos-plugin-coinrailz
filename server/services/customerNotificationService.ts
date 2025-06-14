@@ -153,7 +153,7 @@ export class CustomerNotificationService {
   }
   
   /**
-   * Send email notification
+   * Send email notification via SendGrid
    */
   private static async sendEmailNotification(
     email: string,
@@ -164,31 +164,46 @@ export class CustomerNotificationService {
   ): Promise<{ success: boolean; messageId?: string }> {
     
     try {
-      // Email sending implementation would integrate with SendGrid or similar
-      // For now, we'll log the email content
+      // Check if SendGrid API key is available
+      if (!process.env.SENDGRID_API_KEY) {
+        console.log('Email notification skipped - SendGrid API key not configured');
+        return { success: false };
+      }
+
+      // Import SendGrid client
+      const sgMail = require('@sendgrid/mail');
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY);
       
       const emailContent = {
         to: email,
+        from: 'notifications@coinrailz.com', // Your verified sender email
         subject: `Coin Railz: ${title}`,
         html: this.generateEmailTemplate(title, message, type, notificationId),
         text: message
       };
       
-      // Simulate email sending
-      console.log('Email notification sent:', {
+      // Send email via SendGrid
+      const [response] = await sgMail.send(emailContent);
+      
+      console.log('Email notification sent successfully:', {
         to: email,
         subject: emailContent.subject,
+        messageId: response.headers['x-message-id'],
+        statusCode: response.statusCode,
         notificationId
       });
       
       return {
         success: true,
-        messageId: `email_${notificationId}_${Date.now()}`
+        messageId: response.headers['x-message-id'] || `email_${notificationId}_${Date.now()}`
       };
       
     } catch (error: any) {
       console.error('Email sending failed:', error);
-      return { success: false };
+      return { 
+        success: false,
+        error: error.message 
+      };
     }
   }
   

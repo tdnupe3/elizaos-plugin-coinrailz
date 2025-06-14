@@ -60,7 +60,7 @@ app.use((req, res, next) => {
     // Initialize performance optimization
     console.log('Initializing performance optimizations...');
     await platformCore.initialize();
-    
+
     // Start database health monitoring with connection pooling
     const connectionPool = ConnectionPool.getInstance();
     dbHealthMonitor.startMonitoring();
@@ -77,7 +77,7 @@ app.use((req, res, next) => {
     // Register demo routes first (development only)
     if (process.env.NODE_ENV === 'development') {
       let demoUserToken: string | null = null;
-      
+
       app.post('/api/demo/authenticate', (req, res) => {
         const demoUser = {
           id: 'demo-user-123',
@@ -87,9 +87,9 @@ app.use((req, res, next) => {
           createdAt: new Date(),
           updatedAt: new Date()
         };
-        
+
         demoUserToken = 'demo-token-' + Date.now();
-        
+
         res.json({
           success: true,
           user: demoUser,
@@ -108,9 +108,9 @@ app.use((req, res, next) => {
             firstName: 'OAuth',
             lastName: 'TestUser'
           };
-          
+
           const newUser = await storage.upsertUser(testUserData);
-          
+
           res.json({
             success: true,
             user: newUser,
@@ -128,18 +128,18 @@ app.use((req, res, next) => {
       app.post('/api/demo/xrp/send', (req, res) => {
         const { toAddress, amount, memo } = req.body;
         const authHeader = req.headers.authorization;
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== demoUserToken) {
           return res.status(401).json({ message: 'Demo authentication required' });
         }
-        
+
         if (!toAddress || !amount) {
           return res.status(400).json({
             success: false,
             message: 'toAddress and amount are required'
           });
         }
-        
+
         const mockTransaction = {
           hash: 'DEMO_TX_' + Date.now(),
           from: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
@@ -150,7 +150,7 @@ app.use((req, res, next) => {
           status: 'success',
           timestamp: new Date().toISOString()
         };
-        
+
         res.json({
           success: true,
           transaction: mockTransaction,
@@ -160,13 +160,13 @@ app.use((req, res, next) => {
 
       app.post('/api/demo/agents/register', (req, res) => {
         const authHeader = req.headers.authorization;
-        
+
         if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader.split(' ')[1] !== demoUserToken) {
           return res.status(401).json({ message: 'Demo authentication required' });
         }
-        
+
         const { agentName, walletAddress, capabilities, description } = req.body;
-        
+
         const demoAgent = {
           id: 'DEMO_AGENT_' + Date.now(),
           agentName,
@@ -177,7 +177,7 @@ app.use((req, res, next) => {
           status: 'active',
           createdAt: new Date().toISOString()
         };
-        
+
         res.json({
           success: true,
           agent: demoAgent,
@@ -189,7 +189,7 @@ app.use((req, res, next) => {
       app.get('/api/transactions/history', async (req, res) => {
         try {
           const limit = parseInt(req.query.limit as string) || 10;
-          
+
           // Return sample transaction structure for monetization analysis
           const sampleTransactions = [
             {
@@ -204,7 +204,7 @@ app.use((req, res, next) => {
               createdAt: new Date().toISOString()
             }
           ];
-          
+
           res.json({
             success: true,
             transactions: sampleTransactions,
@@ -252,7 +252,7 @@ app.use((req, res, next) => {
       app.post('/api/transfers/p2p', async (req, res) => {
         try {
           const { recipientId, amount, currency, network, memo, paymentMethod = 'xrp' } = req.body;
-          
+
           if (!recipientId || !amount || !currency || !network) {
             return res.status(400).json({
               success: false,
@@ -272,11 +272,11 @@ app.use((req, res, next) => {
           const percentageFee = transferAmount * 0.025; // 2.5% percentage fee (increased from 2%)
           const serviceFee = 2.50; // Fixed service fee per transaction
           const platformUsageFee = 1.00; // Platform usage fee for infrastructure
-          
+
           // Payment method surcharges
           let paymentSurcharge = 0;
           let surchargeDescription = '';
-          
+
           switch(paymentMethod.toLowerCase()) {
             case 'credit_card':
             case 'card':
@@ -299,11 +299,11 @@ app.use((req, res, next) => {
               surchargeDescription = 'No additional payment fees for XRP';
               break;
           }
-          
+
           const totalFees = percentageFee + serviceFee + platformUsageFee + paymentSurcharge;
           const totalAmount = transferAmount + totalFees;
           const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
+
           if (network.toLowerCase() === 'xrp') {
             try {
               // For XRP transfers, we simulate the transfer process
@@ -412,7 +412,7 @@ app.use((req, res, next) => {
       app.post('/api/users/profile', async (req, res) => {
         try {
           const { firstName, lastName, dateOfBirth, phoneNumber, address } = req.body;
-          
+
           if (!firstName || !lastName || !dateOfBirth) {
             return res.status(400).json({
               success: false,
@@ -421,7 +421,7 @@ app.use((req, res, next) => {
           }
 
           const profileId = `profile_${Date.now()}`;
-          
+
           res.json({
             success: true,
             profileId,
@@ -451,7 +451,7 @@ app.use((req, res, next) => {
       app.post('/api/wallets/add', async (req, res) => {
         try {
           const { network, address, label } = req.body;
-          
+
           if (!network || !address) {
             return res.status(400).json({
               success: false,
@@ -468,7 +468,7 @@ app.use((req, res, next) => {
           }
 
           const walletId = `wallet_${Date.now()}`;
-          
+
           res.json({
             success: true,
             walletId,
@@ -516,7 +516,7 @@ app.use((req, res, next) => {
       app.post('/api/subscriptions/subscribe', async (req, res) => {
         try {
           const { agentId, plan, paymentMethod } = req.body;
-          
+
           if (!agentId || !plan || !paymentMethod) {
             return res.status(400).json({
               success: false,
@@ -525,7 +525,7 @@ app.use((req, res, next) => {
           }
 
           const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
+
           // Plan pricing
           const planPricing = {
             basic: { monthly: 29.99, annual: 299.99 },
@@ -663,7 +663,7 @@ app.use((req, res, next) => {
       app.post('/api/support/ticket', async (req, res) => {
         try {
           const { subject, message, priority } = req.body;
-          
+
           if (!subject || !message) {
             return res.status(400).json({
               success: false,
@@ -672,7 +672,7 @@ app.use((req, res, next) => {
           }
 
           const ticketId = `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
+
           res.json({
             success: true,
             ticketId,
@@ -750,7 +750,7 @@ app.use((req, res, next) => {
         try {
           const { nowPaymentsCommissionService } = await import('./services/nowPaymentsCommissionService');
           const result = await nowPaymentsCommissionService.processWeeklyCommissions();
-          
+
           res.json({
             success: result.success,
             payouts: {
@@ -780,7 +780,7 @@ app.use((req, res, next) => {
           const url = `http://localhost:5000/api/agents/active`;
           const response = await fetch(url);
           const agentsData = await response.json();
-          
+
           if (response.ok && agentsData.success) {
             res.json({
               success: true,
@@ -811,7 +811,7 @@ app.use((req, res, next) => {
       app.post('/api/notifications/send', async (req, res) => {
         try {
           const { userId, type, message, channels } = req.body;
-          
+
           if (!userId || !type || !message || !channels) {
             return res.status(400).json({
               success: false,
@@ -820,7 +820,7 @@ app.use((req, res, next) => {
           }
 
           const notificationId = `notif_${Date.now()}`;
-          
+
           res.json({
             success: true,
             notificationId,
@@ -881,7 +881,7 @@ app.use((req, res, next) => {
       app.post('/api/referrals/generate', async (req, res) => {
         try {
           const { userId, campaignType } = req.body;
-          
+
           if (!userId || !campaignType) {
             return res.status(400).json({
               success: false,
@@ -890,7 +890,7 @@ app.use((req, res, next) => {
           }
 
           const referralCode = `REF_${userId.slice(0, 8)}_${Date.now()}`;
-          
+
           res.json({
             success: true,
             referralCode,
@@ -920,6 +920,7 @@ app.use((req, res, next) => {
             success: false,
             message: 'Viral referral generation failed'
           });
+        ```text
         }
       });
 
@@ -927,7 +928,7 @@ app.use((req, res, next) => {
       app.post('/api/p2p/cross-chain', async (req, res) => {
         try {
           const { fromNetwork, toNetwork, amount, recipientAddress } = req.body;
-          
+
           if (!fromNetwork || !toNetwork || !amount || !recipientAddress) {
             return res.status(400).json({
               success: false,
@@ -937,7 +938,7 @@ app.use((req, res, next) => {
 
           const bridgeFee = parseFloat(amount) * 0.005; // 0.5% bridge fee
           const transactionId = `bridge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
+
           res.json({
             success: true,
             transactionId,
@@ -1022,7 +1023,7 @@ app.use((req, res, next) => {
             pricingModel,
             monthlyFee 
           } = req.body;
-          
+
           if (!agentName || !description || !capabilities || !walletAddress) {
             return res.status(400).json({
               success: false,
@@ -1031,7 +1032,7 @@ app.use((req, res, next) => {
           }
 
           const agentId = `AGENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
+
           res.json({
             success: true,
             agentId,
@@ -1071,7 +1072,7 @@ app.use((req, res, next) => {
       app.post('/api/services/deliver', async (req, res) => {
         try {
           const { agentId, customerId, serviceType, deliveryMethod } = req.body;
-          
+
           if (!agentId || !customerId || !serviceType) {
             return res.status(400).json({
               success: false,
@@ -1081,7 +1082,7 @@ app.use((req, res, next) => {
 
           const deliveryId = `delivery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           const apiEndpoint = `https://api.coinrailz.com/services/${agentId}/data`;
-          
+
           res.json({
             success: true,
             deliveryId,
@@ -1124,7 +1125,7 @@ app.use((req, res, next) => {
       app.post('/api/auth/register', async (req, res) => {
         try {
           const { email, password, firstName, lastName } = req.body;
-          
+
           if (!email || !password || !firstName || !lastName) {
             return res.status(400).json({
               success: false,
@@ -1133,371 +1134,7 @@ app.use((req, res, next) => {
           }
 
           const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
-          res.json({
-            success: true,
-            userId,
-            user: {
-              id: userId,
-              email,
-              firstName,
-              lastName,
-              status: 'active',
-              emailVerified: false,
-              kycStatus: 'pending',
-              riskScore: 0,
-              accountType: 'standard',
-              registrationDate: new Date().toISOString(),
-              lastLogin: new Date().toISOString()
-            },
-            token: `auth_token_${Date.now()}`,
-            message: 'User registration completed successfully'
-          });
-        } catch (error: any) {
-          console.error('User Registration Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'User registration failed'
-          });
-        }
-      });
 
-      // Crypto On/Off Ramp System
-      app.post('/api/ramp/buy-crypto', async (req, res) => {
-        try {
-          const { amount, currency, cryptoCurrency, paymentMethod } = req.body;
-          
-          if (!amount || !currency || !cryptoCurrency || !paymentMethod) {
-            return res.status(400).json({
-              success: false,
-              message: 'Missing required fields: amount, currency, cryptoCurrency, paymentMethod'
-            });
-          }
-
-          const purchaseAmount = parseFloat(amount);
-          if (isNaN(purchaseAmount) || purchaseAmount <= 0) {
-            return res.status(400).json({
-              success: false,
-              message: 'Invalid purchase amount'
-            });
-          }
-
-          const processingFee = paymentMethod === 'card' ? purchaseAmount * 0.015 : purchaseAmount * 0.005;
-          const totalCost = purchaseAmount + processingFee;
-          const orderId = `ramp_${Date.now()}`;
-
-          res.json({
-            success: true,
-            orderId,
-            order: {
-              id: orderId,
-              fiatAmount: purchaseAmount,
-              fiatCurrency: currency.toUpperCase(),
-              cryptoCurrency: cryptoCurrency.toUpperCase(),
-              paymentMethod,
-              processingFee,
-              totalCost,
-              status: 'pending_payment',
-              estimatedCrypto: (purchaseAmount / 100).toFixed(6),
-              estimatedDelivery: paymentMethod === 'card' ? '5-10 minutes' : '1-3 business days',
-              createdAt: new Date().toISOString()
-            },
-            message: 'Crypto purchase order created - proceed to payment'
-          });
-        } catch (error: any) {
-          console.error('Crypto Purchase Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Crypto purchase failed'
-          });
-        }
-      });
-
-      // Payment Methods Configuration
-      app.get('/api/payment-methods', async (req, res) => {
-        try {
-          res.json({
-            success: true,
-            methods: [
-              { name: 'Stripe (Credit/Debit Cards)', available: true, fee: '2.9% + $0.30' },
-              { name: 'PayPal', available: true, fee: '3.5% + $0.49' },
-              { name: 'XRP (Cryptocurrency)', available: true, fee: '2.0%' },
-              { name: 'Ethereum', available: true, fee: '2.5%' },
-              { name: 'Bitcoin', available: true, fee: '3.0%' },
-              { name: 'Zelle (Coming Soon)', available: false, fee: '1.0%' },
-              { name: 'CashApp (Coming Soon)', available: false, fee: '1.5%' },
-              { name: 'Venmo (Coming Soon)', available: false, fee: '1.5%' },
-              { name: 'Apple Pay', available: true, fee: '2.9% + $0.30' },
-              { name: 'Google Pay', available: true, fee: '2.9% + $0.30' }
-            ],
-            message: 'Payment methods retrieved successfully'
-          });
-        } catch (error: any) {
-          console.error('Payment Methods Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Payment methods retrieval failed'
-          });
-        }
-      });
-
-      // Viral Referral System
-      app.post('/api/referrals/generate', async (req, res) => {
-        try {
-          const { userId, campaignType } = req.body;
-          
-          if (!userId || !campaignType) {
-            return res.status(400).json({
-              success: false,
-              message: 'Missing required fields: userId, campaignType'
-            });
-          }
-
-          const referralCode = `REF_${userId.slice(0, 8)}_${Date.now()}`;
-          
-          res.json({
-            success: true,
-            referralCode,
-            referral: {
-              id: `viral_ref_${Date.now()}`,
-              userId,
-              code: referralCode,
-              campaignType,
-              commissionRate: campaignType === 'viral_growth' ? 5 : 3,
-              viralMultiplier: 1.5,
-              maxDepth: 7,
-              status: 'active',
-              createdAt: new Date().toISOString(),
-              trackingUrl: `https://coinrailz.com/ref/${referralCode}`,
-              rewards: {
-                level1: '5% commission',
-                level2: '3% commission', 
-                level3: '2% commission',
-                viralBonus: '1.5x multiplier after 10 referrals'
-              }
-            },
-            message: 'Viral referral code generated successfully'
-          });
-        } catch (error: any) {
-          console.error('Viral Referral Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Viral referral generation failed'
-          });
-        }
-      });
-
-      // P2P Cross-Chain Interoperability
-      app.post('/api/p2p/cross-chain', async (req, res) => {
-        try {
-          const { fromNetwork, toNetwork, amount, recipientAddress } = req.body;
-          
-          if (!fromNetwork || !toNetwork || !amount || !recipientAddress) {
-            return res.status(400).json({
-              success: false,
-              message: 'Missing required fields: fromNetwork, toNetwork, amount, recipientAddress'
-            });
-          }
-
-          const bridgeFee = parseFloat(amount) * 0.005; // 0.5% bridge fee
-          const transactionId = `bridge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
-          res.json({
-            success: true,
-            transactionId,
-            transaction: {
-              id: transactionId,
-              fromNetwork: fromNetwork.toUpperCase(),
-              toNetwork: toNetwork.toUpperCase(),
-              amount: parseFloat(amount),
-              recipientAddress,
-              bridgeFee,
-              totalAmount: parseFloat(amount) + bridgeFee,
-              estimatedTime: '5-15 minutes',
-              status: 'pending_bridge',
-              bridgeProvider: 'CrossChain Protocol',
-              confirmations: {
-                required: fromNetwork === 'bitcoin' ? 6 : 12,
-                current: 0
-              },
-              createdAt: new Date().toISOString()
-            },
-            message: 'Cross-chain bridge transaction initiated'
-          });
-        } catch (error: any) {
-          console.error('Cross-Chain Bridge Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Cross-chain bridge transaction failed'
-          });
-        }
-      });
-
-      // AI Marketplace Full Status
-      app.get('/api/ai-marketplace/full-status', async (req, res) => {
-        try {
-          res.json({
-            success: true,
-            totalAgents: 47,
-            activeServices: 156,
-            categories: [
-              'Trading Signals',
-              'Portfolio Management', 
-              'Market Analysis',
-              'Risk Assessment',
-              'Arbitrage Bots',
-              'News Sentiment',
-              'Technical Indicators',
-              'Social Trading'
-            ],
-            averageRating: 4.7,
-            marketplaceStats: {
-              totalRevenue: '$1,247,830',
-              averageMonthlyFee: '$127.50',
-              topPerformingCategory: 'Trading Signals',
-              growthRate: '23% month-over-month'
-            },
-            featuredAgents: [
-              { name: 'CryptoSignals Master', rating: 4.9, subscribers: 1847 },
-              { name: 'Portfolio Optimizer Pro', rating: 4.8, subscribers: 1203 },
-              { name: 'Market Sentiment AI', rating: 4.7, subscribers: 956 }
-            ],
-            message: 'AI marketplace status retrieved successfully'
-          });
-        } catch (error: any) {
-          console.error('AI Marketplace Status Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'AI marketplace status retrieval failed'
-          });
-        }
-      });
-
-      // AI Agent Registration System
-      app.post('/api/ai-agents/register', async (req, res) => {
-        try {
-          const { 
-            agentName, 
-            description, 
-            capabilities, 
-            walletAddress, 
-            walletNetwork,
-            serviceType,
-            pricingModel,
-            monthlyFee 
-          } = req.body;
-          
-          if (!agentName || !description || !capabilities || !walletAddress) {
-            return res.status(400).json({
-              success: false,
-              message: 'Missing required fields for agent registration'
-            });
-          }
-
-          const agentId = `AGENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
-          res.json({
-            success: true,
-            agentId,
-            agent: {
-              id: agentId,
-              name: agentName,
-              description,
-              capabilities,
-              walletAddress,
-              walletNetwork: walletNetwork || 'xrp',
-              serviceType: serviceType || 'general',
-              pricingModel: pricingModel || 'subscription',
-              monthlyFee: monthlyFee || 99.99,
-              status: 'pending_verification',
-              listingStatus: 'under_review',
-              registrationDate: new Date().toISOString(),
-              verificationSteps: {
-                identity: 'pending',
-                wallet: 'pending',
-                capabilities: 'pending',
-                compliance: 'pending'
-              },
-              estimatedApproval: '24-48 hours'
-            },
-            message: 'AI agent registration submitted successfully'
-          });
-        } catch (error: any) {
-          console.error('AI Agent Registration Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'AI agent registration failed'
-          });
-        }
-      });
-
-      // Service Delivery System
-      app.post('/api/services/deliver', async (req, res) => {
-        try {
-          const { agentId, customerId, serviceType, deliveryMethod } = req.body;
-          
-          if (!agentId || !customerId || !serviceType) {
-            return res.status(400).json({
-              success: false,
-              message: 'Missing required fields: agentId, customerId, serviceType'
-            });
-          }
-
-          const deliveryId = `delivery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          const apiEndpoint = `https://api.coinrailz.com/services/${agentId}/data`;
-          
-          res.json({
-            success: true,
-            deliveryId,
-            delivery: {
-              id: deliveryId,
-              agentId,
-              customerId,
-              serviceType,
-              deliveryMethod: deliveryMethod || 'api_webhook',
-              status: 'active',
-              apiEndpoint,
-              deliveryChannels: {
-                webhook: `${apiEndpoint}/webhook`,
-                dashboard: `https://dashboard.coinrailz.com/services/${agentId}`,
-                email: 'enabled',
-                sms: 'enabled',
-                mobile: 'enabled'
-              },
-              authentication: {
-                apiKey: `ck_${Math.random().toString(36).substr(2, 32)}`,
-                webhookSecret: `whsec_${Math.random().toString(36).substr(2, 32)}`
-              },
-              rateLimit: '1000 calls/hour',
-              dataFormat: 'JSON',
-              realTimeUpdates: true,
-              createdAt: new Date().toISOString()
-            },
-            message: 'Service delivery configured successfully'
-          });
-        } catch (error: any) {
-          console.error('Service Delivery Error:', error);
-          res.status(500).json({
-            success: false,
-            message: 'Service delivery configuration failed'
-          });
-        }
-      });
-
-      // User Registration System
-      app.post('/api/auth/register', async (req, res) => {
-        try {
-          const { email, password, firstName, lastName } = req.body;
-          
-          if (!email || !password || !firstName || !lastName) {
-            return res.status(400).json({
-              success: false,
-              message: 'Missing required fields: email, password, firstName, lastName'
-            });
-          }
-
-          const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          
           res.json({
             success: true,
             userId,
@@ -1528,7 +1165,7 @@ app.use((req, res, next) => {
       // Instant Autonomous AI Agent Registration (<15 seconds)
       app.post('/api/agents/instant-register', async (req, res) => {
         const startTime = Date.now();
-        
+
         try {
           const { 
             agentName, 
@@ -1553,22 +1190,22 @@ app.use((req, res, next) => {
 
           const agentId = `AGENT_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           const referralId = `REF_${agentId}_${Math.random().toString(36).substr(2, 6)}`;
-          
+
           // Simple security checks (< 1 second total)
           const isValidWallet = walletAddress.length >= 25 && walletAddress.length <= 50;
           const isSafeName = !agentName.toLowerCase().includes('hack') && 
                            !agentName.toLowerCase().includes('scam') &&
                            !agentName.toLowerCase().includes('exploit');
           const hasValidCapabilities = capabilities.length > 0 && capabilities.length <= 10;
-          
+
           // Instant activation for basic validation
           const autoActivated = isValidWallet && isSafeName && hasValidCapabilities;
-          
+
           let referralBonus = 0;
           if (referralCode) {
             referralBonus = 10.00;
           }
-          
+
           const processingTime = Date.now() - startTime;
 
           res.json({
@@ -1621,7 +1258,7 @@ app.use((req, res, next) => {
               `AI agent registered and activated instantly in ${processingTime}ms` : 
               `AI agent registered in ${processingTime}ms - pending verification`
           });
-          
+
         } catch (error: any) {
           console.error('Instant Agent Registration Error:', error);
           res.status(500).json({
@@ -1741,6 +1378,11 @@ app.use((req, res, next) => {
     const { agentMarketplaceService } = await import('./services/agentMarketplaceService');
     await agentMarketplaceService.registerMarketplaceServices();
     console.log('Marketplace services initialized successfully');
+
+    // Initialize AI Agent Recruitment System
+    console.log("Initializing AI Agent Recruitment System...");
+    const { simpleAgentRecruiter } = await import('./services/simpleAgentRecruiter');
+    console.log("AI Agent Recruitment System activated - autonomous recruitment in progress...");
   } catch (error) {
     console.error('Failed to initialize marketplace services:', error);
   }

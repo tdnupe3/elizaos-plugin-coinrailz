@@ -416,7 +416,7 @@ export class SimpleAgentRecruiter {
     const isHighValue = transactionScore > 20;
     
     const baseMessage = `
-Subject: ${isHighValue ? '🔥 Premium Invitation' : 'Exclusive Invitation'}: Monetize Your Trading Agent on Coin Railz
+Subject: ${isHighValue ? '🔥 Premium Invitation' : 'Exclusive Invitation'}: Monetize Your Trading Agent + Earn Perpetual Commissions
 
 Hi ${agent.name || agent.username}!
 
@@ -426,10 +426,15 @@ ${isHighValue ? '🔥 **PREMIUM AGENT INVITATION** - Your proven track record qu
 
 ✅ **Perfect for Active Trading Agents Like You:**
 • **Earn $100-$10,000 per client** - Premium rates for proven performers
-• **1% perpetual commissions** - Lifetime revenue from every referral
+• **1% perpetual commissions** - Lifetime revenue from every referral (AI agents AND human users)
 • **Instant settlements** - Same-day payouts in BTC, ETH, SOL, USDC
 • **No platform fees** for first 90 days (normally 3.5%)
 • **Priority marketplace placement** for high-performing agents
+
+🚀 **DOUBLE INCOME OPPORTUNITY:**
+• **Recruit OTHER AI AGENTS**: Earn 1% of their transaction volume forever
+• **Recruit HUMAN TRADERS**: Earn 1% of their trading volume forever
+• **Network Effect Multiplier**: Your referrals' referrals also pay you commissions
 
 ✅ **Why Choose Coin Railz:**
 • **Licensed Money Transmitter** (fully regulated & insured)
@@ -569,6 +574,66 @@ Feel free to close this issue after reading. Thanks for your time!
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  async startContinuousRecruitment(): Promise<void> {
+    console.log("🚀 Starting continuous AI agent recruitment...");
+    
+    // Initial recruitment burst
+    await this.startAutomatedRecruitment();
+    
+    // Schedule ongoing recruitment every 6 hours
+    setInterval(async () => {
+      try {
+        console.log("🔄 Running scheduled recruitment cycle...");
+        await this.startAutomatedRecruitment();
+        
+        // Notify existing agents about recruitment success
+        await this.notifyExistingAgentsAboutRecruitment();
+      } catch (error) {
+        console.error("Scheduled recruitment failed:", error);
+      }
+    }, 6 * 60 * 60 * 1000); // Every 6 hours
+  }
+
+  private async notifyExistingAgentsAboutRecruitment(): Promise<void> {
+    // This will integrate with your existing AI agent network
+    console.log("📢 Notifying existing agents about new recruitment opportunities...");
+    
+    // Broadcast to existing agents about referral opportunities
+    const recruitmentUpdate = {
+      type: "recruitment_update",
+      message: "New agents joining the network! Earn 1% perpetual commissions by referring active trading agents.",
+      incentive: "Refer agents with $1000+ monthly volume and earn $10+ per month in perpetual commissions",
+      target: "Look for agents with proven transaction history and active trading capabilities"
+    };
+    
+    // This message will encourage agents to recruit both AI agents and human users
+    console.log("💰 Referral incentive broadcast:", recruitmentUpdate);
+  }
+
+  async broadcastRecruitmentSuccess(agentData: any): Promise<void> {
+    console.log(`✅ Successfully recruited: ${agentData.name || agentData.username}`);
+    console.log(`📊 Agent quality score: ${agentData.transactionScore}`);
+    console.log(`💎 Estimated monthly value: $${(agentData.transactionScore * 10).toFixed(2)}`);
+    
+    // This creates viral recruitment as existing agents see success
+    const successMessage = `
+🎉 RECRUITMENT SUCCESS! 
+Agent: ${agentData.name || agentData.username}
+Quality Score: ${agentData.transactionScore}/100
+Estimated Monthly Commissions: $${(agentData.transactionScore * 0.1).toFixed(2)}
+
+Want to earn like this? Recruit agents with:
+✅ Active trading history
+✅ API integrations  
+✅ High transaction volumes
+✅ Proven revenue streams
+
+Every referral = Lifetime 1% commissions!
+    `;
+    
+    console.log("📣 Broadcasting to network:", successMessage);
+  }
+
   // Original recruitment method (for manual targets)
   async recruitAgent(targetAgentContact: string) {
     const recruitmentMessage = `
@@ -598,3 +663,6 @@ Feel free to close this issue after reading. Thanks for your time!
 }
 
 export const agentRecruiter = new SimpleAgentRecruiter();
+
+// Auto-start recruitment when service initializes
+agentRecruiter.startContinuousRecruitment();

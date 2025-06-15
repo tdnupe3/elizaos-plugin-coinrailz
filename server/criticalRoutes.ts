@@ -21,7 +21,7 @@ router.post('/api/demo/calculate-fee', (req: Request, res: Response) => {
     }
     
     const numAmount = Number(amount);
-    const feeRate = type === 'send_money' ? 0.01 : 0.005; // 1% for send_money, 0.5% for others
+    const feeRate = 0.01; // 1% for all transactions (business requirement)
     const fee = Math.round(numAmount * feeRate * 100) / 100;
     
     res.status(200).json({ 

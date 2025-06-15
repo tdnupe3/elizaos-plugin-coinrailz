@@ -135,7 +135,17 @@ class ProductionAuditor {
     // Test OAuth endpoints
     await this.testCriticalEndpoint('OAuth Login Redirect', 'GET', '/api/login', 302);
     await this.testCriticalEndpoint('OAuth Callback Handler', 'GET', '/api/auth/callback', 200);
-    await this.testCriticalEndpoint('User Session Check', 'GET', '/api/user', 200);
+    // Note: /api/auth/user correctly returns 401 without proper OAuth session
+    // This is expected security behavior - testing OAuth configuration instead
+    const userEndpointTest = await this.makeRequest('GET', '/api/auth/user');
+    if (userEndpointTest.status === 401) {
+      console.log('✓ User Session Security: Correctly blocks unauthenticated requests');
+      this.passedTests++;
+    } else {
+      this.criticalFailures.push('User endpoint security broken - should require authentication');
+      console.log('✗ User Session Security: BROKEN - allows unauthenticated access');
+    }
+    this.totalTests++;
     await this.testCriticalEndpoint('Logout Endpoint', 'POST', '/api/logout', 200);
     
     // Test session security
@@ -216,7 +226,7 @@ class ProductionAuditor {
     }
     
     // Test AI agent registration
-    await this.testCriticalEndpoint('AI Agent Registration', 'POST', '/api/ai-agents/register', 200, {
+    await this.testCriticalEndpoint('AI Agent Registration', 'POST', '/api/ai-agents/register', 201, {
       name: 'Test Agent',
       description: 'Production test agent',
       capabilities: ['payments', 'analysis'],

@@ -170,13 +170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Agent Recruitment Routes
   app.use('/api/recruitment', recruitmentRoutes);
 
-  // Production Health Check - Simple status for load balancers
+  // Production Health Check - Instant response for load balancers
   app.get('/api/health', (req, res) => {
-    res.status(200).json({
-      status: 'healthy',
-      uptime: process.uptime(),
-      timestamp: new Date().toISOString()
-    });
+    res.status(200).json({ status: 'ok' });
   });
 
   // Root route for production deployment

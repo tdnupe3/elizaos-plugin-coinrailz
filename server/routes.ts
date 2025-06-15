@@ -2408,7 +2408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate amount
       const transferAmount = ValidationUtils.validateAmount(amount);
       const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
-      const totalCost = transferAmount + feeCalculation.fee;
+      const totalCost = transferAmount + feeCalculation.totalFee;
 
       // Check user balance
       const currentUser = await storage.getUser(userId);
@@ -2449,7 +2449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         payoutBatchId: payout.batch_header.payout_batch_id,
         amount: transferAmount,
-        fee: feeCalculation.fee,
+        fee: feeCalculation.totalFee,
         status: payout.batch_header.batch_status,
         estimatedCompletion: "1-3 minutes"
       });
@@ -3253,9 +3253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         amount: numAmount,
-        fee: feeCalculation.fee,
-        total: numAmount + feeCalculation.fee,
-        breakdown: feeCalculation.breakdown
+        fee: feeCalculation.totalFee,
+        total: numAmount + feeCalculation.totalFee,
+        breakdown: feeCalculation.feeBreakdown
       });
     } catch (error) {
       console.error("Error calculating fee:", error);

@@ -1,19 +1,12 @@
 {
-  "timestamp": "2025-06-15T01:43:18.568Z",
+  "timestamp": "2025-06-15T01:44:45.830Z",
   "summary": {
-    "totalErrors": 2,
+    "totalErrors": 1,
     "totalWarnings": 51,
     "routesFound": 313,
     "componentsFound": 36
   },
   "criticalIssues": [
-    {
-      "category": "DB_ERROR",
-      "description": "Database operations without proper error handling",
-      "file": "server/routes.ts",
-      "line": null,
-      "severity": "HIGH"
-    },
     {
       "category": "MISSING_IMPORT",
       "description": "Missing useQuery import for data fetching",

@@ -2,7 +2,7 @@
 export class SimpleAgentRecruiter {
   private platformWallet = "rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW"; // Your XRP platform wallet
   private botEmail = "recruitment@coinrailz.com";
-  private githubToken = "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"; // Your provided GitHub token
+  private githubToken = process.env.GITHUB_TOKEN || "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"; // Your provided GitHub token
   
   // AI Agent discovery sources - targeting ACTIVE TRANSACTING AGENTS
   private discoveryChannels = {
@@ -103,7 +103,8 @@ export class SimpleAgentRecruiter {
   private async searchGitHubAgents(): Promise<any[]> {
     const agents: any[] = [];
     
-    if (this.githubToken || process.env.GITHUB_TOKEN) {
+    const hasGitHubToken = this.githubToken && this.githubToken !== '';
+    if (hasGitHubToken) {
       console.log("GitHub token configured - full recruitment capability enabled");
       console.log("Recruiting agents with proven transaction capabilities...");
     } else {
@@ -117,8 +118,8 @@ export class SimpleAgentRecruiter {
           'User-Agent': 'CoinRailz-Recruiter/1.0'
         };
         
-        if (this.githubToken || process.env.GITHUB_TOKEN) {
-          headers['Authorization'] = `token ${this.githubToken || process.env.GITHUB_TOKEN}`;
+        if (this.githubToken) {
+          headers['Authorization'] = `token ${this.githubToken}`;
         }
         
         // Enhanced search query targeting active trading repositories
@@ -481,7 +482,7 @@ ${isHighValue ? '🏆 Premium Recruitment Division' : ''}
   }
 
   private async getGitHubUserEmail(username: string): Promise<string | null> {
-    if (!process.env.GITHUB_TOKEN) {
+    if (!this.githubToken) {
       console.log("GitHub token required to fetch user emails");
       return null;
     }
@@ -489,7 +490,7 @@ ${isHighValue ? '🏆 Premium Recruitment Division' : ''}
     try {
       const response = await fetch(`https://api.github.com/users/${username}`, {
         headers: {
-          'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+          'Authorization': `token ${this.githubToken}`,
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': 'CoinRailz-Recruiter/1.0'
         }
@@ -507,12 +508,12 @@ ${isHighValue ? '🏆 Premium Recruitment Division' : ''}
   }
 
   private async createRecruitmentIssue(agent: any, message: string): Promise<void> {
-    if (!process.env.GITHUB_TOKEN) {
+    if (!this.githubToken) {
       console.log("GitHub token required to create issues");
       return;
     }
 
-    try {
+    try:
       const issueBody = `
 Hello ${agent.owner}!
 
@@ -529,7 +530,7 @@ Feel free to close this issue after reading. Thanks for your time!
       const response = await fetch(`https://api.github.com/repos/${agent.name}/issues`, {
         method: 'POST',
         headers: {
-          'Authorization': `token ${process.env.GITHUB_TOKEN}`,
+          'Authorization': `token ${this.githubToken}`,
           'Accept': 'application/vnd.github.v3+json',
           'User-Agent': 'CoinRailz-Recruiter/1.0',
           'Content-Type': 'application/json'

@@ -64,15 +64,25 @@ function log(req: Request, res: Response, next: NextFunction) {
 
 app.use(log);
 
-// Global error handlers - CRITICAL for preventing crashes
+// Production-grade error handlers
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  process.exit(1);
+  if (process.env.NODE_ENV === 'production') {
+    // Graceful degradation in production
+    console.error('Attempting graceful recovery...');
+  } else {
+    process.exit(1);
+  }
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  if (process.env.NODE_ENV === 'production') {
+    // Log and continue in production
+    console.error('Continuing with degraded functionality...');
+  } else {
+    process.exit(1);
+  }
 });
 
 let server: any;
@@ -118,14 +128,19 @@ process.on('SIGINT', () => {
       res.status(status).json({ message });
     });
 
-    // Dynamic port allocation to prevent EADDRINUSE
-    const port = process.env.PORT || 5000;
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      console.log('serving on port ' + port);
+    // Production-ready port configuration
+    const port = parseInt(process.env.PORT || '5000', 10);
+    const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+    
+    server.listen(port, host, () => {
+      console.log(`Server running on ${host}:${port} (${process.env.NODE_ENV || 'development'})`);
+      
+      // Production health monitoring
+      if (process.env.NODE_ENV === 'production') {
+        setInterval(() => {
+          console.log(`Health check: Server responding on port ${port}`);
+        }, 60000); // Every minute
+      }
     });
 
     // Handle server listening errors

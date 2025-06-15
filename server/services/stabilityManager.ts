@@ -11,7 +11,7 @@ export class StabilityManager {
   private connectionQueue: Array<{ operation: () => Promise<any>; resolve: Function; reject: Function }> = [];
   private isProcessing = false;
   private activeConnections = 0;
-  private readonly maxConcurrentConnections = 10;
+  private readonly maxConcurrentConnections = 5;
   private crashCount = 0;
   private lastCrash = 0;
   private memoryLeakPrevention = new Map<string, NodeJS.Timeout>();
@@ -142,7 +142,7 @@ export class StabilityManager {
         });
         this.memoryLeakPrevention.clear();
       }
-    }, 30000);
+    }, 60000); // Monitor every minute in production
   }
 
   /**

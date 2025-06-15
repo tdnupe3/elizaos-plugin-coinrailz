@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import productionRoutes from "./productionRoutes";
 import { setupVite, serveStatic } from "./vite";
 import { stability } from './stability';
 import { stabilityManager } from './services/stabilityManager';
@@ -124,20 +124,11 @@ process.on('SIGINT', () => {
       }
     });
 
-    // registerRoutes returns an HTTP server, not void
-    httpServer = await stability.safeExecute(
-      () => registerRoutes(app),
-      null,
-      'route_registration'
-    );
+    // Use production routes
+    app.use(productionRoutes);
 
-    // API route handler middleware - catch unhandled API routes before Vite
-    app.use('/api/*', (req, res) => {
-      res.status(404).json({ 
-        success: false, 
-        message: 'API endpoint not found: ' + req.originalUrl 
-      });
-    });
+    // Setup Vite for both development and production
+    await setupVite(app, httpServer);
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;

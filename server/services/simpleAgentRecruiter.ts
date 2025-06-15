@@ -61,17 +61,27 @@ export class SimpleAgentRecruiter {
   };
 
   async startAutomatedRecruitment(): Promise<void> {
-    console.log("🤖 Starting automated AI agent recruitment campaign...");
-    
-    // Discover potential agents across multiple channels
-    const discoveredAgents = await this.discoverPotentialAgents();
-    
-    console.log(`📊 Discovered ${discoveredAgents.length} potential AI agents`);
-    
-    // Recruit each discovered agent
-    for (const agent of discoveredAgents) {
-      await this.recruitAgentMultiChannel(agent);
-      await this.delay(2000); // Rate limiting - 2 seconds between contacts
+    try {
+      console.log("🤖 Starting automated AI agent recruitment campaign...");
+      
+      // Discover potential agents across multiple channels
+      const discoveredAgents = await this.discoverPotentialAgents();
+      
+      console.log(`📊 Discovered ${discoveredAgents.length} potential AI agents`);
+      
+      // Recruit each discovered agent
+      for (const agent of discoveredAgents) {
+        try {
+          await this.recruitAgentMultiChannel(agent);
+          await this.delay(2000); // Rate limiting - 2 seconds between contacts
+        } catch (error) {
+          console.error(`Failed to recruit agent ${agent.name}:`, error);
+          // Continue with next agent instead of crashing
+        }
+      }
+    } catch (error) {
+      console.error("AI agent recruitment system error:", error);
+      // Don't crash the entire server
     }
   }
 
@@ -665,5 +675,5 @@ Every referral = Lifetime 1% commissions!
 
 export const agentRecruiter = new SimpleAgentRecruiter();
 
-// Auto-start recruitment when service initializes
-agentRecruiter.startContinuousRecruitment();
+// Manual recruitment startup only - prevents server crashes
+// Use POST /api/recruitment/start-automated-recruitment to start recruitment campaigns

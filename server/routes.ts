@@ -6236,11 +6236,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
     
     // Store demo user in session for testing
-    req.session.demoUser = demoUser;
+    (req.session as any).demoUser = demoUser;
     
     // Generate simple demo token
     const demoToken = `demo-token-${Date.now()}`;
-    req.session.demoToken = demoToken;
+    (req.session as any).demoToken = demoToken;
     
     res.json({
       success: true,
@@ -6277,7 +6277,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         user: {
           id: user.id,
-          username: user.username,
           email: user.email,
           profile: {
             firstName: user.firstName,
@@ -6312,11 +6311,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     };
     
     // Store demo user in session for testing
-    req.session.demoUser = demoUser;
+    (req.session as any).demoUser = demoUser;
     
     // Generate simple demo token
     const demoToken = `demo-token-${Date.now()}`;
-    req.session.demoToken = demoToken;
+    (req.session as any).demoToken = demoToken;
     
     res.json({
       success: true,
@@ -7078,7 +7077,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     try {
-      if (!req.session.demoUser) {
+      if (!(req.session as any).demoUser) {
         return res.status(401).json({ message: 'Demo authentication required' });
       }
       
@@ -7090,7 +7089,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         walletAddress,
         capabilities: capabilities || [],
         description: description || '',
-        owner: req.session.demoUser.id,
+        owner: (req.session as any).demoUser.id,
         status: 'active',
         createdAt: new Date().toISOString()
       };

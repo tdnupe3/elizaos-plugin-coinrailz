@@ -669,7 +669,7 @@ export class DatabaseStorage implements IStorage {
   async getActiveAgentCount(): Promise<number> {
     const result = await db.select({ count: sql<number>`count(*)` })
       .from(globalAIAgents)
-      .where(eq(globalAIAgents.isActive, true));
+      .where(eq(globalAIAgents.status, 'active'));
     return result[0]?.count || 0;
   }
 

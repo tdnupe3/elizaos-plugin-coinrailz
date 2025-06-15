@@ -66,6 +66,7 @@ import { TransactionCompletionHooks } from './services/transactionCompletionHook
 import { RWAIntegrationService } from './services/rwaIntegrationService';
 import { paypalService } from './services/paypalService';
 import recruitmentRoutes from './routes/recruitment';
+import recruitmentRoutes from './routes/recruitment';
 import { apiHealthMonitor } from './services/apiHealthMonitor';
 import { ProductionErrorHandler, requestTimeout, requestLogger } from './middleware/productionErrorHandler';
 import { productionOptimizer } from './services/productionOptimizer';
@@ -162,6 +163,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     app.use(SecurityHardening.memoryProtection());
     app.use(SecurityHardening.enhancedCSRFProtection());
     app.use(DatabaseSecurity.connectionLimiter());
+
+  // AI Agent Recruitment Routes
+  app.use('/api/recruitment', recruitmentRoutes);
 
   // AI Agent Recruitment Routes
   app.use('/api/recruitment', recruitmentRoutes);

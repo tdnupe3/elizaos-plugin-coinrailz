@@ -5599,7 +5599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get Tron network fees
+  // Get Tron network fees and platform fees
   app.get("/api/tron/fees", async (req, res) => {
     try {
       const trxFee = await tronService.estimateFee('TRX');
@@ -5609,7 +5609,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         blockchain: 'tron',
-        fees: {
+        networkFees: {
           TRX: {
             amount: trxFee,
             currency: 'TRX',
@@ -5620,10 +5620,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
             currency: 'TRX',
             usdValue: usdtFeeUSD
           }
+        },
+        platformFees: {
+          TRX: {
+            percentage: 1.5,
+            description: 'Premium Tron blockchain service'
+          },
+          'USDT-TRC20': {
+            percentage: 1.2,
+            description: 'Specialized USDT-TRC20 transfers'
+          }
         }
       });
     } catch (error: any) {
       console.error("Tron fee estimation error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Calculate total Tron transaction costs
+  app.post("/api/tron/calculate-fees", async (req, res) => {
+    try {
+      const { amount, currency } = req.body;
+      
+      if (!amount || !currency || !['TRX', 'USDT'].includes(currency)) {
+        return res.status(400).json({ 
+          error: 'Valid amount and currency (TRX or USDT) required' 
+        });
+      }
+
+      const feeCalculation = tronService.calculatePlatformFee(parseFloat(amount), currency as 'TRX' | 'USDT');
+      const networkFeeUSD = await tronService.calculateFeeUSD(currency as 'TRX' | 'USDT');
+
+      res.json({
+        success: true,
+        blockchain: 'tron',
+        transaction: {
+          amount: parseFloat(amount),
+          currency
+        },
+        fees: {
+          platformFee: feeCalculation.platformFee,
+          platformFeePercentage: feeCalculation.feePercentage,
+          networkFee: networkFeeUSD,
+          totalFees: feeCalculation.platformFee + networkFeeUSD,
+          userReceives: parseFloat(amount) - feeCalculation.platformFee,
+          costComparison: {
+            tronNetwork: networkFeeUSD,
+            ethereumNetwork: '~$20-50 (900x more expensive)',
+            bitcoinNetwork: '~$5-15 (25x more expensive)'
+          }
+        }
+      });
+    } catch (error: any) {
+      console.error("Tron fee calculation error:", error);
       res.status(500).json({ error: error.message });
     }
   });

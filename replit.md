@@ -32,8 +32,10 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 - **API Endpoints**: 6 new Tron endpoints for wallet info, address validation, TRX/USDT transfers, transaction status, and fee estimation
 - **Database Schema**: Added tronWallet field to users table for multi-chain wallet management
 - **Cost Benefits**: Tron network fees significantly lower than Ethereum (≈$0.11 TRX vs $20+ ETH gas)
-- **Revenue Enhancement**: New revenue stream from Tron-based transactions and USDT-TRC20 transfers
+- **Profitable Fee Structure**: 1.5% for TRX transactions, 1.2% for USDT-TRC20 (higher rates due to specialized service)
+- **Revenue Enhancement**: New high-margin revenue stream leveraging Tron's lower competition
 - **Multi-Chain Expansion**: Platform now supports 5 blockchains: Ethereum, XRP, Solana, Bitcoin, and Tron
+- **Competitive Advantage**: Premium pricing justified by ultra-low network costs and specialized expertise
 
 ### PROFITABLE HUMAN REFERRAL SYSTEM IMPLEMENTED (June 15, 2025)
 - **BREAKTHROUGH**: Restructured human referral commission system to ensure 100% profitable transactions

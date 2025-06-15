@@ -178,6 +178,28 @@ class TronService {
       return type === 'TRX' ? 0.11 : 1.35; // USD estimates
     }
   }
+
+  // Calculate platform fee for Tron transactions (higher rate due to specialized service)
+  calculatePlatformFee(amount: number, currency: 'TRX' | 'USDT'): { 
+    platformFee: number; 
+    networkFee: number; 
+    total: number; 
+    feePercentage: number;
+  } {
+    // Tron platform fees: 1.5% for TRX, 1.2% for USDT-TRC20
+    const feePercentage = currency === 'TRX' ? 1.5 : 1.2;
+    const platformFee = amount * (feePercentage / 100);
+    
+    // Network fees are very low on Tron
+    const networkFee = currency === 'TRX' ? 1.1 : 13.5; // TRX amounts
+    
+    return {
+      platformFee,
+      networkFee,
+      total: platformFee + (networkFee * 0.1), // Convert TRX network fee to USD estimate
+      feePercentage
+    };
+  }
 }
 
 export const tronService = new TronService();

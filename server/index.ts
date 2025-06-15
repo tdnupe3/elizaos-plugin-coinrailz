@@ -94,14 +94,7 @@ process.on('SIGINT', () => {
 
 (async () => {
   try {
-    // registerRoutes returns an HTTP server, not void
-    httpServer = await stability.safeExecute(
-      () => registerRoutes(app),
-      null,
-      'route_registration'
-    );
-
-    // Add basic health check endpoint for Cloud Run before route registration
+    // Add basic health check endpoint BEFORE route registration
     app.get('/health', (req, res) => {
       res.json({ 
         status: 'ok', 
@@ -120,10 +113,21 @@ process.on('SIGINT', () => {
           timestamp: new Date().toISOString()
         });
       } else {
-        // In development, let Vite handle the root route
-        res.status(404).end();
+        // In development, show basic status
+        res.json({ 
+          status: 'development', 
+          service: 'Coin Railz Platform',
+          timestamp: new Date().toISOString()
+        });
       }
     });
+
+    // registerRoutes returns an HTTP server, not void
+    httpServer = await stability.safeExecute(
+      () => registerRoutes(app),
+      null,
+      'route_registration'
+    );
 
     // API route handler middleware - catch unhandled API routes before Vite
     app.use('/api/*', (req, res) => {

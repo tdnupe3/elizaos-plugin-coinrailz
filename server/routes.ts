@@ -4015,7 +4015,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // XRP Wallet Information Endpoint
   app.get('/api/xrp/wallet-info', async (req, res) => {
     try {
-      const walletInfo = await xrpService.getWalletInfo();
+      const walletInfo = await RealXRPWallet.getWalletInfo();
       res.json({
         success: true,
         address: walletInfo.address,

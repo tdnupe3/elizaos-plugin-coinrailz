@@ -150,8 +150,8 @@ process.on('SIGINT', () => {
     if (process.env.NODE_ENV !== "production") {
       await setupVite(app, server);
     } else {
-      // Production: serve static files
-      serveStatic(app);
+      // Production: Use Vite in production mode for proper React serving
+      await setupVite(app, server);
     }
   } catch (error) {
     console.error("Failed to start server:", error);

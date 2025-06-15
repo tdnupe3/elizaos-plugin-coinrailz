@@ -1042,7 +1042,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
       
       // Update agent membership in database
-      await storage.updateAgentMembership(agentId, tier as 'premium' | 'enterprise', expiryDate);
+      await storage.updateAgentMembership(agentId, tier as 'basic' | 'premium', expiryDate);
       
       const upgradeLatestInvoice = subscription.latest_invoice;
       let upgradeClientSecret = null;
@@ -2171,7 +2171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           agentId,
           serviceType,
           serviceAmount: serviceAmount.toString(),
-          platformFee: feeCalculation.totalFee.toString(),
+          platformFee: feeCalculation.fee.toString(),
           type: "ai_agent_service"
         },
       });
@@ -2291,7 +2291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: order.id,
         userId: userId,
         amount: validatedAmount,
-        fee: (feeCalculation.totalFee || feeCalculation.fee || 0),
+        fee: feeCalculation.totalFee,
         currency: currency,
         status: 'pending',
         paymentMethod: 'paypal',
@@ -2308,7 +2308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderId: order.id,
         approvalUrl,
         amount: validatedAmount,
-        fee: (feeCalculation.totalFee || feeCalculation.fee || 0),
+        fee: feeCalculation.totalFee,
         total: totalAmount,
         status: order.status
       });

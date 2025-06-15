@@ -2122,11 +2122,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transferAmount = ValidationUtils.validateAmount(amount);
       const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
       
-      if (!feeCalculation || typeof feeCalculation.fee !== 'number') {
+      if (!feeCalculation || typeof feeCalculation.totalFee !== 'number') {
         throw new Error("Invalid fee calculation result");
       }
       
-      const totalAmount = Math.round((transferAmount + feeCalculation.fee) * 100); // Convert to cents
+      const totalAmount = Math.round((transferAmount + feeCalculation.totalFee) * 100); // Convert to cents
 
       const paymentIntent = await stripe.paymentIntents.create({
         amount: totalAmount,
@@ -2135,7 +2135,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: userId || 'demo-user',
           recipientEmail,
           transferAmount: transferAmount.toString(),
-          fee: feeCalculation.fee.toString(),
+          fee: feeCalculation.totalFee.toString(),
           type: "p2p_transfer"
         },
       });
@@ -2143,8 +2143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         clientSecret: paymentIntent.client_secret,
         amount: transferAmount,
-        fee: feeCalculation.fee,
-        total: transferAmount + feeCalculation.fee
+        fee: feeCalculation.totalFee,
+        total: transferAmount + feeCalculation.totalFee
       });
     } catch (error: any) {
       console.error("Error creating payment intent:", error);
@@ -2254,7 +2254,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         feeCalculation = { fee: 0, total: validatedAmount };
       }
 
-      const totalAmount = validatedAmount + feeCalculation.fee;
+      const totalAmount = validatedAmount + (feeCalculation.totalFee || feeCalculation.fee || 0);
 
       const order = await paypalService.createOrder({
         amount: totalAmount,
@@ -2269,7 +2269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: order.id,
         userId: userId,
         amount: validatedAmount,
-        fee: feeCalculation.fee,
+        fee: (feeCalculation.totalFee || feeCalculation.fee || 0),
         currency: currency,
         status: 'pending',
         paymentMethod: 'paypal',
@@ -2286,7 +2286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         orderId: order.id,
         approvalUrl,
         amount: validatedAmount,
-        fee: feeCalculation.fee,
+        fee: (feeCalculation.totalFee || feeCalculation.fee || 0),
         total: totalAmount,
         status: order.status
       });

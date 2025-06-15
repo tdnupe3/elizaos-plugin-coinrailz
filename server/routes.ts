@@ -1042,7 +1042,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
       
       // Update agent membership in database
-      await storage.updateAgentMembership(agentId, tier as 'basic' | 'premium', expiryDate);
+      const membershipTier = tier === 'enterprise' ? 'premium' : tier as 'basic' | 'premium';
+      await storage.updateAgentMembership(agentId, membershipTier, expiryDate);
       
       const upgradeLatestInvoice = subscription.latest_invoice;
       let upgradeClientSecret = null;
@@ -3255,13 +3256,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           feeCalculation = FeeCalculator.calculateSendMoneyFee(numAmount);
           break;
         case 'buy_crypto':
-          feeCalculation = FeeCalculator.calculateCryptoFee(numAmount, 'buy');
+          feeCalculation = FeeCalculator.calculateCryptoFees(numAmount);
           break;
         case 'sell_crypto':
-          feeCalculation = FeeCalculator.calculateCryptoFee(numAmount, 'sell');
+          feeCalculation = FeeCalculator.calculateCryptoFees(numAmount);
           break;
         case 'swap_crypto':
-          feeCalculation = FeeCalculator.calculateSwapFee(numAmount, 'ETH', 'USDC');
+          feeCalculation = FeeCalculator.calculateSwapFee(numAmount);
           break;
         case 'deposit':
           feeCalculation = FeeCalculator.calculateDepositFee(numAmount, 'USD');
@@ -3939,7 +3940,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       } else {
         // Other crypto transfers
-        const networkMap = {
+        const networkMap: { [key: string]: string } = {
           BTC: 'Bitcoin',
           ETH: 'Ethereum',
           USDT: 'Ethereum',
@@ -3957,7 +3958,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           memo: memo || '',
           status: 'pending_broadcast',
           timestamp: new Date().toISOString(),
-          network: networkMap[currency] || currency,
+          network: networkMap[currency as string] || currency,
           settlementTime: currency === 'BTC' ? '10-60 minutes' : '1-15 minutes',
           requiresKYC: false
         };

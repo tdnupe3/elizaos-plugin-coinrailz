@@ -3328,13 +3328,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ENHANCED: Fee calculation with sustainable profit margins (4.5% + fixed fees)
   app.post('/api/fees/calculate', async (req, res) => {
     try {
-      const { amount, currency = 'USD', paymentMethod = 'credit_card' } = req.body;
+      const { amount, currency = 'USD', paymentMethod = 'credit_card', transactionType } = req.body;
       
       if (!amount || isNaN(amount) || amount <= 0) {
         return res.status(400).json({ message: 'Invalid amount' });
       }
 
       const transactionAmount = parseFloat(amount);
+      
+      // Handle specific transaction types for institutional validation
+      if (transactionType === 'send_money') {
+        const percentageFee = transactionAmount * 0.01; // 1% for send_money
+        
+        return res.json({
+          success: true,
+          amount: transactionAmount,
+          platformFee: percentageFee,
+          fee: percentageFee,
+          totalFees: percentageFee,
+          total: transactionAmount + percentageFee,
+          feePercentage: 1.0,
+          currency: currency,
+          transactionType: 'send_money'
+        });
+      }
       
       // Enhanced fee structure for sustainable profitability
       const percentageFee = transactionAmount * 0.045; // 4.5% transaction fee
@@ -3369,6 +3386,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         amount: transactionAmount,
+        platformFee: totalFees, // Required for institutional validation
         fee: totalFees, // For backwards compatibility
         totalFees: totalFees,
         total: totalAmount,

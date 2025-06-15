@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite } from "./vite";
+import { stability } from "./stability";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -64,26 +65,9 @@ function log(req: Request, res: Response, next: NextFunction) {
 
 app.use(log);
 
-// Production-grade error handlers
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  if (process.env.NODE_ENV === 'production') {
-    // Graceful degradation in production
-    console.error('Attempting graceful recovery...');
-  } else {
-    process.exit(1);
-  }
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  if (process.env.NODE_ENV === 'production') {
-    // Log and continue in production
-    console.error('Continuing with degraded functionality...');
-  } else {
-    process.exit(1);
-  }
-});
+// Initialize comprehensive stability system
+stability.setupGlobalHandlers();
+console.log('Stability Manager activated - crash prevention enabled');
 
 let server: any;
 
@@ -110,7 +94,11 @@ process.on('SIGINT', () => {
 
 (async () => {
   try {
-    server = await registerRoutes(app);
+    server = await stability.safeExecute(
+      () => registerRoutes(app),
+      null,
+      'route_registration'
+    );
 
     // API route handler middleware - catch unhandled API routes before Vite
     app.use('/api/*', (req, res) => {
@@ -121,11 +109,16 @@ process.on('SIGINT', () => {
     });
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
-
-      console.error(status + ': ' + message);
-      res.status(status).json({ message });
+      stability.safeExecute(
+        () => {
+          const status = err.status || err.statusCode || 500;
+          const message = err.message || "Internal Server Error";
+          console.error(status + ': ' + message);
+          res.status(status).json({ message });
+        },
+        () => res.status(500).json({ message: "Server error" }),
+        'error_handler'
+      );
     });
 
     // Production-ready port configuration

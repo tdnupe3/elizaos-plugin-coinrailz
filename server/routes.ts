@@ -8857,6 +8857,96 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === TESTING ENDPOINTS FOR HUMAN REFERRAL SYSTEM ===
+  
+  // Test commission calculation
+  app.post('/api/test/calculate-commission', async (req, res) => {
+    try {
+      const { transactionAmount, isFirstTransaction } = req.body;
+      const { HumanReferralService } = await import('./services/humanReferralService');
+      
+      const commission = await HumanReferralService.calculateCommission(
+        parseFloat(transactionAmount),
+        isFirstTransaction
+      );
+      
+      res.json({
+        success: true,
+        commission: commission.toFixed(2),
+        transactionAmount,
+        isFirstTransaction
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Test referral consistency
+  app.get('/api/test/referral-consistency', async (req, res) => {
+    try {
+      const { humanToHumanReferrals } = await import('@shared/schema');
+      const result = await db.select().from(humanToHumanReferrals).limit(10);
+      res.json({
+        success: true,
+        valid: true,
+        sampleCount: result.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, valid: false, error: error.message });
+    }
+  });
+
+  // Test commission consistency
+  app.get('/api/test/commission-consistency', async (req, res) => {
+    try {
+      const { humanToHumanReferrals } = await import('@shared/schema');
+      const commissions = await db.select().from(humanToHumanReferrals).limit(5);
+      
+      let consistent = true;
+      for (const commission of commissions) {
+        const transactionAmount = parseFloat(commission.transactionAmount);
+        const expectedRate = commission.isFirstTransaction ? 0.05 : 0.02;
+        const expectedCommission = Math.min(transactionAmount * expectedRate, 50);
+        const actualCommission = parseFloat(commission.commissionAmount);
+        
+        if (Math.abs(expectedCommission - actualCommission) > 0.01) {
+          consistent = false;
+          break;
+        }
+      }
+      
+      res.json({
+        success: true,
+        consistent,
+        checkedRecords: commissions.length
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, consistent: false, error: error.message });
+    }
+  });
+
+  // Cleanup test user
+  app.delete('/api/test/cleanup-user/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      
+      // Delete user's referral records
+      await db.delete(humanToHumanReferrals).where(
+        or(
+          eq(humanToHumanReferrals.referrerUserId, userId),
+          eq(humanToHumanReferrals.referredUserId, userId)
+        )
+      );
+      
+      // Delete user
+      await db.delete(users).where(eq(users.id, userId));
+      
+      res.json({ success: true, message: 'Test user cleaned up' });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

@@ -3104,8 +3104,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Test database connectivity
+      const dbStart = Date.now();
       try {
-        const dbStart = Date.now();
         await db.execute(`SELECT 1`);
         status.systems.database = {
           status: 'operational',

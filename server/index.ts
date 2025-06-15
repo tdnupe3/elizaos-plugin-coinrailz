@@ -103,7 +103,7 @@ process.on('SIGINT', () => {
     const port = parseInt(process.env.PORT || '5000', 10);
     const host = '0.0.0.0';
 
-    // Add basic health check endpoint BEFORE route registration
+    // Health check endpoint (non-conflicting with frontend)
     app.get('/health', (req, res) => {
       res.json({ 
         status: 'ok', 
@@ -112,27 +112,6 @@ process.on('SIGINT', () => {
         version: '1.0.0'
       });
     });
-
-    // Simple root endpoint for deployment health checks
-    app.get('/', (req, res) => {
-      if (process.env.NODE_ENV === 'production') {
-        res.json({ 
-          status: 'ok', 
-          service: 'Coin Railz Platform',
-          timestamp: new Date().toISOString()
-        });
-      } else {
-        // In development, show basic status
-        res.json({ 
-          status: 'development', 
-          service: 'Coin Railz Platform',
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-
-    // Use production routes
-    app.use(productionRoutes);
 
     // Initialize HTTP server
     httpServer = app.listen(port, host, () => {
@@ -150,8 +129,11 @@ process.on('SIGINT', () => {
       }
     });
 
-    // Setup Vite for both development and production
+    // Setup Vite first (this handles React app serving)
     await setupVite(app, httpServer);
+
+    // Add API routes after Vite setup
+    app.use(productionRoutes);
 
     // Global error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -175,10 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ status: 'ok' });
   });
 
-  // Root route for production deployment
-  app.get('/', (req, res) => {
-    res.send('Coin Railz Platform - Production Ready');
-  });
+  // Root route removed - let Vite handle frontend routing
 
   // Detailed service health status
   app.get('/api/health/services', async (req, res) => {

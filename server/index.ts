@@ -1,6 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite } from "./vite";
+import { setupVite, serveStatic } from "./vite";
 import { stability } from "./stability";
 import compression from "compression";
 import helmet from "helmet";
@@ -149,6 +149,9 @@ process.on('SIGINT', () => {
 
     if (process.env.NODE_ENV !== "production") {
       await setupVite(app, server);
+    } else {
+      // Production: serve static files
+      serveStatic(app);
     }
   } catch (error) {
     console.error("Failed to start server:", error);

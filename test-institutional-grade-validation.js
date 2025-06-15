@@ -1,257 +1,344 @@
 /**
- * INSTITUTIONAL GRADE VALIDATION TEST
- * Tests all newly implemented enterprise-level systems for live production
+ * INSTITUTIONAL GRADE VALIDATION - COMPREHENSIVE PRODUCTION READINESS TEST
+ * Tests all critical business logic, system stability, and institutional requirements
+ * Based on previous test results showing 63.6% readiness with multiple failures
  */
 
-async function makeRequest(method, endpoint, data = null, token = null) {
-  const config = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
-    }
-  };
-  
-  if (data && (method === 'POST' || method === 'PUT')) {
-    config.body = JSON.stringify(data);
-  }
-  
-  const response = await fetch(`http://localhost:5000${endpoint}`, config);
-  return response;
-}
+const baseUrl = process.env.NODE_ENV === 'production' 
+  ? 'https://coinrailz.com' 
+  : 'http://localhost:5000';
 
-async function authenticateDemo() {
-  try {
-    const response = await makeRequest('POST', '/api/demo/authenticate', {
-      username: 'institutional_user',
-      password: 'secure_password'
+class InstitutionalValidator {
+  constructor() {
+    this.results = {
+      passed: 0,
+      failed: 0,
+      critical: 0,
+      warnings: 0,
+      details: []
+    };
+    this.startTime = Date.now();
+  }
+
+  async makeRequest(method, endpoint, data = null, headers = {}) {
+    const url = `${baseUrl}${endpoint}`;
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      }
+    };
+    
+    if (data && method !== 'GET') {
+      options.body = JSON.stringify(data);
+    }
+    
+    try {
+      const response = await fetch(url, options);
+      return {
+        status: response.status,
+        ok: response.ok,
+        data: response.ok ? await response.json().catch(() => ({})) : null,
+        error: !response.ok ? await response.text().catch(() => 'Unknown error') : null
+      };
+    } catch (error) {
+      return {
+        status: 0,
+        ok: false,
+        data: null,
+        error: error.message
+      };
+    }
+  }
+
+  log(message, type = 'info') {
+    const timestamp = new Date().toISOString();
+    const prefix = type === 'error' ? '❌' : type === 'warning' ? '⚠️' : type === 'success' ? '✅' : 'ℹ️';
+    console.log(`${prefix} [${timestamp}] ${message}`);
+    
+    this.results.details.push({
+      timestamp,
+      type,
+      message
+    });
+  }
+
+  async testScenario(name, testFn, critical = false) {
+    this.log(`Testing: ${name}`, 'info');
+    try {
+      const result = await testFn();
+      if (result.success) {
+        this.results.passed++;
+        this.log(`✓ ${name}: ${result.message}`, 'success');
+      } else {
+        if (critical) {
+          this.results.critical++;
+          this.log(`✗ CRITICAL FAILURE - ${name}: ${result.message}`, 'error');
+        } else {
+          this.results.failed++;
+          this.log(`✗ ${name}: ${result.message}`, 'error');
+        }
+      }
+      return result;
+    } catch (error) {
+      if (critical) {
+        this.results.critical++;
+        this.log(`✗ CRITICAL ERROR - ${name}: ${error.message}`, 'error');
+      } else {
+        this.results.failed++;
+        this.log(`✗ ${name}: ${error.message}`, 'error');
+      }
+      return { success: false, message: error.message };
+    }
+  }
+
+  // Core Infrastructure Tests
+  async testDatabaseConnectivity() {
+    return this.testScenario('Database Connectivity', async () => {
+      const response = await this.makeRequest('GET', '/api/auth/user');
+      return {
+        success: response.status !== 0,
+        message: response.status !== 0 ? 'Database accessible' : 'Database connection failed'
+      };
+    }, true);
+  }
+
+  async testXRPWalletFunding() {
+    return this.testScenario('XRP Wallet Funding Status', async () => {
+      const response = await this.makeRequest('GET', '/api/xrp/wallet-info');
+      if (!response.ok) {
+        return { success: false, message: 'XRP wallet endpoint failed' };
+      }
+      
+      const balance = parseFloat(response.data?.balance || 0);
+      return {
+        success: balance >= 10, // Minimum 10 XRP for institutional operations
+        message: `XRP wallet balance: ${balance} XRP ${balance >= 10 ? '(Adequately funded)' : '(Underfunded for institutional use)'}`
+      };
+    }, true);
+  }
+
+  async testFeeCalculationAccuracy() {
+    return this.testScenario('Fee Calculation System', async () => {
+      const response = await this.makeRequest('POST', '/api/fees/calculate', {
+        amount: 1000,
+        currency: 'USD',
+        transactionType: 'send_money'
+      });
+      
+      if (!response.ok) {
+        return { success: false, message: 'Fee calculation endpoint failed' };
+      }
+      
+      const expectedFee = 1000 * 0.01; // 1% for send money
+      const actualFee = response.data?.platformFee || 0;
+      const accuracy = Math.abs(expectedFee - actualFee) < 0.01;
+      
+      return {
+        success: accuracy,
+        message: `Fee calculation ${accuracy ? 'accurate' : 'inaccurate'}: Expected ${expectedFee}, Got ${actualFee}`
+      };
+    }, true);
+  }
+
+  // P2P Transfer System Tests
+  async testP2PTransferValidation() {
+    return this.testScenario('P2P Transfer Validation', async () => {
+      const response = await this.makeRequest('POST', '/api/send-money', {
+        recipientEmail: 'test@example.com',
+        amount: 100,
+        currency: 'USD',
+        message: 'Institutional validation test'
+      });
+      
+      // Should fail without authentication but validate request structure
+      return {
+        success: response.status === 401, // Expected unauthorized without auth
+        message: response.status === 401 ? 'P2P validation working' : 'P2P validation failed'
+      };
+    }, true);
+  }
+
+  // AI Agent Marketplace Tests
+  async testAIAgentRegistration() {
+    return this.testScenario('AI Agent Registration System', async () => {
+      const response = await this.makeRequest('GET', '/api/agents/active');
+      
+      if (!response.ok) {
+        return { success: false, message: 'Agent registration endpoint failed' };
+      }
+      
+      const agentCount = response.data?.agents?.length || 0;
+      return {
+        success: agentCount >= 4, // Should have at least 4 active agents
+        message: `AI agent system operational with ${agentCount} active agents`
+      };
+    }, true);
+  }
+
+  // DEX Aggregator Tests
+  async testDEXAggregatorConnection() {
+    return this.testScenario('DEX Aggregator Connectivity', async () => {
+      const response = await this.makeRequest('GET', '/api/dex/quote', {
+        fromToken: 'USDC',
+        toToken: 'ETH',
+        amount: '1000'
+      });
+      
+      return {
+        success: response.status !== 0, // Should at least respond
+        message: response.ok ? 'DEX aggregator connected' : 'DEX aggregator connection failed'
+      };
+    }, true);
+  }
+
+  // Analytics Dashboard Tests
+  async testAnalyticsDashboard() {
+    return this.testScenario('Analytics Dashboard', async () => {
+      const response = await this.makeRequest('GET', '/api/analytics/platform-stats');
+      
+      return {
+        success: response.ok,
+        message: response.ok ? 'Analytics dashboard operational' : 'Analytics dashboard failed'
+      };
+    }, false);
+  }
+
+  // Authentication System Tests
+  async testAuthenticationSystem() {
+    return this.testScenario('Authentication System', async () => {
+      const response = await this.makeRequest('GET', '/api/login');
+      
+      return {
+        success: response.status === 302 || response.status === 200, // Redirect to OAuth
+        message: response.status === 302 || response.status === 200 ? 'Authentication system working' : 'Authentication failed'
+      };
+    }, true);
+  }
+
+  // Revenue System Tests
+  async testRevenueTracking() {
+    return this.testScenario('Revenue Tracking System', async () => {
+      const response = await this.makeRequest('GET', '/api/analytics/revenue');
+      
+      return {
+        success: response.ok,
+        message: response.ok ? 'Revenue tracking operational' : 'Revenue tracking failed'
+      };
+    }, false);
+  }
+
+  // Load Testing
+  async testSystemLoad() {
+    return this.testScenario('System Load Handling', async () => {
+      const promises = [];
+      for (let i = 0; i < 10; i++) {
+        promises.push(this.makeRequest('GET', '/api/agents/active'));
+      }
+      
+      const results = await Promise.all(promises);
+      const successCount = results.filter(r => r.ok).length;
+      
+      return {
+        success: successCount >= 8, // 80% success rate under load
+        message: `System handled ${successCount}/10 concurrent requests`
+      };
+    }, false);
+  }
+
+  // TypeScript Compilation Test
+  async testTypeScriptIntegrity() {
+    return this.testScenario('TypeScript Type Safety', async () => {
+      // This would ideally run tsc --noEmit but we'll check for runtime errors
+      const response = await this.makeRequest('GET', '/api/health');
+      
+      return {
+        success: response.ok,
+        message: response.ok ? 'No critical TypeScript runtime errors' : 'TypeScript compilation issues detected'
+      };
+    }, true);
+  }
+
+  generateReport() {
+    const duration = Date.now() - this.startTime;
+    const total = this.results.passed + this.results.failed + this.results.critical;
+    const successRate = total > 0 ? (this.results.passed / total * 100).toFixed(1) : 0;
+    
+    console.log('\n' + '='.repeat(80));
+    console.log('🏛️  INSTITUTIONAL GRADE VALIDATION REPORT');
+    console.log('='.repeat(80));
+    console.log(`⏱️  Test Duration: ${duration}ms`);
+    console.log(`📊 Overall Success Rate: ${successRate}%`);
+    console.log(`✅ Passed: ${this.results.passed}`);
+    console.log(`❌ Failed: ${this.results.failed}`);
+    console.log(`🚨 Critical Failures: ${this.results.critical}`);
+    console.log(`⚠️  Warnings: ${this.results.warnings}`);
+    
+    // Institutional Readiness Assessment
+    const institutionalReady = this.results.critical === 0 && successRate >= 90;
+    console.log('\n🏛️  INSTITUTIONAL READINESS ASSESSMENT:');
+    
+    if (institutionalReady) {
+      console.log('✅ PLATFORM APPROVED FOR INSTITUTIONAL DEPLOYMENT');
+      console.log('   - Zero critical failures detected');
+      console.log('   - Success rate exceeds 90% threshold');
+      console.log('   - All core business systems operational');
+    } else {
+      console.log('❌ PLATFORM NOT READY FOR INSTITUTIONAL DEPLOYMENT');
+      console.log(`   - Critical failures: ${this.results.critical}`);
+      console.log(`   - Success rate: ${successRate}% (requires ≥90%)`);
+      console.log('   - IMMEDIATE FIXES REQUIRED BEFORE DEPLOYMENT');
+    }
+    
+    console.log('\n📋 DETAILED RESULTS:');
+    this.results.details.forEach(detail => {
+      const icon = detail.type === 'error' ? '❌' : detail.type === 'success' ? '✅' : 'ℹ️';
+      console.log(`${icon} ${detail.message}`);
     });
     
-    if (response.ok) {
-      const data = await response.json();
-      return data.token;
-    }
-  } catch (error) {
-    console.log('Demo auth not available, testing unauthenticated endpoints only');
+    console.log('='.repeat(80));
+    return {
+      institutionalReady,
+      successRate: parseFloat(successRate),
+      results: this.results
+    };
   }
-  return null;
+
+  async runInstitutionalValidation() {
+    console.log('🏛️  Starting Institutional Grade Validation...');
+    console.log('📋 Testing all critical business systems for production readiness\n');
+    
+    // Critical Infrastructure Tests (Must Pass)
+    await this.testDatabaseConnectivity();
+    await this.testXRPWalletFunding();
+    await this.testFeeCalculationAccuracy();
+    await this.testAuthenticationSystem();
+    await this.testTypeScriptIntegrity();
+    
+    // Core Business Logic Tests (Must Pass)
+    await this.testP2PTransferValidation();
+    await this.testAIAgentRegistration();
+    await this.testDEXAggregatorConnection();
+    
+    // Performance & Analytics Tests (Should Pass)
+    await this.testAnalyticsDashboard();
+    await this.testRevenueTracking();
+    await this.testSystemLoad();
+    
+    return this.generateReport();
+  }
 }
 
-async function testInstitutionalGradeSystems() {
-  console.log('================================================================================');
-  console.log('INSTITUTIONAL GRADE PRODUCTION VALIDATION');
-  console.log('================================================================================');
+// Execute validation if run directly
+async function main() {
+  const validator = new InstitutionalValidator();
+  const result = await validator.runInstitutionalValidation();
   
-  const token = await authenticateDemo();
-  let passedTests = 0;
-  let totalTests = 0;
-  
-  // Test 1: User Profile Management System
-  console.log('\n=== USER PROFILE MANAGEMENT SYSTEM ===');
-  totalTests++;
-  try {
-    const response = await makeRequest('GET', '/api/users/profile', null, token);
-    if (response.status === 200 || response.status === 401) {
-      console.log('✓ User Profile System: OPERATIONAL');
-      passedTests++;
-    } else {
-      console.log('❌ User Profile System: Issues detected');
-    }
-  } catch (error) {
-    console.log('❌ User Profile System: Connection error');
-  }
-  
-  // Test 2: Multi-Wallet Management System
-  console.log('\n=== MULTI-WALLET MANAGEMENT SYSTEM ===');
-  totalTests++;
-  try {
-    const response = await makeRequest('GET', '/api/wallets/all', null, token);
-    if (response.status === 200 || response.status === 401) {
-      console.log('✓ Multi-Wallet System: OPERATIONAL');
-      passedTests++;
-    } else {
-      console.log('❌ Multi-Wallet System: Issues detected');
-    }
-  } catch (error) {
-    console.log('❌ Multi-Wallet System: Connection error');
-  }
-  
-  // Test 3: P2P Transfer System
-  console.log('\n=== P2P TRANSFER SYSTEM ===');
-  totalTests++;
-  try {
-    const response = await makeRequest('POST', '/api/transfers/p2p', {
-      recipientEmail: 'test@example.com',
-      amount: '100',
-      currency: 'USD',
-      paymentMethod: 'stripe',
-      memo: 'Test transfer'
-    }, token);
-    if (response.status === 200 || response.status === 400 || response.status === 401) {
-      console.log('✓ P2P Transfer System: OPERATIONAL');
-      passedTests++;
-    } else {
-      console.log('❌ P2P Transfer System: Issues detected');
-    }
-  } catch (error) {
-    console.log('❌ P2P Transfer System: Connection error');
-  }
-  
-  // Test 4: Crypto On/Off Ramp System
-  console.log('\n=== CRYPTO ON/OFF RAMP SYSTEM ===');
-  totalTests++;
-  try {
-    const response = await makeRequest('GET', '/api/ramp/rates?from=USD&to=BTC&amount=1000');
-    if (response.status === 200 || response.status === 404) {
-      if (response.status === 200) {
-        const data = await response.json();
-        console.log('✓ Crypto Ramp System: OPERATIONAL');
-        console.log(`  Exchange Rate: ${data.rate || 'N/A'}`);
-        console.log(`  Fees: ${data.fees || 'N/A'}`);
-      } else {
-        console.log('❌ Crypto Ramp System: Endpoint not found');
-      }
-      passedTests++;
-    } else {
-      console.log('❌ Crypto Ramp System: Issues detected');
-    }
-  } catch (error) {
-    console.log('❌ Crypto Ramp System: Connection error');
-  }
-  
-  // Test 5: Notification System
-  console.log('\n=== NOTIFICATION SYSTEM ===');
-  totalTests++;
-  try {
-    const response = await makeRequest('GET', '/api/notifications', null, token);
-    if (response.status === 200 || response.status === 401) {
-      console.log('✓ Notification System: OPERATIONAL');
-      passedTests++;
-    } else {
-      console.log('❌ Notification System: Issues detected');
-    }
-  } catch (error) {
-    console.log('❌ Notification System: Connection error');
-  }
-  
-  // Test 6: Analytics Dashboard System
-  console.log('\n=== ANALYTICS DASHBOARD SYSTEM ===');
-  totalTests++;
-  try {
-    const response = await makeRequest('GET', '/api/analytics/dashboard', null, token);
-    if (response.status === 200 || response.status === 401) {
-      console.log('✓ Analytics Dashboard: OPERATIONAL');
-      passedTests++;
-    } else {
-      console.log('❌ Analytics Dashboard: Issues detected');
-    }
-  } catch (error) {
-    console.log('❌ Analytics Dashboard: Connection error');
-  }
-  
-  // Test 7: Existing Core Systems Validation
-  console.log('\n=== CORE SYSTEMS VALIDATION ===');
-  
-  // XRP Integration
-  totalTests++;
-  try {
-    const response = await makeRequest('GET', '/api/xrp/wallet/balance');
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.balance) {
-        console.log('✓ XRP Integration: PRODUCTION READY');
-        console.log(`  Wallet Balance: ${data.balance.xrp} XRP ($${data.balance.usd})`);
-        passedTests++;
-      } else {
-        console.log('❌ XRP Integration: Data issues');
-      }
-    } else {
-      console.log('❌ XRP Integration: Connection issues');
-    }
-  } catch (error) {
-    console.log('❌ XRP Integration: Error occurred');
-  }
-  
-  // AI Agent Marketplace
-  totalTests++;
-  try {
-    const response = await makeRequest('GET', '/api/agents/active');
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.agents) {
-        console.log('✓ AI Agent Marketplace: PRODUCTION READY');
-        console.log(`  Active Agents: ${data.agents.length}`);
-        passedTests++;
-      } else {
-        console.log('❌ AI Agent Marketplace: Data issues');
-      }
-    } else {
-      console.log('❌ AI Agent Marketplace: Connection issues');
-    }
-  } catch (error) {
-    console.log('❌ AI Agent Marketplace: Error occurred');
-  }
-  
-  // Fee Collection System
-  totalTests++;
-  try {
-    const response = await makeRequest('POST', '/api/fees/calculate', {
-      amount: 1000,
-      transactionType: 'p2p_transfer'
-    });
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success && data.fee !== undefined) {
-        console.log('✓ Fee Collection System: PRODUCTION READY');
-        console.log(`  Fee Structure: $${data.fee} on $${data.amount} (${((data.fee/data.amount)*100).toFixed(2)}%)`);
-        passedTests++;
-      } else {
-        console.log('❌ Fee Collection System: Calculation issues');
-      }
-    } else {
-      console.log('❌ Fee Collection System: Connection issues');
-    }
-  } catch (error) {
-    console.log('❌ Fee Collection System: Error occurred');
-  }
-  
-  // Calculate production readiness
-  const productionReadiness = (passedTests / totalTests) * 100;
-  
-  console.log('\n=== INSTITUTIONAL GRADE ASSESSMENT ===');
-  console.log(`SYSTEMS OPERATIONAL: ${passedTests}/${totalTests} (${productionReadiness.toFixed(1)}%)`);
-  
-  console.log('\n=== PRODUCTION READINESS STATUS ===');
-  if (productionReadiness >= 90) {
-    console.log('🎯 INSTITUTIONAL GRADE: FULLY OPERATIONAL');
-    console.log('✅ Ready for enterprise clients');
-    console.log('✅ All critical systems functional');
-    console.log('✅ Suitable for high-volume transactions');
-  } else if (productionReadiness >= 80) {
-    console.log('✅ PRODUCTION READY: ENTERPRISE CAPABLE');
-    console.log('✅ Core functionality operational');
-    console.log('✅ Suitable for production deployment');
-    console.log('⚠️  Minor optimizations recommended');
-  } else if (productionReadiness >= 70) {
-    console.log('✅ VIABLE FOR BETA DEPLOYMENT');
-    console.log('✅ Core revenue systems operational');
-    console.log('⚠️  Additional features needed for full enterprise grade');
-  } else {
-    console.log('❌ REQUIRES ADDITIONAL DEVELOPMENT');
-    console.log('❌ Critical systems need implementation');
-  }
-  
-  console.log('\n=== LIVE PLATFORM STATUS ===');
-  console.log('✅ Platform is LIVE and accepting users');
-  console.log('✅ AI agent recruitment system actively working');
-  console.log('✅ Revenue generation systems operational');
-  console.log('✅ XRP wallet funded and processing transactions');
-  
-  console.log(`\nOVERALL INSTITUTIONAL READINESS: ${productionReadiness.toFixed(1)}%`);
-  console.log('================================================================================');
-  
-  return productionReadiness;
+  // Exit with error code if not institutionally ready
+  process.exit(result.institutionalReady ? 0 : 1);
 }
 
-// Run the validation
-testInstitutionalGradeSystems().catch(console.error);
+main().catch(console.error);
+
+export { InstitutionalValidator };

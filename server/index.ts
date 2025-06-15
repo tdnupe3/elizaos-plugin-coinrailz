@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
-import { stability } from "./stability";
+import { stability } from './stability';
+import { stabilityManager } from './services/stabilityManager';
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -65,8 +66,9 @@ function log(req: Request, res: Response, next: NextFunction) {
 
 app.use(log);
 
-// Initialize comprehensive stability system
+// Initialize stability system
 stability.setupGlobalHandlers();
+const stableManager = stabilityManager;
 console.log('Stability Manager activated - crash prevention enabled');
 
 let httpServer: any;
@@ -141,7 +143,7 @@ process.on('SIGINT', () => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
       console.error(status + ': ' + message);
-      
+
       if (!res.headersSent) {
         res.status(status).json({ message });
       }
@@ -150,10 +152,10 @@ process.on('SIGINT', () => {
     // Production-ready port configuration - always use 0.0.0.0 for deployment
     const port = parseInt(process.env.PORT || '5000', 10);
     const host = '0.0.0.0'; // Always bind to all interfaces for Cloud Run
-    
+
     httpServer.listen(port, host, () => {
       console.log(`Server running on ${host}:${port} (${process.env.NODE_ENV || 'development'})`);
-      
+
       // Production health monitoring
       if (process.env.NODE_ENV === 'production') {
         setInterval(() => {

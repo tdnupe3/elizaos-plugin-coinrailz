@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -152,35 +152,33 @@ function Router() {
         {() => <LazyLoadWrapper><BuySellPage /></LazyLoadWrapper>}
       </Route>
 
-      {/* Regular routes */}
-      {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
-      ) : (
-        <>
-          <Route path="/" component={MainMenu} />
-          <Route path="/crypto">
-            {() => <LazyLoadWrapper><CryptoWallet /></LazyLoadWrapper>}
-          </Route>
-          <Route path="/history">
-            {() => <LazyLoadWrapper><TransactionHistory /></LazyLoadWrapper>}
-          </Route>
-          <Route path="/funds">
-            {() => <LazyLoadWrapper><FundsManagement /></LazyLoadWrapper>}
-          </Route>
-          <Route path="/referrals">
-            {() => <LazyLoadWrapper><Referrals /></LazyLoadWrapper>}
-          </Route>
-          <Route path="/human-referrals">
-            {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
-          </Route>
-          <Route path="/human-referral-dashboard">
-            {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
-          </Route>
-          <Route path="/settings">
-            {() => <LazyLoadWrapper><SettingsPage /></LazyLoadWrapper>}
-          </Route>
-        </>
-      )}
+      {/* Main route - conditional based on auth */}
+      <Route path="/">
+        {() => isLoading || !isAuthenticated ? <Landing /> : <MainMenu />}
+      </Route>
+      
+      {/* Authenticated routes */}
+      <Route path="/crypto">
+        {() => <LazyLoadWrapper><CryptoWallet /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/history">
+        {() => <LazyLoadWrapper><TransactionHistory /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/funds">
+        {() => <LazyLoadWrapper><FundsManagement /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/referrals">
+        {() => <LazyLoadWrapper><Referrals /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/human-referrals">
+        {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/human-referral-dashboard">
+        {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/settings">
+        {() => <LazyLoadWrapper><SettingsPage /></LazyLoadWrapper>}
+      </Route>
       <Route component={NotFound} />
       </Switch>
 
@@ -204,7 +202,9 @@ function App() {
       <TooltipProvider>
         <ErrorBoundary>
           <Toaster />
-          <Router />
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Router />
+          </Suspense>
         </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>

@@ -1,51 +1,16 @@
 {
-  "timestamp": "2025-06-15T01:31:18.554Z",
+  "timestamp": "2025-06-15T01:34:23.491Z",
   "summary": {
-    "totalErrors": 7,
-    "totalWarnings": 52,
+    "totalErrors": 2,
+    "totalWarnings": 51,
     "routesFound": 313,
-    "componentsFound": 37
+    "componentsFound": 36
   },
   "criticalIssues": [
-    {
-      "category": "ERROR_HANDLING",
-      "description": "Missing uncaught exception handler",
-      "file": "server/index.ts",
-      "line": null,
-      "severity": "HIGH"
-    },
-    {
-      "category": "SHUTDOWN",
-      "description": "Missing graceful shutdown handlers",
-      "file": "server/index.ts",
-      "line": null,
-      "severity": "HIGH"
-    },
-    {
-      "category": "DB_ERROR_HANDLING",
-      "description": "Missing database pool error handling",
-      "file": "server/db.ts",
-      "line": null,
-      "severity": "HIGH"
-    },
     {
       "category": "DB_ERROR",
       "description": "Database operations without proper error handling",
       "file": "server/routes.ts",
-      "line": null,
-      "severity": "HIGH"
-    },
-    {
-      "category": "LAZY_LOADING",
-      "description": "LazyLoadWrapper used without Suspense boundary",
-      "file": "client/src/App.tsx",
-      "line": null,
-      "severity": "HIGH"
-    },
-    {
-      "category": "ROUTING",
-      "description": "Duplicate routes found: /",
-      "file": "client/src/App.tsx",
       "line": null,
       "severity": "HIGH"
     },
@@ -58,12 +23,6 @@
     }
   ],
   "warnings": [
-    {
-      "category": "DB_TIMEOUT",
-      "description": "No connection timeout specified - may cause hanging connections",
-      "file": null,
-      "severity": "MEDIUM"
-    },
     {
       "category": "ROUTE_ERROR",
       "description": "Route handler 1 missing try/catch blocks",
@@ -1743,10 +1702,6 @@
       "type": "route"
     },
     {
-      "path": "/",
-      "type": "route"
-    },
-    {
       "path": "/crypto",
       "type": "route"
     },
@@ -1775,8 +1730,5 @@
       "type": "route"
     }
   ],
-  "recommendations": [
-    "Add comprehensive error handling and graceful shutdown",
-    "Implement database connection error recovery"
-  ]
+  "recommendations": []
 }

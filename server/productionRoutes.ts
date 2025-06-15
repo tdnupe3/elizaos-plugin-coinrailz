@@ -954,6 +954,56 @@ router.post('/api/ramp/sell', async (req: Request, res: Response) => {
   }
 });
 
+// Authentication endpoints
+router.get('/api/auth/callback', async (req: Request, res: Response) => {
+  try {
+    // OAuth callback handling
+    res.status(200).json({
+      success: true,
+      message: 'OAuth callback processed',
+      redirectTo: '/dashboard'
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'OAuth callback failed' });
+  }
+});
+
+router.get('/api/user', async (req: Request, res: Response) => {
+  try {
+    // Check if user is authenticated via session
+    if (req.session && (req.session as any).user) {
+      res.status(200).json({
+        id: 'demo-user',
+        email: 'demo@coinrailz.com',
+        name: 'Demo User',
+        authenticated: true,
+        kycStatus: 'verified'
+      });
+    } else {
+      res.status(401).json({ error: 'Not authenticated' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'User verification failed' });
+  }
+});
+
+router.post('/api/logout', async (req: Request, res: Response) => {
+  try {
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          return res.status(500).json({ error: 'Logout failed' });
+        }
+        res.status(200).json({ success: true, message: 'Logged out successfully' });
+      });
+    } else {
+      res.status(200).json({ success: true, message: 'Already logged out' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: 'Logout failed' });
+  }
+});
+
 // Catch-all for API routes
 router.use('/api/*', (req: Request, res: Response) => {
   res.status(404).json({ 

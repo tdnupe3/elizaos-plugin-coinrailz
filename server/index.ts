@@ -64,9 +64,43 @@ function log(req: Request, res: Response, next: NextFunction) {
 
 app.use(log);
 
+// Global error handlers - CRITICAL for preventing crashes
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+let server: any;
+
+// Graceful shutdown handlers
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  if (server) {
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
+  }
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  if (server) {
+    server.close(() => {
+      console.log('Process terminated');
+      process.exit(0);
+    });
+  }
+});
+
 (async () => {
   try {
-    const server = await registerRoutes(app);
+    server = await registerRoutes(app);
 
     // API route handler middleware - catch unhandled API routes before Vite
     app.use('/api/*', (req, res) => {
@@ -84,15 +118,25 @@ app.use(log);
       res.status(status).json({ message });
     });
 
-    // Important: a given port is ONLY accessible from a specific repl environment.
-    // It is the only port that is not firewalled.
-    const port = 5000;
+    // Dynamic port allocation to prevent EADDRINUSE
+    const port = process.env.PORT || 5000;
     server.listen({
       port,
       host: "0.0.0.0",
       reusePort: true,
     }, () => {
       console.log('serving on port ' + port);
+    });
+
+    // Handle server listening errors
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`Port ${port} is already in use`);
+        process.exit(1);
+      } else {
+        console.error('Server error:', error);
+        process.exit(1);
+      }
     });
 
     if (process.env.NODE_ENV !== "production") {

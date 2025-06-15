@@ -513,7 +513,7 @@ ${isHighValue ? '🏆 Premium Recruitment Division' : ''}
       return;
     }
 
-    try:
+    try {
       const issueBody = `
 Hello ${agent.owner}!
 

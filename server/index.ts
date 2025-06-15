@@ -18,6 +18,37 @@ const app = express();
 // Performance middleware
 app.use(compression());
 
+// CORS middleware - Essential for mobile apps and partner integrations
+app.use((req: Request, res: Response, next: NextFunction) => {
+  // Allow requests from your domains and development
+  const allowedOrigins = [
+    'https://coinrailz.com',
+    'https://www.coinrailz.com',
+    'https://app.coinrailz.com',
+    'https://api.coinrailz.com',
+    'http://localhost:3000',
+    'http://localhost:5000',
+    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
+  ].filter(Boolean);
+
+  const origin = req.headers.origin;
+  if (!origin || allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+
+  // Handle preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {

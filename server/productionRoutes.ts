@@ -139,11 +139,11 @@ router.post('/api/referrals/calculate-commission', async (req: Request, res: Res
       return res.status(400).json({ error: 'Invalid transaction amount' });
     }
     
-    // Profitable commission rates (0.3-0.6%)
+    // Profitable commission rates (0.3-0.5%)
     const commissionRates = {
       basic: 0.003, // 0.3%
       premium: 0.005, // 0.5%
-      enterprise: 0.006 // 0.6%
+      enterprise: 0.005 // 0.5%
     };
     
     const rate = commissionRates[referralTier as keyof typeof commissionRates] || commissionRates.basic;

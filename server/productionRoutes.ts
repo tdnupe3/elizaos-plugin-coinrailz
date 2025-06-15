@@ -18,13 +18,16 @@ router.get('/health', (req: Request, res: Response) => {
 // Essential API endpoints only
 router.get('/api/demo/user', async (req: Request, res: Response) => {
   try {
-    res.json({
+    // Explicitly set JSON response headers
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json({
       id: 'demo-user',
       name: 'Demo User',
       email: 'demo@coinrailz.com',
       balance: 1000
     });
   } catch (error) {
+    res.setHeader('Content-Type', 'application/json');
     res.status(500).json({ error: 'Internal server error' });
   }
 });

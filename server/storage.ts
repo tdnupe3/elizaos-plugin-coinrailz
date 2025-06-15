@@ -98,6 +98,7 @@ export interface IStorage {
   getUserAgents(userId: string): Promise<any[]>;
   getGlobalAIAgent(agentId: string): Promise<any>;
   createGlobalAIAgent(agentData: any): Promise<any>;
+  updateGlobalAIAgent(agentId: string, updateData: any): Promise<any>;
   
   // Analytics operations
   getUserCount(): Promise<number>;
@@ -556,6 +557,15 @@ export class DatabaseStorage implements IStorage {
 
   async createGlobalAIAgent(agentData: any): Promise<any> {
     const [agent] = await db.insert(globalAIAgents).values(agentData).returning();
+    return agent;
+  }
+
+  async updateGlobalAIAgent(agentId: string, updateData: any): Promise<any> {
+    const [agent] = await db
+      .update(globalAIAgents)
+      .set(updateData)
+      .where(eq(globalAIAgents.id, agentId))
+      .returning();
     return agent;
   }
 

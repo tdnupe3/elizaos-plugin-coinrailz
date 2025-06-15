@@ -2171,7 +2171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           agentId,
           serviceType,
           serviceAmount: serviceAmount.toString(),
-          platformFee: (feeCalculation.totalFee || feeCalculation.fee || 0).toString(),
+          platformFee: feeCalculation.totalFee.toString(),
           type: "ai_agent_service"
         },
       });
@@ -2246,15 +2246,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate fees based on payment type
       let feeCalculation;
+      let totalAmount;
+      
       if (type === 'p2p_transfer') {
         feeCalculation = FeeCalculator.calculateSendMoneyFee(validatedAmount);
+        totalAmount = feeCalculation.totalAmount;
       } else if (type === 'ai_agent_service') {
-        feeCalculation = { fee: validatedAmount * 0.02, total: validatedAmount * 1.02 };
+        const serviceFee = validatedAmount * 0.02;
+        feeCalculation = { 
+          originalAmount: validatedAmount,
+          processingFee: 0,
+          convenienceFee: 0,
+          platformFee: serviceFee,
+          totalFee: serviceFee,
+          totalAmount: validatedAmount + serviceFee,
+          netAmount: validatedAmount,
+          paymentMethod: 'paypal'
+        };
+        totalAmount = feeCalculation.totalAmount;
       } else {
-        feeCalculation = { fee: 0, total: validatedAmount };
+        feeCalculation = { 
+          originalAmount: validatedAmount,
+          processingFee: 0,
+          convenienceFee: 0,
+          platformFee: 0,
+          totalFee: 0,
+          totalAmount: validatedAmount,
+          netAmount: validatedAmount,
+          paymentMethod: 'paypal'
+        };
+        totalAmount = feeCalculation.totalAmount;
       }
-
-      const totalAmount = validatedAmount + (feeCalculation.totalFee || feeCalculation.fee || 0);
 
       const order = await paypalService.createOrder({
         amount: totalAmount,
@@ -6748,9 +6770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency,
         transactionType: 'crypto_purchase',
         status: 'processing',
-        paymentMethod,
-        fees: fees.toString(),
-        createdAt: new Date()
+        platformFee: fees.toString()
       });
 
       // Update user wallet
@@ -6816,9 +6836,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         currency,
         transactionType: 'crypto_sale',
         status: 'processing',
-        paymentMethod: withdrawalMethod,
-        fees: fees.toString(),
-        createdAt: new Date()
+        platformFee: fees.toString()
       });
 
       // Update user wallet

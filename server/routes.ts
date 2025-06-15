@@ -1162,12 +1162,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         transaction: transaction,
         feeBreakdown: {
-          amount: feeCalculation.amount,
+          amount: feeCalculation.originalAmount,
           platformFee: feeCalculation.platformFee,
-          gasFee: feeCalculation.gasFee,
+          gasFee: feeCalculation.feeBreakdown?.networkFee || 0,
           totalFees: feeCalculation.totalFee,
           netAmount: feeCalculation.netAmount,
-          currency: feeCalculation.currency,
+          currency: feeCalculation.paymentMethod,
           feeWallet: FeeCalculator.getFeeWalletAddress(transactionData.currency)
         },
         message: "Transaction initiated successfully"
@@ -2171,7 +2171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           agentId,
           serviceType,
           serviceAmount: serviceAmount.toString(),
-          platformFee: feeCalculation.fee.toString(),
+          platformFee: feeCalculation.totalFee.toString(),
           type: "ai_agent_service"
         },
       });
@@ -7871,7 +7871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create paid trial session - $49 for 100 queries
       const stripe = (await import('stripe')).default;
       const stripeInstance = new stripe(process.env.STRIPE_SECRET_KEY!, {
-        apiVersion: '2023-10-16',
+        apiVersion: '2023-10-16' as any,
       });
       
       const apiKey = `TRIAL_${Date.now()}_${Math.random().toString(36).substr(2, 8).toUpperCase()}`;

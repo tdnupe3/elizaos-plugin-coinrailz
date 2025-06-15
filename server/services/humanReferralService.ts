@@ -20,11 +20,19 @@ export interface HumanReferralCommission {
 
 export class HumanReferralService {
   private static readonly COMMISSION_RATES = {
-    firstTransaction: 0.05, // 5% for first qualifying transaction
-    ongoingTransaction: 0.02, // 2% for subsequent transactions
-    minimumTransaction: 10, // $10 minimum to qualify
-    maximumCommission: 50, // $50 max per transaction
-    minimumCommission: 1 // $1 minimum commission
+    // Profitable commission structure - all transactions generate net positive revenue
+    // Platform fee is 1%, commission structure ensures 60-70% margin retention
+    baseCommissionRate: 0.003, // 0.3% base commission (30% of 1% platform fee)
+    firstTransactionBonus: 0.001, // Additional 0.1% for first transaction only
+    volumeMultiplier: {
+      tier1: { min: 50, max: 250, multiplier: 1.0 },    // 0.3% for $50-$250
+      tier2: { min: 250, max: 1000, multiplier: 1.33 }, // 0.4% for $250-$1,000  
+      tier3: { min: 1000, max: 5000, multiplier: 1.67 }, // 0.5% for $1,000-$5,000
+      tier4: { min: 5000, max: Infinity, multiplier: 2.0 } // 0.6% for $5,000+
+    },
+    minimumTransaction: 50, // $50 minimum to qualify (ensures meaningful revenue)
+    maximumCommission: 15, // $15 max per transaction (prevents excessive payouts)
+    minimumCommission: 0.15 // $0.15 minimum commission
   };
 
   /**
@@ -154,11 +162,27 @@ export class HumanReferralService {
         };
       }
 
-      // Determine commission rate
+      // Determine commission rate using new profitable structure
       const isFirstTransaction = !referredUser.hasCompletedQualifyingTransaction;
-      const commissionRate = isFirstTransaction 
-        ? this.COMMISSION_RATES.firstTransaction 
-        : this.COMMISSION_RATES.ongoingTransaction;
+      
+      // Calculate base commission rate based on transaction tier
+      let commissionRate = this.COMMISSION_RATES.baseCommissionRate;
+      const rates = this.COMMISSION_RATES.volumeMultiplier;
+      
+      if (transactionAmountNum >= rates.tier4.min) {
+        commissionRate *= rates.tier4.multiplier;
+      } else if (transactionAmountNum >= rates.tier3.min) {
+        commissionRate *= rates.tier3.multiplier;
+      } else if (transactionAmountNum >= rates.tier2.min) {
+        commissionRate *= rates.tier2.multiplier;
+      } else {
+        commissionRate *= rates.tier1.multiplier;
+      }
+      
+      // Add first transaction bonus
+      if (isFirstTransaction) {
+        commissionRate += this.COMMISSION_RATES.firstTransactionBonus;
+      }
 
       // Calculate commission amount
       let commissionAmount = transactionAmountNum * commissionRate;
@@ -224,21 +248,37 @@ export class HumanReferralService {
    * Calculate commission amount based on transaction amount and type
    */
   static async calculateCommission(transactionAmount: number, isFirstTransaction: boolean): Promise<number> {
-    // Minimum transaction amount for commission
-    if (transactionAmount < 10) {
+    // Check minimum transaction amount
+    if (transactionAmount < this.COMMISSION_RATES.minimumTransaction) {
       return 0;
     }
 
-    // Commission rates
-    const firstTransactionRate = 0.05; // 5%
-    const ongoingTransactionRate = 0.02; // 2%
-    const maxCommissionPerTransaction = 50; // $50 maximum
-
-    const rate = isFirstTransaction ? firstTransactionRate : ongoingTransactionRate;
-    const commission = transactionAmount * rate;
-
-    // Apply maximum commission cap
-    return Math.min(commission, maxCommissionPerTransaction);
+    // Calculate base commission rate based on transaction tier
+    let commissionRate = this.COMMISSION_RATES.baseCommissionRate;
+    const rates = this.COMMISSION_RATES.volumeMultiplier;
+    
+    if (transactionAmount >= rates.tier4.min) {
+      commissionRate *= rates.tier4.multiplier;
+    } else if (transactionAmount >= rates.tier3.min) {
+      commissionRate *= rates.tier3.multiplier;
+    } else if (transactionAmount >= rates.tier2.min) {
+      commissionRate *= rates.tier2.multiplier;
+    } else {
+      commissionRate *= rates.tier1.multiplier;
+    }
+    
+    // Add first transaction bonus
+    if (isFirstTransaction) {
+      commissionRate += this.COMMISSION_RATES.firstTransactionBonus;
+    }
+    
+    let commission = transactionAmount * commissionRate;
+    
+    // Apply limits
+    commission = Math.min(commission, this.COMMISSION_RATES.maximumCommission);
+    commission = Math.max(commission, this.COMMISSION_RATES.minimumCommission);
+    
+    return commission;
   }
 
   /**

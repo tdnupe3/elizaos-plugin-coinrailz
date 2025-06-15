@@ -193,8 +193,8 @@ export default function HumanReferralDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5%</div>
-            <p className="text-xs text-muted-foreground">First transaction bonus</p>
+            <div className="text-2xl font-bold">0.3-0.6%</div>
+            <p className="text-xs text-muted-foreground">Tiered by volume</p>
           </CardContent>
         </Card>
       </div>
@@ -204,7 +204,7 @@ export default function HumanReferralDashboard() {
         <CardHeader>
           <CardTitle>Your Referral Link</CardTitle>
           <CardDescription>
-            Share this link to earn 5% commission on first transactions and 2% on subsequent transactions
+            Share this link to earn tiered commissions: 0.3-0.6% based on transaction volume, plus 0.1% first-transaction bonus
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -316,34 +316,66 @@ export default function HumanReferralDashboard() {
       {/* Commission Structure */}
       <Card>
         <CardHeader>
-          <CardTitle>Commission Structure</CardTitle>
-          <CardDescription>How you earn money through referrals</CardDescription>
+          <CardTitle>Profitable Commission Structure</CardTitle>
+          <CardDescription>Sustainable tiered rates that grow with transaction volume</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium text-green-600">First Transaction Bonus</h4>
-              <p className="text-2xl font-bold">5%</p>
+              <h4 className="font-medium text-purple-600">Tier 1</h4>
+              <p className="text-xl font-bold">0.3%</p>
               <p className="text-sm text-muted-foreground">
-                Earn 5% commission when your referred user makes their first qualifying transaction ($10+ minimum)
+                $50 - $250 transactions
               </p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-medium text-blue-600">Ongoing Transactions</h4>
-              <p className="text-2xl font-bold">2%</p>
+              <h4 className="font-medium text-blue-600">Tier 2</h4>
+              <p className="text-xl font-bold">0.4%</p>
               <p className="text-sm text-muted-foreground">
-                Earn 2% commission on all subsequent transactions from your referred users
+                $250 - $1,000 transactions
               </p>
             </div>
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium text-orange-600">Tier 3</h4>
+              <p className="text-xl font-bold">0.5%</p>
+              <p className="text-sm text-muted-foreground">
+                $1,000 - $5,000 transactions
+              </p>
+            </div>
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium text-green-600">Tier 4</h4>
+              <p className="text-xl font-bold">0.6%</p>
+              <p className="text-sm text-muted-foreground">
+                $5,000+ transactions
+              </p>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
+            <h4 className="font-medium text-green-700 dark:text-green-300 mb-2">First Transaction Bonus</h4>
+            <p className="text-sm text-green-600 dark:text-green-400">
+              Earn an additional 0.1% commission on your referral's first qualifying transaction
+            </p>
           </div>
           
           <Separator />
           
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Minimum transaction amount: $10.00</p>
-            <p>• Maximum commission per transaction: $50.00</p>
-            <p>• Minimum withdrawal amount: $5.00</p>
-            <p>• Commissions are credited instantly when transactions complete</p>
+            <p>• Minimum transaction amount: $50.00 (ensures meaningful commissions)</p>
+            <p>• Maximum commission per transaction: $15.00 (sustainable cap)</p>
+            <p>• Minimum withdrawal amount: $2.50</p>
+            <p>• 100% profitable on every transaction - aligned with platform sustainability</p>
+            <p>• Higher volume transactions earn higher commission rates</p>
+          </div>
+          
+          <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h4 className="font-medium text-blue-700 dark:text-blue-300 mb-2">Example Earnings</h4>
+            <div className="text-sm space-y-1 text-blue-600 dark:text-blue-400">
+              <p>$100 transaction = $0.30 commission (first time: $0.40)</p>
+              <p>$500 transaction = $2.00 commission (first time: $2.50)</p>
+              <p>$2,000 transaction = $10.00 commission (first time: $12.00)</p>
+              <p>$10,000 transaction = $15.00 commission (capped, first time: $15.00)</p>
+            </div>
           </div>
         </CardContent>
       </Card>

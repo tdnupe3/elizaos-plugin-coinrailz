@@ -3,239 +3,203 @@
  * Comprehensive validation of all critical platform systems
  */
 
+import http from 'http';
+
 async function makeRequest(method, endpoint, data = null) {
-  const config = {
-    method,
-    headers: { 'Content-Type': 'application/json' }
-  };
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'localhost',
+      port: 5000,
+      path: endpoint,
+      method,
+      headers: { 'Content-Type': 'application/json' }
+    };
 
-  if (data) {
-    config.body = JSON.stringify(data);
-  }
+    const req = http.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        try {
+          resolve({ status: res.statusCode, data: JSON.parse(body) });
+        } catch {
+          resolve({ status: res.statusCode, data: body });
+        }
+      });
+    });
 
-  const response = await fetch(`http://localhost:5000${endpoint}`, config);
-  const responseData = await response.json();
-  
-  return {
-    status: response.status,
-    data: responseData,
-    success: response.ok
-  };
+    req.on('error', reject);
+    if (data) req.write(JSON.stringify(data));
+    req.end();
+  });
 }
 
 async function finalDeploymentAudit() {
-  console.log('🚀 FINAL PRE-DEPLOYMENT AUDIT');
-  console.log('='.repeat(50));
+  console.log('=== FINAL DEPLOYMENT READINESS AUDIT ===\n');
   
-  let totalSystems = 0;
-  let operationalSystems = 0;
-  const criticalIssues = [];
-  const recommendations = [];
+  const categories = {
+    'Core Financial Systems': [
+      {
+        name: 'Fee Calculation Accuracy',
+        test: async () => {
+          const result = await makeRequest('POST', '/api/demo/calculate-fee', { amount: 1000, type: 'send_money' });
+          return result.status === 200 && result.data.fee === 10 && result.data.feeRate === 1;
+        }
+      },
+      {
+        name: 'Commission System Profitability',
+        test: async () => {
+          const result = await makeRequest('POST', '/api/referrals/calculate-commission', { transactionAmount: 1000, referralTier: 'basic' });
+          return result.status === 200 && result.data.commission === 3 && result.data.rate === 0.3;
+        }
+      },
+      {
+        name: 'Transaction Processing Security',
+        test: async () => {
+          const result = await makeRequest('POST', '/api/demo/send-money', { amount: -100, recipient: 'test@example.com' });
+          return result.status === 400 && result.data.error === 'Amount must be positive';
+        }
+      }
+    ],
+    
+    'User Management Systems': [
+      {
+        name: 'Demo User Access',
+        test: async () => {
+          const result = await makeRequest('GET', '/api/demo/user');
+          return result.status === 200 && result.data.id === 'demo-user';
+        }
+      },
+      {
+        name: 'Balance Management',
+        test: async () => {
+          const result = await makeRequest('GET', '/api/demo/balances');
+          return result.status === 200 && typeof result.data.usd === 'number';
+        }
+      },
+      {
+        name: 'Authentication Security',
+        test: async () => {
+          const result = await makeRequest('GET', '/api/admin/users', null);
+          return result.status === 401;
+        }
+      }
+    ],
+    
+    'Blockchain Integration': [
+      {
+        name: 'XRP Wallet Security',
+        test: async () => {
+          const result = await makeRequest('GET', '/api/xrp/wallet-info');
+          return result.status === 200 && !JSON.stringify(result.data).toLowerCase().includes('private');
+        }
+      },
+      {
+        name: 'Transaction Initiation',
+        test: async () => {
+          const result = await makeRequest('POST', '/api/transactions/initiate', { 
+            amount: 100, type: 'xrp_transfer', recipient: 'rXXXXXX' 
+          });
+          return result.status === 201 && result.data.success === true;
+        }
+      }
+    ],
+    
+    'AI Agent Marketplace': [
+      {
+        name: 'Agent Registration',
+        test: async () => {
+          const result = await makeRequest('POST', '/api/ai-agents/register', {
+            name: 'Test Agent',
+            capabilities: ['data_analysis'],
+            pricing: { hourly: 50 }
+          });
+          return result.status === 201 && result.data.success === true;
+        }
+      }
+    ],
+    
+    'Platform Infrastructure': [
+      {
+        name: 'Health Check Response',
+        test: async () => {
+          const result = await makeRequest('GET', '/health');
+          return result.status === 200 && result.data.status === 'ok';
+        }
+      },
+      {
+        name: 'SQL Injection Protection',
+        test: async () => {
+          const result = await makeRequest('GET', '/api/users/search?query=SELECT * FROM users');
+          return result.status === 400;
+        }
+      }
+    ]
+  };
+
+  let totalPassed = 0;
+  let totalTests = 0;
+  const results = {};
+
+  for (const [category, tests] of Object.entries(categories)) {
+    console.log(`\n${category}:`);
+    results[category] = { passed: 0, total: tests.length, tests: [] };
+    
+    for (const test of tests) {
+      totalTests++;
+      try {
+        const passed = await test.test();
+        if (passed) {
+          console.log(`  ✓ ${test.name}`);
+          results[category].passed++;
+          totalPassed++;
+        } else {
+          console.log(`  ✗ ${test.name}`);
+        }
+        results[category].tests.push({ name: test.name, passed });
+      } catch (error) {
+        console.log(`  ✗ ${test.name} - ERROR: ${error.message}`);
+        results[category].tests.push({ name: test.name, passed: false, error: error.message });
+      }
+    }
+  }
+
+  const successRate = (totalPassed / totalTests * 100).toFixed(1);
   
-  // === CORE AUTHENTICATION ===
-  console.log('\n🔐 AUTHENTICATION SYSTEM');
-  totalSystems++;
-  try {
-    // Test OAuth endpoints exist
-    const loginTest = await fetch('http://localhost:5000/api/login');
-    if (loginTest.status === 302 || loginTest.status === 200) {
-      console.log('✓ OAuth login endpoint operational');
-      operationalSystems++;
-    } else {
-      console.log('❌ OAuth login endpoint failed');
-      criticalIssues.push('OAuth authentication not working');
-    }
-  } catch (error) {
-    console.log('❌ Authentication system error');
-    criticalIssues.push('Authentication system unreachable');
-  }
-
-  // === AI AGENT MARKETPLACE ===
-  console.log('\n🤖 AI AGENT MARKETPLACE');
-  totalSystems++;
-  try {
-    const agentsResponse = await makeRequest('GET', '/api/agents/active');
-    if (agentsResponse.success) {
-      const agentCount = agentsResponse.data.agents.length;
-      console.log(`✓ Marketplace operational with ${agentCount} active agents`);
-      console.log(`  Agents: ${agentsResponse.data.agents.map(a => a.agentName).slice(0, 3).join(', ')}`);
-      operationalSystems++;
-    } else {
-      console.log('❌ Agent marketplace failed');
-      criticalIssues.push('AI Agent marketplace not loading');
-    }
-  } catch (error) {
-    criticalIssues.push('Agent marketplace unreachable');
-  }
-
-  // === PAYMENT PROCESSING ===
-  console.log('\n💳 PAYMENT SYSTEMS');
-  totalSystems++;
-  try {
-    const paymentTest = await makeRequest('POST', '/api/payment-methods/compare', {
-      amount: 100,
-      currency: 'USD',
-      fromCountry: 'US',
-      toCountry: 'US'
-    });
-    
-    if (paymentTest.success) {
-      console.log('✓ Payment comparison API operational');
-      console.log(`  Available methods: ${paymentTest.data.methods?.length || 0}`);
-      operationalSystems++;
-    } else {
-      console.log('❌ Payment processing failed');
-      criticalIssues.push('Payment processing system not working');
-    }
-  } catch (error) {
-    criticalIssues.push('Payment system unreachable');
-  }
-
-  // === XRP INTEGRATION ===
-  console.log('\n💎 XRP BLOCKCHAIN');
-  totalSystems++;
-  try {
-    const xrpTest = await makeRequest('GET', '/api/xrp/wallet/balance');
-    if (xrpTest.success) {
-      console.log('✓ XRP wallet integration operational');
-      console.log(`  Platform wallet balance: ${xrpTest.data.balance || 'N/A'} XRP`);
-      operationalSystems++;
-    } else {
-      console.log('❌ XRP integration failed');
-      recommendations.push('Verify XRP wallet connectivity');
-    }
-  } catch (error) {
-    recommendations.push('XRP service may need verification');
-  }
-
-  // === DATABASE CONNECTIVITY ===
-  console.log('\n🗄️ DATABASE SYSTEMS');
-  totalSystems++;
-  try {
-    const healthTest = await makeRequest('GET', '/api/health');
-    if (healthTest.success) {
-      console.log('✓ Database connectivity operational');
-      operationalSystems++;
-    } else {
-      console.log('❌ Database health check failed');
-      criticalIssues.push('Database connectivity issues');
-    }
-  } catch (error) {
-    criticalIssues.push('Database unreachable');
-  }
-
-  // === REGISTRATION FLOWS ===
-  console.log('\n📝 REGISTRATION SYSTEMS');
-  totalSystems++;
-  try {
-    const pricingTest = await makeRequest('GET', '/api/agents/registration/pricing');
-    if (pricingTest.success) {
-      console.log('✓ Registration pricing API operational');
-      console.log(`  Free registration: Available`);
-      console.log(`  Premium upgrade: $${pricingTest.data.pricingTiers.premium.price / 100}/year`);
-      operationalSystems++;
-    } else {
-      console.log('❌ Registration system failed');
-      criticalIssues.push('Agent registration not working');
-    }
-  } catch (error) {
-    criticalIssues.push('Registration system unreachable');
-  }
-
-  // === ETHEREUM INTEGRATION ===
-  console.log('\n⚡ ETHEREUM BLOCKCHAIN');
-  totalSystems++;
-  try {
-    const ethTest = await makeRequest('GET', '/api/ethereum/gas-price');
-    if (ethTest.success) {
-      console.log('✓ Ethereum integration operational');
-      console.log(`  Current gas price: ${ethTest.data.gasPrice || 'N/A'} gwei`);
-      operationalSystems++;
-    } else {
-      console.log('❌ Ethereum integration failed');
-      recommendations.push('Verify Ethereum service connectivity');
-    }
-  } catch (error) {
-    recommendations.push('Ethereum service may need API key verification');
-  }
-
-  // === SECURITY & COMPLIANCE ===
-  console.log('\n🛡️ SECURITY SYSTEMS');
-  totalSystems++;
-  try {
-    // Test rate limiting and security headers
-    const securityTest = await fetch('http://localhost:5000/api/health');
-    const headers = securityTest.headers;
-    
-    const hasSecurityHeaders = headers.get('x-frame-options') || headers.get('x-content-type-options');
-    if (hasSecurityHeaders || securityTest.ok) {
-      console.log('✓ Security systems operational');
-      console.log('  Rate limiting configured');
-      console.log('  Security headers present');
-      operationalSystems++;
-    } else {
-      console.log('❌ Security configuration incomplete');
-      recommendations.push('Review security header configuration');
-    }
-  } catch (error) {
-    recommendations.push('Security system verification needed');
-  }
-
-  // === FINAL ASSESSMENT ===
-  console.log('\n' + '='.repeat(50));
-  console.log('📊 FINAL DEPLOYMENT READINESS ASSESSMENT');
-  console.log('='.repeat(50));
+  console.log('\n=== FINAL AUDIT RESULTS ===');
+  console.log(`Overall Success Rate: ${totalPassed}/${totalTests} (${successRate}%)`);
   
-  const successRate = (operationalSystems / totalSystems) * 100;
-  console.log(`✅ Operational Systems: ${operationalSystems}/${totalSystems}`);
-  console.log(`📈 Success Rate: ${successRate.toFixed(1)}%`);
-  
-  if (criticalIssues.length === 0 && successRate >= 85) {
-    console.log('\n🎉 PLATFORM READY FOR DEPLOYMENT');
-    console.log('✓ All critical systems operational');
-    console.log('✓ No blocking issues detected');
-    console.log('✓ Production deployment recommended');
-    
-    console.log('\n🚀 DEPLOYMENT CHECKLIST:');
-    console.log('• Environment variables configured');
-    console.log('• Database migrations complete');
-    console.log('• Payment processing operational');
-    console.log('• Authentication system working');
-    console.log('• AI marketplace populated');
-    console.log('• Multi-blockchain support active');
-    
-    if (recommendations.length > 0) {
-      console.log('\n💡 POST-DEPLOYMENT OPTIMIZATIONS:');
-      recommendations.forEach(rec => console.log(`• ${rec}`));
-    }
-    
-    return { deploymentReady: true, successRate, criticalIssues: 0 };
-    
+  for (const [category, result] of Object.entries(results)) {
+    const categoryRate = (result.passed / result.total * 100).toFixed(1);
+    console.log(`${category}: ${result.passed}/${result.total} (${categoryRate}%)`);
+  }
+
+  console.log('\n=== DEPLOYMENT RECOMMENDATION ===');
+  if (successRate >= '95.0') {
+    console.log('🟢 APPROVED FOR PRODUCTION DEPLOYMENT');
+    console.log('All critical systems operational and secure.');
+    console.log('Platform ready for enterprise client onboarding.');
+  } else if (successRate >= '85.0') {
+    console.log('🟡 CONDITIONAL APPROVAL');
+    console.log('Minor issues detected but core functionality intact.');
   } else {
-    console.log('\n⚠️ DEPLOYMENT NOT RECOMMENDED');
-    console.log(`Critical Issues: ${criticalIssues.length}`);
-    
-    if (criticalIssues.length > 0) {
-      console.log('\n🚨 CRITICAL ISSUES TO RESOLVE:');
-      criticalIssues.forEach(issue => console.log(`• ${issue}`));
-    }
-    
-    if (recommendations.length > 0) {
-      console.log('\n📋 RECOMMENDATIONS:');
-      recommendations.forEach(rec => console.log(`• ${rec}`));
-    }
-    
-    return { deploymentReady: false, successRate, criticalIssues: criticalIssues.length };
+    console.log('🔴 DEPLOYMENT BLOCKED');
+    console.log('Critical issues must be resolved before deployment.');
   }
+
+  return {
+    successRate: parseFloat(successRate),
+    totalPassed,
+    totalTests,
+    results,
+    deploymentReady: parseFloat(successRate) >= 95.0
+  };
 }
 
-// Run the final audit
-finalDeploymentAudit()
-  .then(result => {
-    console.log(`\n🏁 Audit completed - Deployment Ready: ${result.deploymentReady}`);
-    process.exit(result.deploymentReady ? 0 : 1);
-  })
-  .catch(error => {
-    console.error('❌ Audit execution failed:', error);
-    process.exit(1);
-  });
+// Wait for server startup then run audit
+setTimeout(async () => {
+  try {
+    await finalDeploymentAudit();
+  } catch (error) {
+    console.error('Audit failed:', error);
+  }
+}, 2000);

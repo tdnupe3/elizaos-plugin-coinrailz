@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import productionRoutes from "./productionRoutes";
+import criticalRoutes from "./criticalRoutes";
 import { setupVite, serveStatic } from "./vite";
 import { stability } from './stability';
 import { stabilityManager } from './services/stabilityManager';
@@ -107,7 +108,10 @@ process.on('SIGINT', () => {
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // Add API routes BEFORE Vite setup to prevent conflicts
+    // Add critical routes FIRST to ensure API functionality
+    app.use(criticalRoutes);
+    
+    // Add remaining production routes
     app.use(productionRoutes);
 
     // Health check endpoint (non-conflicting with frontend)

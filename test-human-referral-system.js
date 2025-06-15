@@ -116,10 +116,9 @@ class HumanReferralTester {
       // Store test user for cleanup
       this.testUsers.push(userId);
 
-      // Test referral link generation
-      const linkResponse = await this.makeRequest('POST', '/api/referrals/generate-link', {}, {
-        'x-test-user-id': userId,
-        'Content-Type': 'application/json'
+      // Test referral link generation using test endpoint
+      const linkResponse = await this.makeRequest('POST', '/api/test/generate-referral-link', {
+        userId: userId
       });
 
       if (!linkResponse.success) {

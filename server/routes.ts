@@ -9133,6 +9133,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint: Generate referral link (no auth)
+  app.post('/api/test/generate-referral-link', async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ success: false, message: "userId required" });
+      }
+      
+      const { HumanReferralService } = await import('./services/humanReferralService');
+      
+      const referralCode = await HumanReferralService.generateReferralCode(userId);
+      const referralLink = await HumanReferralService.generateReferralLink(
+        userId,
+        process.env.FRONTEND_URL || 'https://coinrailz.com'
+      );
+      
+      res.json({
+        success: true,
+        referralCode,
+        referralLink,
+        message: "Referral link generated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error generating referral link:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Test endpoint: Get referral stats (no auth)
+  app.post('/api/test/get-referral-stats', async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ success: false, message: "userId required" });
+      }
+      
+      const { HumanReferralService } = await import('./services/humanReferralService');
+      const stats = await HumanReferralService.getReferralStats(userId);
+      
+      res.json({
+        success: true,
+        ...stats
+      });
+    } catch (error: any) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   // Cleanup test user
   app.delete('/api/test/cleanup-user/:userId', async (req, res) => {
     try {

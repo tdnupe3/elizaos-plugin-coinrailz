@@ -195,17 +195,12 @@ export class DatabaseStorage implements IStorage {
     const userAgents = await db
       .select()
       .from(globalAIAgents)
-      .where(eq(globalAIAgents.registeredBy, userId))
+      .where(eq(globalAIAgents.id, userId))
       .orderBy(desc(globalAIAgents.registeredAt));
     return userAgents;
   }
 
-  async updateTransactionStatus(id: number, status: string): Promise<void> {
-    await db
-      .update(transactions)
-      .set({ status })
-      .where(eq(transactions.id, id));
-  }
+
 
   // Digital Wallet operations
   async getUserWalletBalances(userId: string): Promise<WalletBalance[]> {

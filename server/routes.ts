@@ -839,7 +839,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           agentName: agent.agentName,
           description: agent.description,
           capabilities: agent.capabilities,
-          walletAddress: agent.walletAddress,
+          walletAddress: agent.primaryWalletAddress,
           walletNetwork: agent.walletNetwork,
           reputation: agent.reputation,
           transactionCount: agent.transactionCount,
@@ -6554,17 +6554,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionId = `p2p_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const transaction = await storage.createTransaction({
-        id: transactionId,
         fromUserId: userId,
         toUserId: recipient.id,
         amount: transferAmount.toString(),
         currency,
         transactionType: 'p2p_transfer',
         status: 'processing',
-        paymentMethod,
-        memo: memo || '',
-        fees: feeCalculation.platformFee.toString(),
-        createdAt: new Date()
+        message: memo || '',
+        platformFee: feeCalculation.platformFee.toString()
       });
 
       // STEP 6: PROCESS TRANSFER (ATOMIC OPERATIONS)
@@ -6584,7 +6581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // STEP 7: UPDATE TRANSACTION STATUS
-      await storage.updateTransactionStatus(transactionId, 'completed');
+      await storage.updateTransactionStatus(transaction.id, 'completed');
 
       res.json({
         success: true,

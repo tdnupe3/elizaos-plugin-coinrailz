@@ -3,6 +3,8 @@ import productionRoutes from "./productionRoutes";
 import { setupVite, serveStatic } from "./vite";
 import { stability } from './stability';
 import { stabilityManager } from './services/stabilityManager';
+import { setupProductionErrorHandling } from './middleware/productionStabilityWrapper';
+import { setupGlobalCrashPrevention } from './middleware/productionCrashPrevention';
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -66,10 +68,11 @@ function log(req: Request, res: Response, next: NextFunction) {
 
 app.use(log);
 
-// Initialize stability system
+// Initialize comprehensive stability system
+setupProductionErrorHandling();
 stability.setupGlobalHandlers();
 const stableManager = stabilityManager;
-console.log('Stability Manager activated - crash prevention enabled');
+console.log('Production Stability System activated - comprehensive crash prevention enabled');
 
 let httpServer: any;
 

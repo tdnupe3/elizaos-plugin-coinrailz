@@ -21,9 +21,15 @@ export const pool = new Pool({
 });
 
 // Critical: Add pool error handling to prevent crashes
-pool.on('error', (err) => {
+pool.on('error', (err: any) => {
   console.error('Unexpected database pool error:', err);
-  // Don't exit process, just log the error
+  // Don't exit process, just log the error and attempt recovery
+  
+  // Attempt to recover from connection termination
+  if ((err as any).code === '57P01') {
+    console.log('Database connection terminated, attempting to recover...');
+    // Connection will be automatically re-established on next query
+  }
 });
 
 pool.on('connect', () => {

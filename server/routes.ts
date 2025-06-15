@@ -3260,9 +3260,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const transactionAmount = parseFloat(amount);
       
-      // Debug logging for institutional validation
-      console.log('[FEE DEBUG] Transaction type received:', transactionType);
-      
       // Handle specific transaction types for institutional validation
       if (transactionType === 'send_money') {
         const percentageFee = transactionAmount * 0.01; // 1% for send_money

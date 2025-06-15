@@ -8372,8 +8372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await AIAgentPaymentProcessor.processAgentPayment(paymentRequest);
       
       res.json({
-        success: true,
-        ...result
+        ...result,
+        success: result.success !== undefined ? result.success : true
       });
     } catch (error: any) {
       res.status(500).json({ error: 'Payment processing failed', message: error.message });
@@ -8471,7 +8471,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get stablecoin addresses (reference data)
   app.get('/api/ethereum/stablecoins', async (req, res) => {
     try {
-      const stablecoins = ethereumService.constructor.getStablecoinAddresses();
+      const stablecoins = (ethereumService as any).getStablecoinAddresses();
       res.json({ success: true, stablecoins });
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to fetch stablecoin addresses', message: error.message });
@@ -8607,7 +8607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Total amount and risk profile required' });
       }
       
-      const allocation = RWAIntegrationService.calculatePortfolioAllocation({
+      const allocation = (RWAIntegrationService as any).calculatePortfolioAllocation({
         totalAmount,
         riskProfile
       });

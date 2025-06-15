@@ -69,13 +69,13 @@ app.use(log);
 stability.setupGlobalHandlers();
 console.log('Stability Manager activated - crash prevention enabled');
 
-let server: any;
+let httpServer: any;
 
 // Graceful shutdown handlers
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
-  if (server) {
-    server.close(() => {
+  if (httpServer) {
+    httpServer.close(() => {
       console.log('Process terminated');
       process.exit(0);
     });
@@ -84,8 +84,8 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   console.log('SIGINT received, shutting down gracefully');
-  if (server) {
-    server.close(() => {
+  if (httpServer) {
+    httpServer.close(() => {
       console.log('Process terminated');
       process.exit(0);
     });
@@ -94,11 +94,36 @@ process.on('SIGINT', () => {
 
 (async () => {
   try {
-    server = await stability.safeExecute(
+    // registerRoutes returns an HTTP server, not void
+    httpServer = await stability.safeExecute(
       () => registerRoutes(app),
       null,
       'route_registration'
     );
+
+    // Add basic health check endpoint for Cloud Run before route registration
+    app.get('/health', (req, res) => {
+      res.json({ 
+        status: 'ok', 
+        service: 'Coin Railz',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+      });
+    });
+
+    // Simple root endpoint for deployment health checks
+    app.get('/', (req, res) => {
+      if (process.env.NODE_ENV === 'production') {
+        res.json({ 
+          status: 'ok', 
+          service: 'Coin Railz Platform',
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        // In development, let Vite handle the root route
+        res.status(404).end();
+      }
+    });
 
     // API route handler middleware - catch unhandled API routes before Vite
     app.use('/api/*', (req, res) => {
@@ -109,23 +134,20 @@ process.on('SIGINT', () => {
     });
 
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      stability.safeExecute(
-        () => {
-          const status = err.status || err.statusCode || 500;
-          const message = err.message || "Internal Server Error";
-          console.error(status + ': ' + message);
-          res.status(status).json({ message });
-        },
-        () => res.status(500).json({ message: "Server error" }),
-        'error_handler'
-      );
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      console.error(status + ': ' + message);
+      
+      if (!res.headersSent) {
+        res.status(status).json({ message });
+      }
     });
 
-    // Production-ready port configuration
+    // Production-ready port configuration - always use 0.0.0.0 for deployment
     const port = parseInt(process.env.PORT || '5000', 10);
-    const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+    const host = '0.0.0.0'; // Always bind to all interfaces for Cloud Run
     
-    server.listen(port, host, () => {
+    httpServer.listen(port, host, () => {
       console.log(`Server running on ${host}:${port} (${process.env.NODE_ENV || 'development'})`);
       
       // Production health monitoring
@@ -137,7 +159,7 @@ process.on('SIGINT', () => {
     });
 
     // Handle server listening errors
-    server.on('error', (error: any) => {
+    httpServer.on('error', (error: any) => {
       if (error.code === 'EADDRINUSE') {
         console.error(`Port ${port} is already in use`);
         process.exit(1);
@@ -147,12 +169,8 @@ process.on('SIGINT', () => {
       }
     });
 
-    if (process.env.NODE_ENV !== "production") {
-      await setupVite(app, server);
-    } else {
-      // Production: Use Vite in production mode for proper React serving
-      await setupVite(app, server);
-    }
+    // Setup Vite for both development and production
+    await setupVite(app, httpServer);
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);

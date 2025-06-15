@@ -13,7 +13,6 @@ run = ["sh", "-c", "npm run build && npm start"]
 [[ports]]
 localPort = 5000
 externalPort = 80
-exposeLocalhost = true
 
 [workflows]
 runButton = "Project"

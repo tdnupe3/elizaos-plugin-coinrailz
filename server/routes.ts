@@ -8776,6 +8776,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === HUMAN REFERRAL SYSTEM ROUTES ===
+  
+  // Get user's referral link and stats
+  app.get('/api/referrals/my-stats', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { HumanReferralService } = await import('./services/humanReferralService');
+      
+      const stats = await HumanReferralService.getReferralStats(userId);
+      
+      res.json({
+        success: true,
+        ...stats
+      });
+    } catch (error: any) {
+      console.error("Error fetching referral stats:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Generate referral link for user
+  app.post('/api/referrals/generate-link', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { HumanReferralService } = await import('./services/humanReferralService');
+      
+      const referralLink = await HumanReferralService.generateReferralLink(
+        userId,
+        process.env.FRONTEND_URL || 'https://coinrailz.com'
+      );
+      
+      res.json({
+        success: true,
+        referralLink,
+        message: "Referral link generated successfully"
+      });
+    } catch (error: any) {
+      console.error("Error generating referral link:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Withdraw referral commissions
+  app.post('/api/referrals/withdraw', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const { amount } = req.body;
+      const { HumanReferralService } = await import('./services/humanReferralService');
+      
+      if (!amount || parseFloat(amount) <= 0) {
+        return res.status(400).json({ success: false, message: "Invalid withdrawal amount" });
+      }
+      
+      const result = await HumanReferralService.withdrawCommissions(userId, amount);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error withdrawing commissions:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
+  // Process referral registration (used during signup)
+  app.post('/api/referrals/register', async (req, res) => {
+    try {
+      const { referralCode, newUserId } = req.body;
+      const { HumanReferralService } = await import('./services/humanReferralService');
+      
+      if (!referralCode || !newUserId) {
+        return res.status(400).json({ success: false, message: "Missing referral code or user ID" });
+      }
+      
+      const result = await HumanReferralService.processReferralRegistration(referralCode, newUserId);
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("Error processing referral registration:", error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
 
   // Initialize WebSocket service

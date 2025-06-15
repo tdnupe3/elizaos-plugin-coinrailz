@@ -542,7 +542,7 @@ export const agentReferrals = pgTable("agent_referrals", {
   completedAt: timestamp("completed_at")
 });
 
-// Human Referral Rewards Tracking
+// Human Referral Rewards Tracking (Agent-to-Human)
 export const humanReferralRewards = pgTable("human_referral_rewards", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
   referrerAgentId: varchar("referrer_agent_id").notNull().references(() => globalAIAgents.id),
@@ -552,6 +552,21 @@ export const humanReferralRewards = pgTable("human_referral_rewards", {
   rewardCurrency: varchar("reward_currency").notNull().default("USDT"),
   transactionAmount: varchar("transaction_amount").notNull(),
   isQualifyingTransaction: boolean("is_qualifying_transaction").notNull().default(false),
+  payoutStatus: varchar("payout_status").notNull().default("pending"), // pending, paid, failed
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Human-to-Human Referral Commissions
+export const humanToHumanReferrals = pgTable("human_to_human_referrals", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  referrerUserId: varchar("referrer_user_id").notNull().references(() => users.id),
+  referredUserId: varchar("referred_user_id").notNull().references(() => users.id),
+  transactionId: integer("transaction_id").notNull().references(() => transactions.id),
+  transactionAmount: varchar("transaction_amount").notNull(),
+  commissionAmount: varchar("commission_amount").notNull(),
+  currency: varchar("currency").notNull().default("USD"),
+  isFirstTransaction: boolean("is_first_transaction").notNull().default(false),
+  isQualifyingTransaction: boolean("is_qualifying_transaction").notNull().default(true),
   payoutStatus: varchar("payout_status").notNull().default("pending"), // pending, paid, failed
   createdAt: timestamp("created_at").defaultNow(),
 });

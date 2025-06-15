@@ -103,6 +103,10 @@ process.on('SIGINT', () => {
     const port = parseInt(process.env.PORT || '5000', 10);
     const host = '0.0.0.0';
 
+    // Essential middleware for request body parsing
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
     // Add API routes BEFORE Vite setup to prevent conflicts
     app.use(productionRoutes);
 
@@ -132,19 +136,19 @@ process.on('SIGINT', () => {
       }
     });
 
-    // Setup Vite AFTER API routes (this handles React app serving for non-API routes)
-    await setupVite(app, httpServer);
-
-    // Global error handler
+    // Global error handler BEFORE Vite setup
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-      console.error(status + ': ' + message);
+      console.error('Global error handler:', status + ': ' + message);
 
       if (!res.headersSent) {
         res.status(status).json({ message });
       }
     });
+
+    // Setup Vite AFTER API routes (this handles React app serving for non-API routes)
+    await setupVite(app, httpServer);
 
     // Production health monitoring
     if (process.env.NODE_ENV === 'production') {

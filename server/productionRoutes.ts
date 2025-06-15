@@ -102,26 +102,31 @@ router.post('/api/recruitment/start-automated-recruitment', async (req: Request,
 // Fee calculation endpoint
 router.post('/api/demo/calculate-fee', async (req: Request, res: Response) => {
   try {
-    const { amount, type } = req.body;
+    console.log('Fee calculation request body:', req.body);
+    const { amount, type } = req.body || {};
     
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ error: 'Invalid amount' });
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      return res.status(400).json({ error: 'Invalid amount provided' });
     }
     
     // 1% fee for send_money transactions
+    const numAmount = Number(amount);
     const feeRate = type === 'send_money' ? 0.01 : 0.005;
-    const fee = Math.round(amount * feeRate * 100) / 100; // Round to 2 decimals
+    const fee = Math.round(numAmount * feeRate * 100) / 100; // Round to 2 decimals
+    
+    console.log(`Calculated fee: ${fee} for amount: ${numAmount}`);
     
     res.setHeader('Content-Type', 'application/json');
     res.status(200).json({ 
       fee,
       feeRate: feeRate * 100,
-      amount,
+      amount: numAmount,
       type
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Fee calculation error:', error.message);
     res.setHeader('Content-Type', 'application/json');
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Fee calculation failed: ' + error.message });
   }
 });
 

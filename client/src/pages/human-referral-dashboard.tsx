@@ -40,7 +40,7 @@ export default function HumanReferralDashboard() {
   // Generate referral link mutation
   const generateLinkMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/referrals/generate-link');
+      const response = await apiRequest('POST', '/api/referrals/generate-link', {});
       return response.json();
     },
     onSuccess: (data) => {

@@ -289,7 +289,7 @@ export class HumanReferralService {
           commissionAmount: r.commissionAmount,
           transactionAmount: r.transactionAmount,
           isFirstTransaction: r.isFirstTransaction,
-          createdAt: r.createdAt
+          createdAt: r.createdAt || new Date()
         }))
       };
     } catch (error) {

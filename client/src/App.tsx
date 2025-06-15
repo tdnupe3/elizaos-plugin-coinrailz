@@ -36,6 +36,7 @@ import {
   DemoWalletManagement,
   DemoCryptoTransfer,
   EnhancedReferralDashboard,
+  HumanReferralDashboard,
 
 } from "@/lib/lazyComponents";
 
@@ -168,6 +169,9 @@ function Router() {
           </Route>
           <Route path="/referrals">
             {() => <LazyLoadWrapper><Referrals /></LazyLoadWrapper>}
+          </Route>
+          <Route path="/human-referrals">
+            {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
           </Route>
           <Route path="/settings">
             {() => <LazyLoadWrapper><SettingsPage /></LazyLoadWrapper>}

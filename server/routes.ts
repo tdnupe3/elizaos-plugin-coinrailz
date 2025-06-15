@@ -21,6 +21,19 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
+
+// Database error handling wrapper for all operations
+async function withDatabaseErrorHandling<T>(
+  operation: () => Promise<T>,
+  context: string
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error: any) {
+    console.error(`Database error in ${context}:`, error);
+    throw new Error(`Database operation failed: ${error.message}`);
+  }
+}
 import { pncBankService } from './services/pncBankService';
 import { dexAggregatorService } from './services/dexAggregatorService';
 import { changeNowService } from './services/changeNowService';
@@ -8983,50 +8996,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Check if sender exists
-      const [sender] = await db.select().from(users).where(eq(users.id, fromUserId));
-      if (!sender) {
-        return res.status(404).json({ 
-          success: false, 
-          message: "Sender not found" 
+      let sender: any;
+      let newTransaction: any;
+      let newBalance: string;
+
+      try {
+        // Check if sender exists
+        const [senderResult] = await db.select().from(users).where(eq(users.id, fromUserId));
+        sender = senderResult;
+        if (!sender) {
+          return res.status(404).json({ 
+            success: false, 
+            message: "Sender not found" 
+          });
+        }
+
+        // Check sender balance
+        const senderBalance = parseFloat(sender.usdBalance || "0");
+        const transactionAmount = parseFloat(amount);
+        
+        if (senderBalance < transactionAmount) {
+          return res.status(400).json({ 
+            success: false, 
+            message: "Insufficient balance" 
+          });
+        }
+
+        // Create transaction record
+        const { nanoid } = await import('nanoid');
+        const transactionData = {
+          fromUserId,
+          toEmail,
+          amount: amount.toString(),
+          transactionType: 'send_money',
+          currency: 'USD',
+          status: 'completed',
+          message: message || '',
+          platformFee: (transactionAmount * 0.01).toFixed(2), // 1% fee
+          completedAt: new Date()
+        };
+
+        const [transactionResult] = await db.insert(transactions).values(transactionData).returning();
+        newTransaction = transactionResult;
+
+        // Update sender balance
+        newBalance = (senderBalance - transactionAmount).toFixed(2);
+        await db.update(users)
+          .set({ usdBalance: newBalance, updatedAt: new Date() })
+          .where(eq(users.id, fromUserId));
+      } catch (dbError: any) {
+        console.error('Database error in send money operation:', dbError);
+        return res.status(500).json({
+          success: false,
+          message: "Database operation failed",
+          error: dbError.message
         });
       }
 
-      // Check sender balance
-      const senderBalance = parseFloat(sender.usdBalance || "0");
-      const transactionAmount = parseFloat(amount);
-      
-      if (senderBalance < transactionAmount) {
-        return res.status(400).json({ 
-          success: false, 
-          message: "Insufficient balance" 
-        });
-      }
-
-      // Create transaction record
-      const { nanoid } = await import('nanoid');
-      const transactionData = {
-        fromUserId,
-        toEmail,
-        amount: amount.toString(),
-        transactionType: 'send_money',
-        currency: 'USD',
-        status: 'completed',
-        message: message || '',
-        platformFee: (transactionAmount * 0.01).toFixed(2), // 1% fee
-        completedAt: new Date()
-      };
-
-      const [newTransaction] = await db.insert(transactions).values(transactionData).returning();
-
-      // Update sender balance
-      const newBalance = (senderBalance - transactionAmount).toFixed(2);
-      await db.update(users)
-        .set({ usdBalance: newBalance, updatedAt: new Date() })
-        .where(eq(users.id, fromUserId));
-
-      // Process referral commission if sender was referred
-      if (sender.referredBy) {
+      // Process referral commission if sender.referredBy exists
+      if (sender && sender.referredBy) {
         try {
           const { HumanReferralService } = await import('./services/humanReferralService');
           

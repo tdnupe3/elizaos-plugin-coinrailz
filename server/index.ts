@@ -103,6 +103,9 @@ process.on('SIGINT', () => {
     const port = parseInt(process.env.PORT || '5000', 10);
     const host = '0.0.0.0';
 
+    // Add API routes BEFORE Vite setup to prevent conflicts
+    app.use(productionRoutes);
+
     // Health check endpoint (non-conflicting with frontend)
     app.get('/health', (req, res) => {
       res.json({ 
@@ -129,11 +132,8 @@ process.on('SIGINT', () => {
       }
     });
 
-    // Setup Vite first (this handles React app serving)
+    // Setup Vite AFTER API routes (this handles React app serving for non-API routes)
     await setupVite(app, httpServer);
-
-    // Add API routes after Vite setup
-    app.use(productionRoutes);
 
     // Global error handler
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

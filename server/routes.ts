@@ -170,33 +170,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Agent Recruitment Routes
   app.use('/api/recruitment', recruitmentRoutes);
 
-  // Fast Health Check - Returns immediately without external API calls
-  app.get('/api/health', async (req, res) => {
-    try {
-      // Fast response using cached data only
-      const memUsage = process.memoryUsage();
-      const memoryUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-      
-      const health = {
-        status: memoryUsagePercent < 80 ? 'healthy' : 'degraded',
-        checks: {
-          database: 'healthy',
-          memory: memoryUsagePercent < 80 ? 'healthy' : 'degraded',
-          responseTime: 'healthy'
-        },
-        uptime: process.uptime(),
-        timestamp: new Date().toISOString()
-      };
-      
-      const statusCode = health.status === 'healthy' ? 200 : 206;
-      res.status(statusCode).json(health);
-    } catch (error: any) {
-      res.status(500).json({
-        success: false,
-        error: 'Health check failed',
-        message: error.message
-      });
-    }
+  // Production Health Check - Simple status for load balancers
+  app.get('/api/health', (req, res) => {
+    res.status(200).json({
+      status: 'healthy',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Root route for production deployment
+  app.get('/', (req, res) => {
+    res.send('Coin Railz Platform - Production Ready');
   });
 
   // Detailed service health status

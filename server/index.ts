@@ -6,9 +6,12 @@ import { stability } from './stability';
 import { stabilityManager } from './services/stabilityManager';
 import { setupProductionErrorHandling } from './middleware/productionStabilityWrapper';
 import { setupGlobalCrashPrevention } from './middleware/productionCrashPrevention';
+import { setupAuth } from "./replitAuth";
+import { registerAuthRoutes } from "./authRoutes";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+
 
 const app = express();
 
@@ -107,6 +110,10 @@ process.on('SIGINT', () => {
     // Essential middleware for request body parsing
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    // Setup authentication system
+    await setupAuth(app);
+    registerAuthRoutes(app);
 
     // Add critical routes FIRST to ensure API functionality
     app.use(criticalRoutes);

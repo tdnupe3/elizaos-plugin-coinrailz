@@ -118,11 +118,12 @@ class HumanReferralTester {
 
       // Test referral link generation
       const linkResponse = await this.makeRequest('POST', '/api/referrals/generate-link', {}, {
-        'x-test-user-id': userId
+        'x-test-user-id': userId,
+        'Content-Type': 'application/json'
       });
 
       if (!linkResponse.success) {
-        throw new Error(`Referral link generation failed: ${linkResponse.data}`);
+        throw new Error(`Referral link generation failed: ${JSON.stringify(linkResponse.data)}`);
       }
 
       return {

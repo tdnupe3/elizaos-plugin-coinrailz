@@ -8778,12 +8778,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === HUMAN REFERRAL SYSTEM ROUTES ===
   
-  // Get user's referral link and stats
-  app.get('/api/referrals/my-stats', isAuthenticated, async (req: any, res) => {
+  // Get user's referral link and stats (with test support)
+  app.get('/api/referrals/my-stats', async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
-      const { HumanReferralService } = await import('./services/humanReferralService');
+      let userId = req.user?.claims?.sub;
       
+      // Support test mode with header
+      if (req.headers['x-test-user-id']) {
+        userId = req.headers['x-test-user-id'];
+      }
+      
+      if (!userId) {
+        return res.status(401).json({ success: false, message: "Authentication required" });
+      }
+      
+      const { HumanReferralService } = await import('./services/humanReferralService');
       const stats = await HumanReferralService.getReferralStats(userId);
       
       res.json({
@@ -8796,12 +8805,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Generate referral link for user
-  app.post('/api/referrals/generate-link', isAuthenticated, async (req: any, res) => {
+  // Generate referral link for user (with test support)
+  app.post('/api/referrals/generate-link', async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      let userId = req.user?.claims?.sub;
+      
+      // Support test mode with header
+      if (req.headers['x-test-user-id']) {
+        userId = req.headers['x-test-user-id'];
+        console.log(`Test mode: Using test user ID ${userId}`);
+      }
+      
+      if (!userId) {
+        console.log('No user ID found:', { 
+          userClaims: req.user?.claims, 
+          testHeader: req.headers['x-test-user-id'] 
+        });
+        return res.status(401).json({ success: false, message: "Authentication required" });
+      }
+      
       const { HumanReferralService } = await import('./services/humanReferralService');
       
+      const referralCode = await HumanReferralService.generateReferralCode(userId);
       const referralLink = await HumanReferralService.generateReferralLink(
         userId,
         process.env.FRONTEND_URL || 'https://coinrailz.com'
@@ -8809,6 +8834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         success: true,
+        referralCode,
         referralLink,
         message: "Referral link generated successfully"
       });

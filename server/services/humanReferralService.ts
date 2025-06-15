@@ -221,6 +221,27 @@ export class HumanReferralService {
   }
 
   /**
+   * Calculate commission amount based on transaction amount and type
+   */
+  static async calculateCommission(transactionAmount: number, isFirstTransaction: boolean): Promise<number> {
+    // Minimum transaction amount for commission
+    if (transactionAmount < 10) {
+      return 0;
+    }
+
+    // Commission rates
+    const firstTransactionRate = 0.05; // 5%
+    const ongoingTransactionRate = 0.02; // 2%
+    const maxCommissionPerTransaction = 50; // $50 maximum
+
+    const rate = isFirstTransaction ? firstTransactionRate : ongoingTransactionRate;
+    const commission = transactionAmount * rate;
+
+    // Apply maximum commission cap
+    return Math.min(commission, maxCommissionPerTransaction);
+  }
+
+  /**
    * Get referral statistics for a user
    */
   static async getReferralStats(userId: string): Promise<{

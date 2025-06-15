@@ -8859,6 +8859,188 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // === TESTING ENDPOINTS FOR HUMAN REFERRAL SYSTEM ===
   
+  // Database structure check
+  app.get('/api/test/db-structure', async (req, res) => {
+    try {
+      // Test database connection by checking if tables exist
+      const { users, humanToHumanReferrals } = await import('@shared/schema');
+      const { sql } = await import('drizzle-orm');
+      
+      // Try to query each table
+      const userCount = await db.select({ count: sql<number>`count(*)` }).from(users);
+      const referralCount = await db.select({ count: sql<number>`count(*)` }).from(humanToHumanReferrals);
+      
+      res.json({
+        success: true,
+        tables: {
+          users: { accessible: true, count: userCount[0]?.count || 0 },
+          humanToHumanReferrals: { accessible: true, count: referralCount[0]?.count || 0 }
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        message: "Database structure check failed"
+      });
+    }
+  });
+
+  // Create demo user for testing
+  app.post('/api/demo/create-user', async (req, res) => {
+    try {
+      const { email, firstName, lastName, referralCode } = req.body;
+      const { users } = await import('@shared/schema');
+      
+      if (!email || !firstName || !lastName) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Email, firstName, and lastName are required" 
+        });
+      }
+
+      // Create user with nanoid
+      const { nanoid } = await import('nanoid');
+      const userId = nanoid();
+      
+      const userData = {
+        id: userId,
+        email,
+        firstName,
+        lastName,
+        usdBalance: "100.00", // Give demo users some balance
+        referralCode: nanoid(8).toUpperCase(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      const [newUser] = await db.insert(users).values(userData).returning();
+      
+      // If referral code provided, process it
+      let referralProcessed = false;
+      if (referralCode) {
+        try {
+          const { HumanReferralService } = await import('./services/humanReferralService');
+          const result = await HumanReferralService.processReferralRegistration(referralCode, userId);
+          referralProcessed = result.success;
+        } catch (referralError) {
+          console.log("Referral processing failed:", referralError);
+        }
+      }
+
+      res.json({
+        success: true,
+        user: newUser,
+        referralApplied: referralProcessed,
+        message: "Demo user created successfully"
+      });
+    } catch (error: any) {
+      console.error("Demo user creation error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  });
+
+  // Create demo transaction for testing
+  app.post('/api/demo/send-money', async (req, res) => {
+    try {
+      const { fromUserId, toEmail, amount, message } = req.body;
+      const { users, transactions } = await import('@shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      if (!fromUserId || !toEmail || !amount) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "fromUserId, toEmail, and amount are required" 
+        });
+      }
+
+      // Check if sender exists
+      const [sender] = await db.select().from(users).where(eq(users.id, fromUserId));
+      if (!sender) {
+        return res.status(404).json({ 
+          success: false, 
+          message: "Sender not found" 
+        });
+      }
+
+      // Check sender balance
+      const senderBalance = parseFloat(sender.usdBalance || "0");
+      const transactionAmount = parseFloat(amount);
+      
+      if (senderBalance < transactionAmount) {
+        return res.status(400).json({ 
+          success: false, 
+          message: "Insufficient balance" 
+        });
+      }
+
+      // Create transaction record
+      const { nanoid } = await import('nanoid');
+      const transactionData = {
+        fromUserId,
+        toEmail,
+        amount: amount.toString(),
+        transactionType: 'send_money',
+        currency: 'USD',
+        status: 'completed',
+        message: message || '',
+        platformFee: (transactionAmount * 0.01).toFixed(2), // 1% fee
+        completedAt: new Date()
+      };
+
+      const [newTransaction] = await db.insert(transactions).values(transactionData).returning();
+
+      // Update sender balance
+      const newBalance = (senderBalance - transactionAmount).toFixed(2);
+      await db.update(users)
+        .set({ usdBalance: newBalance, updatedAt: new Date() })
+        .where(eq(users.id, fromUserId));
+
+      // Process referral commission if sender was referred
+      if (sender.referredBy) {
+        try {
+          const { HumanReferralService } = await import('./services/humanReferralService');
+          
+          // Check if this is sender's first transaction
+          const { count } = await import('drizzle-orm');
+          const [transactionCount] = await db.select({ 
+            count: count() 
+          }).from(transactions).where(eq(transactions.fromUserId, fromUserId));
+          
+          const isFirstTransaction = (transactionCount.count || 0) <= 1;
+          
+          await HumanReferralService.processReferralCommission({
+            referrerId: sender.referredBy,
+            referredUserId: fromUserId,
+            transactionId: newTransaction.id,
+            transactionAmount: amount.toString(),
+            commissionAmount: "0", // Will be calculated by service
+            currency: 'USD',
+            isFirstTransaction
+          });
+        } catch (commissionError) {
+          console.error("Commission processing failed:", commissionError);
+        }
+      }
+
+      res.json({
+        success: true,
+        transaction: newTransaction,
+        newBalance,
+        message: "Transaction completed successfully"
+      });
+    } catch (error: any) {
+      console.error("Demo transaction error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message 
+      });
+    }
+  });
+
   // Test commission calculation
   app.post('/api/test/calculate-commission', async (req, res) => {
     try {
@@ -8929,6 +9111,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/test/cleanup-user/:userId', async (req, res) => {
     try {
       const { userId } = req.params;
+      const { humanToHumanReferrals, users } = await import('@shared/schema');
+      const { or, eq } = await import('drizzle-orm');
       
       // Delete user's referral records
       await db.delete(humanToHumanReferrals).where(

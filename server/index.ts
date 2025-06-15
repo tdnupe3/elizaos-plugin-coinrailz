@@ -70,6 +70,7 @@ app.use(log);
 
 // Initialize comprehensive stability system
 setupProductionErrorHandling();
+setupGlobalCrashPrevention();
 stability.setupGlobalHandlers();
 const stableManager = stabilityManager;
 console.log('Production Stability System activated - comprehensive crash prevention enabled');

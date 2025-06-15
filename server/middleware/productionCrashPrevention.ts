@@ -111,7 +111,7 @@ export class ProductionCrashPrevention {
     const stats: any = {};
     const now = Date.now();
     
-    for (const [route, count] of this.errorCounts.entries()) {
+    Array.from(this.errorCounts.entries()).forEach(([route, count]) => {
       const lastError = this.lastErrorTime.get(route) || 0;
       const minutesAgo = Math.floor((now - lastError) / 60000);
       
@@ -120,7 +120,7 @@ export class ProductionCrashPrevention {
         lastErrorMinutesAgo: minutesAgo,
         status: count > 10 ? 'critical' : count > 5 ? 'warning' : 'ok'
       };
-    }
+    });
     
     return stats;
   }

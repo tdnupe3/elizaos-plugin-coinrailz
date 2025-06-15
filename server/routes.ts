@@ -4429,7 +4429,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           name: agent.agentName,
           status: agent.status,
           capabilities: agent.capabilities,
-          walletAddress: agent.walletAddress,
+          ethereumWallet: agent.ethereumWallet,
+          xrpWallet: agent.xrpWallet,
+          solanaWallet: agent.solanaWallet,
+          bitcoinAddress: agent.bitcoinAddress,
           walletNetwork: agent.walletNetwork
         },
         message: agent.status === 'active' 

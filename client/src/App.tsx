@@ -173,6 +173,9 @@ function Router() {
           <Route path="/human-referrals">
             {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
           </Route>
+          <Route path="/human-referral-dashboard">
+            {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
+          </Route>
           <Route path="/settings">
             {() => <LazyLoadWrapper><SettingsPage /></LazyLoadWrapper>}
           </Route>

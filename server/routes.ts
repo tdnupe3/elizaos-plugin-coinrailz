@@ -1982,7 +1982,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const feeCalculation = FeeCalculator.calculateSendMoneyFee(transferAmount);
-      const totalCost = transferAmount + feeCalculation.fee;
+      const totalCost = transferAmount + feeCalculation.totalFee;
 
       // Validate balance operation
       const balanceCheck = ValidationUtils.validateBalanceOperation(
@@ -2065,7 +2065,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true, 
         transaction,
         message: "Payment sent successfully",
-        fee: feeCalculation.fee,
+        fee: feeCalculation.totalFee,
         riskLevel: riskAssessment.riskLevel
       });
     } catch (error) {
@@ -2094,12 +2094,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         success: true,
         amount: transferAmount,
-        fee: feeCalculation.fee,
+        fee: feeCalculation.totalFee,
         totalFee: feeCalculation.totalFee,
         platformFee: feeCalculation.platformFee,
-        gasFee: feeCalculation.gasFee,
-        total: transferAmount + feeCalculation.fee,
-        currency: feeCalculation.currency
+        gasFee: feeCalculation.feeBreakdown?.networkFee || 0,
+        total: transferAmount + feeCalculation.totalFee,
+        currency: 'USD'
       });
     } catch (error: any) {
       console.error("Error calculating payment:", error);
@@ -2171,7 +2171,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           agentId,
           serviceType,
           serviceAmount: serviceAmount.toString(),
-          platformFee: feeCalculation.totalFee.toString(),
+          platformFee: (feeCalculation.totalFee || feeCalculation.fee || 0).toString(),
           type: "ai_agent_service"
         },
       });

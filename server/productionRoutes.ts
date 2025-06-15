@@ -954,6 +954,31 @@ router.post('/api/ramp/sell', async (req: Request, res: Response) => {
   }
 });
 
+// Referral system endpoints
+router.post('/api/referrals/generate-link', async (req: Request, res: Response) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+    
+    const referralCode = 'ref_' + Date.now() + '_' + Math.random().toString(36).substr(2, 8);
+    const referralLink = `https://coinrailz.com/signup?ref=${referralCode}`;
+    
+    res.status(200).json({
+      success: true,
+      userId,
+      referralCode,
+      referralLink,
+      commissionRate: '0.3%',
+      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Referral link generation failed' });
+  }
+});
+
 // Authentication endpoints
 router.get('/api/auth/callback', async (req: Request, res: Response) => {
   try {

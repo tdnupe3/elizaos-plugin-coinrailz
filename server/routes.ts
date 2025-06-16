@@ -2125,7 +2125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe payment intent for AI agent services
-  app.post("/api/agents/create-payment-intent", demoAuthMiddleware, async (req: any, res) => {
+  app.post("/api/agents/create-payment-intent", productionAuthMiddleware, async (req: any, res) => {
     try {
       const { agentId, serviceType, amount } = req.body;
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;

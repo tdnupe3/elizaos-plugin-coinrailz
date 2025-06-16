@@ -48,7 +48,7 @@ const strictRateLimit = createRateLimit(
 );
 
 // Input sanitization middleware
-export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
+const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
   const sanitizeObject = (obj: any): any => {
     if (typeof obj === 'string') {
       return DOMPurify.sanitize(obj, { 
@@ -81,7 +81,7 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
 };
 
 // SQL injection prevention
-export const validateSQLInput = (req: Request, res: Response, next: NextFunction) => {
+const validateSQLInput = (req: Request, res: Response, next: NextFunction) => {
   const sqlPatterns = [
     /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/gi,
     /(;|\-\-|\||\*|%|<|>|=)/g,
@@ -113,7 +113,7 @@ export const validateSQLInput = (req: Request, res: Response, next: NextFunction
 };
 
 // Security headers configuration
-export const securityHeaders = helmet({
+const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
@@ -140,7 +140,7 @@ export const securityHeaders = helmet({
 });
 
 // Environment-specific CORS
-export const corsConfig = (req: Request, res: Response, next: NextFunction) => {
+const corsConfig = (req: Request, res: Response, next: NextFunction) => {
   const allowedOrigins = process.env.NODE_ENV === 'production' 
     ? ['https://coinrailz.com', 'https://www.coinrailz.com']
     : ['http://localhost:5000', 'http://127.0.0.1:5000'];
@@ -164,7 +164,7 @@ export const corsConfig = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // Request validation middleware
-export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
+const validateRequest = (req: Request, res: Response, next: NextFunction) => {
   // Validate Content-Type for POST/PUT requests
   if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
     const contentType = req.headers['content-type'];

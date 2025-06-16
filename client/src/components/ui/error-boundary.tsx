@@ -1,4 +1,4 @@
-import React from 'react';
+import { Component } from 'react';
 import { AlertTriangle, RefreshCw, ArrowLeft } from '@/lib/icons';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';

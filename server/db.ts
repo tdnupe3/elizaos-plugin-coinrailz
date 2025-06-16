@@ -17,7 +17,9 @@ export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   connectionTimeoutMillis: 10000, // 10 second timeout
   idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  max: 20, // Maximum number of connections in the pool
+  max: 10, // Reduced max connections for Neon compatibility
+  maxUses: 7500, // Limit connection reuse for stability
+  allowExitOnIdle: false, // Keep pool alive during low activity
 });
 
 // Critical: Add pool error handling to prevent crashes

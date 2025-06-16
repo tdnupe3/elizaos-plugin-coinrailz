@@ -55,7 +55,6 @@ export {
   Lock,
   Mail,
   Maximize2,
-  MemoryStick,
   MessageCircle,
   MessageSquare,
   Minimize2,

@@ -247,23 +247,6 @@ export const RefreshCw = ({ className = "", size = 24 }: IconProps) => (
   </svg>
 );
 
-export const MemoryStick = ({ className = "", size = 24 }: IconProps) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
-    <path d="M6 19v-3"/>
-    <path d="M10 19v-3"/>
-    <path d="M14 19v-3"/>
-    <path d="M18 19v-3"/>
-    <path d="M8 11V9"/>
-    <path d="M16 11V9"/>
-    <path d="M12 11V9"/>
-    <path d="M2 15h20"/>
-    <path d="M6 15v4a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4"/>
-    <path d="M6 11h12"/>
-    <path d="M6 7h2"/>
-    <path d="M16 7h2"/>
-  </svg>
-);
-
 export const Activity = ({ className = "", size = 24 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
     <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"></polyline>

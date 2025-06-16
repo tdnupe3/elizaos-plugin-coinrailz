@@ -11,7 +11,7 @@ import {
   AlertCircle,
   CreditCard,
   Bot
-} from 'lucide-react';
+} from '@/lib/icons';
 
 export default function ContactWidget() {
   const [isOpen, setIsOpen] = useState(false);

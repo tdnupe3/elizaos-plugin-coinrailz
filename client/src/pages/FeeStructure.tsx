@@ -16,7 +16,7 @@ import {
   CheckCircle,
   ArrowRight,
   Info
-} from 'lucide-react';
+} from '@/lib/icons';
 
 interface FeeStructureData {
   feeStructure: {

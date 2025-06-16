@@ -118,26 +118,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // API logging disabled in development mode for performance
 
-  // Demo authentication middleware for development testing
-  const demoAuthMiddleware = (req: any, res: any, next: any) => {
-    if (process.env.NODE_ENV === 'development') {
-      // Auto-authenticate for testing payment flows
-      req.user = {
-        claims: {
-          sub: 'demo-user-12345',
-          email: 'demo@coinrailz.com',
-          first_name: 'Demo',
-          last_name: 'User'
-        },
-        expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour from now
-      };
-      req.isAuthenticated = () => true;
-      console.log('Demo auth applied for:', req.path);
-      return next();
-    }
-    // In production, fall back to normal auth
-    return isAuthenticated(req, res, next);
-  };
+  // Production authentication middleware - no demo bypass
+  const productionAuthMiddleware = isAuthenticated;
 
   // DEVELOPMENT MODE: Skip rate limiting but preserve authentication
   if (process.env.NODE_ENV === 'development') {
@@ -2098,7 +2080,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Stripe payment intent creation for P2P transfers
-  app.post("/api/create-payment-intent", demoAuthMiddleware, async (req: any, res) => {
+  app.post("/api/create-payment-intent", productionAuthMiddleware, async (req: any, res) => {
     try {
       const { amount, recipientEmail } = req.body;
       const userId = (req.user as any)?.id || (req.user as any)?.claims?.sub;

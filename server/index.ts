@@ -1,5 +1,6 @@
 import express from "express";
 import { setupVite } from "./vite";
+import { registerRoutes } from "./routes";
 
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
@@ -30,17 +31,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// Register API routes BEFORE Vite middleware
+const server = registerRoutes(app);
 
-// Start server
-const server = app.listen(port, '0.0.0.0', () => {
+// Start server listening
+server.listen(port, '0.0.0.0', () => {
   console.log(`Development server running on 0.0.0.0:${port}`);
 });
 
-// Setup Vite for frontend serving
+// Setup Vite for frontend serving (must come after API routes)
 setupVite(app, server).then(() => {
   console.log('Frontend serving ready');
 }).catch(error => {

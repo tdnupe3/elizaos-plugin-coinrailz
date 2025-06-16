@@ -121,13 +121,13 @@ async function runComprehensiveValidation() {
       });
       
       const paymentSuccess = paymentResult.success && 
-                            paymentResult.data.clientSecret && 
-                            paymentResult.data.amount === 100;
+                            paymentResult.data?.clientSecret && 
+                            paymentResult.data?.amount === 100;
       
       recordResult('Stripe Payment Integration', paymentSuccess, {
-        hasClientSecret: !!paymentResult.data.clientSecret,
-        amount: paymentResult.data.amount,
-        fee: paymentResult.data.fee
+        hasClientSecret: !!paymentResult.data?.clientSecret,
+        amount: paymentResult.data?.amount,
+        fee: paymentResult.data?.fee
       });
     } catch (error) {
       recordResult('Stripe Payment Integration', false, { error: error.message });
@@ -209,10 +209,9 @@ async function runComprehensiveValidation() {
       const agentRegTest = await makeRequest('POST', '/api/ai-agents/register', {
         name: 'Test Agent Production',
         description: 'Production validation test agent',
-        services: ['consultation'],
-        wallets: {
-          ethereum: '0x1234567890123456789012345678901234567890'
-        }
+        capabilities: ['consultation', 'data_analysis'],
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        walletNetwork: 'ethereum'
       });
       
       recordResult('AI Agent Registration', agentRegTest.success, {
@@ -226,10 +225,10 @@ async function runComprehensiveValidation() {
     try {
       const revenueTest = await makeRequest('GET', '/api/revenue/summary');
       const revenueSuccess = revenueTest.success && 
-                            typeof revenueTest.data.totalRevenue === 'number';
+                            revenueTest.data?.revenue?.platform?.totalTransactions >= 0;
       
       recordResult('Revenue Tracking System', revenueSuccess, {
-        totalRevenue: revenueTest.data?.totalRevenue
+        totalRevenue: revenueTest.data?.revenue?.platform?.totalVolume
       });
     } catch (error) {
       recordResult('Revenue Tracking System', false, { error: error.message });

@@ -12,6 +12,11 @@ import { getProductionConfig, configureProductionSecurity, initializeProductionM
 import { monitoring as advancedMonitoring } from "./monitoring";
 
 
+// Force production mode if deployed (regardless of npm script used)
+if (process.env.REPLIT_DEPLOYMENT || process.env.RAILWAY_ENVIRONMENT || process.env.VERCEL) {
+  process.env.NODE_ENV = 'production';
+}
+
 const app = express();
 const productionConfig = getProductionConfig();
 

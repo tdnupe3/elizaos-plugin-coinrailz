@@ -230,6 +230,14 @@ export const Award = ({ className = "", size = 24 }: IconProps) => (
   </svg>
 );
 
+export const HelpCircle = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <path d="M12 17h.01"/>
+  </svg>
+);
+
 export const History = ({ className = "", size = 24 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -491,6 +499,14 @@ export const CreditCard = ({ className = "", size = 24 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
     <rect width="20" height="14" x="2" y="5" rx="2"/>
     <line x1="2" x2="22" y1="10" y2="10"/>
+  </svg>
+);
+
+export const Database = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+    <path d="M3 5v14c0 3 4 6 9 6s9-3 9-6V5"/>
+    <path d="M3 12c0 3 4 6 9 6s9-3 9-6"/>
   </svg>
 );
 

@@ -33,6 +33,10 @@ app.use((req, res, next) => {
 // Setup lightweight API-only security (won't block frontend)
 setupLightweightSecurity(app);
 
+// Setup production-aware DDoS protection (environment-sensitive)
+import { setupProductionSecurity } from './productionSecurity.js';
+setupProductionSecurity(app);
+
 // Simple request logging
 app.use((req, res, next) => {
   const start = Date.now();

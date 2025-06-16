@@ -21,7 +21,7 @@ export function AuthGuard({ children, requireAuth = true }: AuthGuardProps) {
       });
       
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/signin";
       }, 1000);
     }
   }, [isLoading, isAuthenticated, requireAuth, toast]);

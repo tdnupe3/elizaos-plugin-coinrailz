@@ -27,7 +27,8 @@ export function useAuth() {
           throw new Error(`${res.status}: ${text}`);
         }
         
-        const userData = await res.json();
+        const data = await res.json();
+        const userData = data.success ? data.user : null;
         if (userData) {
           storeUser(userData);
         }

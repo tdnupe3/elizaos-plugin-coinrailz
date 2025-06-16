@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Activity } from '@/lib/icons';
 import { useLocation } from 'wouter';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import PortfolioChart from '@/components/PortfolioChart';

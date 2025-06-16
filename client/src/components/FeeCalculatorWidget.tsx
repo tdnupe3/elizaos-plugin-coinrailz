@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { TrendingDown, Clock, Shield, Zap } from 'lucide-react';
+import { TrendingDown, Clock, Shield, Zap } from '@/lib/icons';
 
 interface FeeCalculation {
   originalAmount: number;

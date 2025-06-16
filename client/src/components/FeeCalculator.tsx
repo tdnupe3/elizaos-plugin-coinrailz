@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
-import { CreditCard, Bitcoin, DollarSign, AlertCircle, CheckCircle } from 'lucide-react';
+import { CreditCard, Bitcoin, DollarSign, AlertCircle, CheckCircle } from '@/lib/icons';
 
 interface FeeBreakdown {
   subtotal: number;

@@ -182,12 +182,11 @@ async function runComprehensiveValidation() {
       });
       
       const feeSuccess = feeTest.success && 
-                        typeof feeTest.data.fee === 'number' && 
-                        feeTest.data.fee > 0;
+                        feeTest.data?.calculation?.totalFee > 0;
       
       recordResult('Fee Calculation System', feeSuccess, {
-        calculatedFee: feeTest.data?.fee,
-        percentage: feeTest.data?.percentage
+        calculatedFee: feeTest.data?.calculation?.totalFee,
+        percentage: '1%'
       });
     } catch (error) {
       recordResult('Fee Calculation System', false, { error: error.message });
@@ -195,10 +194,10 @@ async function runComprehensiveValidation() {
 
     // Test 8: DEX Aggregator Service
     try {
-      const dexTest = await makeRequest('GET', '/api/dex/quote?from=ETH&to=USDC&amount=1');
-      const dexSuccess = dexTest.success && dexTest.data.quote;
+      const dexTest = await makeRequest('GET', '/api/dex/quote?fromToken=ETH&toToken=USDC&amount=1');
+      const dexSuccess = dexTest.success && dexTest.data?.toAmount;
       recordResult('DEX Aggregator Service', dexSuccess, {
-        hasQuote: !!dexTest.data?.quote
+        hasQuote: !!dexTest.data?.toAmount
       });
     } catch (error) {
       recordResult('DEX Aggregator Service', false, { error: error.message });

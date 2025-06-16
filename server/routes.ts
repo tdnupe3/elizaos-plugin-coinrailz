@@ -2998,17 +2998,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json({
         success: true,
-        agentId,
-        upgrade: {
-          tierName: selectedTier.name,
-          monthlyFee: selectedTier.monthlyFee,
-          commissionBonus: `+${(selectedTier.commissionBonus * 100)}%`,
-          residualCommission: `${(selectedTier.residualCommission * 100)}%`,
-          maxTiers: selectedTier.maxTiers,
-          benefits: selectedTier.benefits
-        },
-        effectiveDate: new Date().toISOString(),
-        message: `Agent upgraded to ${selectedTier.name} tier successfully`
+        upgrade: selectedTier,
+        message: 'Tier upgrade processed successfully'
       });
     } catch (error: any) {
       console.error('Tier upgrade error:', error);
@@ -3019,11 +3010,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Transaction Commission Trigger (when agents/humans make transactions)
-  app.post('/api/transactions/:transactionId/process-commissions', async (req, res) => {
+  // Fee Calculation System API
+  app.post('/api/calculate-fees', async (req, res) => {
     try {
-      const { transactionId } = req.params;
-      const { amount, currency = 'USD', entityId, entityType } = req.body;
+      const { amount, type = 'send_money', currency = 'USD' } = req.body;
+
+      if (!amount || isNaN(parseFloat(amount))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid amount is required'
+        });
+      }
+
+      const baseAmount = parseFloat(amount);
+      let feeCalculation;
+
+      switch (type) {
+        case 'send_money':
+          feeCalculation = FeeCalculator.calculateSendMoneyFee(baseAmount);
+          break;
+        case 'buy_crypto':
+          feeCalculation = FeeCalculator.calculateBuyCryptoFee(baseAmount);
+          break;
+        case 'sell_crypto':
+          feeCalculation = FeeCalculator.calculateSellCryptoFee(baseAmount);
+          break;
+        default:
+          // Standard 1% platform fee
+          const platformFee = baseAmount * 0.01;
+          feeCalculation = {
+            originalAmount: baseAmount,
+            platformFee,
+            totalFee: platformFee,
+            totalAmount: baseAmount + platformFee,
+            netAmount: baseAmount,
+            feeBreakdown: {
+              platformFee: platformFee,
+              processingFee: 0,
+              convenienceFee: 0
+            }
+          };
+      }
+
+      res.json({
+        success: true,
+        calculation: feeCalculation,
+        type,
+        currency,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Fee calculation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Fee calculation failed: ' + error.message
+      });
+    }
+  });
+
+  // Revenue Tracking System API
+  app.get('/api/revenue/summary', async (req, res) => {
+    try {
+      // Get revenue data from database
+      const transactions = await db.query(`
+        SELECT 
+          COUNT(*) as total_transactions,
+          SUM(CASE WHEN amount IS NOT NULL THEN CAST(amount AS DECIMAL) ELSE 0 END) as total_volume,
+          SUM(CASE WHEN fee IS NOT NULL THEN CAST(fee AS DECIMAL) ELSE 0 END) as total_fees,
+          AVG(CASE WHEN amount IS NOT NULL THEN CAST(amount AS DECIMAL) ELSE 0 END) as avg_transaction_size
+        FROM payment_intents 
+        WHERE status = 'succeeded'
+      `);
+
+      const agentCommissions = await db.query(`
+        SELECT 
+          COUNT(*) as total_agents,
+          SUM(CASE WHEN total_revenue IS NOT NULL THEN CAST(total_revenue AS DECIMAL) ELSE 0 END) as total_agent_revenue
+        FROM global_ai_agents 
+        WHERE is_active = true
+      `);
+
+      const revenueData = transactions.rows[0] || {};
+      const agentData = agentCommissions.rows[0] || {};
+
+      const summary = {
+        platform: {
+          totalTransactions: parseInt(revenueData.total_transactions) || 0,
+          totalVolume: parseFloat(revenueData.total_volume) || 0,
+          totalFees: parseFloat(revenueData.total_fees) || 0,
+          averageTransactionSize: parseFloat(revenueData.avg_transaction_size) || 0
+        },
+        agents: {
+          activeAgents: parseInt(agentData.total_agents) || 0,
+          totalAgentRevenue: parseFloat(agentData.total_agent_revenue) || 0
+        },
+        calculated: {
+          platformProfit: (parseFloat(revenueData.total_fees) || 0) * 0.85, // 85% profit margin
+          agentCommissions: (parseFloat(revenueData.total_fees) || 0) * 0.15, // 15% to agents
+          profitMargin: '85%',
+          revenueGrowth: 'N/A - Insufficient historical data'
+        },
+        timestamp: new Date().toISOString()
+      };
+
+      res.json({
+        success: true,
+        revenue: summary
+      });
+    } catch (error: any) {
+      console.error('Revenue summary error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to generate revenue summary: ' + error.message
+      });
+    }
+  });
+
+  return server;
+}
 
       if (!amount || !entityId || !entityType) {
         return res.status(400).json({

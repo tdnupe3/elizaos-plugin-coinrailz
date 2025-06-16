@@ -2,8 +2,8 @@
  * Debug Session Authentication Issue
  */
 
-const { CookieJar } = require('tough-cookie');
-const fetch = require('node-fetch');
+import { CookieJar } from 'tough-cookie';
+import fetch from 'node-fetch';
 
 class SessionDebugger {
   constructor() {

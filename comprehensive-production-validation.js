@@ -3,13 +3,22 @@
  * Tests all critical systems with real authentication and data validation
  */
 
+import fetch from 'node-fetch';
+
+// Global cookie storage for session persistence
+const cookies = new Map();
+
 async function makeRequest(method, endpoint, data = null, useAuth = false) {
+  const cookieHeader = Array.from(cookies.entries())
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+
   const options = {
     method,
     headers: {
       'Content-Type': 'application/json',
-    },
-    credentials: 'include' // Include cookies for session auth
+      ...(cookieHeader && { 'Cookie': cookieHeader })
+    }
   };
 
   if (data && method !== 'GET') {
@@ -17,6 +26,16 @@ async function makeRequest(method, endpoint, data = null, useAuth = false) {
   }
 
   const response = await fetch(`http://localhost:5000${endpoint}`, options);
+  
+  // Extract and store cookies from response
+  const setCookieHeader = response.headers.get('set-cookie');
+  if (setCookieHeader) {
+    const cookieParts = setCookieHeader.split(';')[0].split('=');
+    if (cookieParts.length === 2) {
+      cookies.set(cookieParts[0], cookieParts[1]);
+    }
+  }
+
   const responseData = await response.text();
   
   try {

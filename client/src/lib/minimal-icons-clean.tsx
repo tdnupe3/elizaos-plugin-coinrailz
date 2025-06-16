@@ -267,6 +267,54 @@ export const Activity = ({ className = "", size = 24 }: IconProps) => (
   </svg>
 );
 
+export const Heart = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+  </svg>
+);
+
+export const ExternalLink = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+    <polyline points="15,3 21,3 21,9"/>
+    <line x1="10" x2="21" y1="14" y2="3"/>
+  </svg>
+);
+
+export const Coins = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <circle cx="8" cy="8" r="6"/>
+    <path d="M18.09 10.37A6 6 0 1 1 10.34 18"/>
+    <path d="M7 6h1v4"/>
+    <path d="M16.71 13.88A6 6 0 1 0 16.71 13.88"/>
+  </svg>
+);
+
+export const Github = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
+    <path d="M9 18c-4.51 2-5-2-7-2"/>
+  </svg>
+);
+
+export const Gift = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <rect x="3" y="8" width="18" height="4" rx="1"/>
+    <path d="M12 8v13"/>
+    <path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/>
+    <path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.9 4.9 0 0 1 12 8a4.9 4.9 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/>
+  </svg>
+);
+
+export const Gavel = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M14 13 8.5 7.5a2.12 2.12 0 0 1 0-3L12 1l3 3a2.12 2.12 0 0 1 0 3L9.5 12.5"/>
+    <path d="M16 16 10.5 10.5a2.12 2.12 0 0 1 0-3L14 4l3 3a2.12 2.12 0 0 1 0 3L11.5 15.5"/>
+    <path d="M8 21h8"/>
+    <path d="M12 17v4"/>
+  </svg>
+);
+
 export const AlertCircle = ({ className = "", size = 24 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
     <circle cx="12" cy="12" r="10"></circle>

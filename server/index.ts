@@ -9,6 +9,7 @@ import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { getProductionConfig, configureProductionSecurity, initializeProductionMonitoring } from "./productionConfig";
+import { monitoring as advancedMonitoring } from "./monitoring";
 
 
 const app = express();
@@ -62,6 +63,18 @@ function log(req: Request, res: Response, next: NextFunction) {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
+    
+    // Record metrics for advanced monitoring
+    try {
+      advancedMonitoring.recordMetric('request', 1);
+      advancedMonitoring.recordMetric('response_time', duration);
+      if (res.statusCode >= 400) {
+        advancedMonitoring.recordMetric('error', 1);
+      }
+    } catch (error) {
+      // Graceful degradation - monitoring failures don't affect logging
+    }
+    
     if (path.startsWith("/api")) {
       let logLine = req.method + ' ' + path + ' ' + res.statusCode + ' in ' + duration + 'ms';
       if (capturedJsonResponse) {
@@ -173,10 +186,20 @@ process.on('SIGINT', () => {
       await setupVite(app, httpServer);
     }
 
-    // Production health monitoring
+    // Production health monitoring with memory tracking
     if (process.env.NODE_ENV === 'production') {
       setInterval(() => {
-        console.log(`Health check: Server responding on port ${port}`);
+        const memoryUsage = process.memoryUsage();
+        const memoryMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+        
+        // Record memory metrics
+        try {
+          advancedMonitoring.recordMetric('memory', memoryMB);
+        } catch (error) {
+          // Graceful degradation
+        }
+        
+        console.log(`Health check: Server responding on port ${port}, Memory: ${memoryMB}MB`);
       }, 60000); // Every minute
     }
   } catch (error) {

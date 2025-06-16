@@ -13,11 +13,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export async function serveStatic(app: Express) {
   const distPath = path.join(__dirname, '..', 'dist');
   
-  // Serve static assets from dist folder
+  // Serve static assets with CDN-ready caching headers
   app.use(express.static(distPath, {
     maxAge: '1y', // Cache static assets for 1 year
     etag: true,
-    lastModified: true
+    lastModified: true,
+    setHeaders: (res, path) => {
+      // Set CDN-friendly headers
+      if (path.endsWith('.js') || path.endsWith('.css')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000');
+      } else if (path.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'public, max-age=3600'); // 1 hour for HTML
+      }
+      // Add CDN support headers
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+    }
   }));
 
   // Handle React Router routes - serve index.html for non-API routes

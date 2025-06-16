@@ -18,8 +18,7 @@ class EnvironmentSetup {
       'NODE_ENV',
       'DATABASE_URL',
       'STRIPE_SECRET_KEY',
-      'REPLIT_CLIENT_ID',
-      'REPLIT_CLIENT_SECRET'
+      'SESSION_SECRET'
     ];
   }
 
@@ -139,8 +138,7 @@ function checkCurrentEnvironment() {
     'NODE_ENV',
     'DATABASE_URL', 
     'STRIPE_SECRET_KEY',
-    'REPLIT_CLIENT_ID',
-    'REPLIT_CLIENT_SECRET'
+    'SESSION_SECRET'
   ];
 
   const configured = criticalVars.filter(varName => process.env[varName]);

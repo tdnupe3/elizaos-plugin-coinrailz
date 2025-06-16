@@ -1,32 +1,22 @@
 /**
- * Production Caching System with Redis Fallback
+ * Production Caching System
  * Optimizes performance for high-traffic production deployment
  */
 class CacheManager {
-  private fallbackCache = new Map<string, { data: any; expires: number }>();
-  private isRedisAvailable = false;
+  private cache = new Map<string, { data: any; expires: number }>();
 
   async initialize() {
-    // For now, use in-memory cache to avoid Redis dependency issues
-    // Redis can be added later with proper configuration
-    console.log('✅ Production cache system initialized (in-memory fallback)');
-    this.isRedisAvailable = false;
+    console.log('✅ Production cache system initialized');
   }
 
   async get(key: string): Promise<any> {
     try {
-      if (this.isConnected && this.redis) {
-        const data = await this.redis.get(key);
-        return data ? JSON.parse(data) : null;
-      } else {
-        // Fallback to in-memory cache
-        const cached = this.fallbackCache.get(key);
-        if (cached && cached.expires > Date.now()) {
-          return cached.data;
-        }
-        this.fallbackCache.delete(key);
-        return null;
+      const cached = this.cache.get(key);
+      if (cached && cached.expires > Date.now()) {
+        return cached.data;
       }
+      this.cache.delete(key);
+      return null;
     } catch (error) {
       console.error('Cache get error:', error);
       return null;
@@ -35,15 +25,10 @@ class CacheManager {
 
   async set(key: string, value: any, expirationSeconds: number = 300): Promise<void> {
     try {
-      if (this.isConnected && this.redis) {
-        await this.redis.setEx(key, expirationSeconds, JSON.stringify(value));
-      } else {
-        // Fallback to in-memory cache
-        this.fallbackCache.set(key, {
-          data: value,
-          expires: Date.now() + (expirationSeconds * 1000)
-        });
-      }
+      this.cache.set(key, {
+        data: value,
+        expires: Date.now() + (expirationSeconds * 1000)
+      });
     } catch (error) {
       console.error('Cache set error:', error);
     }
@@ -51,11 +36,7 @@ class CacheManager {
 
   async del(key: string): Promise<void> {
     try {
-      if (this.isConnected && this.redis) {
-        await this.redis.del(key);
-      } else {
-        this.fallbackCache.delete(key);
-      }
+      this.cache.delete(key);
     } catch (error) {
       console.error('Cache delete error:', error);
     }
@@ -87,20 +68,16 @@ class CacheManager {
   }
 
   // Health check for monitoring
-  async healthCheck(): Promise<{ redis: boolean; fallback: boolean }> {
+  async healthCheck(): Promise<{ cache: boolean; entries: number }> {
     return {
-      redis: this.isConnected,
-      fallback: this.fallbackCache.size > 0
+      cache: true,
+      entries: this.cache.size
     };
   }
 
   // Cleanup for graceful shutdown
   async disconnect(): Promise<void> {
-    if (this.redis && this.isConnected) {
-      await this.redis.disconnect();
-      this.isConnected = false;
-    }
-    this.fallbackCache.clear();
+    this.cache.clear();
   }
 }
 

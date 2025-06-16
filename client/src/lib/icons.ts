@@ -55,6 +55,7 @@ export {
   Lock,
   Mail,
   Maximize2,
+  MemoryStick,
   MessageCircle,
   MessageSquare,
   Minimize2,
@@ -87,5 +88,6 @@ export {
   Wallet,
   X,
   XCircle,
-  Zap
+  Zap,
+  MemoryStick
 } from '@/lib/minimal-icons-clean';

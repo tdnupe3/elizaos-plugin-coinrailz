@@ -3,9 +3,16 @@ import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
+import { productionSystems } from "./productionSystems";
 
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
+
+// Initialize production systems
+productionSystems.initialize();
+
+// Production monitoring middleware
+app.use(productionSystems.trackRequests());
 
 // Essential middleware
 app.use(express.json({ limit: '10mb' }));
@@ -45,8 +52,17 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health monitoring endpoint
+app.get('/api/health', (req, res) => {
+  const health = productionSystems.getHealthMetrics();
+  res.json(health);
+});
+
 // Setup simple API routes BEFORE Vite middleware
 const server = setupSimpleRoutes(app);
+
+// Production error handling
+app.use(productionSystems.errorHandler());
 
 // Start server listening
 server.listen(port, '0.0.0.0', () => {

@@ -30,9 +30,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Setup comprehensive DDoS protection
-setupDDoSProtection(app);
-
 // Setup lightweight API-only security (won't block frontend)
 setupLightweightSecurity(app);
 

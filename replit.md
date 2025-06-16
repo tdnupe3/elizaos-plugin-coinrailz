@@ -264,6 +264,8 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 - **Real-time Monitoring**: Performance bottleneck detection
 
 ## User Preferences
+- **Problem-Solving Approach**: Fix the root of issues instead of just treating the symptoms
+- **Development Mindset**: Everything done with production in mind unless specifically for development purposes
 - **Code Quality**: Maintain all existing functionality while optimizing for performance and memory efficiency
 - **Communication Style**: Direct, technical updates focused on actionable results
 - **Platform Stability**: Prioritize stability under high-volume operations while preserving feature completeness

@@ -86,4 +86,4 @@ export {
   X,
   XCircle,
   Zap
-} from '@/lib/minimal-icons';
+} from '@/lib/minimal-icons-clean';

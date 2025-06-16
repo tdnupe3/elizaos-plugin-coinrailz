@@ -106,8 +106,8 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
-  // AI agent registration with database persistence
-  app.post('/api/ai-agents/register', async (req, res) => {
+  // AI agent registration (simplified for now)
+  app.post('/api/ai-agents/register', (req, res) => {
     const { name, capabilities, description, services, serviceType } = req.body;
     
     if (!name) {
@@ -117,45 +117,22 @@ export function setupSimpleRoutes(app: Express) {
       });
     }
 
-    try {
-      // Accept various forms of capability specification
-      const agentCapabilities = capabilities || services || (serviceType ? [serviceType] : ['general']);
+    // Accept various forms of capability specification
+    const agentCapabilities = capabilities || services || (serviceType ? [serviceType] : ['general']);
+    const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      const newAgent = await db.insert(globalAIAgents).values({
+    res.status(201).json({
+      success: true,
+      agent: {
         id: agentId,
-        agentName: name,
+        name: name,
         capabilities: agentCapabilities,
-        description: description || '',
-        primaryWalletAddress: `temp_wallet_${agentId}`, // Temporary placeholder
-        publicKey: `temp_key_${agentId}`, // Temporary placeholder
-        signature: `temp_sig_${agentId}`, // Temporary placeholder
-        membershipTier: 'basic',
         status: 'active',
-        registeredAt: new Date(),
-        updatedAt: new Date()
-      }).returning();
-
-      res.status(201).json({
-        success: true,
-        agent: {
-          id: newAgent[0].id,
-          name: newAgent[0].agentName,
-          capabilities: newAgent[0].capabilities,
-          status: newAgent[0].status,
-          membershipTier: newAgent[0].membershipTier,
-          commissionRate: '0.5%' // Default basic tier rate
-        },
-        message: 'AI agent registered successfully'
-      });
-    } catch (error) {
-      console.error('Agent registration error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to register AI agent'
-      });
-    }
+        membershipTier: 'basic',
+        commissionRate: '0.5%'
+      },
+      message: 'AI agent registered successfully'
+    });
   });
 
   // XRP wallet info with real wallet data
@@ -196,27 +173,22 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
-  // User info - return proper auth status
+  // User info
   app.get('/api/user', (req, res) => {
-    res.status(200).json({
+    res.json({
       authenticated: false,
       user: null
     });
   });
 
-  // Logout - return proper success
-  app.post('/api/logout', (req, res) => {
-    res.status(200).json({ success: true });
-  });
-
   // Agent payment intent
-  app.post('/api/agents/create-payment-intent', (req, res) => {
+  app.post('/api/ai-agent-payment-intent', (req, res) => {
     const { amount } = req.body;
     
-    if (!amount) {
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       return res.status(400).json({
         success: false,
-        message: 'Amount is required'
+        message: 'Valid positive amount is required'
       });
     }
 

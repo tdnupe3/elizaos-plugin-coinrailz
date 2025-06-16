@@ -15,7 +15,7 @@ import {
   LogOut,
   X,
   Smartphone
-} from "@/lib/icons";
+} from "@/lib/minimal-icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";

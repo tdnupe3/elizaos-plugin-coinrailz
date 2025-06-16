@@ -19,7 +19,7 @@ import {
   Monitor,
   ArrowLeft,
   CheckCircle
-} from "@/lib/icons";
+} from "@/lib/minimal-icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";

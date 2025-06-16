@@ -9,6 +9,22 @@ import { useQuery } from "@tanstack/react-query";
 // Using native date formatting instead of date-fns
 import type { Transaction, CryptoTransaction } from "@shared/schema";
 
+// Helper function to replace date-fns format
+const formatDateTime = (date: Date, pattern: string) => {
+  if (pattern === "MMM dd, yyyy 'at' h:mm a") {
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }) + ' at ' + date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    });
+  }
+  return date.toString();
+};
+
 export default function TransactionHistory() {
   const [, setLocation] = useLocation();
 
@@ -102,7 +118,7 @@ export default function TransactionHistory() {
                                 {transaction.transactionType === "send" ? "Sent to" : "Received from"} {transaction.toEmail}
                               </p>
                               <p className="text-sm text-neutral-500">
-                                {format(new Date(transaction.createdAt!), "MMM dd, yyyy 'at' h:mm a")}
+                                {formatDateTime(new Date(transaction.createdAt!), "MMM dd, yyyy 'at' h:mm a")}
                               </p>
                               {transaction.message && (
                                 <p className="text-sm text-neutral-600 mt-1">"{transaction.message}"</p>
@@ -154,7 +170,7 @@ export default function TransactionHistory() {
                                 {transaction.transactionType} {transaction.coinSymbol}
                               </p>
                               <p className="text-sm text-neutral-500">
-                                {format(new Date(transaction.createdAt!), "MMM dd, yyyy 'at' h:mm a")}
+                                {formatDateTime(new Date(transaction.createdAt!), "MMM dd, yyyy 'at' h:mm a")}
                               </p>
                               <p className="text-sm text-neutral-600">
                                 {parseFloat(transaction.amount).toFixed(8)} {transaction.coinSymbol} 

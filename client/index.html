@@ -24,52 +24,14 @@
   </head>
   <body>
     <div id="root">
-      <!-- Your welcome page is being restored -->
-      <div style="min-height: 100vh; background: linear-gradient(135deg, rgb(102, 126, 234) 0%, rgb(118, 75, 162) 100%);">
-        <div style="max-width: 1200px; margin: 0 auto; padding: 2rem;">
-          <!-- Header -->
-          <div style="text-align: center; margin-bottom: 3rem;">
-            <div style="margin-bottom: 1.5rem;">
-              <img src="/attached_assets/Coin Railz Logo No BG.png" alt="Coin Railz Logo" style="width: 96px; height: 96px; margin: 0 auto; display: block;">
-            </div>
-            <h1 style="font-size: 3rem; font-weight: bold; color: white; margin-bottom: 1rem;">Coin Railz</h1>
-            <p style="font-size: 1.25rem; color: rgba(255,255,255,0.9); margin-bottom: 0.5rem;">Cross-Platform P2P Payments & Crypto Gateway</p>
-            <p style="font-size: 0.875rem; color: rgba(255,255,255,0.7);">Send money globally • Buy/sell crypto • DEX aggregator • Earn referral rewards</p>
-          </div>
-
-          <!-- Action Buttons -->
-          <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem;">
-            <button onclick="window.location.href='/signin'" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; backdrop-filter: blur(10px);">Sign In</button>
-            <button onclick="window.location.href='/signup'" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; backdrop-filter: blur(10px);">Sign Up</button>
-            <button onclick="window.location.href='/demo-dashboard'" style="background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.3); color: white; padding: 1rem 2rem; font-size: 1.1rem; border-radius: 8px; cursor: pointer; backdrop-filter: blur(10px);">Try Demo</button>
-          </div>
-
-          <!-- Platform Stats -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
-            <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 12px; text-align: center; backdrop-filter: blur(10px);">
-              <div style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">150+</div>
-              <div style="color: rgba(255,255,255,0.8);">Active AI Agents</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 12px; text-align: center; backdrop-filter: blur(10px);">
-              <div style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">$15,842</div>
-              <div style="color: rgba(255,255,255,0.8);">Platform Revenue</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 12px; text-align: center; backdrop-filter: blur(10px);">
-              <div style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">342</div>
-              <div style="color: rgba(255,255,255,0.8);">Transactions</div>
-            </div>
-            <div style="background: rgba(255,255,255,0.1); padding: 1.5rem; border-radius: 12px; text-align: center; backdrop-filter: blur(10px);">
-              <div style="font-size: 2rem; font-weight: bold; color: white; margin-bottom: 0.5rem;">99.2%</div>
-              <div style="color: rgba(255,255,255,0.8);">Uptime</div>
-            </div>
-          </div>
-
-          <!-- Status Message -->
-          <div style="text-align: center; margin-top: 2rem;">
-            <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem;">Platform Status: <span style="color: #4ade80; font-weight: 600;">Operational</span></p>
-          </div>
+      <!-- Fallback content while JavaScript loads -->
+      <div class="loading-fallback">
+        <div class="loading-content">
+          <h1>Coin Railz Platform</h1>
+          <p>Loading AI-Powered Fintech Platform...</p>
         </div>
       </div>
     </div>
+    <script type="module" src="/src/main.js"></script>
   </body>
 </html>

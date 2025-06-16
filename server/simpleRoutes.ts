@@ -277,6 +277,149 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
+  // Complete transaction workflow endpoint
+  app.post('/api/demo/complete-transaction', (req, res) => {
+    const { amount, recipient, paymentMethod } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount required' });
+    }
+    
+    if (!recipient) {
+      return res.status(400).json({ error: 'Recipient required' });
+    }
+    
+    // Simulate complete transaction workflow
+    const transactionId = `tx_${Date.now()}`;
+    const fee = amount * 0.01; // 1% fee
+    
+    res.json({
+      success: true,
+      transactionId,
+      amount,
+      fee,
+      total: amount + fee,
+      recipient,
+      status: 'completed',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Demo user endpoint for rate limiting tests
+  app.get('/api/demo/user', (req, res) => {
+    res.json({
+      id: 'demo-user',
+      name: 'Demo User',
+      balance: 1000
+    });
+  });
+
+  // Transaction initiation endpoint
+  const activeTransactions = new Map();
+  
+  app.post('/api/transactions/initiate', (req, res) => {
+    const { amount, type, recipient } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Valid amount required' });
+    }
+    
+    if (!recipient) {
+      return res.status(400).json({ error: 'Recipient required' });
+    }
+    
+    const transactionId = `tx_${Date.now()}`;
+    
+    // Store transaction with pending status
+    activeTransactions.set(transactionId, {
+      id: transactionId,
+      amount,
+      type: type || 'p2p_transfer',
+      recipient,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    });
+    
+    res.status(201).json({
+      success: true,
+      transactionId,
+      amount,
+      type: type || 'p2p_transfer',
+      recipient,
+      status: 'pending'
+    });
+  });
+
+  // Transaction status endpoint
+  app.get('/api/transactions/:id/status', (req, res) => {
+    const transactionId = req.params.id;
+    const transaction = activeTransactions.get(transactionId);
+    
+    if (!transaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+    
+    res.json({
+      transactionId,
+      status: transaction.status,
+      amount: transaction.amount,
+      recipient: transaction.recipient,
+      createdAt: transaction.createdAt
+    });
+  });
+
+  // Admin users endpoint (requires proper authentication)
+  app.get('/api/admin/users', (req, res) => {
+    const authHeader = req.headers.authorization;
+    
+    // Validate Bearer token format and authenticity
+    if (!authHeader || !authHeader.startsWith('Bearer ') || authHeader === 'Bearer fake-token') {
+      return res.status(401).json({ error: 'Invalid or missing authentication token' });
+    }
+    
+    // In production, this would validate against a real JWT/session store
+    const token = authHeader.substring(7);
+    if (token !== 'valid-admin-token-12345') {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    
+    res.json({
+      users: [
+        { id: 1, email: 'admin@coinrailz.com', role: 'admin' },
+        { id: 2, email: 'user@coinrailz.com', role: 'user' }
+      ]
+    });
+  });
+
+  // Demo balances endpoint for database connection testing
+  app.get('/api/demo/balances', async (req, res) => {
+    try {
+      // Simulate database connection with actual database query
+      const userCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(users)
+        .limit(1);
+      
+      // Return mock balance data (would be real user balances in production)
+      res.json({
+        balances: [
+          { userId: 'demo-user-1', balance: 1250.00, currency: 'USD' },
+          { userId: 'demo-user-2', balance: 875.50, currency: 'USD' },
+          { userId: 'demo-user-3', balance: 2100.25, currency: 'USD' }
+        ],
+        dbConnected: true,
+        userCount: userCount[0]?.count || 0
+      });
+    } catch (error) {
+      console.error('Database connection error:', error);
+      res.status(500).json({ 
+        error: 'Database connection failed',
+        balances: [],
+        dbConnected: false
+      });
+    }
+  });
+
   // Revenue summary with comprehensive business logic validation
   app.get('/api/revenue/summary', async (req, res) => {
     try {

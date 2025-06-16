@@ -3,7 +3,13 @@ import { createServer } from 'http';
 import { requireAuth, financialRateLimit, sanitizeInput } from './securityMiddleware';
 
 // Input validation schemas
-const validateAmount = (amount: any): { isValid: boolean; sanitizedAmount?: number; error?: string } => {
+const validateAmount = (amount: any, userRegistrationStatus?: string): { 
+  isValid: boolean; 
+  sanitizedAmount?: number; 
+  error?: string;
+  requiresRegistrationValidation?: boolean;
+  warning?: string;
+} => {
   if (!amount) {
     return { isValid: false, error: 'Amount is required' };
   }
@@ -17,14 +23,26 @@ const validateAmount = (amount: any): { isValid: boolean; sanitizedAmount?: numb
     return { isValid: false, error: 'Amount must be greater than zero' };
   }
 
+  if (numericAmount < 0.01) { // Minimum 1 cent
+    return { isValid: false, error: 'Amount must be at least $0.01' };
+  }
+
   // Dynamic transaction limits based on environment
   const maxAmount = parseFloat(process.env.MAX_TRANSACTION_AMOUNT || '500000');
   if (numericAmount > maxAmount) {
     return { isValid: false, error: `Amount exceeds maximum limit of $${maxAmount.toLocaleString()}` };
   }
 
-  if (numericAmount < 0.01) { // Minimum 1 cent
-    return { isValid: false, error: 'Amount must be at least $0.01' };
+  // High-value transaction validation requirement ($100K+)
+  if (numericAmount > 100000) {
+    if (!userRegistrationStatus || userRegistrationStatus !== 'verified') {
+      return { 
+        isValid: true,
+        sanitizedAmount: numericAmount,
+        requiresRegistrationValidation: true,
+        warning: 'Transactions over $100,000 require user registration verification. Please complete your profile registration to proceed.'
+      };
+    }
   }
 
   return { isValid: true, sanitizedAmount: numericAmount };
@@ -83,12 +101,12 @@ export function setupProductionRoutes(app: Express) {
     });
   });
 
-  // Fee calculation with strict validation
+  // Fee calculation with $100K registration validation
   app.post('/api/calculate-fees', financialRateLimit, (req: Request, res: Response) => {
     try {
-      const { amount, type = 'send_money', currency = 'USD' } = req.body;
+      const { amount, type = 'send_money', currency = 'USD', userRegistrationStatus } = req.body;
       
-      const amountValidation = validateAmount(amount);
+      const amountValidation = validateAmount(amount, userRegistrationStatus);
       if (!amountValidation.isValid) {
         return res.status(400).json({
           success: false,
@@ -117,13 +135,21 @@ export function setupProductionRoutes(app: Express) {
         currency
       };
 
-      res.status(200).json({
+      const response: any = {
         success: true,
         calculation: feeCalculation,
         type,
         currency,
         timestamp: new Date().toISOString()
-      });
+      };
+
+      // Add registration validation flag for high-value transactions
+      if (amountValidation.requiresRegistrationValidation) {
+        response.requiresRegistrationValidation = true;
+        response.validationWarning = amountValidation.warning;
+      }
+
+      res.status(200).json(response);
 
     } catch (error: any) {
       console.error('Fee calculation error:', error);

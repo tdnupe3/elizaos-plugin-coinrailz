@@ -98,6 +98,8 @@ export const transactions = pgTable("transactions", {
   transactionType: varchar("transaction_type").notNull(), // send, receive, deposit, withdrawal, swap
   platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"),
   exchangeRate: decimal("exchange_rate", { precision: 18, scale: 8 }), // For currency conversions
+  requiresRegistrationValidation: boolean("requires_registration_validation").default(false), // For transactions >$100K
+  registrationValidationStatus: varchar("registration_validation_status").default("pending"), // pending, verified, rejected
   externalTransactionId: varchar("external_transaction_id"),
   failureReason: varchar("failure_reason"),
   fromWalletId: integer("from_wallet_id").references(() => walletBalances.id),

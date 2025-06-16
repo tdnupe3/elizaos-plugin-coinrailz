@@ -83,5 +83,11 @@ export {
   Wallet,
   X,
   XCircle,
-  Zap
+  Zap,
+  Heart,
+  ExternalLink,
+  Coins,
+  Github,
+  Gift,
+  Gavel
 } from '@/lib/minimal-icons-clean';

@@ -5,7 +5,9 @@
 
 import type { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
+import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { pool } from "./db";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 
@@ -23,8 +25,14 @@ const loginSchema = z.object({
 });
 
 export function setupProductionAuth(app: Express) {
-  // Session configuration
+  // Session configuration with database storage
+  const PgSession = connectPg(session);
+  
   app.use(session({
+    store: new PgSession({
+      pool: pool,
+      tableName: 'sessions'
+    }),
     secret: process.env.SESSION_SECRET || 'coinrailz-production-secret',
     resave: false,
     saveUninitialized: false,

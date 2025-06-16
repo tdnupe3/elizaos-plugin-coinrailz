@@ -476,9 +476,9 @@ export function setupSimpleRoutes(app: Express) {
           connectionAttempts: connectionAttempts + 1
         });
         
-      } catch (error) {
+      } catch (error: any) {
         connectionAttempts++;
-        console.error(`Database connection attempt ${connectionAttempts} failed:`, error.message);
+        console.error(`Database connection attempt ${connectionAttempts} failed:`, (error as Error)?.message || String(error));
         
         // If this was the last attempt, fall back to cached response
         if (connectionAttempts >= maxAttempts) {

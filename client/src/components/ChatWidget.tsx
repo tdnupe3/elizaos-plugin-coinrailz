@@ -16,7 +16,7 @@ import {
   CreditCard,
   Wallet,
   Shield
-} from "lucide-react";
+} from "@/lib/icons";
 
 interface Message {
   id: string;

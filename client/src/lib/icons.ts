@@ -24,7 +24,9 @@ export {
   Info,
   Mail,
   MapPin,
+  Maximize2,
   MessageCircle,
+  Minimize2,
   Network,
   Phone,
   Plus,
@@ -38,7 +40,9 @@ export {
   Target,
   TrendingDown,
   TrendingUp,
+  User,
   Users,
+  Wallet,
   X,
   Zap
 } from '@/lib/simple-icons';

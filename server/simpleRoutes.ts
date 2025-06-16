@@ -102,6 +102,35 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
+  // Demo fee calculation endpoint for audit compatibility
+  app.post('/api/demo/calculate-fee', (req, res) => {
+    const { amount } = req.body;
+    
+    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid positive amount is required'
+      });
+    }
+
+    const baseAmount = parseFloat(amount);
+    const validation = BusinessLogicValidator.validateFeeCalculation(baseAmount);
+    
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.errors.join('; '),
+        errors: validation.errors
+      });
+    }
+
+    res.json({
+      success: true,
+      calculation: validation.data,
+      warnings: validation.warnings
+    });
+  });
+
   // Revenue summary with comprehensive business logic validation
   app.get('/api/revenue/summary', async (req, res) => {
     try {

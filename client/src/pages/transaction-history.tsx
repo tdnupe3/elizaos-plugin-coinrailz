@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowDown, ArrowUp, Bitcoin } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
+// Using native date formatting instead of date-fns
 import type { Transaction, CryptoTransaction } from "@shared/schema";
 
 export default function TransactionHistory() {

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, TrendingUp, Clock } from "lucide-react";
-import { format } from "date-fns";
+// Using native date formatting instead of date-fns
 
 interface PendingCommissions {
   totalPending: number;
@@ -85,7 +85,7 @@ export function CommissionDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">
               {pendingCommissions?.nextPayoutDate 
-                ? format(new Date(pendingCommissions.nextPayoutDate), 'MMM dd')
+                ? new Date(pendingCommissions.nextPayoutDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                 : 'TBD'
               }
             </div>

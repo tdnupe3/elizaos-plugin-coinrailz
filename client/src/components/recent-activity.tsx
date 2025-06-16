@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowUp, Bitcoin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { format } from "date-fns";
+// Using native date formatting instead of date-fns
 import type { Transaction } from "@shared/schema";
 
 export function RecentActivity() {
@@ -45,7 +45,10 @@ export function RecentActivity() {
 
   const getTimeAgo = (date: string) => {
     try {
-      return format(new Date(date), "MMM dd");
+      return new Date(date).toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
     } catch {
       return "Recently";
     }

@@ -119,7 +119,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API logging disabled in development mode for performance
 
   // Production authentication middleware - no demo bypass
-  const productionAuthMiddleware = isAuthenticated;
+  const { requireAuth } = await import('./productionAuth');
+  const productionAuthMiddleware = requireAuth;
 
   // DEVELOPMENT MODE: Skip rate limiting but preserve authentication
   if (process.env.NODE_ENV === 'development') {

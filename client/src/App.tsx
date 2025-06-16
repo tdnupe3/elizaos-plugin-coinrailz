@@ -45,6 +45,8 @@ import SignupFlowDemo from "@/pages/signup-flow-demo";
 import LegalDisclaimers from "@/pages/legal-disclaimers";
 import ContactUs from "@/pages/contact-us";
 import WalletManagement from "@/pages/wallet-management";
+import SignUp from "@/pages/signup";
+import SignIn from "@/pages/signin";
 import { lazy } from "react";
 
 // Lazy load remaining components
@@ -123,6 +125,8 @@ function Router() {
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
 
+      <Route path="/signup" component={SignUp} />
+      <Route path="/signin" component={SignIn} />
       <Route path="/signup-flow" component={SignupFlowDemo} />
       <Route path="/legal-disclaimers" component={LegalDisclaimers} />
       <Route path="/contact-us" component={ContactUs} />

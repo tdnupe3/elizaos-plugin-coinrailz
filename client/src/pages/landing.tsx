@@ -12,11 +12,11 @@ export default function Landing() {
   const [, setLocation] = useLocation();
 
   const handleSignIn = () => {
-    window.location.href = "/api/login";
+    setLocation("/signin");
   };
 
   const handleSignUp = () => {
-    window.location.href = "/api/login";
+    setLocation("/signup");
   };
 
   const handleGuestAccess = () => {

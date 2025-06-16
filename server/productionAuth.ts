@@ -54,14 +54,14 @@ export function setupProductionAuth(app: Express) {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
-      // Create user
+      // Create user with unique ID
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const user = await storage.createUser({
+        id: userId,
         email,
         password: hashedPassword,
         firstName,
         lastName,
-        role: 'user',
-        isVerified: true, // Auto-verify for production deployment
         createdAt: new Date(),
         updatedAt: new Date()
       });

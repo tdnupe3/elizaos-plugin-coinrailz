@@ -38,7 +38,7 @@ import { pncBankService } from './services/pncBankService';
 import { dexAggregatorService } from './services/dexAggregatorService';
 import { changeNowService } from './services/changeNowService';
 import { solanaService } from './services/solanaService';
-// Tron service removed - focusing on high-ROI chains
+
 import { aiAgentService } from './services/aiAgentService';
 import { aiAgentReferralService } from './services/aiAgentReferralService';
 import { agentMarketplaceService } from './services/agentMarketplaceService';
@@ -5473,7 +5473,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register all XRP endpoints with simplified service
   registerXRPRoutes(app, isAuthenticated);
 
-  // Tron endpoints removed - focusing resources on high-ROI chains
+
 
   // Platform wallet management endpoints
   app.get('/api/admin/platform-wallet', async (req, res) => {

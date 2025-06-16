@@ -29,6 +29,14 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 
 ## Recent Changes (June 16, 2025)
 
+### TRON BLOCKCHAIN REMOVAL COMPLETED (June 16, 2025)
+- **Simplification**: Removed all Tron-related code and references as requested by user
+- **Rationale**: Platform overcomplicated with too many blockchain integrations
+- **Removed Components**: tronService.ts, Tron wallet references, TronLink initialization
+- **Focused Architecture**: Now supports Ethereum, XRP, Solana, Bitcoin - core high-value chains
+- **Performance Improvement**: Reduced complexity and maintenance overhead
+- **Clean Codebase**: Eliminated unused Tron endpoints and service calls
+
 ### DEPLOYMENT BLOCKER PERMANENTLY RESOLVED (June 16, 2025)
 - **Root Issue Fixed**: ES module/CommonJS conflicts preventing coinrailz.com deployment
 - **Build System Solution**: Created `build-and-fix.cjs` script ensuring permanent CommonJS server generation

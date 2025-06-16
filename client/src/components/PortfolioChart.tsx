@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface PortfolioData {
   timestamp: string;
@@ -21,13 +21,11 @@ interface AssetAllocation {
 interface PortfolioChartProps {
   portfolioHistory: PortfolioData[];
   assetAllocation: AssetAllocation[];
-  timeframe: '24h' | '7d' | '30d' | '1y';
+  timeframe: string;
 }
 
-const COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#c3ddfd', '#dbeafe'];
-
 export default function PortfolioChart({ portfolioHistory, assetAllocation, timeframe }: PortfolioChartProps) {
-  const formatValue = (value: number) => {
+  const formatValue = (value: number): string => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -36,11 +34,9 @@ export default function PortfolioChart({ portfolioHistory, assetAllocation, time
     }).format(value);
   };
 
-  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
-
-  const totalPortfolioValue = useMemo(() => {
-    return assetAllocation.reduce((sum, asset) => sum + asset.value, 0);
-  }, [assetAllocation]);
+  const formatPercentage = (value: number): string => {
+    return `${value.toFixed(2)}%`;
+  };
 
   const portfolioChange = useMemo(() => {
     if (portfolioHistory.length < 2) return { amount: 0, percentage: 0 };
@@ -53,152 +49,110 @@ export default function PortfolioChart({ portfolioHistory, assetAllocation, time
     return { amount, percentage };
   }, [portfolioHistory]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white p-3 border rounded shadow-lg">
-          <p className="text-sm font-medium">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {`${entry.name}: ${formatValue(entry.value)}`}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
-
-  const PieTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border rounded shadow-lg">
-          <p className="font-medium">{data.name} ({data.symbol})</p>
-          <p className="text-sm">{formatValue(data.value)}</p>
-          <p className="text-sm">{formatPercentage(data.percentage)}</p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const isPositive = portfolioChange.percentage >= 0;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Portfolio Performance Chart */}
-      <Card className="lg:col-span-2">
+      {/* Portfolio Performance Summary */}
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Portfolio Performance ({timeframe})</span>
-            <div className="text-right">
-              <div className="text-2xl font-bold">{formatValue(totalPortfolioValue)}</div>
-              <div className={`text-sm ${portfolioChange.percentage >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {portfolioChange.percentage >= 0 ? '+' : ''}{formatValue(portfolioChange.amount)} 
-                ({portfolioChange.percentage >= 0 ? '+' : ''}{portfolioChange.percentage.toFixed(2)}%)
-              </div>
-            </div>
+            Portfolio Performance
+            <span className={`text-sm font-medium flex items-center gap-1 ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {isPositive ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              {isPositive ? '+' : ''}{formatPercentage(portfolioChange.percentage)}
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={portfolioHistory}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="timestamp" 
-                tick={{ fontSize: 12 }}
-                tickFormatter={(value) => {
-                  const date = new Date(value);
-                  if (timeframe === '24h') {
-                    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                  }
-                  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                }}
-              />
-              <YAxis 
-                tick={{ fontSize: 12 }}
-                tickFormatter={formatValue}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Line 
-                type="monotone" 
-                dataKey="totalValue" 
-                stroke="#2563eb" 
-                strokeWidth={2}
-                dot={false}
-                name="Total Portfolio"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="btcValue" 
-                stroke="#f7931a" 
-                strokeWidth={1}
-                dot={false}
-                name="Bitcoin Holdings"
-              />
-              <Line 
-                type="monotone" 
-                dataKey="ethValue" 
-                stroke="#627eea" 
-                strokeWidth={1}
-                dot={false}
-                name="Ethereum Holdings"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4 text-sm font-medium text-gray-600 border-b pb-2">
+              <div>Asset</div>
+              <div>Value</div>
+              <div>Change</div>
+            </div>
+            {portfolioHistory.length > 0 && (
+              <>
+                <div className="grid grid-cols-3 gap-4 py-2">
+                  <div className="font-medium">Total Portfolio</div>
+                  <div className="font-semibold">{formatValue(portfolioHistory[portfolioHistory.length - 1].totalValue)}</div>
+                  <div className={`font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatValue(portfolioChange.amount)}
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 py-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                    Bitcoin Holdings
+                  </div>
+                  <div>{formatValue(portfolioHistory[portfolioHistory.length - 1].btcValue)}</div>
+                  <div className="text-orange-600 text-sm">45% allocation</div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 py-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    Ethereum Holdings
+                  </div>
+                  <div>{formatValue(portfolioHistory[portfolioHistory.length - 1].ethValue)}</div>
+                  <div className="text-blue-600 text-sm">30% allocation</div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 py-2 border-t">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    Other Assets
+                  </div>
+                  <div>{formatValue(portfolioHistory[portfolioHistory.length - 1].altValue)}</div>
+                  <div className="text-purple-600 text-sm">25% allocation</div>
+                </div>
+              </>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Asset Allocation Pie Chart */}
+      {/* Asset Allocation Summary */}
       <Card>
         <CardHeader>
           <CardTitle>Asset Allocation</CardTitle>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={assetAllocation}
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                dataKey="value"
-                label={({ name, percentage }) => `${name} ${percentage.toFixed(1)}%`}
-              >
-                {assetAllocation.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<PieTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Asset Breakdown Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Holdings Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {assetAllocation.map((asset, index) => (
-              <div key={asset.symbol} className="flex items-center justify-between p-3 border rounded">
-                <div className="flex items-center space-x-3">
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
                   <div 
                     className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: asset.color || COLORS[index % COLORS.length] }}
-                  />
+                    style={{ backgroundColor: asset.color }}
+                  ></div>
                   <div>
-                    <div className="font-medium">{asset.name}</div>
-                    <div className="text-sm text-gray-500">{asset.symbol}</div>
+                    <p className="font-medium">{asset.name}</p>
+                    <p className="text-sm text-gray-500">{asset.symbol}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">{formatValue(asset.value)}</div>
-                  <div className="text-sm text-gray-500">{formatPercentage(asset.percentage)}</div>
+                  <p className="font-semibold">{formatValue(asset.value)}</p>
+                  <p className="text-sm text-gray-500">{formatPercentage(asset.percentage)}</p>
                 </div>
               </div>
             ))}
+          </div>
+          
+          {/* Portfolio Summary Stats */}
+          <div className="mt-6 pt-4 border-t">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-500">Total Value</p>
+                <p className="font-semibold text-lg">
+                  {portfolioHistory.length > 0 ? formatValue(portfolioHistory[portfolioHistory.length - 1].totalValue) : '$0'}
+                </p>
+              </div>
+              <div>
+                <p className="text-gray-500">24h Change</p>
+                <p className={`font-semibold text-lg ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                  {isPositive ? '+' : ''}{formatPercentage(portfolioChange.percentage)}
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

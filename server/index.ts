@@ -1,12 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
 import productionRoutes from "./productionRoutes";
 import criticalRoutes from "./criticalRoutes";
-import { setupVite, serveStatic } from "./vite";
+import { setupVite } from "./vite";
+import { serveStatic } from "./productionStatic";
 import { setupAuth } from "./replitAuth";
 import { registerAuthRoutes } from "./authRoutes";
 import compression from "compression";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { getProductionConfig, configureProductionSecurity, initializeProductionMonitoring } from "./productionConfig";
 
 
 const app = express();
@@ -182,8 +184,14 @@ process.on('SIGINT', () => {
       }
     });
 
-    // Setup Vite AFTER API routes (this handles React app serving for non-API routes)
-    await setupVite(app, httpServer);
+    // Production vs Development serving
+    if (process.env.NODE_ENV === 'production') {
+      // Production: serve static files from dist
+      await serveStatic(app);
+    } else {
+      // Development: use Vite HMR
+      await setupVite(app, httpServer);
+    }
 
     // Production health monitoring
     if (process.env.NODE_ENV === 'production') {

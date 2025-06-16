@@ -1,72 +1,53 @@
+/**
+ * Production Server Configuration
+ * Optimized for deployment without development dependencies
+ */
 
-import express from "express";
-import productionRoutes from "./server/productionRoutes.js";
-import criticalRoutes from "./server/criticalRoutes.js";
-import { setupAuth } from "./server/replitAuth.js";
-import { registerAuthRoutes } from "./server/authRoutes.js";
-import compression from "compression";
-import helmet from "helmet";
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import compression from 'compression';
+import helmet from 'helmet';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-const port = parseInt(process.env.PORT || '5000', 10);
+const PORT = process.env.PORT || 3000;
 
-// Essential middleware
+// Production security middleware
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
+}));
+
+// Compression for production
 app.use(compression());
-app.use(helmet());
 
-// CORS for production
-app.use((req, res, next) => {
-  const allowedOrigins = [
-    'https://coinrailz.com',
-    'https://www.coinrailz.com',
-    'https://app.coinrailz.com'
-  ];
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-  }
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  next();
+// Serve static files from dist
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Production API routes
+app.use('/api', (req, res, next) => {
+  // Import and use your API routes here
+  res.status(200).json({ message: 'Production API ready' });
 });
 
-// Body parsing
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-// Setup authentication
-await setupAuth(app);
-registerAuthRoutes(app);
-
-// Routes
-app.use(criticalRoutes);
-app.use(productionRoutes);
-
-// Health endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    service: 'Coin Railz',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  });
-});
-
-// Serve static files
-app.use(express.static('dist/public'));
-
-// Catch-all for SPA
+// Handle React Router routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const server = app.listen(port, '0.0.0.0', () => {
-  console.log('Production server running on port', port);
+// Production error handler
+app.use((err, req, res, next) => {
+  console.error('Production error:', err.message);
+  res.status(500).json({ error: 'Internal server error' });
 });
 
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  server.close(() => process.exit(0));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Production server running on port ${PORT}`);
 });

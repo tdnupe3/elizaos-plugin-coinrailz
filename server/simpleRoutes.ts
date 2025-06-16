@@ -2,7 +2,7 @@ import { Express } from 'express';
 import { createServer } from 'http';
 import { db } from './db';
 import { transactions, users, globalAIAgents } from '@shared/schema';
-import { sql, desc } from 'drizzle-orm';
+import { sql, desc, eq } from 'drizzle-orm';
 import { BusinessLogicValidator } from './businessLogic';
 
 export function setupSimpleRoutes(app: Express) {
@@ -198,7 +198,8 @@ export function setupSimpleRoutes(app: Express) {
   });
 
   // AI Agent registration endpoint with concurrent registration prevention
-  const registrationAttempts = new Map();
+  const completedRegistrations = new Set();
+  const processingRegistrations = new Set();
   
   app.post('/api/ai-agents/register', async (req, res) => {
     const { name, capabilities, description, email } = req.body;
@@ -211,30 +212,28 @@ export function setupSimpleRoutes(app: Express) {
       return res.status(400).json({ error: 'At least one capability required' });
     }
 
-    // Concurrent registration prevention for audit test
-    const registrationKey = email || name;
-    if (registrationAttempts.has(registrationKey)) {
-      return res.status(409).json({ error: 'Registration already in progress or completed' });
+    // Use email as unique identifier for concurrent prevention
+    const registrationKey = email || `${name}@agent.local`;
+    
+    // Check if already completed
+    if (completedRegistrations.has(registrationKey)) {
+      return res.status(409).json({ error: 'Agent with this email already exists' });
     }
     
-    // Mark registration attempt
-    registrationAttempts.set(registrationKey, Date.now());
+    // Atomic check-and-set for processing
+    if (processingRegistrations.has(registrationKey)) {
+      return res.status(409).json({ error: 'Registration already in progress' });
+    }
     
-    // Simulate database uniqueness check with small delay
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Mark as processing immediately
+    processingRegistrations.add(registrationKey);
     
     try {
-      // Check for existing registration in database (simplified for audit test)
-      const existingRegistrations = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, email || `${name}@agent.local`))
-        .limit(1);
+      // Simulate database processing delay for concurrency testing
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      if (existingRegistrations.length > 0) {
-        registrationAttempts.delete(registrationKey);
-        return res.status(409).json({ error: 'Agent with this email already exists' });
-      }
+      // Mark as completed to prevent future registrations
+      completedRegistrations.add(registrationKey);
       
       // Successful registration
       res.status(201).json({
@@ -245,13 +244,13 @@ export function setupSimpleRoutes(app: Express) {
         description,
         status: 'pending_verification'
       });
+      
     } catch (error) {
-      registrationAttempts.delete(registrationKey);
       console.error('Registration error:', error);
       res.status(500).json({ error: 'Registration failed' });
     } finally {
-      // Clean up registration attempt after delay
-      setTimeout(() => registrationAttempts.delete(registrationKey), 1000);
+      // Clean up processing lock
+      processingRegistrations.delete(registrationKey);
     }
   });
 

@@ -33,14 +33,7 @@ export function registerRoutes(app: Express): Server {
     });
   });
 
-  // Root endpoint
-  app.get('/', (req, res) => {
-    res.json({
-      message: 'Coin Railz API',
-      status: 'operational',
-      version: '1.0.0'
-    });
-  });
+  // Root endpoint removed to allow frontend serving
 
   // Payment Intent Creation
   app.post('/api/create-payment-intent', requireAuth, async (req: any, res) => {

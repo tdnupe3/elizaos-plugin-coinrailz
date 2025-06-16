@@ -2,10 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import productionRoutes from "./productionRoutes";
 import criticalRoutes from "./criticalRoutes";
 import { setupVite, serveStatic } from "./vite";
-import { stability } from './stability';
-import { stabilityManager } from './services/stabilityManager';
-import { setupProductionErrorHandling } from './middleware/productionStabilityWrapper';
-import { setupGlobalCrashPrevention } from './middleware/productionCrashPrevention';
 import { setupAuth } from "./replitAuth";
 import { registerAuthRoutes } from "./authRoutes";
 import compression from "compression";
@@ -103,12 +99,16 @@ function log(req: Request, res: Response, next: NextFunction) {
 
 app.use(log);
 
-// Initialize comprehensive stability system
-setupProductionErrorHandling();
-setupGlobalCrashPrevention();
-stability.setupGlobalHandlers();
-const stableManager = stabilityManager;
-console.log('Production Stability System activated - comprehensive crash prevention enabled');
+// Simple crash prevention
+process.on('unhandledRejection', (reason: any) => {
+  console.error('Unhandled rejection prevented:', reason?.message || reason);
+});
+
+process.on('uncaughtException', (error: any) => {
+  console.error('Uncaught exception prevented:', error.message);
+});
+
+console.log('Basic crash prevention activated');
 
 let httpServer: any;
 

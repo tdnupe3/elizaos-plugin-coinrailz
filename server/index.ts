@@ -135,9 +135,9 @@ process.on('SIGINT', () => {
     app.use(express.json({ limit: '10mb' }));
     app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-    // Setup authentication system
-    await setupAuth(app);
-    registerAuthRoutes(app);
+    // Setup production authentication system
+    const { setupProductionAuth } = await import('./productionAuth');
+    setupProductionAuth(app);
 
     // Add critical routes FIRST to ensure API functionality
     app.use(criticalRoutes);

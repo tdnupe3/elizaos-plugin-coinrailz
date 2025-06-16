@@ -1,4 +1,5 @@
 import express from "express";
+import path from "path";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
@@ -64,16 +65,30 @@ const server = setupSimpleRoutes(app);
 // Production error handling
 app.use(productionSystems.errorHandler());
 
-// Start server listening
-server.listen(port, '0.0.0.0', () => {
-  console.log(`Development server running on 0.0.0.0:${port}`);
-});
-
-// Setup Vite for frontend serving
-setupVite(app, server).then(() => {
-  console.log('Frontend serving ready');  
-}).catch(error => {
-  console.error('Vite setup failed:', error);
-});
+// Production vs Development setup
+if (process.env.NODE_ENV === 'production') {
+  // Production: serve static files
+  app.use(express.static('dist/public'));
+  
+  // Catch-all handler for SPA routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.resolve('dist/public/index.html'));
+  });
+  
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Production server running on 0.0.0.0:${port}`);
+  });
+} else {
+  // Development: use Vite
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`Development server running on 0.0.0.0:${port}`);
+  });
+  
+  setupVite(app, server).then(() => {
+    console.log('Frontend serving ready');  
+  }).catch(error => {
+    console.error('Vite setup failed:', error);
+  });
+}
 
 export default app;

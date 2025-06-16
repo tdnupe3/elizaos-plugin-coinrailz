@@ -72,6 +72,7 @@ export {
   Server,
   Share2,
   Shield,
+  ShoppingCart,
   Smartphone,
   Sparkles,
   Star,

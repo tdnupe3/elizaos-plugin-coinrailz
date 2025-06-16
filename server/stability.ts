@@ -1,100 +1,91 @@
 /**
- * Production Stability Manager - Prevents all server crashes
- * Isolates components and handles errors gracefully
+ * Production-Grade Stability System
+ * Single, reliable error handling without conflicts
  */
 
-export class StabilityManager {
-  private static instance: StabilityManager;
-  private crashCount = 0;
-  private lastCrash = 0;
-  private maxCrashes = 3;
-  private resetWindow = 300000; // 5 minutes
+import { Request, Response, NextFunction } from 'express';
 
-  static getInstance(): StabilityManager {
-    if (!StabilityManager.instance) {
-      StabilityManager.instance = new StabilityManager();
-    }
-    return StabilityManager.instance;
-  }
+export class ProductionStability {
+  private static errorCounts = new Map<string, number>();
+  private static memoryChecks = 0;
 
-  async safeExecute<T>(
-    operation: () => Promise<T> | T,
-    fallback: T,
-    context: string
-  ): Promise<T> {
+  // Database operation wrapper with timeout and retry
+  static async safeDbOperation<T>(operation: () => Promise<T>, fallback: T): Promise<T> {
     try {
-      const result = await operation();
+      const result = await Promise.race([
+        operation(),
+        new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Database timeout')), 10000)
+        )
+      ]);
       return result;
-    } catch (error) {
-      console.error(`Safe execution failed in ${context}:`, error);
-      this.recordError(context, error);
+    } catch (error: any) {
+      console.error('Database operation failed:', error.message);
       return fallback;
     }
   }
 
-  private recordError(context: string, error: any) {
-    const now = Date.now();
-    
-    // Reset crash count if outside window
-    if (now - this.lastCrash > this.resetWindow) {
-      this.crashCount = 0;
-    }
-    
-    this.crashCount++;
-    this.lastCrash = now;
-    
-    console.error(`Stability Manager - Error ${this.crashCount}/${this.maxCrashes} in ${context}:`, error);
-    
-    // Implement circuit breaker if too many failures
-    if (this.crashCount >= this.maxCrashes) {
-      console.error(`Circuit breaker activated for ${context} - disabling for ${this.resetWindow/1000}s`);
-    }
+  // Route wrapper that prevents crashes
+  static wrapRoute(handler: (req: Request, res: Response) => Promise<any>) {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        await handler(req, res);
+      } catch (error: any) {
+        console.error(`Route error [${req.method} ${req.path}]:`, error.message);
+        
+        if (!res.headersSent) {
+          res.status(500).json({
+            error: 'Service temporarily unavailable',
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    };
   }
 
-  setupGlobalHandlers() {
-    // Override default crash handlers
-    process.removeAllListeners('uncaughtException');
-    process.removeAllListeners('unhandledRejection');
-    
-    process.on('uncaughtException', (error) => {
-      console.error('Uncaught Exception caught by Stability Manager:', error);
-      this.recordError('uncaughtException', error);
-      // DO NOT EXIT - Continue operation
-    });
-
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection caught by Stability Manager:', reason);
-      this.recordError('unhandledRejection', reason);
-      // DO NOT EXIT - Continue operation
-    });
-
-    // Memory monitoring
+  // Memory monitoring without leaks
+  static startMemoryMonitoring() {
     setInterval(() => {
+      this.memoryChecks++;
       const usage = process.memoryUsage();
-      const memoryMB = Math.round(usage.heapUsed / 1024 / 1024);
+      const heapMB = Math.round(usage.heapUsed / 1024 / 1024);
       
-      if (memoryMB > 500) {
-        console.warn(`High memory usage: ${memoryMB}MB - forcing garbage collection`);
-        if (global.gc) {
-          global.gc();
-        }
+      if (heapMB > 500) {
+        console.warn(`High memory usage: ${heapMB}MB`);
+        if (global.gc) global.gc();
+      }
+      
+      // Reset error counts periodically
+      if (this.memoryChecks % 120 === 0) { // Every hour
+        this.errorCounts.clear();
       }
     }, 30000);
   }
 
-  createSafeWrapper<T extends (...args: any[]) => any>(
-    fn: T,
-    context: string,
-    fallback?: any
-  ): T {
-    return ((...args: any[]) => {
-      return this.safeExecute(
-        () => fn(...args),
-        fallback,
-        context
-      );
-    }) as T;
+  // Get system health
+  static getHealth() {
+    const usage = process.memoryUsage();
+    return {
+      status: 'healthy',
+      memory: Math.round(usage.heapUsed / 1024 / 1024),
+      uptime: Math.round(process.uptime()),
+      errors: this.errorCounts.size
+    };
   }
 }
 
-export const stability = StabilityManager.getInstance();
+// Initialize stability monitoring
+export function initializeStability() {
+  ProductionStability.startMemoryMonitoring();
+  
+  // Global error handlers
+  process.on('unhandledRejection', (reason: any) => {
+    console.error('Unhandled rejection:', reason?.message || reason);
+  });
+
+  process.on('uncaughtException', (error: any) => {
+    console.error('Uncaught exception:', error.message);
+  });
+
+  console.log('Production stability system initialized');
+}

@@ -99,16 +99,9 @@ function log(req: Request, res: Response, next: NextFunction) {
 
 app.use(log);
 
-// Simple crash prevention
-process.on('unhandledRejection', (reason: any) => {
-  console.error('Unhandled rejection prevented:', reason?.message || reason);
-});
-
-process.on('uncaughtException', (error: any) => {
-  console.error('Uncaught exception prevented:', error.message);
-});
-
-console.log('Basic crash prevention activated');
+// Production stability system
+import { initializeStability } from './stability';
+initializeStability();
 
 let httpServer: any;
 

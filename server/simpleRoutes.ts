@@ -4,6 +4,7 @@ import { db } from './db';
 import { transactions, users, globalAIAgents } from '@shared/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import { BusinessLogicValidator } from './businessLogic';
+import { cacheMiddleware } from './caching';
 
 export function setupSimpleRoutes(app: Express) {
   // Basic health check
@@ -12,7 +13,7 @@ export function setupSimpleRoutes(app: Express) {
   });
 
   // Comprehensive platform health check with business logic validation
-  app.get('/api/platform/health', async (req, res) => {
+  app.get('/api/platform/health', cacheMiddleware(60), async (req, res) => {
     try {
       // Gather system data
       const transactionStats = await db

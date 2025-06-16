@@ -3,6 +3,7 @@
  * Simplified monitoring and caching for deployment readiness
  */
 import { Express, Request, Response, NextFunction } from 'express';
+import { productionCache } from './caching';
 
 class ProductionSystems {
   private metrics = {

@@ -1,84 +1,145 @@
 /**
  * Production Caching System
- * Optimizes performance for high-traffic production deployment
+ * High-performance in-memory caching with TTL and memory management
  */
-class CacheManager {
-  private cache = new Map<string, { data: any; expires: number }>();
 
-  async initialize() {
-    console.log('✅ Production cache system initialized');
+interface CacheEntry {
+  data: any;
+  expires: number;
+  size: number;
+}
+
+class ProductionCache {
+  private cache = new Map<string, CacheEntry>();
+  private maxMemoryMB = 50; // 50MB cache limit
+  private currentMemoryBytes = 0;
+  private hitCount = 0;
+  private missCount = 0;
+
+  constructor() {
+    // Cleanup expired entries every 5 minutes
+    setInterval(() => this.cleanup(), 5 * 60 * 1000);
   }
 
-  async get(key: string): Promise<any> {
-    try {
-      const cached = this.cache.get(key);
-      if (cached && cached.expires > Date.now()) {
-        return cached.data;
-      }
-      this.cache.delete(key);
-      return null;
-    } catch (error) {
-      console.error('Cache get error:', error);
-      return null;
+  set(key: string, value: any, ttlSeconds: number = 300): void {
+    const serialized = JSON.stringify(value);
+    const size = Buffer.byteLength(serialized, 'utf8');
+    
+    // Check if we need to free memory
+    if (this.currentMemoryBytes + size > this.maxMemoryMB * 1024 * 1024) {
+      this.evictLRU();
     }
-  }
 
-  async set(key: string, value: any, expirationSeconds: number = 300): Promise<void> {
-    try {
-      this.cache.set(key, {
-        data: value,
-        expires: Date.now() + (expirationSeconds * 1000)
-      });
-    } catch (error) {
-      console.error('Cache set error:', error);
+    // Remove existing entry if it exists
+    if (this.cache.has(key)) {
+      this.currentMemoryBytes -= this.cache.get(key)!.size;
     }
-  }
 
-  async del(key: string): Promise<void> {
-    try {
-      this.cache.delete(key);
-    } catch (error) {
-      console.error('Cache delete error:', error);
-    }
-  }
-
-  // Production-specific cache patterns
-  async cacheUserBalance(userId: string, balance: number): Promise<void> {
-    await this.set(`user:${userId}:balance`, balance, 60); // 1 minute cache
-  }
-
-  async getUserBalance(userId: string): Promise<number | null> {
-    return await this.get(`user:${userId}:balance`);
-  }
-
-  async cacheExchangeRates(rates: any): Promise<void> {
-    await this.set('exchange:rates', rates, 300); // 5 minute cache
-  }
-
-  async getExchangeRates(): Promise<any> {
-    return await this.get('exchange:rates');
-  }
-
-  async cacheTransactionFee(amount: number, fee: number): Promise<void> {
-    await this.set(`fee:${amount}`, fee, 3600); // 1 hour cache
-  }
-
-  async getTransactionFee(amount: number): Promise<number | null> {
-    return await this.get(`fee:${amount}`);
-  }
-
-  // Health check for monitoring
-  async healthCheck(): Promise<{ cache: boolean; entries: number }> {
-    return {
-      cache: true,
-      entries: this.cache.size
+    const entry: CacheEntry = {
+      data: value,
+      expires: Date.now() + (ttlSeconds * 1000),
+      size
     };
+
+    this.cache.set(key, entry);
+    this.currentMemoryBytes += size;
   }
 
-  // Cleanup for graceful shutdown
-  async disconnect(): Promise<void> {
+  get(key: string): any | null {
+    const entry = this.cache.get(key);
+    
+    if (!entry) {
+      this.missCount++;
+      return null;
+    }
+
+    if (Date.now() > entry.expires) {
+      this.delete(key);
+      this.missCount++;
+      return null;
+    }
+
+    this.hitCount++;
+    return entry.data;
+  }
+
+  delete(key: string): boolean {
+    const entry = this.cache.get(key);
+    if (entry) {
+      this.currentMemoryBytes -= entry.size;
+      return this.cache.delete(key);
+    }
+    return false;
+  }
+
+  clear(): void {
     this.cache.clear();
+    this.currentMemoryBytes = 0;
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+
+    this.cache.forEach((entry, key) => {
+      if (now > entry.expires) {
+        keysToDelete.push(key);
+      }
+    });
+
+    keysToDelete.forEach(key => this.delete(key));
+  }
+
+  private evictLRU(): void {
+    // Simple LRU: remove oldest entries until we have 20% free space
+    const targetSize = this.maxMemoryMB * 1024 * 1024 * 0.8;
+    const entries: [string, CacheEntry][] = [];
+    
+    this.cache.forEach((entry, key) => {
+      entries.push([key, entry]);
+    });
+    
+    // Sort by access time (approximate LRU)
+    entries.sort((a, b) => a[1].expires - b[1].expires);
+    
+    while (this.currentMemoryBytes > targetSize && entries.length > 0) {
+      const [key] = entries.shift()!;
+      this.delete(key);
+    }
+  }
+
+  getStats() {
+    return {
+      entries: this.cache.size,
+      memoryUsageMB: Math.round(this.currentMemoryBytes / 1024 / 1024 * 100) / 100,
+      hitRate: this.hitCount + this.missCount > 0 
+        ? Math.round((this.hitCount / (this.hitCount + this.missCount)) * 100) 
+        : 0,
+      hits: this.hitCount,
+      misses: this.missCount
+    };
   }
 }
 
-export const cacheManager = new CacheManager();
+export const productionCache = new ProductionCache();
+
+// Cache middleware for Express routes
+export function cacheMiddleware(ttlSeconds: number = 300) {
+  return (req: any, res: any, next: any) => {
+    const key = `route:${req.method}:${req.originalUrl}`;
+    const cached = productionCache.get(key);
+    
+    if (cached) {
+      return res.json(cached);
+    }
+
+    // Override res.json to cache the response
+    const originalJson = res.json;
+    res.json = function(body: any) {
+      productionCache.set(key, body, ttlSeconds);
+      return originalJson.call(this, body);
+    };
+
+    next();
+  };
+}

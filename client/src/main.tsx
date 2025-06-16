@@ -1,19 +1,11 @@
-/** @jsx React.createElement */
-import React from "react";
-import { createRoot } from "react-dom/client";
-import "./index.css";
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
 
-// Simple error handler
-window.addEventListener('error', (event) => {
-  if (!event.message.includes('ChromeTransport') && !event.message.includes('vite')) {
-    console.warn('Runtime error:', event.message);
-  }
-});
-
-// Minimal App component to test React loading
+// Simple working React component
 function App() {
-  return React.createElement('div', {
-    style: {
+  return (
+    <div style={{
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
@@ -22,13 +14,16 @@ function App() {
       fontFamily: 'system-ui, -apple-system, sans-serif',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
       color: 'white'
-    }
-  }, [
-    React.createElement('h1', { key: 'title' }, 'Coin Railz'),
-    React.createElement('p', { key: 'subtitle' }, 'AI-Powered Fintech Platform'),
-    React.createElement('p', { key: 'loading' }, 'Platform Initialized Successfully')
-  ]);
+    }}>
+      <h1>Coin Railz</h1>
+      <p>AI-Powered Fintech Platform</p>
+      <p>Platform Loading Successfully</p>
+    </div>
+  )
 }
 
-const root = createRoot(document.getElementById("root")!);
-root.render(React.createElement(App));
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)

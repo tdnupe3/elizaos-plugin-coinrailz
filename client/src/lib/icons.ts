@@ -16,6 +16,7 @@ export {
   Bitcoin,
   BookUser,
   Bot,
+  Bug,
   Building2,
   Calculator,
   Calendar,

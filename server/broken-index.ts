@@ -1,49 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
-import productionRoutes from "./productionRoutes";
-import criticalRoutes from "./criticalRoutes";
 import { setupVite } from "./vite";
-import { serveStatic } from "./productionStatic";
-import { setupAuth } from "./replitAuth";
-import { registerAuthRoutes } from "./authRoutes";
-import compression from "compression";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import { getProductionConfig, configureProductionSecurity, initializeProductionMonitoring } from "./productionConfig";
-import { monitoring as advancedMonitoring } from "./monitoring";
-
-
-// Force production mode if deployed (regardless of npm script used)
-if (process.env.REPLIT_DEPLOYMENT || process.env.RAILWAY_ENVIRONMENT || process.env.VERCEL) {
-  process.env.NODE_ENV = 'production';
-}
 
 const app = express();
-const productionConfig = getProductionConfig();
+const isDevelopment = process.env.NODE_ENV !== 'production';
 
-// Production-aware middleware configuration
-if (productionConfig.server.enableCompression) {
-  app.use(compression());
-}
-
-// Initialize production monitoring
-const monitoring = initializeProductionMonitoring(productionConfig);
-
-// Production-aware CORS configuration
+// Simple CORS for development
 app.use((req: Request, res: Response, next: NextFunction) => {
-  const devDomain = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '';
-  const allowedOrigins = productionConfig.security.corsOrigins.concat(devDomain ? [devDomain] : []);
-
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin || '*');
-  }
-
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
 
-  // Handle preflight OPTIONS requests
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -51,57 +18,19 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Production-aware security configuration
-configureProductionSecurity(app, productionConfig);
-
-// Request logging middleware
+// Simple logging for development
 function log(req: Request, res: Response, next: NextFunction) {
   const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: any = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
   res.on("finish", () => {
     const duration = Date.now() - start;
-    
-    // Record metrics for advanced monitoring
-    try {
-      advancedMonitoring.recordMetric('request', 1);
-      advancedMonitoring.recordMetric('response_time', duration);
-      if (res.statusCode >= 400) {
-        advancedMonitoring.recordMetric('error', 1);
-      }
-    } catch (error) {
-      // Graceful degradation - monitoring failures don't affect logging
-    }
-    
-    if (path.startsWith("/api")) {
-      let logLine = req.method + ' ' + path + ' ' + res.statusCode + ' in ' + duration + 'ms';
-      if (capturedJsonResponse) {
-        logLine += ' :: ' + JSON.stringify(capturedJsonResponse);
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      console.log(logLine);
+    if (req.path.startsWith("/api")) {
+      console.log(`${req.method} ${req.path} ${res.statusCode} in ${duration}ms`);
     }
   });
-
   next();
 }
 
 app.use(log);
-
-// Production stability system
-import { initializeStability } from './stability';
-initializeStability();
 
 let httpServer: any;
 

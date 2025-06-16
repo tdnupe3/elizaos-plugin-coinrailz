@@ -61,6 +61,7 @@ export {
   MoreHorizontal,
   Network,
   PanelLeft,
+  Phone,
   Plus,
   QrCode,
   RefreshCw,

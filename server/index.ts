@@ -2,6 +2,7 @@ import express from "express";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
+import { setupDDoSProtection } from "./ddosProtection";
 
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
@@ -28,6 +29,9 @@ app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   next();
 });
+
+// Setup comprehensive DDoS protection
+setupDDoSProtection(app);
 
 // Setup lightweight API-only security (won't block frontend)
 setupLightweightSecurity(app);

@@ -142,6 +142,10 @@ process.on('SIGINT', () => {
     // Add critical routes FIRST to ensure API functionality
     app.use(criticalRoutes);
     
+    // Add main routes containing payment endpoints
+    const { registerRoutes } = await import('./routes');
+    await registerRoutes(app);
+    
     // Add remaining production routes
     app.use(productionRoutes);
 

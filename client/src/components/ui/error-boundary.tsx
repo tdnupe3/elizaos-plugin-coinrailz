@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ArrowLeft } from '@/lib/icons';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 

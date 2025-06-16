@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { CheckCircle, DollarSign, TrendingUp, Zap } from 'lucide-react';
+import { CheckCircle, DollarSign, TrendingUp, Zap } from '@/lib/icons';
 
 interface AnimatedCounterProps {
   value: number;

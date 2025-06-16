@@ -30,7 +30,7 @@ import {
   Gift,
   CreditCard,
   ShoppingCart
-} from 'lucide-react';
+} from '@/lib/icons';
 import DonationButton from '@/components/DonationButton';
 import { Link } from 'wouter';
 

@@ -1,4 +1,4 @@
-// Targeted icon imports - only the icons we actually use
+// Simple icons to completely replace lucide-react and eliminate build bottleneck
 export {
   Activity,
   AlertCircle,
@@ -41,4 +41,4 @@ export {
   Users,
   X,
   Zap
-} from 'lucide-react';
+} from '@/lib/simple-icons';

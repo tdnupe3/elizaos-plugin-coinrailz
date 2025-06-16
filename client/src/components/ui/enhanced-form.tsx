@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Check, AlertCircle, Eye, EyeOff } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { Input } from './input';
 import { Label } from './label';

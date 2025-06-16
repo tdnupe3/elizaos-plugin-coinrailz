@@ -17,8 +17,10 @@ const validateAmount = (amount: any): { isValid: boolean; sanitizedAmount?: numb
     return { isValid: false, error: 'Amount must be greater than zero' };
   }
 
-  if (numericAmount > 100000) { // Production limit: $100K per transaction
-    return { isValid: false, error: 'Amount exceeds maximum limit of $100,000' };
+  // Dynamic transaction limits based on environment
+  const maxAmount = parseFloat(process.env.MAX_TRANSACTION_AMOUNT || '500000');
+  if (numericAmount > maxAmount) {
+    return { isValid: false, error: `Amount exceeds maximum limit of $${maxAmount.toLocaleString()}` };
   }
 
   if (numericAmount < 0.01) { // Minimum 1 cent

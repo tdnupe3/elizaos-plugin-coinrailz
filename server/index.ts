@@ -12,22 +12,20 @@ import { getProductionConfig, configureProductionSecurity, initializeProductionM
 
 
 const app = express();
+const productionConfig = getProductionConfig();
 
-// Performance middleware
-app.use(compression());
+// Production-aware middleware configuration
+if (productionConfig.server.enableCompression) {
+  app.use(compression());
+}
 
-// CORS middleware - Essential for mobile apps and partner integrations
+// Initialize production monitoring
+const monitoring = initializeProductionMonitoring(productionConfig);
+
+// Production-aware CORS configuration
 app.use((req: Request, res: Response, next: NextFunction) => {
-  // Allow requests from your domains and development
-  const allowedOrigins = [
-    'https://coinrailz.com',
-    'https://www.coinrailz.com',
-    'https://app.coinrailz.com',
-    'https://api.coinrailz.com',
-    'http://localhost:3000',
-    'http://localhost:5000',
-    process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : null
-  ].filter(Boolean);
+  const devDomain = process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` : '';
+  const allowedOrigins = productionConfig.security.corsOrigins.concat(devDomain ? [devDomain] : []);
 
   const origin = req.headers.origin;
   if (!origin || allowedOrigins.includes(origin)) {
@@ -47,26 +45,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// Security middleware
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https:", "wss:"],
-    },
-  },
-}));
-
-// Rate limiting - more permissive for development
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'development' ? 1000 : 100, // Higher limit for development
-  message: 'Too many requests from this IP, please try again later.'
-});
-app.use('/api/', limiter);
+// Production-aware security configuration
+configureProductionSecurity(app, productionConfig);
 
 // Request logging middleware
 function log(req: Request, res: Response, next: NextFunction) {

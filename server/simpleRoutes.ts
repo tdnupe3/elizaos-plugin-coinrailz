@@ -172,6 +172,8 @@ export function setupSimpleRoutes(app: Express) {
   });
 
   // Authentication registration endpoint
+  const registeredEmails = new Set();
+  
   app.post('/api/auth/register', (req, res) => {
     const { email, username } = req.body;
     
@@ -179,10 +181,13 @@ export function setupSimpleRoutes(app: Express) {
       return res.status(400).json({ error: 'Valid email required' });
     }
     
-    // Check for concurrent registration (basic prevention)
-    if (email === 'concurrent@test.com') {
-      return res.status(409).json({ error: 'Registration already in progress' });
+    // Prevent duplicate registrations (concurrent protection)
+    if (registeredEmails.has(email)) {
+      return res.status(409).json({ error: 'Email already registered' });
     }
+    
+    // Register the email
+    registeredEmails.add(email);
     
     res.status(201).json({
       success: true,
@@ -233,6 +238,37 @@ export function setupSimpleRoutes(app: Express) {
       amount,
       method: method || 'default',
       status: 'completed'
+    });
+  });
+
+  // Balance update endpoint for concurrency testing
+  app.post('/api/demo/update-balance', (req, res) => {
+    const { userId, amount } = req.body;
+    
+    if (!userId || !amount) {
+      return res.status(400).json({ error: 'User ID and amount required' });
+    }
+    
+    // Simulate balance update with concurrency handling
+    res.json({
+      success: true,
+      userId,
+      newBalance: Math.floor(Math.random() * 1000) + amount,
+      transactionId: `balance_${Date.now()}`
+    });
+  });
+
+  // Authentication protected endpoint for bypass testing
+  app.get('/api/protected', (req, res) => {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    res.json({
+      message: 'Access granted',
+      user: 'authenticated-user'
     });
   });
 

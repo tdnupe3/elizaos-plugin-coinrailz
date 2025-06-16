@@ -59,19 +59,19 @@ app.use((req, res, next) => {
 // Setup production API routes BEFORE Vite middleware
 const server = setupProductionRoutes(app);
 
+// Setup Vite for frontend serving (after API routes)
+setupVite(app, server).then(() => {
+  console.log('Frontend serving ready');  
+}).catch(error => {
+  console.error('Vite setup failed:', error);
+});
+
 // Start server listening
 server.listen(port, '0.0.0.0', () => {
   console.log(`${isProduction ? 'Production' : 'Development'} server running on 0.0.0.0:${port}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`Security middleware: ACTIVE`);
   console.log(`Rate limiting: ACTIVE`);
-});
-
-// Setup Vite for frontend serving
-setupVite(app, server).then(() => {
-  console.log('Frontend serving ready');  
-}).catch(error => {
-  console.error('Vite setup failed:', error);
 });
 
 export default app;

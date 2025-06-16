@@ -341,6 +341,61 @@ export function setupProductionRoutes(app: Express) {
     }
   });
 
+  // AI Agent registration with enhanced security
+  app.post('/api/ai-agents/register', (req: Request, res: Response) => {
+    try {
+      const { name, capabilities, description, services, serviceType } = req.body;
+
+      const nameValidation = validateAgentName(name);
+      if (!nameValidation.isValid) {
+        return res.status(400).json({
+          success: false,
+          message: nameValidation.error,
+          code: 'INVALID_NAME'
+        });
+      }
+
+      // Validate other string inputs for SQL injection
+      const inputs = [description, serviceType].filter(Boolean);
+      for (const input of inputs) {
+        const sqlCheck = sanitizeForSQLInjection(String(input));
+        if (!sqlCheck.isValid) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid input contains restricted characters',
+            code: 'INVALID_INPUT'
+          });
+        }
+      }
+
+      const agentCapabilities = capabilities || services || (serviceType ? [serviceType] : ['general']);
+      const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      res.status(200).json({
+        success: true,
+        agent: {
+          id: agentId,
+          name: nameValidation.sanitizedName,
+          capabilities: agentCapabilities,
+          description: description ? sanitizeForSQLInjection(description).sanitized : '',
+          serviceType: serviceType ? sanitizeForSQLInjection(serviceType).sanitized : 'general',
+          status: 'registered',
+          registrationDate: new Date().toISOString()
+        },
+        message: 'AI agent registered successfully',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      console.error('AI agent registration error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to register AI agent',
+        code: 'REGISTRATION_ERROR'
+      });
+    }
+  });
+
   // Global error handler
   app.use((error: any, req: Request, res: Response, next: any) => {
     console.error('Global error handler:', error);

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, CheckCircle, Lock, Database, UserCheck, Key, Eye, ArrowRight } from "lucide-react";
+import { Shield, CheckCircle, Lock, Database, UserCheck, Key, Eye, ArrowRight } from "@/lib/icons";
 
 interface SignupStep {
   step: number;

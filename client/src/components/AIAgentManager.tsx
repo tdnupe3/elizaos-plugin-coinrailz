@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bot, Plus, Send, Activity, Shield, TrendingUp, Wallet, MessageSquare, Clock, Zap, Users } from "lucide-react";
+import { Bot, Plus, Send, Activity, Shield, TrendingUp, Wallet, MessageSquare, Clock, Zap, Users } from "@/lib/icons";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 

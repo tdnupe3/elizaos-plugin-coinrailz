@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
-import { DollarSign, Send, Shield, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { DollarSign, Send, Shield, Clock, CheckCircle, XCircle, AlertCircle } from "@/lib/icons";
 import { z } from "zod";
 
 const enhancedSendMoneySchema = z.object({

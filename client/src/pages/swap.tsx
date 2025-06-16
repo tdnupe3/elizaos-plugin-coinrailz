@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownUp, Info } from "lucide-react";
+import { ArrowDownUp, Info } from "@/lib/icons";
 import { WalletConnect } from "@/components/wallet-connect";
 import { useState } from "react";
 

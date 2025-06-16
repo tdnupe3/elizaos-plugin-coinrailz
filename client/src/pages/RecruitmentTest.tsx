@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Github, Users, Search } from "lucide-react";
+import { Loader2, Github, Users, Search } from "@/lib/icons";
 
 interface DiscoveryResult {
   success: boolean;

@@ -18,7 +18,7 @@ import {
   Brain,
   Zap,
   Star
-} from "lucide-react";
+} from "@/lib/icons";
 
 interface CryptoSignal {
   symbol: string;

@@ -19,7 +19,7 @@ import {
   AlertCircle,
   DollarSign,
   Zap
-} from "lucide-react";
+} from "@/lib/icons";
 import { useLocation } from "wouter";
 
 export default function WalletManagement() {

@@ -1,4 +1,4 @@
-import { Building2 } from "lucide-react";
+import { Building2 } from "@/lib/icons";
 import { Link } from "wouter";
 
 export function Footer() {

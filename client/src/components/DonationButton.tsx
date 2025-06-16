@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, QrCode, ExternalLink, Wallet, Copy } from "lucide-react";
+import { Heart, QrCode, ExternalLink, Wallet, Copy } from "@/lib/icons";
 
 interface DonationButtonProps {
   agentId: string;

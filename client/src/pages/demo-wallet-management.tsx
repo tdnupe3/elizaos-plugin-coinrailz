@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Plus, Minus, CreditCard, DollarSign, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, Plus, Minus, CreditCard, DollarSign, CheckCircle, AlertCircle } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { DEMO_WALLET_BALANCES } from "@/lib/demoData";
 

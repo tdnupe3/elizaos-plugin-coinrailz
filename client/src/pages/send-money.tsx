@@ -3,7 +3,7 @@ import { MobileNavigation } from "@/components/mobile-navigation";
 import { SendMoneyForm } from "@/components/send-money-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "@/lib/icons";
 import { useLocation } from "wouter";
 
 export default function SendMoney() {

@@ -6,7 +6,7 @@ import SafetyWarning from "@/components/SafetyWarning";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, CheckCircle, AlertCircle, ArrowRight } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, ArrowRight } from "@/lib/icons";
 
 interface TransactionStep {
   id: string;

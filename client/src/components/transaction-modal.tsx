@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check } from "@/lib/icons";
 import type { Transaction } from "@shared/schema";
 
 interface TransactionModalProps {

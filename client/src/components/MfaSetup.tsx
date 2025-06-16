@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Smartphone, Mail, CheckCircle, Clock } from "lucide-react";
+import { Shield, Smartphone, Mail, CheckCircle, Clock } from "@/lib/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useMutation, useQuery } from "@tanstack/react-query";

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, TrendingUp, Clock } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, Clock } from "@/lib/icons";
 // Using native date formatting instead of date-fns
 
 interface PendingCommissions {

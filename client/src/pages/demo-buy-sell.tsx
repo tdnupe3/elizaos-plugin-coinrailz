@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Bitcoin, CheckCircle } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Bitcoin, CheckCircle } from "@/lib/icons";
 import { useLocation } from "wouter";
 import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
 

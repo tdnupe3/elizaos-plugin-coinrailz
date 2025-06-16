@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Copy, DollarSign, Users, TrendingUp, Wallet } from "lucide-react";
+import { Copy, DollarSign, Users, TrendingUp, Wallet } from "@/lib/icons";
 
 interface ReferralStats {
   totalReferrals: number;

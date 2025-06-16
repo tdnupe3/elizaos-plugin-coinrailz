@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle, Shield } from "lucide-react";
+import { Activity, Server, DollarSign, Zap, TrendingUp, AlertTriangle, Shield } from "@/lib/icons";
 import { useAuth } from '../hooks/useAuth';
 
 export default function ProductionDashboard() {

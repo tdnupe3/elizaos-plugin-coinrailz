@@ -1,4 +1,4 @@
-import { ArrowLeft, Shield, Database, Eye, Lock } from "lucide-react";
+import { ArrowLeft, Shield, Database, Eye, Lock } from "@/lib/icons";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

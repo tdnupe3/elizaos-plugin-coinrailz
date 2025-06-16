@@ -11,7 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { CreditCard, Bot, Star, CheckCircle, Users, TrendingUp, Zap, Shield } from "lucide-react";
+import { CreditCard, Bot, Star, CheckCircle, Users, TrendingUp, Zap, Shield } from "@/lib/icons";
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 

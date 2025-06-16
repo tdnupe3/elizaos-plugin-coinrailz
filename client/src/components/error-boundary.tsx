@@ -2,7 +2,7 @@ import { Component, ReactNode, ErrorInfo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, RefreshCw, Home, Bug } from 'lucide-react';
+import { AlertCircle, RefreshCw, Home, Bug } from "@/lib/icons";
 
 interface Props {
   children: ReactNode;

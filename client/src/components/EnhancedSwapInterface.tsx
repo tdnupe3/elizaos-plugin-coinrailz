@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowUpDown, TrendingUp, Zap, Shield, RefreshCw } from "lucide-react";
+import { ArrowUpDown, TrendingUp, Zap, Shield, RefreshCw } from "@/lib/icons";
 
 interface SwapRate {
   provider: string;

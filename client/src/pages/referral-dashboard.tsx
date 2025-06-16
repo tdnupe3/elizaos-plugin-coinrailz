@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, TrendingUp, Users, DollarSign, Calendar, Target } from "lucide-react";
+import { Copy, TrendingUp, Users, DollarSign, Calendar, Target } from "@/lib/icons";
 
 interface ReferralStats {
   totalReferrals: number;

@@ -1,4 +1,4 @@
-import { ArrowLeft, Shield, AlertTriangle, Users, Gavel } from "lucide-react";
+import { ArrowLeft, Shield, AlertTriangle, Users, Gavel } from "@/lib/icons";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, X, Shield, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, X, Shield, Eye, EyeOff } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";

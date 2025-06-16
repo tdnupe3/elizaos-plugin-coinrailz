@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { NavigationHeader } from "@/components/navigation-header";
-import { Share2, Copy, Users, DollarSign, Gift, Clock, Sparkles, Trophy, Star } from "lucide-react";
+import { Share2, Copy, Users, DollarSign, Gift, Clock, Sparkles, Trophy, Star } from "@/lib/icons";
 
 export default function Referrals() {
   const [referralCodeInput, setReferralCodeInput] = useState("");

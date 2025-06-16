@@ -6,7 +6,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { Globe, Check } from "lucide-react";
+import { Globe, Check } from "@/lib/icons";
 import { supportedLanguages, type SupportedLanguage } from "@shared/i18n";
 
 interface LanguageSwitcherProps {

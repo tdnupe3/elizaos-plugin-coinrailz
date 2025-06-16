@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
-import { CreditCard, DollarSign, Zap, TrendingUp, Award, Clock } from 'lucide-react';
+import { CreditCard, DollarSign, Zap, TrendingUp, Award, Clock } from "@/lib/icons";
 
 interface PaymentMethodData {
   originalAmount: number;

@@ -20,7 +20,7 @@ import {
   Bot,
   AlertCircle,
   HelpCircle
-} from "lucide-react";
+} from "@/lib/icons";
 
 interface ContactForm {
   name: string;

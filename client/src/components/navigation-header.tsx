@@ -1,4 +1,4 @@
-import { Bell, Zap } from "lucide-react";
+import { Bell, Zap } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";

@@ -20,7 +20,7 @@ import {
   Target,
   Award,
   Zap
-} from "lucide-react";
+} from "@/lib/icons";
 
 interface ReferralStats {
   agentReferrals: {

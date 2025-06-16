@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Globe, Check, X } from "lucide-react";
+import { Globe, Check, X } from "@/lib/icons";
 import { supportedLanguages, type SupportedLanguage } from "@shared/i18n";
 
 interface LanguageConfirmationDialogProps {

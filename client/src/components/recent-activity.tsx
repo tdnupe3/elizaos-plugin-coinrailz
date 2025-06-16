@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowDown, ArrowUp, Bitcoin } from "lucide-react";
+import { ArrowDown, ArrowUp, Bitcoin } from "@/lib/icons";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 // Using native date formatting instead of date-fns

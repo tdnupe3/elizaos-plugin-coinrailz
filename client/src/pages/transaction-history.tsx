@@ -3,7 +3,7 @@ import { MobileNavigation } from "@/components/mobile-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, ArrowDown, ArrowUp, Bitcoin } from "lucide-react";
+import { ArrowLeft, ArrowDown, ArrowUp, Bitcoin } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 // Using native date formatting instead of date-fns

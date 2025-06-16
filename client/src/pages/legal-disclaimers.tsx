@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Footer } from "@/components/Footer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, Shield, Scale } from "lucide-react";
+import { AlertTriangle, Shield, Scale } from "@/lib/icons";
 
 export default function LegalDisclaimers() {
   return (

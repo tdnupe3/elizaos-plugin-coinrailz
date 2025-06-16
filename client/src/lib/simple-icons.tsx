@@ -352,3 +352,66 @@ export const Wallet = ({ className = "", size = 24 }: IconProps) => (
     <path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/>
   </svg>
 );
+
+export const Repeat = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="m17 1 4 4-4 4"/>
+    <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+    <path d="m7 23-4-4 4-4"/>
+    <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+  </svg>
+);
+
+export const Building2 = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/>
+    <path d="M6 12H4a2 2 0 0 0-2 2v8h20v-8a2 2 0 0 0-2-2h-2"/>
+    <path d="M10 6h4"/>
+    <path d="M10 10h4"/>
+    <path d="M10 14h4"/>
+    <path d="M10 18h4"/>
+  </svg>
+);
+
+export const ArrowDown = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M12 5v14"/>
+    <path d="m19 12-7 7-7-7"/>
+  </svg>
+);
+
+export const ArrowUp = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="m5 12 7-7 7 7"/>
+    <path d="M12 19V5"/>
+  </svg>
+);
+
+export const Calendar = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M8 2v4"/>
+    <path d="M16 2v4"/>
+    <rect width="18" height="18" x="3" y="4" rx="2"/>
+    <path d="M3 10h18"/>
+  </svg>
+);
+
+export const ChevronLeft = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="m15 18-6-6 6-6"/>
+  </svg>
+);
+
+export const ChevronRight = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="m9 18 6-6-6-6"/>
+  </svg>
+);
+
+export const MoreHorizontal = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <circle cx="12" cy="12" r="1"/>
+    <circle cx="19" cy="12" r="1"/>
+    <circle cx="5" cy="12" r="1"/>
+  </svg>
+);

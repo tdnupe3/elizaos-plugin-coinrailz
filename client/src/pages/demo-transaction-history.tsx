@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Download, ArrowLeftRight, TrendingUp, TrendingDown } from "lucide-react";
+import { ArrowLeft, Send, Download, ArrowLeftRight, TrendingUp, TrendingDown } from "@/lib/icons";
 import { useLocation } from "wouter";
 
 // Enhanced transaction analytics

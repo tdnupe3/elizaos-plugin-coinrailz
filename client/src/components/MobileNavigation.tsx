@@ -15,7 +15,7 @@ import {
   LogOut,
   X,
   Smartphone
-} from "lucide-react";
+} from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";

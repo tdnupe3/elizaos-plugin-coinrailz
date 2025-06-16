@@ -19,7 +19,7 @@ import {
   Monitor,
   ArrowLeft,
   CheckCircle
-} from "lucide-react";
+} from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";

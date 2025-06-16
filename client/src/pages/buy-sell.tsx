@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, TrendingUp, TrendingDown, CreditCard, Building2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, TrendingDown, CreditCard, Building2 } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { useState, useEffect } from "react";

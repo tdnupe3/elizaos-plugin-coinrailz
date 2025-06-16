@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield } from "lucide-react";
+import { Shield } from "@/lib/icons";
 
 export function SecurityBanner() {
   return (

@@ -15,7 +15,7 @@ import {
   ArrowRight,
   Gift,
   TrendingUp
-} from "lucide-react";
+} from "@/lib/icons";
 
 export default function HumanReferralSignup() {
   const [, setLocation] = useLocation();

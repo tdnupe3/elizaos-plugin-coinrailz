@@ -14,7 +14,7 @@ import {
   MemoryStick,
   Cpu,
   RefreshCw
-} from "lucide-react";
+} from "@/lib/icons";
 
 interface SystemHealth {
   status: 'healthy' | 'degraded' | 'unhealthy';

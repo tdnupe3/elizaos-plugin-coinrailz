@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ArrowLeft, Send, Wallet, AlertCircle, CheckCircle, Clock, ExternalLink } from "lucide-react";
+import { ArrowLeft, Send, Wallet, AlertCircle, CheckCircle, Clock, ExternalLink } from "@/lib/icons";
 import { useLocation } from "wouter";
 import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
 

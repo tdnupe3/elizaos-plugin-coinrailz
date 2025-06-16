@@ -22,7 +22,7 @@ import {
   Heart,
   Zap,
   Shield
-} from "lucide-react";
+} from "@/lib/icons";
 import DonationButton from "@/components/DonationButton";
 import EnhancedSwapInterface from "@/components/EnhancedSwapInterface";
 

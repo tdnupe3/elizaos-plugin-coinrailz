@@ -1,4 +1,4 @@
-import { Home, Send, Coins, History } from "lucide-react";
+import { Home, Send, Coins, History } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 

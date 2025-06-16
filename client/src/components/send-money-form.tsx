@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { BookUser, Shield, Send, Zap, Clock, TrendingDown, AlertCircle } from "lucide-react";
+import { BookUser, Shield, Send, Zap, Clock, TrendingDown, AlertCircle } from "@/lib/icons";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sendMoneySchema, type SendMoney } from "@shared/schema";

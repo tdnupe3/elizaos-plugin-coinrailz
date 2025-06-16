@@ -19,7 +19,7 @@ import {
   QrCode,
   ExternalLink,
   RefreshCw
-} from "lucide-react";
+} from "@/lib/icons";
 
 interface XRPWalletInfo {
   address: string;

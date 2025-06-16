@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ExternalLink, Copy, CheckCircle, AlertCircle } from "lucide-react";
+import { Wallet, ExternalLink, Copy, CheckCircle, AlertCircle } from "@/lib/icons";
 import { useState } from "react";
 
 interface WalletConnectProps {

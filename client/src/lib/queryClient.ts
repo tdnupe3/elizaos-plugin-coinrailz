@@ -51,16 +51,36 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Simple API request function
-export const apiRequest = async (url: string, options: RequestInit = {}) => {
+// Simple API request function with two signatures
+export const apiRequest = async (
+  methodOrUrl: string, 
+  urlOrOptions?: string | RequestInit, 
+  data?: any
+): Promise<any> => {
+  let url: string;
+  let options: RequestInit;
+
+  // Handle both signatures: (url, options) and (method, url, data)
+  if (typeof urlOrOptions === 'string') {
+    // Three-argument signature: (method, url, data)
+    const method = methodOrUrl;
+    url = urlOrOptions;
+    options = {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      ...(data && { body: JSON.stringify(data) })
+    };
+  } else {
+    // Two-argument signature: (url, options)
+    url = methodOrUrl;
+    options = {
+      headers: { 'Content-Type': 'application/json' },
+      ...(urlOrOptions || {})
+    };
+  }
+
   try {
-    const response = await fetch(url, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-      ...options,
-    });
+    const response = await fetch(url, options);
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

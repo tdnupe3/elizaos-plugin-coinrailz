@@ -92,7 +92,7 @@ export default function FeeCalculator({
       }
 
       // Calculate fees
-      const response = await apiRequest('POST', '/api/fees/calculate', {
+      const response = await apiRequest('POST', '/api/calculate-fees', {
         amount: parseFloat(amount),
         paymentMethod,
         transactionType

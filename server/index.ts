@@ -10,9 +10,18 @@ const port = parseInt(process.env.PORT || '5000', 10);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Simple CORS
+// Environment-aware CORS
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  const allowedOrigins = isDevelopment 
+    ? ['http://localhost:5000', 'http://127.0.0.1:5000', '*']
+    : ['https://coinrailz.com', 'https://www.coinrailz.com'];
+  
+  const origin = req.headers.origin;
+  if (isDevelopment || !origin || allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin || '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');

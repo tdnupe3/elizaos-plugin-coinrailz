@@ -117,21 +117,59 @@ export const sanitizeApiInput = (req: Request, res: Response, next: NextFunction
   next();
 };
 
-// Basic security headers that won't block frontend
-export const basicSecurityHeaders = (req: Request, res: Response, next: NextFunction) => {
-  // Only for API responses, not frontend resources
+// Minimal security headers that are Vite-safe
+export const viteCompatibleHeaders = (req: Request, res: Response, next: NextFunction) => {
+  // Apply to all responses but keep Vite-compatible
+  res.header('X-Content-Type-Options', 'nosniff');
+  res.header('X-XSS-Protection', '1; mode=block');
+  
+  // Only apply frame protection to API endpoints (not frontend)
   if (req.path.startsWith('/api/')) {
-    res.header('X-Content-Type-Options', 'nosniff');
     res.header('X-Frame-Options', 'DENY');
-    res.header('X-XSS-Protection', '1; mode=block');
   }
   
   next();
 };
 
+// Authentication-specific rate limiting
+const authRateMap = new Map<string, { count: number; resetTime: number }>();
+
+export const authRateLimit = (req: Request, res: Response, next: NextFunction) => {
+  // Only apply to authentication endpoints
+  const authPaths = ['/api/login', '/api/register', '/api/auth', '/api/signin', '/api/signup'];
+  if (!authPaths.some(path => req.path.includes(path))) {
+    return next();
+  }
+
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  const now = Date.now();
+  const windowMs = 15 * 60 * 1000; // 15 minutes
+  const maxAttempts = 5; // 5 auth attempts per 15 minutes
+
+  const key = `auth_${ip}`;
+  const entry = authRateMap.get(key);
+
+  if (!entry || now > entry.resetTime) {
+    authRateMap.set(key, { count: 1, resetTime: now + windowMs });
+    return next();
+  }
+
+  if (entry.count >= maxAttempts) {
+    return res.status(429).json({
+      success: false,
+      message: 'Too many authentication attempts. Please try again in 15 minutes.',
+      retryAfter: Math.ceil((entry.resetTime - now) / 1000)
+    });
+  }
+
+  entry.count++;
+  next();
+};
+
 // Setup lightweight security that won't break frontend
 export const setupLightweightSecurity = (app: any) => {
-  app.use(basicSecurityHeaders);
+  app.use(viteCompatibleHeaders);
+  app.use(authRateLimit);
   app.use(sanitizeApiInput);
   app.use(validateApiInput);
   app.use(lightweightRateLimit);

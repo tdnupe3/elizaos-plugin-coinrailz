@@ -268,6 +268,7 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 - **Communication Style**: Direct, technical updates focused on actionable results
 - **Platform Stability**: Prioritize stability under high-volume operations while preserving feature completeness
 - **Development Approach**: Incremental optimization without removing working features
+- **Icon Management Protocol**: When creating new features requiring icons, always check `client/src/lib/minimal-icons-clean.tsx` first. If icon is missing, add it immediately to both the clean file and export it in `client/src/lib/icons.ts` to prevent build failures
 
 ## Production Readiness
 ✅ **Performance**: 2ms average response time under concurrent load  

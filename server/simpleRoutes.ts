@@ -69,24 +69,29 @@ export function setupSimpleRoutes(app: Express) {
 
   // AI agent registration
   app.post('/api/ai-agents/register', (req, res) => {
-    const { name, capabilities, description, services } = req.body;
+    const { name, capabilities, description, services, serviceType } = req.body;
     
-    if (!name || (!capabilities && !services)) {
+    if (!name) {
       return res.status(400).json({
         success: false,
-        message: 'Name and capabilities are required'
+        message: 'Agent name is required'
       });
     }
 
-    res.status(200).json({
+    // Accept various forms of capability specification
+    const agentCapabilities = capabilities || services || (serviceType ? [serviceType] : ['general']);
+
+    res.status(201).json({
       success: true,
       agent: {
         id: 'agent_' + Date.now(),
         name,
+        capabilities: agentCapabilities,
         status: 'registered',
         membershipTier: 'basic',
         commissionRate: '0.5%'
-      }
+      },
+      message: 'AI agent registered successfully'
     });
   });
 

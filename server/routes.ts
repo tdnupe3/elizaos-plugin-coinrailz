@@ -40,10 +40,35 @@ export function registerRoutes(app: Express): Server {
     try {
       const { amount, recipientEmail } = req.body;
 
-      if (!amount || !recipientEmail) {
+      // Enhanced validation for payment intent
+      if (!amount) {
         return res.status(400).json({
           success: false,
-          message: 'Amount and recipient email are required'
+          message: 'Amount is required'
+        });
+      }
+
+      if (!recipientEmail) {
+        return res.status(400).json({
+          success: false,
+          message: 'Recipient email is required'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid positive amount is required'
+        });
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(recipientEmail)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid email address is required'
         });
       }
 
@@ -120,10 +145,26 @@ export function registerRoutes(app: Express): Server {
     try {
       const { amount, type = 'send_money', currency = 'USD' } = req.body;
 
-      if (!amount || isNaN(parseFloat(amount))) {
+      // Enhanced input validation
+      if (!amount) {
         return res.status(400).json({
           success: false,
-          message: 'Valid amount is required'
+          message: 'Amount is required'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid positive amount is required'
+        });
+      }
+
+      if (numericAmount > 1000000) {
+        return res.status(400).json({
+          success: false,
+          message: 'Amount exceeds maximum limit'
         });
       }
 
@@ -282,6 +323,31 @@ export function registerRoutes(app: Express): Server {
       estimatedGas: '0.0021 ETH',
       priceImpact: '0.12%',
       timestamp: new Date().toISOString()
+    });
+  });
+
+  // 404 handler for API routes - must come after all other routes
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({
+      success: false,
+      message: 'API endpoint not found',
+      path: req.path,
+      method: req.method
+    });
+  });
+
+  // Global error handler
+  app.use((error: any, req: any, res: any, next: any) => {
+    console.error('Global error handler:', error);
+    
+    if (res.headersSent) {
+      return next(error);
+    }
+
+    res.status(error.status || 500).json({
+      success: false,
+      message: error.message || 'Internal server error',
+      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   });
 

@@ -292,6 +292,7 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 - **Platform Stability**: Prioritize stability under high-volume operations while preserving feature completeness
 - **Development Approach**: Incremental optimization without removing working features
 - **Icon Management Protocol**: When creating new features requiring icons, always check `client/src/lib/minimal-icons-clean.tsx` first. If icon is missing, add it immediately to both the clean file and export it in `client/src/lib/icons.ts` to prevent build failures
+- **CRITICAL SEPARATION REQUIREMENT**: Never mix production and development code in the same execution path. Development server must run clean without any production-specific middleware, security, or configuration. Production features must be implemented in separate files and only activated during production builds, never in development environment. Any violation of this separation causes platform loading failures and must be immediately reverted.
 
 ## Production Readiness
 ✅ **Performance**: 2ms average response time under concurrent load  

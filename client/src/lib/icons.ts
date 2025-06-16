@@ -45,6 +45,7 @@ export {
   Globe,
   GripVertical,
   Heart,
+  HelpCircle,
   History,
   Home,
   Info,

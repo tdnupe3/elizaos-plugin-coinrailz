@@ -369,6 +369,14 @@ export const Heart = ({ className = "", size = 24 }: IconProps) => (
   </svg>
 );
 
+export const HelpCircle = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <circle cx="12" cy="12" r="10"/>
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+    <path d="m12 17 .01 0"/>
+  </svg>
+);
+
 export const History = ({ className = "", size = 24 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>

@@ -15,8 +15,9 @@ if (!process.env.REPLIT_DOMAINS) {
 
 const getOidcConfig = memoize(
   async () => {
+    const issuerUrl = process.env.ISSUER_URL || "https://replit.com/oidc";
     return await client.discovery(
-      new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
+      new URL(issuerUrl),
       process.env.REPL_ID!
     );
   },
@@ -68,7 +69,19 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
+  let config;
+  try {
+    config = await getOidcConfig();
+    console.log('✅ OAuth configuration loaded successfully');
+  } catch (error: any) {
+    console.error('❌ OAuth configuration failed:', error?.message || error);
+    // Provide fallback registration for development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Using fallback authentication for development');
+      return setupFallbackAuth(app);
+    }
+    throw error;
+  }
 
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
@@ -165,4 +178,61 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
   } catch (error) {
     return res.redirect("/api/login");
   }
+};
+
+// Fallback authentication for development/testing
+function setupFallbackAuth(app: Express) {
+  console.log('Setting up fallback authentication system');
+  
+  // Simple login endpoint for testing
+  app.get('/api/login', (req, res) => {
+    res.redirect('/signup-flow-demo?auth=fallback');
+  });
+  
+  // Fallback registration endpoint
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { email, firstName, lastName } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Email is required' });
+      }
+      
+      const userId = `fallback_${Date.now()}`;
+      await storage.upsertUser({
+        id: userId,
+        email,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        profileImageUrl: null,
+      });
+      
+      // Set session
+      (req.session as any).user = {
+        id: userId,
+        email,
+        firstName,
+        lastName
+      };
+      
+      res.json({
+        success: true,
+        user: { id: userId, email, firstName, lastName },
+        message: 'Registration successful'
+      });
+    } catch (error) {
+      console.error('Fallback registration error:', error);
+      res.status(500).json({ success: false, message: 'Registration failed' });
+    }
+  });
+  
+  // Fallback user endpoint
+  app.get('/api/auth/user', (req, res) => {
+    const user = (req.session as any)?.user;
+    if (user) {
+      res.json(user);
+    } else {
+      res.status(401).json({ message: 'Not authenticated' });
+    }
+  });
 };

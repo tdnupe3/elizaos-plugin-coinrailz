@@ -1,0 +1,90 @@
+I'm preparing a bank funding request for my fintech platform, Coin Railz, under Kellogg Holdings LLC (licensed in Alabama, with treasury management via PNC PINACLE).
+
+I need your help compiling realistic financial data and business milestones so my assistant can turn it into a professional funding brief.
+
+Please respond in full detail and markdown format for each of the following:
+
+Platform Overview
+
+Current status of the Coin Railz platform (features live, MVP progress, integrations).
+
+Note partnerships with ChangeNOW, ForumPay, NOWPayments, CoinFlip, Stripe, Kado, and PNC Bank APIs.
+
+Confirm compliance features implemented: AML/KYC, ISO 20022, FinCEN, provisional patent #63/812,265.
+
+Team Structure
+
+Only 3–4 W2 employees will be on payroll (include suggested roles and salaries).
+
+Commission-only 1099 contractors will be used for business development and onboarding—no fixed payroll cost for them.
+
+Capital Requirements
+
+Estimate monthly burn based on:
+
+Payroll (lean team)
+
+Technology infrastructure
+
+Marketing & acquisition
+
+Legal/compliance
+
+Admin/insurance/working capital
+
+Output total estimated need for a 24-month runway (targeting $1.8M–$2M max).
+
+Use of Funds
+
+Breakdown the capital by percentage across:
+
+Payroll
+
+Infrastructure
+
+Marketing
+
+Legal/Compliance
+
+Contingency/Other
+
+Revenue Projections
+
+Monthly and annual projections for 24 months.
+
+Detail:
+
+Expected user growth
+
+Average revenue per user (ARPU)
+
+Revenue sources: transaction fees, subscriptions, licensing, interest/yield products.
+
+Target Market & Position
+
+Focus markets: freelancers, cannabis industry, adult entertainment, Web3 startups.
+
+Emphasize unique features: cross-platform money transfers, same-day crypto off-ramps, regulatory compliance.
+
+Mention any pilot clients or sales pipeline.
+
+Risk & Security
+
+Compliance measures: AML/KYC, OFAC, FATF, 2FA (email/SMS).
+
+Platform security: encryption, data logging, custody strategy.
+
+Corporate and Banking Info
+
+Kellogg Holdings LLC is licensed in Alabama with active EIN, SAM.gov registration, and accounts at PNC Bank for ops, client trust, reserves, and FX.
+
+IP protections: provisional patent filed (#63/812,265).
+
+Milestones and Timeline
+
+Months 0–6: Platform launch, early customer acquisition.
+
+Months 6–12: Licensing expansion, revenue ramp.
+
+Months 12–24: Break-even, scaling, B2B onboarding.
+

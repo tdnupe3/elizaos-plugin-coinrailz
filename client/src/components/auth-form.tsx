@@ -35,7 +35,7 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
     setError('');
 
     try {
-      const endpoint = mode === 'signup' ? '/api/auth/signup' : '/api/auth/login';
+      const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login';
       const payload = mode === 'signup' 
         ? formData 
         : { email: formData.email, password: formData.password };

@@ -5,9 +5,13 @@ import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
+import { UnifiedAuthSystem } from "./unifiedAuth";
 
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
+
+// Initialize unified authentication system
+const authSystem = new UnifiedAuthSystem(app);
 
 // Initialize production systems
 productionSystems.initialize();

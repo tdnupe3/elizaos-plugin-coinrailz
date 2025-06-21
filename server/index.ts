@@ -5,13 +5,8 @@ import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
-import { UnifiedAuthSystem } from "./unifiedAuth";
-
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
-
-// Initialize unified authentication system
-const authSystem = new UnifiedAuthSystem(app);
 
 // Initialize production systems
 productionSystems.initialize();
@@ -63,20 +58,8 @@ app.get('/api/health', (req, res) => {
   res.json(health);
 });
 
-// Setup simple API routes BEFORE authentication to avoid conflicts
+// Setup simple API routes BEFORE Vite middleware
 const server = setupSimpleRoutes(app);
-
-// Initialize unified authentication system after basic routes
-authSystem.initialize().then(() => {
-  console.log('✅ Unified authentication system initialized');
-  
-  // Setup consolidated routes after auth is ready
-  import("./consolidatedRoutes").then(({ setupConsolidatedRoutes }) => {
-    setupConsolidatedRoutes(app, authSystem);
-  });
-}).catch(error => {
-  console.error('❌ Authentication initialization failed:', error);
-});
 
 // Production error handling
 app.use(productionSystems.errorHandler());

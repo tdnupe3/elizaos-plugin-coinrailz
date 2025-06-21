@@ -12,6 +12,57 @@ export function setupSimpleRoutes(app: Express) {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Simple registration endpoint that works with existing database
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      const { email, firstName, lastName } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Email is required' 
+        });
+      }
+
+      // Check for existing user
+      const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      if (existingUser.length > 0) {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'Email already registered' 
+        });
+      }
+
+      // Create new user with simple ID generation
+      const userId = `user_${Date.now()}`;
+      const username = email.split('@')[0];
+      
+      await db.insert(users).values({
+        id: userId,
+        email,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      res.status(201).json({
+        success: true,
+        userId,
+        email,
+        username,
+        message: 'Registration successful'
+      });
+
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Registration failed. Please try again.' 
+      });
+    }
+  });
+
   // Comprehensive platform health check with business logic validation
   app.get('/api/platform/health', cacheMiddleware(60), async (req, res) => {
     try {

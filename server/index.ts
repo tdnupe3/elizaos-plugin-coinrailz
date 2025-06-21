@@ -63,19 +63,20 @@ app.get('/api/health', (req, res) => {
   res.json(health);
 });
 
-// Initialize unified authentication system
+// Setup simple API routes BEFORE authentication to avoid conflicts
+const server = setupSimpleRoutes(app);
+
+// Initialize unified authentication system after basic routes
 authSystem.initialize().then(() => {
   console.log('✅ Unified authentication system initialized');
+  
+  // Setup consolidated routes after auth is ready
+  import("./consolidatedRoutes").then(({ setupConsolidatedRoutes }) => {
+    setupConsolidatedRoutes(app, authSystem);
+  });
 }).catch(error => {
   console.error('❌ Authentication initialization failed:', error);
 });
-
-// Setup consolidated routes (replaces simpleRoutes with optimized system)
-import { setupConsolidatedRoutes } from "./consolidatedRoutes";
-setupConsolidatedRoutes(app, authSystem);
-
-// Setup simple API routes for remaining endpoints
-const server = setupSimpleRoutes(app);
 
 // Production error handling
 app.use(productionSystems.errorHandler());

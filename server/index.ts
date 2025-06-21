@@ -63,7 +63,18 @@ app.get('/api/health', (req, res) => {
   res.json(health);
 });
 
-// Setup simple API routes BEFORE Vite middleware
+// Initialize unified authentication system
+authSystem.initialize().then(() => {
+  console.log('✅ Unified authentication system initialized');
+}).catch(error => {
+  console.error('❌ Authentication initialization failed:', error);
+});
+
+// Setup consolidated routes (replaces simpleRoutes with optimized system)
+import { setupConsolidatedRoutes } from "./consolidatedRoutes";
+setupConsolidatedRoutes(app, authSystem);
+
+// Setup simple API routes for remaining endpoints
 const server = setupSimpleRoutes(app);
 
 // Production error handling

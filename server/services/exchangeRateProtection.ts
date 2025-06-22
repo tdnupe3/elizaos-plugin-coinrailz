@@ -1,322 +1,306 @@
 /**
- * Exchange Rate Protection Service - Critical Security Fix
- * Prevents arbitrage exploitation during API outages and rate staleness
+ * Exchange Rate Staleness Protection - Prevents Arbitrage Exploitation
+ * Implements 30-second rate expiration with automatic refresh
+ * Based on business logic audit requirements
  */
 
-export interface ExchangeRateData {
-  baseCurrency: string;
-  targetCurrency: string;
+interface ExchangeRate {
+  fromCurrency: string;
+  toCurrency: string;
   rate: number;
   timestamp: number;
   source: string;
-  confidence: number;
 }
 
-export interface RateValidationResult {
-  isValid: boolean;
-  rate: number;
-  source: string;
-  staleness: number;
-  warnings: string[];
-  circuitBreakerActive: boolean;
+interface RateValidationResult {
+  valid: boolean;
+  rate?: number;
+  reason?: string;
+  staleness?: number;
 }
 
 export class ExchangeRateProtection {
-  private static rateCache = new Map<string, ExchangeRateData>();
-  private static rateSources = ['primary', 'backup1', 'backup2'];
-  private static circuitBreakers = new Map<string, { isOpen: boolean; lastFailure: number; failureCount: number }>();
-  private static readonly STALENESS_LIMIT = 60000; // 60 seconds
-  private static readonly MAX_RATE_DEVIATION = 0.05; // 5% maximum deviation
-  private static readonly CIRCUIT_BREAKER_THRESHOLD = 3;
-  private static readonly CIRCUIT_BREAKER_RESET_TIME = 300000; // 5 minutes
+  private static rateCache = new Map<string, ExchangeRate>();
+  private static readonly RATE_EXPIRY_MS = 30 * 1000; // 30 seconds
+  private static readonly MAX_RATE_DEVIATION = 0.05; // 5% maximum sudden change
+  private static circuitBreakerTripped = false;
+  private static circuitBreakerResetTime = 0;
+  private static readonly CIRCUIT_BREAKER_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
   /**
    * Get validated exchange rate with staleness protection
    */
   static async getValidatedRate(
-    baseCurrency: string,
-    targetCurrency: string
+    fromCurrency: string,
+    toCurrency: string
   ): Promise<RateValidationResult> {
-    const cacheKey = `${baseCurrency}_${targetCurrency}`;
-    const warnings: string[] = [];
-    
-    // Check circuit breaker status
-    const circuitBreaker = this.getCircuitBreakerStatus(cacheKey);
-    if (circuitBreaker.isOpen) {
-      return {
-        isValid: false,
-        rate: 0,
-        source: 'circuit_breaker',
-        staleness: 0,
-        warnings: ['Exchange rate service circuit breaker is open'],
-        circuitBreakerActive: true
-      };
-    }
+    const cacheKey = `${fromCurrency}_${toCurrency}`;
+    const now = Date.now();
 
-    // Try to get fresh rate from multiple sources
-    const freshRate = await this.fetchFreshRateWithFallback(baseCurrency, targetCurrency);
-    
-    if (freshRate) {
-      // Validate rate against cached value for manipulation detection
-      const cachedRate = this.rateCache.get(cacheKey);
-      if (cachedRate && this.isRateDeviationSuspicious(cachedRate.rate, freshRate.rate)) {
-        warnings.push('Suspicious rate deviation detected - using cached rate');
-        
-        if (this.isRateStale(cachedRate)) {
-          return {
-            isValid: false,
-            rate: 0,
-            source: 'stale_cached',
-            staleness: Date.now() - cachedRate.timestamp,
-            warnings: ['Cached rate is stale and fresh rate is suspicious'],
-            circuitBreakerActive: false
-          };
-        }
-        
+    // Check circuit breaker
+    if (this.circuitBreakerTripped) {
+      if (now < this.circuitBreakerResetTime) {
         return {
-          isValid: true,
-          rate: cachedRate.rate,
-          source: 'cached_safe',
-          staleness: Date.now() - cachedRate.timestamp,
-          warnings,
-          circuitBreakerActive: false
+          valid: false,
+          reason: 'Exchange rate service temporarily unavailable'
         };
+      } else {
+        this.circuitBreakerTripped = false;
+        console.log('Exchange rate circuit breaker reset');
       }
-
-      // Update cache with fresh rate
-      this.rateCache.set(cacheKey, freshRate);
-      this.resetCircuitBreaker(cacheKey);
-      
-      return {
-        isValid: true,
-        rate: freshRate.rate,
-        source: freshRate.source,
-        staleness: 0,
-        warnings,
-        circuitBreakerActive: false
-      };
     }
 
-    // No fresh rate available - check cached rate
+    // Check cache for existing rate
     const cachedRate = this.rateCache.get(cacheKey);
+    
     if (cachedRate) {
-      const staleness = Date.now() - cachedRate.timestamp;
+      const age = now - cachedRate.timestamp;
       
-      if (staleness > this.STALENESS_LIMIT) {
-        this.triggerCircuitBreaker(cacheKey);
-        return {
-          isValid: false,
-          rate: 0,
-          source: 'stale_cached',
-          staleness,
-          warnings: [`Rate is stale by ${Math.floor(staleness / 1000)} seconds`],
-          circuitBreakerActive: false
-        };
+      // Check if rate is stale
+      if (age > this.RATE_EXPIRY_MS) {
+        console.log(`Rate for ${cacheKey} is stale (${age}ms old), refreshing...`);
+        return await this.refreshRate(fromCurrency, toCurrency);
       }
       
-      warnings.push('Using cached rate due to API unavailability');
       return {
-        isValid: true,
+        valid: true,
         rate: cachedRate.rate,
-        source: 'cached_fallback',
-        staleness,
-        warnings,
-        circuitBreakerActive: false
+        staleness: age
       };
     }
 
-    // No rate available at all
-    this.triggerCircuitBreaker(cacheKey);
-    return {
-      isValid: false,
-      rate: 0,
-      source: 'unavailable',
-      staleness: 0,
-      warnings: ['No exchange rate available'],
-      circuitBreakerActive: false
-    };
+    // No cached rate, fetch new one
+    return await this.refreshRate(fromCurrency, toCurrency);
   }
 
   /**
-   * Fetch fresh rate with fallback to multiple sources
+   * Refresh exchange rate from external sources
    */
-  private static async fetchFreshRateWithFallback(
-    baseCurrency: string,
-    targetCurrency: string
-  ): Promise<ExchangeRateData | null> {
-    for (const source of this.rateSources) {
-      try {
-        const rate = await this.fetchRateFromSource(source, baseCurrency, targetCurrency);
-        if (rate && this.isRateReasonable(rate.rate)) {
-          return rate;
-        }
-      } catch (error) {
-        console.warn(`Rate fetch failed for source ${source}:`, error);
-        continue;
+  private static async refreshRate(
+    fromCurrency: string,
+    toCurrency: string
+  ): Promise<RateValidationResult> {
+    const cacheKey = `${fromCurrency}_${toCurrency}`;
+    
+    try {
+      // Fetch rate from multiple sources for validation
+      const rates = await Promise.allSettled([
+        this.fetchRateFromSource1(fromCurrency, toCurrency),
+        this.fetchRateFromSource2(fromCurrency, toCurrency)
+      ]);
+
+      const validRates = rates
+        .filter((result): result is PromiseFulfilledResult<number> => 
+          result.status === 'fulfilled' && typeof result.value === 'number'
+        )
+        .map(result => result.value);
+
+      if (validRates.length === 0) {
+        this.tripCircuitBreaker();
+        return {
+          valid: false,
+          reason: 'No exchange rate sources available'
+        };
       }
+
+      // Use median rate if multiple sources available
+      const newRate = validRates.length === 1 
+        ? validRates[0] 
+        : this.calculateMedianRate(validRates);
+
+      // Validate rate deviation
+      const previousRate = this.rateCache.get(cacheKey);
+      if (previousRate && this.isRateDeviationSuspicious(previousRate.rate, newRate)) {
+        return {
+          valid: false,
+          reason: `Rate deviation too large: ${((newRate - previousRate.rate) / previousRate.rate * 100).toFixed(2)}%`
+        };
+      }
+
+      // Cache the new rate
+      this.rateCache.set(cacheKey, {
+        fromCurrency,
+        toCurrency,
+        rate: newRate,
+        timestamp: Date.now(),
+        source: `${validRates.length} sources`
+      });
+
+      return {
+        valid: true,
+        rate: newRate,
+        staleness: 0
+      };
+
+    } catch (error) {
+      console.error('Error refreshing exchange rate:', error);
+      this.tripCircuitBreaker();
+      return {
+        valid: false,
+        reason: 'Exchange rate service error'
+      };
     }
-    return null;
   }
 
   /**
-   * Fetch rate from specific source (mock implementation)
+   * Fetch rate from source 1 (mock implementation - replace with real API)
    */
-  private static async fetchRateFromSource(
-    source: string,
-    baseCurrency: string,
-    targetCurrency: string
-  ): Promise<ExchangeRateData | null> {
-    // Mock implementation - replace with actual API calls
+  private static async fetchRateFromSource1(
+    fromCurrency: string,
+    toCurrency: string
+  ): Promise<number> {
+    // Mock implementation - replace with actual exchange rate API
+    // For development, return reasonable mock rates
     const mockRates: Record<string, number> = {
       'USD_EUR': 0.85,
-      'USD_GBP': 0.73,
-      'USD_XRP': 0.5,
       'EUR_USD': 1.18,
+      'USD_GBP': 0.73,
       'GBP_USD': 1.37,
-      'XRP_USD': 2.0
+      'BTC_USD': 43250.00,
+      'USD_BTC': 0.000023,
+      'ETH_USD': 2650.00,
+      'USD_ETH': 0.000377
     };
 
-    const rateKey = `${baseCurrency}_${targetCurrency}`;
-    const baseRate = mockRates[rateKey];
+    const key = `${fromCurrency}_${toCurrency}`;
+    const rate = mockRates[key];
     
-    if (!baseRate) return null;
+    if (!rate) {
+      throw new Error(`No rate available for ${fromCurrency}/${toCurrency}`);
+    }
 
-    // Add small random variation to simulate real rates
+    // Add small random variation to simulate real market data
     const variation = (Math.random() - 0.5) * 0.02; // ±1% variation
-    const rate = baseRate * (1 + variation);
+    return rate * (1 + variation);
+  }
 
-    return {
-      baseCurrency,
-      targetCurrency,
-      rate,
-      timestamp: Date.now(),
-      source,
-      confidence: 0.95
-    };
+  /**
+   * Fetch rate from source 2 (mock implementation - replace with real API)
+   */
+  private static async fetchRateFromSource2(
+    fromCurrency: string,
+    toCurrency: string
+  ): Promise<number> {
+    // Mock implementation for second source
+    // In production, use different exchange rate provider
+    const rate = await this.fetchRateFromSource1(fromCurrency, toCurrency);
+    
+    // Add slight different variation for source diversity
+    const variation = (Math.random() - 0.5) * 0.015; // ±0.75% variation
+    return rate * (1 + variation);
+  }
+
+  /**
+   * Calculate median rate from multiple sources
+   */
+  private static calculateMedianRate(rates: number[]): number {
+    const sorted = rates.sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    
+    return sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
   }
 
   /**
    * Check if rate deviation is suspicious
    */
-  private static isRateDeviationSuspicious(cachedRate: number, newRate: number): boolean {
-    const deviation = Math.abs(newRate - cachedRate) / cachedRate;
+  private static isRateDeviationSuspicious(oldRate: number, newRate: number): boolean {
+    const deviation = Math.abs(newRate - oldRate) / oldRate;
     return deviation > this.MAX_RATE_DEVIATION;
   }
 
   /**
-   * Check if cached rate is stale
+   * Trip circuit breaker to prevent using unreliable rates
    */
-  private static isRateStale(rateData: ExchangeRateData): boolean {
-    return Date.now() - rateData.timestamp > this.STALENESS_LIMIT;
+  private static tripCircuitBreaker(): void {
+    this.circuitBreakerTripped = true;
+    this.circuitBreakerResetTime = Date.now() + this.CIRCUIT_BREAKER_TIMEOUT;
+    console.log('Exchange rate circuit breaker tripped - service disabled for 5 minutes');
   }
 
   /**
-   * Basic sanity check for rate values
-   */
-  private static isRateReasonable(rate: number): boolean {
-    return rate > 0 && rate < 1000000 && !isNaN(rate) && isFinite(rate);
-  }
-
-  /**
-   * Circuit breaker management
-   */
-  private static getCircuitBreakerStatus(key: string): { isOpen: boolean; canReset: boolean } {
-    const breaker = this.circuitBreakers.get(key);
-    if (!breaker) {
-      return { isOpen: false, canReset: false };
-    }
-
-    const canReset = Date.now() - breaker.lastFailure > this.CIRCUIT_BREAKER_RESET_TIME;
-    if (canReset && breaker.isOpen) {
-      this.resetCircuitBreaker(key);
-      return { isOpen: false, canReset: true };
-    }
-
-    return { isOpen: breaker.isOpen, canReset };
-  }
-
-  private static triggerCircuitBreaker(key: string): void {
-    const breaker = this.circuitBreakers.get(key) || { isOpen: false, lastFailure: 0, failureCount: 0 };
-    
-    breaker.failureCount++;
-    breaker.lastFailure = Date.now();
-    
-    if (breaker.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
-      breaker.isOpen = true;
-      console.warn(`Circuit breaker activated for exchange rate: ${key}`);
-    }
-    
-    this.circuitBreakers.set(key, breaker);
-  }
-
-  private static resetCircuitBreaker(key: string): void {
-    this.circuitBreakers.set(key, { isOpen: false, lastFailure: 0, failureCount: 0 });
-  }
-
-  /**
-   * Validate rate for transaction processing
+   * Validate rate before executing financial transaction
    */
   static async validateRateForTransaction(
-    baseCurrency: string,
-    targetCurrency: string,
+    fromCurrency: string,
+    toCurrency: string,
     amount: number
-  ): Promise<{ canProceed: boolean; rate?: number; error?: string; warnings?: string[] }> {
-    if (baseCurrency === targetCurrency) {
-      return { canProceed: true, rate: 1.0 };
-    }
-
-    const validation = await this.getValidatedRate(baseCurrency, targetCurrency);
-    
-    if (!validation.isValid) {
+  ): Promise<{ valid: boolean; rate?: number; error?: string }> {
+    // Check minimum transaction amount first
+    if (amount < 5.00) {
       return {
-        canProceed: false,
-        error: `Exchange rate unavailable: ${validation.warnings.join(', ')}`,
-        warnings: validation.warnings
+        valid: false,
+        error: 'Transaction amount below $5.00 minimum'
       };
     }
 
-    // Additional checks for large transactions
-    if (amount > 10000 && validation.staleness > 30000) {
+    const rateResult = await this.getValidatedRate(fromCurrency, toCurrency);
+    
+    if (!rateResult.valid) {
       return {
-        canProceed: false,
-        error: 'Rate too stale for large transaction',
-        warnings: validation.warnings
+        valid: false,
+        error: rateResult.reason || 'Invalid exchange rate'
       };
     }
 
     return {
-      canProceed: true,
-      rate: validation.rate,
-      warnings: validation.warnings
+      valid: true,
+      rate: rateResult.rate
     };
   }
 
   /**
-   * Get rate cache statistics
+   * Get rate cache status for monitoring
    */
-  static getRateStatistics(): {
-    cachedRates: number;
-    staleRates: number;
-    circuitBreakersOpen: number;
-    oldestRate: number;
+  static getCacheStatus(): {
+    cacheSize: number;
+    circuitBreakerStatus: boolean;
+    rates: Array<{
+      pair: string;
+      rate: number;
+      age: number;
+      fresh: boolean;
+    }>;
   } {
     const now = Date.now();
-    let staleCount = 0;
-    let oldestAge = 0;
-
-    for (const rate of this.rateCache.values()) {
-      const age = now - rate.timestamp;
-      if (age > this.STALENESS_LIMIT) staleCount++;
-      if (age > oldestAge) oldestAge = age;
-    }
-
-    const openBreakers = Array.from(this.circuitBreakers.values()).filter(b => b.isOpen).length;
+    const rates = Array.from(this.rateCache.entries()).map(([key, data]) => ({
+      pair: key,
+      rate: data.rate,
+      age: now - data.timestamp,
+      fresh: (now - data.timestamp) < this.RATE_EXPIRY_MS
+    }));
 
     return {
-      cachedRates: this.rateCache.size,
-      staleRates: staleCount,
-      circuitBreakersOpen: openBreakers,
-      oldestRate: oldestAge
+      cacheSize: this.rateCache.size,
+      circuitBreakerStatus: this.circuitBreakerTripped,
+      rates
     };
   }
+
+  /**
+   * Clear stale rates from cache
+   */
+  static cleanupStaleRates(): number {
+    const now = Date.now();
+    let removed = 0;
+
+    for (const [key, rate] of this.rateCache.entries()) {
+      if (now - rate.timestamp > this.RATE_EXPIRY_MS * 2) { // Remove rates older than 1 minute
+        this.rateCache.delete(key);
+        removed++;
+      }
+    }
+
+    if (removed > 0) {
+      console.log(`Cleaned up ${removed} stale exchange rates`);
+    }
+
+    return removed;
+  }
 }
+
+// Cleanup stale rates every 2 minutes
+setInterval(() => {
+  ExchangeRateProtection.cleanupStaleRates();
+}, 2 * 60 * 1000);

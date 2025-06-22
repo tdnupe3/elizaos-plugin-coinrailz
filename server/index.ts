@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
+import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";

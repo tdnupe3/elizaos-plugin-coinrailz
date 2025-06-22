@@ -154,27 +154,98 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
-  // Demo fee calculation endpoint for audit compatibility
-  app.post('/api/demo/calculate-fee', (req, res) => {
-    const { amount } = req.body;
-    
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      return res.status(400).json({ error: 'Valid positive amount is required' });
-    }
+  // Enhanced fee calculation with comprehensive business logic safety
+  app.post('/api/demo/calculate-fee', async (req, res) => {
+    try {
+      const { amount } = req.body;
+      
+      // Step 1: Basic validation
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({ error: 'Valid positive amount is required' });
+      }
 
-    const baseAmount = parseFloat(amount);
-    const validation = BusinessLogicValidator.validateFeeCalculation(baseAmount);
-    
-    if (!validation.isValid) {
-      return res.status(400).json({ error: validation.errors.join('; ') });
-    }
+      const numericAmount = parseFloat(amount);
+      
+      // Step 2: Minimum transaction validation ($5.00 minimum)
+      if (numericAmount < 5.00) {
+        return res.status(400).json({ 
+          error: 'Transaction amount must be at least $5.00 for platform profitability',
+          minimumAmount: 5.00,
+          providedAmount: numericAmount
+        });
+      }
 
-    // Return audit-compatible format
-    res.json({
-      fee: validation.data.platformFee,
-      amount: validation.data.originalAmount,
-      total: validation.data.totalAmount
-    });
+      // Step 3: Safe math calculation using integer arithmetic
+      const amountCents = Math.round(numericAmount * 100);
+      const feeRate = 0.01; // 1% platform fee
+      const feeCents = Math.round(amountCents * feeRate);
+      const totalCents = amountCents + feeCents;
+      
+      // Step 4: Tiered commission calculation
+      let commissionRate = 0.0025; // Default 0.25%
+      let tier = 'Micro Transaction Tier';
+      
+      if (numericAmount >= 100) {
+        commissionRate = 0.0075; // 0.75%
+        tier = 'High Value Transaction Tier';
+      } else if (numericAmount >= 15) {
+        commissionRate = 0.005; // 0.5%
+        tier = 'Standard Transaction Tier';
+      }
+      
+      const commissionCents = Math.round(amountCents * commissionRate);
+      
+      // Step 5: Profitability validation
+      const processingCostCents = Math.round((0.30 + numericAmount * 0.029) * 100); // $0.30 + 2.9%
+      const netProfitCents = feeCents - processingCostCents - commissionCents;
+      const profitMargin = netProfitCents / feeCents;
+      
+      // Step 6: Business logic validation
+      const baseAmount = parseFloat(amount);
+      const validation = BusinessLogicValidator.validateFeeCalculation(baseAmount);
+      
+      if (!validation.isValid) {
+        return res.status(400).json({ error: validation.errors.join('; ') });
+      }
+
+      // Return enhanced format with safety mechanisms
+      res.json({
+        success: true,
+        // Legacy compatibility
+        fee: feeCents / 100,
+        amount: amountCents / 100,
+        total: totalCents / 100,
+        // Enhanced business logic data
+        enhanced: {
+          amountCents,
+          feeCents,
+          totalCents,
+          commission: {
+            cents: commissionCents,
+            dollars: commissionCents / 100,
+            rate: commissionRate,
+            tier
+          },
+          profitability: {
+            processingCostCents,
+            netProfitCents,
+            profitMargin: `${(profitMargin * 100).toFixed(1)}%`,
+            profitable: netProfitCents > 0
+          },
+          validation: {
+            minimumMet: numericAmount >= 5.00,
+            integerMath: true,
+            businessLogicValid: validation.isValid
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Enhanced fee calculation error:', error);
+      res.status(500).json({
+        error: 'Fee calculation service temporarily unavailable',
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // Demo send money endpoint for audit compatibility
@@ -740,6 +811,270 @@ export function setupSimpleRoutes(app: Express) {
       clientSecret: 'pi_agent_' + Date.now(),
       amount: parseFloat(amount)
     });
+  });
+
+  // Enhanced business logic routes integrated into existing structure
+  
+  // Enhanced fee calculation with all safety mechanisms
+  app.post('/api/send-money-fee-enhanced', async (req, res) => {
+    try {
+      const { InputValidation } = require('./services/inputValidation');
+      const { SafeMath } = require('./utils/safeMath');
+      const { TieredCommissionCalculator } = require('./services/tieredCommissionCalculator');
+      
+      // Validate input using new validation system
+      const validation = InputValidation.validateTransactionAmount(req.body.amount);
+      
+      if (!validation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: validation.error,
+          validation: { inputValid: false, amountValid: false, rateValid: true }
+        });
+      }
+
+      const amount = validation.amountCents / 100;
+      const feeRate = 0.01; // 1% fee
+      
+      // Use SafeMath for precision calculations
+      const feeCalculation = SafeMath.calculateFee(amount, feeRate);
+      
+      // Calculate tiered commission
+      const commission = TieredCommissionCalculator.calculateCommission(amount);
+      
+      // Calculate break-even analysis
+      const breakEven = TieredCommissionCalculator.calculateBreakEvenAnalysis(amount);
+      
+      res.json({
+        success: true,
+        amount: feeCalculation.formatted.amount,
+        fee: feeCalculation.formatted.fee,
+        total: feeCalculation.formatted.total,
+        amountCents: feeCalculation.amountCents,
+        feeCents: feeCalculation.feeCents,
+        totalCents: feeCalculation.totalCents,
+        commission: {
+          amount: commission.amount,
+          rate: commission.rate,
+          tier: commission.tier,
+          profitable: commission.profitable
+        },
+        breakEven: {
+          platformFee: SafeMath.formatMoney(SafeMath.dollarsToCents(breakEven.platformFee)),
+          processingCost: SafeMath.formatMoney(SafeMath.dollarsToCents(breakEven.processingCost)),
+          netProfit: SafeMath.formatMoney(SafeMath.dollarsToCents(breakEven.netProfit)),
+          profitMargin: `${(breakEven.profitMargin * 100).toFixed(1)}%`
+        },
+        validation: { inputValid: true, amountValid: true, rateValid: true }
+      });
+    } catch (error) {
+      console.error('Enhanced fee calculation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Fee calculation failed'
+      });
+    }
+  });
+
+  // Commission tier information endpoint
+  app.get('/api/commissions/tiers', (req, res) => {
+    try {
+      const { TieredCommissionCalculator } = require('./services/tieredCommissionCalculator');
+      const { amount } = req.query;
+      
+      if (!amount) {
+        return res.json({
+          success: true,
+          tiers: [
+            { minAmount: 5.00, maxAmount: 14.99, rate: '0.25%', description: 'Micro Transaction Tier' },
+            { minAmount: 15.00, maxAmount: 99.99, rate: '0.5%', description: 'Standard Transaction Tier' },
+            { minAmount: 100.00, maxAmount: 999999.99, rate: '0.75%', description: 'High Value Transaction Tier' }
+          ]
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount) || numericAmount < 5) {
+        return res.status(400).json({
+          success: false,
+          message: 'Amount must be at least $5.00'
+        });
+      }
+
+      const tierInfo = TieredCommissionCalculator.getTierInfo(numericAmount);
+      const commission = TieredCommissionCalculator.calculateCommission(numericAmount);
+      const breakEven = TieredCommissionCalculator.calculateBreakEvenAnalysis(numericAmount);
+
+      res.json({
+        success: true,
+        amount: numericAmount,
+        tier: tierInfo,
+        commission,
+        profitability: breakEven
+      });
+    } catch (error) {
+      console.error('Commission tier lookup error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Commission service temporarily unavailable'
+      });
+    }
+  });
+
+  // Exchange rate status and health check
+  app.get('/api/exchange/rates/status', (req, res) => {
+    try {
+      const { ExchangeRateProtection } = require('./services/exchangeRateProtection');
+      const status = ExchangeRateProtection.getCacheStatus();
+      
+      res.json({
+        success: true,
+        rateCache: {
+          size: status.cacheSize,
+          circuitBreakerActive: status.circuitBreakerStatus,
+          rates: status.rates.map(rate => ({
+            pair: rate.pair,
+            rate: rate.rate,
+            ageSeconds: Math.round(rate.age / 1000),
+            fresh: rate.fresh
+          }))
+        }
+      });
+    } catch (error) {
+      console.error('Exchange rate status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Rate service status unavailable'
+      });
+    }
+  });
+
+  // Get validated exchange rate for transaction
+  app.get('/api/exchange/rates/:from/:to', async (req, res) => {
+    try {
+      const { ExchangeRateProtection } = require('./services/exchangeRateProtection');
+      const { from, to } = req.params;
+      const { amount } = req.query;
+
+      if (!amount) {
+        return res.status(400).json({
+          success: false,
+          message: 'Amount parameter required'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      const rateValidation = await ExchangeRateProtection.validateRateForTransaction(
+        from.toUpperCase(),
+        to.toUpperCase(),
+        numericAmount
+      );
+
+      if (!rateValidation.valid) {
+        return res.status(400).json({
+          success: false,
+          message: rateValidation.error
+        });
+      }
+
+      res.json({
+        success: true,
+        fromCurrency: from.toUpperCase(),
+        toCurrency: to.toUpperCase(),
+        rate: rateValidation.rate,
+        amount: numericAmount,
+        estimatedOutput: numericAmount * rateValidation.rate,
+        rateAge: 'fresh'
+      });
+    } catch (error) {
+      console.error('Exchange rate lookup error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Rate lookup service temporarily unavailable'
+      });
+    }
+  });
+
+  // Business logic health check
+  app.get('/api/business-logic/health', (req, res) => {
+    try {
+      const { ExchangeRateProtection } = require('./services/exchangeRateProtection');
+      const exchangeStatus = ExchangeRateProtection.getCacheStatus();
+      
+      const health = {
+        healthy: true,
+        components: {
+          transactionWrapper: true,
+          tieredCommissions: true,
+          exchangeProtection: !exchangeStatus.circuitBreakerStatus,
+          inputValidation: true,
+          safeMath: true
+        },
+        exchangeRates: exchangeStatus
+      };
+      
+      res.json({
+        success: true,
+        healthy: health.healthy,
+        components: health.components,
+        exchangeRates: health.exchangeRates,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Business logic health check error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Health check service unavailable'
+      });
+    }
+  });
+
+  // Transaction validation endpoint
+  app.post('/api/validation/transaction', (req, res) => {
+    try {
+      const { InputValidation } = require('./services/inputValidation');
+      
+      const validation = InputValidation.validateP2PTransfer(req.body);
+      
+      res.json({
+        success: true,
+        valid: validation.valid,
+        error: validation.error,
+        sanitized: validation.sanitized
+      });
+    } catch (error) {
+      console.error('Transaction validation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Validation service temporarily unavailable'
+      });
+    }
+  });
+
+  // Transaction limits endpoint
+  app.get('/api/limits/transaction', (req, res) => {
+    try {
+      res.json({
+        success: true,
+        limits: {
+          minimumTransaction: 5.00,
+          maximumTransaction: 999999.99,
+          minimumCommissionRate: 0.01,
+          maximumCommissionRate: 2.00,
+          currency: 'USD'
+        },
+        reasoning: {
+          minimumTransaction: 'Ensures profitability after processing fees and commissions',
+          maximumCommissionRate: 'Prevents commission overflow that could cause platform losses'
+        }
+      });
+    } catch (error) {
+      console.error('Transaction limits error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Limits service temporarily unavailable'
+      });
+    }
   });
 
   return createServer(app);

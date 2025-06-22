@@ -62,6 +62,9 @@ app.get('/api/health', (req, res) => {
 // Setup simple API routes BEFORE Vite middleware
 const server = setupSimpleRoutes(app);
 
+// Setup enhanced business logic routes with all safety mechanisms
+setupEnhancedBusinessLogicRoutes(app);
+
 // Production error handling
 app.use(productionSystems.errorHandler());
 

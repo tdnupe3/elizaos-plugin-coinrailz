@@ -324,6 +324,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Isolated stress testing endpoints
+  app.get('/api/stress-test/scenarios', async (req, res) => {
+    try {
+      const { isolatedStressTester } = await import('./services/isolatedStressTester');
+      const scenarios = isolatedStressTester.getTestScenarios();
+      
+      res.json({
+        success: true,
+        scenarios,
+        status: isolatedStressTester.getStatus()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get stress test scenarios',
+        message: error.message
+      });
+    }
+  });
+
+  app.post('/api/stress-test/run/:scenarioName', async (req, res) => {
+    try {
+      const { isolatedStressTester } = await import('./services/isolatedStressTester');
+      const { scenarioName } = req.params;
+      
+      const scenarios = isolatedStressTester.getTestScenarios();
+      const scenario = scenarios.find(s => s.name.toLowerCase().replace(/\s+/g, '-') === scenarioName.toLowerCase());
+      
+      if (!scenario) {
+        return res.status(404).json({
+          success: false,
+          error: 'Scenario not found',
+          availableScenarios: scenarios.map(s => s.name)
+        });
+      }
+
+      // Run stress test asynchronously
+      const testPromise = isolatedStressTester.runStressTest(scenario);
+      
+      // Return immediate response
+      res.json({
+        success: true,
+        message: `Started stress test: ${scenario.name}`,
+        scenario: scenario.name,
+        estimatedDuration: scenario.testDuration,
+        note: 'Test is running in background. Use /api/stress-test/status to check progress.'
+      });
+
+      // Handle test completion in background
+      testPromise.then(results => {
+        console.log('✅ Stress test completed:', results);
+      }).catch(error => {
+        console.error('❌ Stress test failed:', error);
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to start stress test',
+        message: error.message
+      });
+    }
+  });
+
+  app.get('/api/stress-test/status', async (req, res) => {
+    try {
+      const { isolatedStressTester } = await import('./services/isolatedStressTester');
+      const status = isolatedStressTester.getStatus();
+      
+      res.json({
+        success: true,
+        ...status,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get stress test status',
+        message: error.message
+      });
+    }
+  });
+
   // Business logic validation endpoint
   app.get('/api/validate/business-logic', async (req, res) => {
     try {

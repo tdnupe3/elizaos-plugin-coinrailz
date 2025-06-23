@@ -1,0 +1,112 @@
+COMPREHENSIVE PULSECHAIN INTEGRATION PROMPT - SAFE IMPLEMENTATION
+
+Please implement PulseChain (PLS) integration for the Coin Railz platform using the same safe, measured approach we used for BNB Chain. This integration should be feature-flagged, well-tested, and follow our established patterns without advertising it prominently on the landing page.
+
+IMPLEMENTATION REQUIREMENTS:
+
+1. CREATE PULSECHAIN SERVICE (Following BNB Chain Pattern)
+
+Create server/services/pulseChainService.ts based on the BNB Chain service architecture
+Network: PulseChain Mainnet (Chain ID: 369)
+RPC Endpoints:
+Primary: https://rpc.pulsechain.com
+Fallback: https://rpc-pulsechain.g4mm4.io
+Feature flag: PULSE_CHAIN_ENABLED (default: true but controlled)
+Circuit breaker pattern with fallback RPC support
+Popular PRC-20 token addresses (WPLS, PulseX, HEX)
+Health check functionality matching BNB Chain implementation
+2. EXTEND DEX AGGREGATOR SUPPORT
+
+Add PulseChain (Chain ID: 369) to supported chains in dexAggregatorService.ts
+Update the isSupportedChain() method to include PulseChain
+Ensure 1inch and 0x Protocol support for PulseChain swaps
+Update error messages to include PulseChain in supported chains list
+3. WALLET CONNECTION INTEGRATION
+
+Add PulseChain (ID: 369) to wallet connection systems
+Update any MetaMask or wallet connection components to support PulseChain
+Ensure proper network switching capabilities
+4. CRYPTO TRANSFER INTEGRATION
+
+Add PulseChain to crypto transfer routes with appropriate fee structure
+Commission rate: 0.0025 (same as other EVM chains)
+Minimum transfer: 0.001 PLS
+Average gas fee: 0.00001 PLS (extremely low)
+Update transfer validation and processing logic
+5. HEALTH MONITORING INTEGRATION
+
+Add PulseChain health check to system monitoring in simpleRoutes.ts
+Include PulseChain status in platform health endpoints
+Ensure proper error handling if PulseChain service is unavailable
+6. BUSINESS LOGIC VALIDATION
+
+Update BusinessLogicValidator to include PulseChain validation
+Ensure fee calculations work correctly for PLS transactions
+Add PulseChain-specific edge case handling
+SAFETY REQUIREMENTS:
+
+1. Feature Flag Implementation
+
+Environment variable: PULSE_CHAIN_ENABLED=true
+Service-level feature flag for easy disabling
+Graceful degradation if PulseChain is disabled
+No impact on existing chains if PulseChain fails
+2. Additive Architecture
+
+Use existing EVM infrastructure (reuse Ethereum patterns)
+No modifications to core platform logic
+Separate service file prevents contamination
+Independent error handling
+3. Circuit Breaker Pattern
+
+Primary/fallback RPC endpoint configuration
+Automatic failover on RPC failures
+Comprehensive error logging and monitoring
+Timeout protection and retry logic
+4. Testing & Validation
+
+Service initialization logging
+Health check endpoint validation
+Network connectivity verification
+Gas estimation and price fetching tests
+TECHNICAL SPECIFICATIONS:
+
+PulseChain Network Details:
+
+Chain ID: 369
+Native Token: PLS (Pulse)
+Block Time: ~10 seconds
+Gas Costs: Ultra-low (often under $0.01)
+EVM Compatible: Yes (fork of Ethereum)
+Popular PRC-20 Tokens to Include:
+
+POPULAR_PRC20_TOKENS = {
+  WPLS: '0xA1077a294dDE1B09bB078844df40758a5D0f9a27',
+  PLSX: '0x95B303987A60C71504D99Aa1b13B4DA07b0790ab',
+  HEX: '0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39',
+  INC: '0x2fa878Ab3F87CC1C9737Fc071108F904c0B0C95d'
+}
+WHY THIS IS SAFE:
+
+EVM Compatibility: Leverages existing Ethereum infrastructure
+Feature Flagged: Can be instantly disabled if issues arise
+Isolated Service: No impact on existing chain integrations
+Proven Pattern: Follows the successful BNB Chain implementation
+Circuit Breaker: Automatic failover prevents service disruption
+Additive Only: No modifications to core business logic
+EXPECTED OUTCOMES:
+
+PulseChain support for transfers and swaps
+Ultra-low transaction fees (under $0.01)
+Access to PulseChain DeFi ecosystem
+Additional revenue stream from PulseChain users
+No disruption to existing platform functionality
+Competitive advantage in underserved market
+POST-IMPLEMENTATION VALIDATION:
+
+Verify PulseChain service initializes correctly
+Test health check endpoint returns PulseChain status
+Confirm DEX aggregator includes PulseChain in supported chains
+Validate gas estimation and price fetching
+Test feature flag disable/enable functionality
+Please implement this PulseChain integration following the exact same patterns and safety measures used for BNB Chain integration. The implementation should be production-ready but not prominently advertised until we validate performance and user adoption.

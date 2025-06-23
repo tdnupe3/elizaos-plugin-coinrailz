@@ -6,6 +6,8 @@ import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogic
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
+import { bnbChainService } from "./services/bnbChainService";
+import { pulseChainService } from "./services/pulseChainService";
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 

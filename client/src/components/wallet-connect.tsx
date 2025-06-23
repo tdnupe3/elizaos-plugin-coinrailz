@@ -16,6 +16,7 @@ const supportedChains = [
   { id: 42161, name: 'Arbitrum', symbol: 'ETH', color: 'bg-cyan-500', type: 'evm' },
   { id: 10, name: 'Optimism', symbol: 'ETH', color: 'bg-slate-500', type: 'evm' },
   { id: 8453, name: 'Base', symbol: 'ETH', color: 'bg-blue-600', type: 'evm' },
+  { id: 369, name: 'PulseChain', symbol: 'PLS', color: 'bg-pink-500', type: 'evm' },
   { id: 43114, name: 'Avalanche', symbol: 'AVAX', color: 'bg-slate-600', type: 'evm' },
   
   // Bitcoin Networks

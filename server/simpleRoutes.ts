@@ -6,6 +6,7 @@ import { sql, desc, eq } from 'drizzle-orm';
 import { BusinessLogicValidator } from './businessLogic';
 import { cacheMiddleware } from './caching';
 import { bnbChainService } from './services/bnbChainService';
+import { pulseChainService } from './services/pulseChainService';
 
 export function setupSimpleRoutes(app: Express) {
   // Basic health check
@@ -85,8 +86,9 @@ export function setupSimpleRoutes(app: Express) {
       const stats = transactionStats[0] || { count: 0, totalVolume: 0, totalFees: 0 };
       const agents = agentCount[0] || { count: 0 };
 
-      // BNB Chain health check
+      // BNB Chain and PulseChain health checks
       const bnbHealth = await bnbChainService.healthCheck();
+      const pulseHealth = await pulseChainService.getHealth();
 
       const systemData = {
         databaseConnected: true,
@@ -94,7 +96,8 @@ export function setupSimpleRoutes(app: Express) {
         totalTransactions: stats.count,
         totalVolume: parseFloat(stats.totalVolume.toString()),
         totalFees: parseFloat(stats.totalFees.toString()),
-        bnbChainStatus: bnbHealth.status
+        bnbChainStatus: bnbHealth.status,
+        pulseChainStatus: pulseHealth.success ? 'healthy' : 'degraded'
       };
 
       // Validate platform health with business logic
@@ -1178,6 +1181,117 @@ export function setupSimpleRoutes(app: Express) {
       });
     } catch (error) {
       console.error('BNB address validation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Address validation service unavailable'
+      });
+    }
+  });
+
+  // PulseChain API Endpoints - Following BNB Chain pattern
+  app.get('/api/pulse-chain/health', async (req, res) => {
+    try {
+      const health = await pulseChainService.getHealth();
+      res.json({
+        success: health.success,
+        status: health.success ? 'healthy' : 'unhealthy',
+        details: health.data || {},
+        error: health.error
+      });
+    } catch (error) {
+      console.error('PulseChain health check error:', error);
+      res.status(500).json({
+        success: false,
+        status: 'unhealthy',
+        error: 'PulseChain service unavailable'
+      });
+    }
+  });
+
+  app.get('/api/pulse-chain/price', async (req, res) => {
+    try {
+      const priceResponse = await pulseChainService.getPLSPrice();
+      if (!priceResponse.success) {
+        return res.status(500).json({
+          success: false,
+          message: 'PLS price service temporarily unavailable'
+        });
+      }
+      
+      res.json({
+        success: true,
+        ...priceResponse.data
+      });
+    } catch (error) {
+      console.error('PLS price lookup error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'PLS price service temporarily unavailable'
+      });
+    }
+  });
+
+  app.get('/api/pulse-chain/network-info', async (req, res) => {
+    try {
+      const networkResponse = await pulseChainService.getNetworkInfo();
+      if (!networkResponse.success) {
+        return res.status(500).json({
+          success: false,
+          message: 'PulseChain network service temporarily unavailable'
+        });
+      }
+      
+      res.json({
+        success: true,
+        network: networkResponse.data
+      });
+    } catch (error) {
+      console.error('PulseChain network info error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'PulseChain network service temporarily unavailable'
+      });
+    }
+  });
+
+  app.get('/api/pulse-chain/tokens/popular', (req, res) => {
+    try {
+      const tokens = pulseChainService.getPopularTokens();
+      res.json({
+        success: true,
+        tokens,
+        network: 'PulseChain',
+        count: tokens.length
+      });
+    } catch (error) {
+      console.error('PulseChain popular tokens error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Token information service unavailable'
+      });
+    }
+  });
+
+  app.post('/api/pulse-chain/validate-address', (req, res) => {
+    try {
+      const { address } = req.body;
+      
+      if (!address || typeof address !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid address string required'
+        });
+      }
+
+      const isValid = pulseChainService.validateAddress(address);
+      res.json({
+        success: true,
+        address,
+        valid: isValid,
+        network: 'PulseChain'
+      });
+    } catch (error) {
+      console.error('PulseChain address validation error:', error);
       res.status(500).json({
         success: false,
         message: 'Address validation service unavailable'

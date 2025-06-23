@@ -45,6 +45,7 @@ export class DexAggregatorService {
       42161, // Arbitrum
       10,    // Optimism
       8453,  // Base Chain
+      369,   // PulseChain
       43114  // Avalanche
     ];
     return supportedChains.includes(chainId);

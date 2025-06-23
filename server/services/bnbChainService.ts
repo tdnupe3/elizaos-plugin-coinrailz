@@ -347,6 +347,20 @@ export class BNBChainService {
   getPopularTokens(): typeof POPULAR_BEP20_TOKENS {
     return POPULAR_BEP20_TOKENS;
   }
+
+  /**
+   * Check if BNB Chain service is enabled
+   */
+  isEnabled(): boolean {
+    return this.config.featureFlag;
+  }
+
+  /**
+   * Get service configuration
+   */
+  getConfig(): BNBConfig {
+    return { ...this.config };
+  }
 }
 
 // Create singleton instance

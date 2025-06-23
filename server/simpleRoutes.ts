@@ -5,6 +5,7 @@ import { transactions, users, globalAIAgents } from '@shared/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import { BusinessLogicValidator } from './businessLogic';
 import { cacheMiddleware } from './caching';
+import { bnbChainService } from './services/bnbChainService';
 
 export function setupSimpleRoutes(app: Express) {
   // Basic health check
@@ -84,12 +85,16 @@ export function setupSimpleRoutes(app: Express) {
       const stats = transactionStats[0] || { count: 0, totalVolume: 0, totalFees: 0 };
       const agents = agentCount[0] || { count: 0 };
 
+      // BNB Chain health check
+      const bnbHealth = await bnbChainService.healthCheck();
+
       const systemData = {
         databaseConnected: true,
         activeAgents: agents.count,
         totalTransactions: stats.count,
         totalVolume: parseFloat(stats.totalVolume.toString()),
-        totalFees: parseFloat(stats.totalFees.toString())
+        totalFees: parseFloat(stats.totalFees.toString()),
+        bnbChainStatus: bnbHealth.status
       };
 
       // Validate platform health with business logic
@@ -106,6 +111,12 @@ export function setupSimpleRoutes(app: Express) {
             total: systemData.totalTransactions,
             volume: systemData.totalVolume,
             fees: systemData.totalFees
+          },
+          blockchain: {
+            bnbChain: {
+              status: bnbHealth.status,
+              details: bnbHealth.details
+            }
           }
         },
         recommendations: validation.data.recommendations,
@@ -1073,6 +1084,103 @@ export function setupSimpleRoutes(app: Express) {
       res.status(500).json({
         success: false,
         message: 'Limits service temporarily unavailable'
+      });
+    }
+  });
+
+  // BNB Chain API endpoints
+  app.get('/api/bnb-chain/health', async (req, res) => {
+    try {
+      const health = await bnbChainService.healthCheck();
+      res.json({
+        success: true,
+        ...health
+      });
+    } catch (error) {
+      console.error('BNB Chain health check error:', error);
+      res.status(500).json({
+        success: false,
+        status: 'unhealthy',
+        error: 'BNB Chain service unavailable'
+      });
+    }
+  });
+
+  app.get('/api/bnb-chain/price', async (req, res) => {
+    try {
+      const price = await bnbChainService.getBNBPrice();
+      res.json({
+        success: true,
+        price,
+        currency: 'USD',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('BNB price lookup error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'BNB price service temporarily unavailable'
+      });
+    }
+  });
+
+  app.get('/api/bnb-chain/network-info', async (req, res) => {
+    try {
+      const networkInfo = await bnbChainService.getNetworkInfo();
+      res.json({
+        success: true,
+        network: networkInfo
+      });
+    } catch (error) {
+      console.error('BNB network info error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'BNB network service temporarily unavailable'
+      });
+    }
+  });
+
+  app.get('/api/bnb-chain/tokens/popular', (req, res) => {
+    try {
+      const tokens = bnbChainService.getPopularTokens();
+      res.json({
+        success: true,
+        tokens,
+        network: 'BNB Chain (BSC)',
+        count: Object.keys(tokens).length
+      });
+    } catch (error) {
+      console.error('BNB popular tokens error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Token information service unavailable'
+      });
+    }
+  });
+
+  app.post('/api/bnb-chain/validate-address', (req, res) => {
+    try {
+      const { address } = req.body;
+      
+      if (!address || typeof address !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid address string required'
+        });
+      }
+
+      const isValid = bnbChainService.isValidAddress(address);
+      res.json({
+        success: true,
+        address,
+        valid: isValid,
+        network: 'BNB Chain (BSC)'
+      });
+    } catch (error) {
+      console.error('BNB address validation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Address validation service unavailable'
       });
     }
   });

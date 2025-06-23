@@ -55,7 +55,7 @@ export default function Landing() {
               Cross-Platform P2P Payments & Crypto Gateway
             </p>
             <p className="text-sm text-gray-500">
-              Send money globally • Buy/sell crypto • DEX aggregator • Earn referral rewards
+              15+ blockchain networks including Base and BNB Chain • Send money globally • Buy/sell crypto • DEX aggregator
             </p>
           </div>
 

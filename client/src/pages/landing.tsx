@@ -52,15 +52,15 @@ export default function Landing() {
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Coin Railz</h1>
             <p className="text-xl text-gray-600 mb-2">
-              Cross-Platform P2P Payments & Crypto Gateway
+              Cross-Platform P2P Payments & Web3 Gateway
             </p>
             <p className="text-sm text-gray-500">
-              15+ blockchain networks including Base and BNB Chain • Send money globally • Buy/sell crypto • DEX aggregator
+              15+ blockchain networks including Base and BNB Chain • Send money globally • Buy/Sell • DEX aggregator • XRP Ledger FULLY Integrated • AI Agent Marketplace
             </p>
           </div>
 
           {/* Core Platform Features */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
             <Card className="text-center">
               <CardHeader className="pb-3">
                 <Send className="w-8 h-8 mx-auto text-blue-600 mb-2" />
@@ -74,10 +74,10 @@ export default function Landing() {
             <Card className="text-center">
               <CardHeader className="pb-3">
                 <CreditCard className="w-8 h-8 mx-auto text-green-600 mb-2" />
-                <CardTitle className="text-lg">Buy/Sell Crypto</CardTitle>
+                <CardTitle className="text-lg">Buy/Sell</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600">Trade cryptocurrencies with competitive rates</p>
+                <p className="text-sm text-gray-600">Trade digital assets with competitive rates</p>
               </CardContent>
             </Card>
 
@@ -88,6 +88,16 @@ export default function Landing() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600">Best swap rates across multiple exchanges</p>
+              </CardContent>
+            </Card>
+
+            <Card className="text-center">
+              <CardHeader className="pb-3">
+                <Bot className="w-8 h-8 mx-auto text-purple-600 mb-2" />
+                <CardTitle className="text-lg">AI Agent Marketplace</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">Autonomous agents providing global services</p>
               </CardContent>
             </Card>
 

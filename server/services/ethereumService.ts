@@ -7,7 +7,7 @@ import { ethers } from 'ethers';
 
 export interface EthereumConfig {
   alchemyApiKey: string;
-  network: 'mainnet' | 'goerli' | 'sepolia';
+  network: 'mainnet' | 'goerli' | 'sepolia' | 'base';
   maxRetries: number;
   timeoutMs: number;
 }
@@ -45,10 +45,34 @@ export class EthereumService {
     if (!this.config.alchemyApiKey) {
       console.warn('Ethereum service initialized without Alchemy API key - some features will be limited');
       // Initialize with public RPC as fallback
-      this.provider = new ethers.JsonRpcProvider('https://ethereum.publicnode.com');
+      const publicRpcUrl = this.getPublicRpcUrl();
+      this.provider = new ethers.JsonRpcProvider(publicRpcUrl);
     } else {
-      const alchemyUrl = `https://eth-${this.config.network}.g.alchemy.com/v2/${this.config.alchemyApiKey}`;
+      const alchemyUrl = this.getAlchemyUrl();
       this.provider = new ethers.JsonRpcProvider(alchemyUrl);
+    }
+  }
+
+  private getPublicRpcUrl(): string {
+    switch (this.config.network) {
+      case 'base':
+        return 'https://mainnet.base.org';
+      case 'mainnet':
+        return 'https://ethereum.publicnode.com';
+      case 'goerli':
+        return 'https://goerli.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
+      case 'sepolia':
+        return 'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
+      default:
+        return 'https://ethereum.publicnode.com';
+    }
+  }
+
+  private getAlchemyUrl(): string {
+    if (this.config.network === 'base') {
+      return `https://base-mainnet.g.alchemy.com/v2/${this.config.alchemyApiKey}`;
+    } else {
+      return `https://eth-${this.config.network}.g.alchemy.com/v2/${this.config.alchemyApiKey}`;
     }
   }
 

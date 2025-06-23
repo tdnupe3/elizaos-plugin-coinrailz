@@ -37,7 +37,25 @@ export class DexAggregatorService {
     };
   }
 
+  private isSupportedChain(chainId: number): boolean {
+    const supportedChains = [
+      1,     // Ethereum
+      137,   // Polygon
+      56,    // BSC
+      42161, // Arbitrum
+      10,    // Optimism
+      8453,  // Base Chain
+      43114  // Avalanche
+    ];
+    return supportedChains.includes(chainId);
+  }
+
   async getSwapQuote(request: SwapQuoteRequest): Promise<any> {
+    // Validate Base Chain support
+    if (!this.isSupportedChain(request.chainId)) {
+      throw new Error(`Chain ID ${request.chainId} not supported. Supported chains: Ethereum (1), Polygon (137), BSC (56), Arbitrum (42161), Optimism (10), Base (8453)`);
+    }
+
     if (!this.config.oneInchApiKey) {
       throw new Error('1inch API key not configured. Please provide ONEINCH_API_KEY environment variable.');
     }

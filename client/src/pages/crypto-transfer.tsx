@@ -54,6 +54,15 @@ const supportedNetworks = [
     avgGasFee: 0.001
   },
   { 
+    id: 'base', 
+    name: 'Base', 
+    symbol: 'ETH', 
+    color: 'bg-blue-600',
+    commissionRate: 0.0025,
+    minTransfer: 0.001,
+    avgGasFee: 0.0001
+  },
+  { 
     id: 'bsc', 
     name: 'Binance Smart Chain', 
     symbol: 'BNB', 

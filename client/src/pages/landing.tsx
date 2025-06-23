@@ -195,7 +195,7 @@ export default function Landing() {
                 <div className="text-xs text-purple-700 space-y-1">
                   <p>• Access DEX aggregator instantly</p>
                   <p>• Compare rates across exchanges</p>
-                  <p>• Multi-chain support</p>
+                  <p>• 7 blockchain networks including Base</p>
                 </div>
               </div>
 

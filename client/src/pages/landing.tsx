@@ -122,8 +122,8 @@ export default function Landing() {
 
             <Card className="text-center">
               <CardContent className="pt-6">
-                <div className="text-2xl font-bold text-purple-600">50+</div>
-                <p className="text-sm text-gray-600">Cryptocurrencies</p>
+                <div className="text-2xl font-bold text-purple-600">15+</div>
+                <p className="text-sm text-gray-600">Blockchain Networks</p>
               </CardContent>
             </Card>
 
@@ -195,7 +195,7 @@ export default function Landing() {
                 <div className="text-xs text-purple-700 space-y-1">
                   <p>• Access DEX aggregator instantly</p>
                   <p>• Compare rates across exchanges</p>
-                  <p>• 7 blockchain networks including Base</p>
+                  <p>• 15+ blockchain networks including Base</p>
                 </div>
               </div>
 

@@ -14,6 +14,21 @@ const port = parseInt(process.env.PORT || '5000', 10);
 // Initialize production systems
 productionSystems.initialize();
 
+// Initialize blockchain services
+if (bnbChainService.isEnabled()) {
+  console.log('✅ BNB Chain service initialized:', { 
+    network: bnbChainService.getConfig().network, 
+    enabled: true 
+  });
+}
+
+if (pulseChainService.isEnabled()) {
+  console.log('✅ PulseChain service initialized:', { 
+    network: pulseChainService.getConfig().network, 
+    enabled: true 
+  });
+}
+
 // Production monitoring middleware
 app.use(productionSystems.trackRequests());
 

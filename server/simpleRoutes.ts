@@ -491,12 +491,75 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
-  // Demo user endpoint for rate limiting tests
+  // Demo API endpoints for dashboard functionality
   app.get('/api/demo/user', (req, res) => {
     res.json({
-      id: 'demo-user',
+      id: 'demo-user-001',
+      email: 'demo@coinrailz.com',
+      firstName: 'Demo',
+      lastName: 'User',
       name: 'Demo User',
-      balance: 1000
+      balance: 1000,
+      usdBalance: '2847.52',
+      createdAt: new Date('2024-01-15'),
+      lastLogin: new Date()
+    });
+  });
+
+  app.get('/api/demo/balances', (req, res) => {
+    res.json([
+      { currency: 'USD', balance: '2847.52', availableBalance: '2800.00', frozenBalance: '47.52' },
+      { currency: 'BTC', balance: '0.05432100', availableBalance: '0.05432100', frozenBalance: '0.00000000' },
+      { currency: 'ETH', balance: '1.24567890', availableBalance: '1.24567890', frozenBalance: '0.00000000' },
+      { currency: 'USDT', balance: '450.00', availableBalance: '450.00', frozenBalance: '0.00000000' },
+      { currency: 'XRP', balance: '892.50', availableBalance: '892.50', frozenBalance: '0.00000000' }
+    ]);
+  });
+
+  app.get('/api/demo/transactions', (req, res) => {
+    res.json([
+      {
+        id: 'tx_001',
+        type: 'receive',
+        amount: '250.00',
+        currency: 'USD',
+        from: 'Alex Johnson',
+        to: 'Demo User',
+        status: 'completed',
+        timestamp: new Date(Date.now() - 300000).toISOString(),
+        fee: '2.50'
+      },
+      {
+        id: 'tx_002',
+        type: 'send',
+        amount: '0.001',
+        currency: 'BTC',
+        from: 'Demo User',
+        to: 'Sarah Wilson',
+        status: 'completed',
+        timestamp: new Date(Date.now() - 900000).toISOString(),
+        fee: '0.00001'
+      },
+      {
+        id: 'tx_003',
+        type: 'receive',
+        amount: '100.00',
+        currency: 'USDT',
+        from: 'Mike Chen',
+        to: 'Demo User',
+        status: 'pending',
+        timestamp: new Date(Date.now() - 1800000).toISOString(),
+        fee: '1.00'
+      }
+    ]);
+  });
+
+  app.get('/api/demo/crypto-prices', (req, res) => {
+    res.json({
+      bitcoin: { usd: 45000, usd_24h_change: 2.5 },
+      ethereum: { usd: 3200, usd_24h_change: -1.2 },
+      ripple: { usd: 0.62, usd_24h_change: 1.23 },
+      tether: { usd: 1.00, usd_24h_change: 0.01 }
     });
   });
 

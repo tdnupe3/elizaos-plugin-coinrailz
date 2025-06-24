@@ -76,6 +76,10 @@ app.get('/api/health', (req, res) => {
   res.json(health);
 });
 
+// Setup consolidated authentication system using productionAuth as primary
+import { setupProductionAuth } from './productionAuth';
+setupProductionAuth(app);
+
 // Setup simple API routes BEFORE Vite middleware
 const server = setupSimpleRoutes(app);
 

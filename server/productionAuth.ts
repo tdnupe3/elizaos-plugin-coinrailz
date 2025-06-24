@@ -45,6 +45,68 @@ export function setupProductionAuth(app: Express) {
     }
   }));
 
+  // Consolidated signup endpoint - primary authentication method
+  app.post('/api/auth/signup', async (req: Request, res: Response) => {
+    try {
+      const validation = signupSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid input data',
+          details: validation.error.issues
+        });
+      }
+
+      const { email, password, firstName, lastName } = validation.data;
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          error: 'User already exists with this email'
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Create user
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      await storage.createUser({
+        id: userId,
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        usdBalance: '0.00',
+        accountStatus: 'active',
+        kycStatus: 'pending'
+      });
+
+      // Create session
+      (req.session as any).userId = userId;
+      (req.session as any).isAuthenticated = true;
+
+      res.status(201).json({
+        success: true,
+        message: 'User registered successfully',
+        user: {
+          id: userId,
+          email,
+          firstName,
+          lastName
+        }
+      });
+    } catch (error) {
+      console.error('Signup error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Registration failed'
+      });
+    }
+  });
+
   // User registration endpoint
   app.post('/api/auth/signup', async (req: Request, res: Response) => {
     try {

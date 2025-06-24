@@ -1,0 +1,69 @@
+COMPREHENSIVE PLATFORM FIX PROMPT - CRITICAL ISSUES TO RESOLVE
+
+Three critical issues are preventing users from using the platform effectively:
+
+ISSUE 1: SIGN UP SYSTEM FAILURE
+Problem: Multiple conflicting authentication systems are causing signup failures
+Root Cause: The platform has 3 different auth implementations (authRoutes.ts, productionAuth.ts, replitAuth.ts) that conflict with each other. The signup form uses <AuthForm mode="signup" /> but the backend routes are competing for the same endpoints.
+Required Fix: Consolidate to a single authentication system using productionAuth.ts as the primary system
+Why This Fix: productionAuth.ts has the most complete implementation with proper session management, password hashing, and error handling
+Implementation Steps:
+
+Remove conflicting routes from authRoutes.ts and replitAuth.ts
+Ensure /api/auth/signup endpoint in productionAuth.ts is the only signup handler
+Update the AuthForm component to use consistent API endpoints
+Fix database schema mismatches in user creation methods
+Safety: This fix consolidates existing code without removing core functionality, just eliminates conflicts
+ISSUE 2: DEMO MODE PAGE NOT LOADING
+Problem: Demo dashboard fails to render due to missing API endpoints
+Root Cause: The demo-dashboard.tsx makes calls to /api/demo/* endpoints that don't exist in the server routes. React Query fails when these endpoints return 404 errors.
+Required Fix: Create the missing demo API endpoints that return static mock data
+Why This Fix: Demo mode should work independently of real data to allow users to test features
+Implementation Steps:
+
+Create /api/demo/user, /api/demo/balances, /api/demo/transactions, /api/demo/crypto-prices endpoints
+Return static JSON mock data from these endpoints
+Add error boundaries in demo-dashboard.tsx to handle API failures gracefully
+Implement fallback data when demo APIs are unavailable
+Safety: These are new endpoints returning static data, no existing functionality is modified
+ISSUE 3: NO REGISTERED AGENTS IN AI MARKETPLACE
+Problem: AI marketplace shows empty because agent registration is broken
+Root Cause: Database schema mismatch - the code tries to insert walletAddress but the database expects primaryWalletAddress. SQL syntax errors in agent creation queries prevent any agents from being registered.
+Required Fix: Align database operations with the actual schema and fix SQL syntax
+Why This Fix: The marketplace needs agents to function, and the registration system must work for the business model
+Implementation Steps:
+
+Update aiAgentService.ts to use correct database field names (primaryWalletAddress instead of walletAddress)
+Fix SQL syntax errors in agent creation queries
+Implement proper error logging for agent registration failures
+Create seed data to populate initial marketplace agents
+Add agent registration validation to prevent future schema mismatches
+Safety: This fixes existing broken code without changing the core logic, just corrects database field mappings
+VITE MIDDLEWARE PROTECTION
+Critical Requirement: Ensure ALL API routes are registered BEFORE Vite middleware in server/index.ts
+Why: Previous deployments failed because Vite's catchall route app.use("*", ...) intercepted API calls before they reached handlers
+Implementation: Verify this order in server/index.ts:
+
+CORS and basic middleware
+Authentication routes
+Demo API routes
+AI agent routes
+Health check endpoints
+THEN Vite middleware (development only)
+SAFETY MEASURES:
+
+Only fix broken functionality, don't modify working systems
+Use existing code patterns and frameworks
+Add error handling and logging for debugging
+Test each fix independently
+Maintain existing API contracts
+Don't modify working payment or security systems
+VERIFICATION STEPS:
+After implementing fixes, verify:
+
+/signup page allows new user registration
+/demo-dashboard loads without errors
+/ai-marketplace shows registered agents
+All API endpoints respond correctly
+No Vite middleware conflicts in deployment
+Please implement these fixes systematically, starting with the authentication consolidation, then demo endpoints, then agent registration. Each fix addresses a specific broken system without affecting working functionality.

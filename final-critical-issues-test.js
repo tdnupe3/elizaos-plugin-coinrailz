@@ -84,10 +84,10 @@ async function testCriticalIssues() {
   console.log('\n2. Testing AI Agent Registration...');
   try {
     const registrationData = {
-      agentName: 'Advanced Trading Bot',
+      agentName: `Advanced Trading Bot ${Date.now()}`,
       description: 'High-performance cryptocurrency trading agent',
       capabilities: ['trading', 'market_analysis', 'risk_assessment'],
-      walletAddress: 'test_wallet_advanced_123'
+      walletAddress: `test_wallet_advanced_${Date.now()}`
     };
     
     const registrationResponse = await makeRequest('POST', '/api/ai-agents/register', registrationData);

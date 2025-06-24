@@ -788,13 +788,15 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
-  // AI agent registration with comprehensive business logic validation
+  // AI agent registration with comprehensive business logic validation - Fixed field mapping
   app.post('/api/ai-agents/register', (req, res) => {
-    const { name, capabilities, description, services, serviceType } = req.body;
+    const { name, agentName, capabilities, description, services, serviceType } = req.body;
     
-    // Prepare agent data for validation
+    // Prepare agent data for validation - Use agentName field first
+    const finalName = agentName || name;
     const agentData = {
-      name,
+      name: finalName,
+      agentName: finalName,
       capabilities: capabilities || services || (serviceType ? [serviceType] : []),
       description
     };

@@ -62,8 +62,9 @@ export class BusinessLogicValidator {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Required fields validation
-    if (!agentData.name || agentData.name.trim().length < 3) {
+    // Required fields validation - Fixed to check agentName field
+    const nameField = agentData.agentName || agentData.name;
+    if (!nameField || nameField.trim().length < 3) {
       errors.push('Agent name must be at least 3 characters long');
     }
 

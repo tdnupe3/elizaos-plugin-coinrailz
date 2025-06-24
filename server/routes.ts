@@ -271,7 +271,11 @@ export function registerRoutes(app: Express): Server {
       const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Seed some initial agents for the marketplace
-      await this.seedInitialAgents();
+      try {
+        await app.seedInitialAgents();
+      } catch (error) {
+        console.log('Seeding skipped:', error.message);
+      }
 
       const agent = await storage.createGlobalAIAgent({
         id: agentId,

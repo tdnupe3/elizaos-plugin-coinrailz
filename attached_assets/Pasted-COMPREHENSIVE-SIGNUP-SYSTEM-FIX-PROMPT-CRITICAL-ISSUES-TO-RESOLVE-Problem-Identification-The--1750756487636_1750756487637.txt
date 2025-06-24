@@ -1,0 +1,61 @@
+COMPREHENSIVE SIGNUP SYSTEM FIX PROMPT - CRITICAL ISSUES TO RESOLVE
+
+Problem Identification:
+The signup system has three critical issues preventing successful user registration:
+
+Duplicate Route Definitions: In server/productionAuth.ts, there are TWO identical /api/auth/signup routes defined (lines 47-88 and lines 90-134). Express.js only uses the first matching route, so the second (more complete) implementation is never executed.
+
+Frontend/Backend Endpoint Mismatch: The frontend auth-form.tsx is calling /api/auth/register but the server only has /api/auth/signup endpoints defined.
+
+Inconsistent Session Handling: The two signup routes handle sessions differently - one sets isAuthenticated: true, the other doesn't, causing session state confusion.
+
+Why These Issues Exist:
+
+Multiple code iterations left duplicate route definitions
+Frontend and backend were updated separately without coordination
+Session management wasn't standardized across authentication endpoints
+Required Fixes:
+
+Fix 1: Remove Duplicate Signup Route
+
+Remove the first /api/auth/signup route (lines 47-88) in server/productionAuth.ts
+Keep only the second, more complete implementation (lines 90-134)
+This ensures the proper signup logic executes
+Fix 2: Add Register Endpoint Alias
+
+Add a new /api/auth/register route that calls the same logic as /api/auth/signup
+This maintains frontend compatibility without breaking existing calls
+Both endpoints will work, providing flexibility
+Fix 3: Standardize Session Handling
+
+Ensure both userId and isAuthenticated: true are set in sessions
+Add consistent user object structure to all authentication responses
+This prevents authentication state confusion
+Why These Fixes Are Safe:
+
+No Functionality Removal: We're consolidating duplicate code, not removing features
+Backward Compatibility: Adding /api/auth/register alias maintains frontend compatibility
+Isolated Changes: All changes are within the authentication module, won't affect other systems
+Vite Middleware Safe: These are API route changes, not middleware changes - they won't interfere with the Vite dev server
+Session Security: Standardizing session handling improves security without breaking existing sessions
+Implementation Instructions:
+
+Please make these exact changes to fix the signup system:
+
+In server/productionAuth.ts, remove the FIRST /api/auth/signup route (lines 47-88)
+Add this route right after the remaining signup route:
+// Register endpoint alias for frontend compatibility
+app.post('/api/auth/register', async (req: Request, res: Response) => {
+  // Forward to signup endpoint logic
+  req.url = '/api/auth/signup';
+  return app._router.handle(req, res);
+});
+In the remaining signup route, ensure session includes both userId and isAuthenticated: true
+Expected Results:
+
+Signup will work from frontend forms
+Both /api/auth/signup and /api/auth/register endpoints will function
+Sessions will be properly established
+No platform crashes or Vite middleware conflicts
+User registration will complete successfully with proper session creation
+This is a surgical fix that resolves the root authentication issues without affecting platform stability or other functionality.

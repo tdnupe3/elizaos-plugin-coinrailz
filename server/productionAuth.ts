@@ -45,68 +45,6 @@ export function setupProductionAuth(app: Express) {
     }
   }));
 
-  // Consolidated signup endpoint - primary authentication method
-  app.post('/api/auth/signup', async (req: Request, res: Response) => {
-    try {
-      const validation = signupSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid input data',
-          details: validation.error.issues
-        });
-      }
-
-      const { email, password, firstName, lastName } = validation.data;
-
-      // Check if user already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(409).json({
-          success: false,
-          error: 'User already exists with this email'
-        });
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 12);
-
-      // Create user
-      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      await storage.createUser({
-        id: userId,
-        email,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        usdBalance: '0.00',
-        accountStatus: 'active',
-        kycStatus: 'pending'
-      });
-
-      // Create session
-      (req.session as any).userId = userId;
-      (req.session as any).isAuthenticated = true;
-
-      res.status(201).json({
-        success: true,
-        message: 'User registered successfully',
-        user: {
-          id: userId,
-          email,
-          firstName,
-          lastName
-        }
-      });
-    } catch (error) {
-      console.error('Signup error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Registration failed'
-      });
-    }
-  });
-
   // User registration endpoint
   app.post('/api/auth/signup', async (req: Request, res: Response) => {
     try {
@@ -136,8 +74,9 @@ export function setupProductionAuth(app: Express) {
         updatedAt: new Date()
       });
 
-      // Create session
+      // Create session with consistent state
       (req.session as any).userId = user.id;
+      (req.session as any).isAuthenticated = true;
       (req.session as any).user = {
         id: user.id,
         email: user.email,
@@ -145,9 +84,9 @@ export function setupProductionAuth(app: Express) {
         lastName: user.lastName
       };
 
-      res.json({
+      res.status(201).json({
         success: true,
-        message: "Account created successfully",
+        message: "User created successfully",
         user: {
           id: user.id,
           email: user.email,
@@ -158,7 +97,65 @@ export function setupProductionAuth(app: Express) {
 
     } catch (error: any) {
       console.error('Signup error:', error);
-      res.status(400).json({
+      res.status(500).json({
+        success: false,
+        message: error.message || "Registration failed"
+      });
+    }
+  });
+
+  // Register endpoint alias for frontend compatibility
+  app.post('/api/auth/register', async (req: Request, res: Response) => {
+    try {
+      const { email, password, firstName, lastName } = signupSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          message: "User already exists with this email"
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 12);
+
+      // Create user with unique ID
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const user = await storage.createUser({
+        id: userId,
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      // Create session with consistent state
+      (req.session as any).userId = user.id;
+      (req.session as any).isAuthenticated = true;
+      (req.session as any).user = {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName
+      };
+
+      res.status(201).json({
+        success: true,
+        message: "User registered successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName
+        }
+      });
+    } catch (error: any) {
+      console.error('Register error:', error);
+      res.status(500).json({
         success: false,
         message: error.message || "Registration failed"
       });

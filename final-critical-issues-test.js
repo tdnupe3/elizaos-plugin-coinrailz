@@ -181,8 +181,8 @@ async function testCriticalIssues() {
   }
 }
 
-// Import fetch for Node.js
-const fetch = require('node-fetch');
+// Import fetch for Node.js (ES module syntax)
+import fetch from 'node-fetch';
 
 testCriticalIssues().then(success => {
   process.exit(success ? 0 : 1);

@@ -3,6 +3,7 @@ import path from "path";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
+import { registerDemoRoutes } from "./routes-demo";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
@@ -79,6 +80,9 @@ app.get('/api/health', (req, res) => {
 // Setup consolidated authentication system using productionAuth as primary
 import { setupProductionAuth } from './productionAuth';
 setupProductionAuth(app);
+
+// Register demo routes BEFORE Vite middleware to prevent interception
+registerDemoRoutes(app);
 
 // Setup simple API routes BEFORE Vite middleware
 const server = setupSimpleRoutes(app);

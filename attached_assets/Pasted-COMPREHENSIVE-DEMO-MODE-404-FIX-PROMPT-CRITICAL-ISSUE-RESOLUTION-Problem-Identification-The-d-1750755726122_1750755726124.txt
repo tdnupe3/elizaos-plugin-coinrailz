@@ -1,0 +1,51 @@
+COMPREHENSIVE DEMO MODE 404 FIX PROMPT - CRITICAL ISSUE RESOLUTION
+
+Problem Identification:
+The demo mode is giving 404 "page not found" errors because the comprehensive demo routes in server/routes-demo.ts are never imported or registered in the main server/index.ts file. The demo dashboard is trying to fetch from endpoints that literally don't exist in the running Express server.
+
+Root Cause Analysis:
+
+Missing Route Registration: The file server/routes-demo.ts contains complete demo notification endpoints but the registerDemoRoutes(app) function is never called in server/index.ts
+Incomplete Demo Implementation: While basic demo endpoints exist in server/simpleRoutes.ts, the comprehensive demo features (notifications, settings) are in the unregistered file
+Route Order Issue: Demo routes need to be registered BEFORE Vite middleware to prevent interception
+Required Fix:
+Add the missing demo routes registration to server/index.ts in the correct location (after production auth setup but before Vite middleware).
+
+Specific Changes Needed:
+
+In server/index.ts, add these two lines after the production auth setup and before the simple routes setup:
+
+// Import and register demo routes
+import { registerDemoRoutes } from './routes-demo';
+registerDemoRoutes(app);
+The exact location should be:
+
+AFTER: setupProductionAuth(app);
+BEFORE: const server = setupSimpleRoutes(app);
+Why This Fix Is Safe:
+
+No Existing Code Removal: Only adding missing imports and registration calls
+Static Demo Data: All demo routes return hardcoded JSON with no database operations
+Error Isolation: Demo routes are completely separate from production functionality
+Proven Pattern: Uses identical registration pattern as existing setupSimpleRoutes(app)
+No External Dependencies: Demo routes have no API calls or third-party services
+Built-in Error Handling: Demo routes already include proper error handling
+Implementation Safety Guarantees:
+
+No Database Risk: Demo routes return static mock data only
+No Authentication Changes: Doesn't modify existing auth systems
+No Middleware Conflicts: Proper placement prevents Vite interception
+No Production Impact: Demo routes are isolated and won't affect live functionality
+Rollback Safe: Changes can be easily reverted if needed
+Expected Outcome:
+After implementing this fix, demo mode will have access to all notification endpoints, settings, and comprehensive demo features that are currently returning 404 errors.
+
+Testing Verification:
+After the fix, these endpoints should work:
+
+/api/demo/notifications
+/api/demo/notifications/unread-count
+/api/demo/notifications/settings
+/api/demo/notifications/mark-read
+/api/demo/notifications/mark-all-read
+Please implement this minimal, safe fix that connects existing, tested demo code to the Express server without any risk to platform stability.

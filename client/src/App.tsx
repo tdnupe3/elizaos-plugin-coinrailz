@@ -76,6 +76,9 @@ function Router() {
       <Route path="/demo/dashboard">
         {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
       </Route>
+      <Route path="/demo-dashboard">
+        {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
+      </Route>
       <Route path="/demo/history">
         {() => <LazyLoadWrapper><DemoTransactionHistory /></LazyLoadWrapper>}
       </Route>

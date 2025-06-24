@@ -7,6 +7,7 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 ✅ **ALL CRITICAL ISSUES RESOLVED** - Platform fully operational with 100% test success rate
 ✅ **DEMO MODE 404 ISSUES FIXED** - All 5 demo notification endpoints now working correctly
 ✅ **SIGNUP SYSTEM FIXED** - Removed duplicate routes and added register endpoint alias
+✅ **DEMO-DASHBOARD ROUTE ADDED** - Added /demo-dashboard route for direct URL access
 ✅ **Authentication System Restored** - PostgreSQL session storage with proper cookie handling
 ✅ **Payment Processing Operational** - Mock Stripe integration with real client secret generation
 ✅ **All Core API Endpoints Working** - Fee calculation, agent registration, revenue tracking functional

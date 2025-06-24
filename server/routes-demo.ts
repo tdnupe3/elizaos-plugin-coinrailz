@@ -93,4 +93,116 @@ export function registerDemoRoutes(app: Express) {
       referralNotifications: true
     });
   });
+
+  // Demo user data endpoint
+  app.get('/api/demo/user', (req, res) => {
+    res.json({
+      id: 'demo-user-001',
+      email: 'demo@coinrailz.com',
+      firstName: 'Demo',
+      lastName: 'User',
+      name: 'Demo User',
+      balance: 1000,
+      usdBalance: '2847.52',
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      accountStatus: 'active',
+      kycStatus: 'verified'
+    });
+  });
+
+  // Demo balances endpoint
+  app.get('/api/demo/balances', (req, res) => {
+    res.json([
+      {
+        currency: 'USD',
+        balance: '2847.52',
+        availableBalance: '2800.00',
+        frozenBalance: '47.52'
+      },
+      {
+        currency: 'BTC',
+        balance: '0.05432100',
+        availableBalance: '0.05432100',
+        frozenBalance: '0.00000000',
+        usdValue: '2341.20'
+      },
+      {
+        currency: 'ETH',
+        balance: '0.89234500',
+        availableBalance: '0.89234500',
+        frozenBalance: '0.00000000',
+        usdValue: '2156.80'
+      },
+      {
+        currency: 'XRP',
+        balance: '1247.50000000',
+        availableBalance: '1247.50000000',
+        frozenBalance: '0.00000000',
+        usdValue: '849.12'
+      }
+    ]);
+  });
+
+  // Demo transactions endpoint
+  app.get('/api/demo/transactions', (req, res) => {
+    res.json([
+      {
+        id: 'tx-demo-001',
+        type: 'received',
+        amount: '250.00',
+        currency: 'USD',
+        from: 'Alex Johnson',
+        to: 'Demo User',
+        status: 'completed',
+        timestamp: new Date(Date.now() - 300000).toISOString(),
+        fee: '2.50',
+        description: 'Payment for services'
+      },
+      {
+        id: 'tx-demo-002',
+        type: 'sent',
+        amount: '0.00123456',
+        currency: 'BTC',
+        from: 'Demo User',
+        to: 'Crypto Exchange',
+        status: 'completed',
+        timestamp: new Date(Date.now() - 3600000).toISOString(),
+        fee: '0.00002000',
+        description: 'Bitcoin transfer'
+      },
+      {
+        id: 'tx-demo-003',
+        type: 'received',
+        amount: '150.00',
+        currency: 'USD',
+        from: 'AI Agent Commission',
+        to: 'Demo User',
+        status: 'completed',
+        timestamp: new Date(Date.now() - 7200000).toISOString(),
+        fee: '0.00',
+        description: 'Referral commission'
+      }
+    ]);
+  });
+
+  // Demo crypto prices endpoint
+  app.get('/api/demo/crypto-prices', (req, res) => {
+    res.json({
+      BTC: {
+        price: 43145.67,
+        change24h: 2.34,
+        changePercent24h: 5.72
+      },
+      ETH: {
+        price: 2417.89,
+        change24h: -15.23,
+        changePercent24h: -0.63
+      },
+      XRP: {
+        price: 0.6801,
+        change24h: 0.0234,
+        changePercent24h: 3.56
+      }
+    });
+  });
 }

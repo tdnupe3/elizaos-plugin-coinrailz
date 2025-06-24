@@ -111,15 +111,17 @@ if (process.env.NODE_ENV === 'production') {
     console.log(`Production server running on 0.0.0.0:${port}`);
   });
 } else {
-  // Development: use Vite
-  server.listen(port, '0.0.0.0', () => {
-    console.log(`Development server running on 0.0.0.0:${port}`);
-  });
-  
+  // Development: Setup Vite AFTER all API routes are registered
   setupVite(app, server).then(() => {
-    console.log('Frontend serving ready');  
+    console.log('Frontend serving ready');
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`Development server running on 0.0.0.0:${port}`);
+    });
   }).catch(error => {
     console.error('Vite setup failed:', error);
+    server.listen(port, '0.0.0.0', () => {
+      console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
+    });
   });
 }
 

@@ -59,7 +59,7 @@ export default function Landing() {
             </p>
 
             {/* Action Buttons - Moved to Hero Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
               <Button 
                 onClick={handleSignIn}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
@@ -107,7 +107,7 @@ export default function Landing() {
             </div>
 
             {/* Action Button Explanations */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem Dashboard:</p>
                 <div className="text-xs text-blue-700 space-y-1">

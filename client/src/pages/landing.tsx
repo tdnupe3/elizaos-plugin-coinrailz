@@ -150,7 +150,7 @@ export default function Landing() {
             <h2 className="text-3xl font-bold text-gray-900">Start Using Coin Railz Today</h2>
             <p className="text-lg text-gray-600 mb-8">Join thousands of users sending money and trading crypto worldwide</p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <Button 
                 onClick={handleSignIn}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
@@ -166,6 +166,16 @@ export default function Landing() {
                 size="lg"
               >
                 Sign Up
+              </Button>
+
+              <Button 
+                onClick={() => setLocation("/xrp-ecosystem")}
+                variant="ghost"
+                className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-4 text-lg font-medium border border-blue-200"
+                size="lg"
+              >
+                <Globe className="w-5 h-5 mr-2" />
+                XRP Ecosystem
               </Button>
 
               <Button 
@@ -199,11 +209,20 @@ export default function Landing() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem Dashboard:</p>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p>• Explore XRP financial services</p>
+                  <p>• Cross-border payments & settlements</p>
+                  <p>• Liquidity pools & escrow services</p>
+                </div>
+              </div>
+
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm text-purple-800 font-medium mb-2">No Registration Required:</p>
+                <p className="text-sm text-purple-800 font-medium mb-2">DEX Aggregator:</p>
                 <div className="text-xs text-purple-700 space-y-1">
-                  <p>• Access DEX aggregator instantly</p>
+                  <p>• Access instantly, no registration</p>
                   <p>• Compare rates across exchanges</p>
                   <p>• 15+ blockchain networks including Base</p>
                 </div>

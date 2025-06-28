@@ -100,9 +100,32 @@ export default function MainMenu() {
         </div>
       </div>
 
-      {/* Platform Overview */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
+      {/* Main Actions Grid - Moved Higher */}
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          {mainActions.map((action) => (
+            <Card 
+              key={action.id} 
+              className="hover:shadow-lg transition-shadow duration-200 cursor-pointer border-2 hover:border-blue-200"
+              onClick={() => setLocation(action.route)}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className={`w-12 h-12 ${action.color} rounded-lg flex items-center justify-center text-white`}>
+                    <action.icon className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">{action.title}</h3>
+                    <p className="text-gray-600 text-sm">{action.description}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Platform Overview */}
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-6">
           <h2 className="text-lg font-semibold text-emerald-900 mb-3">Your Complete Fintech Platform</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-emerald-800">
             <div>

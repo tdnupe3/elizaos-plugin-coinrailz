@@ -25,7 +25,12 @@ export function registerRoutes(app: Express): Server {
   setupProductionAuth(app);
   
   // Register XRP routes
-  registerXRPRoutes(app, requireAuth);
+  try {
+    registerXRPRoutes(app, requireAuth);
+    console.log('✅ XRP routes registered successfully');
+  } catch (error) {
+    console.error('❌ Failed to register XRP routes:', error);
+  }
 
   // Health check endpoint
   app.get('/health', (req, res) => {

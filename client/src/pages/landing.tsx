@@ -54,9 +54,87 @@ export default function Landing() {
             <p className="text-xl text-gray-600 mb-2">
               Cross-Platform P2P Payments & Web3 Gateway
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-gray-500 mb-8">
               15+ blockchain networks including Base and BNB Chain • Send money globally • Buy/Sell • DEX aggregator • XRP Ledger FULLY Integrated • AI Agent Marketplace
             </p>
+
+            {/* Action Buttons - Moved to Hero Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+              <Button 
+                onClick={handleSignIn}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
+                size="lg"
+              >
+                Sign In
+              </Button>
+
+              <Button 
+                onClick={handleSignUp}
+                variant="outline"
+                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
+                size="lg"
+              >
+                Sign Up
+              </Button>
+
+              <Button 
+                onClick={() => setLocation("/xrp-ecosystem")}
+                variant="ghost"
+                className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-4 text-lg font-medium border border-blue-200"
+                size="lg"
+              >
+                <Globe className="w-5 h-5 mr-2" />
+                XRP Ecosystem
+              </Button>
+
+              <Button 
+                onClick={() => setLocation("/swap")}
+                variant="ghost"
+                className="w-full text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-4 text-lg font-medium border border-purple-200"
+                size="lg"
+              >
+                Try DEX Swap
+              </Button>
+
+              <Button 
+                onClick={handleGuestAccess}
+                variant="ghost"
+                className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-4 text-lg font-medium border border-emerald-200"
+                size="lg"
+              >
+                Demo Mode
+              </Button>
+            </div>
+
+            {/* Action Button Explanations */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem Dashboard:</p>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <p>• Explore XRP financial services</p>
+                  <p>• Cross-border payments & settlements</p>
+                  <p>• Liquidity pools & escrow services</p>
+                </div>
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <p className="text-sm text-purple-800 font-medium mb-2">DEX Aggregator:</p>
+                <div className="text-xs text-purple-700 space-y-1">
+                  <p>• Access instantly, no registration</p>
+                  <p>• Compare rates across exchanges</p>
+                  <p>• 15+ blockchain networks including Base</p>
+                </div>
+              </div>
+
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <p className="text-sm text-emerald-800 font-medium mb-2">Full Platform Demo:</p>
+                <div className="text-xs text-emerald-700 space-y-1">
+                  <p>• Test all features with sample data</p>
+                  <p>• Digital wallet with demo funds</p>
+                  <p>• Complete transaction flow</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Core Platform Features */}

@@ -104,6 +104,16 @@ export default function Landing() {
               >
                 Demo Mode
               </Button>
+
+              <Button 
+                onClick={() => setLocation("/ai-marketplace")}
+                variant="ghost"
+                className="w-full text-orange-600 hover:text-orange-800 hover:bg-orange-50 py-4 text-lg font-medium border border-orange-200"
+                size="lg"
+              >
+                <Bot className="w-5 h-5 mr-2" />
+                AI Marketplace
+              </Button>
             </div>
 
             {/* Action Button Explanations */}
@@ -132,6 +142,15 @@ export default function Landing() {
                   <p>• Test all features with sample data</p>
                   <p>• Digital wallet with demo funds</p>
                   <p>• Complete transaction flow</p>
+                </div>
+              </div>
+
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <p className="text-sm text-orange-800 font-medium mb-2">AI Agent Marketplace:</p>
+                <div className="text-xs text-orange-700 space-y-1">
+                  <p>• Browse autonomous AI agents</p>
+                  <p>• Commission global services</p>
+                  <p>• Earn by registering your own agent</p>
                 </div>
               </div>
             </div>

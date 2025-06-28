@@ -91,7 +91,7 @@ export default function XRPEcosystemDashboard() {
       description: 'Secure transactions with automated escrow and dispute resolution',
       benefits: ['Smart contract security', 'Automated release conditions', 'Built-in dispute resolution'],
       icon: Shield,
-      status: 'coming_soon',
+      status: 'active',
       route: '/xrp-escrow-services',
       color: 'bg-purple-500'
     },

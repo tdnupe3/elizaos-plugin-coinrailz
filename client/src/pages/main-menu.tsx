@@ -100,23 +100,23 @@ export default function MainMenu() {
         </div>
       </div>
 
-      {/* Main Actions Grid - Moved Higher */}
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+      {/* Main Actions Grid - Positioned Higher */}
+      <div className="max-w-4xl mx-auto px-4 py-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {mainActions.map((action) => (
             <Card 
               key={action.id} 
               className="hover:shadow-lg transition-shadow duration-200 cursor-pointer border-2 hover:border-blue-200"
               onClick={() => setLocation(action.route)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
+              <CardContent className="p-5">
+                <div className="flex items-center space-x-3">
                   <div className={`w-12 h-12 ${action.color} rounded-lg flex items-center justify-center text-white`}>
                     <action.icon className="w-6 h-6" />
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">{action.title}</h3>
-                    <p className="text-gray-600 text-sm">{action.description}</p>
+                    <p className="text-gray-600 text-sm leading-tight">{action.description}</p>
                   </div>
                 </div>
               </CardContent>
@@ -147,34 +147,10 @@ export default function MainMenu() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {mainActions.map((action) => (
-            <Card 
-              key={action.id}
-              className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-blue-200"
-              onClick={() => setLocation(action.route)}
-            >
-              <CardContent className="p-8">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-16 h-16 ${action.color} rounded-lg flex items-center justify-center text-white`}>
-                    <action.icon className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      {action.title}
-                    </h3>
-                    <p className="text-gray-600">
-                      {action.description}
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+
 
         {/* Footer Information */}
-        <div className="mt-12 text-center">
+        <div className="mt-8 text-center">
           <p className="text-gray-500 text-sm">
             Coin Railz - Cross-platform payments & crypto gateway
           </p>

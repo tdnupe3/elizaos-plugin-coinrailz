@@ -67,6 +67,14 @@ export default function MainMenu() {
       icon: Bot,
       color: 'bg-purple-500 hover:bg-purple-600',
       route: '/ai-marketplace'
+    },
+    {
+      id: 'xrp-ecosystem',
+      title: 'XRP Ecosystem',
+      description: 'Next-gen financial services powered by XRP Ledger',
+      icon: Globe,
+      color: 'bg-blue-500 hover:bg-blue-600',
+      route: '/xrp-ecosystem'
     }
   ];
 

@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
 import { FeeCalculator } from "./services/feeCalculator";
 import { setupProductionAuth, requireAuth } from "./productionAuth";
+import { registerXRPRoutes } from "./xrpRoutesReplacement";
 import { z } from "zod";
 import { db } from "./db";
 
@@ -22,6 +23,9 @@ export function registerRoutes(app: Express): Server {
 
   // Setup production authentication
   setupProductionAuth(app);
+  
+  // Register XRP routes
+  registerXRPRoutes(app, requireAuth);
 
   // Health check endpoint
   app.get('/health', (req, res) => {

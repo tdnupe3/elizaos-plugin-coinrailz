@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
-import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot } from "@/lib/icons";
+import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";

@@ -37,6 +37,7 @@ import {
   DemoCryptoTransfer,
   EnhancedReferralDashboard,
   HumanReferralDashboard,
+  XRPEcosystemDashboard,
 
 } from "@/lib/lazyComponents";
 
@@ -126,6 +127,9 @@ function Router() {
       </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-ecosystem">
+        {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
       </Route>
 
       <Route path="/signup" component={SignUp} />

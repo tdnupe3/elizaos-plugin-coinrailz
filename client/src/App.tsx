@@ -41,6 +41,9 @@ import {
   XRPCrossBorderPayments,
   XRPInstantSettlements,
   XRPEscrowServices,
+  XRPLiquidityProvision,
+  XRPWalletManagement,
+  XRPComplianceTools,
 
 } from "@/lib/lazyComponents";
 
@@ -142,6 +145,15 @@ function Router() {
       </Route>
       <Route path="/xrp-escrow-services">
         {() => <LazyLoadWrapper><XRPEscrowServices /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-liquidity-provision">
+        {() => <LazyLoadWrapper><XRPLiquidityProvision /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-wallet-management">
+        {() => <LazyLoadWrapper><XRPWalletManagement /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-compliance-tools">
+        {() => <LazyLoadWrapper><XRPComplianceTools /></LazyLoadWrapper>}
       </Route>
 
       <Route path="/signup" component={SignUp} />

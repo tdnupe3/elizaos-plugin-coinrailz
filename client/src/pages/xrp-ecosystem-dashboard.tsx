@@ -102,7 +102,7 @@ export default function XRPEcosystemDashboard() {
       benefits: ['Passive income generation', 'Low impermanent loss', 'Automated market making'],
       icon: TrendingUp,
       status: 'beta',
-      route: '/xrp/liquidity',
+      route: '/xrp-liquidity-provision',
       color: 'bg-green-500'
     },
     {
@@ -112,7 +112,7 @@ export default function XRPEcosystemDashboard() {
       benefits: ['Multi-signature support', 'Hardware integration', 'Advanced security'],
       icon: Wallet,
       status: 'active',
-      route: '/xrp/wallet',
+      route: '/xrp-wallet-management',
       color: 'bg-orange-500'
     },
     {
@@ -122,7 +122,7 @@ export default function XRPEcosystemDashboard() {
       benefits: ['Regulatory compliance', 'Transaction monitoring', 'Risk assessment'],
       icon: Lock,
       status: 'beta',
-      route: '/xrp/compliance',
+      route: '/xrp-compliance-tools',
       color: 'bg-red-500'
     }
   ];

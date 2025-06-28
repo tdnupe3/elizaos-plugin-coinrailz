@@ -35,6 +35,9 @@ export const HumanReferralDashboard = lazy(() => import('@/pages/human-referral-
 
 // XRP Ecosystem Components
 export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-dashboard'));
+export const XRPCrossBorderPayments = lazy(() => import('@/pages/xrp-cross-border-payments'));
+export const XRPInstantSettlements = lazy(() => import('@/pages/xrp-instant-settlements'));
+export const XRPEscrowServices = lazy(() => import('@/pages/xrp-escrow-services'));
 export const SystemDashboard = lazy(() => import('@/pages/system-dashboard'));
 
 // Heavy components that are rarely used immediately

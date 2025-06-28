@@ -38,6 +38,9 @@ import {
   EnhancedReferralDashboard,
   HumanReferralDashboard,
   XRPEcosystemDashboard,
+  XRPCrossBorderPayments,
+  XRPInstantSettlements,
+  XRPEscrowServices,
 
 } from "@/lib/lazyComponents";
 
@@ -130,6 +133,15 @@ function Router() {
       </Route>
       <Route path="/xrp-ecosystem">
         {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-cross-border-payments">
+        {() => <LazyLoadWrapper><XRPCrossBorderPayments /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-instant-settlements">
+        {() => <LazyLoadWrapper><XRPInstantSettlements /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-escrow-services">
+        {() => <LazyLoadWrapper><XRPEscrowServices /></LazyLoadWrapper>}
       </Route>
 
       <Route path="/signup" component={SignUp} />

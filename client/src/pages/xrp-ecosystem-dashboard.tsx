@@ -72,7 +72,7 @@ export default function XRPEcosystemDashboard() {
       benefits: ['Instant settlements', '99.9% cost reduction vs traditional banking', 'Real-time tracking'],
       icon: Globe,
       status: 'active',
-      route: '/xrp/cross-border',
+      route: '/xrp-cross-border-payments',
       color: 'bg-emerald-500'
     },
     {
@@ -82,7 +82,7 @@ export default function XRPEcosystemDashboard() {
       benefits: ['3-5 second confirmation', 'No chargebacks', 'Immediate liquidity'],
       icon: Zap,
       status: 'active',
-      route: '/xrp/settlements',
+      route: '/xrp-instant-settlements',
       color: 'bg-blue-500'
     },
     {
@@ -92,7 +92,7 @@ export default function XRPEcosystemDashboard() {
       benefits: ['Smart contract security', 'Automated release conditions', 'Built-in dispute resolution'],
       icon: Shield,
       status: 'coming_soon',
-      route: '/xrp/escrow',
+      route: '/xrp-escrow-services',
       color: 'bg-purple-500'
     },
     {

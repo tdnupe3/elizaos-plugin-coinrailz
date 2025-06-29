@@ -102,9 +102,6 @@ setupProductionAuth(app);
 // Register critical API routes FIRST to bypass Vite middleware
 setupCriticalAPIRoutes(app);
 
-// Register data monetization routes BEFORE Vite middleware
-app.use('/api/data', dataMonetizationRoutes);
-
 // Register demo routes BEFORE Vite middleware to prevent interception
 registerDemoRoutes(app);
 
@@ -113,6 +110,9 @@ registerDEXProductionRoutes(app);
 
 // Setup simple API routes BEFORE Vite middleware
 const server = setupSimpleRoutes(app);
+
+// Register data monetization routes AFTER simpleRoutes to override its 404 handler
+app.use('/api/data', dataMonetizationRoutes);
 
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);

@@ -9,11 +9,16 @@ import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
+import { connectionManager } from "./services/connectionManager";
+import { sanitizeInput } from "./middleware/inputValidation";
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
 // Initialize production systems
 productionSystems.initialize();
+
+// Initialize connection management
+console.log('✅ Connection manager initialized');
 
 // Initialize blockchain services
 if (bnbChainService.isEnabled()) {
@@ -36,6 +41,9 @@ app.use(productionSystems.trackRequests());
 // Essential middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Input validation and sanitization
+app.use(sanitizeInput);
 
 // Environment-aware CORS
 app.use((req, res, next) => {

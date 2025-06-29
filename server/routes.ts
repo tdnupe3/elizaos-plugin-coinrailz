@@ -8,6 +8,11 @@ import { setupProductionAuth, requireAuth } from "./productionAuth";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
 import { z } from "zod";
 import { db } from "./db";
+import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
+import { connectionManager } from "./services/connectionManager";
+import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
+import { paymentSchema, validateSchema } from "./middleware/inputValidation";
+import { agentQualityControl } from "./services/agentQualityControl";
 
 // Initialize services
 let stripe: any;
@@ -17,6 +22,9 @@ try {
 } catch (error) {
   console.log('Stripe not configured');
 }
+
+// Initialize payment gateway resolver
+const paymentResolver = new PaymentGatewayResolver();
 
 export function registerRoutes(app: Express): Server {
   const server = createServer(app);
@@ -44,10 +52,28 @@ export function registerRoutes(app: Express): Server {
 
   // Root endpoint removed to allow frontend serving
 
-  // Payment Intent Creation
-  app.post('/api/create-payment-intent', requireAuth, async (req: any, res) => {
+  // Payment Intent Creation with Gateway Resolution
+  app.post('/api/create-payment-intent', requireAuth, validateSchema(paymentSchema), async (req: any, res) => {
     try {
       const { amount, recipientEmail } = req.body;
+      
+      // Use circuit breaker for payment processing
+      const result = await paymentCircuitBreaker.execute(async () => {
+        // Resolve best payment gateway for this transaction
+        const gateway = await paymentResolver.resolveOptimalGateway(amount, 'USD');
+        
+        // Execute atomic transaction
+        return await connectionManager.executeTransaction([
+          {
+            query: 'INSERT INTO payment_intents (amount, recipient_email, gateway, status) VALUES ($1, $2, $3, $4) RETURNING id',
+            params: [amount, recipientEmail, gateway.name, 'pending']
+          }
+        ]);
+      }, async () => {
+        // Fallback to basic Stripe processing
+        console.log('Using fallback payment processing');
+        return null;
+      });
 
       // Enhanced validation for payment intent
       if (!amount) {

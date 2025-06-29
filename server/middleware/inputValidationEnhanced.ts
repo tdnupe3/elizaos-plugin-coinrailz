@@ -128,7 +128,7 @@ export function sanitizeInput(input: any): any {
     sanitized = sanitized
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
       .replace(/javascript:/gi, '')
-      .replace/on\w+\s*=/gi, '');
+      .replace(/on\w+\s*=/gi, '');
     
     return sanitized;
   } else if (Array.isArray(input)) {

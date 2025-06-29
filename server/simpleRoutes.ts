@@ -2147,21 +2147,11 @@ export function setupSimpleRoutes(app: Express) {
 
       const { paypalService } = await import('./services/paypalService');
       const payout = await paypalService.createPayout({
-        sender_batch_header: {
-          sender_batch_id: `batch_${Date.now()}`,
-          email_subject: 'You have received a payment from Coin Railz',
-          email_message: note || 'P2P transfer via Coin Railz platform'
-        },
-        items: [{
-          recipient_type: 'EMAIL',
-          amount: {
-            value: amount.toFixed(2),
-            currency: currency
-          },
-          receiver: recipientEmail,
-          note: note || 'P2P transfer',
-          sender_item_id: `item_${Date.now()}`
-        }]
+        recipientEmail: recipientEmail,
+        amount: amount,
+        currency: currency,
+        note: note || 'P2P transfer',
+        senderItemId: `item_${Date.now()}`
       });
 
       res.json({

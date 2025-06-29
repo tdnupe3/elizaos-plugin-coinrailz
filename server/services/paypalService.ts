@@ -156,7 +156,7 @@ class PayPalService {
     return await response.json();
   }
 
-  async getOrderDetails(orderId: string): Promise<any> {
+  async getOrder(orderId: string): Promise<any> {
     const accessToken = await this.getAccessToken();
 
     const response = await fetch(`${this.baseURL}/v2/checkout/orders/${orderId}`, {
@@ -172,6 +172,10 @@ class PayPalService {
     }
 
     return await response.json();
+  }
+
+  async getOrderDetails(orderId: string): Promise<any> {
+    return this.getOrder(orderId);
   }
 
   async verifyWebhook(headers: any, body: string, webhookId: string): Promise<boolean> {
@@ -226,6 +230,19 @@ class PayPalService {
   }): Promise<any> {
     const accessToken = await this.getAccessToken();
 
+    // Debug logging
+    console.log('PayPal payout data received:', JSON.stringify(payoutData, null, 2));
+    
+    // Validate required fields
+    if (!payoutData.recipientEmail || !payoutData.amount) {
+      throw new Error('Missing required payout data: recipientEmail and amount are required');
+    }
+
+    const amountValue = Number(payoutData.amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      throw new Error(`Invalid amount: ${payoutData.amount}`);
+    }
+
     const payout = {
       sender_batch_header: {
         sender_batch_id: payoutData.senderItemId || `batch_${Date.now()}`,
@@ -235,8 +252,8 @@ class PayPalService {
       items: [{
         recipient_type: "EMAIL",
         amount: {
-          value: payoutData.amount.toFixed(2),
-          currency: payoutData.currency.toUpperCase()
+          value: amountValue.toFixed(2),
+          currency: (payoutData.currency || 'USD').toUpperCase()
         },
         receiver: payoutData.recipientEmail,
         note: payoutData.note || "Payment from Coin Railz",

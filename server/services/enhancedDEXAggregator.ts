@@ -211,7 +211,7 @@ export class EnhancedDEXAggregator {
 
     const params = new URLSearchParams({
       src: request.fromToken.toUpperCase() === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : request.fromToken,
-      dst: request.toToken.toUpperCase() === 'USDC' ? '0xA0b86a33E6329C96e2B5b41F4F4C01E67c23c84e' : request.toToken,
+      dst: request.toToken.toUpperCase() === 'USDC' ? '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' : request.toToken,
       amount: amount,
       includeTokensInfo: 'true',
       includeProtocols: 'true',
@@ -416,7 +416,7 @@ export class EnhancedDEXAggregator {
     const tokensByChain: Record<number, any[]> = {
       1: [ // Ethereum
         { symbol: 'ETH', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18 },
-        { symbol: 'USDC', address: '0xA0b86a33E6329C96e2B5b41F4F4C01E67c23c84e', decimals: 6 },
+        { symbol: 'USDC', address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6 },
         { symbol: 'USDT', address: '0xdac17f958d2ee523a2206206994597c13d831ec7', decimals: 6 },
         { symbol: 'DAI', address: '0x6b175474e89094c44da98b954eedeac495271d0f', decimals: 18 },
         { symbol: 'WBTC', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals: 8 }

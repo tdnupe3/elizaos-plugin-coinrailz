@@ -195,14 +195,23 @@ export class EnhancedDEXAggregator {
       throw new Error('1inch API key not configured');
     }
 
+    // Convert amount to wei if dealing with ETH
+    let amount = request.amount;
+    if (request.fromToken.toUpperCase() === 'ETH') {
+      // Convert from ETH to wei (multiply by 10^18)
+      amount = (parseFloat(request.amount) * Math.pow(10, 18)).toString();
+    }
+
     const params = new URLSearchParams({
-      src: request.fromToken,
-      dst: request.toToken,
-      amount: request.amount,
+      src: request.fromToken.toUpperCase() === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : request.fromToken,
+      dst: request.toToken.toUpperCase() === 'USDC' ? '0xA0b86a33E6329C96e2B5b41F4F4C01E67c23c84e' : request.toToken,
+      amount: amount,
       includeTokensInfo: 'true',
       includeProtocols: 'true',
       includeGas: 'true'
     });
+
+    console.log(`🔄 Fetching 1inch quote: ${request.fromToken} → ${request.toToken}, amount: ${amount}`);
 
     const response = await fetch(
       `https://api.1inch.dev/swap/v6.0/${request.chainId}/quote?${params}`,
@@ -210,21 +219,31 @@ export class EnhancedDEXAggregator {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Accept': 'application/json'
-        }
+        },
+        timeout: 10000
       }
     );
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`1inch API error: ${response.status} ${response.statusText} - ${errorText}`);
       throw new Error(`1inch API error: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('✅ 1inch API response received');
+    
+    // Convert output amount back to readable format
+    let outputAmount = data.dstAmount;
+    if (request.toToken.toUpperCase() === 'USDC') {
+      outputAmount = (parseFloat(data.dstAmount) / Math.pow(10, 6)).toString();
+    }
     
     return {
-      dex: '1inch',
+      dex: '1inch Aggregator',
       inputAmount: request.amount,
-      outputAmount: data.dstAmount,
-      exchangeRate: parseFloat(data.dstAmount) / parseFloat(request.amount),
+      outputAmount: outputAmount,
+      exchangeRate: parseFloat(outputAmount) / parseFloat(request.amount),
       priceImpact: parseFloat(data.priceImpact || '0'),
       gasEstimate: data.estimatedGas || '150000',
       route: data.protocols?.[0]?.name ? [data.protocols[0].name] : ['1inch Router'],

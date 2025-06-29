@@ -48,9 +48,7 @@ class PayPalService {
   constructor() {
     this.clientId = env.PAYPAL_CLIENT_ID || '';
     this.clientSecret = env.PAYPAL_CLIENT_SECRET || '';
-    this.baseURL = env.PAYPAL_ENVIRONMENT === 'production' 
-      ? 'https://api-m.paypal.com' 
-      : 'https://api-m.sandbox.paypal.com';
+    this.baseURL = 'https://api-m.paypal.com';
   }
 
   async testAuthentication(): Promise<boolean> {

@@ -12,22 +12,22 @@ import { useLocation } from "wouter";
 import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
 
 const SENDER_METHODS = [
-  { id: 'paypal', name: 'PayPal', icon: CreditCard, description: 'Instant transfer from PayPal balance' },
-  { id: 'bank', name: 'Bank Account', icon: Building2, description: '1-3 business days' },
-  { id: 'debit', name: 'Debit Card', icon: CreditCard, description: 'Instant transfer' },
-  { id: 'credit', name: 'Credit Card', icon: CreditCard, description: 'Instant transfer + fees' },
-  { id: 'crypto', name: 'Cryptocurrency', icon: DollarSign, description: 'USDC, USDT, BTC, ETH' },
-  { id: 'coinrailz', name: 'Coin Railz Balance', icon: Smartphone, description: 'Use platform balance' }
+  { id: 'paypal', name: 'PayPal', icon: CreditCard, description: 'Instant transfer from PayPal balance', available: true },
+  { id: 'bank', name: 'Bank Account', icon: Building2, description: '1-3 business days', available: false },
+  { id: 'debit', name: 'Debit Card', icon: CreditCard, description: 'Instant transfer', available: false },
+  { id: 'credit', name: 'Credit Card', icon: CreditCard, description: 'Instant transfer + fees', available: false },
+  { id: 'crypto', name: 'Cryptocurrency', icon: DollarSign, description: 'USDC, USDT, BTC, ETH', available: true },
+  { id: 'coinrailz', name: 'Coin Railz Balance', icon: Smartphone, description: 'Use platform balance', available: true }
 ];
 
 const RECIPIENT_PLATFORMS = [
-  { id: 'paypal', name: 'PayPal', identifier: 'email', placeholder: 'recipient@email.com' },
-  { id: 'zelle', name: 'Zelle', identifier: 'email/phone', placeholder: 'email@example.com or +1 555-0123' },
-  { id: 'venmo', name: 'Venmo', identifier: 'username/phone', placeholder: '@username or +1 555-0123' },
-  { id: 'cashapp', name: 'Cash App', identifier: '$cashtag/phone', placeholder: '$username or +1 555-0123' },
-  { id: 'bank', name: 'Bank Transfer', identifier: 'account', placeholder: 'Account/routing number' },
-  { id: 'crypto', name: 'Crypto Wallet', identifier: 'address', placeholder: 'Wallet address' },
-  { id: 'coinrailz', name: 'Coin Railz User', identifier: 'email/id', placeholder: 'user@email.com or CR123456' }
+  { id: 'paypal', name: 'PayPal', identifier: 'email', placeholder: 'recipient@email.com', available: true },
+  { id: 'zelle', name: 'Zelle', identifier: 'email/phone', placeholder: 'email@example.com or +1 555-0123', available: false },
+  { id: 'venmo', name: 'Venmo', identifier: 'username/phone', placeholder: '@username or +1 555-0123', available: false },
+  { id: 'cashapp', name: 'Cash App', identifier: '$cashtag/phone', placeholder: '$username or +1 555-0123', available: false },
+  { id: 'bank', name: 'Bank Transfer', identifier: 'account', placeholder: 'Account/routing number', available: false },
+  { id: 'crypto', name: 'Crypto Wallet', identifier: 'address', placeholder: 'Wallet address', available: true },
+  { id: 'coinrailz', name: 'Coin Railz User', identifier: 'email/id', placeholder: 'user@email.com or CR123456', available: true }
 ];
 
 export default function P2PTransfer() {
@@ -178,20 +178,29 @@ export default function P2PTransfer() {
                 {SENDER_METHODS.map((method) => (
                   <div
                     key={method.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-all ${
-                      senderMethod === method.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
+                    className={`p-4 border rounded-lg transition-all relative ${
+                      !method.available
+                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                        : senderMethod === method.id
+                        ? 'border-blue-500 bg-blue-50 cursor-pointer'
+                        : 'border-gray-200 hover:border-gray-300 cursor-pointer'
                     }`}
-                    onClick={() => setSenderMethod(method.id)}
+                    onClick={() => method.available && setSenderMethod(method.id)}
                   >
                     <div className="flex items-center space-x-3">
                       <method.icon className="w-5 h-5 text-gray-600" />
                       <div className="flex-1">
-                        <div className="font-medium">{method.name}</div>
+                        <div className="flex items-center space-x-2">
+                          <div className="font-medium">{method.name}</div>
+                          {!method.available && (
+                            <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
+                              Coming Soon
+                            </span>
+                          )}
+                        </div>
                         <div className="text-sm text-gray-500">{method.description}</div>
                       </div>
-                      {senderMethod === method.id && (
+                      {senderMethod === method.id && method.available && (
                         <CheckCircle className="w-5 h-5 text-blue-600" />
                       )}
                     </div>
@@ -230,8 +239,19 @@ export default function P2PTransfer() {
                     </SelectTrigger>
                     <SelectContent>
                       {RECIPIENT_PLATFORMS.map((platform) => (
-                        <SelectItem key={platform.id} value={platform.id}>
-                          {platform.name}
+                        <SelectItem 
+                          key={platform.id} 
+                          value={platform.id}
+                          disabled={!platform.available}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <span>{platform.name}</span>
+                            {!platform.available && (
+                              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full ml-2">
+                                Coming Soon
+                              </span>
+                            )}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>

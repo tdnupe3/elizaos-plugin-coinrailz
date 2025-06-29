@@ -1,10 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowDownUp, Info } from "@/lib/icons";
 import { WalletConnect } from "@/components/wallet-connect";
+import { DEXSwapInterface } from "@/components/dex-swap-interface";
 import { useState } from "react";
 
 const chains = [
@@ -35,19 +30,14 @@ const tokens = [
 ];
 
 export default function SwapPage() {
-  const [selectedChain, setSelectedChain] = useState('ethereum');
-  const [sellToken, setSellToken] = useState('ETH');
-  const [buyToken, setBuyToken] = useState('USDC');
-  const [sellAmount, setSellAmount] = useState('');
-  const [buyAmount, setBuyAmount] = useState('');
+  const [walletAddress, setWalletAddress] = useState<string>('');
+  const [currentChain, setCurrentChain] = useState<number>(1);
+  const [isWalletConnected, setIsWalletConnected] = useState(false);
 
-  const handleSwapTokens = () => {
-    const tempToken = sellToken;
-    setSellToken(buyToken);
-    setBuyToken(tempToken);
-    
-    const tempAmount = sellAmount;
-    setSellAmount(buyAmount);
+  const handleWalletConnection = (address: string, chainId: number, connected: boolean) => {
+    setWalletAddress(address);
+    setCurrentChain(chainId);
+    setIsWalletConnected(connected);
     setBuyAmount(tempAmount);
   };
 

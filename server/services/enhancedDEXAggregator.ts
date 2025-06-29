@@ -12,13 +12,13 @@ const swapQuoteSchema = z.object({
   toToken: z.string().min(1, 'To token required'),
   amount: z.string().refine(val => !isNaN(parseFloat(val)) && parseFloat(val) > 0, 'Invalid amount'),
   chainId: z.number().int().positive('Invalid chain ID'),
-  slippage: z.number().min(0.1).max(5.0, 'Slippage must be between 0.1% and 5.0%').optional().default(1.0),
+  slippage: z.number().min(0.1).max(50.0, 'Slippage must be between 0.1% and 50.0%').optional().default(5.0),
   userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address').optional()
 });
 
 const swapExecuteSchema = swapQuoteSchema.extend({
   userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'User address required for execution'),
-  maxSlippage: z.number().min(0.1).max(5.0).optional().default(2.0)
+  maxSlippage: z.number().min(0.1).max(50.0).optional().default(5.0)
 });
 
 interface DEXQuote {
@@ -121,7 +121,7 @@ export class EnhancedDEXAggregator {
 
       // Generate warnings
       const priceImpactWarning = bestQuote.priceImpact > this.maxPriceImpact;
-      const slippageWarning = validatedRequest.slippage && validatedRequest.slippage > 2.0;
+      const slippageWarning = validatedRequest.slippage && validatedRequest.slippage > 10.0; // Warning only for very high slippage
 
       const aggregatedQuote: AggregatedQuote = {
         bestQuote,
@@ -159,8 +159,8 @@ export class EnhancedDEXAggregator {
     }
 
     // Validate slippage
-    if (validatedRequest.maxSlippage && validatedRequest.maxSlippage > 5.0) {
-      throw new Error('Maximum slippage cannot exceed 5.0%');
+    if (validatedRequest.maxSlippage && validatedRequest.maxSlippage > 50.0) {
+      throw new Error('Maximum slippage cannot exceed 50.0%');
     }
 
     try {

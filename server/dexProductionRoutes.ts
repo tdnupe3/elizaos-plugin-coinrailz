@@ -26,9 +26,9 @@ const dexQuoteSchema = z.object({
     .refine(val => [1, 137, 56, 42161, 10, 8453].includes(val), 'Unsupported chain ID'),
   slippage: z.number()
     .min(0.1, 'Minimum slippage is 0.1%')
-    .max(5.0, 'Maximum slippage is 5.0%')
+    .max(50.0, 'Maximum slippage is 50.0%')
     .optional()
-    .default(1.0)
+    .default(5.0)
 });
 
 const dexSwapSchema = dexQuoteSchema.extend({
@@ -36,9 +36,9 @@ const dexSwapSchema = dexQuoteSchema.extend({
     .regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
   maxSlippage: z.number()
     .min(0.1)
-    .max(5.0, 'Maximum slippage cannot exceed 5.0%')
+    .max(50.0, 'Maximum slippage cannot exceed 50.0%')
     .optional()
-    .default(2.0),
+    .default(5.0),
   deadline: z.number()
     .int()
     .min(Date.now() / 1000, 'Deadline must be in the future')
@@ -128,7 +128,8 @@ export function registerDEXProductionRoutes(app: Express) {
         return res.status(400).json({
           success: false,
           error: 'Unsupported chain ID',
-          supportedChains: [1, 137, 56, 42161, 10, 8453]
+          supportedChains: [1, 137, 56, 42161, 10, 8453],
+          note: 'Solana, XRP, and PulseChain support planned for future release'
         });
       }
 

@@ -7,6 +7,7 @@ import { FeeCalculator } from "./services/feeCalculator";
 import { setupProductionAuth, requireAuth } from "./productionAuth";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
 import { registerXRPProductionRoutes } from "./xrpRoutesProduction";
+import { registerDEXProductionRoutes } from "./dexProductionRoutes";
 import { z } from "zod";
 import { db } from "./db";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";

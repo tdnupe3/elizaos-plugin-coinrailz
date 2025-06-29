@@ -34,6 +34,41 @@ export default function KYCDemo() {
 
   const mockFeatures = [
     {
+      id: 'crypto',
+      title: 'Crypto Trading',
+      description: 'Trade cryptocurrencies without KYC requirements',
+      requiredStatus: 'pending' as const,
+      component: (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Cryptocurrency Exchange
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between">
+                <span>BTC Balance:</span>
+                <span className="font-semibold">0.00543 BTC</span>
+              </div>
+              <div className="flex justify-between">
+                <span>ETH Balance:</span>
+                <span className="font-semibold">2.47 ETH</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button>Buy Crypto</Button>
+                <Button>Sell Crypto</Button>
+              </div>
+              <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
+                ✓ No KYC required for crypto-to-crypto trading
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    },
+    {
       id: 'referrals',
       title: 'Referral System',
       description: 'Earn commissions by referring new users',
@@ -63,16 +98,16 @@ export default function KYCDemo() {
       )
     },
     {
-      id: 'payments',
-      title: 'Send/Receive Money',
-      description: 'Transfer funds securely worldwide',
+      id: 'fiat',
+      title: 'Fiat P2P Transfers',
+      description: 'Send/receive traditional currency (requires KYC)',
       requiredStatus: 'verified' as const,
       component: (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Payment Transfer
+              Fiat P2P Transfer
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -91,38 +126,44 @@ export default function KYCDemo() {
                   placeholder="100.00" 
                 />
               </div>
-              <Button className="w-full">Send Payment</Button>
+              <Button className="w-full">Send Fiat Payment</Button>
+              <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded mt-2">
+                ⚠️ KYC verification required for fiat transactions
+              </div>
             </div>
           </CardContent>
         </Card>
       )
     },
     {
-      id: 'trading',
-      title: 'Crypto Trading',
-      description: 'Trade cryptocurrencies with low fees',
+      id: 'banking',
+      title: 'Bank Integration',
+      description: 'Connect bank accounts for fiat transactions (requires KYC)',
       requiredStatus: 'verified' as const,
       component: (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Crypto Exchange
+              <CreditCard className="h-5 w-5" />
+              Bank Account Management
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex justify-between">
-                <span>BTC Balance:</span>
-                <span className="font-semibold">0.00543 BTC</span>
+                <span>Connected Accounts:</span>
+                <span className="font-semibold">Chase Checking</span>
               </div>
               <div className="flex justify-between">
-                <span>USD Balance:</span>
-                <span className="font-semibold">$1,247.30</span>
+                <span>Available Balance:</span>
+                <span className="font-semibold">$3,247.30</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline">Buy Crypto</Button>
-                <Button variant="outline">Sell Crypto</Button>
+                <Button variant="outline">Deposit</Button>
+                <Button variant="outline">Withdraw</Button>
+              </div>
+              <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                🔒 KYC verification required for bank transactions
               </div>
             </div>
           </CardContent>
@@ -231,7 +272,7 @@ export default function KYCDemo() {
       </div>
 
       {/* Feature Tabs */}
-      <Tabs defaultValue="referrals" className="w-full">
+      <Tabs defaultValue="crypto" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           {mockFeatures.map((feature) => (
             <TabsTrigger key={feature.id} value={feature.id}>
@@ -290,14 +331,14 @@ export default function KYCDemo() {
           </div>
           
           <div className="mt-4 p-4 bg-gray-50 rounded-md">
-            <div className="text-sm font-medium mb-2">Your Current Limits:</div>
+            <div className="text-sm font-medium mb-2">Your Current Access:</div>
             <div className="text-xs text-gray-600">
-              {currentStatus === 'basic' && 'Complete KYC verification to unlock financial features'}
-              {currentStatus === 'pending' && 'Verification in progress - limits will apply once approved'}
-              {currentStatus === 'verified' && complianceLevel === 'basic' && 'Up to $10,000 per transaction'}
-              {currentStatus === 'verified' && complianceLevel === 'enhanced' && 'Up to $50,000 per transaction'}
-              {currentStatus === 'verified' && complianceLevel === 'institutional' && 'Up to $1,000,000 per transaction'}
-              {currentStatus === 'rejected' && 'Resubmit documents to restore access'}
+              {currentStatus === 'basic' && 'Crypto trading unlimited, KYC required for fiat features'}
+              {currentStatus === 'pending' && 'Crypto trading unlimited, fiat verification in progress'}
+              {currentStatus === 'verified' && complianceLevel === 'basic' && 'All features: Crypto unlimited, Fiat up to $10,000'}
+              {currentStatus === 'verified' && complianceLevel === 'enhanced' && 'All features: Crypto unlimited, Fiat up to $50,000'}
+              {currentStatus === 'verified' && complianceLevel === 'institutional' && 'All features: Crypto unlimited, Fiat up to $1,000,000'}
+              {currentStatus === 'rejected' && 'Crypto trading available, resubmit KYC for fiat access'}
             </div>
           </div>
         </CardContent>

@@ -133,24 +133,36 @@ export const KYCGates = {
     allowDemo: true
   }),
 
-  // Financial features (verification required)
-  sendMoney: requireKYCStatus({
+  // Fiat financial features (verification required)
+  fiatSendMoney: requireKYCStatus({
     requiredStatus: 'verified',
-    feature: 'Send Money',
+    feature: 'Fiat P2P Transfers',
     maxAmount: 10000,
     allowDemo: true
   }),
 
-  receiveMoney: requireKYCStatus({
+  fiatReceiveMoney: requireKYCStatus({
     requiredStatus: 'verified',
-    feature: 'Receive Money',
+    feature: 'Fiat P2P Receive',
     allowDemo: true
   }),
 
-  cryptoTrading: requireKYCStatus({
+  bankTransactions: requireKYCStatus({
     requiredStatus: 'verified',
+    feature: 'Bank Account Transactions',
+    allowDemo: true
+  }),
+
+  // Crypto features (NO KYC required - basic account access)
+  cryptoTrading: requireKYCStatus({
+    requiredStatus: 'pending',
     feature: 'Cryptocurrency Trading',
-    maxAmount: 50000,
+    allowDemo: true
+  }),
+
+  cryptoTransfers: requireKYCStatus({
+    requiredStatus: 'pending',
+    feature: 'Crypto Transfers',
     allowDemo: true
   }),
 
@@ -230,9 +242,13 @@ export function isFeatureAvailable(
   // Define feature requirements
   const requirements: Record<string, { status: string; level?: string }> = {
     referralAccess: { status: 'pending' },
-    sendMoney: { status: 'verified' },
-    receiveMoney: { status: 'verified' },
-    cryptoTrading: { status: 'verified' },
+    // Fiat transactions require KYC
+    fiatSendMoney: { status: 'verified' },
+    fiatReceiveMoney: { status: 'verified' },
+    bankTransactions: { status: 'verified' },
+    // Crypto transactions only need basic account
+    cryptoTrading: { status: 'pending' },
+    cryptoTransfers: { status: 'pending' },
     agentMarketplace: { status: 'verified' },
     commissionWithdrawal: { status: 'verified' },
     largeTransactions: { status: 'verified', level: 'enhanced' },

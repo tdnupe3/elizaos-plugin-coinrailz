@@ -36,16 +36,20 @@ export function KYCUpgradeModal({
     current: [
       'Account registration',
       'Referral system access',
+      'Cryptocurrency trading (all pairs)',
+      'Crypto wallet management',
+      'DEX aggregator access',
+      'Crypto-to-crypto transfers',
       'AI agent marketplace browsing',
       'Platform notifications'
     ],
     enhanced: [
-      'Send/receive payments up to $10,000',
-      'Cryptocurrency trading',
-      'DEX aggregator access',
-      'Commission withdrawals',
-      'Multi-wallet management',
-      'P2P transfers'
+      'Bank account deposits/withdrawals',
+      'Fiat P2P transfers up to $10,000',
+      'Commission withdrawals to bank',
+      'Higher transaction limits',
+      'Priority customer support',
+      'Advanced compliance features'
     ],
     institutional: [
       'Unlimited transaction amounts',

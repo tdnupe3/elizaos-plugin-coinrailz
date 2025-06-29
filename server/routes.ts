@@ -60,7 +60,7 @@ export function registerRoutes(app: Express): Server {
   // Root endpoint removed to allow frontend serving
 
   // Payment Intent Creation with Gateway Resolution
-  app.post('/api/create-payment-intent', financialRateLimit, sanitizeInput, requireSecureAuth, validateSchema(paymentSchema), async (req: any, res) => {
+  app.post('/api/create-payment-intent', financialRateLimit, sanitizeInput, requireAuth, validateSchema(paymentSchema), async (req: any, res) => {
     try {
       const { amount, recipientEmail } = req.body;
       
@@ -306,7 +306,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // AI Agent Registration - Fixed database field mapping
-  app.post('/api/ai-agents/register', authRateLimit, sanitizeInput, requireSecureAuth, async (req, res) => {
+  app.post('/api/ai-agents/register', authRateLimit, sanitizeInput, requireAuth, async (req, res) => {
     try {
       const { name, agentName, capabilities, description, services, wallets, walletAddress, walletNetwork } = req.body;
 

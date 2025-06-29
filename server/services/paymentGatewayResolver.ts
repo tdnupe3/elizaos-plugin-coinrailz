@@ -6,7 +6,7 @@
 export interface PaymentStatus {
   gatewayId: string;
   paymentId: string;
-  status: 'pending' | 'success' | 'failed' | 'cancelled' | 'unknown';
+  status: 'pending' | 'success' | 'failed' | 'unknown';
   amount: number;
   currency: string;
   timestamp: number;
@@ -80,7 +80,7 @@ export class PaymentGatewayResolver {
     if (statuses.length === 1) {
       const status = statuses[0];
       return {
-        finalStatus: status.status === 'unknown' ? 'requires_investigation' : status.status,
+        finalStatus: status.status === 'unknown' ? 'requires_investigation' : (status.status as 'pending' | 'success' | 'failed'),
         authoritative: status.confidence > 0.8,
         confidence: status.confidence,
         reasoning: 'Single status report available',

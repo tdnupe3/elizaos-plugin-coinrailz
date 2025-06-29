@@ -22,6 +22,67 @@ const dataAPIRateLimit = rateLimit({
 router.use(dataAPIRateLimit);
 
 /**
+ * Analytics Dashboard Data
+ * GET /api/data/analytics
+ */
+router.get('/analytics', async (req: Request, res: Response) => {
+  try {
+    const timeframe = parseInt(req.query.timeframe as string) || 30;
+    
+    const analytics = await DataMonetizationService.getAnalyticsDashboard(timeframe);
+    
+    res.json({
+      success: true,
+      data: analytics,
+      metadata: {
+        timeframe: `${timeframe} days`,
+        generated: new Date().toISOString(),
+        version: '1.0'
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error getting analytics data:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Analytics service temporarily unavailable'
+    });
+  }
+});
+
+/**
+ * Enterprise Analytics Access
+ * GET /api/data/enterprise
+ */
+router.get('/enterprise', async (req: Request, res: Response) => {
+  try {
+    const { level, metrics } = req.query;
+    
+    const enterpriseData = await DataMonetizationService.getEnterpriseAnalytics(
+      level as string || 'standard',
+      metrics as string
+    );
+    
+    res.json({
+      success: true,
+      data: enterpriseData,
+      metadata: {
+        level: level || 'standard',
+        generated: new Date().toISOString(),
+        enterprise: true
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error getting enterprise analytics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Enterprise analytics service temporarily unavailable'
+    });
+  }
+});
+
+/**
  * Generate Market Intelligence Report
  * POST /api/data/market-report
  */

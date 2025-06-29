@@ -1997,11 +1997,11 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
-  // 404 handler for non-existent endpoints - must be last
-  app.use('*', (req, res) => {
+  // 404 handler for API endpoints only - don't interfere with frontend serving
+  app.use('/api/*', (req, res) => {
     res.status(404).json({
       error: 'Not Found',
-      message: `Endpoint ${req.method} ${req.originalUrl} not found`,
+      message: `API endpoint ${req.method} ${req.originalUrl} not found`,
       timestamp: new Date().toISOString()
     });
   });

@@ -3,7 +3,8 @@
  * Provides all XRP functionality without complex type dependencies
  */
 
-import { XRPServiceSimple } from './xrpServiceSimple';
+import { XRPLedgerService } from './xrpLedgerService';
+import { SecureWalletManager } from './secureWalletManager';
 
 export class XRPEndpoints {
   /**
@@ -11,7 +12,7 @@ export class XRPEndpoints {
    */
   static async getRate() {
     try {
-      const rate = await XRPServiceSimple.getXRPUSDRate();
+      const rate = await XRPLedgerService.getXRPUSDRate();
       
       return {
         success: true,
@@ -36,10 +37,19 @@ export class XRPEndpoints {
   static async calculateFees(amount: number) {
     try {
       const platformFee = amount * 0.005; // 0.5% platform fee
-      const networkFee = await XRPServiceSimple.calculateTransactionFee();
-      const networkFeeUSD = await XRPServiceSimple.xrpToUSD(networkFee);
+      const networkFee = await XRPLedgerService.calculateTransactionFee();
+      const networkFeeUSD = await XRPLedgerService.xrpToUSD(networkFee);
       
-      const costComparison = await XRPServiceSimple.calculateCostComparison(amount);
+      // Calculate cost comparison
+      const traditionalFee = Math.max(25, amount * 0.05);
+      const costComparison = {
+        xrp: { fee: networkFeeUSD, time: '3-5 seconds', total: amount + networkFeeUSD },
+        traditional: { fee: traditionalFee, time: '3-5 days', total: amount + traditionalFee },
+        savings: { 
+          fee: traditionalFee - networkFeeUSD,
+          percentage: ((traditionalFee - networkFeeUSD) / traditionalFee) * 100
+        }
+      };
       
       return {
         success: true,
@@ -71,14 +81,17 @@ export class XRPEndpoints {
    */
   static async createWallet() {
     try {
-      const wallet = await XRPServiceSimple.createWallet();
+      const wallet = await SecureWalletManager.createSecureWallet({
+        walletType: 'user',
+        purpose: 'User XRP wallet'
+      });
       
       return {
         success: true,
         wallet: {
           address: wallet.address,
           publicKey: wallet.publicKey,
-          seed: wallet.seed
+          walletId: wallet.id
         }
       };
     } catch (error: any) {
@@ -95,15 +108,15 @@ export class XRPEndpoints {
    */
   static async getBalance(address: string) {
     try {
-      if (!XRPServiceSimple.validateAddress(address)) {
+      if (!XRPLedgerService.validateAddress(address)) {
         return {
           success: false,
           message: 'Invalid XRP address format'
         };
       }
 
-      const balance = await XRPServiceSimple.getBalance(address);
-      const balanceUSD = await XRPServiceSimple.xrpToUSD(balance);
+      const balance = await XRPLedgerService.getBalance(address);
+      const balanceUSD = await XRPLedgerService.xrpToUSD(balance);
       
       return {
         success: true,

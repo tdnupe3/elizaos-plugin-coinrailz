@@ -6,6 +6,7 @@ import { globalAgentNetwork } from "./services/globalAgentNetworkService";
 import { FeeCalculator } from "./services/feeCalculator";
 import { setupProductionAuth, requireAuth } from "./productionAuth";
 import { registerXRPRoutes } from "./xrpRoutesReplacement";
+import { registerXRPProductionRoutes } from "./xrpRoutesProduction";
 import { z } from "zod";
 import { db } from "./db";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";

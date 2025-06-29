@@ -15,6 +15,8 @@ import { paymentSchema, validateSchema } from "./middleware/inputValidation";
 import { agentQualityControl } from "./services/agentQualityControl";
 import { agentRoutes } from "./routes/agentRoutes";
 import { requireSecureAuth, financialRateLimit, authRateLimit, sanitizeInput } from "./middleware/secureAuth";
+import { registerAuthRoutes } from "./authRoutes";
+import { addSecurityConstraints } from "./utils/databaseConstraints";
 
 // Initialize services
 let stripe: any;
@@ -31,10 +33,16 @@ const paymentResolver = new PaymentGatewayResolver();
 export function registerRoutes(app: Express): Server {
   const server = createServer(app);
 
-
+  // Initialize database constraints
+  addSecurityConstraints().catch(error => {
+    console.error('Failed to add database constraints:', error);
+  });
 
   // Setup production authentication
   setupProductionAuth(app);
+  
+  // Register enhanced authentication routes
+  registerAuthRoutes(app);
   
   // Register XRP routes
   try {

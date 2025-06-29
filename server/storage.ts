@@ -45,6 +45,7 @@ export interface IStorage {
   createUser(user: UpsertUser): Promise<User>;
   getUserTransactions(userId: string): Promise<Transaction[]>;
   getUserAIAgents(userId: string): Promise<any[]>;
+  updateUser(userId: string, updates: Partial<UpsertUser>): Promise<User>;
   
   // Digital Wallet operations
   getUserWalletBalances(userId: string): Promise<WalletBalance[]>;
@@ -210,7 +211,20 @@ export class DatabaseStorage implements IStorage {
     return decryptPIIFields(user);
   }
 
-
+  async updateUser(userId: string, updates: Partial<UpsertUser>): Promise<User> {
+    // Encrypt PII data before storing
+    const encryptedUpdates = encryptPIIFields(updates);
+    encryptedUpdates.updatedAt = new Date();
+    
+    const [user] = await db
+      .update(users)
+      .set(encryptedUpdates)
+      .where(eq(users.id, userId))
+      .returning();
+    
+    // Decrypt PII data before returning
+    return decryptPIIFields(user);
+  }
 
   async getUserAIAgents(userId: string): Promise<any[]> {
     const userAgents = await db

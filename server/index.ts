@@ -5,6 +5,7 @@ import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
 import { registerDemoRoutes } from "./routes-demo";
 import { registerDEXProductionRoutes } from "./dexProductionRoutes";
+import { setupReferralRoutes } from "./referralRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";

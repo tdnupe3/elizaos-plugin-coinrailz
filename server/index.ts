@@ -7,6 +7,7 @@ import { registerDemoRoutes } from "./routes-demo";
 import { registerDEXProductionRoutes } from "./dexProductionRoutes";
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
+import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
@@ -96,6 +97,9 @@ setupProductionAuth(app);
 
 // Register critical API routes FIRST to bypass Vite middleware
 setupCriticalAPIRoutes(app);
+
+// Register data monetization routes
+app.use('/api/data', dataMonetizationRoutes);
 
 // Register demo routes BEFORE Vite middleware to prevent interception
 registerDemoRoutes(app);

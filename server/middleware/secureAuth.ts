@@ -20,7 +20,7 @@ export interface AuthenticatedRequest extends Request {
 export function requireSecureAuth(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   try {
     // Check session authentication
-    if (!req.session || !req.session.user) {
+    if (!req.session || !(req.session as any).user) {
       return res.status(401).json({
         success: false,
         message: 'Authentication required',
@@ -29,7 +29,7 @@ export function requireSecureAuth(req: AuthenticatedRequest, res: Response, next
     }
 
     // Validate session integrity
-    if (!req.session.user.id || !req.session.user.email) {
+    if (!(req.session as any).user.id || !(req.session as any).user.email) {
       return res.status(401).json({
         success: false,
         message: 'Invalid session',
@@ -38,7 +38,7 @@ export function requireSecureAuth(req: AuthenticatedRequest, res: Response, next
     }
 
     // Add user to request
-    req.user = req.session.user;
+    req.user = (req.session as any).user;
     
     next();
   } catch (error) {

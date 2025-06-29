@@ -40,15 +40,14 @@ import {
 
   XRPCrossBorderPayments,
   XRPInstantSettlements,
-  XRPEscrowServices
+  XRPEscrowServices,
+  XRPLiquidityProvision,
+  XRPWalletManagement,
+  XRPComplianceTools
 
 } from "@/lib/lazyComponents";
 
-// Import XRP services directly for consistent routing
-import XRPHubSimple from "@/pages/xrp-hub-simple";
-import XRPLiquidityProvision from "@/pages/xrp-liquidity-provision";
-import XRPWalletManagement from "@/pages/xrp-wallet-management";
-import XRPComplianceTools from "@/pages/xrp-compliance-tools";
+// XRP services now use lazy loading for consistency
 
 // Import signup flow demo directly
 import SignupFlowDemo from "@/pages/signup-flow-demo";
@@ -137,8 +136,7 @@ function Router() {
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
-      <Route path="/xrp-ecosystem" component={XRPHubSimple} />
-      <Route path="/xrp-ecosystem-dashboard" component={XRPHubSimple} />
+      {/* XRP Ecosystem Hub handled by server-side route */}
       <Route path="/xrp-cross-border-payments">
         {() => <LazyLoadWrapper><XRPCrossBorderPayments /></LazyLoadWrapper>}
       </Route>
@@ -149,13 +147,13 @@ function Router() {
         {() => <LazyLoadWrapper><XRPEscrowServices /></LazyLoadWrapper>}
       </Route>
       <Route path="/xrp-liquidity-provision">
-        {() => <XRPLiquidityProvision />}
+        {() => <LazyLoadWrapper><XRPLiquidityProvision /></LazyLoadWrapper>}
       </Route>
       <Route path="/xrp-wallet-management">
-        {() => <XRPWalletManagement />}
+        {() => <LazyLoadWrapper><XRPWalletManagement /></LazyLoadWrapper>}
       </Route>
       <Route path="/xrp-compliance-tools">
-        {() => <XRPComplianceTools />}
+        {() => <LazyLoadWrapper><XRPComplianceTools /></LazyLoadWrapper>}
       </Route>
 
       <Route path="/signup" component={SignUp} />

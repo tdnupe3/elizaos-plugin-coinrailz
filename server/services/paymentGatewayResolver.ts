@@ -48,6 +48,17 @@ export class PaymentGatewayResolver {
   private static readonly CONFLICT_TIMEOUT = 300000; // 5 minutes
   private static readonly MAX_POLLING_ATTEMPTS = 10;
 
+  async resolveOptimalGateway(amount: number, currency: string): Promise<{ name: string; priority: number; fee: number }> {
+    // Simple gateway resolution logic
+    if (amount < 10) {
+      return { name: 'stripe', priority: 10, fee: 0.30 };
+    } else if (amount >= 1000) {
+      return { name: 'xrp', priority: 7, fee: 0.001 };
+    } else {
+      return { name: 'stripe', priority: 10, fee: amount * 0.029 + 0.30 };
+    }
+  }
+
   /**
    * Resolve conflicts between multiple payment status reports
    */

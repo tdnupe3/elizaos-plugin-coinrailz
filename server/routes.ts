@@ -13,6 +13,7 @@ import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
 import { paymentSchema, validateSchema } from "./middleware/inputValidation";
 import { agentQualityControl } from "./services/agentQualityControl";
+import { agentRoutes } from "./routes/agentRoutes";
 
 // Initialize services
 let stripe: any;
@@ -39,6 +40,9 @@ export function registerRoutes(app: Express): Server {
   } catch (error) {
     console.error('❌ Failed to register XRP routes:', error);
   }
+
+  // Register AI agent routes with quality control
+  app.use('/api/ai-agents', agentRoutes);
 
   // Health check endpoint
   app.get('/health', (req, res) => {

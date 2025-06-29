@@ -117,7 +117,7 @@ export default function Landing() {
             </div>
 
             {/* Action Button Explanations */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem Dashboard:</p>
                 <div className="text-xs text-blue-700 space-y-1">

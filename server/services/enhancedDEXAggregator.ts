@@ -42,6 +42,11 @@ interface AggregatedQuote {
   priceImpactWarning: boolean;
   slippageWarning: boolean;
   timestamp: string;
+  feeCollectionInfo?: {
+    platformWallet: string;
+    instructions: string[];
+    required: boolean;
+  };
 }
 
 interface SwapTransaction {
@@ -130,6 +135,13 @@ export class EnhancedDEXAggregator {
       const priceImpactWarning = bestQuote.priceImpact > this.maxPriceImpact;
       const slippageWarning = validatedRequest.slippage && validatedRequest.slippage > 10.0; // Warning only for very high slippage
 
+      // Generate fee collection instructions
+      const feeInstructions = DEXFeeCollectionService.generateFeeInstructions(
+        validatedRequest.chainId,
+        platformFee.toString(),
+        validatedRequest.fromToken
+      );
+
       const aggregatedQuote: AggregatedQuote = {
         bestQuote,
         allQuotes: quotes.sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount)),
@@ -138,7 +150,12 @@ export class EnhancedDEXAggregator {
         totalOutputAfterFees: outputAfterFee.toString(),
         priceImpactWarning,
         slippageWarning,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        feeCollectionInfo: {
+          platformWallet: feeInstructions.platformWallet,
+          instructions: feeInstructions.steps,
+          required: true
+        }
       };
 
       // Cache the result
@@ -328,19 +345,52 @@ export class EnhancedDEXAggregator {
   }
 
   /**
-   * Prepare swap transaction data for MetaMask execution
+   * Prepare swap transaction data for MetaMask execution with fee collection
    */
-  static async prepareSwapTransaction(request: z.infer<typeof swapExecuteSchema>): Promise<any> {
+  static async prepareSwapTransaction(request: z.infer<typeof swapExecuteSchema>): Promise<{
+    swapTransaction: any;
+    feeCollectionRequired: boolean;
+    feeCollectionData?: any;
+    instructions: string[];
+  }> {
     const validatedRequest = swapExecuteSchema.parse(request);
 
     try {
-      // For Ethereum mainnet, use 1inch swap API
+      // Calculate platform fee
+      const inputAmount = parseFloat(validatedRequest.amount);
+      const platformFee = inputAmount * this.platformFeeRate;
+      const platformFeeUSD = await this.convertToUSD(platformFee.toString(), validatedRequest.fromToken);
+
+      // Prepare fee collection
+      const feeCollection = await DEXFeeCollectionService.prepareSwapWithFeeCollection({
+        fromToken: validatedRequest.fromToken,
+        toToken: validatedRequest.toToken,
+        amount: validatedRequest.amount,
+        userAddress: validatedRequest.userAddress,
+        chainId: validatedRequest.chainId,
+        platformFeeAmount: platformFee.toString(),
+        platformFeeUSD
+      });
+
+      // Prepare main swap transaction
+      let swapTransaction;
       if (validatedRequest.chainId === 1) {
-        return await this.prepare1inchSwap(validatedRequest);
+        swapTransaction = await this.prepare1inchSwap(validatedRequest);
+      } else {
+        swapTransaction = this.prepareGenericSwap(validatedRequest);
       }
-      
-      // For other chains, return generic transaction data
-      return this.prepareGenericSwap(validatedRequest);
+
+      return {
+        swapTransaction,
+        feeCollectionRequired: true,
+        feeCollectionData: feeCollection.feeTransaction,
+        instructions: [
+          `1. First: Send ${platformFee.toFixed(6)} ${validatedRequest.fromToken} platform fee`,
+          `   To: ${DEXFeeCollectionService.getPlatformWallet(validatedRequest.chainId)}`,
+          `2. Then: Execute main swap transaction`,
+          `3. Platform fee: $${platformFeeUSD} supports continued service`
+        ]
+      };
     } catch (error) {
       console.error('Swap preparation error:', error);
       throw new Error(`Failed to prepare swap: ${error instanceof Error ? error.message : 'Unknown error'}`);

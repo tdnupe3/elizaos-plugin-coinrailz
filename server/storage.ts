@@ -33,6 +33,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
+import { encryptPIIFields, decryptPIIFields, PIIEncryption } from "./utils/piiEncryption";
 
 // Interface for storage operations
 export interface IStorage {
@@ -168,35 +169,45 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    return user ? decryptPIIFields(user) : user;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user;
+    return user ? decryptPIIFields(user) : user;
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // Encrypt PII data before storing
+    const encryptedUserData = encryptPIIFields(userData);
+    
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values(encryptedUserData)
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          ...userData,
+          ...encryptedUserData,
           updatedAt: new Date(),
         },
       })
       .returning();
-    return user;
+    
+    // Decrypt PII data before returning
+    return decryptPIIFields(user);
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
+    // Encrypt PII data before storing
+    const encryptedUserData = encryptPIIFields(userData);
+    
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values(encryptedUserData)
       .returning();
-    return user;
+    
+    // Decrypt PII data before returning
+    return decryptPIIFields(user);
   }
 
 

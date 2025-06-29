@@ -207,7 +207,11 @@ export function RealSwapInterface() {
               <span className="text-blue-700">Network:</span>
               <span className="text-blue-800">
                 {wallet.chainId === 1 ? 'Ethereum Mainnet' : 
-                 wallet.chainId === 999999 ? 'Solana Mainnet' : 
+                 wallet.chainId === 137 ? 'Polygon' :
+                 wallet.chainId === 56 ? 'BNB Chain' :
+                 wallet.chainId === 42161 ? 'Arbitrum' :
+                 wallet.chainId === 10 ? 'Optimism' :
+                 wallet.chainId === 8453 ? 'Base' :
                  `Chain ${wallet.chainId}`}
               </span>
             </div>
@@ -367,7 +371,7 @@ export function RealSwapInterface() {
             <p>• This executes actual swaps on Ethereum mainnet</p>
             <p>• You'll pay real gas fees (usually $10-50)</p>
             <p>• Transactions are irreversible once confirmed</p>
-            <p>• Supports MetaMask, Phantom, Coinbase, Trust Wallet & WalletConnect</p>
+            <p>• Supports 5 major wallets: MetaMask, Phantom (ETH), Coinbase, Trust & WalletConnect</p>
             <p>• Always verify amounts before confirming</p>
           </div>
         </div>

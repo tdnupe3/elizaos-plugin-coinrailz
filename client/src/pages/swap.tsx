@@ -35,11 +35,11 @@ export default function SwapPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Real DEX Swap with MetaMask
+            Multi-Wallet DEX Aggregator
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Execute real blockchain transactions with live 1inch API quotes.
-            Connect MetaMask, Phantom, Coinbase, or other wallets to swap tokens.
+            Connect any of 5 supported wallets for optimal EVM trading experience.
           </p>
         </div>
 

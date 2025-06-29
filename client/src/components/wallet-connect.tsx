@@ -132,12 +132,12 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
                 variant="outline"
               >
                 <Wallet className="w-4 h-4 mr-2" />
-                Connect Phantom (Solana)
+                Connect Phantom (Ethereum)
               </Button>
               
               <div className="text-xs text-gray-500 text-center mt-4 space-y-1">
-                <p>✓ MetaMask • ✓ Coinbase • ✓ Trust • ✓ WalletConnect • ✓ Phantom</p>
-                <p>Coming soon: XUMM (XRP) • Keplr (Cosmos) • Backpack (Solana)</p>
+                <p>✓ MetaMask • ✓ Coinbase • ✓ Trust • ✓ WalletConnect • ✓ Phantom (ETH)</p>
+                <p>All wallets support Ethereum & EVM chains for optimal DEX experience</p>
               </div>
             </div>
             

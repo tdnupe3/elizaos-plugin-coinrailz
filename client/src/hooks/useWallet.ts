@@ -36,14 +36,16 @@ export function useWallet() {
             if (ethereum.isCoinbaseWallet) walletType = 'Coinbase';
             else if (ethereum.isTrust) walletType = 'TrustWallet';
             
-            // Check for Phantom (Solana)
-            if (typeof (window as any).solana?.isPhantom) {
-              const phantom = (window as any).solana;
-              if (phantom.isConnected) {
+            // Check for Phantom Ethereum mode
+            if (typeof (window as any).phantom?.ethereum) {
+              const phantomEth = (window as any).phantom.ethereum;
+              const phantomAccounts = await phantomEth.request({ method: 'eth_accounts' });
+              if (phantomAccounts.length > 0) {
+                const phantomChainId = await phantomEth.request({ method: 'eth_chainId' });
                 setWallet({
                   isConnected: true,
-                  address: phantom.publicKey.toString(),
-                  chainId: 999999, // Solana chain ID
+                  address: phantomAccounts[0],
+                  chainId: parseInt(phantomChainId, 16),
                   walletType: 'Phantom',
                   isConnecting: false
                 });
@@ -144,20 +146,23 @@ export function useWallet() {
     }
   };
 
-  // Phantom Wallet integration (Solana)
+  // Phantom Wallet integration (Ethereum mode)
   const connectPhantomWallet = async (): Promise<WalletState> => {
-    if (typeof (window as any).solana?.isPhantom) {
-      const phantom = (window as any).solana;
-      
-      const response = await phantom.connect();
-      
+    // Check for Phantom's Ethereum provider first
+    if (typeof (window as any).phantom?.ethereum) {
+      const ethereum = (window as any).phantom.ethereum;
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const chainId = await ethereum.request({ method: 'eth_chainId' });
+
       return {
         isConnected: true,
-        address: response.publicKey.toString(),
-        chainId: 999999, // Use special ID for Solana
+        address: accounts[0],
+        chainId: parseInt(chainId, 16),
         walletType: 'Phantom',
         isConnecting: false
       };
+    } else if (typeof (window as any).solana?.isPhantom) {
+      throw new Error('Phantom detected, but please switch to Ethereum mode for DEX trading. Solana DEX coming soon!');
     } else {
       throw new Error('Phantom Wallet is not installed. Please install Phantom Wallet to continue.');
     }

@@ -81,7 +81,37 @@ export function registerDEXProductionRoutes(app: Express) {
     }
   );
 
-  // Execute swap transaction
+  // Prepare swap transaction (get transaction data for MetaMask)
+  app.post('/api/dex/swap-prepare',
+    authRateLimit,
+    validateWithSchema(dexSwapSchema),
+    async (req, res) => {
+      try {
+        const swapRequest = req.body;
+        
+        // Get transaction data from 1inch API
+        const transactionData = await EnhancedDEXAggregator.prepareSwapTransaction(swapRequest);
+
+        res.json({
+          success: true,
+          transactionData,
+          meta: {
+            requestId: `swap_prepare_${Date.now()}`,
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (error: any) {
+        res.status(400).json({
+          success: false,
+          error: 'Swap preparation failed',
+          message: error.message,
+          code: 'DEX_SWAP_PREPARE_ERROR'
+        });
+      }
+    }
+  );
+
+  // Execute swap transaction (for authenticated users with simulated execution)
   app.post('/api/dex/swap',
     isAuthenticated,
     authRateLimit,

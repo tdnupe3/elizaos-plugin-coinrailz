@@ -84,16 +84,19 @@ export function DEXSwapInterface({ walletAddress, currentChain = 1, isWalletConn
     }
   });
 
-  // Execute swap mutation
+  // Execute swap mutation  
   const executeSwapMutation = useMutation({
     mutationFn: async () => {
       if (!walletAddress) {
         throw new Error('Wallet not connected');
       }
 
-      // For real swaps, we would interact with MetaMask here
-      // This is currently simulated since it requires wallet signing
-      const response = await apiRequest('POST', '/api/dex/swap', {
+      if (!quote) {
+        throw new Error('No quote available');
+      }
+
+      // First, get the swap transaction data from our API
+      const response = await apiRequest('POST', '/api/dex/swap-prepare', {
         fromToken,
         toToken,
         amount,
@@ -101,7 +104,27 @@ export function DEXSwapInterface({ walletAddress, currentChain = 1, isWalletConn
         userAddress: walletAddress,
         chainId: currentChain
       });
-      return response.json();
+      
+      const swapData = await response.json();
+      
+      if (!swapData.success) {
+        throw new Error(swapData.error || 'Failed to prepare swap');
+      }
+
+      // Now execute the transaction through MetaMask
+      if (typeof (window as any).ethereum === 'undefined') {
+        throw new Error('MetaMask not available');
+      }
+
+      const ethereum = (window as any).ethereum;
+      
+      // Send the transaction
+      const txHash = await ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [swapData.transactionData],
+      });
+
+      return { transactionHash: txHash, ...swapData };
     },
     onSuccess: (data) => {
       if (data.success) {

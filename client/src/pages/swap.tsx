@@ -89,7 +89,7 @@ export default function SwapPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Wallet Connect */}
           <div className="lg:col-span-1">
-            <WalletConnect />
+            <WalletConnect onWalletChange={handleWalletConnection} />
           </div>
           
           {/* Swap Interface */}

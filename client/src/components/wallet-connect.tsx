@@ -6,18 +6,7 @@ import { useState } from "react";
 
 interface WalletConnectProps {
   className?: string;
-}
-
-// Add window.ethereum type declaration
-declare global {
-  interface Window {
-    ethereum?: {
-      request: (args: { method: string; params?: any[] }) => Promise<any>;
-      on: (event: string, callback: (data: any) => void) => void;
-      removeListener: (event: string, callback: (data: any) => void) => void;
-      isMetaMask?: boolean;
-    };
-  }
+  onWalletChange?: (address: string, chainId: number, connected: boolean) => void;
 }
 
 const supportedChains = [
@@ -44,128 +33,20 @@ const supportedChains = [
   { id: 'near', name: 'NEAR Protocol', symbol: 'NEAR', color: 'bg-green-600', type: 'near' }
 ];
 
-export function WalletConnect({ className = '' }: WalletConnectProps) {
-  const [isConnected, setIsConnected] = useState(false);
-  const [walletAddress, setWalletAddress] = useState('');
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [currentChain, setCurrentChain] = useState<string | number | null>(null);
-  const [walletType, setWalletType] = useState<string>('');
+export function WalletConnect({ className = '', onWalletChange }: WalletConnectProps) {
+  const { wallet, connectWallet, disconnectWallet, switchChain } = useWallet();
 
-  const connectWallet = async () => {
-    setIsConnecting(true);
-    
-    try {
-      // Check if MetaMask is installed
-      if (typeof (window as any).ethereum === 'undefined') {
-        throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
-      }
-
-      // Request account access
-      const accounts = await (window as any).ethereum.request({
-        method: 'eth_requestAccounts',
-      });
-
-      if (accounts.length === 0) {
-        throw new Error('No accounts found. Please connect your MetaMask wallet.');
-      }
-
-      // Get current chain ID
-      const chainId = await (window as any).ethereum.request({
-        method: 'eth_chainId',
-      });
-
-      setIsConnected(true);
-      setWalletAddress(accounts[0]);
-      setCurrentChain(parseInt(chainId, 16));
-      setWalletType('MetaMask');
-      
-      // Listen for account changes
-      (window as any).ethereum.on('accountsChanged', (accounts: string[]) => {
-        if (accounts.length === 0) {
-          disconnectWallet();
-        } else {
-          setWalletAddress(accounts[0]);
-        }
-      });
-
-      // Listen for chain changes
-      (window as any).ethereum.on('chainChanged', (chainId: string) => {
-        setCurrentChain(parseInt(chainId, 16));
-      });
-
-    } catch (error: any) {
-      console.error('Wallet connection failed:', error);
-      // Fallback to simulated connection for demo purposes
-      setIsConnected(true);
-      setWalletAddress('0x742d35Cc5059C6532C8A9...a12E45cF73');
-      setCurrentChain(1);
-      setWalletType('MetaMask (Demo)');
+  // Notify parent component of wallet changes
+  React.useEffect(() => {
+    if (onWalletChange) {
+      onWalletChange(wallet.address, wallet.chainId, wallet.isConnected);
     }
-    
-    setIsConnecting(false);
-  };
-
-  const connectSolanaWallet = async () => {
-    setIsConnecting(true);
-    
-    setTimeout(() => {
-      setIsConnected(true);
-      setWalletAddress('7xKXtg2CW87d97TXJSDpbD5jBkheTqA83T...kMi2');
-      setCurrentChain('solana');
-      setWalletType('Phantom');
-      setIsConnecting(false);
-    }, 1500);
-  };
-
-  const connectXRPWallet = async () => {
-    setIsConnecting(true);
-    
-    setTimeout(() => {
-      setIsConnected(true);
-      setWalletAddress('rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH');
-      setCurrentChain('xrp');
-      setWalletType('XUMM');
-      setIsConnecting(false);
-    }, 1500);
-  };
-
-  const connectBitcoinWallet = async () => {
-    setIsConnecting(true);
-    
-    setTimeout(() => {
-      setIsConnected(true);
-      setWalletAddress('bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh');
-      setCurrentChain('bitcoin');
-      setWalletType('Bitcoin Wallet');
-      setIsConnecting(false);
-    }, 1500);
-  };
-
-  const connectOtherWallet = async () => {
-    setIsConnecting(true);
-    
-    setTimeout(() => {
-      setIsConnected(true);
-      setWalletAddress('0x742d35Cc5059C6532C8A9c2E5E5F2d0a12E45cF73');
-      setCurrentChain(1);
-      setWalletType('Other Wallet');
-      setIsConnecting(false);
-    }, 1500);
-  };
-
-  const disconnectWallet = () => {
-    setIsConnected(false);
-    setWalletAddress('');
-    setCurrentChain(null);
-    setWalletType('');
-  };
+  }, [wallet.address, wallet.chainId, wallet.isConnected, onWalletChange]);
 
   const copyAddress = () => {
-    navigator.clipboard.writeText('0x742d35Cc5059C6532C8A9c2E5E5F2d0a12E45cF73');
-  };
-
-  const switchChain = (chainId: string | number) => {
-    setCurrentChain(chainId);
+    if (wallet.address) {
+      navigator.clipboard.writeText(wallet.address);
+    }
   };
 
   if (!isConnected) {
@@ -197,10 +78,10 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
             <div className="grid grid-cols-1 gap-2">
               <Button 
                 onClick={connectWallet}
-                disabled={isConnecting}
+                disabled={wallet.isConnecting}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {isConnecting ? (
+                {wallet.isConnecting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                     Connecting...
@@ -208,50 +89,14 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
                 ) : (
                   <>
                     <Wallet className="w-4 h-4 mr-2" />
-                    MetaMask (EVM Chains)
+                    Connect MetaMask
                   </>
                 )}
               </Button>
               
-              <Button 
-                onClick={connectSolanaWallet}
-                disabled={isConnecting}
-                variant="outline"
-                className="w-full bg-white hover:bg-gray-50"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                Phantom (Solana)
-              </Button>
-              
-              <Button 
-                onClick={connectXRPWallet}
-                disabled={isConnecting}
-                variant="outline"
-                className="w-full bg-white hover:bg-gray-50"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                XUMM (XRP Ledger)
-              </Button>
-              
-              <Button 
-                onClick={connectBitcoinWallet}
-                disabled={isConnecting}
-                variant="outline"
-                className="w-full bg-white hover:bg-gray-50"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                Bitcoin Wallets
-              </Button>
-              
-              <Button 
-                onClick={connectOtherWallet}
-                disabled={isConnecting}
-                variant="outline"
-                className="w-full bg-white hover:bg-gray-50"
-              >
-                <Wallet className="w-4 h-4 mr-2" />
-                Other Wallets
-              </Button>
+              <div className="text-xs text-gray-500 text-center mt-2">
+                Other wallets (Phantom, XUMM, etc.) coming soon
+              </div>
             </div>
             
             <div className="text-center">
@@ -293,7 +138,7 @@ export function WalletConnect({ className = '' }: WalletConnectProps) {
             <div className="flex items-center space-x-2 mt-1">
               <Badge variant="outline" className="bg-blue-50">
                 <Wallet className="w-3 h-3 mr-1" />
-                {walletType}
+                {wallet.walletType}
               </Badge>
             </div>
           </div>

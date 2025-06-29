@@ -328,7 +328,87 @@ export class EnhancedDEXAggregator {
   }
 
   /**
-   * Execute swap on chosen DEX
+   * Prepare swap transaction data for MetaMask execution
+   */
+  static async prepareSwapTransaction(request: z.infer<typeof swapExecuteSchema>): Promise<any> {
+    const validatedRequest = swapExecuteSchema.parse(request);
+
+    try {
+      // For Ethereum mainnet, use 1inch swap API
+      if (validatedRequest.chainId === 1) {
+        return await this.prepare1inchSwap(validatedRequest);
+      }
+      
+      // For other chains, return generic transaction data
+      return this.prepareGenericSwap(validatedRequest);
+    } catch (error) {
+      console.error('Swap preparation error:', error);
+      throw new Error(`Failed to prepare swap: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Prepare 1inch swap transaction
+   */
+  private static async prepare1inchSwap(request: z.infer<typeof swapExecuteSchema>): Promise<any> {
+    const apiKey = process.env.ONEINCH_API_KEY;
+    if (!apiKey) {
+      throw new Error('1inch API key not configured');
+    }
+
+    // Convert amount to wei if dealing with ETH
+    let amount = request.amount;
+    if (request.fromToken.toUpperCase() === 'ETH') {
+      amount = (parseFloat(request.amount) * Math.pow(10, 18)).toString();
+    }
+
+    const params = new URLSearchParams({
+      src: request.fromToken.toUpperCase() === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : request.fromToken,
+      dst: request.toToken.toUpperCase() === 'USDC' ? '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' : request.toToken,
+      amount: amount,
+      from: request.userAddress,
+      slippage: (request.maxSlippage || 5.0).toString(),
+      disableEstimate: 'true'
+    });
+
+    const response = await fetch(
+      `https://api.1inch.dev/swap/v6.0/1/swap?${params}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Accept': 'application/json',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`1inch swap API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.tx; // Return transaction data for MetaMask
+  }
+
+  /**
+   * Prepare generic swap transaction for non-1inch chains
+   */
+  private static prepareGenericSwap(request: z.infer<typeof swapExecuteSchema>): any {
+    // For demo purposes, return mock transaction data
+    // In production, this would integrate with other DEX APIs (Uniswap, etc.)
+    return {
+      to: '0x1111111254fb6c44bAC0beD2854e76F90643097d', // 1inch router address
+      data: '0x...',
+      value: request.fromToken.toUpperCase() === 'ETH' ? 
+        `0x${(parseFloat(request.amount) * Math.pow(10, 18)).toString(16)}` : 
+        '0x0',
+      gas: '0x30d40', // 200000 gas limit
+      gasPrice: '0x3b9aca00' // 1 gwei
+    };
+  }
+
+  /**
+   * Execute swap on chosen DEX (simulated for authenticated users)
    */
   private static async executeOnDEX(quote: DEXQuote, request: z.infer<typeof swapExecuteSchema>): Promise<SwapTransaction> {
     // For production, this would execute the actual blockchain transaction

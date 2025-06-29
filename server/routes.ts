@@ -14,6 +14,7 @@ import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from 
 import { paymentSchema, validateSchema } from "./middleware/inputValidation";
 import { agentQualityControl } from "./services/agentQualityControl";
 import { agentRoutes } from "./routes/agentRoutes";
+import { requireSecureAuth, financialRateLimit, authRateLimit, sanitizeInput } from "./middleware/secureAuth";
 
 // Initialize services
 let stripe: any;
@@ -59,7 +60,7 @@ export function registerRoutes(app: Express): Server {
   // Root endpoint removed to allow frontend serving
 
   // Payment Intent Creation with Gateway Resolution
-  app.post('/api/create-payment-intent', requireAuth, validateSchema(paymentSchema), async (req: any, res) => {
+  app.post('/api/create-payment-intent', financialRateLimit, sanitizeInput, requireSecureAuth, validateSchema(paymentSchema), async (req: any, res) => {
     try {
       const { amount, recipientEmail } = req.body;
       
@@ -71,8 +72,8 @@ export function registerRoutes(app: Express): Server {
         // Execute atomic transaction
         return await connectionManager.executeTransaction([
           {
-            query: 'INSERT INTO payment_intents (amount, recipient_email, gateway, status) VALUES ($1, $2, $3, $4) RETURNING id',
-            params: [amount, recipientEmail, gateway.name, 'pending']
+            query: 'INSERT INTO payment_intents (amount_cents, recipient_email, gateway, status, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+            params: [totalAmountCents, recipientEmail, gateway.name, 'pending']
           }
         ]);
       }, async () => {
@@ -113,9 +114,16 @@ export function registerRoutes(app: Express): Server {
         });
       }
 
-      const baseAmount = parseFloat(amount);
-      const fee = baseAmount * 0.08; // 8% fee
-      const totalAmount = baseAmount + fee;
+      // Safe integer arithmetic for financial calculations
+      const baseAmountCents = numericAmount; // Already in cents
+      const feePercentage = 800; // 8% = 800 basis points
+      const feeCents = Math.round((baseAmountCents * feePercentage) / 10000);
+      const totalAmountCents = baseAmountCents + feeCents;
+
+      // Convert back to dollars for display
+      const baseAmount = baseAmountCents / 100;
+      const fee = feeCents / 100;
+      const totalAmount = totalAmountCents / 100;
 
       // Mock payment intent for production testing
       const mockPaymentIntent = {
@@ -298,7 +306,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // AI Agent Registration - Fixed database field mapping
-  app.post('/api/ai-agents/register', async (req, res) => {
+  app.post('/api/ai-agents/register', authRateLimit, sanitizeInput, requireSecureAuth, async (req, res) => {
     try {
       const { name, agentName, capabilities, description, services, wallets, walletAddress, walletNetwork } = req.body;
 

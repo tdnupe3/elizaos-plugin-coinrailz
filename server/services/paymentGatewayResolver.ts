@@ -303,7 +303,7 @@ export class PaymentGatewayResolver {
     for (const status of statuses) {
       const gatewayHealth = this.gatewayHealth.get(status.gatewayId);
       const trustScore = gatewayHealth?.trustScore || 0.5;
-      const gatewayPriority = this.GATEWAY_PRIORITY[status.gatewayId] || 5;
+      const gatewayPriority = (this.GATEWAY_PRIORITY as any)[status.gatewayId] || 5;
       
       const weight = trustScore * (gatewayPriority / 10) * status.confidence;
       weightedSum += weight;

@@ -100,6 +100,10 @@ const server = setupSimpleRoutes(app);
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);
 
+// Global error handling
+import { globalErrorHandler } from './middleware/globalErrorHandler';
+app.use(globalErrorHandler);
+
 // Production error handling
 app.use(productionSystems.errorHandler());
 

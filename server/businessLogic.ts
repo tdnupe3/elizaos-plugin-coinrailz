@@ -32,14 +32,18 @@ export class BusinessLogicValidator {
       warnings.push('Small transaction amounts may have higher relative fees');
     }
 
-    // Calculate tiered fee structure
-    let feeRate = 0.01; // Default 1%
-    if (amount >= 10000) feeRate = 0.008; // 0.8% for large transactions
-    if (amount >= 25000) feeRate = 0.006; // 0.6% for very large transactions
+    // Safe integer arithmetic for fee calculation
+    const amountCents = Math.round(amount * 100); // Convert to cents
+    
+    // Calculate tiered fee structure in basis points (1/100th of a percent)
+    let feeRateBasisPoints = 100; // Default 1% = 100 basis points
+    if (amount >= 10000) feeRateBasisPoints = 80; // 0.8% for large transactions
+    if (amount >= 25000) feeRateBasisPoints = 60; // 0.6% for very large transactions
 
-    const platformFee = amount * feeRate;
-    const minimumFee = 1.00; // Minimum $1 fee
-    const actualFee = Math.max(platformFee, minimumFee);
+    const platformFeeCents = Math.round((amountCents * feeRateBasisPoints) / 10000);
+    const minimumFeeCents = 100; // Minimum $1 fee = 100 cents
+    const actualFeeCents = Math.max(platformFeeCents, minimumFeeCents);
+    const actualFee = actualFeeCents / 100; // Convert back to dollars
 
     return {
       isValid: errors.length === 0,
@@ -52,7 +56,7 @@ export class BusinessLogicValidator {
         totalFee: actualFee,
         totalAmount: amount + actualFee,
         netAmount: amount,
-        profitMargin: ((actualFee - 0.30) / actualFee * 100).toFixed(1) // Account for processing costs
+        profitMargin: Math.max(0, ((actualFeeCents - 30) / actualFeeCents * 100)).toFixed(1) // Account for processing costs in cents
       }
     };
   }

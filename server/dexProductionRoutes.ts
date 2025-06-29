@@ -220,7 +220,7 @@ export function registerDEXProductionRoutes(app: Express) {
           symbol: 'ETH',
           rpcUrl: 'https://mainnet.base.org',
           blockExplorer: 'https://basescan.org',
-          dexSupport: ['1inch', '0x Protocol', 'Uniswap V3']
+          dexSupport: ['1inch', '0x Protocol', 'Uniswap V2/V3']
         },
         {
           chainId: 369,

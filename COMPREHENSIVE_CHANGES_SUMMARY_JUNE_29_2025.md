@@ -9,7 +9,7 @@
 - **Fee Calculation Fix**: Platform fee now calculated on input amount for predictable 0.25% revenue (was unpredictable destination-based)
 - **Slippage Protection Enhanced**: Auto-set 5% default slippage with 50% maximum for user flexibility (was restrictive 5% max)
 - **Price Impact Validation**: 10% threshold warnings for large trades protecting users from losses (was missing)
-- **Multi-DEX Aggregation**: True aggregation across 1inch, 0x Protocol, and Uniswap V3/PulseX (was single DEX)
+- **Multi-DEX Aggregation**: True aggregation across 1inch, 0x Protocol, and Uniswap V2/V3/PulseX (was single DEX)
 - **MEV Protection**: Integrated MEV-protected routing through advanced protocols (was vulnerable)
 - **Transaction Monitoring**: Complete lifecycle tracking with real-time status updates (was missing)
 - **Real API Integration**: Production-grade 1inch and 0x Protocol connectivity (was mock data)

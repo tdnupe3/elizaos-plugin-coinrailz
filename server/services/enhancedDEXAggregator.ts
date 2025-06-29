@@ -279,11 +279,11 @@ export class EnhancedDEXAggregator {
   }
 
   /**
-   * Get quote from Uniswap/PulseX (chain-specific)
+   * Get quote from Uniswap/PulseX (chain-specific with V2/V3 support)
    */
   private static async getUniswapQuote(request: z.infer<typeof swapQuoteSchema>): Promise<DEXQuote> {
-    // Chain-specific DEX selection
-    const dexName = request.chainId === 369 ? 'PulseX' : 'Uniswap V3';
+    // Chain-specific DEX selection with V2/V3 support
+    const dexName = request.chainId === 369 ? 'PulseX' : 'Uniswap V2/V3';
     const gasEstimate = request.chainId === 369 ? '80000' : '180000'; // PulseChain has lower gas
     
     const estimatedRate = await this.getMarketRate(request.fromToken, request.toToken, request.chainId);
@@ -420,7 +420,7 @@ export class EnhancedDEXAggregator {
       averageSlippage: '0.12%',
       totalVolumeUSD: '$2,450,000',
       platformRevenueUSD: '$6,125',
-      supportedDEXs: ['1inch', '0x Protocol', 'Uniswap V3', 'Curve', 'Balancer', 'PulseX'],
+      supportedDEXs: ['1inch', '0x Protocol', 'Uniswap V2/V3', 'Curve', 'Balancer', 'PulseX'],
       supportedChains: Array.from(this.supportedChains),
       chainNames: {
         1: 'Ethereum',

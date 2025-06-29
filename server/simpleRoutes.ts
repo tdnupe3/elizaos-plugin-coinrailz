@@ -1997,6 +1997,247 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // PayPal P2P Integration Endpoints
+  app.get('/api/paypal/test-config', (req, res) => {
+    try {
+      const configured = !!(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET);
+      const environment = process.env.PAYPAL_ENVIRONMENT || 'sandbox';
+      
+      res.json({
+        success: true,
+        configured,
+        environment,
+        features: {
+          orders: configured,
+          payouts: configured,
+          webhooks: configured
+        }
+      });
+    } catch (error) {
+      console.error('PayPal config test error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'PayPal configuration check failed'
+      });
+    }
+  });
+
+  app.post('/api/paypal/test-auth', async (req, res) => {
+    try {
+      const { paypalService } = await import('./services/paypalService');
+      const authenticated = await paypalService.testAuthentication();
+      
+      res.json({
+        success: true,
+        authenticated,
+        environment: process.env.PAYPAL_ENVIRONMENT || 'sandbox'
+      });
+    } catch (error) {
+      console.error('PayPal auth test error:', error);
+      res.status(500).json({
+        success: false,
+        authenticated: false,
+        error: error.message
+      });
+    }
+  });
+
+  app.post('/api/paypal/create-order', async (req, res) => {
+    try {
+      const { amount, currency = 'USD', description } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid positive amount required'
+        });
+      }
+
+      const { paypalService } = await import('./services/paypalService');
+      const order = await paypalService.createOrder({
+        amount: amount,
+        currency: currency,
+        description: description || 'Coin Railz P2P Transfer'
+      });
+
+      res.json({
+        success: true,
+        id: order.id,
+        status: order.status,
+        links: order.links
+      });
+    } catch (error) {
+      console.error('PayPal order creation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Order creation failed',
+        error: error.message
+      });
+    }
+  });
+
+  app.post('/api/paypal/capture-order/:orderId', async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      
+      if (!orderId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Order ID required'
+        });
+      }
+
+      const { paypalService } = await import('./services/paypalService');
+      const captureResult = await paypalService.captureOrder(orderId);
+
+      res.json({
+        success: true,
+        captureId: captureResult.id,
+        status: captureResult.status,
+        amount: captureResult.purchase_units[0]?.payments?.captures[0]?.amount
+      });
+    } catch (error) {
+      console.error('PayPal order capture error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Order capture failed',
+        error: error.message
+      });
+    }
+  });
+
+  app.get('/api/paypal/order/:orderId', async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      
+      if (!orderId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Order ID required'
+        });
+      }
+
+      const { paypalService } = await import('./services/paypalService');
+      const order = await paypalService.getOrder(orderId);
+
+      res.json({
+        success: true,
+        order
+      });
+    } catch (error) {
+      console.error('PayPal order lookup error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Order lookup failed',
+        error: error.message
+      });
+    }
+  });
+
+  app.post('/api/paypal/create-payout', async (req, res) => {
+    try {
+      const { recipientEmail, amount, currency = 'USD', note } = req.body;
+      
+      if (!recipientEmail || !amount || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid recipient email and positive amount required'
+        });
+      }
+
+      const { paypalService } = await import('./services/paypalService');
+      const payout = await paypalService.createPayout({
+        sender_batch_header: {
+          sender_batch_id: `batch_${Date.now()}`,
+          email_subject: 'You have received a payment from Coin Railz',
+          email_message: note || 'P2P transfer via Coin Railz platform'
+        },
+        items: [{
+          recipient_type: 'EMAIL',
+          amount: {
+            value: amount.toFixed(2),
+            currency: currency
+          },
+          receiver: recipientEmail,
+          note: note || 'P2P transfer',
+          sender_item_id: `item_${Date.now()}`
+        }]
+      });
+
+      res.json({
+        success: true,
+        batch_header: payout.batch_header,
+        links: payout.links
+      });
+    } catch (error) {
+      console.error('PayPal payout creation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Payout creation failed',
+        error: error.message
+      });
+    }
+  });
+
+  app.get('/api/paypal/payout/:payoutBatchId/status', async (req, res) => {
+    try {
+      const { payoutBatchId } = req.params;
+      
+      if (!payoutBatchId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Payout batch ID required'
+        });
+      }
+
+      const { paypalService } = await import('./services/paypalService');
+      const status = await paypalService.getPayoutStatus(payoutBatchId);
+
+      res.json({
+        success: true,
+        status
+      });
+    } catch (error) {
+      console.error('PayPal payout status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Payout status lookup failed',
+        error: error.message
+      });
+    }
+  });
+
+  app.post('/api/paypal/webhook', async (req, res) => {
+    try {
+      // PayPal webhook handler for payment notifications
+      const event = req.body;
+      
+      console.log('PayPal webhook received:', event.event_type);
+      
+      // Process different event types
+      switch (event.event_type) {
+        case 'PAYMENT.CAPTURE.COMPLETED':
+          // Handle successful payment capture
+          console.log('Payment captured:', event.resource.id);
+          break;
+        case 'PAYMENTS.PAYMENT.CREATED':
+          // Handle payment creation
+          console.log('Payment created:', event.resource.id);
+          break;
+        default:
+          console.log('Unhandled webhook event:', event.event_type);
+      }
+
+      res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('PayPal webhook error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Webhook processing failed'
+      });
+    }
+  });
+
   // 404 handler for API endpoints only - don't interfere with frontend serving
   app.use('/api/*', (req, res) => {
     res.status(404).json({

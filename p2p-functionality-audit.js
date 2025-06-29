@@ -404,8 +404,4 @@ async function main() {
   process.exit(0);
 }
 
-if (require.main === module) {
-  main().catch(console.error);
-}
-
-module.exports = { P2PFunctionalityAuditor };
+main().catch(console.error);

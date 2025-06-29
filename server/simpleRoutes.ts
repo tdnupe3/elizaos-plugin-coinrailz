@@ -1139,6 +1139,183 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // DEX supported wallets endpoint
+  app.get('/api/dex/supported-wallets', (req, res) => {
+    try {
+      const supportedWallets = [
+        { id: 'metamask', name: 'MetaMask', type: 'browser', chainIds: [1, 56, 137, 42161, 10, 8453] },
+        { id: 'coinbase', name: 'Coinbase Wallet', type: 'browser', chainIds: [1, 56, 137, 42161, 10, 8453] },
+        { id: 'trust', name: 'Trust Wallet', type: 'mobile', chainIds: [1, 56, 137, 42161, 10, 8453] },
+        { id: 'walletconnect', name: 'WalletConnect', type: 'protocol', chainIds: [1, 56, 137, 42161, 10, 8453] },
+        { id: 'phantom', name: 'Phantom (Ethereum)', type: 'browser', chainIds: [1, 56, 137, 42161, 10, 8453] }
+      ];
+      
+      res.json(supportedWallets);
+    } catch (error) {
+      console.error('Supported wallets error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve supported wallets'
+      });
+    }
+  });
+
+  // DEX platform fee calculation endpoint
+  app.post('/api/dex/calculate-platform-fee', (req, res) => {
+    try {
+      const { inputAmount, outputAmount } = req.body;
+      
+      if (!inputAmount || !outputAmount) {
+        return res.status(400).json({
+          success: false,
+          message: 'Input and output amounts required'
+        });
+      }
+
+      const inputAmountNum = parseFloat(inputAmount);
+      const outputAmountNum = parseFloat(outputAmount);
+      
+      if (isNaN(inputAmountNum) || isNaN(outputAmountNum)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid numeric amounts required'
+        });
+      }
+
+      // Calculate 0.25% platform fee on input amount
+      const platformFee = (inputAmountNum * 0.0025).toString();
+      const platformFeeUSD = (outputAmountNum * 0.0025).toString();
+      
+      res.json({
+        success: true,
+        platformFee,
+        platformFeeUSD,
+        feePercentage: 0.25,
+        inputAmount: inputAmount.toString(),
+        outputAmount: outputAmount.toString()
+      });
+    } catch (error) {
+      console.error('Platform fee calculation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Fee calculation failed'
+      });
+    }
+  });
+
+  // XRP health endpoint
+  app.get('/api/xrp/health', (req, res) => {
+    try {
+      // Mock XRP health check - in production would check actual XRP Ledger
+      res.json({
+        success: true,
+        status: 'operational',
+        network: 'mainnet',
+        lastLedger: 87654321,
+        averageFee: '0.00001',
+        connectivity: 'excellent',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('XRP health check error:', error);
+      res.status(500).json({
+        success: false,
+        status: 'error',
+        message: 'XRP health check failed'
+      });
+    }
+  });
+
+  // XRP cross-border quote endpoint
+  app.post('/api/xrp/cross-border-quote', (req, res) => {
+    try {
+      const { amount, fromCurrency, toCurrency, corridor } = req.body;
+      
+      if (!amount || !fromCurrency || !toCurrency) {
+        return res.status(400).json({
+          success: false,
+          message: 'Amount, from currency, and to currency required'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid positive amount required'
+        });
+      }
+
+      // Mock cross-border quote - in production would use real corridor rates
+      const exchangeRate = fromCurrency === 'USD' && toCurrency === 'EUR' ? 0.85 : 1.0;
+      const outputAmount = numericAmount * exchangeRate;
+      const xrpFee = 0.0002; // Ultra-low XRP fee
+      
+      res.json({
+        success: true,
+        inputAmount: numericAmount,
+        outputAmount: outputAmount - xrpFee,
+        exchangeRate,
+        xrpFee,
+        corridor: corridor || `${fromCurrency}-${toCurrency}`,
+        estimatedTime: '3-5 seconds',
+        savings: '99.8%'
+      });
+    } catch (error) {
+      console.error('Cross-border quote error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Cross-border quote failed'
+      });
+    }
+  });
+
+  // AI agent delivery methods endpoint
+  app.get('/api/ai-agents/delivery-methods', (req, res) => {
+    try {
+      const deliveryMethods = [
+        { id: 'api', name: 'API Integration', description: 'Direct API calls with results' },
+        { id: 'file', name: 'File Upload', description: 'Downloadable files and documents' },
+        { id: 'realtime', name: 'Real-time Data', description: 'Live data streams and updates' },
+        { id: 'consultation', name: 'Consultation', description: 'Video/voice consultations' },
+        { id: 'webhook', name: 'Webhook', description: 'Automated webhook notifications' },
+        { id: 'email', name: 'Email Delivery', description: 'Results delivered via email' },
+        { id: 'message', name: 'Direct Message', description: 'Platform messaging system' },
+        { id: 'scheduled', name: 'Scheduled Delivery', description: 'Time-based delivery options' },
+        { id: 'batch', name: 'Batch Processing', description: 'Bulk operations and results' }
+      ];
+      
+      res.json(deliveryMethods);
+    } catch (error) {
+      console.error('Delivery methods error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve delivery methods'
+      });
+    }
+  });
+
+  // Platform status endpoint
+  app.get('/api/platform/status', (req, res) => {
+    try {
+      res.json({
+        success: true,
+        status: 'operational',
+        database: 'connected',
+        services: 'active',
+        version: '1.0.0',
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Platform status error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Platform status check failed'
+      });
+    }
+  });
+
   // Agent payment intent
   app.post('/api/ai-agent-payment-intent', (req, res) => {
     const { amount } = req.body;

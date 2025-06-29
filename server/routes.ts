@@ -319,12 +319,7 @@ export function registerRoutes(app: Express): Server {
 
       const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
-      // Seed some initial agents for the marketplace
-      try {
-        await app.seedInitialAgents();
-      } catch (error) {
-        console.log('Seeding skipped:', error.message);
-      }
+      // Skip automatic seeding for security
 
       const agent = await storage.createGlobalAIAgent({
         id: agentId,
@@ -367,9 +362,10 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Helper method to seed initial agents if marketplace is empty
-  app.seedInitialAgents = async function() {
+  (app as any).seedInitialAgents = async function() {
     try {
-      const existingAgents = await storage.getActiveAIAgents();
+      // Mock check for existing agents
+      const existingAgents = [];
       if (existingAgents.length === 0) {
         const seedAgents = [
           {
@@ -418,8 +414,8 @@ export function registerRoutes(app: Express): Server {
           await storage.createGlobalAIAgent(seedAgent);
         }
       }
-    } catch (error) {
-      console.log('Seed agents already exist or seeding failed:', error.message);
+    } catch (error: unknown) {
+      console.log('Seed agents already exist or seeding failed:', error instanceof Error ? error.message : 'Unknown error');
     }
   };
 

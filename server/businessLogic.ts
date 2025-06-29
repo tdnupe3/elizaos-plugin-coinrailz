@@ -51,7 +51,7 @@ export class BusinessLogicValidator {
       warnings,
       data: {
         originalAmount: amount,
-        feeRate: feeRate * 100,
+        feeRate: feeRateBasisPoints / 100,
         platformFee: actualFee,
         totalFee: actualFee,
         totalAmount: amount + actualFee,

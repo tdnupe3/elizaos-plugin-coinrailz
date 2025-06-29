@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
 interface WalletState {
@@ -21,33 +21,99 @@ export function useWallet() {
   const [wallet, setWallet] = useState<WalletState>(initialState);
   const { toast } = useToast();
 
-  const connectWallet = useCallback(async () => {
+  // Auto-detect and connect to existing wallet connection on load
+  React.useEffect(() => {
+    const checkExistingConnection = async () => {
+      try {
+        if (typeof (window as any).ethereum !== 'undefined') {
+          const ethereum = (window as any).ethereum;
+          const accounts = await ethereum.request({ method: 'eth_accounts' });
+          
+          if (accounts.length > 0) {
+            const chainId = await ethereum.request({ method: 'eth_chainId' });
+            
+            let walletType = 'MetaMask';
+            if (ethereum.isCoinbaseWallet) walletType = 'Coinbase';
+            else if (ethereum.isTrust) walletType = 'TrustWallet';
+            
+            setWallet({
+              isConnected: true,
+              address: accounts[0],
+              chainId: parseInt(chainId, 16),
+              walletType,
+              isConnecting: false
+            });
+          }
+        }
+      } catch (error) {
+        console.log('No existing wallet connection found');
+      }
+    };
+
+    checkExistingConnection();
+  }, []);
+
+  const connectWallet = useCallback(async (walletType: string = 'MetaMask') => {
     setWallet(prev => ({ ...prev, isConnecting: true }));
 
     try {
-      // Check if MetaMask is installed
-      if (typeof (window as any).ethereum === 'undefined') {
-        throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
+      let walletState: WalletState;
+
+      if (walletType === 'MetaMask') {
+        walletState = await connectMetaMask();
+      } else if (walletType === 'WalletConnect') {
+        walletState = await connectWalletConnect();
+      } else if (walletType === 'Coinbase') {
+        walletState = await connectCoinbaseWallet();
+      } else if (walletType === 'TrustWallet') {
+        walletState = await connectTrustWallet();
+      } else {
+        throw new Error(`Wallet type ${walletType} is not supported yet`);
       }
 
-      const ethereum = (window as any).ethereum;
+      setWallet(walletState);
 
-      // Request account access
-      const accounts = await ethereum.request({
-        method: 'eth_requestAccounts',
+      toast({
+        title: "Wallet Connected",
+        description: `Connected to ${walletType} successfully`,
       });
 
-      if (accounts.length === 0) {
-        throw new Error('No accounts found. Please connect your MetaMask wallet.');
-      }
-
-      // Get current chain ID
-      const chainId = await ethereum.request({
-        method: 'eth_chainId',
+    } catch (error: any) {
+      console.error('Wallet connection failed:', error);
+      setWallet(prev => ({ ...prev, isConnecting: false }));
+      
+      toast({
+        title: "Connection Failed",
+        description: error.message || "Failed to connect wallet",
+        variant: "destructive"
       });
+    }
+  }, [toast]);
 
-      const walletState: WalletState = {
-        isConnected: true,
+  // MetaMask connection
+  const connectMetaMask = async (): Promise<WalletState> => {
+    if (typeof (window as any).ethereum === 'undefined') {
+      throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
+    }
+
+    const ethereum = (window as any).ethereum;
+
+    // Request account access
+    const accounts = await ethereum.request({
+      method: 'eth_requestAccounts',
+    });
+
+    if (accounts.length === 0) {
+      throw new Error('No accounts found. Please connect your MetaMask wallet.');
+    }
+
+    // Get current chain ID
+    const chainId = await ethereum.request({
+      method: 'eth_chainId',
+    });
+
+    return {
+      isConnected: true,
         address: accounts[0],
         chainId: parseInt(chainId, 16),
         walletType: 'MetaMask',

@@ -58,8 +58,8 @@ export class DataMonetizationService {
         .select({
           total: sql<number>`count(*)`,
           totalVolume: sql<number>`coalesce(sum(${transactions.amount}), 0)`,
-          network: transactions.network,
-          type: transactions.type,
+          network: transactions.metadata,
+          type: transactions.transactionType,
           avgAmount: sql<number>`coalesce(avg(${transactions.amount}), 0)`
         })
         .from(transactions)
@@ -70,14 +70,14 @@ export class DataMonetizationService {
             eq(transactions.status, 'completed')
           )
         )
-        .groupBy(transactions.network, transactions.type);
+        .groupBy(transactions.metadata, transactions.transactionType);
 
       // User behavior patterns
       const userBehavior = await db
         .select({
-          userCount: sql<number>`count(distinct ${transactions.userId})`,
+          userCount: sql<number>`count(distinct ${transactions.fromUserId})`,
           avgTransactionSize: sql<number>`coalesce(avg(${transactions.amount}), 0)`,
-          transactionFrequency: sql<number>`count(*) / count(distinct ${transactions.userId})`
+          transactionFrequency: sql<number>`count(*) / count(distinct ${transactions.fromUserId})`
         })
         .from(transactions)
         .where(
@@ -122,8 +122,10 @@ export class DataMonetizationService {
       const typeVolume: Record<string, number> = {};
 
       transactionData.forEach(item => {
-        networkVolume[item.network || 'unknown'] = (networkVolume[item.network || 'unknown'] || 0) + item.totalVolume;
-        typeVolume[item.type || 'unknown'] = (typeVolume[item.type || 'unknown'] || 0) + item.totalVolume;
+        const network = item.network ? JSON.stringify(item.network).substring(0, 20) : 'unknown';
+        const type = item.type || 'unknown';
+        networkVolume[network] = (networkVolume[network] || 0) + item.totalVolume;
+        typeVolume[type] = (typeVolume[type] || 0) + item.totalVolume;
       });
 
       // AI Agent categories

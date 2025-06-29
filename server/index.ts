@@ -98,7 +98,7 @@ setupProductionAuth(app);
 // Register critical API routes FIRST to bypass Vite middleware
 setupCriticalAPIRoutes(app);
 
-// Register data monetization routes
+// Register data monetization routes BEFORE Vite middleware
 app.use('/api/data', dataMonetizationRoutes);
 
 // Register demo routes BEFORE Vite middleware to prevent interception

@@ -92,15 +92,19 @@ export function registerDEXProductionRoutes(app: Express) {
       try {
         const swapRequest = req.body;
         
-        // Get transaction data from 1inch API
-        const transactionData = await EnhancedDEXAggregator.prepareSwapTransaction(swapRequest);
+        // Get transaction data with automatic fee collection
+        const swapData = await EnhancedDEXAggregator.prepareSwapTransaction(swapRequest);
 
         res.json({
           success: true,
-          transactionData,
+          transaction: swapData.transaction,
+          platformFeeIncluded: swapData.platformFeeIncluded,
+          feeInfo: swapData.feeInfo,
+          instructions: swapData.userInstructions,
           meta: {
             requestId: `swap_prepare_${Date.now()}`,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            message: 'One-click swap with automatic platform fee collection'
           }
         });
       } catch (error: any) {

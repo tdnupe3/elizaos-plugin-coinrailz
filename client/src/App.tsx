@@ -137,9 +137,7 @@ function Router() {
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
-      <Route path="/xrp-ecosystem">
-        {() => <XRPEcosystemDashboard />}
-      </Route>
+      <Route path="/xrp-ecosystem" component={XRPEcosystemDashboard} />
       <Route path="/xrp-ecosystem-dashboard">
         {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
       </Route>

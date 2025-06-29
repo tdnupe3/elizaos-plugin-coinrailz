@@ -38,7 +38,6 @@ export default function SwapPage() {
     setWalletAddress(address);
     setCurrentChain(chainId);
     setIsWalletConnected(connected);
-    setBuyAmount(tempAmount);
   };
 
   const getFilteredTokens = (chainId: string) => {

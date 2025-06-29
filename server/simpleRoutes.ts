@@ -7,6 +7,41 @@ import { BusinessLogicValidator } from './businessLogic';
 import { cacheMiddleware } from './caching';
 import { bnbChainService } from './services/bnbChainService';
 import { pulseChainService } from './services/pulseChainService';
+// Simple rate limiter for calculate-fee endpoint
+const rateLimitStore = new Map();
+const RATE_LIMIT_WINDOW = 60000; // 1 minute
+const RATE_LIMIT_MAX = 10; // 10 requests per minute
+
+function createRateLimit() {
+  return (req: any, res: any, next: any) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    
+    if (!rateLimitStore.has(ip)) {
+      rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
+      return next();
+    }
+    
+    const data = rateLimitStore.get(ip);
+    if (now > data.resetTime) {
+      // Reset the window
+      data.count = 1;
+      data.resetTime = now + RATE_LIMIT_WINDOW;
+      return next();
+    }
+    
+    if (data.count >= RATE_LIMIT_MAX) {
+      return res.status(429).json({
+        error: 'Too many requests',
+        message: `Rate limit exceeded. Maximum ${RATE_LIMIT_MAX} requests per minute.`,
+        retryAfter: Math.ceil((data.resetTime - now) / 1000)
+      });
+    }
+    
+    data.count++;
+    next();
+  };
+}
 
 export function setupSimpleRoutes(app: Express) {
   // Basic health check
@@ -122,8 +157,8 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
-  // Fee calculation endpoint - critical for platform functionality
-  app.post('/api/calculate-fee', (req, res) => {
+  // Fee calculation endpoint - critical for platform functionality with rate limiting
+  app.post('/api/calculate-fee', createRateLimit(), (req, res) => {
     try {
       const { amount, type = 'send_money' } = req.body;
       
@@ -1960,6 +1995,15 @@ export function setupSimpleRoutes(app: Express) {
         error: 'Failed to fetch marketplace status' 
       });
     }
+  });
+
+  // 404 handler for non-existent endpoints - must be last
+  app.use('*', (req, res) => {
+    res.status(404).json({
+      error: 'Not Found',
+      message: `Endpoint ${req.method} ${req.originalUrl} not found`,
+      timestamp: new Date().toISOString()
+    });
   });
 
   return createServer(app);

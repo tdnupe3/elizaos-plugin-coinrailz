@@ -1,8 +1,9 @@
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Wallet, ExternalLink, Copy, CheckCircle, AlertCircle } from "@/lib/icons";
-import { useState } from "react";
+import { useWallet } from "@/hooks/useWallet";
 
 interface WalletConnectProps {
   className?: string;
@@ -110,7 +111,7 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
     );
   }
 
-  const currentChainInfo = supportedChains.find(chain => chain.id === currentChain);
+  const currentChainInfo = supportedChains.find(chain => chain.id === wallet.chainId);
 
   return (
     <Card className={`bg-white shadow-sm border border-gray-200 ${className}`}>
@@ -180,20 +181,20 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
             <div className="grid grid-cols-1 gap-1 max-h-40 overflow-y-auto">
               {supportedChains.filter(chain => {
                 // Show all EVM chains if connected to MetaMask
-                if (walletType === 'MetaMask') return chain.type === 'evm';
+                if (wallet.walletType === 'MetaMask') return chain.type === 'evm';
                 // Show only Solana if connected to Phantom
-                if (walletType === 'Phantom') return chain.type === 'solana';
+                if (wallet.walletType === 'Phantom') return chain.type === 'solana';
                 // Show only XRP if connected to XUMM
-                if (walletType === 'XUMM') return chain.type === 'xrpl';
+                if (wallet.walletType === 'XUMM') return chain.type === 'xrpl';
                 // Show only Bitcoin networks if connected to Bitcoin Wallet
-                if (walletType === 'Bitcoin Wallet') return chain.type === 'bitcoin';
+                if (wallet.walletType === 'Bitcoin Wallet') return chain.type === 'bitcoin';
                 // Show all chains if connected to Other Wallet
-                if (walletType === 'Other Wallet') return true;
+                if (wallet.walletType === 'Other Wallet') return true;
                 return true;
               }).map((chain) => (
                 <Button
                   key={chain.id}
-                  variant={currentChain === chain.id ? "default" : "outline"}
+                  variant={wallet.chainId === chain.id ? "default" : "outline"}
                   size="sm"
                   onClick={() => switchChain(chain.id)}
                   className="justify-start text-xs h-8"

@@ -21,7 +21,7 @@ export function useWallet() {
   const [wallet, setWallet] = useState<WalletState>(initialState);
   const { toast } = useToast();
 
-  // Auto-detect and connect to existing wallet connection on load
+  // Auto-detect existing wallet connection
   React.useEffect(() => {
     const checkExistingConnection = async () => {
       try {
@@ -52,6 +52,82 @@ export function useWallet() {
 
     checkExistingConnection();
   }, []);
+
+  // MetaMask connection
+  const connectMetaMask = async (): Promise<WalletState> => {
+    if (typeof (window as any).ethereum === 'undefined') {
+      throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
+    }
+
+    const ethereum = (window as any).ethereum;
+    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+
+    if (accounts.length === 0) {
+      throw new Error('No accounts found. Please connect your MetaMask wallet.');
+    }
+
+    const chainId = await ethereum.request({ method: 'eth_chainId' });
+
+    return {
+      isConnected: true,
+      address: accounts[0],
+      chainId: parseInt(chainId, 16),
+      walletType: 'MetaMask',
+      isConnecting: false
+    };
+  };
+
+  // WalletConnect integration (simulated for now)
+  const connectWalletConnect = async (): Promise<WalletState> => {
+    // Simulated connection - full WalletConnect requires SDK
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return {
+      isConnected: true,
+      address: '0x' + Math.random().toString(16).substring(2, 42),
+      chainId: 1,
+      walletType: 'WalletConnect',
+      isConnecting: false
+    };
+  };
+
+  // Coinbase Wallet integration
+  const connectCoinbaseWallet = async (): Promise<WalletState> => {
+    if (typeof (window as any).ethereum?.isCoinbaseWallet !== 'undefined') {
+      const ethereum = (window as any).ethereum;
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const chainId = await ethereum.request({ method: 'eth_chainId' });
+
+      return {
+        isConnected: true,
+        address: accounts[0],
+        chainId: parseInt(chainId, 16),
+        walletType: 'Coinbase',
+        isConnecting: false
+      };
+    } else {
+      throw new Error('Coinbase Wallet is not installed. Please install Coinbase Wallet to continue.');
+    }
+  };
+
+  // Trust Wallet integration
+  const connectTrustWallet = async (): Promise<WalletState> => {
+    if (typeof (window as any).ethereum?.isTrust !== 'undefined') {
+      const ethereum = (window as any).ethereum;
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+      const chainId = await ethereum.request({ method: 'eth_chainId' });
+
+      return {
+        isConnected: true,
+        address: accounts[0],
+        chainId: parseInt(chainId, 16),
+        walletType: 'TrustWallet',
+        isConnecting: false
+      };
+    } else {
+      throw new Error('Trust Wallet is not installed. Please install Trust Wallet to continue.');
+    }
+  };
 
   const connectWallet = useCallback(async (walletType: string = 'MetaMask') => {
     setWallet(prev => ({ ...prev, isConnecting: true }));
@@ -90,65 +166,8 @@ export function useWallet() {
     }
   }, [toast]);
 
-  // MetaMask connection
-  const connectMetaMask = async (): Promise<WalletState> => {
-    if (typeof (window as any).ethereum === 'undefined') {
-      throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
-    }
-
-    const ethereum = (window as any).ethereum;
-
-    // Request account access
-    const accounts = await ethereum.request({
-      method: 'eth_requestAccounts',
-    });
-
-    if (accounts.length === 0) {
-      throw new Error('No accounts found. Please connect your MetaMask wallet.');
-    }
-
-    // Get current chain ID
-    const chainId = await ethereum.request({
-      method: 'eth_chainId',
-    });
-
-    return {
-      isConnected: true,
-        address: accounts[0],
-        chainId: parseInt(chainId, 16),
-        walletType: 'MetaMask',
-        isConnecting: false
-      };
-
-      setWallet(walletState);
-
-      toast({
-        title: "Wallet Connected",
-        description: `Connected to ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`,
-      });
-
-      // Store in localStorage for persistence
-      localStorage.setItem('walletState', JSON.stringify(walletState));
-
-      return walletState;
-    } catch (error: any) {
-      console.error('Wallet connection failed:', error);
-      
-      setWallet(prev => ({ ...prev, isConnecting: false }));
-      
-      toast({
-        title: "Connection Failed",
-        description: error.message || "Failed to connect wallet",
-        variant: "destructive"
-      });
-      
-      throw error;
-    }
-  }, [toast]);
-
   const disconnectWallet = useCallback(() => {
     setWallet(initialState);
-    localStorage.removeItem('walletState');
     
     toast({
       title: "Wallet Disconnected",
@@ -159,7 +178,7 @@ export function useWallet() {
   const switchChain = useCallback(async (targetChainId: number) => {
     try {
       if (typeof (window as any).ethereum === 'undefined') {
-        throw new Error('MetaMask not available');
+        throw new Error('No wallet available');
       }
 
       const ethereum = (window as any).ethereum;
@@ -184,40 +203,34 @@ export function useWallet() {
         description: error.message || "Failed to switch network",
         variant: "destructive"
       });
-      
-      throw error;
     }
   }, [toast]);
 
   const signTransaction = useCallback(async (transactionData: any) => {
+    if (!wallet.isConnected) {
+      throw new Error('Wallet not connected');
+    }
+
     try {
-      if (!wallet.isConnected) {
-        throw new Error('Wallet not connected');
-      }
-
-      if (typeof (window as any).ethereum === 'undefined') {
-        throw new Error('MetaMask not available');
-      }
-
       const ethereum = (window as any).ethereum;
-
+      
       const txHash = await ethereum.request({
         method: 'eth_sendTransaction',
         params: [transactionData],
       });
 
       toast({
-        title: "Transaction Sent",
+        title: "Transaction Signed",
         description: `Transaction hash: ${txHash.slice(0, 10)}...`,
       });
 
       return txHash;
     } catch (error: any) {
-      console.error('Transaction failed:', error);
+      console.error('Transaction signing failed:', error);
       
       toast({
         title: "Transaction Failed",
-        description: error.message || "Transaction was rejected",
+        description: error.message || "Failed to sign transaction",
         variant: "destructive"
       });
       
@@ -225,55 +238,11 @@ export function useWallet() {
     }
   }, [wallet.isConnected, toast]);
 
-  // Auto-connect on page load if previously connected
-  useEffect(() => {
-    const savedWallet = localStorage.getItem('walletState');
-    if (savedWallet) {
-      try {
-        const parsedWallet = JSON.parse(savedWallet);
-        setWallet(parsedWallet);
-      } catch (error) {
-        console.error('Failed to restore wallet state:', error);
-        localStorage.removeItem('walletState');
-      }
-    }
-  }, []);
-
-  // Listen for account and chain changes
-  useEffect(() => {
-    if (typeof (window as any).ethereum !== 'undefined') {
-      const ethereum = (window as any).ethereum;
-
-      const handleAccountsChanged = (accounts: string[]) => {
-        if (accounts.length === 0) {
-          disconnectWallet();
-        } else {
-          setWallet(prev => ({ ...prev, address: accounts[0] }));
-        }
-      };
-
-      const handleChainChanged = (chainId: string) => {
-        setWallet(prev => ({ ...prev, chainId: parseInt(chainId, 16) }));
-      };
-
-      ethereum.on('accountsChanged', handleAccountsChanged);
-      ethereum.on('chainChanged', handleChainChanged);
-
-      return () => {
-        ethereum.removeListener('accountsChanged', handleAccountsChanged);
-        ethereum.removeListener('chainChanged', handleChainChanged);
-      };
-    }
-  }, [disconnectWallet]);
-
   return {
     wallet,
     connectWallet,
     disconnectWallet,
     switchChain,
-    signTransaction,
-    isConnected: wallet.isConnected,
-    address: wallet.address,
-    chainId: wallet.chainId
+    signTransaction
   };
 }

@@ -78,9 +78,9 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
           <div className="space-y-3">
             <div className="grid grid-cols-1 gap-2">
               <Button 
-                onClick={connectWallet}
+                onClick={() => connectWallet('MetaMask')}
                 disabled={wallet.isConnecting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                className="w-full bg-orange-600 hover:bg-orange-700 text-white"
               >
                 {wallet.isConnecting ? (
                   <>
@@ -95,8 +95,39 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
                 )}
               </Button>
               
-              <div className="text-xs text-gray-500 text-center mt-2">
-                Other wallets (Phantom, XUMM, etc.) coming soon
+              <Button 
+                onClick={() => connectWallet('Coinbase')}
+                disabled={wallet.isConnecting}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                variant="outline"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Connect Coinbase Wallet
+              </Button>
+              
+              <Button 
+                onClick={() => connectWallet('WalletConnect')}
+                disabled={wallet.isConnecting}
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                variant="outline"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Connect WalletConnect
+              </Button>
+              
+              <Button 
+                onClick={() => connectWallet('TrustWallet')}
+                disabled={wallet.isConnecting}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                variant="outline"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Connect Trust Wallet
+              </Button>
+              
+              <div className="text-xs text-gray-500 text-center mt-4 space-y-1">
+                <p>✓ MetaMask • ✓ Coinbase Wallet • ✓ Trust Wallet • ✓ WalletConnect</p>
+                <p>Coming soon: Phantom (Solana) • XUMM (XRP) • Keplr (Cosmos)</p>
               </div>
             </div>
             

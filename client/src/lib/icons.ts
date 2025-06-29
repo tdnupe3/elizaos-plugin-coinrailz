@@ -34,7 +34,6 @@ export {
   Database,
   DollarSign,
   Download,
-  Droplets,
   Edit,
   Eye,
   EyeOff,
@@ -89,5 +88,6 @@ export {
   Coins,
   Github,
   Gift,
-  Gavel
+  Gavel,
+  Droplets
 } from '@/lib/minimal-icons-clean';

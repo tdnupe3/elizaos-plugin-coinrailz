@@ -548,6 +548,13 @@ export const Download = ({ className = "", size = 24 }: IconProps) => (
   </svg>
 );
 
+export const Droplets = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M7 16.3c2.2 0 4-1.83 4-4.05 0-1.16-.57-2.26-1.71-3.19S7.29 6.75 7 5.3c-.29 1.45-1.14 2.84-2.29 3.76S3 11.1 3 12.25c0 2.22 1.8 4.05 4 4.05z"/>
+    <path d="M12.56 6.6A10.97 10.97 0 0 0 14 3.02c.5 2.5 2.26 4.89 4.56 6.68a7.58 7.58 0 0 1 2.79 5.98c0 2.9-2.18 5.32-5.35 5.32s-5.35-2.42-5.35-5.32a7.58 7.58 0 0 1 1.91-4.08z"/>
+  </svg>
+);
+
 export const Filter = ({ className = "", size = 24 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
     <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/>

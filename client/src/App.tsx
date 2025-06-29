@@ -16,6 +16,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import MainMenu from "@/pages/main-menu";
+import P2PTransfer from "@/pages/p2p-transfer";
 
 // Lazy-loaded components for performance optimization
 import {
@@ -93,6 +94,9 @@ function Router() {
       </Route>
       <Route path="/demo/send">
         {() => <LazyLoadWrapper><DemoSendMoney /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/p2p-transfer">
+        <P2PTransfer />
       </Route>
       <Route path="/demo/buy-sell">
         {() => <LazyLoadWrapper><DemoBuySell /></LazyLoadWrapper>}

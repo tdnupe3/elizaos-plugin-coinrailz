@@ -39,7 +39,7 @@ export default function SwapPage() {
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Execute real blockchain transactions with live 1inch API quotes.
-            Connect MetaMask to swap tokens on Ethereum mainnet.
+            Connect MetaMask, Phantom, Coinbase, or other wallets to swap tokens.
           </p>
         </div>
 

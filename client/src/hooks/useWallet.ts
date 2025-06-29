@@ -36,6 +36,21 @@ export function useWallet() {
             if (ethereum.isCoinbaseWallet) walletType = 'Coinbase';
             else if (ethereum.isTrust) walletType = 'TrustWallet';
             
+            // Check for Phantom (Solana)
+            if (typeof (window as any).solana?.isPhantom) {
+              const phantom = (window as any).solana;
+              if (phantom.isConnected) {
+                setWallet({
+                  isConnected: true,
+                  address: phantom.publicKey.toString(),
+                  chainId: 999999, // Solana chain ID
+                  walletType: 'Phantom',
+                  isConnecting: false
+                });
+                return;
+              }
+            }
+            
             setWallet({
               isConnected: true,
               address: accounts[0],
@@ -129,6 +144,25 @@ export function useWallet() {
     }
   };
 
+  // Phantom Wallet integration (Solana)
+  const connectPhantomWallet = async (): Promise<WalletState> => {
+    if (typeof (window as any).solana?.isPhantom) {
+      const phantom = (window as any).solana;
+      
+      const response = await phantom.connect();
+      
+      return {
+        isConnected: true,
+        address: response.publicKey.toString(),
+        chainId: 999999, // Use special ID for Solana
+        walletType: 'Phantom',
+        isConnecting: false
+      };
+    } else {
+      throw new Error('Phantom Wallet is not installed. Please install Phantom Wallet to continue.');
+    }
+  };
+
   const connectWallet = useCallback(async (walletType: string = 'MetaMask') => {
     setWallet(prev => ({ ...prev, isConnecting: true }));
 
@@ -143,6 +177,8 @@ export function useWallet() {
         walletState = await connectCoinbaseWallet();
       } else if (walletType === 'TrustWallet') {
         walletState = await connectTrustWallet();
+      } else if (walletType === 'Phantom') {
+        walletState = await connectPhantomWallet();
       } else {
         throw new Error(`Wallet type ${walletType} is not supported yet`);
       }

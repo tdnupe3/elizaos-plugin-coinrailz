@@ -125,9 +125,19 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
                 Connect Trust Wallet
               </Button>
               
+              <Button 
+                onClick={() => connectWallet('Phantom')}
+                disabled={wallet.isConnecting}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+                variant="outline"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Connect Phantom (Solana)
+              </Button>
+              
               <div className="text-xs text-gray-500 text-center mt-4 space-y-1">
-                <p>✓ MetaMask • ✓ Coinbase Wallet • ✓ Trust Wallet • ✓ WalletConnect</p>
-                <p>Coming soon: Phantom (Solana) • XUMM (XRP) • Keplr (Cosmos)</p>
+                <p>✓ MetaMask • ✓ Coinbase • ✓ Trust • ✓ WalletConnect • ✓ Phantom</p>
+                <p>Coming soon: XUMM (XRP) • Keplr (Cosmos) • Backpack (Solana)</p>
               </div>
             </div>
             

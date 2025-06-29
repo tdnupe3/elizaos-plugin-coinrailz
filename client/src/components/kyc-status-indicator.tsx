@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, XCircle } from "@/lib/icons";
 
 interface KYCStatusIndicatorProps {
   status: 'pending' | 'verified' | 'rejected' | 'basic';

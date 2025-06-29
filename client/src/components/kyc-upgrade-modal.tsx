@@ -15,7 +15,7 @@ import {
   DollarSign,
   CheckCircle,
   ArrowRight
-} from "lucide-react";
+} from "@/lib/icons";
 
 interface KYCUpgradeModalProps {
   isOpen: boolean;

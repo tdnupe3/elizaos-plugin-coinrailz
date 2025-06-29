@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock, Shield, CreditCard } from "lucide-react";
+import { Lock, Shield, CreditCard } from "@/lib/icons";
 
 interface FeatureGateProps {
   children: ReactNode;

@@ -151,9 +151,15 @@ function Router() {
       <Route path="/xrp-escrow-services">
         {() => <LazyLoadWrapper><XRPEscrowServices /></LazyLoadWrapper>}
       </Route>
-      <Route path="/xrp-liquidity-provision" component={XRPLiquidityProvision} />
-      <Route path="/xrp-wallet-management" component={XRPWalletManagement} />
-      <Route path="/xrp-compliance-tools" component={XRPComplianceTools} />
+      <Route path="/xrp-liquidity-provision">
+        {() => <XRPLiquidityProvision />}
+      </Route>
+      <Route path="/xrp-wallet-management">
+        {() => <XRPWalletManagement />}
+      </Route>
+      <Route path="/xrp-compliance-tools">
+        {() => <XRPComplianceTools />}
+      </Route>
 
       <Route path="/signup" component={SignUp} />
       <Route path="/signin" component={SignIn} />

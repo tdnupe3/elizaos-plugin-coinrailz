@@ -38,9 +38,10 @@ export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-da
 export const XRPCrossBorderPayments = lazy(() => import('@/pages/xrp-cross-border-payments'));
 export const XRPInstantSettlements = lazy(() => import('@/pages/xrp-instant-settlements'));
 export const XRPEscrowServices = lazy(() => import('@/pages/xrp-escrow-services'));
-export const XRPLiquidityProvision = lazy(() => import('@/pages/xrp-liquidity-provision'));
-export const XRPWalletManagement = lazy(() => import('@/pages/xrp-wallet-management'));
-export const XRPComplianceTools = lazy(() => import('@/pages/xrp-compliance-tools'));
+// Phase 3 XRP services temporarily removed from lazy loading for direct import
+// export const XRPLiquidityProvision = lazy(() => import('@/pages/xrp-liquidity-provision'));
+// export const XRPWalletManagement = lazy(() => import('@/pages/xrp-wallet-management'));
+// export const XRPComplianceTools = lazy(() => import('@/pages/xrp-compliance-tools'));
 export const SystemDashboard = lazy(() => import('@/pages/system-dashboard'));
 
 // Heavy components that are rarely used immediately

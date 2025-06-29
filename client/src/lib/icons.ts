@@ -34,6 +34,7 @@ export {
   Database,
   DollarSign,
   Download,
+  Droplets,
   Edit,
   Eye,
   EyeOff,

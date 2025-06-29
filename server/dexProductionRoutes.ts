@@ -10,6 +10,9 @@ import { authRateLimit } from "./middleware/authSecurity";
 import { validateWithSchema } from "./middleware/inputValidationEnhanced";
 import { z } from 'zod';
 
+// Fee collection tracking
+const feeTransactions = new Map<string, any>();
+
 // Validation schemas
 const dexQuoteSchema = z.object({
   fromToken: z.string()

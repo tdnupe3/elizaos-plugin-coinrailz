@@ -135,12 +135,17 @@ export class EnhancedDEXAggregator {
       const priceImpactWarning = bestQuote.priceImpact > this.maxPriceImpact;
       const slippageWarning = validatedRequest.slippage && validatedRequest.slippage > 10.0; // Warning only for very high slippage
 
-      // Generate fee collection instructions
-      const feeInstructions = DEXFeeCollectionService.generateFeeInstructions(
-        validatedRequest.chainId,
-        platformFee.toString(),
-        validatedRequest.fromToken
-      );
+      // Platform wallet addresses for fee collection
+      const platformWallets: Record<number, string> = {
+        1: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Ethereum
+        137: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Polygon
+        56: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // BSC
+        42161: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Arbitrum
+        10: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Optimism
+        8453: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A' // Base
+      };
+      
+      const platformWallet = platformWallets[validatedRequest.chainId] || platformWallets[1];
 
       const aggregatedQuote: AggregatedQuote = {
         bestQuote,
@@ -152,8 +157,12 @@ export class EnhancedDEXAggregator {
         slippageWarning,
         timestamp: new Date().toISOString(),
         feeCollectionInfo: {
-          platformWallet: feeInstructions.platformWallet,
-          instructions: feeInstructions.steps,
+          platformWallet: platformWallet,
+          instructions: [
+            `Send ${platformFee.toFixed(6)} ${validatedRequest.fromToken} to platform wallet`,
+            `Platform wallet: ${platformWallet}`,
+            'Fee collection enables continued service and platform improvements'
+          ],
           required: true
         }
       };
@@ -361,16 +370,28 @@ export class EnhancedDEXAggregator {
       const platformFee = inputAmount * this.platformFeeRate;
       const platformFeeUSD = await this.convertToUSD(platformFee.toString(), validatedRequest.fromToken);
 
-      // Prepare fee collection
-      const feeCollection = await DEXFeeCollectionService.prepareSwapWithFeeCollection({
-        fromToken: validatedRequest.fromToken,
-        toToken: validatedRequest.toToken,
-        amount: validatedRequest.amount,
-        userAddress: validatedRequest.userAddress,
-        chainId: validatedRequest.chainId,
-        platformFeeAmount: platformFee.toString(),
-        platformFeeUSD
-      });
+      // Platform wallet for fee collection
+      const platformWallets: Record<number, string> = {
+        1: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A',
+        137: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A',
+        56: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A',
+        42161: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A',
+        10: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A',
+        8453: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A'
+      };
+      
+      const platformWallet = platformWallets[validatedRequest.chainId] || platformWallets[1];
+      
+      // Fee transaction data
+      const feeTransaction = {
+        to: platformWallet,
+        value: validatedRequest.fromToken.toUpperCase() === 'ETH' ? 
+          `0x${(platformFee * Math.pow(10, 18)).toString(16)}` : 
+          '0x0',
+        data: '0x',
+        gas: '0x5208',
+        gasPrice: '0x3b9aca00'
+      };
 
       // Prepare main swap transaction
       let swapTransaction;
@@ -383,10 +404,10 @@ export class EnhancedDEXAggregator {
       return {
         swapTransaction,
         feeCollectionRequired: true,
-        feeCollectionData: feeCollection.feeTransaction,
+        feeCollectionData: feeTransaction,
         instructions: [
           `1. First: Send ${platformFee.toFixed(6)} ${validatedRequest.fromToken} platform fee`,
-          `   To: ${DEXFeeCollectionService.getPlatformWallet(validatedRequest.chainId)}`,
+          `   To: ${platformWallet}`,
           `2. Then: Execute main swap transaction`,
           `3. Platform fee: $${platformFeeUSD} supports continued service`
         ]

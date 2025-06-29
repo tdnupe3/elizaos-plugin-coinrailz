@@ -157,33 +157,48 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
-  // Fee calculation with comprehensive business logic validation
-  app.post('/api/calculate-fees', (req, res) => {
-    const { amount } = req.body;
-    
-    if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-      return res.status(400).json({
+  // Fee calculation endpoint - critical for platform functionality
+  app.post('/api/calculate-fee', (req, res) => {
+    try {
+      const { amount, type = 'send_money' } = req.body;
+      
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid positive amount is required'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      
+      // Enforce minimum transaction
+      if (numericAmount < 5.00) {
+        return res.status(400).json({
+          success: false,
+          message: 'Minimum transaction amount is $5.00'
+        });
+      }
+
+      // Calculate 1% fee as per business requirements
+      const feeRate = 0.01;
+      const fee = Math.round(numericAmount * feeRate * 100) / 100;
+      const total = numericAmount + fee;
+
+      res.json({
+        success: true,
+        amount: numericAmount,
+        fee: fee,
+        feeRate: feeRate,
+        total: total,
+        type: type
+      });
+    } catch (error) {
+      console.error('Fee calculation error:', error);
+      res.status(500).json({
         success: false,
-        message: 'Valid positive amount is required'
+        message: 'Fee calculation failed'
       });
     }
-
-    const baseAmount = parseFloat(amount);
-    const validation = BusinessLogicValidator.validateFeeCalculation(baseAmount);
-    
-    if (!validation.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: validation.errors.join('; '),
-        errors: validation.errors
-      });
-    }
-
-    res.json({
-      success: true,
-      calculation: validation.data,
-      warnings: validation.warnings
-    });
   });
 
   // Enhanced fee calculation with comprehensive business logic safety
@@ -897,12 +912,163 @@ export function setupSimpleRoutes(app: Express) {
     });
   });
 
+  // Commission calculation endpoint - critical for referral system
+  app.post('/api/calculate-commission', (req, res) => {
+    try {
+      const { amount, tier = 'basic' } = req.body;
+      
+      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid positive amount is required'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      
+      // Enforce minimum transaction
+      if (numericAmount < 5.00) {
+        return res.status(400).json({
+          success: false,
+          message: 'Minimum transaction amount is $5.00'
+        });
+      }
+
+      // Tiered commission rates with caps to prevent overflow
+      let commissionRate = 0.003; // 0.3% default
+      let maxCommission = 15.00; // $15 cap
+      
+      if (numericAmount >= 100) {
+        commissionRate = 0.006; // 0.6% for high value
+      } else if (numericAmount >= 15) {
+        commissionRate = 0.005; // 0.5% for standard
+      }
+
+      let commission = Math.round(numericAmount * commissionRate * 100) / 100;
+      
+      // Apply commission cap to prevent overflow
+      if (commission > maxCommission) {
+        commission = maxCommission;
+      }
+
+      // Ensure profitability - platform must retain at least 0.05% margin
+      const platformFee = numericAmount * 0.01; // 1% platform fee
+      const minimumRetention = numericAmount * 0.0005; // 0.05% minimum
+      
+      if (commission > (platformFee - minimumRetention)) {
+        commission = Math.max(0, platformFee - minimumRetention);
+      }
+
+      res.json({
+        success: true,
+        amount: numericAmount,
+        commission: commission,
+        commissionRate: commissionRate,
+        tier: tier,
+        maxCommission: maxCommission,
+        profitable: commission < platformFee
+      });
+    } catch (error) {
+      console.error('Commission calculation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Commission calculation failed'
+      });
+    }
+  });
+
   // User info
   app.get('/api/user', (req, res) => {
     res.json({
       authenticated: false,
       user: null
     });
+  });
+
+  // Transaction validation endpoint - critical for payment security
+  app.post('/api/validate-transaction', (req, res) => {
+    try {
+      const { amount, fromUser, toUser } = req.body;
+      
+      // Input validation with XSS protection
+      if (!amount || !fromUser || !toUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Amount, fromUser, and toUser are required'
+        });
+      }
+
+      // Sanitize inputs to prevent XSS attacks
+      const sanitizedFromUser = String(fromUser).replace(/<script[^>]*>.*?<\/script>/gi, '');
+      const sanitizedToUser = String(toUser).replace(/<script[^>]*>.*?<\/script>/gi, '');
+      
+      // Check for SQL injection patterns
+      const sqlPatterns = [/'/g, /;/g, /--/g, /DROP/gi, /DELETE/gi, /UPDATE/gi, /INSERT/gi];
+      const hasSqlInjection = sqlPatterns.some(pattern => 
+        pattern.test(sanitizedFromUser) || pattern.test(sanitizedToUser)
+      );
+      
+      if (hasSqlInjection) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid characters in user identifiers'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid positive amount is required'
+        });
+      }
+
+      // Enforce minimum transaction
+      if (numericAmount < 5.00) {
+        return res.status(400).json({
+          success: false,
+          message: 'Minimum transaction amount is $5.00'
+        });
+      }
+
+      // Maximum transaction limit for security
+      if (numericAmount > 50000) {
+        return res.status(400).json({
+          success: false,
+          message: 'Maximum transaction amount is $50,000'
+        });
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(sanitizedFromUser) || !emailRegex.test(sanitizedToUser)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid email addresses required'
+        });
+      }
+
+      res.json({
+        success: true,
+        valid: true,
+        amount: numericAmount,
+        fromUser: sanitizedFromUser,
+        toUser: sanitizedToUser,
+        validations: {
+          amountValid: true,
+          usersValid: true,
+          securityValid: true,
+          minimumMet: true
+        }
+      });
+    } catch (error) {
+      console.error('Transaction validation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Transaction validation failed'
+      });
+    }
   });
 
   // Agent payment intent

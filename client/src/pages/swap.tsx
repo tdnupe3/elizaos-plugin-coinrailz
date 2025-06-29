@@ -1,5 +1,5 @@
 import { WalletConnect } from "@/components/wallet-connect";
-import { DEXSwapInterface } from "@/components/dex-swap-interface";
+import { RealSwapInterface } from "@/components/real-swap-interface";
 import { useState } from "react";
 
 const chains = [

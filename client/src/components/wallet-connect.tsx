@@ -49,7 +49,7 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
     }
   };
 
-  if (!isConnected) {
+  if (!wallet.isConnected) {
     return (
       <Card className={`bg-white shadow-sm border border-gray-200 ${className}`}>
         <CardHeader>
@@ -148,7 +148,7 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
             <label className="text-sm font-medium text-gray-700">Wallet Address</label>
             <div className="flex items-center space-x-2 mt-1">
               <code className="flex-1 text-sm bg-gray-100 p-2 rounded border font-mono">
-                {walletAddress}
+                {wallet.address}
               </code>
               <Button 
                 variant="outline" 

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Droplets, TrendingUp, DollarSign, Shield, ArrowLeft } from "@/lib/icons";
+import { DollarSign, TrendingUp, Shield, ArrowLeft } from "@/lib/icons";
 import { useLocation } from "wouter";
 
 export default function XRPLiquidityProvision() {
@@ -43,7 +43,7 @@ export default function XRPLiquidityProvision() {
           <Card className="border-blue-200">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-blue-800">
-                <Droplets className="w-6 h-6" />
+                <DollarSign className="w-6 h-6" />
                 Provide XRP Liquidity
               </CardTitle>
             </CardHeader>
@@ -175,7 +175,7 @@ export default function XRPLiquidityProvision() {
 
           <Card className="text-center">
             <CardContent className="p-6">
-              <Droplets className="w-12 h-12 text-purple-500 mx-auto mb-4" />
+              <DollarSign className="w-12 h-12 text-purple-500 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">Flexible Terms</h3>
               <p className="text-gray-600">
                 Choose from multiple lock periods to match your investment strategy

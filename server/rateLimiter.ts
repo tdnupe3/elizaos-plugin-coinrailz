@@ -103,6 +103,19 @@ class RateLimiter {
         return next();
       }
       
+      // EXEMPT HEALTH AND MONITORING ENDPOINTS FROM RATE LIMITING
+      const exemptPaths = [
+        '/api/platform/health',
+        '/api/health',
+        '/health',
+        '/api/status',
+        '/api/monitoring/ping'
+      ];
+      
+      if (exemptPaths.some(path => req.path === path)) {
+        return next();
+      }
+      
       // PRODUCTION MODE: Apply full rate limiting
       const key = this.getKey(req);
       const fingerprint = this.generateFingerprint(req);

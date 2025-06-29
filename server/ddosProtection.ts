@@ -41,6 +41,19 @@ function getClientIP(req: Request): string {
 
 // Global rate limiting
 export const globalRateLimit = (req: Request, res: Response, next: NextFunction) => {
+  // EXEMPT HEALTH AND MONITORING ENDPOINTS
+  const exemptPaths = [
+    '/api/platform/health',
+    '/api/health',
+    '/health',
+    '/api/status',
+    '/api/monitoring/ping'
+  ];
+  
+  if (exemptPaths.some(path => req.path === path)) {
+    return next();
+  }
+
   const ip = getClientIP(req);
   const now = Date.now();
   const { window, max } = ddosConfig.globalRateLimit;

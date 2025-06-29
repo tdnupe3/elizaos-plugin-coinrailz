@@ -104,10 +104,10 @@ export function setupSimpleRoutes(app: Express) {
       try {
         if (db) {
           await db.select().from(sql`(SELECT 1 as test)`).limit(1);
-          healthData.database = { status: 'connected' };
+          (healthData as any).database = { status: 'connected' };
         }
       } catch (dbError) {
-        healthData.database = { status: 'disconnected', error: 'Database connection failed' };
+        (healthData as any).database = { status: 'disconnected', error: 'Database connection failed' };
       }
 
       res.json(healthData);
@@ -1146,12 +1146,53 @@ export function setupSimpleRoutes(app: Express) {
       const commission = TieredCommissionCalculator.calculateCommission(numericAmount);
       const breakEven = TieredCommissionCalculator.calculateBreakEvenAnalysis(numericAmount);
 
+      // CRITICAL OVERFLOW PROTECTION - Ensure commission never exceeds platform revenue
+      const platformFee = numericAmount * 0.01; // 1% platform fee
+      const maxSafeCommission = platformFee * 0.80; // Maximum 80% of platform fee for commissions
+      
+      if (commission.totalCommission > maxSafeCommission) {
+        return res.status(400).json({
+          success: false,
+          message: `Commission overflow detected. Maximum safe commission: $${maxSafeCommission.toFixed(2)}`,
+          details: {
+            requestedCommission: commission.totalCommission,
+            maxSafeCommission: maxSafeCommission,
+            platformFee: platformFee,
+            reason: 'Commission would exceed platform revenue, transaction blocked for financial safety'
+          }
+        });
+      }
+
+      // Validate minimum profit margin (at least 20% of platform fee retained)
+      const remainingProfit = platformFee - commission.totalCommission;
+      const profitMargin = (remainingProfit / platformFee) * 100;
+      
+      if (profitMargin < 20) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient profit margin: ${profitMargin.toFixed(1)}%. Minimum 20% required.`,
+          details: {
+            currentMargin: profitMargin,
+            requiredMargin: 20,
+            reason: 'Transaction would be unprofitable for platform sustainability'
+          }
+        });
+      }
+
       res.json({
         success: true,
         amount: numericAmount,
         tier: tierInfo,
         commission,
-        profitability: breakEven
+        profitability: {
+          ...breakEven,
+          overflowProtection: true,
+          safetyChecks: {
+            commissionCap: maxSafeCommission,
+            profitMargin: profitMargin,
+            remainingProfit: remainingProfit
+          }
+        }
       });
     } catch (error) {
       console.error('Commission tier lookup error:', error);
@@ -1204,7 +1245,7 @@ export function setupSimpleRoutes(app: Express) {
         });
       }
 
-      const numericAmount = parseFloat(amount);
+      const numericAmount = parseFloat(String(amount));
       const rateValidation = await ExchangeRateProtection.validateRateForTransaction(
         from.toUpperCase(),
         to.toUpperCase(),

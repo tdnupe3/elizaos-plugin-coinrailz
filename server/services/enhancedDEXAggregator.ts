@@ -62,7 +62,7 @@ interface SwapTransaction {
 export class EnhancedDEXAggregator {
   private static supportedChains = new Set([1, 137, 56, 42161, 10, 8453, 369]); // ETH, Polygon, BSC, Arbitrum, Optimism, Base, PulseChain
   private static maxPriceImpact = 10.0; // 10% maximum price impact warning
-  private static platformFeeRate = 0.0025; // 0.25% platform fee
+  private static platformFeeRate = 0.0075; // 0.75% platform fee (aligned with platform economics)
   private static quoteCache = new Map<string, { quote: AggregatedQuote; timestamp: number }>();
   private static cacheExpiry = 30000; // 30 seconds
 

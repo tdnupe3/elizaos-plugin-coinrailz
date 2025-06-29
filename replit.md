@@ -8,7 +8,7 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 ✅ **1INCH API LIVE**: Real-time market data from 50+ DEXs operational with accurate ETH/USDC rates (2,432 vs 2,000 simulated)
 ✅ **LIVE MARKET PRICING**: Users now receive authentic market quotes instead of simulated data
 ✅ **REAL WALLET INTEGRATION**: Auto-detection of existing connections, multi-wallet support, transaction signing capability
-✅ **AUTOMATIC FEE COLLECTION**: One-click swaps with 0.25% platform fee automatically included in transaction value - no separate payments required
+✅ **OUTPUT-BASED FEE COLLECTION**: Platform fee (0.25%) deducted from output tokens - users send exact amount they intend, receive slightly less
 ✅ **PRODUCTION READINESS: 100%** - Platform deployment approved, all critical systems operational, ready for coinrailz.com
 ✅ **Core API Functionality** - All critical business logic APIs operational (5/5 endpoints working)
 ✅ **Platform Health System** - 90/100 health score with real-time monitoring active

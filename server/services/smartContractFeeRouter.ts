@@ -93,32 +93,45 @@ export class SmartContractFeeRouter {
   }
 
   /**
-   * Calculate adjusted swap amounts accounting for platform fee
+   * Calculate platform fee from output amount (user receives slightly less)
    */
-  static calculateAdjustedAmounts(params: {
+  static calculateOutputBasedFee(params: {
     inputAmount: string;
     outputAmount: string;
     platformFeeRate: number; // 0.0025 for 0.25%
-    fromToken: string;
+    outputToken: string;
   }): {
-    userInputAmount: string; // Amount user provides
-    swapInputAmount: string; // Amount that goes to actual swap
-    platformFeeAmount: string; // Amount that goes to platform
-    adjustedOutputAmount: string; // Amount user receives
+    userInputAmount: string; // Exact amount user sends
+    fullOutputAmount: string; // Total output from DEX
+    platformFeeAmount: string; // Fee taken from output (in output token)
+    userReceivesAmount: string; // Amount user actually receives
+    platformFeeUSD: string; // Fee value in USD
   } {
     const inputAmount = parseFloat(params.inputAmount);
-    const platformFeeAmount = inputAmount * params.platformFeeRate;
-    const swapInputAmount = inputAmount - platformFeeAmount;
+    const fullOutputAmount = parseFloat(params.outputAmount);
     
-    // Proportionally reduce output based on reduced input
-    const outputAmount = parseFloat(params.outputAmount);
-    const adjustedOutputAmount = outputAmount * (swapInputAmount / inputAmount);
+    // Take platform fee from the output amount
+    const platformFeeAmount = fullOutputAmount * params.platformFeeRate;
+    const userReceivesAmount = fullOutputAmount - platformFeeAmount;
+    
+    // Convert fee to USD (simplified - would use real price feeds)
+    const conversionRates: Record<string, number> = {
+      'USDC': 1,
+      'USDT': 1,
+      'DAI': 1,
+      'ETH': 2000,
+      'WBTC': 35000
+    };
+    
+    const rate = conversionRates[params.outputToken.toUpperCase()] || 1;
+    const platformFeeUSD = (platformFeeAmount * rate).toFixed(2);
 
     return {
       userInputAmount: inputAmount.toString(),
-      swapInputAmount: swapInputAmount.toString(),
+      fullOutputAmount: fullOutputAmount.toString(),
       platformFeeAmount: platformFeeAmount.toString(),
-      adjustedOutputAmount: adjustedOutputAmount.toString()
+      userReceivesAmount: userReceivesAmount.toString(),
+      platformFeeUSD
     };
   }
 

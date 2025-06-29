@@ -124,45 +124,37 @@ export class EnhancedDEXAggregator {
         parseFloat(current.outputAmount) > parseFloat(best.outputAmount) ? current : best
       );
 
-      // Calculate platform fee on input amount for consistent revenue
+      // Calculate platform fee from output amount (user receives less, not pays more)
       const inputAmount = parseFloat(validatedRequest.amount);
-      const platformFee = inputAmount * this.platformFeeRate;
-      const platformFeeUSD = await this.convertToUSD(platformFee.toString(), validatedRequest.fromToken);
+      const fullOutputAmount = parseFloat(bestQuote.outputAmount);
+      const platformFeeFromOutput = fullOutputAmount * this.platformFeeRate;
+      const userReceivesAmount = fullOutputAmount - platformFeeFromOutput;
       
-      // Calculate final output after platform fee
-      const outputAfterFee = parseFloat(bestQuote.outputAmount) * (1 - this.platformFeeRate);
+      // Convert output fee to USD
+      const platformFeeUSD = await this.convertToUSD(platformFeeFromOutput.toString(), validatedRequest.toToken);
 
       // Generate warnings
       const priceImpactWarning = bestQuote.priceImpact > this.maxPriceImpact;
       const slippageWarning = validatedRequest.slippage && validatedRequest.slippage > 10.0; // Warning only for very high slippage
 
-      // Platform wallet addresses for fee collection
-      const platformWallets: Record<number, string> = {
-        1: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Ethereum
-        137: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Polygon
-        56: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // BSC
-        42161: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Arbitrum
-        10: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A', // Optimism
-        8453: '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A' // Base
-      };
-      
-      const platformWallet = platformWallets[validatedRequest.chainId] || platformWallets[1];
+      // Platform wallet for fee collection
+      const platformWallet = SmartContractFeeRouter.getPlatformWallet(validatedRequest.chainId);
 
       const aggregatedQuote: AggregatedQuote = {
         bestQuote,
         allQuotes: quotes.sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount)),
-        platformFee: platformFee.toString(),
+        platformFee: platformFeeFromOutput.toString(),
         platformFeeUSD,
-        totalOutputAfterFees: outputAfterFee.toString(),
+        totalOutputAfterFees: userReceivesAmount.toString(),
         priceImpactWarning,
         slippageWarning,
         timestamp: new Date().toISOString(),
         feeCollectionInfo: {
           platformWallet: platformWallet,
           instructions: [
-            `Send ${platformFee.toFixed(6)} ${validatedRequest.fromToken} to platform wallet`,
-            `Platform wallet: ${platformWallet}`,
-            'Fee collection enables continued service and platform improvements'
+            `Platform fee (${platformFeeFromOutput.toFixed(6)} ${validatedRequest.toToken} = $${platformFeeUSD}) deducted from output`,
+            `You send: ${validatedRequest.amount} ${validatedRequest.fromToken}`,
+            `You receive: ${userReceivesAmount.toFixed(6)} ${validatedRequest.toToken} (after 0.25% platform fee)`
           ],
           required: true
         }
@@ -371,10 +363,17 @@ export class EnhancedDEXAggregator {
     const validatedRequest = swapExecuteSchema.parse(request);
 
     try {
-      // Calculate platform fee
-      const inputAmount = parseFloat(validatedRequest.amount);
-      const platformFee = inputAmount * this.platformFeeRate;
-      const platformFeeUSD = await this.convertToUSD(platformFee.toString(), validatedRequest.fromToken);
+      // Get quote first to calculate output-based fee
+      const quote = await this.getAggregatedQuote(validatedRequest);
+      const fullOutputAmount = parseFloat(quote.bestQuote.outputAmount);
+      
+      // Calculate platform fee from output (user receives less, doesn't pay more)
+      const outputFeeCalculation = SmartContractFeeRouter.calculateOutputBasedFee({
+        inputAmount: validatedRequest.amount,
+        outputAmount: fullOutputAmount.toString(),
+        platformFeeRate: this.platformFeeRate,
+        outputToken: validatedRequest.toToken
+      });
 
       // Get original swap transaction from 1inch
       let originalTransaction;
@@ -386,57 +385,23 @@ export class EnhancedDEXAggregator {
 
       const platformWallet = SmartContractFeeRouter.getPlatformWallet(validatedRequest.chainId);
 
-      // For ETH swaps: Automatically include fee in transaction value
-      if (validatedRequest.fromToken.toUpperCase() === 'ETH') {
-        const modifiedSwap = SmartContractFeeRouter.createETHSwapWithFee({
-          originalTransaction,
-          userAddress: validatedRequest.userAddress,
-          platformFeeETH: platformFee.toString(),
-          chainId: validatedRequest.chainId
-        });
-
-        return {
-          transaction: modifiedSwap.modifiedTransaction,
-          platformFeeIncluded: true,
-          feeInfo: {
-            platformWallet,
-            feeAmount: platformFee.toString(),
-            feeAmountUSD: platformFeeUSD,
-            automatic: true
-          },
-          userInstructions: [
-            `Swap ${validatedRequest.amount} ETH → ${validatedRequest.toToken}`,
-            `Platform fee (${platformFee.toFixed(6)} ETH = $${platformFeeUSD}) automatically included`,
-            `One-click transaction - no separate fee payment needed`,
-            `Total ETH required: ${(parseFloat(validatedRequest.amount) + platformFee).toFixed(6)} ETH`
-          ]
-        };
-      } else {
-        // For ERC-20 tokens: Use adjusted amounts
-        const adjustedAmounts = SmartContractFeeRouter.calculateAdjustedAmounts({
-          inputAmount: validatedRequest.amount,
-          outputAmount: '1000', // This would come from the quote
-          platformFeeRate: this.platformFeeRate,
-          fromToken: validatedRequest.fromToken
-        });
-
-        return {
-          transaction: originalTransaction,
-          platformFeeIncluded: true,
-          feeInfo: {
-            platformWallet,
-            feeAmount: adjustedAmounts.platformFeeAmount,
-            feeAmountUSD: platformFeeUSD,
-            automatic: true
-          },
-          userInstructions: [
-            `Swap ${adjustedAmounts.userInputAmount} ${validatedRequest.fromToken} → ${validatedRequest.toToken}`,
-            `Platform fee (${adjustedAmounts.platformFeeAmount} ${validatedRequest.fromToken} = $${platformFeeUSD}) automatically deducted`,
-            `You receive slightly less output tokens to account for platform fee`,
-            `One-click transaction - fee handled automatically`
-          ]
-        };
-      }
+      return {
+        transaction: originalTransaction,
+        platformFeeIncluded: true,
+        feeInfo: {
+          platformWallet,
+          feeAmount: outputFeeCalculation.platformFeeAmount,
+          feeAmountUSD: outputFeeCalculation.platformFeeUSD,
+          automatic: true,
+          token: validatedRequest.toToken
+        },
+        userInstructions: [
+          `Send exactly: ${validatedRequest.amount} ${validatedRequest.fromToken}`,
+          `You receive: ${outputFeeCalculation.userReceivesAmount} ${validatedRequest.toToken}`,
+          `Platform fee: ${outputFeeCalculation.platformFeeAmount} ${validatedRequest.toToken} ($${outputFeeCalculation.platformFeeUSD})`,
+          `Fee automatically deducted from your output - no extra payment needed`
+        ]
+      };
     } catch (error) {
       console.error('Swap preparation error:', error);
       throw new Error(`Failed to prepare swap: ${error instanceof Error ? error.message : 'Unknown error'}`);

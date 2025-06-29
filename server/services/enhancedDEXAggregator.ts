@@ -78,28 +78,35 @@ export class EnhancedDEXAggregator {
     }
 
     try {
-      // Fetch quotes from multiple DEXs in parallel
-      const [oneInchQuote, zeroXQuote, uniswapQuote] = await Promise.allSettled([
-        this.get1inchQuote(validatedRequest),
-        this.get0xQuote(validatedRequest),
-        this.getUniswapQuote(validatedRequest)
-      ]);
-
       const quotes: DEXQuote[] = [];
 
-      // Process 1inch quote
-      if (oneInchQuote.status === 'fulfilled' && oneInchQuote.value) {
-        quotes.push(oneInchQuote.value);
+      // Prioritize live 1inch API if available
+      if (process.env.ONEINCH_API_KEY) {
+        try {
+          console.log('🔄 Using live 1inch API');
+          const quote1inch = await this.get1inchQuote(validatedRequest);
+          quotes.push(quote1inch);
+        } catch (error) {
+          console.warn('1inch API failed, using fallback:', error);
+        }
       }
 
-      // Process 0x quote
-      if (zeroXQuote.status === 'fulfilled' && zeroXQuote.value) {
-        quotes.push(zeroXQuote.value);
+      // Try 0x Protocol if available
+      if (process.env.ZEROX_API_KEY) {
+        try {
+          const quote0x = await this.get0xQuote(validatedRequest);
+          quotes.push(quote0x);
+        } catch (error) {
+          console.warn('0x API failed:', error);
+        }
       }
 
-      // Process Uniswap quote
-      if (uniswapQuote.status === 'fulfilled' && uniswapQuote.value) {
-        quotes.push(uniswapQuote.value);
+      // Always include Uniswap/PulseX quote as fallback
+      try {
+        const uniswapQuote = await this.getUniswapQuote(validatedRequest);
+        quotes.push(uniswapQuote);
+      } catch (error) {
+        console.warn('Uniswap quote failed:', error);
       }
 
       if (quotes.length === 0) {
@@ -219,8 +226,7 @@ export class EnhancedDEXAggregator {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Accept': 'application/json'
-        },
-        timeout: 10000
+        }
       }
     );
 
@@ -410,7 +416,7 @@ export class EnhancedDEXAggregator {
     const tokensByChain: Record<number, any[]> = {
       1: [ // Ethereum
         { symbol: 'ETH', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18 },
-        { symbol: 'USDC', address: '0xa0b86a33e6053e4fd7db3c3a0c48de5b3bbbbe66', decimals: 6 },
+        { symbol: 'USDC', address: '0xA0b86a33E6329C96e2B5b41F4F4C01E67c23c84e', decimals: 6 },
         { symbol: 'USDT', address: '0xdac17f958d2ee523a2206206994597c13d831ec7', decimals: 6 },
         { symbol: 'DAI', address: '0x6b175474e89094c44da98b954eedeac495271d0f', decimals: 18 },
         { symbol: 'WBTC', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals: 8 }

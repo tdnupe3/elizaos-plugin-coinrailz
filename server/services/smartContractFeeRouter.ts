@@ -98,7 +98,7 @@ export class SmartContractFeeRouter {
   static calculateOutputBasedFee(params: {
     inputAmount: string;
     outputAmount: string;
-    platformFeeRate: number; // 0.0025 for 0.25%
+    platformFeeRate: number; // 0.0075 for 0.75%
     outputToken: string;
   }): {
     userInputAmount: string; // Exact amount user sends

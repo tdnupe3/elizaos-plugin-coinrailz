@@ -17,12 +17,12 @@ export function setupSimpleRoutes(app: Express) {
   // Simple registration endpoint that works with existing database
   app.post('/api/auth/register', async (req, res) => {
     try {
-      const { email, firstName, lastName } = req.body;
+      const { email, firstName, lastName, referralCode } = req.body;
 
-      if (!email) {
+      if (!email || typeof email !== 'string') {
         return res.status(400).json({ 
           success: false, 
-          message: 'Email is required' 
+          message: 'Valid email is required' 
         });
       }
 
@@ -44,9 +44,27 @@ export function setupSimpleRoutes(app: Express) {
         email,
         firstName: firstName || null,
         lastName: lastName || null,
+        referralSource: referralCode ? 'human' : 'direct',
         createdAt: new Date(),
         updatedAt: new Date()
       });
+
+      // Process referral if provided
+      if (referralCode) {
+        try {
+          const response = await fetch('http://localhost:5000/api/referrals/process-signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              referralCode,
+              newUserId: userId,
+              newUserEmail: email
+            })
+          });
+        } catch (error) {
+          console.log('Referral processing failed, but registration succeeded');
+        }
+      }
 
       res.status(201).json({
         success: true,

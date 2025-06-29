@@ -6,6 +6,7 @@ import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogic
 import { registerDemoRoutes } from "./routes-demo";
 import { registerDEXProductionRoutes } from "./dexProductionRoutes";
 import { setupReferralRoutes } from "./referralRoutes";
+import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
@@ -92,6 +93,9 @@ import { setupProductionAuth } from './productionAuth';
 setupProductionAuth(app);
 
 
+
+// Register critical API routes FIRST to bypass Vite middleware
+setupCriticalAPIRoutes(app);
 
 // Register demo routes BEFORE Vite middleware to prevent interception
 registerDemoRoutes(app);

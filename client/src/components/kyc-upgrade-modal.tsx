@@ -40,6 +40,7 @@ export function KYCUpgradeModal({
       'Crypto wallet management',
       'DEX aggregator access',
       'Crypto-to-crypto transfers',
+      'Credit/debit card purchases',
       'AI agent marketplace browsing',
       'Platform notifications'
     ],

@@ -11,13 +11,15 @@ export enum TransactionType {
   CRYPTO_STAKING = 'crypto_staking',
   NFT_PURCHASE = 'nft_purchase',
   
-  // Fiat-involved transactions (KYC required)
+  // Fiat transactions requiring KYC
   FIAT_P2P = 'fiat_p2p',
   BANK_DEPOSIT = 'bank_deposit',
   BANK_WITHDRAWAL = 'bank_withdrawal',
-  CARD_PURCHASE = 'card_purchase',
   WIRE_TRANSFER = 'wire_transfer',
   ACH_TRANSFER = 'ach_transfer',
+  
+  // Standard retail transactions (no KYC)
+  CARD_PURCHASE = 'card_purchase',
   
   // Commission and platform (special rules)
   REFERRAL_COMMISSION = 'referral_commission',
@@ -94,9 +96,8 @@ export class TransactionClassifier {
     
     [TransactionType.CARD_PURCHASE]: {
       type: TransactionType.CARD_PURCHASE,
-      requiresKYC: true,
-      requiresComplianceLevel: 'basic',
-      description: 'Credit/debit card purchase',
+      requiresKYC: false,
+      description: 'Credit/debit card purchase (standard retail transaction)',
     },
     
     [TransactionType.WIRE_TRANSFER]: {

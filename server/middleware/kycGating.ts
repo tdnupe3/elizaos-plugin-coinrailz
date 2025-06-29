@@ -133,7 +133,7 @@ export const KYCGates = {
     allowDemo: true
   }),
 
-  // Fiat financial features (verification required)
+  // Fiat P2P and banking features (verification required)
   fiatSendMoney: requireKYCStatus({
     requiredStatus: 'verified',
     feature: 'Fiat P2P Transfers',
@@ -150,6 +150,13 @@ export const KYCGates = {
   bankTransactions: requireKYCStatus({
     requiredStatus: 'verified',
     feature: 'Bank Account Transactions',
+    allowDemo: true
+  }),
+
+  // Card purchases (no KYC required - standard retail)
+  cardPurchases: requireKYCStatus({
+    requiredStatus: 'pending',
+    feature: 'Card Purchases',
     allowDemo: true
   }),
 
@@ -242,11 +249,12 @@ export function isFeatureAvailable(
   // Define feature requirements
   const requirements: Record<string, { status: string; level?: string }> = {
     referralAccess: { status: 'pending' },
-    // Fiat transactions require KYC
+    // Fiat P2P and banking require KYC
     fiatSendMoney: { status: 'verified' },
     fiatReceiveMoney: { status: 'verified' },
     bankTransactions: { status: 'verified' },
-    // Crypto transactions only need basic account
+    // Standard retail and crypto transactions only need basic account
+    cardPurchases: { status: 'pending' },
     cryptoTrading: { status: 'pending' },
     cryptoTransfers: { status: 'pending' },
     agentMarketplace: { status: 'verified' },

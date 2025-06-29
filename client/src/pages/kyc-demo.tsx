@@ -35,15 +35,15 @@ export default function KYCDemo() {
   const mockFeatures = [
     {
       id: 'crypto',
-      title: 'Crypto Trading',
-      description: 'Trade cryptocurrencies without KYC requirements',
+      title: 'Crypto & Cards',
+      description: 'Cryptocurrency trading and card purchases - no KYC required',
       requiredStatus: 'pending' as const,
       component: (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Cryptocurrency Exchange
+              Crypto Trading & Card Purchases
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -53,15 +53,15 @@ export default function KYCDemo() {
                 <span className="font-semibold">0.00543 BTC</span>
               </div>
               <div className="flex justify-between">
-                <span>ETH Balance:</span>
-                <span className="font-semibold">2.47 ETH</span>
+                <span>Card Balance:</span>
+                <span className="font-semibold">$1,247.30</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <Button>Buy Crypto</Button>
-                <Button>Sell Crypto</Button>
+                <Button>Card Purchase</Button>
               </div>
               <div className="text-xs text-green-600 bg-green-50 p-2 rounded">
-                ✓ No KYC required for crypto-to-crypto trading
+                ✓ No KYC required for crypto trading or card purchases
               </div>
             </div>
           </CardContent>
@@ -99,15 +99,15 @@ export default function KYCDemo() {
     },
     {
       id: 'fiat',
-      title: 'Fiat P2P Transfers',
-      description: 'Send/receive traditional currency (requires KYC)',
+      title: 'Fiat P2P & Banking',
+      description: 'P2P transfers and bank account integration (requires KYC)',
       requiredStatus: 'verified' as const,
       component: (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Fiat P2P Transfer
+              Fiat P2P & Banking
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -126,9 +126,9 @@ export default function KYCDemo() {
                   placeholder="100.00" 
                 />
               </div>
-              <Button className="w-full">Send Fiat Payment</Button>
+              <Button className="w-full">Send Fiat P2P</Button>
               <div className="text-xs text-amber-600 bg-amber-50 p-2 rounded mt-2">
-                ⚠️ KYC verification required for fiat transactions
+                ⚠️ KYC verification required for P2P fiat transfers and banking
               </div>
             </div>
           </CardContent>

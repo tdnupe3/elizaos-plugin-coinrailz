@@ -15,8 +15,12 @@ import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
 import { sanitizeInput } from "./middleware/inputValidation";
+import { errorHandler } from "./middleware/errorHandler";
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
+
+// Setup global error handlers
+errorHandler.setupGlobalHandlers();
 
 // Initialize production systems
 productionSystems.initialize();
@@ -113,12 +117,8 @@ const server = setupSimpleRoutes(app);
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);
 
-// Global error handling
-import { globalErrorHandler } from './middleware/globalErrorHandler';
-app.use(globalErrorHandler);
-
-// Production error handling
-app.use(productionSystems.errorHandler());
+// Setup comprehensive error handling middleware (must be last)
+app.use(errorHandler.middleware());
 
 // Production vs Development setup
 if (process.env.NODE_ENV === 'production') {

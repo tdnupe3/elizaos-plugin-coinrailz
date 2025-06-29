@@ -98,10 +98,9 @@ class RateLimiter {
 
   middleware() {
     return (req: Request, res: Response, next: NextFunction) => {
-      // DEVELOPMENT MODE: BYPASS ALL RATE LIMITING
-      if (this.isDevelopment) {
-        return next();
-      }
+      // DEVELOPMENT MODE: Apply lenient rate limiting for testing
+      const effectiveMaxRequests = this.isDevelopment ? this.maxRequests * 10 : this.maxRequests;
+      const effectiveWindowMs = this.isDevelopment ? this.windowMs * 2 : this.windowMs;
       
       // EXEMPT HEALTH AND MONITORING ENDPOINTS FROM RATE LIMITING
       const exemptPaths = [
@@ -116,12 +115,13 @@ class RateLimiter {
         return next();
       }
       
-      // PRODUCTION MODE: Apply full rate limiting
+      // Apply rate limiting with environment-specific settings
       const key = this.getKey(req);
       const fingerprint = this.generateFingerprint(req);
       const now = Date.now();
       
-      if (this.detectSuspiciousActivity(req, fingerprint)) {
+      // Only check suspicious activity in production
+      if (!this.isDevelopment && this.detectSuspiciousActivity(req, fingerprint)) {
         return res.status(429).json({
           error: 'Suspicious activity detected',
           message: 'Request blocked due to suspicious patterns',
@@ -132,19 +132,19 @@ class RateLimiter {
       if (!this.store[key] || this.store[key].resetTime < now) {
         this.store[key] = {
           count: 1,
-          resetTime: now + this.windowMs,
+          resetTime: now + effectiveWindowMs,
           fingerprint: fingerprint,
           suspiciousActivity: 0
         };
         return next();
       }
 
-      if (this.store[key].count >= this.maxRequests) {
+      if (this.store[key].count >= effectiveMaxRequests) {
         this.store[key].suspiciousActivity++;
         
         return res.status(429).json({
           error: 'Too many requests',
-          message: `Rate limit exceeded. Maximum ${this.maxRequests} requests per ${this.windowMs / 1000} seconds.`,
+          message: `Rate limit exceeded. Maximum ${effectiveMaxRequests} requests per ${effectiveWindowMs / 1000} seconds.`,
           retryAfter: Math.ceil((this.store[key].resetTime - now) / 1000)
         });
       }

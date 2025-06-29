@@ -45,7 +45,7 @@ import {
 } from "@/lib/lazyComponents";
 
 // Import XRP services directly for consistent routing
-import XRPEcosystemDashboard from "@/pages/xrp-ecosystem-dashboard";
+import XRPEcosystemTest from "@/pages/xrp-ecosystem-test";
 import XRPLiquidityProvision from "@/pages/xrp-liquidity-provision";
 import XRPWalletManagement from "@/pages/xrp-wallet-management";
 import XRPComplianceTools from "@/pages/xrp-compliance-tools";
@@ -137,7 +137,9 @@ function Router() {
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
-      <Route path="/xrp-ecosystem" component={XRPEcosystemDashboard} />
+      <Route path="/xrp-ecosystem">
+        {() => <XRPEcosystemTest />}
+      </Route>
       <Route path="/xrp-ecosystem-dashboard">
         {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
       </Route>

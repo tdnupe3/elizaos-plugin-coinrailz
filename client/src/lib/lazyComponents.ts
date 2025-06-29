@@ -33,8 +33,8 @@ export const ReferralDashboard = lazy(() => import('@/pages/referral-dashboard')
 export const EnhancedReferralDashboard = lazy(() => import('@/pages/enhanced-referral-dashboard'));
 export const HumanReferralDashboard = lazy(() => import('@/pages/human-referral-dashboard'));
 
-// XRP Ecosystem Components
-export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-dashboard'));
+// XRP Ecosystem Components - Hub temporarily direct imported in App.tsx for routing fix
+// export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-dashboard'));
 export const XRPCrossBorderPayments = lazy(() => import('@/pages/xrp-cross-border-payments'));
 export const XRPInstantSettlements = lazy(() => import('@/pages/xrp-instant-settlements'));
 export const XRPEscrowServices = lazy(() => import('@/pages/xrp-escrow-services'));

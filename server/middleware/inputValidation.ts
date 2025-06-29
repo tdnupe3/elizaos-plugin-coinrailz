@@ -90,27 +90,74 @@ export class InputValidator {
   }
 }
 
-// Middleware for request body sanitization
+// Enhanced middleware for comprehensive input validation and sanitization
 export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
   try {
+    // Only sanitize API endpoints to avoid interfering with static file serving
+    if (!req.path.startsWith('/api/')) {
+      return next();
+    }
+
+    // Validate request size
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const contentLength = parseInt(req.get('content-length') || '0');
+    if (contentLength > maxSize) {
+      throw new Error('Request too large');
+    }
+
+    // Validate query parameter limits
+    if (req.query && Object.keys(req.query).length > 50) {
+      throw new Error('Too many query parameters');
+    }
+
+    // Enhanced sanitization with depth protection
     if (req.body) {
       req.body = InputValidator.sanitizeObject(req.body);
+      validateObjectDepth(req.body, 0, 10); // Max depth 10
     }
     
     if (req.query) {
       req.query = InputValidator.sanitizeObject(req.query);
+      // Validate query parameter values
+      for (const [key, value] of Object.entries(req.query)) {
+        if (typeof value === 'string' && value.length > 1000) {
+          throw new Error(`Query parameter '${key}' too long`);
+        }
+      }
     }
     
     if (req.params) {
       req.params = InputValidator.sanitizeObject(req.params);
     }
+
+    // Add security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
     
     next();
   } catch (error) {
+    console.error('Input validation error:', error);
     res.status(400).json({ 
       error: 'Invalid input detected',
-      message: 'Request contains potentially harmful content'
+      message: 'Request contains potentially harmful content',
+      timestamp: new Date().toISOString()
     });
+  }
+}
+
+// Helper function to prevent deeply nested objects (DoS protection)
+function validateObjectDepth(obj: any, currentDepth: number, maxDepth: number): void {
+  if (currentDepth > maxDepth) {
+    throw new Error('Object too deeply nested');
+  }
+  
+  if (obj && typeof obj === 'object') {
+    for (const value of Object.values(obj)) {
+      if (typeof value === 'object' && value !== null) {
+        validateObjectDepth(value, currentDepth + 1, maxDepth);
+      }
+    }
   }
 }
 

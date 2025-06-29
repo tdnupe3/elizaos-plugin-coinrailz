@@ -108,11 +108,11 @@ registerDemoRoutes(app);
 // Register DEX production routes BEFORE Vite middleware
 registerDEXProductionRoutes(app);
 
-// Setup simple API routes BEFORE Vite middleware
-const server = setupSimpleRoutes(app);
-
-// Register data monetization routes AFTER simpleRoutes to override its 404 handler
+// Register data monetization routes BEFORE simpleRoutes to prevent 404 interception
 app.use('/api/data', dataMonetizationRoutes);
+
+// Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)
+const server = setupSimpleRoutes(app);
 
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);

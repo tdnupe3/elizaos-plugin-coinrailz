@@ -23,7 +23,7 @@ const dexQuoteSchema = z.object({
     .refine(val => parseFloat(val) <= 1000000, 'Amount exceeds maximum limit'),
   chainId: z.number()
     .int()
-    .refine(val => [1, 137, 56, 42161, 10, 8453].includes(val), 'Unsupported chain ID'),
+    .refine(val => [1, 137, 56, 42161, 10, 8453, 369].includes(val), 'Unsupported chain ID'),
   slippage: z.number()
     .min(0.1, 'Minimum slippage is 0.1%')
     .max(50.0, 'Maximum slippage is 50.0%')
@@ -124,12 +124,12 @@ export function registerDEXProductionRoutes(app: Express) {
     try {
       const chainId = parseInt(req.params.chainId);
       
-      if (![1, 137, 56, 42161, 10, 8453].includes(chainId)) {
+      if (![1, 137, 56, 42161, 10, 8453, 369].includes(chainId)) {
         return res.status(400).json({
           success: false,
           error: 'Unsupported chain ID',
-          supportedChains: [1, 137, 56, 42161, 10, 8453],
-          note: 'Solana, XRP, and PulseChain support planned for future release'
+          supportedChains: [1, 137, 56, 42161, 10, 8453, 369],
+          note: 'Solana and XRP support planned for future release'
         });
       }
 
@@ -221,6 +221,14 @@ export function registerDEXProductionRoutes(app: Express) {
           rpcUrl: 'https://mainnet.base.org',
           blockExplorer: 'https://basescan.org',
           dexSupport: ['1inch', '0x Protocol', 'Uniswap V3']
+        },
+        {
+          chainId: 369,
+          name: 'PulseChain',
+          symbol: 'PLS',
+          rpcUrl: 'https://rpc.pulsechain.com',
+          blockExplorer: 'https://scan.pulsechain.com',
+          dexSupport: ['PulseX', '1inch', 'UniswapV2-fork']
         }
       ];
 

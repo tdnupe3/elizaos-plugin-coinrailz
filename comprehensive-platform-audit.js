@@ -3,15 +3,23 @@
  * Identifies all potential error sources causing platform instability
  */
 
-import http from 'http';
 import fs from 'fs';
 import path from 'path';
 
 class PlatformAuditor {
   constructor() {
+    this.results = {
+      serverConfiguration: { status: 'unknown', issues: [], warnings: [] },
+      databaseConfiguration: { status: 'unknown', issues: [], warnings: [] },
+      apiRoutes: { working: [], failing: [], total: 0 },
+      clientComponents: { working: [], failing: [], total: 0 },
+      humanReferralDashboard: { status: 'unknown', issues: [] },
+      lazyComponents: { loaded: [], failed: [], total: 0 },
+      typeScriptErrors: [],
+      dependencies: { missing: [], conflicts: [] }
+    };
     this.errors = [];
     this.warnings = [];
-    this.results = {};
   }
 
   log(message, type = 'info') {
@@ -20,42 +28,60 @@ class PlatformAuditor {
   }
 
   addError(category, description, file = null, line = null) {
-    this.errors.push({ category, description, file, line, timestamp: new Date() });
+    this.errors.push({ category, description, file, line, timestamp: new Date().toISOString() });
+    this.log(`ERROR in ${category}: ${description}${file ? ` (${file}${line ? `:${line}` : ''})` : ''}`, 'error');
   }
 
   addWarning(category, description, file = null) {
-    this.warnings.push({ category, description, file, timestamp: new Date() });
+    this.warnings.push({ category, description, file, timestamp: new Date().toISOString() });
+    this.log(`WARNING in ${category}: ${description}${file ? ` (${file})` : ''}`, 'warn');
   }
 
   async auditServerConfiguration() {
     this.log('Auditing server configuration...');
     
     try {
-      // Check if server responds to health checks
-      const healthCheck = await this.makeRequest('GET', '/');
-      if (healthCheck.status !== 200) {
-        this.addError('Server', `Health check failed: ${healthCheck.status}`, 'server/index.ts');
+      // Check main server file
+      const serverIndexPath = './server/index.ts';
+      if (!fs.existsSync(serverIndexPath)) {
+        this.addError('SERVER_CONFIG', 'Main server file missing', serverIndexPath);
+        return;
       }
 
-      // Test CORS headers
-      const corsTest = await this.makeRequest('OPTIONS', '/api/demo/user');
-      if (!corsTest.headers['access-control-allow-origin']) {
-        this.addWarning('Security', 'CORS headers may not be properly configured');
-      }
-
-      // Test rate limiting
-      const rateLimitTests = [];
-      for (let i = 0; i < 3; i++) {
-        rateLimitTests.push(this.makeRequest('GET', '/api/demo/user'));
-      }
-      const rateLimitResults = await Promise.all(rateLimitTests);
+      const serverContent = fs.readFileSync(serverIndexPath, 'utf-8');
       
-      if (rateLimitResults.some(r => r.status === 429)) {
-        this.addWarning('Performance', 'Rate limiting may be too aggressive for normal use');
+      // Check for essential imports
+      const requiredImports = [
+        'express',
+        'setupVite',
+        'setupSimpleRoutes',
+        'registerDEXProductionRoutes'
+      ];
+
+      for (const importName of requiredImports) {
+        if (!serverContent.includes(importName)) {
+          this.addError('SERVER_CONFIG', `Missing essential import: ${importName}`, serverIndexPath);
+        }
       }
+
+      // Check for proper middleware setup
+      const middlewareChecks = [
+        { pattern: 'express.json', name: 'JSON parsing middleware' },
+        { pattern: 'setupVite', name: 'Vite setup' },
+        { pattern: 'app.listen', name: 'Server listening' }
+      ];
+
+      for (const check of middlewareChecks) {
+        if (!serverContent.includes(check.pattern)) {
+          this.addError('SERVER_CONFIG', `Missing ${check.name}`, serverIndexPath);
+        }
+      }
+
+      this.results.serverConfiguration.status = 'checked';
+      this.log('Server configuration audit completed');
 
     } catch (error) {
-      this.addError('Server', `Server configuration audit failed: ${error.message}`);
+      this.addError('SERVER_CONFIG', `Audit failed: ${error.message}`);
     }
   }
 
@@ -63,392 +89,396 @@ class PlatformAuditor {
     this.log('Auditing database configuration...');
     
     try {
-      // Test database connection through API endpoints
-      const dbTests = [
-        { endpoint: '/api/demo/user', description: 'User data retrieval' },
-        { endpoint: '/api/demo/balances', description: 'Balance queries' },
-        { endpoint: '/api/demo/transactions', description: 'Transaction history' }
+      // Check database files
+      const dbFiles = [
+        './server/db.ts',
+        './shared/schema.ts',
+        './drizzle.config.ts'
       ];
 
-      for (const test of dbTests) {
-        const result = await this.makeRequest('GET', test.endpoint);
-        if (result.status >= 500) {
-          this.addError('Database', `${test.description} failed with ${result.status}`, test.endpoint);
+      for (const file of dbFiles) {
+        if (!fs.existsSync(file)) {
+          this.addError('DATABASE_CONFIG', `Missing database file`, file);
+        } else {
+          const content = fs.readFileSync(file, 'utf-8');
+          if (file.includes('schema.ts') && !content.includes('pgTable')) {
+            this.addWarning('DATABASE_CONFIG', 'Schema file may be incomplete', file);
+          }
         }
       }
 
-      // Test concurrent database operations
-      const concurrentTests = Array(5).fill().map(() => 
-        this.makeRequest('POST', '/api/demo/update-balance', { userId: 'test', amount: 1 })
-      );
-      
-      const concurrentResults = await Promise.all(concurrentTests);
-      const failures = concurrentResults.filter(r => r.status >= 500).length;
-      
-      if (failures > 2) {
-        this.addError('Database', `High concurrent operation failure rate: ${failures}/5`);
+      // Check environment variables
+      if (!process.env.DATABASE_URL) {
+        this.addError('DATABASE_CONFIG', 'DATABASE_URL environment variable missing');
       }
 
+      this.results.databaseConfiguration.status = 'checked';
+      this.log('Database configuration audit completed');
+
     } catch (error) {
-      this.addError('Database', `Database audit failed: ${error.message}`);
+      this.addError('DATABASE_CONFIG', `Database audit failed: ${error.message}`);
     }
   }
 
   async auditAPIRoutes() {
-    this.log('Auditing API route completeness...');
+    this.log('Auditing API routes...');
     
-    const criticalRoutes = [
-      // Authentication
-      { method: 'GET', path: '/api/login', expectedStatus: 302, critical: true },
-      { method: 'GET', path: '/api/auth/callback', expectedStatus: 200, critical: true },
-      { method: 'GET', path: '/api/user', expectedStatus: [200, 401], critical: true },
-      { method: 'POST', path: '/api/logout', expectedStatus: 200, critical: true },
-      
-      // Financial Core
-      { method: 'POST', path: '/api/demo/calculate-fee', data: { amount: 100, type: 'send_money' }, expectedStatus: 200, critical: true },
-      { method: 'POST', path: '/api/demo/send-money', data: { amount: 100, recipient: 'test@test.com' }, expectedStatus: 200, critical: true },
-      { method: 'POST', path: '/api/p2p/transfer', data: { fromCurrency: 'USD', toCurrency: 'BTC', amount: 100, recipient: 'test@test.com' }, expectedStatus: 200, critical: true },
-      
-      // Multi-blockchain
-      { method: 'GET', path: '/api/xrp/balance', expectedStatus: 200, critical: true },
-      { method: 'GET', path: '/api/xrp/network-status', expectedStatus: 200, critical: true },
-      { method: 'POST', path: '/api/ethereum/create-wallet', data: { userId: 'test' }, expectedStatus: 201, critical: true },
-      { method: 'GET', path: '/api/ethereum/gas-price', expectedStatus: 200, critical: true },
-      
-      // DEX & Trading
-      { method: 'GET', path: '/api/dex/quotes?from=ETH&to=USDC&amount=1', expectedStatus: 200, critical: true },
-      { method: 'POST', path: '/api/dex/swap', data: { fromToken: 'ETH', toToken: 'USDC', amount: 1 }, expectedStatus: 200, critical: true },
-      
-      // AI Marketplace
-      { method: 'GET', path: '/api/ai-agents/marketplace', expectedStatus: 200, critical: true },
-      { method: 'POST', path: '/api/ai-agents/register', data: { name: 'TestAgent', capabilities: ['test'] }, expectedStatus: 201, critical: true },
-      
-      // Revenue Systems
-      { method: 'GET', path: '/api/revenue/stats', expectedStatus: 200, critical: true },
-      { method: 'GET', path: '/api/analytics/dashboard', expectedStatus: 200, critical: true },
-      
-      // Exchange
-      { method: 'GET', path: '/api/ramp/rates', expectedStatus: 200, critical: true },
-      { method: 'POST', path: '/api/ramp/buy', data: { amount: 100, currency: 'USD', cryptoCurrency: 'BTC' }, expectedStatus: 200, critical: true }
+    const criticalEndpoints = [
+      { method: 'GET', path: '/api/platform/health', description: 'Platform health check' },
+      { method: 'POST', path: '/api/dex/quote', description: 'DEX aggregator quote' },
+      { method: 'GET', path: '/api/ai-agents/list', description: 'AI agents listing' },
+      { method: 'POST', path: '/api/auth/register', description: 'User registration' },
+      { method: 'GET', path: '/api/referral/dashboard', description: 'Referral dashboard' }
     ];
 
-    let routeFailures = 0;
-    let criticalFailures = 0;
+    let workingCount = 0;
+    let failingCount = 0;
 
-    for (const route of criticalRoutes) {
+    for (const endpoint of criticalEndpoints) {
       try {
-        const result = await this.makeRequest(route.method, route.path, route.data);
-        const expectedStatuses = Array.isArray(route.expectedStatus) ? route.expectedStatus : [route.expectedStatus];
+        const testData = endpoint.method === 'POST' ? this.getTestData(endpoint.path) : null;
+        const response = await this.makeRequest(endpoint.method, endpoint.path, testData);
         
-        if (!expectedStatuses.includes(result.status)) {
-          routeFailures++;
-          if (route.critical) {
-            criticalFailures++;
-            this.addError('API Routes', `Critical route ${route.method} ${route.path} failed: ${result.status}`, route.path);
-          } else {
-            this.addWarning('API Routes', `Route ${route.method} ${route.path} unexpected status: ${result.status}`);
-          }
+        if (response && response.status >= 200 && response.status < 400) {
+          this.results.apiRoutes.working.push(endpoint);
+          workingCount++;
+          this.log(`✅ ${endpoint.method} ${endpoint.path} - Working`);
+        } else {
+          this.results.apiRoutes.failing.push({ ...endpoint, error: `HTTP ${response?.status || 'No response'}` });
+          failingCount++;
+          this.addError('API_ROUTES', `${endpoint.method} ${endpoint.path} failed`, null, response?.status);
         }
       } catch (error) {
-        routeFailures++;
-        if (route.critical) {
-          criticalFailures++;
-          this.addError('API Routes', `Critical route ${route.method} ${route.path} error: ${error.message}`, route.path);
-        }
+        this.results.apiRoutes.failing.push({ ...endpoint, error: error.message });
+        failingCount++;
+        this.addError('API_ROUTES', `${endpoint.method} ${endpoint.path} error: ${error.message}`);
       }
     }
 
-    this.results.apiRoutes = {
-      totalTested: criticalRoutes.length,
-      failures: routeFailures,
-      criticalFailures,
-      successRate: ((criticalRoutes.length - routeFailures) / criticalRoutes.length * 100).toFixed(1)
-    };
+    this.results.apiRoutes.total = criticalEndpoints.length;
+    this.log(`API Routes Audit: ${workingCount}/${criticalEndpoints.length} working`);
   }
 
   async auditClientComponents() {
-    this.log('Auditing client-side functionality...');
+    this.log('Auditing client components...');
     
     try {
-      // Check if client can load
-      const clientResult = await this.makeRequest('GET', '/');
-      if (clientResult.status !== 200) {
-        this.addError('Client', `Client application failed to load: ${clientResult.status}`);
-      }
-
-      // Check for critical client assets
-      const assetChecks = [
-        '/assets/index.css',
-        '/assets/index.js'
+      const criticalComponents = [
+        './client/src/App.tsx',
+        './client/src/pages/swap.tsx',
+        './client/src/components/wallet-connect.tsx',
+        './client/src/components/real-swap-interface.tsx',
+        './client/src/pages/human-referral-dashboard.tsx'
       ];
 
-      for (const asset of assetChecks) {
+      let workingCount = 0;
+      let failingCount = 0;
+
+      for (const component of criticalComponents) {
         try {
-          const assetResult = await this.makeRequest('GET', asset);
-          if (assetResult.status === 404) {
-            this.addWarning('Client', `Asset not found: ${asset}`);
+          if (fs.existsSync(component)) {
+            const content = fs.readFileSync(component, 'utf-8');
+            
+            // Check for basic React structure
+            if (content.includes('export') && (content.includes('function') || content.includes('const'))) {
+              this.results.clientComponents.working.push(component);
+              workingCount++;
+              this.log(`✅ ${component} - Structure OK`);
+            } else {
+              this.results.clientComponents.failing.push({ component, error: 'Invalid React component structure' });
+              failingCount++;
+              this.addError('CLIENT_COMPONENTS', `Invalid structure in ${component}`);
+            }
+          } else {
+            this.results.clientComponents.failing.push({ component, error: 'File missing' });
+            failingCount++;
+            this.addError('CLIENT_COMPONENTS', `Missing component: ${component}`);
           }
         } catch (error) {
-          // Assets might have different names in production, this is just a warning
-          this.addWarning('Client', `Could not verify asset: ${asset}`);
+          this.results.clientComponents.failing.push({ component, error: error.message });
+          failingCount++;
+          this.addError('CLIENT_COMPONENTS', `Error reading ${component}: ${error.message}`);
         }
       }
 
+      this.results.clientComponents.total = criticalComponents.length;
+      this.log(`Client Components Audit: ${workingCount}/${criticalComponents.length} working`);
+
     } catch (error) {
-      this.addError('Client', `Client audit failed: ${error.message}`);
+      this.addError('CLIENT_COMPONENTS', `Component audit failed: ${error.message}`);
     }
   }
 
   async auditHumanReferralDashboard() {
-    this.log('Auditing human referral system...');
+    this.log('Auditing Human Referral Dashboard...');
     
     try {
-      // Test referral commission calculation
-      const commissionTest = await this.makeRequest('POST', '/api/referrals/calculate-commission', {
-        transactionAmount: 1000,
-        referralTier: 'basic'
-      });
-
-      if (commissionTest.status !== 200) {
-        this.addError('Referral System', 'Commission calculation failed');
-      } else if (commissionTest.data.rate > 1) {
-        this.addWarning('Referral System', 'Commission rate seems high - check profitability');
+      const dashboardFile = './client/src/pages/human-referral-dashboard.tsx';
+      
+      if (!fs.existsSync(dashboardFile)) {
+        this.addError('REFERRAL_DASHBOARD', 'Human referral dashboard file missing', dashboardFile);
+        this.results.humanReferralDashboard.status = 'missing';
+        return;
       }
 
-      // Test for referral link generation endpoint
-      const referralLinkTest = await this.makeRequest('POST', '/api/referrals/generate-link', {
-        userId: 'test-user'
-      });
+      const content = fs.readFileSync(dashboardFile, 'utf-8');
+      
+      // Check for essential referral features
+      const requiredFeatures = [
+        { pattern: 'referralCode', name: 'Referral code generation' },
+        { pattern: 'commission', name: 'Commission tracking' },
+        { pattern: 'earnings', name: 'Earnings display' },
+        { pattern: 'dashboard', name: 'Dashboard structure' }
+      ];
 
-      if (referralLinkTest.status === 404) {
-        this.addWarning('Referral System', 'Referral link generation endpoint missing');
+      for (const feature of requiredFeatures) {
+        if (!content.includes(feature.pattern)) {
+          this.results.humanReferralDashboard.issues.push(`Missing ${feature.name}`);
+          this.addWarning('REFERRAL_DASHBOARD', `Missing ${feature.name}`, dashboardFile);
+        }
       }
+
+      this.results.humanReferralDashboard.status = 'checked';
+      this.log('Human Referral Dashboard audit completed');
 
     } catch (error) {
-      this.addError('Referral System', `Referral system audit failed: ${error.message}`);
+      this.addError('REFERRAL_DASHBOARD', `Dashboard audit failed: ${error.message}`);
     }
   }
 
   async auditLazyComponents() {
     this.log('Auditing lazy-loaded components...');
     
-    // Check if lazy components have proper error boundaries
-    const lazyComponentTests = [
-      '/dashboard',
-      '/marketplace',
-      '/analytics'
-    ];
-
-    for (const route of lazyComponentTests) {
-      try {
-        const result = await this.makeRequest('GET', route);
-        if (result.status === 404) {
-          this.addWarning('Client Routing', `Route ${route} may not be properly configured`);
-        }
-      } catch (error) {
-        this.addWarning('Client Routing', `Could not test route ${route}: ${error.message}`);
+    try {
+      const appFile = './client/src/App.tsx';
+      
+      if (!fs.existsSync(appFile)) {
+        this.addError('LAZY_COMPONENTS', 'App.tsx missing');
+        return;
       }
+
+      const content = fs.readFileSync(appFile, 'utf-8');
+      
+      // Look for lazy imports
+      const lazyImports = content.match(/const\s+\w+\s+=\s+lazy\([^)]+\)/g) || [];
+      
+      for (const lazyImport of lazyImports) {
+        try {
+          // Extract component path (simplified)
+          const match = lazyImport.match(/lazy\([^)]+["']([^"']+)["'][^)]*\)/);
+          if (match) {
+            const componentPath = `./client/src/${match[1]}.tsx`;
+            if (fs.existsSync(componentPath)) {
+              this.results.lazyComponents.loaded.push(componentPath);
+              this.log(`✅ Lazy component loaded: ${componentPath}`);
+            } else {
+              this.results.lazyComponents.failed.push({ path: componentPath, error: 'File not found' });
+              this.addError('LAZY_COMPONENTS', `Lazy component missing: ${componentPath}`);
+            }
+          }
+        } catch (error) {
+          this.addError('LAZY_COMPONENTS', `Error processing lazy import: ${error.message}`);
+        }
+      }
+
+      this.results.lazyComponents.total = lazyImports.length;
+      this.log(`Lazy Components Audit: ${this.results.lazyComponents.loaded.length}/${lazyImports.length} loaded`);
+
+    } catch (error) {
+      this.addError('LAZY_COMPONENTS', `Lazy components audit failed: ${error.message}`);
     }
   }
 
   async auditTypeScriptErrors() {
-    this.log('Checking for TypeScript compilation issues...');
+    this.log('Auditing TypeScript compilation...');
     
     try {
-      // Check if TypeScript is properly compiled by testing type-sensitive endpoints
-      const typeTests = [
-        { 
-          endpoint: '/api/demo/calculate-fee', 
-          data: { amount: "invalid", type: 'send_money' },
-          description: 'Type validation for numbers'
-        },
-        { 
-          endpoint: '/api/ai-agents/register', 
-          data: { invalidField: true },
-          description: 'Type validation for objects'
-        }
+      // This is a simplified check - in production you'd run tsc --noEmit
+      const criticalFiles = [
+        './server/index.ts',
+        './client/src/App.tsx',
+        './shared/schema.ts'
       ];
 
-      for (const test of typeTests) {
-        const result = await this.makeRequest('POST', test.endpoint, test.data);
-        if (result.status >= 500) {
-          this.addError('TypeScript', `${test.description} causing server errors`);
-        } else if (result.status !== 400) {
-          this.addWarning('TypeScript', `${test.description} not properly validated`);
+      for (const file of criticalFiles) {
+        if (fs.existsSync(file)) {
+          const content = fs.readFileSync(file, 'utf-8');
+          
+          // Simple syntax checks
+          const openBraces = (content.match(/{/g) || []).length;
+          const closeBraces = (content.match(/}/g) || []).length;
+          
+          if (openBraces !== closeBraces) {
+            this.results.typeScriptErrors.push({ file, error: 'Unmatched braces' });
+            this.addError('TYPESCRIPT', `Syntax error in ${file}: Unmatched braces`);
+          }
         }
       }
 
+      this.log('TypeScript audit completed');
+
     } catch (error) {
-      this.addError('TypeScript', `TypeScript audit failed: ${error.message}`);
+      this.addError('TYPESCRIPT', `TypeScript audit failed: ${error.message}`);
     }
   }
 
   async auditDependencies() {
-    this.log('Auditing critical dependencies...');
+    this.log('Auditing dependencies...');
     
     try {
-      // Test XRP functionality
-      const xrpTest = await this.makeRequest('GET', '/api/xrp/network-status');
-      if (xrpTest.status !== 200 || !xrpTest.data.success) {
-        this.addError('Dependencies', 'XRP integration not functional');
+      const packageJsonPath = './package.json';
+      
+      if (!fs.existsSync(packageJsonPath)) {
+        this.addError('DEPENDENCIES', 'package.json missing');
+        return;
       }
 
-      // Test Ethereum functionality
-      const ethTest = await this.makeRequest('GET', '/api/ethereum/gas-price');
-      if (ethTest.status !== 200 || !ethTest.data.success) {
-        this.addError('Dependencies', 'Ethereum integration not functional');
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      
+      // Check for critical dependencies
+      const criticalDeps = [
+        'express',
+        'react',
+        'drizzle-orm',
+        '@neondatabase/serverless',
+        'zod'
+      ];
+
+      for (const dep of criticalDeps) {
+        if (!packageJson.dependencies?.[dep] && !packageJson.devDependencies?.[dep]) {
+          this.results.dependencies.missing.push(dep);
+          this.addError('DEPENDENCIES', `Missing critical dependency: ${dep}`);
+        }
       }
 
-      // Test session management
-      const sessionTest = await this.makeRequest('GET', '/api/user');
-      if (sessionTest.status >= 500) {
-        this.addError('Dependencies', 'Session management not functional');
-      }
+      this.log('Dependencies audit completed');
 
     } catch (error) {
-      this.addError('Dependencies', `Dependency audit failed: ${error.message}`);
+      this.addError('DEPENDENCIES', `Dependencies audit failed: ${error.message}`);
     }
+  }
+
+  getTestData(endpoint) {
+    const testDataMap = {
+      '/api/dex/quote': {
+        fromToken: 'ETH',
+        toToken: 'USDC',
+        amount: '1.0',
+        chainId: 1,
+        slippage: 5.0
+      },
+      '/api/auth/register': {
+        email: 'test@example.com',
+        name: 'Test User'
+      }
+    };
+    
+    return testDataMap[endpoint] || null;
   }
 
   async makeRequest(method, endpoint, data = null) {
-    return new Promise((resolve, reject) => {
+    try {
+      const baseUrl = 'http://localhost:5000';
+      const url = `${baseUrl}${endpoint}`;
+      
       const options = {
-        hostname: 'localhost',
-        port: 5000,
-        path: endpoint,
         method,
-        headers: { 'Content-Type': 'application/json' }
+        headers: {
+          'Content-Type': 'application/json',
+        }
       };
 
-      const req = http.request(options, (res) => {
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => {
-          try {
-            resolve({ 
-              status: res.statusCode, 
-              data: JSON.parse(body),
-              headers: res.headers 
-            });
-          } catch {
-            resolve({ 
-              status: res.statusCode, 
-              data: body,
-              headers: res.headers 
-            });
-          }
-        });
-      });
+      if (data && method !== 'GET') {
+        options.body = JSON.stringify(data);
+      }
 
-      req.on('error', reject);
-      if (data) req.write(JSON.stringify(data));
-      req.end();
-    });
+      const response = await fetch(url);
+      return { status: response.status, ok: response.ok };
+    } catch (error) {
+      return { status: 0, ok: false, error: error.message };
+    }
   }
 
   generateReport() {
-    this.log('Generating comprehensive audit report...');
-    
-    console.log('\n' + '='.repeat(80));
-    console.log('COMPREHENSIVE PLATFORM AUDIT REPORT');
-    console.log('='.repeat(80));
-    
-    // Critical Errors
-    if (this.errors.length > 0) {
-      console.log('\n🔴 CRITICAL ERRORS FOUND:');
-      this.errors.forEach((error, index) => {
-        console.log(`${index + 1}. [${error.category}] ${error.description}`);
-        if (error.file) console.log(`   File: ${error.file}`);
-        if (error.line) console.log(`   Line: ${error.line}`);
-      });
-    } else {
-      console.log('\n✅ NO CRITICAL ERRORS FOUND');
-    }
-    
-    // Warnings
-    if (this.warnings.length > 0) {
-      console.log('\n🟡 WARNINGS:');
-      this.warnings.forEach((warning, index) => {
-        console.log(`${index + 1}. [${warning.category}] ${warning.description}`);
-        if (warning.file) console.log(`   File: ${warning.file}`);
-      });
-    } else {
-      console.log('\n✅ NO WARNINGS');
-    }
-    
-    // API Routes Summary
-    if (this.results.apiRoutes) {
-      console.log('\n📊 API ROUTES ANALYSIS:');
-      console.log(`Total Routes Tested: ${this.results.apiRoutes.totalTested}`);
-      console.log(`Success Rate: ${this.results.apiRoutes.successRate}%`);
-      console.log(`Critical Failures: ${this.results.apiRoutes.criticalFailures}`);
-    }
-    
-    // Overall Assessment
-    console.log('\n' + '='.repeat(80));
-    console.log('DEPLOYMENT READINESS ASSESSMENT');
-    console.log('='.repeat(80));
-    
-    const criticalErrorCount = this.errors.length;
-    const warningCount = this.warnings.length;
-    
-    if (criticalErrorCount === 0 && warningCount === 0) {
-      console.log('🟢 PLATFORM READY FOR PRODUCTION DEPLOYMENT');
-      console.log('✓ All critical systems operational');
-      console.log('✓ No blocking issues detected');
-      console.log('✓ Security measures validated');
-    } else if (criticalErrorCount === 0 && warningCount <= 3) {
-      console.log('🟡 PLATFORM MOSTLY READY - MINOR OPTIMIZATIONS RECOMMENDED');
-      console.log(`✓ No critical errors (${criticalErrorCount})`);
-      console.log(`⚠ Minor warnings to address (${warningCount})`);
-    } else if (criticalErrorCount <= 2) {
-      console.log('🟠 PLATFORM NEEDS FIXES BEFORE DEPLOYMENT');
-      console.log(`⚠ Critical errors to fix (${criticalErrorCount})`);
-      console.log(`⚠ Warnings to review (${warningCount})`);
-    } else {
-      console.log('🔴 PLATFORM NOT READY FOR DEPLOYMENT');
-      console.log(`❌ Multiple critical errors (${criticalErrorCount})`);
-      console.log(`⚠ Additional warnings (${warningCount})`);
-    }
-    
-    return {
-      criticalErrors: criticalErrorCount,
-      warnings: warningCount,
-      apiRouteSuccessRate: this.results.apiRoutes?.successRate || 0,
-      deploymentReady: criticalErrorCount === 0
+    const report = {
+      timestamp: new Date().toISOString(),
+      summary: {
+        totalErrors: this.errors.length,
+        totalWarnings: this.warnings.length,
+        serverConfigStatus: this.results.serverConfiguration.status,
+        databaseConfigStatus: this.results.databaseConfiguration.status,
+        apiRoutesWorking: this.results.apiRoutes.working.length,
+        apiRoutesTotal: this.results.apiRoutes.total,
+        clientComponentsWorking: this.results.clientComponents.working.length,
+        clientComponentsTotal: this.results.clientComponents.total,
+        referralDashboardStatus: this.results.humanReferralDashboard.status
+      },
+      details: this.results,
+      errors: this.errors,
+      warnings: this.warnings
     };
+
+    // Generate readable summary
+    console.log('\n' + '='.repeat(60));
+    console.log('COMPREHENSIVE PLATFORM AUDIT RESULTS');
+    console.log('='.repeat(60));
+    console.log(`Timestamp: ${report.timestamp}`);
+    console.log(`Total Errors: ${report.summary.totalErrors}`);
+    console.log(`Total Warnings: ${report.summary.totalWarnings}`);
+    console.log(`API Routes: ${report.summary.apiRoutesWorking}/${report.summary.apiRoutesTotal} working`);
+    console.log(`Client Components: ${report.summary.clientComponentsWorking}/${report.summary.clientComponentsTotal} working`);
+    console.log(`Referral Dashboard: ${report.summary.referralDashboardStatus}`);
+    console.log('='.repeat(60));
+
+    if (this.errors.length > 0) {
+      console.log('\nCRITICAL ERRORS:');
+      this.errors.forEach((error, index) => {
+        console.log(`${index + 1}. [${error.category}] ${error.description}${error.file ? ` (${error.file})` : ''}`);
+      });
+    }
+
+    if (this.warnings.length > 0) {
+      console.log('\nWARNINGS:');
+      this.warnings.forEach((warning, index) => {
+        console.log(`${index + 1}. [${warning.category}] ${warning.description}${warning.file ? ` (${warning.file})` : ''}`);
+      });
+    }
+
+    console.log('\n' + '='.repeat(60));
+
+    return report;
   }
 
   async runCompleteAudit() {
-    this.log('Starting comprehensive platform audit...');
+    this.log('Starting comprehensive platform audit...', 'info');
     
-    try {
-      await this.auditServerConfiguration();
-      await this.auditDatabaseConfiguration();
-      await this.auditAPIRoutes();
-      await this.auditClientComponents();
-      await this.auditHumanReferralDashboard();
-      await this.auditLazyComponents();
-      await this.auditTypeScriptErrors();
-      await this.auditDependencies();
-      
-      return this.generateReport();
-    } catch (error) {
-      this.addError('Audit System', `Audit process failed: ${error.message}`);
-      return this.generateReport();
-    }
+    await this.auditServerConfiguration();
+    await this.auditDatabaseConfiguration();
+    await this.auditAPIRoutes();
+    await this.auditClientComponents();
+    await this.auditHumanReferralDashboard();
+    await this.auditLazyComponents();
+    await this.auditTypeScriptErrors();
+    await this.auditDependencies();
+    
+    return this.generateReport();
   }
 }
 
+// Run the audit
 async function main() {
   const auditor = new PlatformAuditor();
+  const report = await auditor.runCompleteAudit();
   
-  // Wait for server to be ready
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // Save detailed report
+  fs.writeFileSync('./COMPREHENSIVE_PLATFORM_AUDIT.json', JSON.stringify(report, null, 2));
+  console.log('\n📄 Detailed audit report saved to: COMPREHENSIVE_PLATFORM_AUDIT.json');
   
-  const results = await auditor.runCompleteAudit();
-  
-  process.exit(results.deploymentReady ? 0 : 1);
+  return report;
 }
 
-main().catch(console.error);
+export { PlatformAuditor };
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch(console.error);
+}

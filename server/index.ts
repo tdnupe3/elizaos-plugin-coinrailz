@@ -4,6 +4,7 @@ import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
 import { registerDemoRoutes } from "./routes-demo";
+import { registerDEXProductionRoutes } from "./dexProductionRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
@@ -93,6 +94,9 @@ setupProductionAuth(app);
 
 // Register demo routes BEFORE Vite middleware to prevent interception
 registerDemoRoutes(app);
+
+// Register DEX production routes BEFORE Vite middleware
+registerDEXProductionRoutes(app);
 
 // Setup simple API routes BEFORE Vite middleware
 const server = setupSimpleRoutes(app);

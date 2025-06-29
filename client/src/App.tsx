@@ -37,14 +37,15 @@ import {
   DemoCryptoTransfer,
   EnhancedReferralDashboard,
   HumanReferralDashboard,
-  XRPEcosystemDashboard,
+
   XRPCrossBorderPayments,
   XRPInstantSettlements,
   XRPEscrowServices
 
 } from "@/lib/lazyComponents";
 
-// Import XRP Phase 3 services directly for better routing
+// Import XRP services directly for consistent routing
+import XRPEcosystemDashboard from "@/pages/xrp-ecosystem-dashboard";
 import XRPLiquidityProvision from "@/pages/xrp-liquidity-provision";
 import XRPWalletManagement from "@/pages/xrp-wallet-management";
 import XRPComplianceTools from "@/pages/xrp-compliance-tools";
@@ -137,7 +138,7 @@ function Router() {
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/xrp-ecosystem">
-        {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
+        {() => <XRPEcosystemDashboard />}
       </Route>
       <Route path="/xrp-ecosystem-dashboard">
         {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}

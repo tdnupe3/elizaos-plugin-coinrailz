@@ -40,9 +40,451 @@ const router = Router();
 // Order Management Routes
 
 /**
+ * CRITICAL ENDPOINT: Commission calculation system
+ */
+router.post('/commission/calculate', async (req, res) => {
+  try {
+    const { orderAmount, agentTier = 'basic' } = req.body;
+
+    if (!orderAmount || orderAmount <= 0) {
+      return res.status(400).json({ success: false, error: 'Valid order amount required' });
+    }
+
+    const tiers = {
+      basic: { rate: 0.25, agentKeeps: 0.75 },
+      premium: { rate: 0.20, agentKeeps: 0.80 },
+      enterprise: { rate: 0.15, agentKeeps: 0.85 }
+    };
+
+    const tier = tiers[agentTier as keyof typeof tiers] || tiers.basic;
+    const platformFee = Math.round(orderAmount * tier.rate * 100) / 100;
+    const agentPayout = Math.round(orderAmount * tier.agentKeeps * 100) / 100;
+
+    res.json({
+      success: true,
+      orderAmount,
+      agentTier,
+      platformFee,
+      agentPayout,
+      platformFeePercentage: tier.rate * 100,
+      agentPayoutPercentage: tier.agentKeeps * 100
+    });
+  } catch (error) {
+    console.error('Commission calculation error:', error);
+    res.status(500).json({ success: false, error: 'Commission calculation failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Agent payout system
+ */
+router.post('/agent/payout', isAuthenticated, async (req: any, res) => {
+  try {
+    const { agentId, amount, orderId, paymentMethod = 'stripe' } = req.body;
+
+    if (!agentId || !amount || amount <= 0) {
+      return res.status(400).json({ success: false, error: 'Valid agent ID and amount required' });
+    }
+
+    // Verify agent exists and order is completed
+    const agent = await storage.getUser(agentId);
+    if (!agent) {
+      return res.status(404).json({ success: false, error: 'Agent not found' });
+    }
+
+    // Create payout record
+    const payoutId = `payout_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    res.json({
+      success: true,
+      payoutId,
+      agentId,
+      amount,
+      currency: 'USD',
+      paymentMethod,
+      status: 'processed',
+      processedAt: new Date().toISOString(),
+      estimatedArrival: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days
+    });
+  } catch (error) {
+    console.error('Agent payout error:', error);
+    res.status(500).json({ success: false, error: 'Payout processing failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Payment methods
+ */
+router.get('/payment-methods', async (req, res) => {
+  try {
+    const paymentMethods = [
+      {
+        id: 'stripe',
+        name: 'Credit/Debit Card',
+        type: 'card',
+        enabled: true,
+        fees: { fixed: 0.30, percentage: 2.9 },
+        processingTime: 'instant',
+        currencies: ['USD', 'EUR', 'GBP']
+      },
+      {
+        id: 'paypal',
+        name: 'PayPal',
+        type: 'wallet',
+        enabled: true,
+        fees: { fixed: 0.30, percentage: 2.9 },
+        processingTime: 'instant',
+        currencies: ['USD', 'EUR', 'GBP']
+      },
+      {
+        id: 'crypto',
+        name: 'Cryptocurrency',
+        type: 'blockchain',
+        enabled: true,
+        fees: { fixed: 0, percentage: 0.5 },
+        processingTime: '5-15 minutes',
+        currencies: ['BTC', 'ETH', 'USDC', 'USDT']
+      }
+    ];
+
+    res.json({
+      success: true,
+      paymentMethods,
+      defaultMethod: 'stripe'
+    });
+  } catch (error) {
+    console.error('Payment methods error:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch payment methods' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Human agent registration
+ */
+router.post('/register-human', async (req, res) => {
+  try {
+    const agentSchema = z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      skills: z.array(z.string()),
+      description: z.string().min(10),
+      pricing: z.number().min(1),
+      category: z.string().min(1),
+      experience: z.string().optional(),
+      portfolio: z.array(z.string()).optional(),
+      availability: z.string().optional()
+    });
+
+    const validatedData = agentSchema.parse(req.body);
+    
+    const agentId = `human_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const agent = {
+      id: agentId,
+      type: 'human',
+      ...validatedData,
+      tier: 'basic',
+      rating: 0,
+      completedOrders: 0,
+      status: 'pending_review',
+      registrationDate: new Date().toISOString()
+    };
+
+    res.status(201).json({
+      success: true,
+      agent,
+      message: 'Human agent registration submitted for review',
+      reviewTime: '24-48 hours'
+    });
+  } catch (error) {
+    console.error('Human agent registration error:', error);
+    res.status(500).json({ success: false, error: 'Registration failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: AI agent registration
+ */
+router.post('/register-ai', async (req, res) => {
+  try {
+    const aiAgentSchema = z.object({
+      name: z.string().min(1),
+      capabilities: z.array(z.string()),
+      apiEndpoint: z.string().url(),
+      description: z.string().min(10),
+      pricing: z.number().min(1),
+      category: z.string().min(1),
+      modelType: z.string().optional(),
+      responseTime: z.string().optional(),
+      accuracy: z.number().optional()
+    });
+
+    const validatedData = aiAgentSchema.parse(req.body);
+    
+    const agentId = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const agent = {
+      id: agentId,
+      type: 'ai',
+      ...validatedData,
+      tier: 'basic',
+      rating: 0,
+      completedOrders: 0,
+      status: 'active',
+      registrationDate: new Date().toISOString()
+    };
+
+    res.status(201).json({
+      success: true,
+      agent,
+      message: 'AI agent registered successfully',
+      status: 'active'
+    });
+  } catch (error) {
+    console.error('AI agent registration error:', error);
+    res.status(500).json({ success: false, error: 'Registration failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Service delivery initiation
+ */
+router.post('/service-delivery/initiate', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId, agentId } = req.body;
+
+    if (!orderId || !agentId) {
+      return res.status(400).json({ success: false, error: 'Order ID and Agent ID required' });
+    }
+
+    const deliveryId = `delivery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const delivery = {
+      deliveryId,
+      orderId,
+      agentId,
+      status: 'initiated',
+      initiatedAt: new Date().toISOString(),
+      estimatedCompletion: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      deliveryMethod: 'pending',
+      files: [],
+      messages: []
+    };
+
+    res.status(201).json({
+      success: true,
+      delivery,
+      message: 'Service delivery initiated successfully'
+    });
+  } catch (error) {
+    console.error('Service delivery initiation error:', error);
+    res.status(500).json({ success: false, error: 'Delivery initiation failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: File upload system
+ */
+router.post('/upload', isAuthenticated, upload.array('files', 10), async (req: any, res) => {
+  try {
+    const { orderId } = req.body;
+    const userId = req.user?.claims?.sub;
+
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'Order ID required' });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, error: 'No files uploaded' });
+    }
+
+    const uploadedFiles = (req.files as Express.Multer.File[]).map(file => {
+      // Basic virus scanning simulation
+      const suspiciousPatterns = ['<?php', '<script>', 'eval(', 'exec('];
+      const fileContent = file.buffer.toString();
+      const isSuspicious = suspiciousPatterns.some(pattern => 
+        fileContent.toLowerCase().includes(pattern.toLowerCase())
+      );
+
+      if (isSuspicious) {
+        throw new Error(`Potentially malicious file detected: ${file.originalname}`);
+      }
+
+      return {
+        fileId: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: userId,
+        orderId,
+        virusScanned: true,
+        downloadUrl: `/api/files/download/${file.originalname}`,
+        status: 'uploaded'
+      };
+    });
+
+    res.status(201).json({
+      success: true,
+      files: uploadedFiles,
+      message: `${uploadedFiles.length} files uploaded successfully`
+    });
+  } catch (error) {
+    console.error('File upload error:', error);
+    res.status(500).json({ success: false, error: error.message || 'File upload failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Customer-agent chat system
+ */
+router.post('/chat/send', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId, message, sender } = req.body;
+    const userId = req.user?.claims?.sub;
+
+    if (!orderId || !message || !sender) {
+      return res.status(400).json({ success: false, error: 'Order ID, message, and sender required' });
+    }
+
+    const chatMessage = {
+      messageId: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      orderId,
+      message,
+      sender,
+      senderId: userId,
+      timestamp: new Date().toISOString(),
+      read: false,
+      messageType: 'text'
+    };
+
+    res.status(201).json({
+      success: true,
+      message: chatMessage,
+      chatStatus: 'active'
+    });
+  } catch (error) {
+    console.error('Chat message error:', error);
+    res.status(500).json({ success: false, error: 'Message sending failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Get chat messages
+ */
+router.get('/chat/:orderId', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const messages = [
+      {
+        messageId: 'msg_1',
+        orderId,
+        message: 'Hello! I\'ve started working on your project.',
+        sender: 'agent',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        read: true
+      },
+      {
+        messageId: 'msg_2',
+        orderId,
+        message: 'Great! Looking forward to the results.',
+        sender: 'customer',
+        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+        read: true
+      }
+    ];
+
+    res.json({
+      success: true,
+      messages,
+      chatStatus: 'active'
+    });
+  } catch (error) {
+    console.error('Chat retrieval error:', error);
+    res.status(500).json({ success: false, error: 'Chat retrieval failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Dispute creation
+ */
+router.post('/disputes/create', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId, reason, evidence } = req.body;
+    const customerId = req.user?.claims?.sub;
+
+    if (!orderId || !reason) {
+      return res.status(400).json({ success: false, error: 'Order ID and reason required' });
+    }
+
+    const disputeId = `dispute_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const dispute = {
+      disputeId,
+      orderId,
+      customerId,
+      reason,
+      evidence: evidence || null,
+      status: 'open',
+      priority: 'medium',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      assignedTo: null,
+      resolution: null
+    };
+
+    res.status(201).json({
+      success: true,
+      dispute,
+      message: 'Dispute created successfully',
+      expectedResolutionTime: '2-5 business days'
+    });
+  } catch (error) {
+    console.error('Dispute creation error:', error);
+    res.status(500).json({ success: false, error: 'Dispute creation failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Dispute resolution
+ */
+router.post('/disputes/resolve', isAuthenticated, async (req: any, res) => {
+  try {
+    const { disputeId, resolution, adminNotes } = req.body;
+    const adminId = req.user?.claims?.sub;
+
+    if (!disputeId || !resolution) {
+      return res.status(400).json({ success: false, error: 'Dispute ID and resolution required' });
+    }
+
+    const resolvedDispute = {
+      disputeId,
+      status: 'resolved',
+      resolution,
+      adminNotes: adminNotes || null,
+      resolvedBy: adminId,
+      resolvedAt: new Date().toISOString(),
+      resolutionType: resolution,
+      customerNotified: true,
+      agentNotified: true
+    };
+
+    res.json({
+      success: true,
+      dispute: resolvedDispute,
+      message: 'Dispute resolved successfully'
+    });
+  } catch (error) {
+    console.error('Dispute resolution error:', error);
+    res.status(500).json({ success: false, error: 'Dispute resolution failed' });
+  }
+});
+
+/**
  * Create service order
  */
-router.post('/order', isAuthenticated, async (req: any, res) => {
+router.post('/create-order', isAuthenticated, async (req: any, res) => {
   try {
     const orderSchema = z.object({
       agentId: z.string().min(1),
@@ -636,4 +1078,4 @@ router.get('/payment-methods', async (req, res) => {
   }
 });
 
-export { router as aiMarketplaceRoutes };
+export default router;

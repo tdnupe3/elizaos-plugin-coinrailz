@@ -16,6 +16,7 @@ import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from 
 import { paymentSchema, validateSchema } from "./middleware/inputValidation";
 import { agentQualityControl } from "./services/agentQualityControl";
 import { agentRoutes } from "./routes/agentRoutes";
+import { default as aiMarketplaceRoutes } from "./routes/aiMarketplaceRoutes";
 import { requireSecureAuth, financialRateLimit, authRateLimit, sanitizeInput } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
 import { addSecurityConstraints } from "./utils/databaseConstraints";
@@ -677,6 +678,9 @@ export function registerRoutes(app: Express): Server {
       timestamp: new Date().toISOString()
     });
   });
+
+  // Register AI Marketplace routes - CRITICAL for revenue generation
+  app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 
   // 404 handler for API routes - must come after all other routes
   app.use('/api/*', (req, res) => {

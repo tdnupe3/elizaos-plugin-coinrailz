@@ -52,6 +52,9 @@ import reviewSystem from './routes/reviewSystem';
 import referralRoutes from './routes/referralRoutes';
 import blockchainRoutes from './routes/blockchainRoutes';
 
+// Authentication system integration
+import { setupAuth } from './replitAuth';
+
 app.use('/api/agents', agentRegistration);
 app.use('/api/payments', paymentIntegration);
 app.use('/api/messaging', messagingSystem);

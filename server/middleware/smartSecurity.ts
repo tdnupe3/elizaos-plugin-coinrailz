@@ -132,12 +132,8 @@ export function smartSecurity(req: Request, res: Response, next: NextFunction) {
 
     const isPayment = SmartSecurity.isPaymentEndpoint(req.path);
     
-    // For payment endpoints, apply minimal security to avoid blocking
+    // For payment endpoints, completely skip security to prevent blocking
     if (isPayment) {
-      if (req.body && typeof req.body === 'object') {
-        // Only basic script tag removal for payment endpoints
-        req.body = SmartSecurity.sanitizeObject(req.body, true);
-      }
       return next();
     }
     

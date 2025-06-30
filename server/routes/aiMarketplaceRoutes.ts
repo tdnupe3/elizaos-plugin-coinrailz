@@ -26,8 +26,10 @@ const SECURITY_THREATS = [
   /<embed/gi,
   
   // Path traversal patterns
+  /\.\./gi,
+  /\/\.\./gi,
   /\.\.\//gi,
-  /\.\.\\\\/gi,
+  /\.\.\\/gi,
   /\.\.%2f/gi,
   /\.\.%5c/gi,
   /%2e%2e%2f/gi,
@@ -55,8 +57,12 @@ const SECURITY_THREATS = [
 function containsSecurityThreats(input: string): boolean {
   if (typeof input !== 'string') return false;
   
+  // Debug logging
+  console.log(`Security check for input: "${input}"`);
+  
   for (const pattern of SECURITY_THREATS) {
     if (pattern.test(input)) {
+      console.log(`Security threat detected with pattern: ${pattern} for input: "${input}"`);
       return true;
     }
   }

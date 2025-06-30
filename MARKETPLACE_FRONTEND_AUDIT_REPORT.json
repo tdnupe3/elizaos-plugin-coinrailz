@@ -1,7 +1,7 @@
 {
   "summary": {
-    "testExecutionTime": "2025-06-30T05:14:02.381Z",
-    "totalDuration": "0.34s",
+    "testExecutionTime": "2025-06-30T05:17:51.844Z",
+    "totalDuration": "0.17s",
     "totalTests": 40,
     "passed": 38,
     "failed": 1,
@@ -27,7 +27,7 @@
         "description": "Input validation bypass",
         "userImpact": "XSS/injection risk",
         "recommendation": "Add input sanitization",
-        "timestamp": "2025-06-30T05:14:02.286Z"
+        "timestamp": "2025-06-30T05:17:51.783Z"
       }
     ],
     "performanceIssues": [],
@@ -69,17 +69,17 @@
     {
       "test": "Categories API",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.146Z",
+      "timestamp": "2025-06-30T05:17:51.745Z",
       "details": {
-        "duration": 96,
+        "duration": 64,
         "categories": 4
       },
-      "duration": 96
+      "duration": 64
     },
     {
       "test": "Search: \"data\"",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.146Z",
+      "timestamp": "2025-06-30T05:17:51.746Z",
       "details": {
         "note": "Frontend filtering working with mock data"
       },
@@ -88,7 +88,7 @@
     {
       "test": "Search: \"content\"",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.146Z",
+      "timestamp": "2025-06-30T05:17:51.746Z",
       "details": {
         "note": "Frontend filtering working with mock data"
       },
@@ -97,7 +97,7 @@
     {
       "test": "Search: \"automation\"",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.146Z",
+      "timestamp": "2025-06-30T05:17:51.746Z",
       "details": {
         "note": "Frontend filtering working with mock data"
       },
@@ -106,7 +106,7 @@
     {
       "test": "Search: \"invalid_query_12345\"",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.146Z",
+      "timestamp": "2025-06-30T05:17:51.746Z",
       "details": {
         "note": "Frontend filtering working with mock data"
       },
@@ -115,7 +115,7 @@
     {
       "test": "Category filter: data-analysis",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.153Z",
+      "timestamp": "2025-06-30T05:17:51.747Z",
       "details": {
         "note": "Frontend category filtering operational"
       },
@@ -124,7 +124,7 @@
     {
       "test": "Category filter: content-creation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.153Z",
+      "timestamp": "2025-06-30T05:17:51.747Z",
       "details": {
         "note": "Frontend category filtering operational"
       },
@@ -133,7 +133,7 @@
     {
       "test": "Category filter: automation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.158Z",
+      "timestamp": "2025-06-30T05:17:51.747Z",
       "details": {
         "note": "Frontend category filtering operational"
       },
@@ -142,7 +142,7 @@
     {
       "test": "Category filter: consultation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.158Z",
+      "timestamp": "2025-06-30T05:17:51.747Z",
       "details": {
         "note": "Frontend category filtering operational"
       },
@@ -151,7 +151,7 @@
     {
       "test": "Category filter: all",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.158Z",
+      "timestamp": "2025-06-30T05:17:51.747Z",
       "details": {
         "note": "Frontend category filtering operational"
       },
@@ -160,30 +160,30 @@
     {
       "test": "Order Creation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.199Z",
+      "timestamp": "2025-06-30T05:17:51.758Z",
       "details": {
-        "duration": 41
+        "duration": 11
       },
-      "duration": 41
+      "duration": 11
     },
     {
       "test": "Commission Calculation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.206Z",
+      "timestamp": "2025-06-30T05:17:51.761Z",
       "details": {
-        "duration": 5,
+        "duration": 3,
         "platformFee": 25,
         "agentPayout": 75,
         "platformFeePercentage": 25
       },
-      "duration": 5
+      "duration": 3
     },
     {
       "test": "Payment Methods API",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.210Z",
+      "timestamp": "2025-06-30T05:17:51.764Z",
       "details": {
-        "duration": 3,
+        "duration": 2,
         "methodCount": 3,
         "methods": [
           "Credit/Debit Card",
@@ -191,33 +191,33 @@
           "Cryptocurrency"
         ]
       },
-      "duration": 3
+      "duration": 2
     },
     {
       "test": "Payment Method: Credit/Debit Card",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.210Z",
+      "timestamp": "2025-06-30T05:17:51.764Z",
       "details": {},
       "duration": 0
     },
     {
       "test": "Payment Method: PayPal",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.210Z",
+      "timestamp": "2025-06-30T05:17:51.764Z",
       "details": {},
       "duration": 0
     },
     {
       "test": "Payment Method: Cryptocurrency",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.210Z",
+      "timestamp": "2025-06-30T05:17:51.764Z",
       "details": {},
       "duration": 0
     },
     {
       "test": "Payment Processing: stripe",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.210Z",
+      "timestamp": "2025-06-30T05:17:51.764Z",
       "details": {
         "note": "Frontend payment flow operational",
         "amount": 50
@@ -227,7 +227,7 @@
     {
       "test": "Payment Processing: paypal",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.210Z",
+      "timestamp": "2025-06-30T05:17:51.764Z",
       "details": {
         "note": "Frontend payment flow operational",
         "amount": 75
@@ -237,7 +237,7 @@
     {
       "test": "Payment Processing: crypto",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.211Z",
+      "timestamp": "2025-06-30T05:17:51.764Z",
       "details": {
         "note": "Frontend payment flow operational",
         "amount": 100
@@ -247,29 +247,29 @@
     {
       "test": "Human Agent Registration",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.216Z",
+      "timestamp": "2025-06-30T05:17:51.768Z",
       "details": {
-        "duration": 5,
-        "agentId": "human_1751260442213_yoe6h2fbl",
+        "duration": 3,
+        "agentId": "human_1751260671767_8hz04ar4h",
         "status": "pending_review"
       },
-      "duration": 5
+      "duration": 3
     },
     {
       "test": "AI Agent Registration",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.222Z",
+      "timestamp": "2025-06-30T05:17:51.771Z",
       "details": {
-        "duration": 6,
-        "agentId": "ai_1751260442218_73heqo7pn",
+        "duration": 3,
+        "agentId": "ai_1751260671769_1us2yikqi",
         "type": "ai"
       },
-      "duration": 6
+      "duration": 3
     },
     {
       "test": "Marketplace Page Accessibility",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.222Z",
+      "timestamp": "2025-06-30T05:17:51.771Z",
       "details": {
         "note": "React components with proper accessibility patterns"
       },
@@ -278,7 +278,7 @@
     {
       "test": "Responsive Design",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.222Z",
+      "timestamp": "2025-06-30T05:17:51.771Z",
       "details": {
         "note": "Tailwind CSS responsive classes implemented"
       },
@@ -287,7 +287,7 @@
     {
       "test": "Loading States",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.222Z",
+      "timestamp": "2025-06-30T05:17:51.771Z",
       "details": {
         "note": "useQuery loading states handled appropriately"
       },
@@ -296,7 +296,7 @@
     {
       "test": "Error Boundary Handling",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.222Z",
+      "timestamp": "2025-06-30T05:17:51.771Z",
       "details": {
         "note": "React error boundaries and toast notifications"
       },
@@ -305,7 +305,7 @@
     {
       "test": "Real-time Search",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.222Z",
+      "timestamp": "2025-06-30T05:17:51.771Z",
       "details": {
         "note": "Client-side filtering working correctly"
       },
@@ -314,7 +314,7 @@
     {
       "test": "Category Filtering",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.222Z",
+      "timestamp": "2025-06-30T05:17:51.772Z",
       "details": {
         "note": "Dynamic category filtering operational"
       },
@@ -323,7 +323,7 @@
     {
       "test": "Security: Input validation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.251Z",
+      "timestamp": "2025-06-30T05:17:51.777Z",
       "details": {
         "note": "Malicious input properly rejected"
       },
@@ -332,7 +332,7 @@
     {
       "test": "Security: Input validation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.257Z",
+      "timestamp": "2025-06-30T05:17:51.779Z",
       "details": {
         "note": "Malicious input properly rejected"
       },
@@ -341,7 +341,7 @@
     {
       "test": "Security: ../../../etc/passwd...",
       "status": "FAIL",
-      "timestamp": "2025-06-30T05:14:02.286Z",
+      "timestamp": "2025-06-30T05:17:51.783Z",
       "details": {
         "issue": "Malicious input accepted"
       },
@@ -350,7 +350,7 @@
     {
       "test": "Security: Input validation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.289Z",
+      "timestamp": "2025-06-30T05:17:51.786Z",
       "details": {
         "note": "Malicious input properly rejected"
       },
@@ -359,7 +359,7 @@
     {
       "test": "Security: Input validation",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.294Z",
+      "timestamp": "2025-06-30T05:17:51.790Z",
       "details": {
         "note": "Malicious input properly rejected"
       },
@@ -368,7 +368,7 @@
     {
       "test": "Rate Limiting",
       "status": "WARNING",
-      "timestamp": "2025-06-30T05:14:02.349Z",
+      "timestamp": "2025-06-30T05:17:51.820Z",
       "details": {
         "note": "No rate limiting detected - potential abuse risk"
       },
@@ -377,37 +377,37 @@
     {
       "test": "Performance: /api/ai-marketplace/categories",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.351Z",
+      "timestamp": "2025-06-30T05:17:51.822Z",
       "details": {
-        "duration": "1ms",
+        "duration": "2ms",
         "benchmark": "Under 1 second"
       },
-      "duration": "1ms"
+      "duration": "2ms"
     },
     {
       "test": "Performance: /api/ai-marketplace/payment-methods",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.353Z",
+      "timestamp": "2025-06-30T05:17:51.824Z",
       "details": {
-        "duration": "1ms",
+        "duration": "2ms",
         "benchmark": "Under 1 second"
       },
-      "duration": "1ms"
+      "duration": "2ms"
     },
     {
       "test": "Performance: /api/ai-marketplace/commission/calculate",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.361Z",
+      "timestamp": "2025-06-30T05:17:51.826Z",
       "details": {
-        "duration": "8ms",
+        "duration": "2ms",
         "benchmark": "Under 1 second"
       },
-      "duration": "8ms"
+      "duration": "2ms"
     },
     {
       "test": "Concurrent Request Handling",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.370Z",
+      "timestamp": "2025-06-30T05:17:51.832Z",
       "details": {
         "successful": 5,
         "total": 5
@@ -417,7 +417,7 @@
     {
       "test": "Commission: $100",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.373Z",
+      "timestamp": "2025-06-30T05:17:51.836Z",
       "details": {
         "platformFee": 25,
         "agentPayout": 75
@@ -427,7 +427,7 @@
     {
       "test": "Commission: $50",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.376Z",
+      "timestamp": "2025-06-30T05:17:51.838Z",
       "details": {
         "platformFee": 12.5,
         "agentPayout": 37.5
@@ -437,7 +437,7 @@
     {
       "test": "Commission: $200",
       "status": "PASS",
-      "timestamp": "2025-06-30T05:14:02.379Z",
+      "timestamp": "2025-06-30T05:17:51.840Z",
       "details": {
         "platformFee": 50,
         "agentPayout": 150
@@ -451,14 +451,14 @@
       "description": "Input validation bypass",
       "userImpact": "XSS/injection risk",
       "recommendation": "Add input sanitization",
-      "timestamp": "2025-06-30T05:14:02.286Z"
+      "timestamp": "2025-06-30T05:17:51.783Z"
     },
     {
       "severity": "MEDIUM",
       "description": "No minimum transaction validation",
       "userImpact": "Unprofitable transactions",
       "recommendation": "Add minimum amount check",
-      "timestamp": "2025-06-30T05:14:02.381Z"
+      "timestamp": "2025-06-30T05:17:51.843Z"
     }
   ],
   "userFlowGaps": []

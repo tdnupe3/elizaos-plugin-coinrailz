@@ -90,11 +90,43 @@ app.use('/api', createRateLimit(60 * 1000, 50, 'Rate limit exceeded'));
 
 // Additional direct endpoint registrations for audit compatibility
 
+// Input sanitization helper function (simple approach to avoid regex issues)
+const sanitizeInput = (input: any): string | null => {
+  if (typeof input === 'string') {
+    // Check for dangerous patterns
+    const dangerous = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER', 'EXEC', 'UNION', 'script', 'javascript'];
+    const upperInput = input.toUpperCase();
+    
+    for (const pattern of dangerous) {
+      if (upperInput.includes(pattern)) {
+        throw new Error('Invalid input detected');
+      }
+    }
+    
+    // Basic sanitization - remove dangerous characters
+    return input.replace(/[<>"';\-]/g, '').trim();
+  }
+  return null;
+};
+
 // Critical marketplace endpoints for deployment audit
 app.get('/api/agents/search', (req, res) => {
-  res.json({
-    success: true,
-    agents: [
+  try {
+    // Validate and sanitize query parameters
+    const categoryParam = req.query.category;
+    const category = categoryParam && typeof categoryParam === 'string' ? sanitizeInput(categoryParam) : null;
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    if (limit > 100) {
+      return res.status(400).json({
+        error: 'Invalid limit',
+        message: 'Limit cannot exceed 100'
+      });
+    }
+    
+    res.json({
+      success: true,
+      agents: [
       {
         id: 'agent-001',
         name: 'Sarah AI Analytics',
@@ -116,8 +148,14 @@ app.get('/api/agents/search', (req, res) => {
         verified: true
       }
     ],
-    pagination: { page: 1, limit: 10, total: 2 }
+    pagination: { page: 1, limit: limit, total: 2 }
   });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Invalid request',
+      message: 'Request contains invalid or potentially harmful data'
+    });
+  }
 });
 
 app.get('/api/dex/tokens', (req, res) => {

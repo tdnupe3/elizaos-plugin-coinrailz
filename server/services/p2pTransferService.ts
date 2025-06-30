@@ -34,12 +34,19 @@ export class P2PTransferService {
     const isCrossPlatform = this.isCrossPlatformTransfer(senderMethod, recipientPlatform);
     
     if (isCrossPlatform) {
-      // Cross-platform transfers: Ensure minimum $15 fee to cover costs + profit
-      const baseRate = amount < 20 ? 0.15 : // 15% for small amounts
-                      amount < 50 ? 0.12 : // 12% for medium amounts  
-                      0.10; // 10% for large amounts
-      const calculatedFee = Math.round((amount * baseRate) * 100) / 100;
-      return Math.max(calculatedFee, Math.max(15, costs.total * 1.5)); // Minimum $15 or 50% profit margin
+      // Cross-platform transfers: 10% fee with proper cost coverage
+      const calculatedFee = Math.round((amount * 0.10) * 100) / 100; // 10% for cross-platform
+      // Ensure fee covers costs with minimum 50% profit margin, but use percentage-based fee
+      const minimumViableFee = costs.total * 1.5; // 50% profit margin
+      
+      // Debug logging for troubleshooting
+      console.log(`P2P Fee Debug - Amount: $${amount}`);
+      console.log(`Calculated 10% fee: $${calculatedFee}`);
+      console.log(`Total costs: $${costs.total} (processing: $${costs.processingCost}, referral: $${costs.referralCost})`);
+      console.log(`Minimum viable fee: $${minimumViableFee}`);
+      console.log(`Final fee: $${Math.max(calculatedFee, minimumViableFee)}`);
+      
+      return Math.max(calculatedFee, minimumViableFee);
     } else {
       // Same-platform or internal transfers: tiered structure with cost coverage
       let baseFee;

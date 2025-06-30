@@ -12,23 +12,29 @@ const router = Router();
 const agents = new Map();
 const agentVerifications = new Map();
 
-// Agent registration schema
+// Agent registration schema - flexible structure to match API calls
 const agentRegistrationSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   specialization: z.string().min(1, 'Specialization required'),
   skills: z.array(z.string()).min(1, 'At least one skill required'),
   experience: z.string().min(10, 'Experience description required'),
-  portfolio: z.object({
-    website: z.string().url().optional(),
-    samples: z.array(z.string()).optional(),
-    certifications: z.array(z.string()).optional()
-  }).optional(),
-  pricing: z.object({
-    hourlyRate: z.number().min(10, 'Minimum hourly rate is $10'),
-    projectMinimum: z.number().min(25, 'Minimum project fee is $25')
-  }),
-  availability: z.enum(['full-time', 'part-time', 'project-based'])
+  pricing: z.union([
+    z.object({
+      hourly: z.number().min(10, 'Minimum hourly rate is $10'),
+      fixed: z.array(z.object({
+        service: z.string(),
+        price: z.number().min(25)
+      })).optional()
+    }),
+    z.number().min(25) // Allow simple number for backward compatibility
+  ]),
+  availability: z.enum(['full-time', 'part-time', 'project-based']),
+  portfolio: z.array(z.object({
+    title: z.string(),
+    description: z.string()
+  })).optional(),
+  type: z.enum(['human', 'ai']).default('human')
 });
 
 // Register new agent

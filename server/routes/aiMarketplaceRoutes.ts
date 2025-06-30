@@ -265,7 +265,7 @@ router.post('/register-agent', async (req, res) => {
     let sanitizedBody;
     try {
       sanitizedBody = sanitizeAndValidateInput(req.body);
-    } catch (securityError) {
+    } catch (securityError: any) {
       console.log(`Security threat blocked for ${req.path}:`, securityError.message);
       return res.status(400).json({
         success: false,
@@ -323,8 +323,18 @@ router.post('/register-agent', async (req, res) => {
  */
 router.post('/register-ai', async (req, res) => {
   try {
-    // Sanitize all input data to prevent XSS attacks
-    const sanitizedBody = sanitizeAndValidateInput(req.body);
+    // Comprehensive security validation and sanitization
+    let sanitizedBody;
+    try {
+      sanitizedBody = sanitizeAndValidateInput(req.body);
+    } catch (securityError: any) {
+      console.log(`Security threat blocked for ${req.path}:`, securityError.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid input detected. Potentially malicious content blocked.',
+        message: 'Security validation failed'
+      });
+    }
     
     const aiAgentSchema = z.object({
       name: z.string().min(1),

@@ -156,9 +156,14 @@ export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
       try {
         req.body = InputValidator.sanitizeObject(req.body);
         validateObjectDepth(req.body, 0, 10); // Max depth 10
-      } catch (sanitizationError) {
-        // Log but don't block - allow legitimate business data through
-        console.warn('Sanitization warning for', req.path, ':', sanitizationError);
+      } catch (sanitizationError: any) {
+        // Block malicious content - security takes priority over convenience
+        console.error('Security threat blocked for', req.path, ':', sanitizationError.message);
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid input detected. Potentially malicious content blocked.',
+          message: 'Security validation failed'
+        });
       }
     }
     

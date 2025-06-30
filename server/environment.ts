@@ -85,8 +85,8 @@ function validateEnvironment(): EnvironmentConfig {
     ISSUER_URL: process.env.ISSUER_URL,
     
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
-    VITE_STRIPE_PUBLIC_KEY: process.env.VITE_STRIPE_PUBLIC_KEY,
     
     PAYPAL_CLIENT_ID: process.env.PAYPAL_CLIENT_ID,
     PAYPAL_CLIENT_SECRET: process.env.PAYPAL_CLIENT_SECRET,
@@ -152,7 +152,7 @@ export function isDevelopmentMode(): boolean {
 }
 
 export function hasStripeCredentials(): boolean {
-  return !!(env.STRIPE_SECRET_KEY && env.VITE_STRIPE_PUBLIC_KEY);
+  return !!(env.STRIPE_SECRET_KEY && env.STRIPE_PUBLISHABLE_KEY);
 }
 
 export function hasCryptoAPICredentials(): boolean {

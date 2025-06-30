@@ -52,6 +52,20 @@ app.use(productionSystems.trackRequests());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// CRITICAL SECURITY: Global path traversal protection
+app.use((req, res, next) => {
+  const requestBody = JSON.stringify(req.body);
+  if (requestBody.includes('..')) {
+    console.log(`GLOBAL SECURITY BLOCK: Path traversal attempt on ${req.path} - REJECTED`);
+    return res.status(400).json({
+      success: false,
+      error: 'Security violation detected',
+      message: 'Request blocked for security reasons'
+    });
+  }
+  next();
+});
+
 // Input validation and sanitization
 app.use(sanitizeInput);
 
@@ -142,6 +156,17 @@ app.post('/api/ai-marketplace/commission/calculate', express.json(), (req, res) 
 
 app.post('/api/ai-marketplace/register-agent', express.json(), (req, res) => {
   try {
+    // CRITICAL SECURITY: Block path traversal attacks immediately
+    const requestBody = JSON.stringify(req.body);
+    if (requestBody.includes('..')) {
+      console.log(`SECURITY BLOCK: Path traversal attempt detected - REJECTED`);
+      return res.status(400).json({
+        success: false,
+        error: 'Security violation: Path traversal attempt detected',
+        message: 'Request blocked for security reasons'
+      });
+    }
+
     const { name, category, description, pricing, capabilities, type = 'human' } = req.body;
     const agentId = `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     

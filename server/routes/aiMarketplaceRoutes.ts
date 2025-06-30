@@ -72,10 +72,27 @@ function containsSecurityThreats(input: string): boolean {
 
 function validateSecurityRecursive(obj: any, path: string = ''): string | null {
   if (typeof obj === 'string') {
-    // Direct path traversal detection
-    if (obj.includes('..')) {
-      console.log(`Path traversal blocked: "${obj}" at ${path}`);
-      return `Path traversal attack detected in ${path}`;
+    // Comprehensive path traversal detection
+    const pathTraversalPatterns = [
+      /\.\./,
+      /\.\.\//, 
+      /\.\.\\/,
+      /\/\.\./,
+      /\\\.\./,
+      /%2e%2e/i,
+      /%252e%252e/i,
+      /\.\.\%2f/i,
+      /\.\.\%5c/i,
+      /etc\/passwd/i,
+      /\.\.\\\\/, 
+      /\.\.\/\.\./
+    ];
+    
+    for (const pattern of pathTraversalPatterns) {
+      if (pattern.test(obj)) {
+        console.log(`Path traversal BLOCKED: "${obj}" at ${path} - matched pattern: ${pattern}`);
+        return `Path traversal attack detected in ${path}`;
+      }
     }
     
     if (containsSecurityThreats(obj)) {
@@ -342,8 +359,19 @@ router.post('/register-human', async (req, res) => {
 /**
  * CRITICAL ENDPOINT: General agent registration (handles both human and AI)
  */
-router.post('/register-agent', sanitizeInput, async (req, res) => {
+router.post('/register-agent', async (req, res) => {
   try {
+    // CRITICAL SECURITY: Block all path traversal attempts immediately
+    const requestBody = JSON.stringify(req.body);
+    if (requestBody.includes('..')) {
+      console.log(`PATH TRAVERSAL BLOCKED: Request contains ".." - REJECTED`);
+      return res.status(400).json({
+        success: false,
+        error: 'Security violation: Path traversal attempt detected',
+        message: 'Request blocked for security reasons'
+      });
+    }
+
     // Additional comprehensive security validation - catches all injection types
     const securityThreat = validateSecurityRecursive(req.body);
     if (securityThreat) {

@@ -69,6 +69,19 @@ app.use((req, res, next) => {
 // Input validation and sanitization
 app.use(sanitizeInput);
 
+// CRITICAL: Register ALL marketplace routes BEFORE Vite middleware
+import agentRegistration from './routes/agentRegistration';
+import paymentIntegration from './routes/paymentIntegration';
+import messagingSystem from './routes/messagingSystem';
+import disputeResolution from './routes/disputeResolution';
+import agentPayouts from './routes/agentPayouts';
+
+app.use('/api/agents', agentRegistration);
+app.use('/api/payments', paymentIntegration);
+app.use('/api/messaging', messagingSystem);
+app.use('/api/disputes', disputeResolution);
+app.use('/api/payouts', agentPayouts);
+
 // Environment-aware CORS
 app.use((req, res, next) => {
   const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -207,10 +220,11 @@ app.get('/api/ai-marketplace/payment-methods', (req, res) => {
   });
 });
 
-// CRITICAL: Register full AI Marketplace routes for comprehensive functionality
+// CRITICAL: Register remaining AI Marketplace routes
 import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
 import marketplaceCore from './routes/marketplaceCore';
 import marketplaceDemo from './routes/marketplaceDemo';
+
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 app.use('/api/marketplace', marketplaceDemo);
 app.use('/api/marketplace', marketplaceCore);

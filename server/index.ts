@@ -324,11 +324,11 @@ app.use('/api/data', dataMonetizationRoutes);
 // Register P2P routes with profitable fee structure BEFORE catch-all handler
 app.use('/api/p2p', p2pRoutes);
 
-// Register AI Marketplace routes BEFORE setupSimpleRoutes to prevent 404 interception
-app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
-
 // Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)
 const server = setupSimpleRoutes(app);
+
+// Register AI Marketplace routes AFTER setupSimpleRoutes but BEFORE enhanced routes
+app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);

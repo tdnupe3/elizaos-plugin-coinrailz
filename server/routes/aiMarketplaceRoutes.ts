@@ -8,6 +8,7 @@ import { AIMarketplaceCore } from '../services/aiMarketplaceCore';
 import { ServiceDeliveryCore } from '../services/serviceDeliveryCore';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
+import { sanitizeInput } from '../middleware/inputValidation';
 import { strictXSSProtection } from '../middleware/xssProtection';
 import { z } from 'zod';
 import multer from 'multer';
@@ -71,6 +72,12 @@ function containsSecurityThreats(input: string): boolean {
 
 function validateSecurityRecursive(obj: any, path: string = ''): string | null {
   if (typeof obj === 'string') {
+    // Direct path traversal detection
+    if (obj.includes('..')) {
+      console.log(`Path traversal blocked: "${obj}" at ${path}`);
+      return `Path traversal attack detected in ${path}`;
+    }
+    
     if (containsSecurityThreats(obj)) {
       return `Security threat detected in ${path}: ${obj.substring(0, 50)}...`;
     }
@@ -335,9 +342,9 @@ router.post('/register-human', async (req, res) => {
 /**
  * CRITICAL ENDPOINT: General agent registration (handles both human and AI)
  */
-router.post('/register-agent', async (req, res) => {
+router.post('/register-agent', sanitizeInput, async (req, res) => {
   try {
-    // Comprehensive security validation - catches all injection types
+    // Additional comprehensive security validation - catches all injection types
     const securityThreat = validateSecurityRecursive(req.body);
     if (securityThreat) {
       console.log(`Security threat blocked for ${req.path}:`, securityThreat);

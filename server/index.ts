@@ -18,6 +18,7 @@ import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
 import { sanitizeInput } from "./middleware/inputValidation";
 import { errorHandler } from "./middleware/errorHandler";
+import rateLimit from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
@@ -94,6 +95,62 @@ app.use('/api/reviews', reviewSystem);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/xrp', blockchainRoutes);
+
+// Enhanced security middleware for production readiness
+import rateLimit from 'express-rate-limit';
+
+// Rate limiting for different endpoint types
+const createRateLimit = (windowMs: number, max: number, message: string) => {
+  return rateLimit({
+    windowMs,
+    max,
+    message: { error: message, status: 429 },
+    standardHeaders: true,
+    legacyHeaders: false
+  });
+};
+
+// Apply rate limiting to critical endpoints
+app.use('/api/calculate-fee', createRateLimit(15 * 60 * 1000, 10, 'Too many fee calculation requests'));
+app.use('/api/orders/create', createRateLimit(5 * 60 * 1000, 3, 'Too many order creation attempts'));
+app.use('/api/data/', createRateLimit(60 * 1000, 30, 'Rate limit exceeded for data endpoints'));
+
+// SQL injection protection middleware
+app.use((req, res, next) => {
+  const sqlInjectionPatterns = [
+    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
+    /(--|#|\/\*|\*\/)/,
+    /(\bOR\b.*=.*\bOR\b|\bAND\b.*=.*\bAND\b)/i,
+    /([\'\";])/
+  ];
+
+  const checkForSQLInjection = (str: string) => {
+    return sqlInjectionPatterns.some(pattern => pattern.test(str));
+  };
+
+  // Check query parameters
+  for (const [key, value] of Object.entries(req.query)) {
+    if (typeof value === 'string' && checkForSQLInjection(value)) {
+      return res.status(400).json({
+        error: 'Invalid input detected',
+        message: 'Request contains potentially harmful content'
+      });
+    }
+  }
+
+  // Check request body
+  if (req.body && typeof req.body === 'object') {
+    const bodyStr = JSON.stringify(req.body);
+    if (checkForSQLInjection(bodyStr)) {
+      return res.status(400).json({
+        error: 'Invalid input detected',
+        message: 'Request body contains potentially harmful content'
+      });
+    }
+  }
+
+  next();
+});
 
 // Additional direct endpoint registrations for audit compatibility
 app.get('/api/dex/1inch/status', (req, res) => {

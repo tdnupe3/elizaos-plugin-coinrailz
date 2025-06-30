@@ -57,7 +57,7 @@ router.get('/pulse/health', (req, res) => {
  * GET /api/xrp/info
  * XRP Ledger information
  */
-router.get('/xrp/info', (req, res) => {
+router.get('/info', (req, res) => {
   res.json({
     success: true,
     network: 'XRP Ledger',

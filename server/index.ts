@@ -16,7 +16,7 @@ import { productionSystems } from "./productionSystems";
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
-import { sanitizeInput } from "./middleware/inputValidation";
+import { smartSecurity } from "./middleware/smartSecurity";
 import { errorHandler } from "./middleware/errorHandler";
 import rateLimitImport from 'express-rate-limit';
 const app = express();
@@ -67,8 +67,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Input validation and sanitization
-app.use(sanitizeInput);
+// Smart security middleware for balanced protection
+app.use(smartSecurity);
 
 // CRITICAL: Register ALL marketplace routes BEFORE Vite middleware
 import agentRegistration from './routes/agentRegistration';

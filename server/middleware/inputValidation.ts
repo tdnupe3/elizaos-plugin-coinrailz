@@ -163,17 +163,19 @@ export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
     }
 
     // Use basic sanitization for payment and P2P endpoints (avoid false positives)
-    const paymentEndpoints = [
-      '/api/payments/',
-      '/api/p2p/',
-      '/api/stripe/',
-      '/api/paypal/',
-      '/api/crypto/',
-      '/api/xrp/',
-      '/api/marketplace/orders'
+    const paymentPatterns = [
+      /^\/api\/payments/,
+      /^\/api\/p2p/,
+      /^\/api\/stripe/,
+      /^\/api\/paypal/,
+      /^\/api\/crypto/,
+      /^\/api\/xrp/,
+      /^\/api\/marketplace\/orders/,
+      /^\/api\/send-money/,
+      /^\/api\/transfer/
     ];
     
-    const isPaymentEndpoint = paymentEndpoints.some(endpoint => req.path.includes(endpoint));
+    const isPaymentEndpoint = paymentPatterns.some(pattern => pattern.test(req.path));
     if (isPaymentEndpoint && req.body) {
       try {
         req.body = InputValidator.sanitizeObjectBasic(req.body);

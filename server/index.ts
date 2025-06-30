@@ -9,7 +9,7 @@ import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
 import p2pRoutes from "./routes/p2pRoutes";
-import { aiMarketplaceRoutes } from "./routes/aiMarketplaceRoutes";
+import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";
@@ -324,11 +324,11 @@ app.use('/api/data', dataMonetizationRoutes);
 // Register P2P routes with profitable fee structure BEFORE catch-all handler
 app.use('/api/p2p', p2pRoutes);
 
+// Register AI Marketplace routes BEFORE setupSimpleRoutes to prevent 404 interception
+app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
+
 // Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)
 const server = setupSimpleRoutes(app);
-
-// Register AI Marketplace routes AFTER setupSimpleRoutes but BEFORE Vite middleware
-app.use('/api/ai-agents', aiMarketplaceRoutes);
 
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);

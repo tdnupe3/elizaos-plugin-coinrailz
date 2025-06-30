@@ -253,13 +253,5 @@ function setupFallbackAuth(app: Express) {
     }
   });
   
-  // Fallback user endpoint
-  app.get('/api/auth/user', (req, res) => {
-    const user = (req.session as any)?.user;
-    if (user) {
-      res.json(user);
-    } else {
-      res.status(401).json({ message: 'Not authenticated' });
-    }
-  });
+  // User endpoint moved to authRoutes.ts for consistent session handling
 };

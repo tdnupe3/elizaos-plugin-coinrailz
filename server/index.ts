@@ -18,7 +18,7 @@ import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
 import { sanitizeInput } from "./middleware/inputValidation";
 import { errorHandler } from "./middleware/errorHandler";
-import rateLimit from 'express-rate-limit';
+import rateLimitImport from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
@@ -97,11 +97,10 @@ app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/xrp', blockchainRoutes);
 
 // Enhanced security middleware for production readiness
-import rateLimit from 'express-rate-limit';
 
 // Rate limiting for different endpoint types
 const createRateLimit = (windowMs: number, max: number, message: string) => {
-  return rateLimit({
+  return rateLimitImport({
     windowMs,
     max,
     message: { error: message, status: 429 },

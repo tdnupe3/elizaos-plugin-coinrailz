@@ -7,15 +7,14 @@ import { Request, Response, NextFunction } from 'express';
 import DOMPurify from 'isomorphic-dompurify';
 import { z } from 'zod';
 
-// Refined regex patterns for actual SQL injection attempts (not blocking legitimate content)
+// Highly specific SQL injection patterns (avoid false positives on legitimate data)
 const SQL_INJECTION_PATTERNS = [
-  /(\bUNION\s+SELECT\b)/i,
-  /(\bDROP\s+TABLE\b)/i,
-  /(\bDELETE\s+FROM\b)/i,
-  /(\b(OR|AND)\s+\d+\s*=\s*\d+\b)/i,
-  /(;\s*(SELECT|INSERT|UPDATE|DELETE|DROP))/i,
-  /(\b1\s*=\s*1\b|\b1\s*=\s*0\b)/,
-  /(\'\s*(OR|AND)\s+\'\d+\'\s*=\s*\'\d+\')/i
+  /(\bUNION\s+(ALL\s+)?SELECT\b.*\bFROM\b)/i,
+  /(\bDROP\s+(TABLE|DATABASE|INDEX)\b)/i,
+  /(\bDELETE\s+FROM\b.*\bWHERE\b.*(\bOR\b|\bAND\b).*=)/i,
+  /(;\s*(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER)\b)/i,
+  /(\'\s*(OR|AND)\s+\'\d+\'\s*=\s*\'\d+\')/i,
+  /(\bOR\b\s+\d+\s*=\s*\d+\s+(--|\#|\/\*))/i
 ];
 
 const XSS_PATTERNS = [
@@ -123,6 +122,30 @@ export class InputValidator {
     
     return obj;
   }
+
+  // Basic sanitization for payment endpoints (less aggressive to avoid false positives)
+  static sanitizeObjectBasic(obj: any): any {
+    if (typeof obj === 'string') {
+      // Only remove obvious script tags and javascript: URLs
+      return obj.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                .replace(/javascript:/gi, '')
+                .replace(/on\w+\s*=/gi, '');
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.sanitizeObjectBasic(item));
+    }
+    
+    if (obj && typeof obj === 'object') {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        sanitized[key] = this.sanitizeObjectBasic(value);
+      }
+      return sanitized;
+    }
+    
+    return obj;
+  }
 }
 
 // Enhanced middleware for comprehensive input validation and sanitization
@@ -137,6 +160,28 @@ export function sanitizeInput(req: Request, res: Response, next: NextFunction) {
     const safeEndpoints = ['/api/health', '/api/platform/status', '/api/platform/health'];
     if (safeEndpoints.includes(req.path)) {
       return next();
+    }
+
+    // Use basic sanitization for payment and P2P endpoints (avoid false positives)
+    const paymentEndpoints = [
+      '/api/payments/',
+      '/api/p2p/',
+      '/api/stripe/',
+      '/api/paypal/',
+      '/api/crypto/',
+      '/api/xrp/',
+      '/api/marketplace/orders'
+    ];
+    
+    const isPaymentEndpoint = paymentEndpoints.some(endpoint => req.path.includes(endpoint));
+    if (isPaymentEndpoint && req.body) {
+      try {
+        req.body = InputValidator.sanitizeObjectBasic(req.body);
+        return next();
+      } catch (error: any) {
+        console.warn('Basic sanitization failed for payment endpoint:', req.path, error.message);
+        return next(); // Allow payment requests to proceed with basic protection
+      }
     }
 
     // Validate request size

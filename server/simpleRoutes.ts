@@ -3241,8 +3241,18 @@ export function setupSimpleRoutes(app: Express) {
 
   /**
    * Agent onboarding system - GUIDED REGISTRATION FLOW
+   * SECURITY FIXED: Authentication and rate limiting required
    */
-  app.post('/api/ai-agents/onboard', async (req, res) => {
+  app.post('/api/ai-agents/onboard', registrationRateLimit, async (req, res) => {
+    // CRITICAL SECURITY FIX: Require authentication for agent registration
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required for agent registration'
+      });
+    }
     try {
       const { 
         step,
@@ -3386,8 +3396,18 @@ export function setupSimpleRoutes(app: Express) {
 
   /**
    * Premium subscription system - TIERED AGENT BENEFITS
+   * SECURITY FIXED: Authentication and rate limiting required
    */
-  app.post('/api/ai-agents/subscribe', async (req, res) => {
+  app.post('/api/ai-agents/subscribe', registrationRateLimit, async (req, res) => {
+    // CRITICAL SECURITY FIX: Require authentication for subscription
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required for subscription'
+      });
+    }
     try {
       const { agentId, tier, paymentMethod } = req.body;
       

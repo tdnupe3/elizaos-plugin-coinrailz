@@ -45,9 +45,49 @@ function createRateLimit() {
 }
 
 export function setupSimpleRoutes(app: Express) {
+  // Add Stripe payment routes first
+  app.use('/api/stripe', stripeRoutes);
+  
   // Basic health check
   app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Test Stripe credentials directly
+  app.get('/api/stripe-test', async (req, res) => {
+    try {
+      const { env } = await import('./environment');
+      const hasSecretKey = !!env.STRIPE_SECRET_KEY;
+      const hasPublishableKey = !!env.STRIPE_PUBLISHABLE_KEY;
+      
+      if (!hasSecretKey || !hasPublishableKey) {
+        return res.json({
+          configured: false,
+          error: 'Stripe keys not found',
+          hasSecretKey,
+          hasPublishableKey
+        });
+      }
+
+      // Test authentication with Stripe
+      const Stripe = (await import('stripe')).default;
+      const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+      
+      const account = await stripe.balance.retrieve();
+      
+      res.json({
+        configured: true,
+        connected: true,
+        publishableKey: env.STRIPE_PUBLISHABLE_KEY?.substring(0, 20) + '...',
+        currency: account.available?.[0]?.currency || 'usd'
+      });
+    } catch (error) {
+      res.json({
+        configured: true,
+        connected: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
   });
 
   // Simple registration endpoint that works with existing database
@@ -2248,9 +2288,6 @@ export function setupSimpleRoutes(app: Express) {
       timestamp: new Date().toISOString()
     });
   });
-
-  // Add Stripe payment routes
-  app.use('/api/stripe', stripeRoutes);
 
   return createServer(app);
 }

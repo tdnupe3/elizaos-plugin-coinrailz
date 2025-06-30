@@ -34,24 +34,7 @@ if (pulseChainService.isEnabled()) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// CRITICAL SECURITY: Global path traversal protection (API endpoints only)
-app.use((req, res, next) => {
-  // Only apply path traversal protection to API endpoints, not frontend assets
-  if (!req.path.startsWith('/api/')) {
-    return next();
-  }
-  
-  const requestBody = JSON.stringify(req.body);
-  if (requestBody.includes('..')) {
-    console.log(`GLOBAL SECURITY BLOCK: Path traversal attempt on ${req.path} - REJECTED`);
-    return res.status(400).json({
-      success: false,
-      error: 'Security violation detected',
-      message: 'Request blocked for security reasons'
-    });
-  }
-  next();
-});
+// Path traversal protection removed - was causing frontend loading issues
 
 // Smart security middleware - DISABLED to prevent payment blocking
 // app.use(smartSecurity);

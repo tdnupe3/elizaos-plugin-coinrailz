@@ -10,6 +10,7 @@ import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
 import { z } from 'zod';
 import multer from 'multer';
+import DOMPurify from 'isomorphic-dompurify';
 
 // Configure multer for file uploads
 const upload = multer({
@@ -36,6 +37,24 @@ const upload = multer({
 });
 
 const router = Router();
+
+// Input sanitization function to prevent XSS attacks
+const sanitizeInput = (input: any): any => {
+  if (typeof input === 'string') {
+    return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+  }
+  if (Array.isArray(input)) {
+    return input.map(sanitizeInput);
+  }
+  if (typeof input === 'object' && input !== null) {
+    const sanitized: any = {};
+    for (const [key, value] of Object.entries(input)) {
+      sanitized[key] = sanitizeInput(value);
+    }
+    return sanitized;
+  }
+  return input;
+};
 
 // Order Management Routes
 
@@ -207,6 +226,9 @@ router.post('/register-human', async (req, res) => {
  */
 router.post('/register-agent', async (req, res) => {
   try {
+    // Sanitize all input data to prevent XSS attacks
+    const sanitizedBody = sanitizeInput(req.body);
+    
     const agentSchema = z.object({
       name: z.string().min(1),
       category: z.string().min(1),
@@ -223,7 +245,7 @@ router.post('/register-agent', async (req, res) => {
       portfolio: z.array(z.string()).optional()
     });
 
-    const validatedData = agentSchema.parse(req.body);
+    const validatedData = agentSchema.parse(sanitizedBody);
     
     const agentType = validatedData.type || 'human';
     const agentId = `${agentType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -256,6 +278,9 @@ router.post('/register-agent', async (req, res) => {
  */
 router.post('/register-ai', async (req, res) => {
   try {
+    // Sanitize all input data to prevent XSS attacks
+    const sanitizedBody = sanitizeInput(req.body);
+    
     const aiAgentSchema = z.object({
       name: z.string().min(1),
       capabilities: z.array(z.string()),
@@ -268,7 +293,7 @@ router.post('/register-ai', async (req, res) => {
       accuracy: z.number().optional()
     });
 
-    const validatedData = aiAgentSchema.parse(req.body);
+    const validatedData = aiAgentSchema.parse(sanitizedBody);
     
     const agentId = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     

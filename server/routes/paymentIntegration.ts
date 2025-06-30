@@ -12,9 +12,9 @@ const router = Router();
 const payments = new Map();
 const escrowAccounts = new Map();
 
-// Payment method schema
+// Payment method schema with XRP support
 const paymentMethodSchema = z.object({
-  type: z.enum(['stripe', 'paypal', 'crypto']),
+  type: z.enum(['stripe', 'paypal', 'crypto', 'xrp']),
   amount: z.number().min(5, 'Minimum payment is $5'),
   currency: z.string().default('USD'),
   metadata: z.object({
@@ -23,6 +23,18 @@ const paymentMethodSchema = z.object({
     agentId: z.string()
   })
 });
+
+// Payment methods configuration with comprehensive fee capture
+const paymentMethods = {
+  stripe: { enabled: true, feePercentage: 2.9, fixedFee: 0.30 },
+  paypal: { enabled: true, feePercentage: 2.9, fixedFee: 0.30 },
+  crypto: { enabled: true, feePercentage: 1.0, fixedFee: 0.00 },
+  xrp: { enabled: true, feePercentage: 0.1, fixedFee: 0.0002 }, // Ultra-low XRP fees
+};
+
+// Platform fee structure
+const PLATFORM_COMMISSION = 0.25; // 25% platform commission
+const AGENT_PAYOUT = 0.75; // 75% agent payout
 
 // Create payment intent
 router.post('/create-payment-intent', async (req, res) => {
@@ -78,6 +90,9 @@ router.post('/create-payment-intent', async (req, res) => {
     } else if (type === 'crypto') {
       // Crypto payment would use wallet integration
       paymentUrl = `crypto://pay/${paymentId}`;
+    } else if (type === 'xrp') {
+      // XRP payment with ultra-low fees
+      paymentUrl = `xrp://pay/${paymentId}`;
     }
 
     res.status(201).json({

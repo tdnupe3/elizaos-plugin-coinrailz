@@ -78,6 +78,7 @@ import agentPayouts from './routes/agentPayouts';
 import orderProcessing from './routes/orderProcessing';
 import escrowIntegration from './routes/escrowIntegration';
 import serviceDelivery from './routes/serviceDelivery';
+import reviewSystem from './routes/reviewSystem';
 
 app.use('/api/agents', agentRegistration);
 app.use('/api/payments', paymentIntegration);
@@ -87,6 +88,7 @@ app.use('/api/payouts', agentPayouts);
 app.use('/api/orders', orderProcessing);
 app.use('/api/escrow', escrowIntegration);
 app.use('/api/delivery', serviceDelivery);
+app.use('/api/reviews', reviewSystem);
 
 // Advanced service search and filtering will be handled by inline endpoints above
 

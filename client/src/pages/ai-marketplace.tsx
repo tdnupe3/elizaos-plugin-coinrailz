@@ -77,7 +77,7 @@ export default function AIMarketplacePage() {
 
   const filteredServices = services?.data?.agents || [];
 
-  const categories = Array.from(new Set(filteredServices.map((agent: any) => agent.category) || []));
+  const categories = Array.from(new Set(filteredServices.map((agent: any) => agent.category).filter(Boolean)));
 
   const handleServicePurchase = (service: MarketplaceService) => {
     setSelectedService(service);

@@ -41,7 +41,11 @@ const router = Router();
 // Input sanitization function to prevent XSS attacks
 const sanitizeInput = (input: any): any => {
   if (typeof input === 'string') {
-    return DOMPurify.sanitize(input, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    // Remove all HTML tags and script content completely
+    return DOMPurify.sanitize(input, { 
+      ALLOWED_TAGS: [], 
+      ALLOWED_ATTR: []
+    }).trim();
   }
   if (Array.isArray(input)) {
     return input.map(sanitizeInput);
@@ -54,6 +58,12 @@ const sanitizeInput = (input: any): any => {
     return sanitized;
   }
   return input;
+};
+
+// Minimum transaction validation
+const validateMinimumTransaction = (amount: number): boolean => {
+  const MINIMUM_ORDER_AMOUNT = 25; // $25 minimum to ensure profitability
+  return amount >= MINIMUM_ORDER_AMOUNT;
 };
 
 // Order Management Routes
@@ -560,10 +570,13 @@ router.post('/disputes/resolve', isAuthenticated, async (req: any, res) => {
  */
 router.post('/create-order', async (req, res) => {
   try {
+    // Sanitize all input data to prevent XSS attacks
+    const sanitizedBody = sanitizeInput(req.body);
+    
     const orderSchema = z.object({
       agentId: z.string().min(1),
       serviceType: z.string().min(1),
-      amount: z.number().min(1),
+      amount: z.number().min(25), // $25 minimum for profitability
       paymentMethod: z.enum(['stripe', 'paypal', 'crypto']).optional().default('stripe'),
       serviceDescription: z.string().min(1),
       deliverables: z.any().optional(),
@@ -571,7 +584,7 @@ router.post('/create-order', async (req, res) => {
       estimatedDeliveryHours: z.number().optional().default(24),
     });
 
-    const validatedData = orderSchema.parse(req.body);
+    const validatedData = orderSchema.parse(sanitizedBody);
     
     // Generate customer ID for demo purposes
     const customerId = `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

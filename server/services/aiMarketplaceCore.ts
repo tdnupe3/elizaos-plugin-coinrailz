@@ -46,6 +46,15 @@ export class AIMarketplaceCore {
   }): Promise<{ success: boolean; orderId?: string; error?: string }> {
     
     try {
+      // Validate minimum transaction amount
+      const MINIMUM_ORDER_AMOUNT = 25; // $25 minimum to ensure profitability
+      if (orderData.amount < MINIMUM_ORDER_AMOUNT) {
+        return { 
+          success: false, 
+          error: `Minimum order amount is $${MINIMUM_ORDER_AMOUNT}. This ensures quality service delivery and platform sustainability.` 
+        };
+      }
+
       // Validate agent exists and is active
       const agent = await db.select()
         .from(globalAIAgents)

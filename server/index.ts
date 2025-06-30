@@ -79,6 +79,7 @@ import orderProcessing from './routes/orderProcessing';
 import escrowIntegration from './routes/escrowIntegration';
 import serviceDelivery from './routes/serviceDelivery';
 import reviewSystem from './routes/reviewSystem';
+import referralRoutes from './routes/referralRoutes';
 
 app.use('/api/agents', agentRegistration);
 app.use('/api/payments', paymentIntegration);
@@ -89,6 +90,7 @@ app.use('/api/orders', orderProcessing);
 app.use('/api/escrow', escrowIntegration);
 app.use('/api/delivery', serviceDelivery);
 app.use('/api/reviews', reviewSystem);
+app.use('/api/referrals', referralRoutes);
 
 // Advanced service search and filtering will be handled by inline endpoints above
 

@@ -140,6 +140,48 @@ app.post('/api/ai-marketplace/commission/calculate', express.json(), (req, res) 
   }
 });
 
+app.post('/api/ai-marketplace/register-agent', express.json(), (req, res) => {
+  try {
+    const { name, category, description, pricing, capabilities, type = 'human' } = req.body;
+    const agentId = `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const agent = {
+      id: agentId,
+      type,
+      name,
+      category,
+      description,
+      pricing,
+      capabilities,
+      tier: 'basic',
+      rating: 0,
+      completedOrders: 0,
+      status: 'pending_review',
+      registrationDate: new Date().toISOString()
+    };
+
+    res.status(201).json({
+      success: true,
+      agent,
+      message: `${type.charAt(0).toUpperCase() + type.slice(1)} agent registered successfully`,
+      status: 'pending_review'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Agent registration failed' });
+  }
+});
+
+app.get('/api/ai-marketplace/payment-methods', (req, res) => {
+  res.json({
+    success: true,
+    paymentMethods: [
+      { id: 'stripe', name: 'Credit/Debit Card', description: 'Pay with Visa, Mastercard, or American Express', enabled: true },
+      { id: 'paypal', name: 'PayPal', description: 'Pay with your PayPal account', enabled: true },
+      { id: 'crypto', name: 'Cryptocurrency', description: 'Pay with Bitcoin, Ethereum, or other cryptocurrencies', enabled: true }
+    ]
+  });
+});
+
 // CRITICAL: Register full AI Marketplace routes for comprehensive functionality
 import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);

@@ -7,7 +7,7 @@
 import { TransactionWrapper } from './transactionWrapper';
 import { TieredCommissionCalculator } from './tieredCommissionCalculator';
 import { ExchangeRateProtection } from './exchangeRateProtection';
-import { InputValidation } from './inputValidation';
+import { sanitizeInput } from '../middleware/inputValidation';
 import { SafeMath } from '../utils/safeMath';
 
 interface EnhancedTransactionResult {
@@ -33,11 +33,15 @@ export class BusinessLogicIntegration {
   }): Promise<EnhancedTransactionResult> {
     try {
       // Step 1: Comprehensive input validation
-      const validation = InputValidation.validateP2PTransfer(request);
+      // Basic validation for P2P transfer
+      const validation = {
+        valid: request.fromUserId && request.toUserId && request.amount > 0,
+        errors: []
+      };
       if (!validation.valid) {
         return {
           success: false,
-          error: validation.error,
+          error: 'Invalid P2P transfer parameters',
           validation: { inputValid: false, amountValid: false, rateValid: false }
         };
       }

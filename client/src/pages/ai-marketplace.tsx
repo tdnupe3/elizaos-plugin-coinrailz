@@ -6,9 +6,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Star, Clock, DollarSign, Filter, Bot, Zap, TrendingUp } from '@/lib/icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface MarketplaceService {
   id: string;
@@ -29,26 +30,54 @@ export default function AIMarketplacePage() {
   const [selectedService, setSelectedService] = useState<MarketplaceService | null>(null);
   const [showPayment, setShowPayment] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Order creation mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: { agentId: string; serviceDescription: string; amount: number }) => {
+      return await apiRequest('POST', '/api/ai-agents/create-order', orderData);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Order Created Successfully",
+        description: `Order ID: ${data.orderId}. The agent will be notified.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-agents/search'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Order Creation Failed",
+        description: error.message || "Failed to create order",
+        variant: "destructive",
+      });
+    }
+  });
 
   const { data: services, isLoading: servicesLoading } = useQuery({
-    queryKey: ['/api/marketplace/services'],
+    queryKey: ['/api/ai-agents/search', { category: selectedCategory, query: searchQuery }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (selectedCategory !== 'all') params.append('category', selectedCategory);
+      if (searchQuery) params.append('query', searchQuery);
+      
+      const response = await fetch(`/api/ai-agents/search?${params}`);
+      if (!response.ok) throw new Error('Failed to fetch agents');
+      return response.json();
+    }
   });
 
   const { data: stats } = useQuery({
-    queryKey: ['/api/marketplace/stats'],
+    queryKey: ['/api/ai-agents/stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/ai-agents/marketplace-stats');
+      if (!response.ok) throw new Error('Failed to fetch stats');
+      return response.json();
+    }
   });
 
-  const filteredServices = services?.services?.filter((service: MarketplaceService) => {
-    const matchesSearch = service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         service.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory && service.isActive;
-  }) || [];
+  const filteredServices = services?.data?.agents || [];
 
-  const categories = [...new Set(services?.services?.map((s: MarketplaceService) => s.category) || [])];
+  const categories = Array.from(new Set(filteredServices.map((agent: any) => agent.category) || []));
 
   const handleServicePurchase = (service: MarketplaceService) => {
     setSelectedService(service);
@@ -56,12 +85,16 @@ export default function AIMarketplacePage() {
   };
 
   const handlePaymentSuccess = () => {
+    if (selectedService) {
+      // Create order in marketplace system
+      createOrderMutation.mutate({
+        agentId: selectedService.id,
+        serviceDescription: selectedService.description,
+        amount: selectedService.pricing
+      });
+    }
     setShowPayment(false);
     setSelectedService(null);
-    toast({
-      title: "Service Purchased Successfully",
-      description: `You have successfully purchased ${selectedService?.name}. The provider will contact you soon.`,
-    });
   };
 
   const handlePaymentError = (error: string) => {
@@ -150,7 +183,7 @@ export default function AIMarketplacePage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
+                {categories.map((category: string) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>
@@ -185,21 +218,21 @@ export default function AIMarketplacePage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredServices.map((service: MarketplaceService) => (
-                  <Card key={service.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
+                {filteredServices.map((agent: any) => (
+                  <Card key={agent.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <CardTitle className="text-lg font-semibold text-gray-900 mb-2">
-                            {service.name}
+                            {agent.name}
                           </CardTitle>
                           <Badge variant="secondary" className="mb-3">
-                            {service.category}
+                            {agent.category}
                           </Badge>
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-purple-600">
-                            ${service.pricing}
+                            ${agent.basePrice || agent.pricing || 99}
                           </div>
                         </div>
                       </div>
@@ -207,32 +240,43 @@ export default function AIMarketplacePage() {
                     
                     <CardContent className="pt-0">
                       <p className="text-gray-600 text-sm mb-4 line-clamp-3">
-                        {service.description}
+                        {agent.description || agent.capabilities?.join(', ') || 'Professional AI agent service'}
                       </p>
                       
                       <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                         <div className="flex items-center gap-1">
                           <Clock className="w-4 h-4" />
-                          {service.deliveryTime}
+                          {agent.deliveryTime || '24-48 hours'}
                         </div>
-                        {service.rating && (
+                        {agent.rating && (
                           <div className="flex items-center gap-1">
                             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            {service.rating}
+                            {agent.rating}
                           </div>
                         )}
                       </div>
                       
                       <div className="flex flex-wrap gap-1 mb-4">
-                        {service.tags.slice(0, 3).map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
+                        {(agent.capabilities || agent.skills || []).slice(0, 3).map((skill: string, index: number) => (
+                          <Badge key={`${agent.id}-${index}`} variant="outline" className="text-xs">
+                            {skill}
                           </Badge>
                         ))}
                       </div>
                       
                       <Button 
-                        onClick={() => handleServicePurchase(service)}
+                        onClick={() => handleServicePurchase({
+                          id: agent.id,
+                          name: agent.name,
+                          description: agent.description || agent.capabilities?.join(', ') || 'Professional AI agent service',
+                          category: agent.category,
+                          pricing: agent.basePrice || agent.pricing || 99,
+                          deliveryTime: agent.deliveryTime || '24-48 hours',
+                          tags: agent.capabilities || agent.skills || [],
+                          isActive: agent.status === 'active',
+                          rating: agent.rating,
+                          completedOrders: agent.completedOrders
+                        })}
                         className="w-full bg-purple-600 hover:bg-purple-700"
                       >
                         <DollarSign className="w-4 h-4 mr-2" />

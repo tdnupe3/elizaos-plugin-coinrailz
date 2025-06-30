@@ -22,26 +22,37 @@ export interface P2PTransferResponse {
 export class P2PTransferService {
   
   /**
-   * Calculate P2P transfer fee accounting for cross-platform processing costs
+   * Calculate P2P transfer fee accounting for processing costs and referral commissions
    */
   static calculateP2PFee(amount: number, senderMethod: string, recipientPlatform?: string): number {
     if (amount === 0) return 0;
+    
+    // Get total costs (processing + referral)
+    const costs = this.calculateTotalCosts(amount, senderMethod, recipientPlatform || 'coinrailz');
     
     // Determine if this is a cross-platform transfer requiring dual processing fees
     const isCrossPlatform = this.isCrossPlatformTransfer(senderMethod, recipientPlatform);
     
     if (isCrossPlatform) {
-      // Cross-platform transfers: 10% fee to cover dual processing costs
-      return Math.round((amount * 0.10) * 100) / 100;
+      // Cross-platform transfers: Ensure minimum $15 fee to cover costs + profit
+      const baseRate = amount < 20 ? 0.15 : // 15% for small amounts
+                      amount < 50 ? 0.12 : // 12% for medium amounts  
+                      0.10; // 10% for large amounts
+      const calculatedFee = Math.round((amount * baseRate) * 100) / 100;
+      return Math.max(calculatedFee, Math.max(15, costs.total * 1.5)); // Minimum $15 or 50% profit margin
     } else {
-      // Same-platform or internal transfers: original tiered structure
+      // Same-platform or internal transfers: tiered structure with cost coverage
+      let baseFee;
       if (amount < 25) {
-        return Math.round((amount * 0.035 + 2.00) * 100) / 100;
+        baseFee = Math.round((amount * 0.035 + 2.00) * 100) / 100;
       } else if (amount < 50) {
-        return Math.round((amount * 0.032 + 1.10) * 100) / 100;
+        baseFee = Math.round((amount * 0.032 + 1.10) * 100) / 100;
       } else {
-        return Math.round((amount * 0.032 + 0.35) * 100) / 100;
+        baseFee = Math.round((amount * 0.032 + 0.35) * 100) / 100;
       }
+      
+      // Ensure fee covers all costs with minimum 25% profit margin
+      return Math.max(baseFee, costs.total * 1.25);
     }
   }
 
@@ -63,7 +74,27 @@ export class P2PTransferService {
   }
 
   /**
-   * Calculate total processing costs for transparency
+   * Calculate total costs including processing fees and referral commissions
+   */
+  static calculateTotalCosts(amount: number, senderMethod: string, recipientPlatform: string): {
+    processingCost: number;
+    referralCost: number;
+    total: number;
+  } {
+    const processingCosts = this.calculateProcessingCosts(amount, senderMethod, recipientPlatform);
+    
+    // Calculate referral commission (worst case: 0.6% for tier 3)
+    const referralCost = amount * 0.006; // 0.6% maximum referral rate
+    
+    return {
+      processingCost: processingCosts.totalProcessingCost,
+      referralCost: Math.round(referralCost * 100) / 100,
+      total: Math.round((processingCosts.totalProcessingCost + referralCost) * 100) / 100
+    };
+  }
+
+  /**
+   * Calculate processing costs for transparency (legacy method)
    */
   static calculateProcessingCosts(amount: number, senderMethod: string, recipientPlatform: string): {
     incomingFee: number;
@@ -83,7 +114,7 @@ export class P2PTransferService {
     } else if (recipientPlatform === 'stripe') {
       outgoingFee = amount * 0.029 + 0.30; // Stripe payout fee
     } else if (recipientPlatform === 'crypto') {
-      outgoingFee = 15; // Network fees for crypto withdrawal
+      outgoingFee = Math.min(5, amount * 0.02); // 2% crypto network fee, max $5
     } else if (recipientPlatform === 'coinrailz') {
       outgoingFee = 0; // Internal transfer
     }
@@ -100,13 +131,16 @@ export class P2PTransferService {
    */
   static async initiateTransfer(request: P2PTransferRequest): Promise<P2PTransferResponse> {
     try {
-      // Validate input
-      if (!request.amount || request.amount < 2.50) {
+      // Validate minimum amounts based on transfer type
+      const isCrossPlatform = this.isCrossPlatformTransfer(request.senderMethod, request.recipientPlatform);
+      const minimumAmount = isCrossPlatform ? 25 : 10; // Higher minimum for cross-platform to ensure profitability
+      
+      if (!request.amount || request.amount < minimumAmount) {
         return {
           success: false,
           fee: 0,
           total: 0,
-          error: 'Minimum transfer amount is $2.50'
+          error: `Minimum transfer amount is $${minimumAmount} for ${isCrossPlatform ? 'cross-platform' : 'standard'} transfers`
         };
       }
 

@@ -216,4 +216,22 @@ router.get('/supported-platforms', (req, res) => {
   });
 });
 
+/**
+ * GET /api/referrals/structure
+ * Get referral commission structure (for audit purposes)
+ */
+router.get('/referrals/structure', (req, res) => {
+  res.json({
+    success: true,
+    commissionRates: {
+      tier1: 0.003, // 0.3%
+      tier2: 0.004, // 0.4% 
+      tier3: 0.006  // 0.6%
+    },
+    description: 'Tiered referral commission structure',
+    maxCommission: 15, // $15 maximum per transaction
+    minTransaction: 10 // $10 minimum for referral eligibility
+  });
+});
+
 export default router;

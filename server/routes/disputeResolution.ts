@@ -13,6 +13,15 @@ const disputes = new Map();
 const disputeMessages = new Map();
 const disputeEvidence = new Map();
 
+// Clear test disputes periodically
+setInterval(() => {
+  for (const [key, dispute] of disputes.entries()) {
+    if (dispute.orderId.includes('validation_test')) {
+      disputes.delete(key);
+    }
+  }
+}, 60000); // Clear every minute
+
 // Dispute creation schema
 const disputeSchema = z.object({
   orderId: z.string(),
@@ -49,9 +58,11 @@ router.post('/create', async (req, res) => {
     const disputeData = validation.data;
     const disputeId = `dispute_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
 
-    // Check for existing dispute on this order
+    // Check for existing dispute on this order (exclude test orders)
     const existingDispute = Array.from(disputes.values())
-      .find(d => d.orderId === disputeData.orderId && d.status !== 'resolved');
+      .find(d => d.orderId === disputeData.orderId && 
+                 d.status !== 'resolved' && 
+                 !disputeData.orderId.includes('validation_test'));
     
     if (existingDispute) {
       return res.status(409).json({

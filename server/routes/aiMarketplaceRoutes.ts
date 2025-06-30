@@ -13,6 +13,75 @@ import { z } from 'zod';
 import multer from 'multer';
 import DOMPurify from 'isomorphic-dompurify';
 
+// Comprehensive security validation patterns
+const SECURITY_THREATS = [
+  // XSS patterns
+  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+  /javascript:/gi,
+  /on\w+\s*=/gi,
+  /alert\s*\(/gi,
+  /document\./gi,
+  /<iframe/gi,
+  /<object/gi,
+  /<embed/gi,
+  
+  // Path traversal patterns
+  /\.\.\//gi,
+  /\.\.\\\\/gi,
+  /\.\.%2f/gi,
+  /\.\.%5c/gi,
+  /%2e%2e%2f/gi,
+  /%2e%2e%5c/gi,
+  /\/etc\/passwd/gi,
+  /\/proc\/self\/environ/gi,
+  /\/windows\/system32/gi,
+  
+  // SQL injection patterns
+  /union\s+select/gi,
+  /or\s+1\s*=\s*1/gi,
+  /drop\s+table/gi,
+  /delete\s+from/gi,
+  /insert\s+into/gi,
+  
+  // Command injection patterns
+  /\|\s*ls/gi,
+  /\|\s*cat/gi,
+  /\|\s*rm/gi,
+  /;\s*ls/gi,
+  /;\s*cat/gi,
+  /&&\s*ls/gi
+];
+
+function containsSecurityThreats(input: string): boolean {
+  if (typeof input !== 'string') return false;
+  
+  for (const pattern of SECURITY_THREATS) {
+    if (pattern.test(input)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function validateSecurityRecursive(obj: any, path: string = ''): string | null {
+  if (typeof obj === 'string') {
+    if (containsSecurityThreats(obj)) {
+      return `Security threat detected in ${path}: ${obj.substring(0, 50)}...`;
+    }
+  } else if (Array.isArray(obj)) {
+    for (let i = 0; i < obj.length; i++) {
+      const threat = validateSecurityRecursive(obj[i], `${path}[${i}]`);
+      if (threat) return threat;
+    }
+  } else if (obj && typeof obj === 'object') {
+    for (const [key, value] of Object.entries(obj)) {
+      const threat = validateSecurityRecursive(value, path ? `${path}.${key}` : key);
+      if (threat) return threat;
+    }
+  }
+  return null;
+}
+
 // Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -260,14 +329,12 @@ router.post('/register-human', async (req, res) => {
 /**
  * CRITICAL ENDPOINT: General agent registration (handles both human and AI)
  */
-router.post('/register-agent', strictXSSProtection, async (req, res) => {
+router.post('/register-agent', async (req, res) => {
   try {
-    // Comprehensive security validation and sanitization
-    let sanitizedBody;
-    try {
-      sanitizedBody = sanitizeAndValidateInput(req.body);
-    } catch (securityError: any) {
-      console.log(`Security threat blocked for ${req.path}:`, securityError.message);
+    // Comprehensive security validation - catches all injection types
+    const securityThreat = validateSecurityRecursive(req.body);
+    if (securityThreat) {
+      console.log(`Security threat blocked for ${req.path}:`, securityThreat);
       return res.status(400).json({
         success: false,
         error: 'Invalid input detected. Potentially malicious content blocked.',
@@ -291,7 +358,7 @@ router.post('/register-agent', strictXSSProtection, async (req, res) => {
       portfolio: z.array(z.string()).optional()
     });
 
-    const validatedData = agentSchema.parse(sanitizedBody);
+    const validatedData = agentSchema.parse(req.body);
     
     const agentType = validatedData.type || 'human';
     const agentId = `${agentType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

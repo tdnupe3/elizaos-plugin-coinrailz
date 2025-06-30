@@ -82,7 +82,7 @@ const SECURITY_PATTERNS = [
 function containsXSS(input: string): boolean {
   if (typeof input !== 'string') return false;
   
-  for (const pattern of XSS_PATTERNS) {
+  for (const pattern of SECURITY_PATTERNS) {
     if (pattern.test(input)) {
       return true;
     }

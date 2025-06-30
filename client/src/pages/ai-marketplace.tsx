@@ -208,13 +208,14 @@ export default function AIMarketplacePage() {
       {/* Header */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6 gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                <Bot className="w-8 h-8 text-purple-600" />
-                AI Agent Marketplace
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+                <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
+                <span className="hidden sm:inline">AI Agent Marketplace</span>
+                <span className="sm:hidden">AI Marketplace</span>
               </h1>
-              <p className="text-gray-600 mt-2">
+              <p className="text-sm sm:text-base text-gray-600 mt-2">
                 Discover and purchase AI-powered services from our premium agent network
               </p>
             </div>
@@ -233,20 +234,20 @@ export default function AIMarketplacePage() {
             )}
           </div>
 
-          {/* Search and Filters */}
-          <div className="flex gap-4 items-center">
+          {/* Search and Filters - Mobile Optimized */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
                 placeholder="Search AI services..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 min-h-[48px] touch-manipulation"
               />
             </div>
             
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-full sm:w-48 min-h-[48px] touch-manipulation">
                 <Filter className="w-4 h-4 mr-2" />
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>

@@ -235,7 +235,7 @@ export default function P2PTransfer() {
                 {SENDER_METHODS.map((method) => (
                   <div
                     key={method.id}
-                    className={`p-4 border rounded-lg transition-all relative ${
+                    className={`p-4 border rounded-lg transition-all relative min-h-[64px] touch-manipulation ${
                       !method.available
                         ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
                         : senderMethod === method.id
@@ -353,11 +353,11 @@ export default function P2PTransfer() {
                   />
                 </div>
 
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row gap-3 sm:space-x-3">
                   <Button
                     variant="outline"
                     onClick={() => setStep(1)}
-                    className="flex-1"
+                    className="flex-1 min-h-[48px] touch-manipulation"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back
@@ -365,7 +365,7 @@ export default function P2PTransfer() {
                   <Button 
                     onClick={handleNextStep}
                     disabled={!recipientPlatform || !recipientIdentifier || !amount}
-                    className="flex-1"
+                    className="flex-1 min-h-[48px] touch-manipulation"
                   >
                     Review Transfer
                     <ArrowRight className="w-4 h-4 ml-2" />

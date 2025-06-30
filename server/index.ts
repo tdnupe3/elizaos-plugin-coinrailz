@@ -75,12 +75,14 @@ import paymentIntegration from './routes/paymentIntegration';
 import messagingSystem from './routes/messagingSystem';
 import disputeResolution from './routes/disputeResolution';
 import agentPayouts from './routes/agentPayouts';
+import orderProcessing from './routes/orderProcessing';
 
 app.use('/api/agents', agentRegistration);
 app.use('/api/payments', paymentIntegration);
 app.use('/api/messaging', messagingSystem);
 app.use('/api/disputes', disputeResolution);
 app.use('/api/payouts', agentPayouts);
+app.use('/api/orders', orderProcessing);
 
 // Advanced service search and filtering will be handled by inline endpoints above
 

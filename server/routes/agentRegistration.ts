@@ -27,13 +27,24 @@ const agentRegistrationSchema = z.object({
         price: z.number().min(25)
       })).optional()
     }),
+    z.object({
+      hourlyRate: z.number().min(10, 'Minimum hourly rate is $10'),
+      projectMinimum: z.number().min(25, 'Minimum project fee is $25')
+    }),
     z.number().min(25) // Allow simple number for backward compatibility
   ]),
   availability: z.enum(['full-time', 'part-time', 'project-based']),
-  portfolio: z.array(z.object({
-    title: z.string(),
-    description: z.string()
-  })).optional(),
+  portfolio: z.union([
+    z.array(z.object({
+      title: z.string(),
+      description: z.string()
+    })),
+    z.object({
+      website: z.string().url().optional(),
+      samples: z.array(z.string()).optional(),
+      certifications: z.array(z.string()).optional()
+    })
+  ]).optional(),
   type: z.enum(['human', 'ai']).default('human')
 });
 

@@ -3094,6 +3094,28 @@ export function setupSimpleRoutes(app: Express) {
         limit = 20 
       } = req.query;
 
+      // Enhanced input validation for security
+      if (query && typeof query === 'string' && query.length > 100) {
+        return res.status(400).json({
+          success: false,
+          error: 'Search query too long (max 100 characters)'
+        });
+      }
+      
+      if (page && (isNaN(Number(page)) || Number(page) < 1 || Number(page) > 1000)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid page number (1-1000)'
+        });
+      }
+      
+      if (limit && (isNaN(Number(limit)) || Number(limit) < 1 || Number(limit) > 100)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid limit (1-100)'
+        });
+      }
+
       // Simulate agent search results with realistic data
       const allAgents = [
         {

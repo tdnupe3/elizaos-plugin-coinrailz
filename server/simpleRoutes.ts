@@ -8,12 +8,34 @@ import { cacheMiddleware } from './caching';
 import { bnbChainService } from './services/bnbChainService';
 import { pulseChainService } from './services/pulseChainService';
 import stripeRoutes from './routes/stripeRoutes';
-import { 
-  searchRateLimit, 
-  registrationRateLimit, 
-  orderRateLimit, 
-  authRateLimit 
-} from './middleware/rateLimiting';
+// Simple rate limiting implementation
+const createRateLimit = (maxRequests: number, windowMs: number) => {
+  const store = new Map();
+  return (req: any, res: any, next: any) => {
+    const key = req.ip || 'unknown';
+    const now = Date.now();
+    const record = store.get(key) || { count: 0, resetTime: now + windowMs };
+    
+    if (now > record.resetTime) {
+      record.count = 1;
+      record.resetTime = now + windowMs;
+    } else {
+      record.count++;
+    }
+    
+    store.set(key, record);
+    
+    if (record.count > maxRequests) {
+      return res.status(429).json({ error: 'Too many requests' });
+    }
+    next();
+  };
+};
+
+const searchRateLimit = createRateLimit(30, 60000); // 30 per minute
+const registrationRateLimit = createRateLimit(5, 900000); // 5 per 15 minutes
+const orderRateLimit = createRateLimit(10, 300000); // 10 per 5 minutes
+const authRateLimit = createRateLimit(5, 900000); // 5 per 15 minutes
 // Simple rate limiter for calculate-fee endpoint
 const rateLimitStore = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute

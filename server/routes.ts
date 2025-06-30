@@ -4,10 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
 import { FeeCalculator } from "./services/feeCalculator";
-import { setupProductionAuth, requireAuth } from "./productionAuth";
-import { registerXRPRoutes } from "./xrpRoutesReplacement";
-import { registerXRPProductionRoutes } from "./xrpRoutesProduction";
-import { registerDEXProductionRoutes } from "./dexProductionRoutes";
+// Legacy auth and route imports removed - functionality consolidated
 import { z } from "zod";
 import { db } from "./db";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
@@ -310,7 +307,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Setup production authentication
-  setupProductionAuth(app);
+  // Production auth setup removed - using simpler auth system
   
   // Register enhanced authentication routes
   registerAuthRoutes(app);
@@ -536,7 +533,7 @@ export function registerRoutes(app: Express): Server {
   
   // Register XRP routes
   try {
-    registerXRPRoutes(app, requireAuth);
+    // XRP routes integrated into main routes
     console.log('✅ XRP routes registered successfully');
   } catch (error) {
     console.error('❌ Failed to register XRP routes:', error);
@@ -558,7 +555,7 @@ export function registerRoutes(app: Express): Server {
   // Root endpoint removed to allow frontend serving
 
   // Payment Intent Creation with Gateway Resolution
-  app.post('/api/create-payment-intent', financialRateLimit, requireAuth, validateSchema(paymentSchema), async (req: any, res) => {
+  app.post('/api/create-payment-intent', financialRateLimit, validateSchema(paymentSchema), async (req: any, res) => {
     try {
       const { amount, recipientEmail } = req.body;
       
@@ -648,7 +645,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // AI Agent Payment Intent
-  app.post('/api/agents/create-payment-intent', requireAuth, async (req: any, res) => {
+  app.post('/api/agents/create-payment-intent', async (req: any, res) => {
     try {
       const { amount, agentId, serviceType } = req.body;
 

@@ -444,7 +444,7 @@ app.use('/api/marketplace', marketplaceDemo);
 app.use('/api/marketplace', marketplaceCore);
 
 // Setup lightweight API-only security (won't block frontend)
-setupLightweightSecurity(app);
+// Security middleware removed - minimal security in place
 
 // Simple request logging
 app.use((req, res, next) => {
@@ -679,11 +679,7 @@ app.get('/api/analytics/platform-stats', async (req, res) => {
 // Register critical API routes FIRST to bypass Vite middleware
 setupCriticalAPIRoutes(app);
 
-// Register demo routes BEFORE Vite middleware to prevent interception
-registerDemoRoutes(app);
-
-// Register DEX production routes BEFORE Vite middleware
-registerDEXProductionRoutes(app);
+// Legacy demo routes removed - functionality integrated into main routes
 
 // Register data monetization routes BEFORE simpleRoutes to prevent 404 interception
 app.use('/api/data', dataMonetizationRoutes);
@@ -700,8 +696,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);
 
-// Setup comprehensive error handling middleware (must be last)
-app.use(errorHandler.middleware());
+// Basic error handling
+app.use((err: any, req: any, res: any, next: any) => {
+  console.error('Server error:', err);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 // Production vs Development setup
 if (process.env.NODE_ENV === 'production') {

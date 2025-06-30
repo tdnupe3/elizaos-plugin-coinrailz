@@ -5,6 +5,47 @@
 
 import { Request, Response, NextFunction } from 'express';
 import DOMPurify from 'isomorphic-dompurify';
+import { z } from 'zod';
+
+// Payment validation schemas
+export const paymentSchema = z.object({
+  amount: z.number().positive().max(1000000),
+  currency: z.string().min(1).max(10),
+  method: z.string().min(1).max(50),
+  recipient: z.string().email().optional(),
+  description: z.string().max(500).optional()
+});
+
+export const transferSchema = z.object({
+  amount: z.number().positive().max(50000),
+  recipient: z.string().email(),
+  method: z.enum(['paypal', 'stripe', 'crypto', 'xrp']),
+  currency: z.string().default('USD')
+});
+
+export const agentRegistrationSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  skills: z.array(z.string()).max(20),
+  category: z.string().min(1).max(50),
+  description: z.string().max(1000)
+});
+
+export function validateSchema(schema: z.ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validatedData = schema.parse(req.body);
+      req.body = validatedData;
+      next();
+    } catch (error: any) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: error.issues || []
+      });
+    }
+  };
+}
 
 // Critical SQL injection patterns only (highly specific)
 const CRITICAL_SQL_PATTERNS = [

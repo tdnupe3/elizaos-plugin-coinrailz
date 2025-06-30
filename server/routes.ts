@@ -13,11 +13,11 @@ import { db } from "./db";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
 import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
-import { paymentSchema, validateSchema } from "./middleware/inputValidation";
+import { paymentSchema, validateSchema } from "./middleware/smartSecurity";
 import { agentQualityControl } from "./services/agentQualityControl";
 import { agentRoutes } from "./routes/agentRoutes";
 import { default as aiMarketplaceRoutes } from "./routes/aiMarketplaceRoutes";
-import { requireSecureAuth, financialRateLimit, authRateLimit, sanitizeInput } from "./middleware/secureAuth";
+import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
 import { addSecurityConstraints } from "./utils/databaseConstraints";
 

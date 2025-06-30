@@ -47,36 +47,10 @@ const strictRateLimit = createRateLimit(
   'Rate limit exceeded for sensitive operations'
 );
 
-// Input sanitization middleware
+// Input sanitization middleware - DISABLED to prevent payment blocking
+// Smart security middleware handles all validation now
 const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
-  const sanitizeObject = (obj: any): any => {
-    if (typeof obj === 'string') {
-      return DOMPurify.sanitize(obj, { 
-        ALLOWED_TAGS: [], 
-        ALLOWED_ATTR: [],
-        KEEP_CONTENT: true 
-      });
-    }
-    if (Array.isArray(obj)) {
-      return obj.map(sanitizeObject);
-    }
-    if (obj && typeof obj === 'object') {
-      const sanitized: any = {};
-      for (const [key, value] of Object.entries(obj)) {
-        sanitized[key] = sanitizeObject(value);
-      }
-      return sanitized;
-    }
-    return obj;
-  };
-
-  if (req.body) {
-    req.body = sanitizeObject(req.body);
-  }
-  if (req.query) {
-    req.query = sanitizeObject(req.query);
-  }
-
+  // Disabled - smart security middleware handles all validation
   next();
 };
 

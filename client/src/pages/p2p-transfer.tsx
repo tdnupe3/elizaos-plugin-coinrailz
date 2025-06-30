@@ -10,12 +10,13 @@ import { Separator } from "@/components/ui/separator";
 import { Send, ArrowLeft, ArrowRight, DollarSign, Clock, CheckCircle, CreditCard, Smartphone, Building2 } from "@/lib/icons";
 import { useLocation } from "wouter";
 import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
+import { StripePayment } from "@/components/stripe-payment";
 
 const SENDER_METHODS = [
   { id: 'paypal', name: 'PayPal', icon: CreditCard, description: 'Instant transfer from PayPal balance', available: true },
+  { id: 'debit', name: 'Debit Card', icon: CreditCard, description: 'Instant transfer via Stripe', available: true },
+  { id: 'credit', name: 'Credit Card', icon: CreditCard, description: 'Instant transfer via Stripe', available: true },
   { id: 'bank', name: 'Bank Account', icon: Building2, description: '1-3 business days', available: false },
-  { id: 'debit', name: 'Debit Card', icon: CreditCard, description: 'Instant transfer', available: false },
-  { id: 'credit', name: 'Credit Card', icon: CreditCard, description: 'Instant transfer + fees', available: false },
   { id: 'crypto', name: 'Cryptocurrency', icon: DollarSign, description: 'USDC, USDT, BTC, ETH', available: true },
   { id: 'coinrailz', name: 'Coin Railz Balance', icon: Smartphone, description: 'Use platform balance', available: true }
 ];
@@ -41,6 +42,9 @@ export default function P2PTransfer() {
   const [amount, setAmount] = useState("");
   const [message, setMessage] = useState("");
   const [showFlowOrchestrator, setShowFlowOrchestrator] = useState(false);
+  const [showStripePayment, setShowStripePayment] = useState(false);
+  const [stripePaymentSuccess, setStripePaymentSuccess] = useState(false);
+  const [paymentIntentId, setPaymentIntentId] = useState("");
 
   const calculateFee = () => {
     const amt = parseFloat(amount) || 0;
@@ -64,7 +68,23 @@ export default function P2PTransfer() {
   };
 
   const handleSubmit = () => {
+    // Check if using Stripe payment methods (credit/debit cards)
+    if (senderMethod === 'credit' || senderMethod === 'debit') {
+      setShowStripePayment(true);
+    } else {
+      setShowFlowOrchestrator(true);
+    }
+  };
+
+  const handleStripeSuccess = (paymentId: string) => {
+    setPaymentIntentId(paymentId);
+    setStripePaymentSuccess(true);
+    setShowStripePayment(false);
     setShowFlowOrchestrator(true);
+  };
+
+  const handleStripeCancel = () => {
+    setShowStripePayment(false);
   };
 
   const handleTransactionComplete = () => {
@@ -82,6 +102,18 @@ export default function P2PTransfer() {
     setShowFlowOrchestrator(false);
   };
 
+  if (showStripePayment) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
+        <StripePayment
+          amount={parseFloat(amount) + calculateFee()}
+          onSuccess={handleStripeSuccess}
+          onCancel={handleStripeCancel}
+        />
+      </div>
+    );
+  }
+
   if (showFlowOrchestrator) {
     return (
       <TransactionFlowOrchestrator
@@ -96,7 +128,8 @@ export default function P2PTransfer() {
             amount: parseFloat(amount),
             message,
             fee: calculateFee(),
-            total: parseFloat(amount) + calculateFee()
+            total: parseFloat(amount) + calculateFee(),
+            ...(stripePaymentSuccess && { paymentIntentId })
           },
           steps: [
             { id: 'validate', name: 'Validate Details', status: 'pending' },

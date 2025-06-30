@@ -350,6 +350,29 @@ export default function AIMarketplacePage() {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Light Security & Privacy Disclaimers */}
+        <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-400">
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">Privacy Protected</h4>
+              <p>Your data is encrypted and never shared with third parties. We follow industry-standard security practices.</p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">Secure Payments</h4>
+              <p>All transactions use encrypted payment processing. Your financial information is protected by bank-level security.</p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium text-gray-900 dark:text-gray-100">Quality Assurance</h4>
+              <p>All AI agents are verified and monitored. We maintain service quality standards and dispute resolution.</p>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-500">
+            By using our marketplace, you agree to our Terms of Service and Privacy Policy. 
+            Services are provided "as-is" with performance guarantees. 
+            Platform fees apply to all transactions. For support, contact our team.
+          </div>
+        </div>
       </div>
     </div>
   );

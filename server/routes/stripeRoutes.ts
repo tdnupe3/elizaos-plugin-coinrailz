@@ -5,7 +5,6 @@
 
 import { Router } from 'express';
 import { stripeService } from '../services/stripeService';
-import { InputValidator } from '../middleware/inputValidation';
 
 const router = Router();
 
@@ -42,7 +41,7 @@ router.get('/config', (req, res) => {
 });
 
 // Create payment intent for P2P transfer
-router.post('/create-payment-intent', InputValidator.validateRequest, async (req, res) => {
+router.post('/create-payment-intent', async (req, res) => {
   try {
     const { amount, currency = 'usd', description, metadata } = req.body;
 
@@ -82,7 +81,7 @@ router.post('/create-payment-intent', InputValidator.validateRequest, async (req
 });
 
 // Confirm payment intent
-router.post('/confirm-payment', InputValidator.validateRequest, async (req, res) => {
+router.post('/confirm-payment', async (req, res) => {
   try {
     const { paymentIntentId } = req.body;
 
@@ -115,7 +114,7 @@ router.post('/confirm-payment', InputValidator.validateRequest, async (req, res)
 });
 
 // Cancel payment intent
-router.post('/cancel-payment', inputValidation, async (req, res) => {
+router.post('/cancel-payment', async (req, res) => {
   try {
     const { paymentIntentId } = req.body;
 

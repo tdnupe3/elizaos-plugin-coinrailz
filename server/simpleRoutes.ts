@@ -7,6 +7,7 @@ import { BusinessLogicValidator } from './businessLogic';
 import { cacheMiddleware } from './caching';
 import { bnbChainService } from './services/bnbChainService';
 import { pulseChainService } from './services/pulseChainService';
+import stripeRoutes from './routes/stripeRoutes';
 // Simple rate limiter for calculate-fee endpoint
 const rateLimitStore = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
@@ -2247,6 +2248,9 @@ export function setupSimpleRoutes(app: Express) {
       timestamp: new Date().toISOString()
     });
   });
+
+  // Add Stripe payment routes
+  app.use('/api/stripe', stripeRoutes);
 
   return createServer(app);
 }

@@ -79,40 +79,64 @@ router.post('/order', isAuthenticated, async (req: any, res) => {
 });
 
 /**
- * Submit service delivery
+ * Submit service delivery with file uploads
  */
-router.post('/submit-delivery', async (req: any, res) => {
+router.post('/submit-delivery', isAuthenticated, upload.array('files', 10), async (req: any, res) => {
   try {
-    const deliverySchema = z.object({
-      orderId: z.string().min(1),
-      deliveryMethod: z.enum(['file_upload', 'api_response', 'email', 'webhook', 'direct_message']),
-      deliveryContent: z.any(),
-      deliveryFiles: z.array(z.string()).optional(),
-      evidenceUrls: z.array(z.string()).optional(),
-    });
-
-    const validatedData = deliverySchema.parse(req.body);
-    
-    // In production, validate agent owns this delivery
-    const agentId = req.user?.claims?.sub; // Assuming agent authentication
+    const agentId = req.user?.claims?.sub;
     
     if (!agentId) {
       return res.status(401).json({ success: false, error: 'Agent authentication required' });
     }
 
-    const result = await AIMarketplaceCore.submitDelivery({
-      orderId: validatedData.orderId,
-      agentId,
-      deliveryMethod: validatedData.deliveryMethod,
-      deliveryContent: validatedData.deliveryContent || {},
-      deliveryFiles: validatedData.deliveryFiles,
-      evidenceUrls: validatedData.evidenceUrls,
-    });
+    const { orderId, message, deliveryMethod = 'file_upload' } = req.body;
+    
+    if (!orderId) {
+      return res.status(400).json({ success: false, error: 'Order ID is required' });
+    }
 
-    if (result.success) {
-      res.status(201).json(result);
+    // Handle file uploads if present
+    if (req.files && req.files.length > 0) {
+      const result = await ServiceDeliveryCore.uploadDeliveryFiles(
+        orderId,
+        agentId,
+        req.files as Express.Multer.File[],
+        message || 'Service delivery completed'
+      );
+
+      if (result.success) {
+        res.status(201).json({
+          success: true,
+          deliveryId: result.deliveryId,
+          message: 'Files uploaded and delivery submitted successfully'
+        });
+      } else {
+        res.status(400).json({ success: false, error: result.error });
+      }
     } else {
-      res.status(400).json(result);
+      // Handle non-file deliveries (API response, email, etc.)
+      const deliverySchema = z.object({
+        orderId: z.string().min(1),
+        deliveryMethod: z.enum(['api_response', 'email', 'webhook', 'direct_message', 'consultation']),
+        deliveryContent: z.any(),
+        evidenceUrls: z.array(z.string()).optional(),
+      });
+
+      const validatedData = deliverySchema.parse(req.body);
+
+      const result = await AIMarketplaceCore.submitDelivery({
+        orderId: validatedData.orderId,
+        agentId,
+        deliveryMethod: validatedData.deliveryMethod,
+        deliveryContent: validatedData.deliveryContent || {},
+        evidenceUrls: validatedData.evidenceUrls,
+      });
+
+      if (result.success) {
+        res.status(201).json(result);
+      } else {
+        res.status(400).json(result);
+      }
     }
   } catch (error) {
     console.error('Delivery submission error:', error);
@@ -479,6 +503,93 @@ router.post('/create-dispute', isAuthenticated, async (req: any, res) => {
     }
   } catch (error) {
     console.error('Dispute creation error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * Get delivery tracking information
+ */
+router.get('/order/:orderId/tracking', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const tracking = await ServiceDeliveryCore.getOrderTracking(orderId);
+    
+    if (!tracking) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    res.json({
+      success: true,
+      data: tracking
+    });
+  } catch (error) {
+    console.error('Order tracking error:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+/**
+ * Download delivery file
+ */
+router.get('/delivery/file/:fileId', isAuthenticated, async (req: any, res) => {
+  try {
+    const { fileId } = req.params;
+    const userId = req.user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const result = await ServiceDeliveryCore.downloadFile(fileId, userId);
+    
+    if (result.error) {
+      return res.status(404).json({ success: false, error: result.error });
+    }
+
+    // Send file
+    res.download(result.filepath!);
+  } catch (error) {
+    console.error('File download error:', error);
+    res.status(500).json({ success: false, error: 'Download failed' });
+  }
+});
+
+/**
+ * Get delivery details
+ */
+router.get('/delivery/:deliveryId', isAuthenticated, async (req: any, res) => {
+  try {
+    const { deliveryId } = req.params;
+    const userId = req.user?.claims?.sub;
+
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const delivery = await ServiceDeliveryCore.getDelivery(deliveryId);
+    
+    if (!delivery) {
+      return res.status(404).json({ success: false, error: 'Delivery not found' });
+    }
+
+    // Check access permissions
+    if (delivery.customerId !== userId && delivery.agentId !== userId) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    res.json({
+      success: true,
+      data: delivery
+    });
+  } catch (error) {
+    console.error('Get delivery error:', error);
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });

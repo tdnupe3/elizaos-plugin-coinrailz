@@ -423,9 +423,172 @@ export const cryptoTransferSchema = z.object({
 export const depositFundsSchema = walletDepositSchema;
 export const withdrawFundsSchema = walletWithdrawSchema;
 
+// AI Marketplace Core Tables
+export const aiMarketplaceOrders = pgTable("ai_marketplace_orders", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),
+  customerId: varchar("customer_id").notNull().references(() => users.id),
+  serviceType: varchar("service_type").notNull(), // data_analysis, consultation, automation, etc.
+  amount: varchar("amount").notNull(), // Total amount in USD
+  agentCommission: varchar("agent_commission").notNull(), // 85% to agent
+  platformFee: varchar("platform_fee").notNull(), // 15% platform fee
+  status: varchar("status").notNull().default("pending"), // pending, paid, in_progress, delivered, completed, disputed, refunded
+  paymentMethod: varchar("payment_method").notNull(), // stripe, paypal, crypto
+  escrowStatus: varchar("escrow_status").notNull().default("held"), // held, released, disputed
+  serviceDescription: text("service_description").notNull(),
+  deliverables: jsonb("deliverables"), // Expected output format
+  customerRequirements: jsonb("customer_requirements"), // Specific customer needs
+  estimatedDeliveryHours: integer("estimated_delivery_hours").default(24),
+  actualDeliveryTime: timestamp("actual_delivery_time"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const aiMarketplaceDeliveries = pgTable("ai_marketplace_deliveries", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  orderId: varchar("order_id").notNull().references(() => aiMarketplaceOrders.id),
+  agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),
+  deliveryMethod: varchar("delivery_method").notNull(), // file_upload, api_response, email, webhook, etc.
+  deliveryContent: jsonb("delivery_content").notNull(), // Actual deliverable content
+  deliveryFiles: jsonb("delivery_files"), // File URLs if applicable
+  evidenceUrls: jsonb("evidence_urls"), // Proof of completion
+  customerConfirmed: boolean("customer_confirmed").default(false),
+  confirmationTimestamp: timestamp("confirmation_timestamp"),
+  qualityScore: decimal("quality_score", { precision: 3, scale: 2 }), // 1-5 rating
+  customerFeedback: text("customer_feedback"),
+  autoReleaseAt: timestamp("auto_release_at"), // 72-hour auto-release
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const aiMarketplaceDisputes = pgTable("ai_marketplace_disputes", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  orderId: varchar("order_id").notNull().references(() => aiMarketplaceOrders.id),
+  customerId: varchar("customer_id").notNull().references(() => users.id),
+  agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),
+  disputeType: varchar("dispute_type").notNull(), // service_quality, non_delivery, refund_request, fraud
+  customerStatement: text("customer_statement").notNull(),
+  agentResponse: text("agent_response"),
+  evidenceUrls: jsonb("evidence_urls"), // Supporting evidence
+  moderatorId: varchar("moderator_id"),
+  status: varchar("status").notNull().default("open"), // open, investigating, resolved, closed
+  resolution: varchar("resolution"), // refund_customer, pay_agent, partial_refund, no_action
+  resolutionReason: text("resolution_reason"),
+  resolutionAmount: varchar("resolution_amount"),
+  createdAt: timestamp("created_at").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const aiMarketplaceCommissions = pgTable("ai_marketplace_commissions", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  orderId: varchar("order_id").notNull().references(() => aiMarketplaceOrders.id),
+  agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),
+  agentTier: varchar("agent_tier").notNull(), // basic, premium, enterprise
+  serviceAmount: varchar("service_amount").notNull(),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }).notNull(), // 0.85 = 85%
+  commissionAmount: varchar("commission_amount").notNull(),
+  platformFeeRate: decimal("platform_fee_rate", { precision: 5, scale: 4 }).notNull(), // 0.15 = 15%
+  platformFeeAmount: varchar("platform_fee_amount").notNull(),
+  payoutStatus: varchar("payout_status").notNull().default("pending"), // pending, processing, completed, failed
+  payoutMethod: varchar("payout_method"), // xrp, crypto, bank_transfer
+  payoutTransactionId: varchar("payout_transaction_id"),
+  calculatedAt: timestamp("calculated_at").defaultNow(),
+  paidAt: timestamp("paid_at"),
+});
+
+export const aiMarketplacePerformance = pgTable("ai_marketplace_performance", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id).unique(),
+  totalOrders: integer("total_orders").notNull().default(0),
+  completedOrders: integer("completed_orders").notNull().default(0),
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }).notNull().default("0.0"),
+  totalRatings: integer("total_ratings").notNull().default(0),
+  completionRate: decimal("completion_rate", { precision: 5, scale: 4 }).notNull().default("0.0"),
+  averageDeliveryTime: decimal("average_delivery_time", { precision: 8, scale: 2 }), // Hours
+  totalRevenue: varchar("total_revenue").notNull().default("0.0"),
+  disputeCount: integer("dispute_count").notNull().default(0),
+  disputeRate: decimal("dispute_rate", { precision: 5, scale: 4 }).notNull().default("0.0"),
+  suspensionCount: integer("suspension_count").notNull().default(0),
+  lastActiveAt: timestamp("last_active_at"),
+  performanceScore: decimal("performance_score", { precision: 5, scale: 2 }).notNull().default("100.0"), // 0-100
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const aiMarketplaceSuspensions = pgTable("ai_marketplace_suspensions", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),
+  reason: varchar("reason").notNull(), // poor_performance, fraud, policy_violation, customer_complaints
+  suspensionType: varchar("suspension_type").notNull(), // temporary, permanent, warning
+  suspensionDuration: integer("suspension_duration"), // Days
+  moderatorId: varchar("moderator_id"),
+  description: text("description").notNull(),
+  evidenceUrls: jsonb("evidence_urls"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  liftedAt: timestamp("lifted_at"),
+});
+
+export const aiMarketplaceCategories = pgTable("ai_marketplace_categories", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  name: varchar("name").notNull().unique(),
+  description: text("description"),
+  icon: varchar("icon"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  serviceCount: integer("service_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const aiMarketplaceServices = pgTable("ai_marketplace_services", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),
+  categoryId: varchar("category_id").notNull().references(() => aiMarketplaceCategories.id),
+  serviceName: varchar("service_name").notNull(),
+  description: text("description").notNull(),
+  shortDescription: varchar("short_description").notNull(),
+  pricing: jsonb("pricing").notNull(), // {basic: 25, premium: 50, enterprise: 100}
+  deliveryMethods: jsonb("delivery_methods").notNull(), // ["api", "file_upload", "email"]
+  estimatedDeliveryTime: integer("estimated_delivery_time").notNull(), // Hours
+  requirements: jsonb("requirements"), // What customer must provide
+  samples: jsonb("samples"), // Sample outputs
+  tags: jsonb("tags"), // Searchable tags
+  approvalStatus: varchar("approval_status").notNull().default("pending"), // pending, approved, rejected
+  moderatorId: varchar("moderator_id"),
+  approvalNotes: text("approval_notes"),
+  isActive: boolean("is_active").notNull().default(false),
+  orderCount: integer("order_count").notNull().default(0),
+  averageRating: decimal("average_rating", { precision: 3, scale: 2 }).notNull().default("0.0"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+export type AIMarketplaceOrder = typeof aiMarketplaceOrders.$inferSelect;
+export type InsertAIMarketplaceOrder = typeof aiMarketplaceOrders.$inferInsert;
+
+export type AIMarketplaceDelivery = typeof aiMarketplaceDeliveries.$inferSelect;
+export type InsertAIMarketplaceDelivery = typeof aiMarketplaceDeliveries.$inferInsert;
+
+export type AIMarketplaceDispute = typeof aiMarketplaceDisputes.$inferSelect;
+export type InsertAIMarketplaceDispute = typeof aiMarketplaceDisputes.$inferInsert;
+
+export type AIMarketplaceCommission = typeof aiMarketplaceCommissions.$inferSelect;
+export type InsertAIMarketplaceCommission = typeof aiMarketplaceCommissions.$inferInsert;
+
+export type AIMarketplacePerformance = typeof aiMarketplacePerformance.$inferSelect;
+export type InsertAIMarketplacePerformance = typeof aiMarketplacePerformance.$inferInsert;
+
+export type AIMarketplaceSuspension = typeof aiMarketplaceSuspensions.$inferSelect;
+export type InsertAIMarketplaceSuspension = typeof aiMarketplaceSuspensions.$inferInsert;
+
+export type AIMarketplaceCategory = typeof aiMarketplaceCategories.$inferSelect;
+export type InsertAIMarketplaceCategory = typeof aiMarketplaceCategories.$inferInsert;
+
+export type AIMarketplaceService = typeof aiMarketplaceServices.$inferSelect;
+export type InsertAIMarketplaceService = typeof aiMarketplaceServices.$inferInsert;
 
 // Notification system for institutional features
 export const notifications = pgTable("notifications", {

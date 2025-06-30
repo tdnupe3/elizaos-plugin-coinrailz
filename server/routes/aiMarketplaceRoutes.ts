@@ -38,25 +38,51 @@ const upload = multer({
 
 const router = Router();
 
-// Input sanitization function to prevent XSS attacks
-const sanitizeInput = (input: any): any => {
+// Comprehensive input sanitization and validation
+const sanitizeAndValidateInput = (input: any): any => {
   if (typeof input === 'string') {
-    // Remove all HTML tags and script content completely
-    return DOMPurify.sanitize(input, { 
+    // Check for dangerous patterns
+    const dangerousPatterns = [
+      /<script/i,
+      /javascript:/i,
+      /on\w+\s*=/i,
+      /data:text\/html/i,
+      /vbscript:/i,
+      /<iframe/i,
+      /<object/i,
+      /<embed/i,
+      /eval\s*\(/i,
+      /expression\s*\(/i
+    ];
+    
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(input)) {
+        throw new Error(`Security violation: Potentially malicious content detected`);
+      }
+    }
+    
+    // Sanitize with DOMPurify
+    const sanitized = DOMPurify.sanitize(input, { 
       ALLOWED_TAGS: [], 
-      ALLOWED_ATTR: []
+      ALLOWED_ATTR: [],
+      STRIP_COMMENTS: true
     }).trim();
+    
+    return sanitized;
   }
+  
   if (Array.isArray(input)) {
-    return input.map(sanitizeInput);
+    return input.map(sanitizeAndValidateInput);
   }
+  
   if (typeof input === 'object' && input !== null) {
     const sanitized: any = {};
     for (const [key, value] of Object.entries(input)) {
-      sanitized[key] = sanitizeInput(value);
+      sanitized[key] = sanitizeAndValidateInput(value);
     }
     return sanitized;
   }
+  
   return input;
 };
 
@@ -236,8 +262,8 @@ router.post('/register-human', async (req, res) => {
  */
 router.post('/register-agent', async (req, res) => {
   try {
-    // Sanitize all input data to prevent XSS attacks
-    const sanitizedBody = sanitizeInput(req.body);
+    // Comprehensive security validation and sanitization
+    const sanitizedBody = sanitizeAndValidateInput(req.body);
     
     const agentSchema = z.object({
       name: z.string().min(1),

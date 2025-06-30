@@ -39,48 +39,9 @@ export const lightweightRateLimit = (req: Request, res: Response, next: NextFunc
   next();
 };
 
-// Input validation for API endpoints only
+// Input validation for API endpoints only - DISABLED to prevent payment blocking
 export const validateApiInput = (req: Request, res: Response, next: NextFunction) => {
-  // Only apply to API endpoints
-  if (!req.path.startsWith('/api/')) {
-    return next();
-  }
-
-  // Skip validation for service search endpoint
-  if (req.path === '/api/services/search' || req.path === '/api/services/categories') {
-    return next();
-  }
-
-  // Basic SQL injection patterns
-  const dangerousPatterns = [
-    /(\bDROP\s+TABLE\b)/gi,
-    /(\bDELETE\s+FROM\b)/gi,
-    /(\bUNION\s+SELECT\b)/gi,
-    /(;\s*--)/g,
-    /(\bEXEC\s*\()/gi
-  ];
-
-  const checkInput = (obj: any): boolean => {
-    if (typeof obj === 'string') {
-      return dangerousPatterns.some(pattern => pattern.test(obj));
-    }
-    if (Array.isArray(obj)) {
-      return obj.some(checkInput);
-    }
-    if (obj && typeof obj === 'object') {
-      return Object.values(obj).some(checkInput);
-    }
-    return false;
-  };
-
-  if (checkInput(req.body) || checkInput(req.query)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid input detected',
-      code: 'SECURITY_BLOCK'
-    });
-  }
-
+  // Disabled - smart security middleware handles all validation
   next();
 };
 

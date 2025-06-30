@@ -75,8 +75,12 @@ router.post('/submit-delivery', isAuthenticated, async (req: any, res) => {
     }
 
     const result = await AIMarketplaceCore.submitDelivery({
-      ...validatedData,
+      orderId: validatedData.orderId,
       agentId,
+      deliveryMethod: validatedData.deliveryMethod,
+      deliveryContent: validatedData.deliveryContent || {},
+      deliveryFiles: validatedData.deliveryFiles,
+      evidenceUrls: validatedData.evidenceUrls,
     });
 
     if (result.success) {

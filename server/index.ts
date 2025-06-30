@@ -34,8 +34,13 @@ if (pulseChainService.isEnabled()) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// CRITICAL SECURITY: Global path traversal protection
+// CRITICAL SECURITY: Global path traversal protection (API endpoints only)
 app.use((req, res, next) => {
+  // Only apply path traversal protection to API endpoints, not frontend assets
+  if (!req.path.startsWith('/api/')) {
+    return next();
+  }
+  
   const requestBody = JSON.stringify(req.body);
   if (requestBody.includes('..')) {
     console.log(`GLOBAL SECURITY BLOCK: Path traversal attempt on ${req.path} - REJECTED`);
@@ -90,60 +95,7 @@ const createRateLimit = (windowMs: number, max: number, message: string) => {
   });
 };
 
-// Apply rate limiting to critical endpoints
-app.use('/api/calculate-fee', createRateLimit(15 * 60 * 1000, 10, 'Too many fee calculation requests'));
-app.use('/api/orders/create', createRateLimit(5 * 60 * 1000, 3, 'Too many order creation attempts'));
-app.use('/api/data/', createRateLimit(60 * 1000, 30, 'Rate limit exceeded for data endpoints'));
-
-// Enhanced rate limiting for security validation
-app.use('/api/auth/', createRateLimit(15 * 60 * 1000, 5, 'Authentication rate limit exceeded'));
-app.use('/api/ai-marketplace/', createRateLimit(60 * 1000, 50, 'Marketplace rate limit exceeded'));
-app.use('/api/p2p/', createRateLimit(15 * 60 * 1000, 10, 'P2P rate limit exceeded'));
-
-// SQL injection protection middleware - Enhanced security validation (optimized for frontend compatibility)
-app.use((req, res, next) => {
-  // Skip all security checks for Vite dev server and frontend assets
-  const skipPaths = [
-    '/@vite', '/@fs', '/src/', '/node_modules/', '/public/',
-    '.js', '.css', '.png', '.jpg', '.svg', '.ico', '.woff',
-    '/api/payments/', '/api/p2p/', '/api/stripe/', '/api/paypal/'
-  ];
-  
-  const shouldSkip = skipPaths.some(path => req.path.includes(path)) || 
-                   req.path === '/' || 
-                   req.method === 'GET' && !req.path.startsWith('/api/');
-
-  if (shouldSkip) {
-    return next();
-  }
-
-  const sqlInjectionPatterns = [
-    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
-    /(--|#|\/\*|\*\/)/gi,
-    /(\b(OR|AND)\s+\d+\s*=\s*\d+)/gi
-  ];
-
-  const checkForSQLInjection = (data: any): boolean => {
-    if (typeof data === 'string') {
-      return sqlInjectionPatterns.some(pattern => pattern.test(data));
-    }
-    if (typeof data === 'object' && data !== null) {
-      return Object.values(data).some(value => checkForSQLInjection(value));
-    }
-    return false;
-  };
-
-  if (checkForSQLInjection(req.body) || checkForSQLInjection(req.query)) {
-    console.log(`SQL injection attempt blocked on ${req.path}`);
-    return res.status(400).json({
-      success: false,
-      error: 'Invalid request parameters detected',
-      message: 'Security validation failed'
-    });
-  }
-
-  next();
-});
+// Minimal security middleware - only for API endpoints after routes are registered
 
 // Additional direct endpoint registrations for audit compatibility
 

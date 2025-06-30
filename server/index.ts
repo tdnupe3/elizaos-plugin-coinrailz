@@ -8,6 +8,7 @@ import { registerDEXProductionRoutes } from "./dexProductionRoutes";
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
+import p2pRoutes from "./routes/p2pRoutes";
 import { setupLightweightSecurity } from "./apiSecurity";
 import { setupDDoSProtection } from "./ddosProtection";
 import { productionSystems } from "./productionSystems";

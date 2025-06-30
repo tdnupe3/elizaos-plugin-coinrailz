@@ -48,7 +48,20 @@ export default function P2PTransfer() {
 
   const calculateFee = () => {
     const amt = parseFloat(amount) || 0;
-    return Math.max(0.25, amt * 0.01); // 1% fee, minimum $0.25
+    if (amt === 0) return 0;
+    
+    // Profitable fee structure that covers processing costs
+    // PayPal/Stripe charge 2.9% + $0.30, so we need higher fees
+    if (amt < 25) {
+      // Small transfers: 3.5% + $2.00 to cover processing + profit
+      return Math.round((amt * 0.035 + 2.00) * 100) / 100;
+    } else if (amt < 50) {
+      // Medium transfers: 3.2% + $1.10 for better user experience
+      return Math.round((amt * 0.032 + 1.10) * 100) / 100;
+    } else {
+      // Large transfers: 3.2% + $0.35 for competitive rates
+      return Math.round((amt * 0.032 + 0.35) * 100) / 100;
+    }
   };
 
   const selectedSenderMethod = SENDER_METHODS.find(m => m.id === senderMethod);

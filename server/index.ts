@@ -112,6 +112,9 @@ registerDEXProductionRoutes(app);
 // Register data monetization routes BEFORE simpleRoutes to prevent 404 interception
 app.use('/api/data', dataMonetizationRoutes);
 
+// Register P2P routes with profitable fee structure BEFORE catch-all handler
+app.use('/api/p2p', p2pRoutes);
+
 // Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)
 const server = setupSimpleRoutes(app);
 

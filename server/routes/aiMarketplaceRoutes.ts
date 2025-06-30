@@ -64,8 +64,7 @@ const sanitizeAndValidateInput = (input: any): any => {
     // Sanitize with DOMPurify
     const sanitized = DOMPurify.sanitize(input, { 
       ALLOWED_TAGS: [], 
-      ALLOWED_ATTR: [],
-      STRIP_COMMENTS: true
+      ALLOWED_ATTR: []
     }).trim();
     
     return sanitized;
@@ -263,7 +262,17 @@ router.post('/register-human', async (req, res) => {
 router.post('/register-agent', async (req, res) => {
   try {
     // Comprehensive security validation and sanitization
-    const sanitizedBody = sanitizeAndValidateInput(req.body);
+    let sanitizedBody;
+    try {
+      sanitizedBody = sanitizeAndValidateInput(req.body);
+    } catch (securityError) {
+      console.log(`Security threat blocked for ${req.path}:`, securityError.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid input detected. Potentially malicious content blocked.',
+        message: 'Security validation failed'
+      });
+    }
     
     const agentSchema = z.object({
       name: z.string().min(1),
@@ -315,7 +324,7 @@ router.post('/register-agent', async (req, res) => {
 router.post('/register-ai', async (req, res) => {
   try {
     // Sanitize all input data to prevent XSS attacks
-    const sanitizedBody = sanitizeInput(req.body);
+    const sanitizedBody = sanitizeAndValidateInput(req.body);
     
     const aiAgentSchema = z.object({
       name: z.string().min(1),
@@ -597,7 +606,7 @@ router.post('/disputes/resolve', isAuthenticated, async (req: any, res) => {
 router.post('/create-order', async (req, res) => {
   try {
     // Sanitize all input data to prevent XSS attacks
-    const sanitizedBody = sanitizeInput(req.body);
+    const sanitizedBody = sanitizeAndValidateInput(req.body);
     
     const orderSchema = z.object({
       agentId: z.string().min(1),

@@ -120,7 +120,7 @@ export function registerAuthRoutes(app: Express) {
 
         // Find user by email
         const user = await storage.getUserByEmail(email);
-        if (!user) {
+        if (!user || !user.password) {
           return res.status(401).json({
             success: false,
             error: 'Invalid credentials',
@@ -129,7 +129,7 @@ export function registerAuthRoutes(app: Express) {
         }
 
         // Verify password
-        const isValidPassword = await bcrypt.compare(password, user.password);
+        const isValidPassword = user.password ? await bcrypt.compare(password, user.password) : false;
         if (!isValidPassword) {
           return res.status(401).json({
             success: false,

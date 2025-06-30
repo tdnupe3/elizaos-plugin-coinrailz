@@ -8,6 +8,7 @@ import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
 import p2pRoutes from "./routes/p2pRoutes";
 import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
+import { registerAuthRoutes } from "./authRoutes";
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
@@ -33,6 +34,19 @@ if (pulseChainService.isEnabled()) {
 // Essential middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Session middleware for authentication
+import session from 'express-session';
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'default-dev-secret',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // Path traversal protection removed - was causing frontend loading issues
 
@@ -1045,6 +1059,9 @@ app.get('/api/analytics/platform-stats', async (req, res) => {
 setupCriticalAPIRoutes(app);
 
 // Legacy demo routes removed - functionality integrated into main routes
+
+// Register authentication routes FIRST for login functionality
+registerAuthRoutes(app);
 
 // Register data monetization routes BEFORE simpleRoutes to prevent 404 interception
 app.use('/api/data', dataMonetizationRoutes);

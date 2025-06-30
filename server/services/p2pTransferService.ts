@@ -22,22 +22,77 @@ export interface P2PTransferResponse {
 export class P2PTransferService {
   
   /**
-   * Calculate P2P transfer fee using profitable structure
+   * Calculate P2P transfer fee accounting for cross-platform processing costs
    */
-  static calculateP2PFee(amount: number, senderMethod: string): number {
+  static calculateP2PFee(amount: number, senderMethod: string, recipientPlatform?: string): number {
     if (amount === 0) return 0;
     
-    // Profitable fee structure that covers PayPal/Stripe processing costs (2.9% + $0.30)
-    if (amount < 25) {
-      // Small transfers: 3.5% + $2.00 to cover processing + profit
-      return Math.round((amount * 0.035 + 2.00) * 100) / 100;
-    } else if (amount < 50) {
-      // Medium transfers: 3.2% + $1.10 for better user experience
-      return Math.round((amount * 0.032 + 1.10) * 100) / 100;
+    // Determine if this is a cross-platform transfer requiring dual processing fees
+    const isCrossPlatform = this.isCrossPlatformTransfer(senderMethod, recipientPlatform);
+    
+    if (isCrossPlatform) {
+      // Cross-platform transfers: 10% fee to cover dual processing costs
+      return Math.round((amount * 0.10) * 100) / 100;
     } else {
-      // Large transfers: 3.2% + $0.35 for competitive rates
-      return Math.round((amount * 0.032 + 0.35) * 100) / 100;
+      // Same-platform or internal transfers: original tiered structure
+      if (amount < 25) {
+        return Math.round((amount * 0.035 + 2.00) * 100) / 100;
+      } else if (amount < 50) {
+        return Math.round((amount * 0.032 + 1.10) * 100) / 100;
+      } else {
+        return Math.round((amount * 0.032 + 0.35) * 100) / 100;
+      }
     }
+  }
+
+  /**
+   * Determine if transfer requires cross-platform processing (dual fees)
+   */
+  private static isCrossPlatformTransfer(senderMethod: string, recipientPlatform?: string): boolean {
+    if (!recipientPlatform) return false;
+    
+    // Define platform categories
+    const externalPlatforms = ['paypal', 'stripe', 'credit', 'debit'];
+    const internalPlatforms = ['coinrailz', 'crypto']; // Crypto is direct blockchain, no middleman fees
+    
+    const senderIsExternal = externalPlatforms.includes(senderMethod);
+    const recipientIsExternal = externalPlatforms.includes(recipientPlatform);
+    
+    // Cross-platform if both sender and recipient involve external payment processors
+    return senderIsExternal && recipientIsExternal;
+  }
+
+  /**
+   * Calculate total processing costs for transparency
+   */
+  static calculateProcessingCosts(amount: number, senderMethod: string, recipientPlatform: string): {
+    incomingFee: number;
+    outgoingFee: number;
+    totalProcessingCost: number;
+  } {
+    // Incoming processing fee
+    let incomingFee = 0;
+    if (['stripe', 'credit', 'debit', 'paypal'].includes(senderMethod)) {
+      incomingFee = amount * 0.029 + 0.30;
+    }
+    
+    // Outgoing processing fee
+    let outgoingFee = 0;
+    if (recipientPlatform === 'paypal') {
+      outgoingFee = amount * 0.029 + 0.30; // PayPal payout fee
+    } else if (recipientPlatform === 'stripe') {
+      outgoingFee = amount * 0.029 + 0.30; // Stripe payout fee
+    } else if (recipientPlatform === 'crypto') {
+      outgoingFee = 15; // Network fees for crypto withdrawal
+    } else if (recipientPlatform === 'coinrailz') {
+      outgoingFee = 0; // Internal transfer
+    }
+    
+    return {
+      incomingFee: Math.round(incomingFee * 100) / 100,
+      outgoingFee: Math.round(outgoingFee * 100) / 100,
+      totalProcessingCost: Math.round((incomingFee + outgoingFee) * 100) / 100
+    };
   }
 
   /**

@@ -50,18 +50,27 @@ export default function P2PTransfer() {
     const amt = parseFloat(amount) || 0;
     if (amt === 0) return 0;
     
-    // Profitable fee structure that covers processing costs
-    // PayPal/Stripe charge 2.9% + $0.30, so we need higher fees
-    if (amt < 25) {
-      // Small transfers: 3.5% + $2.00 to cover processing + profit
-      return Math.round((amt * 0.035 + 2.00) * 100) / 100;
-    } else if (amt < 50) {
-      // Medium transfers: 3.2% + $1.10 for better user experience
-      return Math.round((amt * 0.032 + 1.10) * 100) / 100;
+    // Cross-platform fee structure accounting for dual processing costs
+    const isCrossPlatform = isCrossPlatformTransfer(senderMethod, recipientPlatform);
+    
+    if (isCrossPlatform) {
+      // Cross-platform transfers: 10% fee to cover dual processing costs
+      return Math.round((amt * 0.10) * 100) / 100;
     } else {
-      // Large transfers: 3.2% + $0.35 for competitive rates
-      return Math.round((amt * 0.032 + 0.35) * 100) / 100;
+      // Same-platform or internal transfers: tiered structure
+      if (amt < 25) {
+        return Math.round((amt * 0.035 + 2.00) * 100) / 100;
+      } else if (amt < 50) {
+        return Math.round((amt * 0.032 + 1.10) * 100) / 100;
+      } else {
+        return Math.round((amt * 0.032 + 0.35) * 100) / 100;
+      }
     }
+  };
+
+  const isCrossPlatformTransfer = (sender: string, recipient: string) => {
+    const externalPlatforms = ['paypal', 'credit', 'debit'];
+    return externalPlatforms.includes(sender) && externalPlatforms.includes(recipient);
   };
 
   const selectedSenderMethod = SENDER_METHODS.find(m => m.id === senderMethod);

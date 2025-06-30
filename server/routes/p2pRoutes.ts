@@ -75,11 +75,11 @@ router.post('/initiate', async (req, res) => {
 
 /**
  * POST /api/p2p/calculate-fee
- * Calculate P2P transfer fee
+ * Calculate P2P transfer fee with cross-platform support
  */
 router.post('/calculate-fee', async (req, res) => {
   try {
-    const { amount, senderMethod } = req.body;
+    const { amount, senderMethod, recipientPlatform } = req.body;
 
     if (!amount) {
       return res.status(400).json({
@@ -96,21 +96,53 @@ router.post('/calculate-fee', async (req, res) => {
       });
     }
 
-    const fee = P2PTransferService.calculateP2PFee(transferAmount, senderMethod || 'stripe');
+    const fee = P2PTransferService.calculateP2PFee(
+      transferAmount, 
+      senderMethod || 'stripe', 
+      recipientPlatform || 'coinrailz'
+    );
     const total = transferAmount + fee;
+
+    // Get processing cost breakdown for transparency
+    const processingCosts = P2PTransferService.calculateProcessingCosts(
+      transferAmount, 
+      senderMethod || 'stripe', 
+      recipientPlatform || 'coinrailz'
+    );
+
+    // Determine transfer type and description
+    const isCrossPlatform = ['paypal', 'stripe', 'credit', 'debit'].includes(senderMethod) && 
+                           ['paypal', 'stripe'].includes(recipientPlatform);
+    
+    let description, profitMargin;
+    if (isCrossPlatform) {
+      description = 'Cross-platform transfer (10% fee)';
+      profitMargin = `${Math.round(((fee - processingCosts.totalProcessingCost) / fee) * 100)}%`;
+    } else {
+      description = transferAmount < 25 ? 'Small transfer (3.5% + $2.00)' :
+                   transferAmount < 50 ? 'Medium transfer (3.2% + $1.10)' :
+                   'Large transfer (3.2% + $0.35)';
+      profitMargin = transferAmount < 25 ? '74.9%' :
+                    transferAmount < 50 ? '46.1%' : '9.9%';
+    }
 
     res.json({
       success: true,
       amount: transferAmount,
       fee: fee,
       total: total,
+      transferType: isCrossPlatform ? 'cross-platform' : 'standard',
       feeStructure: {
-        description: transferAmount < 25 ? 'Small transfer (3.5% + $2.00)' :
-                    transferAmount < 50 ? 'Medium transfer (3.2% + $1.10)' :
-                    'Large transfer (3.2% + $0.35)',
+        description,
         processingCostCovered: true,
-        profitMargin: transferAmount < 25 ? '74.9%' :
-                     transferAmount < 50 ? '46.1%' : '9.9%'
+        profitMargin,
+        isCrossPlatform
+      },
+      processingCosts: {
+        incoming: processingCosts.incomingFee,
+        outgoing: processingCosts.outgoingFee,
+        total: processingCosts.totalProcessingCost,
+        breakdown: `Incoming: $${processingCosts.incomingFee.toFixed(2)}, Outgoing: $${processingCosts.outgoingFee.toFixed(2)}`
       }
     });
 

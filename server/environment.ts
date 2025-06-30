@@ -17,8 +17,8 @@ export interface EnvironmentConfig {
 
   // Stripe Payment Processing
   STRIPE_SECRET_KEY?: string;
+  STRIPE_PUBLISHABLE_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
-  VITE_STRIPE_PUBLIC_KEY?: string;
 
   // PayPal Payment Processing
   PAYPAL_CLIENT_ID?: string;

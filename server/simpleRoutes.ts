@@ -2547,11 +2547,11 @@ export function setupSimpleRoutes(app: Express) {
         return res.status(400).json({ success: false, error: 'Missing required fields' });
       }
       
-      // Tiered commission rates
+      // Tiered commission rates - UPDATED PREMIUM PRICING
       const rates = {
-        basic: 0.85,    // 85% to agent, 15% platform
-        premium: 0.88,  // 88% to agent, 12% platform  
-        enterprise: 0.90 // 90% to agent, 10% platform
+        basic: 0.75,    // 75% to agent, 25% platform
+        premium: 0.80,  // 80% to agent, 20% platform  
+        enterprise: 0.85 // 85% to agent, 15% platform
       };
 
       const agentRate = rates[agentTier] || rates.basic;
@@ -3322,20 +3322,20 @@ export function setupSimpleRoutes(app: Express) {
         basic: {
           name: 'Basic',
           monthlyFee: 0,
-          platformFee: 15,
-          benefits: ['Standard listing', 'Basic support', 'Payment processing']
+          platformFee: 25,
+          benefits: ['Standard listing', 'Basic support', 'Payment processing', 'Crypto instant settlements']
         },
         premium: {
           name: 'Premium',
-          monthlyFee: 29,
-          platformFee: 12,
-          benefits: ['Featured listing', 'Priority support', 'Advanced analytics', 'Lower platform fees']
+          monthlyFee: 49,
+          platformFee: 20,
+          benefits: ['Featured listing', 'Priority support', 'Advanced analytics', 'Premium placement', 'Enhanced crypto features']
         },
         enterprise: {
           name: 'Enterprise',
-          monthlyFee: 99,
-          platformFee: 10,
-          benefits: ['Top placement', '24/7 support', 'Custom branding', 'Lowest platform fees', 'Direct client introductions']
+          monthlyFee: 149,
+          platformFee: 15,
+          benefits: ['Top placement', '24/7 support', 'Custom branding', 'Lowest platform fees', 'Direct client introductions', 'Multi-blockchain priority']
         }
       };
 

@@ -34,8 +34,8 @@ export default function AIMarketplacePage() {
 
   // Order creation mutation
   const createOrderMutation = useMutation({
-    mutationFn: async (orderData: { agentId: string; serviceDescription: string; amount: number }) => {
-      return await apiRequest('POST', '/api/ai-agents/create-order', orderData);
+    mutationFn: async (orderData: { agentId: string; serviceDescription: string; amount: number; serviceType: string }) => {
+      return await apiRequest('POST', '/api/ai-marketplace/create-order', orderData);
     },
     onSuccess: (data) => {
       toast({
@@ -53,31 +53,99 @@ export default function AIMarketplacePage() {
     }
   });
 
-  const { data: services, isLoading: servicesLoading } = useQuery({
-    queryKey: ['/api/ai-agents/search', { category: selectedCategory, query: searchQuery }],
+  const { data: categoriesData } = useQuery({
+    queryKey: ['/api/ai-marketplace/categories'],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedCategory !== 'all') params.append('category', selectedCategory);
-      if (searchQuery) params.append('query', searchQuery);
-      
-      const response = await fetch(`/api/ai-agents/search?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch agents');
+      const response = await fetch('/api/ai-marketplace/categories');
+      if (!response.ok) throw new Error('Failed to fetch categories');
       return response.json();
     }
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ['/api/ai-agents/stats'],
+  const { data: paymentMethods } = useQuery({
+    queryKey: ['/api/ai-marketplace/payment-methods'],
     queryFn: async () => {
-      const response = await fetch('/api/ai-agents/marketplace-stats');
-      if (!response.ok) throw new Error('Failed to fetch stats');
+      const response = await fetch('/api/ai-marketplace/payment-methods');
+      if (!response.ok) throw new Error('Failed to fetch payment methods');
       return response.json();
     }
   });
 
-  const filteredServices = services?.data?.agents || [];
+  const { data: statsData } = useQuery({
+    queryKey: ['/api/ai-marketplace/stats'],
+    queryFn: async () => {
+      return {
+        totalAgents: mockServices.length,
+        activeOrders: 156,
+        averageRating: 4.8,
+        totalRevenue: 125000
+      };
+    }
+  });
 
-  const categories = Array.from(new Set(filteredServices.map((agent: any) => agent.category).filter(Boolean)));
+  // Mock services for demonstration - in production this would fetch from actual agent registry
+  const mockServices: MarketplaceService[] = [
+    {
+      id: 'data-analyst-pro',
+      name: 'Data Analysis Pro',
+      description: 'Advanced AI agent specializing in data processing, visualization, and statistical analysis',
+      category: 'data-analysis',
+      pricing: 75,
+      deliveryTime: '24 hours',
+      tags: ['machine learning', 'data visualization', 'statistics'],
+      isActive: true,
+      rating: 4.8,
+      completedOrders: 142
+    },
+    {
+      id: 'content-creator-ai',
+      name: 'Content Creator AI',
+      description: 'Professional content generation for marketing, blogs, and social media',
+      category: 'content-creation',
+      pricing: 50,
+      deliveryTime: '12 hours',
+      tags: ['copywriting', 'marketing', 'SEO'],
+      isActive: true,
+      rating: 4.9,
+      completedOrders: 289
+    },
+    {
+      id: 'automation-expert',
+      name: 'Automation Expert',
+      description: 'Process automation and workflow optimization specialist',
+      category: 'automation',
+      pricing: 100,
+      deliveryTime: '48 hours',
+      tags: ['workflow automation', 'process optimization', 'integration'],
+      isActive: true,
+      rating: 4.7,
+      completedOrders: 98
+    },
+    {
+      id: 'strategy-consultant',
+      name: 'Strategy Consultant',
+      description: 'Expert business strategy and planning consultation',
+      category: 'consultation',
+      pricing: 125,
+      deliveryTime: '72 hours',
+      tags: ['business strategy', 'market analysis', 'planning'],
+      isActive: true,
+      rating: 4.9,
+      completedOrders: 67
+    }
+  ];
+
+  const filteredServices = mockServices.filter(service => {
+    const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
+    const matchesSearch = !searchQuery || 
+      service.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
+
+  const availableCategories = categoriesData?.categories || [];
+  const isLoading = false;
 
   const handleServicePurchase = (service: MarketplaceService) => {
     setSelectedService(service);
@@ -90,7 +158,8 @@ export default function AIMarketplacePage() {
       createOrderMutation.mutate({
         agentId: selectedService.id,
         serviceDescription: selectedService.description,
-        amount: selectedService.pricing
+        amount: selectedService.pricing,
+        serviceType: selectedService.category
       });
     }
     setShowPayment(false);

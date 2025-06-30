@@ -15,6 +15,85 @@ const orders = new Map();
 const escrow = new Map();
 const agentEarnings = new Map();
 
+// Populate with sample services for immediate functionality
+const sampleServices = [
+  {
+    id: 'svc_data_analysis_001',
+    name: 'Advanced Data Analysis',
+    description: 'Comprehensive data analysis with visualization and insights using Python and R',
+    category: 'data-analysis',
+    pricing: 150,
+    deliveryTime: '3-5 days',
+    tags: ['python', 'pandas', 'visualization', 'statistics'],
+    agentId: 'agent_data_specialist',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    rating: 4.8,
+    completedOrders: 23
+  },
+  {
+    id: 'svc_content_creation_002',
+    name: 'AI-Powered Content Writing',
+    description: 'High-quality blog posts, articles, and marketing content optimized for SEO',
+    category: 'content-creation',
+    pricing: 75,
+    deliveryTime: '1-2 days',
+    tags: ['copywriting', 'seo', 'marketing', 'blog'],
+    agentId: 'agent_content_writer',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    rating: 4.9,
+    completedOrders: 45
+  },
+  {
+    id: 'svc_automation_003',
+    name: 'Process Automation Setup',
+    description: 'Custom automation workflows for business processes using Zapier and Python',
+    category: 'automation',
+    pricing: 200,
+    deliveryTime: '5-7 days',
+    tags: ['zapier', 'automation', 'workflow', 'python'],
+    agentId: 'agent_automation_expert',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    rating: 4.7,
+    completedOrders: 18
+  },
+  {
+    id: 'svc_consultation_004',
+    name: 'Technical Architecture Consultation',
+    description: 'Expert consultation on system architecture, scalability, and technology stack decisions',
+    category: 'consultation',
+    pricing: 300,
+    deliveryTime: '2-3 days',
+    tags: ['architecture', 'scalability', 'consulting', 'technology'],
+    agentId: 'agent_tech_consultant',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    rating: 5.0,
+    completedOrders: 12
+  },
+  {
+    id: 'svc_financial_planning_005',
+    name: 'Personal Financial Planning',
+    description: 'Comprehensive financial planning with investment strategies and budget optimization',
+    category: 'financial-planning',
+    pricing: 250,
+    deliveryTime: '3-4 days',
+    tags: ['finance', 'investment', 'planning', 'budget'],
+    agentId: 'agent_financial_advisor',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    rating: 4.6,
+    completedOrders: 31
+  }
+];
+
+// Initialize services
+sampleServices.forEach(service => {
+  services.set(service.id, service);
+});
+
 // Service listing schema
 const ServiceSchema = z.object({
   name: z.string().min(1),
@@ -92,7 +171,7 @@ router.post('/services', isAuthenticated, (req, res) => {
       data: service,
       message: 'Service listed successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       error: error.message || 'Failed to create service'
@@ -118,7 +197,7 @@ router.get('/agent/:agentId/services', (req, res) => {
 // Create order with escrow
 router.post('/orders', isAuthenticated, (req, res) => {
   try {
-    const customerId = req.user?.claims?.sub;
+    const customerId = (req.user as any)?.claims?.sub;
     if (!customerId) {
       return res.status(401).json({ success: false, error: 'Authentication required' });
     }
@@ -158,7 +237,7 @@ router.post('/orders', isAuthenticated, (req, res) => {
       data: order,
       message: 'Order created and funds held in escrow'
     });
-  } catch (error) {
+  } catch (error: any) {
     res.status(400).json({
       success: false,
       error: error.message || 'Failed to create order'
@@ -179,7 +258,7 @@ router.get('/agent/:agentId/orders', isAuthenticated, (req, res) => {
 
 // Get customer's orders
 router.get('/customer/orders', isAuthenticated, (req, res) => {
-  const customerId = req.user?.claims?.sub;
+  const customerId = (req.user as any)?.claims?.sub;
   const customerOrders = Array.from(orders.values()).filter(o => o.customerId === customerId);
   
   res.json({
@@ -196,7 +275,7 @@ router.get('/customer/orders', isAuthenticated, (req, res) => {
 router.post('/orders/:orderId/deliver', isAuthenticated, (req, res) => {
   const { orderId } = req.params;
   const { deliveryMessage, attachments } = req.body;
-  const agentId = req.user?.claims?.sub;
+  const agentId = (req.user as any)?.claims?.sub;
   
   const order = orders.get(orderId);
   if (!order) {
@@ -225,7 +304,7 @@ router.post('/orders/:orderId/deliver', isAuthenticated, (req, res) => {
 // Customer accepts delivery
 router.post('/orders/:orderId/accept', isAuthenticated, (req, res) => {
   const { orderId } = req.params;
-  const customerId = req.user?.claims?.sub;
+  const customerId = (req.user as any)?.claims?.sub;
   
   const order = orders.get(orderId);
   if (!order) {
@@ -354,7 +433,7 @@ router.get('/platform/fees', isAuthenticated, (req, res) => {
 // Request refund
 router.post('/refund', isAuthenticated, (req, res) => {
   const { orderId, reason } = req.body;
-  const customerId = req.user?.claims?.sub;
+  const customerId = (req.user as any)?.claims?.sub;
   
   const order = orders.get(orderId);
   if (!order) {

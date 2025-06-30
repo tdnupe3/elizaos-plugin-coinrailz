@@ -36,6 +36,45 @@ const paymentMethods = {
 const PLATFORM_COMMISSION = 0.25; // 25% platform commission
 const AGENT_PAYOUT = 0.75; // 75% agent payout
 
+// Comprehensive fee calculation for all payment methods
+function calculateFeesForPaymentMethod(paymentType: string, amount: number) {
+  const method = paymentMethods[paymentType as keyof typeof paymentMethods];
+  
+  if (!method) {
+    throw new Error(`Unsupported payment method: ${paymentType}`);
+  }
+  
+  // Calculate processing fees based on payment method
+  const processingFee = (amount * method.feePercentage / 100) + method.fixedFee;
+  
+  // Calculate platform commission (25% of total amount)
+  const platformCommission = amount * PLATFORM_COMMISSION;
+  
+  // Calculate agent payout (75% minus processing fees)
+  const agentPayout = (amount * AGENT_PAYOUT) - processingFee;
+  
+  // Total fees captured by platform
+  const totalFeesCaptured = platformCommission + processingFee;
+  
+  // Net revenue for platform (after processing costs)
+  const platformNetRevenue = platformCommission;
+  
+  return {
+    originalAmount: amount,
+    processingFee: Number(processingFee.toFixed(2)),
+    platformCommission: Number(platformCommission.toFixed(2)),
+    agentPayout: Number(agentPayout.toFixed(2)),
+    totalFeesCaptured: Number(totalFeesCaptured.toFixed(2)),
+    platformNetRevenue: Number(platformNetRevenue.toFixed(2)),
+    paymentMethod: paymentType,
+    feeBreakdown: {
+      [`${paymentType}_processing`]: Number(processingFee.toFixed(2)),
+      platform_commission: Number(platformCommission.toFixed(2)),
+      agent_net_payout: Number(agentPayout.toFixed(2))
+    }
+  };
+}
+
 // Create payment intent
 router.post('/create-payment-intent', async (req, res) => {
   try {
@@ -52,6 +91,9 @@ router.post('/create-payment-intent', async (req, res) => {
     const { type, amount, currency, metadata } = validation.data;
     const paymentId = `pay_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
 
+    // Calculate comprehensive fee structure for all payment methods
+    const feeBreakdown = calculateFeesForPaymentMethod(type, amount);
+    
     const payment = {
       id: paymentId,
       type,
@@ -60,10 +102,11 @@ router.post('/create-payment-intent', async (req, res) => {
       status: 'pending',
       metadata,
       createdAt: new Date().toISOString(),
-      platformFee: amount * 0.25,
-      agentPayout: amount * 0.75,
-      processingFee: type === 'stripe' ? amount * 0.029 + 0.30 : 
-                     type === 'paypal' ? amount * 0.034 + 0.30 : 0
+      feeBreakdown,
+      platformCommission: feeBreakdown.platformCommission,
+      agentPayout: feeBreakdown.agentPayout,
+      processingFee: feeBreakdown.processingFee,
+      totalFeesCaptured: feeBreakdown.totalFeesCaptured
     };
 
     payments.set(paymentId, payment);
@@ -393,6 +436,121 @@ router.get('/analytics', (req, res) => {
   res.json({
     success: true,
     data: analytics
+  });
+});
+
+// Fee capture analytics endpoint
+router.get('/analytics/fees', (req, res) => {
+  const { startDate, endDate, paymentMethod } = req.query;
+  
+  let allPayments = Array.from(payments.values());
+  
+  // Filter by date range if provided
+  if (startDate) {
+    allPayments = allPayments.filter(payment => 
+      new Date(payment.createdAt) >= new Date(startDate as string)
+    );
+  }
+  if (endDate) {
+    allPayments = allPayments.filter(payment => 
+      new Date(payment.createdAt) <= new Date(endDate as string)
+    );
+  }
+  
+  // Filter by payment method if provided
+  if (paymentMethod) {
+    allPayments = allPayments.filter(payment => 
+      payment.type === paymentMethod
+    );
+  }
+  
+  // Calculate comprehensive fee analytics
+  const analytics = {
+    totalTransactions: allPayments.length,
+    totalVolume: allPayments.reduce((sum, p) => sum + p.amount, 0),
+    totalFeesCapture: allPayments.reduce((sum, p) => sum + (p.totalFeesCaptured || 0), 0),
+    totalPlatformCommission: allPayments.reduce((sum, p) => sum + (p.platformCommission || 0), 0),
+    totalProcessingFees: allPayments.reduce((sum, p) => sum + (p.processingFee || 0), 0),
+    totalAgentPayouts: allPayments.reduce((sum, p) => sum + (p.agentPayout || 0), 0),
+    
+    byPaymentMethod: {
+      stripe: {
+        count: allPayments.filter(p => p.type === 'stripe').length,
+        volume: allPayments.filter(p => p.type === 'stripe').reduce((sum, p) => sum + p.amount, 0),
+        feesCapture: allPayments.filter(p => p.type === 'stripe').reduce((sum, p) => sum + (p.totalFeesCaptured || 0), 0)
+      },
+      paypal: {
+        count: allPayments.filter(p => p.type === 'paypal').length,
+        volume: allPayments.filter(p => p.type === 'paypal').reduce((sum, p) => sum + p.amount, 0),
+        feesCapture: allPayments.filter(p => p.type === 'paypal').reduce((sum, p) => sum + (p.totalFeesCaptured || 0), 0)
+      },
+      crypto: {
+        count: allPayments.filter(p => p.type === 'crypto').length,
+        volume: allPayments.filter(p => p.type === 'crypto').reduce((sum, p) => sum + p.amount, 0),
+        feesCapture: allPayments.filter(p => p.type === 'crypto').reduce((sum, p) => sum + (p.totalFeesCaptured || 0), 0)
+      },
+      xrp: {
+        count: allPayments.filter(p => p.type === 'xrp').length,
+        volume: allPayments.filter(p => p.type === 'xrp').reduce((sum, p) => sum + p.amount, 0),
+        feesCapture: allPayments.filter(p => p.type === 'xrp').reduce((sum, p) => sum + (p.totalFeesCaptured || 0), 0)
+      }
+    },
+    
+    profitability: {
+      netRevenue: allPayments.reduce((sum, p) => sum + (p.platformCommission || 0), 0),
+      revenueMargin: allPayments.length > 0 ? 
+        (allPayments.reduce((sum, p) => sum + (p.platformCommission || 0), 0) / 
+         allPayments.reduce((sum, p) => sum + p.amount, 0) * 100) : 0,
+      averageTransactionValue: allPayments.length > 0 ? 
+        allPayments.reduce((sum, p) => sum + p.amount, 0) / allPayments.length : 0
+    }
+  };
+  
+  res.json({
+    success: true,
+    data: analytics,
+    summary: {
+      message: `Captured $${analytics.totalFeesCapture.toFixed(2)} in fees from ${analytics.totalTransactions} transactions`,
+      platformRevenue: `$${analytics.totalPlatformCommission.toFixed(2)} (${analytics.profitability.revenueMargin.toFixed(1)}% margin)`,
+      agentPayouts: `$${analytics.totalAgentPayouts.toFixed(2)} distributed to agents`
+    }
+  });
+});
+
+// Get fee structure for all payment methods
+router.get('/fee-structure', (req, res) => {
+  const { amount } = req.query;
+  const testAmount = amount ? parseFloat(amount as string) : 100;
+  
+  const feeComparison = Object.keys(paymentMethods).map(method => {
+    if (!paymentMethods[method as keyof typeof paymentMethods].enabled) return null;
+    
+    try {
+      const fees = calculateFeesForPaymentMethod(method, testAmount);
+      return {
+        paymentMethod: method,
+        enabled: paymentMethods[method as keyof typeof paymentMethods].enabled,
+        ...fees
+      };
+    } catch (error) {
+      return null;
+    }
+  }).filter(Boolean);
+  
+  res.json({
+    success: true,
+    data: {
+      feeComparison,
+      testAmount,
+      bestOption: feeComparison.reduce((best, current) => 
+        !best || (current && current.agentPayout > best.agentPayout) ? current : best
+      , null),
+      summary: {
+        platformCommissionRate: `${PLATFORM_COMMISSION * 100}%`,
+        agentPayoutRate: `${AGENT_PAYOUT * 100}%`,
+        note: "XRP offers the lowest processing fees for maximum agent payouts"
+      }
+    }
   });
 });
 

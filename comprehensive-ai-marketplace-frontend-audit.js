@@ -607,7 +607,7 @@ async function main() {
   const results = await auditor.runCompleteMarketplaceAudit();
   
   // Write results to file for detailed review
-  const fs = require('fs');
+  const fs = await import('fs');
   fs.writeFileSync(
     'MARKETPLACE_FRONTEND_AUDIT_REPORT.json', 
     JSON.stringify(results, null, 2)
@@ -616,8 +616,4 @@ async function main() {
   console.log('\n📄 Detailed report saved to: MARKETPLACE_FRONTEND_AUDIT_REPORT.json');
 }
 
-if (require.main === module) {
-  main().catch(console.error);
-}
-
-module.exports = { MarketplaceFrontendAuditor };
+main().catch(console.error);

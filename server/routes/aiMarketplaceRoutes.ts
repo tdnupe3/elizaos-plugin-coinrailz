@@ -5,9 +5,35 @@
 
 import { Router } from 'express';
 import { AIMarketplaceCore } from '../services/aiMarketplaceCore';
+import { ServiceDeliveryCore } from '../services/serviceDeliveryCore';
 import { storage } from '../storage';
-// import { isAuthenticated } from '../replitAuth'; // Temporarily disabled for testing
+import { isAuthenticated } from '../replitAuth';
 import { z } from 'zod';
+import multer from 'multer';
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    files: 10 // Maximum 10 files
+  },
+  fileFilter: (req, file, cb) => {
+    // Block dangerous file types
+    const dangerousTypes = [
+      'application/x-msdownload',
+      'application/x-msdos-program',
+      'application/x-dosexec',
+      'application/x-executable'
+    ];
+    
+    if (dangerousTypes.includes(file.mimetype)) {
+      return cb(new Error('File type not allowed'));
+    }
+    
+    cb(null, true);
+  }
+});
 
 const router = Router();
 
@@ -16,7 +42,7 @@ const router = Router();
 /**
  * Create service order
  */
-router.post('/order', async (req: any, res) => {
+router.post('/order', isAuthenticated, async (req: any, res) => {
   try {
     const orderSchema = z.object({
       agentId: z.string().min(1),

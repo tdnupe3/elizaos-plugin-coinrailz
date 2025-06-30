@@ -8,6 +8,7 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 import { pool } from "./db";
+import { z } from 'zod';
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -192,14 +193,31 @@ function setupFallbackAuth(app: Express) {
   // Fallback registration endpoint
   app.post('/api/auth/register', async (req, res) => {
     try {
-      const { email, firstName, lastName } = req.body;
+      const registrationSchema = z.object({
+        email: z.string().email('Valid email is required'),
+        firstName: z.string().optional(),
+        lastName: z.string().optional(),
+        password: z.string().optional(), // Optional for OAuth flows
+        acceptTerms: z.boolean().optional(),
+      });
+
+      const validatedData = registrationSchema.parse(req.body);
+      const { email, firstName, lastName } = validatedData;
       
-      if (!email) {
-        return res.status(400).json({ success: false, message: 'Email is required' });
+      // Check if user already exists
+      const existingUsers = await storage.getUsers();
+      const existingUser = existingUsers.find(user => user.email === email);
+      
+      if (existingUser) {
+        return res.status(409).json({ 
+          success: false, 
+          message: 'User already exists',
+          code: 'USER_EXISTS'
+        });
       }
       
-      const userId = `fallback_${Date.now()}`;
-      await storage.upsertUser({
+      const userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const newUser = await storage.upsertUser({
         id: userId,
         email,
         firstName: firstName || null,
@@ -209,19 +227,28 @@ function setupFallbackAuth(app: Express) {
       
       // Set session
       (req.session as any).user = {
-        id: userId,
-        email,
-        firstName,
-        lastName
+        claims: {
+          sub: userId,
+          email,
+          first_name: firstName,
+          last_name: lastName
+        }
       };
       
-      res.json({
+      res.status(201).json({
         success: true,
-        user: { id: userId, email, firstName, lastName },
+        user: newUser,
         message: 'Registration successful'
       });
     } catch (error) {
-      console.error('Fallback registration error:', error);
+      console.error('Registration error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Validation failed',
+          errors: error.errors
+        });
+      }
       res.status(500).json({ success: false, message: 'Registration failed' });
     }
   });

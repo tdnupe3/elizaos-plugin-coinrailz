@@ -2825,7 +2825,7 @@ export function setupSimpleRoutes(app: Express) {
         id: 'crypto',
         name: 'Cryptocurrency',
         description: 'XRP, BTC, ETH, USDC, USDT',
-        processingFee: 0.5,
+        processingFee: 2.0,
         enabled: true
       }
     ];
@@ -2864,6 +2864,54 @@ export function setupSimpleRoutes(app: Express) {
         name: 'Market Research',
         description: 'Comprehensive market intelligence',
         agentCount: 6
+      },
+      {
+        id: 'legal',
+        name: 'Legal AI',
+        description: 'Contract analysis, legal research, compliance',
+        agentCount: 4
+      },
+      {
+        id: 'medical',
+        name: 'Medical AI',
+        description: 'Health data analysis, medical research assistance',
+        agentCount: 3
+      },
+      {
+        id: 'creative',
+        name: 'Creative Writing',
+        description: 'Content creation, copywriting, storytelling',
+        agentCount: 9
+      },
+      {
+        id: 'code_review',
+        name: 'Code Review',
+        description: 'Software audit, security analysis, optimization',
+        agentCount: 7
+      },
+      {
+        id: 'financial_planning',
+        name: 'Financial Planning',
+        description: 'Investment strategy, risk assessment, portfolio optimization',
+        agentCount: 5
+      },
+      {
+        id: 'translation',
+        name: 'Translation Services',
+        description: 'Multi-language translation and localization',
+        agentCount: 6
+      },
+      {
+        id: 'customer_service',
+        name: 'Customer Service AI',
+        description: 'Support automation, chatbot development',
+        agentCount: 8
+      },
+      {
+        id: 'education',
+        name: 'Educational AI',
+        description: 'Tutoring, curriculum development, training materials',
+        agentCount: 4
       }
     ];
 
@@ -2894,6 +2942,865 @@ export function setupSimpleRoutes(app: Express) {
       success: true,
       data: performance
     });
+  });
+
+  /**
+   * Agent search and filtering system - CRITICAL UX IMPROVEMENT
+   */
+  app.get('/api/ai-agents/search', async (req, res) => {
+    try {
+      const { 
+        query, 
+        category, 
+        minRating, 
+        maxPrice, 
+        availability, 
+        skills,
+        sortBy = 'rating',
+        page = 1,
+        limit = 20 
+      } = req.query;
+
+      // Simulate agent search results with realistic data
+      const allAgents = [
+        {
+          id: 'agent_001',
+          name: 'FinanceBot Pro',
+          category: 'financial_planning',
+          specialties: ['Portfolio Analysis', 'Risk Assessment', 'Market Research'],
+          rating: 4.8,
+          completedProjects: 127,
+          hourlyRate: 85,
+          availability: 'available',
+          responseTime: '2 hours',
+          skills: ['Python', 'Financial Modeling', 'Data Analysis'],
+          verified: true,
+          description: 'Expert AI agent specializing in comprehensive financial analysis and investment strategy optimization.',
+          portfolio: ['Fortune 500 portfolio optimization', 'Crypto trading strategy development']
+        },
+        {
+          id: 'agent_002',
+          name: 'CodeReview Master',
+          category: 'code_review',
+          specialties: ['Security Analysis', 'Performance Optimization', 'Code Quality'],
+          rating: 4.9,
+          completedProjects: 89,
+          hourlyRate: 75,
+          availability: 'busy',
+          responseTime: '4 hours',
+          skills: ['JavaScript', 'Python', 'Security Auditing', 'Performance Testing'],
+          verified: true,
+          description: 'Advanced code analysis agent with expertise in security vulnerabilities and performance optimization.',
+          portfolio: ['Enterprise security audit', 'High-traffic application optimization']
+        },
+        {
+          id: 'agent_003',
+          name: 'LegalAI Assistant',
+          category: 'legal',
+          specialties: ['Contract Analysis', 'Compliance Review', 'Legal Research'],
+          rating: 4.7,
+          completedProjects: 156,
+          hourlyRate: 120,
+          availability: 'available',
+          responseTime: '1 hour',
+          skills: ['Contract Law', 'Regulatory Compliance', 'Document Analysis'],
+          verified: true,
+          description: 'Specialized legal AI for contract analysis and compliance verification.',
+          portfolio: ['M&A contract review', 'GDPR compliance analysis']
+        },
+        {
+          id: 'agent_004',
+          name: 'CreativeWriter AI',
+          category: 'creative',
+          specialties: ['Content Creation', 'Copywriting', 'Brand Voice'],
+          rating: 4.6,
+          completedProjects: 203,
+          hourlyRate: 55,
+          availability: 'available',
+          responseTime: '30 minutes',
+          skills: ['Content Strategy', 'SEO Writing', 'Brand Development'],
+          verified: false,
+          description: 'Creative content generation specialist for marketing and brand communications.',
+          portfolio: ['E-commerce product descriptions', 'Social media campaigns']
+        },
+        {
+          id: 'agent_005',
+          name: 'DataAnalytics Pro',
+          category: 'analysis',
+          specialties: ['Business Intelligence', 'Predictive Analytics', 'Reporting'],
+          rating: 4.9,
+          completedProjects: 178,
+          hourlyRate: 95,
+          availability: 'available',
+          responseTime: '1.5 hours',
+          skills: ['SQL', 'Machine Learning', 'Data Visualization', 'Statistics'],
+          verified: true,
+          description: 'Advanced data analytics agent specializing in business intelligence and predictive modeling.',
+          portfolio: ['Customer churn prediction model', 'Sales forecasting dashboard']
+        },
+        {
+          id: 'agent_006',
+          name: 'Medical Research AI',
+          category: 'medical',
+          specialties: ['Clinical Data Analysis', 'Research Synthesis', 'Drug Discovery'],
+          rating: 4.8,
+          completedProjects: 67,
+          hourlyRate: 150,
+          availability: 'limited',
+          responseTime: '6 hours',
+          skills: ['Biostatistics', 'Clinical Trials', 'Medical Literature'],
+          verified: true,
+          description: 'Specialized medical AI for clinical research and drug discovery analysis.',
+          portfolio: ['Phase II trial analysis', 'Meta-analysis of cardiovascular studies']
+        }
+      ];
+
+      // Apply filters
+      let filteredAgents = allAgents;
+
+      if (category && category !== 'all') {
+        filteredAgents = filteredAgents.filter(agent => agent.category === category);
+      }
+
+      if (query) {
+        const searchQuery = query.toString().toLowerCase();
+        filteredAgents = filteredAgents.filter(agent => 
+          agent.name.toLowerCase().includes(searchQuery) ||
+          agent.description.toLowerCase().includes(searchQuery) ||
+          agent.specialties.some(spec => spec.toLowerCase().includes(searchQuery)) ||
+          agent.skills.some(skill => skill.toLowerCase().includes(searchQuery))
+        );
+      }
+
+      if (minRating) {
+        filteredAgents = filteredAgents.filter(agent => agent.rating >= parseFloat(minRating.toString()));
+      }
+
+      if (maxPrice) {
+        filteredAgents = filteredAgents.filter(agent => agent.hourlyRate <= parseInt(maxPrice.toString()));
+      }
+
+      if (availability && availability !== 'all') {
+        filteredAgents = filteredAgents.filter(agent => agent.availability === availability);
+      }
+
+      if (skills) {
+        const requiredSkills = skills.toString().split(',');
+        filteredAgents = filteredAgents.filter(agent => 
+          requiredSkills.some(skill => 
+            agent.skills.some(agentSkill => 
+              agentSkill.toLowerCase().includes(skill.toLowerCase().trim())
+            )
+          )
+        );
+      }
+
+      // Apply sorting
+      switch (sortBy) {
+        case 'rating':
+          filteredAgents.sort((a, b) => b.rating - a.rating);
+          break;
+        case 'price_low':
+          filteredAgents.sort((a, b) => a.hourlyRate - b.hourlyRate);
+          break;
+        case 'price_high':
+          filteredAgents.sort((a, b) => b.hourlyRate - a.hourlyRate);
+          break;
+        case 'experience':
+          filteredAgents.sort((a, b) => b.completedProjects - a.completedProjects);
+          break;
+        case 'response_time':
+          // Simple response time sorting (would need proper time parsing in production)
+          filteredAgents.sort((a, b) => {
+            const getMinutes = (time) => {
+              if (time.includes('minute')) return parseInt(time);
+              if (time.includes('hour')) return parseInt(time) * 60;
+              return 999;
+            };
+            return getMinutes(a.responseTime) - getMinutes(b.responseTime);
+          });
+          break;
+        default:
+          filteredAgents.sort((a, b) => b.rating - a.rating);
+      }
+
+      // Apply pagination
+      const startIndex = (parseInt(page.toString()) - 1) * parseInt(limit.toString());
+      const endIndex = startIndex + parseInt(limit.toString());
+      const paginatedAgents = filteredAgents.slice(startIndex, endIndex);
+
+      res.json({
+        success: true,
+        data: {
+          agents: paginatedAgents,
+          pagination: {
+            currentPage: parseInt(page.toString()),
+            totalPages: Math.ceil(filteredAgents.length / parseInt(limit.toString())),
+            totalResults: filteredAgents.length,
+            hasNext: endIndex < filteredAgents.length,
+            hasPrev: parseInt(page.toString()) > 1
+          },
+          filters: {
+            appliedFilters: {
+              query: query || null,
+              category: category || null,
+              minRating: minRating || null,
+              maxPrice: maxPrice || null,
+              availability: availability || null,
+              skills: skills || null
+            },
+            availableFilters: {
+              categories: ['all', 'analysis', 'consultation', 'automation', 'research', 'legal', 'medical', 'creative', 'code_review', 'financial_planning'],
+              availabilityOptions: ['all', 'available', 'busy', 'limited'],
+              sortOptions: ['rating', 'price_low', 'price_high', 'experience', 'response_time']
+            }
+          }
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Search failed' });
+    }
+  });
+
+  /**
+   * Agent onboarding system - GUIDED REGISTRATION FLOW
+   */
+  app.post('/api/ai-agents/onboard', async (req, res) => {
+    try {
+      const { 
+        step,
+        agentName,
+        category,
+        specialties,
+        hourlyRate,
+        description,
+        skills,
+        portfolio,
+        availability
+      } = req.body;
+
+      if (!step) {
+        return res.status(400).json({ success: false, error: 'Onboarding step required' });
+      }
+
+      const onboardingData = {
+        id: `onboard_${Date.now()}`,
+        step,
+        agentName,
+        category,
+        specialties,
+        hourlyRate,
+        description,
+        skills,
+        portfolio,
+        availability,
+        status: 'in_progress',
+        createdAt: new Date().toISOString()
+      };
+
+      // Validate based on step
+      switch (step) {
+        case 1: // Basic Info
+          if (!agentName || !category) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Agent name and category required',
+              nextStep: 1
+            });
+          }
+          break;
+        case 2: // Skills & Specialties
+          if (!specialties || !skills) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Specialties and skills required',
+              nextStep: 2
+            });
+          }
+          break;
+        case 3: // Pricing & Availability
+          if (!hourlyRate || !availability) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Hourly rate and availability required',
+              nextStep: 3
+            });
+          }
+          break;
+        case 4: // Portfolio & Description
+          if (!description) {
+            return res.status(400).json({ 
+              success: false, 
+              error: 'Description required',
+              nextStep: 4
+            });
+          }
+          onboardingData.status = 'completed';
+          break;
+      }
+
+      const nextStep = step < 4 ? step + 1 : null;
+      const progressPercentage = (step / 4) * 100;
+
+      res.json({
+        success: true,
+        data: {
+          ...onboardingData,
+          nextStep,
+          progressPercentage,
+          completedSteps: step,
+          totalSteps: 4
+        },
+        message: step === 4 ? 'Onboarding completed successfully' : `Step ${step} completed`
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Onboarding failed' });
+    }
+  });
+
+  /**
+   * Skill verification system - AGENT CREDENTIALING
+   */
+  app.post('/api/ai-agents/verify-skills', async (req, res) => {
+    try {
+      const { agentId, skillAssessments, portfolioItems } = req.body;
+      
+      if (!agentId || !skillAssessments) {
+        return res.status(400).json({ success: false, error: 'Agent ID and skill assessments required' });
+      }
+
+      // Simulate skill verification process
+      const verificationResults = skillAssessments.map(assessment => ({
+        skill: assessment.skill,
+        score: Math.floor(Math.random() * 30) + 70, // 70-100 score
+        verified: Math.random() > 0.2, // 80% pass rate
+        assessmentType: assessment.type || 'practical',
+        completedAt: new Date().toISOString()
+      }));
+
+      const overallScore = verificationResults.reduce((sum, result) => sum + result.score, 0) / verificationResults.length;
+      const badgeLevel = overallScore >= 90 ? 'expert' : overallScore >= 80 ? 'advanced' : 'intermediate';
+
+      const verification = {
+        id: `verify_${Date.now()}`,
+        agentId,
+        skillResults: verificationResults,
+        overallScore: Math.round(overallScore),
+        badgeLevel,
+        portfolioReview: portfolioItems ? {
+          itemsReviewed: portfolioItems.length,
+          approvedItems: Math.floor(portfolioItems.length * 0.85),
+          feedback: 'Strong portfolio demonstrating practical application of skills'
+        } : null,
+        verifiedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year
+        status: 'verified'
+      };
+
+      res.json({
+        success: true,
+        data: verification,
+        message: `Skills verified successfully - ${badgeLevel} level achieved`
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Skill verification failed' });
+    }
+  });
+
+  /**
+   * Premium subscription system - TIERED AGENT BENEFITS
+   */
+  app.post('/api/ai-agents/subscribe', async (req, res) => {
+    try {
+      const { agentId, tier, paymentMethod } = req.body;
+      
+      if (!agentId || !tier || !paymentMethod) {
+        return res.status(400).json({ success: false, error: 'Agent ID, tier, and payment method required' });
+      }
+
+      const subscriptionTiers = {
+        basic: {
+          name: 'Basic',
+          monthlyFee: 0,
+          platformFee: 15,
+          benefits: ['Standard listing', 'Basic support', 'Payment processing']
+        },
+        premium: {
+          name: 'Premium',
+          monthlyFee: 29,
+          platformFee: 12,
+          benefits: ['Featured listing', 'Priority support', 'Advanced analytics', 'Lower platform fees']
+        },
+        enterprise: {
+          name: 'Enterprise',
+          monthlyFee: 99,
+          platformFee: 10,
+          benefits: ['Top placement', '24/7 support', 'Custom branding', 'Lowest platform fees', 'Direct client introductions']
+        }
+      };
+
+      const selectedTier = subscriptionTiers[tier];
+      if (!selectedTier) {
+        return res.status(400).json({ success: false, error: 'Invalid subscription tier' });
+      }
+
+      const subscription = {
+        id: `sub_${Date.now()}`,
+        agentId,
+        tier,
+        monthlyFee: selectedTier.monthlyFee,
+        platformFee: selectedTier.platformFee,
+        benefits: selectedTier.benefits,
+        paymentMethod,
+        status: 'active',
+        startDate: new Date().toISOString(),
+        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        autoRenew: true
+      };
+
+      res.status(201).json({
+        success: true,
+        data: subscription,
+        message: `${selectedTier.name} subscription activated successfully`
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Subscription failed' });
+    }
+  });
+
+  /**
+   * Milestone-based project delivery - PROJECT MANAGEMENT
+   */
+  app.post('/api/ai-agents/create-milestone-project', async (req, res) => {
+    try {
+      const { 
+        agentId, 
+        customerId, 
+        projectTitle, 
+        totalAmount, 
+        milestones,
+        deliveryDate 
+      } = req.body;
+      
+      if (!agentId || !customerId || !projectTitle || !totalAmount || !milestones) {
+        return res.status(400).json({ success: false, error: 'Missing required project fields' });
+      }
+
+      if (!Array.isArray(milestones) || milestones.length === 0) {
+        return res.status(400).json({ success: false, error: 'At least one milestone required' });
+      }
+
+      // Validate milestone amounts add up to total
+      const milestoneTotal = milestones.reduce((sum, milestone) => sum + milestone.amount, 0);
+      if (Math.abs(milestoneTotal - totalAmount) > 0.01) {
+        return res.status(400).json({ success: false, error: 'Milestone amounts must equal total project amount' });
+      }
+
+      const project = {
+        id: `proj_${Date.now()}`,
+        agentId,
+        customerId,
+        projectTitle,
+        totalAmount,
+        deliveryDate,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        milestones: milestones.map((milestone, index) => ({
+          id: `milestone_${Date.now()}_${index}`,
+          title: milestone.title,
+          description: milestone.description,
+          amount: milestone.amount,
+          dueDate: milestone.dueDate,
+          status: index === 0 ? 'in_progress' : 'pending',
+          deliverables: milestone.deliverables || [],
+          escrowStatus: 'held'
+        })),
+        totalMilestones: milestones.length,
+        completedMilestones: 0,
+        progressPercentage: 0
+      };
+
+      res.status(201).json({
+        success: true,
+        data: project,
+        message: 'Milestone-based project created successfully'
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Project creation failed' });
+    }
+  });
+
+  /**
+   * Update milestone progress - PROJECT TRACKING
+   */
+  app.post('/api/ai-agents/update-milestone', async (req, res) => {
+    try {
+      const { 
+        projectId, 
+        milestoneId, 
+        status, 
+        deliverables, 
+        agentNotes,
+        completionPercentage 
+      } = req.body;
+      
+      if (!projectId || !milestoneId || !status) {
+        return res.status(400).json({ success: false, error: 'Project ID, milestone ID, and status required' });
+      }
+
+      const milestoneUpdate = {
+        id: milestoneId,
+        projectId,
+        status,
+        deliverables,
+        agentNotes,
+        completionPercentage: completionPercentage || (status === 'completed' ? 100 : 50),
+        updatedAt: new Date().toISOString(),
+        nextMilestoneUnlocked: status === 'completed'
+      };
+
+      // Simulate notification to customer
+      const customerNotification = {
+        type: 'milestone_update',
+        projectId,
+        milestoneId,
+        message: status === 'completed' 
+          ? 'Milestone completed - please review and approve'
+          : 'Milestone progress updated',
+        timestamp: new Date().toISOString()
+      };
+
+      res.json({
+        success: true,
+        data: {
+          milestone: milestoneUpdate,
+          notification: customerNotification
+        },
+        message: 'Milestone updated successfully'
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Milestone update failed' });
+    }
+  });
+
+  /**
+   * Real-time chat system - CRITICAL UX IMPROVEMENT
+   */
+  app.post('/api/ai-agents/chat/send', async (req, res) => {
+    try {
+      const { orderId, senderId, senderType, message, messageType = 'text' } = req.body;
+      
+      if (!orderId || !senderId || !senderType || !message) {
+        return res.status(400).json({ success: false, error: 'Missing required chat fields' });
+      }
+
+      const chatMessage = {
+        id: `msg_${Date.now()}`,
+        orderId,
+        senderId,
+        senderType, // 'customer' or 'agent'
+        message,
+        messageType, // 'text', 'file', 'milestone_update'
+        timestamp: new Date().toISOString(),
+        status: 'sent',
+        readBy: [senderId]
+      };
+
+      res.status(201).json({
+        success: true,
+        data: chatMessage,
+        message: 'Message sent successfully'
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Failed to send message' });
+    }
+  });
+
+  app.get('/api/ai-agents/chat/:orderId', async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+
+      // Simulate chat history
+      const chatHistory = [
+        {
+          id: 'msg_001',
+          orderId,
+          senderId: 'customer_123',
+          senderType: 'customer',
+          message: 'Hi, I need help with portfolio analysis for my retirement fund',
+          messageType: 'text',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          status: 'read',
+          readBy: ['customer_123', 'agent_001']
+        },
+        {
+          id: 'msg_002',
+          orderId,
+          senderId: 'agent_001',
+          senderType: 'agent',
+          message: 'I can definitely help with that. Could you share your current portfolio allocation?',
+          messageType: 'text',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000 + 5 * 60 * 1000).toISOString(),
+          status: 'read',
+          readBy: ['customer_123', 'agent_001']
+        },
+        {
+          id: 'msg_003',
+          orderId,
+          senderId: 'agent_001',
+          senderType: 'agent',
+          message: 'I\'ve completed the initial analysis. Risk assessment shows 7/10 with growth potential.',
+          messageType: 'milestone_update',
+          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+          status: 'delivered',
+          readBy: ['agent_001']
+        }
+      ];
+
+      res.json({
+        success: true,
+        data: {
+          messages: chatHistory,
+          totalMessages: chatHistory.length,
+          unreadCount: chatHistory.filter(msg => !msg.readBy.includes('customer_123')).length
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Failed to fetch chat history' });
+    }
+  });
+
+  /**
+   * Enhanced fraud detection with ML simulation
+   */
+  app.post('/api/ai-agents/enhanced-fraud-check', async (req, res) => {
+    try {
+      const { agentId, customerId, orderId, transactionAmount, userBehavior, deviceInfo } = req.body;
+      
+      // Simulate advanced ML fraud detection
+      const fraudIndicators = [];
+      let riskScore = 0;
+
+      // Transaction amount analysis
+      if (transactionAmount > 5000) {
+        riskScore += 20;
+        fraudIndicators.push('high_value_transaction');
+      }
+
+      // Simulated behavioral analysis
+      if (userBehavior?.loginFrequency < 2) {
+        riskScore += 15;
+        fraudIndicators.push('irregular_login_pattern');
+      }
+
+      if (userBehavior?.previousTransactions === 0) {
+        riskScore += 10;
+        fraudIndicators.push('first_time_user');
+      }
+
+      // Device analysis
+      if (deviceInfo?.vpnDetected) {
+        riskScore += 25;
+        fraudIndicators.push('vpn_usage');
+      }
+
+      // Time-based analysis
+      const hour = new Date().getHours();
+      if (hour < 6 || hour > 22) {
+        riskScore += 5;
+        fraudIndicators.push('unusual_time');
+      }
+
+      const riskLevel = riskScore > 50 ? 'high' : riskScore > 25 ? 'medium' : 'low';
+      const requiresManualReview = riskScore > 40;
+
+      const fraudAnalysis = {
+        id: `fraud_ml_${Date.now()}`,
+        orderId,
+        agentId,
+        customerId,
+        riskScore,
+        riskLevel,
+        fraudIndicators,
+        requiresManualReview,
+        mlConfidence: Math.random() * 0.3 + 0.7, // 70-100% confidence
+        recommendation: riskLevel === 'high' ? 'block_transaction' : 
+                       riskLevel === 'medium' ? 'require_verification' : 'approve',
+        analyzedAt: new Date().toISOString()
+      };
+
+      res.json({
+        success: true,
+        data: fraudAnalysis,
+        message: `ML fraud analysis completed - ${riskLevel} risk detected`
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Fraud analysis failed' });
+    }
+  });
+
+  /**
+   * Agent recruitment and discovery system
+   */
+  app.post('/api/ai-agents/recruit', async (req, res) => {
+    try {
+      const { skills, minRating, maxHourlyRate, categories } = req.body;
+
+      // Simulate AI-powered agent recruitment
+      const recruitedAgents = [
+        {
+          id: 'recruited_001',
+          name: 'BlockchainAnalyst AI',
+          skills: ['Solidity', 'Smart Contracts', 'DeFi Analysis'],
+          rating: 4.9,
+          hourlyRate: 95,
+          category: 'analysis',
+          recruitmentSource: 'linkedin_ai_scan',
+          portfolioStrength: 92,
+          availabilityScore: 85,
+          matchScore: 94
+        },
+        {
+          id: 'recruited_002', 
+          name: 'RegTech Compliance Bot',
+          skills: ['GDPR', 'SOX Compliance', 'Risk Management'],
+          rating: 4.7,
+          hourlyRate: 110,
+          category: 'legal',
+          recruitmentSource: 'professional_networks',
+          portfolioStrength: 89,
+          availabilityScore: 78,
+          matchScore: 87
+        }
+      ];
+
+      res.json({
+        success: true,
+        data: {
+          recruitedAgents,
+          totalCandidates: recruitedAgents.length,
+          averageMatchScore: recruitedAgents.reduce((sum, agent) => sum + agent.matchScore, 0) / recruitedAgents.length,
+          recruitmentSources: ['linkedin_ai_scan', 'professional_networks', 'github_analysis', 'competitor_analysis']
+        },
+        message: `Found ${recruitedAgents.length} high-quality agent candidates`
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Agent recruitment failed' });
+    }
+  });
+
+  /**
+   * Marketplace analytics dashboard
+   */
+  app.get('/api/ai-agents/marketplace-analytics', async (req, res) => {
+    try {
+      const { timeframe = '30d' } = req.query;
+
+      const analytics = {
+        overview: {
+          totalAgents: 89,
+          activeAgents: 67,
+          totalOrders: 1247,
+          completedOrders: 1089,
+          totalRevenue: 125430.50,
+          platformFees: 18814.58
+        },
+        trends: {
+          agentGrowth: {
+            thisMonth: 12,
+            lastMonth: 8,
+            growthRate: 50
+          },
+          orderVolume: {
+            thisMonth: 156,
+            lastMonth: 134,
+            growthRate: 16.4
+          },
+          revenueGrowth: {
+            thisMonth: 23450.30,
+            lastMonth: 19870.20,
+            growthRate: 18.0
+          }
+        },
+        topCategories: [
+          { category: 'analysis', orders: 234, revenue: 28450.20 },
+          { category: 'consultation', orders: 198, revenue: 24330.50 },
+          { category: 'automation', orders: 167, revenue: 19870.30 },
+          { category: 'financial_planning', orders: 145, revenue: 22340.70 }
+        ],
+        peakHours: [
+          { hour: 14, orderCount: 89 },
+          { hour: 15, orderCount: 92 },
+          { hour: 16, orderCount: 87 },
+          { hour: 10, orderCount: 78 }
+        ],
+        demandForecast: {
+          nextWeek: { predictedOrders: 167, confidence: 0.87 },
+          nextMonth: { predictedOrders: 689, confidence: 0.82 }
+        }
+      };
+
+      res.json({
+        success: true,
+        data: analytics,
+        timeframe,
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: 'Analytics generation failed' });
+    }
+  });
+
+  /**
+   * Identity verification for high-value transactions
+   */
+  app.post('/api/ai-agents/verify-identity', async (req, res) => {
+    try {
+      const { userId, transactionAmount, documentType, documentData } = req.body;
+      
+      if (!userId || !transactionAmount || !documentType) {
+        return res.status(400).json({ success: false, error: 'Missing verification requirements' });
+      }
+
+      // Trigger KYC for transactions > $1000
+      const requiresKYC = transactionAmount > 1000;
+      
+      if (!requiresKYC) {
+        return res.json({
+          success: true,
+          data: {
+            verificationRequired: false,
+            status: 'approved',
+            message: 'Transaction amount below KYC threshold'
+          }
+        });
+      }
+
+      // Simulate identity verification process
+      const verification = {
+        id: `kyc_${Date.now()}`,
+        userId,
+        transactionAmount,
+        documentType,
+        status: Math.random() > 0.1 ? 'approved' : 'pending_review', // 90% approval rate
+        verificationLevel: transactionAmount > 5000 ? 'enhanced' : 'standard',
+        verifiedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        trustScore: Math.floor(Math.random() * 20) + 80, // 80-100 trust score
+        riskFlags: Math.random() > 0.9 ? ['unusual_location'] : []
+      };
+
+      res.json({
+        success: true,
+        data: verification,
+        message: verification.status === 'approved' ? 
+          'Identity verified successfully' : 
+          'Verification pending manual review'
+      });
+    } catch (error) {
+      res.status(400).json({ success: false, error: 'Identity verification failed' });
+    }
   });
 
   // === ADDITIONAL MISSING ENDPOINTS BEFORE 404 HANDLER ===

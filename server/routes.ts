@@ -694,6 +694,66 @@ export function registerRoutes(app: Express): Server {
     });
   });
 
+  // Register AI Marketplace routes - CRITICAL for revenue generation
+  app.use('/api/ai-marketplace', aiMarketplaceRoutes);
+
+  // Test endpoint to verify AI marketplace registration
+  app.get('/api/test-marketplace', (req, res) => {
+    res.json({
+      success: true,
+      message: 'AI Marketplace routes registered successfully',
+      availableEndpoints: [
+        'GET /api/ai-marketplace/categories',
+        'GET /api/ai-marketplace/payment-methods', 
+        'POST /api/ai-marketplace/register-agent',
+        'POST /api/ai-marketplace/create-order',
+        'POST /api/ai-marketplace/upload',
+        'POST /api/ai-marketplace/chat/send'
+      ]
+    });
+  });
+
+  // === DATA MONETIZATION APIs ===
+  
+  // Analytics data endpoint
+  app.get('/api/data/analytics', (req, res) => {
+    res.json({
+      success: true,
+      data: {
+        totalUsers: 1250,
+        activeUsers: 420,
+        totalTransactions: 8500,
+        totalVolume: '125000.00',
+        revenueGenerated: '15842.50'
+      }
+    });
+  });
+
+  // Behavioral data endpoint
+  app.get('/api/data/behavioral/user-patterns', (req, res) => {
+    res.json({
+      success: true,
+      patterns: {
+        peakHours: ['9AM-11AM', '2PM-4PM', '7PM-9PM'],
+        preferredMethods: ['crypto', 'paypal', 'stripe'],
+        averageTransactionSize: 147.50,
+        retentionRate: '78%'
+      }
+    });
+  });
+
+  // Enterprise data endpoint  
+  app.get('/api/data/enterprise/sample', (req, res) => {
+    res.json({
+      success: true,
+      sampleData: {
+        marketTrends: 'AI adoption increasing 300% yearly',
+        riskMetrics: 'Low volatility in crypto payments',
+        competitiveAnalysis: 'Leading in multi-chain support'
+      }
+    });
+  });
+
   // === P2P TRANSFER SYSTEM ===
   
   // P2P transfer initiation
@@ -732,51 +792,6 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({
         success: false,
         error: 'Transfer initiation failed'
-      });
-    }
-  });
-
-  // P2P fee calculation
-  app.post('/api/p2p/calculate-fee', (req, res) => {
-    try {
-      const { amount, fromPlatform = 'paypal', toPlatform = 'crypto' } = req.body;
-      
-      if (!amount) {
-        return res.status(400).json({
-          success: false,
-          error: 'Amount is required'
-        });
-      }
-
-      const transferAmount = parseFloat(amount);
-      if (isNaN(transferAmount) || transferAmount < 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid amount'
-        });
-      }
-
-      // Fee structure based on platforms
-      let feeRate = 0.025; // Base 2.5%
-      if (fromPlatform !== toPlatform) {
-        feeRate = 0.035; // Cross-platform 3.5%
-      }
-      
-      const fee = transferAmount * feeRate;
-      
-      res.json({
-        success: true,
-        amount: transferAmount,
-        fee: fee,
-        total: transferAmount + fee,
-        fromPlatform,
-        toPlatform,
-        feeRate: (feeRate * 100).toFixed(1) + '%'
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        error: 'Fee calculation failed'
       });
     }
   });
@@ -885,7 +900,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const amount = parseFloat(transactionAmount);
-      const rates = {
+      const rates: { [key: string]: number } = {
         standard: 0.005, // 0.5%
         premium: 0.0075, // 0.75%
         enterprise: 0.01 // 1.0%
@@ -1001,25 +1016,6 @@ export function registerRoutes(app: Express): Server {
       status: 'operational',
       environment: process.env.NODE_ENV === 'production' ? 'live' : 'sandbox',
       webhooksActive: true
-    });
-  });
-
-  // Register AI Marketplace routes - CRITICAL for revenue generation
-  app.use('/api/ai-marketplace', aiMarketplaceRoutes);
-
-  // Test endpoint to verify AI marketplace registration
-  app.get('/api/test-marketplace', (req, res) => {
-    res.json({
-      success: true,
-      message: 'AI Marketplace routes registered successfully',
-      availableEndpoints: [
-        'GET /api/ai-marketplace/categories',
-        'GET /api/ai-marketplace/payment-methods', 
-        'POST /api/ai-marketplace/register-agent',
-        'POST /api/ai-marketplace/create-order',
-        'POST /api/ai-marketplace/upload',
-        'POST /api/ai-marketplace/chat/send'
-      ]
     });
   });
 

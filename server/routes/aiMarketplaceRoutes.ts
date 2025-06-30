@@ -203,6 +203,55 @@ router.post('/register-human', async (req, res) => {
 });
 
 /**
+ * CRITICAL ENDPOINT: General agent registration (handles both human and AI)
+ */
+router.post('/register-agent', async (req, res) => {
+  try {
+    const agentSchema = z.object({
+      name: z.string().min(1),
+      category: z.string().min(1),
+      description: z.string().min(10),
+      pricing: z.object({
+        type: z.enum(['hourly', 'fixed', 'subscription']),
+        rate: z.number().min(1)
+      }),
+      capabilities: z.array(z.string()).min(1),
+      type: z.enum(['human', 'ai']).optional().default('human'),
+      email: z.string().email().optional(),
+      apiEndpoint: z.string().url().optional(),
+      experience: z.string().optional(),
+      portfolio: z.array(z.string()).optional()
+    });
+
+    const validatedData = agentSchema.parse(req.body);
+    
+    const agentType = validatedData.type || 'human';
+    const agentId = `${agentType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const agent = {
+      id: agentId,
+      type: agentType,
+      ...validatedData,
+      tier: 'basic',
+      rating: 0,
+      completedOrders: 0,
+      status: agentType === 'ai' ? 'active' : 'pending_review',
+      registrationDate: new Date().toISOString()
+    };
+
+    res.status(201).json({
+      success: true,
+      agent,
+      message: `${agentType === 'ai' ? 'AI' : 'Human'} agent registered successfully`,
+      status: agent.status
+    });
+  } catch (error) {
+    console.error('Agent registration error:', error);
+    res.status(500).json({ success: false, error: 'Registration failed' });
+  }
+});
+
+/**
  * CRITICAL ENDPOINT: AI agent registration
  */
 router.post('/register-ai', async (req, res) => {

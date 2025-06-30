@@ -67,6 +67,7 @@ import serviceDelivery from './routes/serviceDelivery';
 import reviewSystem from './routes/reviewSystem';
 import referralRoutes from './routes/referralRoutes';
 import blockchainRoutes from './routes/blockchainRoutes';
+import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
 
 // Authentication system integration
 import { setupAuth } from './replitAuth';
@@ -83,6 +84,7 @@ app.use('/api/reviews', reviewSystem);
 app.use('/api/referrals', referralRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/xrp', blockchainRoutes);
+app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 
 // Enhanced security middleware for production readiness
 
@@ -730,12 +732,10 @@ app.get('/api/ai-marketplace/payment-methods', (req, res) => {
   });
 });
 
-// CRITICAL: Register remaining AI Marketplace routes
-import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
+// Additional marketplace routes
 import marketplaceCore from './routes/marketplaceCore';
 import marketplaceDemo from './routes/marketplaceDemo';
 
-app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 app.use('/api/marketplace', marketplaceDemo);
 app.use('/api/marketplace', marketplaceCore);
 

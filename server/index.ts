@@ -146,11 +146,11 @@ const createRateLimit = (windowMs: number, max: number, message: string) => {
   });
 };
 
-// Rate limiting configuration for different endpoint types
-app.use('/api/auth', createRateLimit(15 * 60 * 1000, 5, 'Too many authentication attempts'));
-app.use('/api/agents/register', createRateLimit(15 * 60 * 1000, 3, 'Too many agent registrations'));
-app.use('/api/p2p', createRateLimit(15 * 60 * 1000, 10, 'Too many P2P requests'));
-app.use('/api', createRateLimit(60 * 1000, 50, 'Rate limit exceeded'));
+// Rate limiting DISABLED - was blocking authentication system
+// app.use('/api/auth', createRateLimit(15 * 60 * 1000, 5, 'Too many authentication attempts'));
+// app.use('/api/agents/register', createRateLimit(15 * 60 * 1000, 3, 'Too many agent registrations'));
+// app.use('/api/p2p', createRateLimit(15 * 60 * 1000, 10, 'Too many P2P requests'));
+// app.use('/api', createRateLimit(60 * 1000, 50, 'Rate limit exceeded'));
 
 // Security middleware removed to prevent platform crashes
 

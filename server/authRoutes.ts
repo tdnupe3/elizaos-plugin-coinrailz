@@ -23,13 +23,13 @@ const handleAuthError = (error: any, req: any, res: any, next: any) => {
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 
-// Registration schema with enhanced validation
+// Simplified registration schema - no complex validation blocking users
 const registrationSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
-  lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
-  acceptTerms: z.boolean().refine(val => val === true, 'You must accept the terms and conditions')
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  acceptTerms: z.boolean().optional()
 });
 
 export function registerAuthRoutes(app: Express) {

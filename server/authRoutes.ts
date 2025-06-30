@@ -194,19 +194,18 @@ export function registerAuthRoutes(app: Express) {
     }
   });
   
-  // Get current user with enhanced error handling
-  app.get('/api/auth/user', isAuthenticated, async (req, res) => {
+  // Get current user with session-based authentication
+  app.get('/api/auth/user', async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.session as any)?.userId;
       if (!userId) {
         return res.status(401).json({ 
-          success: false,
           error: 'Unauthorized',
-          message: 'Please log in to access this resource'
+          message: 'Authentication required'
         });
       }
       
-      const user = await storage.getUser(userId);
+      const user = await storage.getUserByEmail((req.session as any).email);
       if (!user) {
         return res.status(404).json({
           success: false,

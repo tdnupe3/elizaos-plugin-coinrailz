@@ -82,9 +82,7 @@ app.use('/api/messaging', messagingSystem);
 app.use('/api/disputes', disputeResolution);
 app.use('/api/payouts', agentPayouts);
 
-// Advanced service search and filtering (moved before other middleware)
-import serviceSearch from './routes/serviceSearch';
-app.use('/api/services', serviceSearch);
+// Advanced service search and filtering will be handled by inline endpoints above
 
 // Environment-aware CORS
 app.use((req, res, next) => {

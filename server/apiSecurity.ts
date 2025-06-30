@@ -46,6 +46,11 @@ export const validateApiInput = (req: Request, res: Response, next: NextFunction
     return next();
   }
 
+  // Skip validation for service search endpoint
+  if (req.path === '/api/services/search' || req.path === '/api/services/categories') {
+    return next();
+  }
+
   // Basic SQL injection patterns
   const dangerousPatterns = [
     /(\bDROP\s+TABLE\b)/gi,

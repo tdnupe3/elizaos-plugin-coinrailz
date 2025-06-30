@@ -161,18 +161,18 @@ function initializeServiceData() {
 // Initialize data on module load
 initializeServiceData();
 
-// Search schema
+// Search schema with string-to-number coercion for query parameters
 const searchSchema = z.object({
   query: z.string().optional(),
   category: z.string().optional(),
-  minPrice: z.number().optional(),
-  maxPrice: z.number().optional(),
-  minRating: z.number().min(0).max(5).optional(),
+  minPrice: z.coerce.number().optional(),
+  maxPrice: z.coerce.number().optional(),
+  minRating: z.coerce.number().min(0).max(5).optional(),
   availability: z.enum(['Available', 'Busy', 'All']).optional(),
   skills: z.array(z.string()).optional(),
   sortBy: z.enum(['relevance', 'price_low', 'price_high', 'rating', 'popularity']).optional(),
-  limit: z.number().min(1).max(50).default(20),
-  offset: z.number().min(0).default(0)
+  limit: z.coerce.number().min(1).max(50).default(20),
+  offset: z.coerce.number().min(0).default(0)
 });
 
 // Advanced service search

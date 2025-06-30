@@ -3,33 +3,17 @@ import path from "path";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
-import { registerDemoRoutes } from "./routes-demo";
-import { registerDEXProductionRoutes } from "./dexProductionRoutes";
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
 import p2pRoutes from "./routes/p2pRoutes";
 import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
-import { setupLightweightSecurity } from "./apiSecurity";
-import { setupDDoSProtection } from "./ddosProtection";
-import { productionSystems } from "./productionSystems";
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
-import { smartSecurity } from "./middleware/smartSecurity";
-import { errorHandler } from "./middleware/errorHandler";
 import rateLimitImport from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
-
-// Setup global error handlers
-errorHandler.setupGlobalHandlers();
-
-// Initialize production systems
-productionSystems.initialize();
-
-// Initialize connection management
-console.log('✅ Connection manager initialized');
 
 // Initialize blockchain services
 if (bnbChainService.isEnabled()) {
@@ -45,9 +29,6 @@ if (pulseChainService.isEnabled()) {
     enabled: true 
   });
 }
-
-// Production monitoring middleware
-app.use(productionSystems.trackRequests());
 
 // Essential middleware
 app.use(express.json({ limit: '10mb' }));
@@ -479,13 +460,13 @@ app.use((req, res, next) => {
 
 // Health monitoring endpoint
 app.get('/api/health', (req, res) => {
-  const health = productionSystems.getHealthMetrics();
-  res.json(health);
+  res.json({
+    status: 'ok',
+    service: 'Coin Railz',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
 });
-
-// Setup consolidated authentication system using productionAuth as primary
-import { setupProductionAuth } from './productionAuth';
-setupProductionAuth(app);
 
 // === MISSING ENDPOINTS - REGISTER BEFORE VITE MIDDLEWARE ===
 

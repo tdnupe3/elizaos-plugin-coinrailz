@@ -5,7 +5,7 @@
 import type { Express } from "express";
 import { isAuthenticated } from "./replitAuth";
 import { storage } from "./storage";
-// Simplified auth middleware - no complex dependencies
+// Remove all rate limiting and complex middleware that's breaking auth
 const authRateLimit = (req: any, res: any, next: any) => next();
 const registrationRateLimit = (req: any, res: any, next: any) => next();
 const validatePasswordComplexity = (req: any, res: any, next: any) => next();
@@ -13,11 +13,11 @@ const validateEmail = (req: any, res: any, next: any) => next();
 const sanitizeAuthInputs = (req: any, res: any, next: any) => next();
 const detectSuspiciousRegistration = (req: any, res: any, next: any) => next();
 const handleAuthError = (error: any, req: any, res: any, next: any) => {
-  console.error('Auth error:', error.message);
+  console.error('Auth error:', error);
   res.status(500).json({
     success: false,
     error: 'Authentication error',
-    message: 'Please try again later'
+    message: error.message || 'Please try again later'
   });
 };
 import bcrypt from 'bcrypt';

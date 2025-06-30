@@ -82,6 +82,10 @@ app.use('/api/messaging', messagingSystem);
 app.use('/api/disputes', disputeResolution);
 app.use('/api/payouts', agentPayouts);
 
+// Advanced service search and filtering (moved before other middleware)
+import serviceSearch from './routes/serviceSearch';
+app.use('/api/services', serviceSearch);
+
 // Environment-aware CORS
 app.use((req, res, next) => {
   const isDevelopment = process.env.NODE_ENV !== 'production';
@@ -99,6 +103,117 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.status(200).end();
   next();
+});
+
+// CRITICAL: Advanced service search endpoint BEFORE Vite middleware
+app.get('/api/services/search', (req, res) => {
+  try {
+    const services = [
+      {
+        id: 'svc_data_001',
+        title: 'Advanced Sales Data Analysis',
+        category: 'data-analysis',
+        price: 150,
+        duration: '3-5 days',
+        description: 'Comprehensive analysis of sales data to identify trends, patterns, and growth opportunities',
+        rating: 4.8,
+        reviewCount: 45,
+        agent: {
+          name: 'Sarah AI Analytics',
+          rating: 4.8,
+          completedOrders: 127,
+          availability: 'Available'
+        }
+      },
+      {
+        id: 'svc_content_001',
+        title: 'SEO Content Strategy & Creation',
+        category: 'content-creation',
+        price: 200,
+        duration: '5-7 days',
+        description: 'Complete content strategy development with SEO-optimized content creation',
+        rating: 4.7,
+        reviewCount: 32,
+        agent: {
+          name: 'Emma Content Pro',
+          rating: 4.7,
+          completedOrders: 203,
+          availability: 'Busy'
+        }
+      },
+      {
+        id: 'svc_finance_001',
+        title: 'Financial Risk Assessment Model',
+        category: 'financial-analysis',
+        price: 350,
+        duration: '7-10 days',
+        description: 'Custom financial risk assessment model with scenario analysis and recommendations',
+        rating: 4.9,
+        reviewCount: 28,
+        agent: {
+          name: 'Marcus ML Expert',
+          rating: 4.9,
+          completedOrders: 89,
+          availability: 'Available'
+        }
+      }
+    ];
+
+    // Apply basic filtering
+    let results = services;
+    const { query, minRating, category, sortBy } = req.query;
+
+    if (query) {
+      const queryLower = String(query).toLowerCase();
+      results = results.filter(service => 
+        service.title.toLowerCase().includes(queryLower) ||
+        service.description.toLowerCase().includes(queryLower)
+      );
+    }
+
+    if (minRating) {
+      results = results.filter(service => service.rating >= Number(minRating));
+    }
+
+    if (category) {
+      results = results.filter(service => service.category === category);
+    }
+
+    if (sortBy === 'rating') {
+      results.sort((a, b) => b.rating - a.rating);
+    } else if (sortBy === 'price_low') {
+      results.sort((a, b) => a.price - b.price);
+    } else if (sortBy === 'price_high') {
+      results.sort((a, b) => b.price - a.price);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        services: results,
+        total: results.length,
+        filters: { query, minRating, category, sortBy }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Search failed' });
+  }
+});
+
+app.get('/api/services/categories', (req, res) => {
+  const categories = [
+    { id: 'data-analysis', name: 'Data Analysis', serviceCount: 15 },
+    { id: 'content-creation', name: 'Content Creation', serviceCount: 23 },
+    { id: 'financial-analysis', name: 'Financial Analysis', serviceCount: 12 },
+    { id: 'automation', name: 'Process Automation', serviceCount: 18 },
+    { id: 'code-review', name: 'Code Review', serviceCount: 9 },
+    { id: 'consulting', name: 'AI Consulting', serviceCount: 11 }
+  ];
+
+  res.json({
+    success: true,
+    data: { categories, total: categories.length }
+  });
 });
 
 // CRITICAL: Lightweight AI Marketplace endpoints BEFORE any middleware

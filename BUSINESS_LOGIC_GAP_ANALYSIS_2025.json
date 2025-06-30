@@ -13,7 +13,7 @@
         "description": "Customer cannot discover agents",
         "businessImpact": "No revenue possible",
         "exploitability": "HIGH",
-        "timestamp": "2025-06-30T15:39:25.630Z"
+        "timestamp": "2025-06-30T15:42:12.550Z"
       }
     ],
     "revenue": [],
@@ -24,7 +24,7 @@
         "description": "Cannot create disputes",
         "businessImpact": "No conflict resolution",
         "exploitability": "MEDIUM",
-        "timestamp": "2025-06-30T15:39:25.694Z"
+        "timestamp": "2025-06-30T15:42:12.590Z"
       },
       {
         "category": "USER_FLOW",
@@ -32,7 +32,7 @@
         "description": "No review system",
         "businessImpact": "No quality feedback mechanism",
         "exploitability": "LOW",
-        "timestamp": "2025-06-30T15:39:25.703Z"
+        "timestamp": "2025-06-30T15:42:12.595Z"
       },
       {
         "category": "USER_FLOW",
@@ -40,7 +40,7 @@
         "description": "Cannot send messages",
         "businessImpact": "Poor project communication",
         "exploitability": "MEDIUM",
-        "timestamp": "2025-06-30T15:39:25.755Z"
+        "timestamp": "2025-06-30T15:42:12.634Z"
       },
       {
         "category": "USER_FLOW",
@@ -48,7 +48,7 @@
         "description": "Cannot share files in messages",
         "businessImpact": "Limited collaboration",
         "exploitability": "LOW",
-        "timestamp": "2025-06-30T15:39:25.766Z"
+        "timestamp": "2025-06-30T15:42:12.638Z"
       }
     ],
     "security": [
@@ -58,7 +58,7 @@
         "description": "Cannot suspend problematic agents",
         "businessImpact": "Quality degradation",
         "exploitability": "LOW",
-        "timestamp": "2025-06-30T15:39:25.699Z"
+        "timestamp": "2025-06-30T15:42:12.592Z"
       }
     ]
   }

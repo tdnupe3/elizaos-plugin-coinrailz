@@ -8,7 +8,7 @@ import { z } from 'zod';
 
 const router = Router();
 
-// In-memory storage (replace with database in production)
+// Global in-memory storage for escrow system
 const escrowAccounts = new Map();
 const payments = new Map();
 const orders = new Map();

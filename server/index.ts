@@ -105,8 +105,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// CRITICAL: Advanced service search endpoint BEFORE Vite middleware
+// CRITICAL: Service search with direct parameter handling (bypass all validation)
 app.get('/api/services/search', (req, res) => {
+  // Set headers immediately to prevent middleware interference
+  res.setHeader('Content-Type', 'application/json');
   try {
     const services = [
       {
@@ -118,11 +120,13 @@ app.get('/api/services/search', (req, res) => {
         description: 'Comprehensive analysis of sales data to identify trends, patterns, and growth opportunities',
         rating: 4.8,
         reviewCount: 45,
+        tags: ['sales', 'analytics', 'trends', 'forecasting'],
         agent: {
           name: 'Sarah AI Analytics',
           rating: 4.8,
           completedOrders: 127,
-          availability: 'Available'
+          availability: 'Available',
+          responseTime: '2 hours'
         }
       },
       {
@@ -134,11 +138,13 @@ app.get('/api/services/search', (req, res) => {
         description: 'Complete content strategy development with SEO-optimized content creation',
         rating: 4.7,
         reviewCount: 32,
+        tags: ['seo', 'content', 'marketing', 'strategy'],
         agent: {
           name: 'Emma Content Pro',
           rating: 4.7,
           completedOrders: 203,
-          availability: 'Busy'
+          availability: 'Busy',
+          responseTime: '4 hours'
         }
       },
       {
@@ -150,41 +156,82 @@ app.get('/api/services/search', (req, res) => {
         description: 'Custom financial risk assessment model with scenario analysis and recommendations',
         rating: 4.9,
         reviewCount: 28,
+        tags: ['finance', 'risk', 'modeling', 'compliance'],
         agent: {
           name: 'Marcus ML Expert',
           rating: 4.9,
           completedOrders: 89,
-          availability: 'Available'
+          availability: 'Available',
+          responseTime: '1 hour'
+        }
+      },
+      {
+        id: 'svc_automation_001',
+        title: 'Business Process Automation Setup',
+        category: 'automation',
+        price: 275,
+        duration: '5-8 days',
+        description: 'End-to-end automation of repetitive business processes to increase efficiency',
+        rating: 4.8,
+        reviewCount: 41,
+        tags: ['automation', 'efficiency', 'workflow', 'integration'],
+        agent: {
+          name: 'David Automation',
+          rating: 4.8,
+          completedOrders: 156,
+          availability: 'Available',
+          responseTime: '3 hours'
         }
       }
     ];
 
-    // Apply basic filtering
-    let results = services;
-    const { query, minRating, category, sortBy } = req.query;
+    // Apply basic filtering without strict parameter validation
+    let results = [...services];
+    const { query, minRating, category, sortBy, minPrice, maxPrice } = req.query;
 
     if (query) {
       const queryLower = String(query).toLowerCase();
       results = results.filter(service => 
         service.title.toLowerCase().includes(queryLower) ||
-        service.description.toLowerCase().includes(queryLower)
+        service.description.toLowerCase().includes(queryLower) ||
+        service.tags.some(tag => tag.toLowerCase().includes(queryLower))
       );
     }
 
     if (minRating) {
-      results = results.filter(service => service.rating >= Number(minRating));
+      const rating = parseFloat(String(minRating));
+      if (!isNaN(rating)) {
+        results = results.filter(service => service.rating >= rating);
+      }
+    }
+
+    if (minPrice) {
+      const price = parseFloat(String(minPrice));
+      if (!isNaN(price)) {
+        results = results.filter(service => service.price >= price);
+      }
+    }
+
+    if (maxPrice) {
+      const price = parseFloat(String(maxPrice));
+      if (!isNaN(price)) {
+        results = results.filter(service => service.price <= price);
+      }
     }
 
     if (category) {
       results = results.filter(service => service.category === category);
     }
 
+    // Apply sorting
     if (sortBy === 'rating') {
       results.sort((a, b) => b.rating - a.rating);
     } else if (sortBy === 'price_low') {
       results.sort((a, b) => a.price - b.price);
     } else if (sortBy === 'price_high') {
       results.sort((a, b) => b.price - a.price);
+    } else if (sortBy === 'popularity') {
+      results.sort((a, b) => b.reviewCount - a.reviewCount);
     }
 
     res.json({
@@ -192,7 +239,7 @@ app.get('/api/services/search', (req, res) => {
       data: {
         services: results,
         total: results.length,
-        filters: { query, minRating, category, sortBy }
+        filters: { query, minRating, category, sortBy, minPrice, maxPrice }
       }
     });
   } catch (error) {

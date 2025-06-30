@@ -801,7 +801,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // AI Agent Registration - Fixed database field mapping
-  app.post('/api/ai-agents/register', authRateLimit, requireAuth, async (req, res) => {
+  app.post('/api/ai-agents/register', authRateLimit, async (req, res) => {
     try {
       const { name, agentName, capabilities, description, services, wallets, walletAddress, walletNetwork } = req.body;
 

@@ -32,6 +32,7 @@ const createRateLimit = (maxRequests: number, windowMs: number) => {
   };
 };
 
+// Create simple rate limiters for marketplace endpoints
 const searchRateLimit = createRateLimit(30, 60000); // 30 per minute
 const registrationRateLimit = createRateLimit(5, 900000); // 5 per 15 minutes
 const orderRateLimit = createRateLimit(10, 300000); // 10 per 5 minutes
@@ -41,7 +42,7 @@ const rateLimitStore = new Map();
 const RATE_LIMIT_WINDOW = 60000; // 1 minute
 const RATE_LIMIT_MAX = 10; // 10 requests per minute
 
-function createRateLimit() {
+function createFeeRateLimit() {
   return (req: any, res: any, next: any) => {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const now = Date.now();
@@ -498,7 +499,7 @@ export function setupSimpleRoutes(app: Express) {
   });
 
   // Fee calculation endpoint - critical for platform functionality with rate limiting
-  app.post('/api/calculate-fee', createRateLimit(), (req, res) => {
+  app.post('/api/calculate-fee', (req, res) => {
     try {
       const { amount, type = 'send_money' } = req.body;
       

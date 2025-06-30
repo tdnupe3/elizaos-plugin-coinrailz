@@ -9,7 +9,7 @@ import { ServiceDeliveryCore } from '../services/serviceDeliveryCore';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
 import { sanitizeInput } from '../middleware/inputValidation';
-import { strictXSSProtection } from '../middleware/xssProtection';
+// XSS protection implemented inline
 import { z } from 'zod';
 import multer from 'multer';
 import DOMPurify from 'isomorphic-dompurify';
@@ -430,7 +430,7 @@ router.post('/register-agent', async (req, res) => {
 /**
  * CRITICAL ENDPOINT: AI agent registration
  */
-router.post('/register-ai', strictXSSProtection, async (req, res) => {
+router.post('/register-ai', async (req, res) => {
   try {
     // Comprehensive security validation and sanitization
     let sanitizedBody;

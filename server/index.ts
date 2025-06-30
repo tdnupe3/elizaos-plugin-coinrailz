@@ -210,7 +210,9 @@ app.get('/api/ai-marketplace/payment-methods', (req, res) => {
 // CRITICAL: Register full AI Marketplace routes for comprehensive functionality
 import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
 import marketplaceCore from './routes/marketplaceCore';
+import marketplaceDemo from './routes/marketplaceDemo';
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);
+app.use('/api/marketplace', marketplaceDemo);
 app.use('/api/marketplace', marketplaceCore);
 
 // Setup lightweight API-only security (won't block frontend)

@@ -6,8 +6,8 @@
 import { Request, Response, NextFunction } from 'express';
 import DOMPurify from 'isomorphic-dompurify';
 
-// Comprehensive XSS attack patterns
-const XSS_PATTERNS = [
+// Comprehensive XSS and injection attack patterns
+const SECURITY_PATTERNS = [
   // Script tags (any variation)
   /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
   /<script.*?>/gi,
@@ -45,7 +45,37 @@ const XSS_PATTERNS = [
   /mocha:/gi,
   
   // HTML entities that could be malicious
-  /&#x?[0-9a-fA-F]+;/g
+  /&#x?[0-9a-fA-F]+;/g,
+  
+  // Path traversal attacks
+  /\.\.\//gi,
+  /\.\.\\\\/gi,
+  /\.\.%2f/gi,
+  /\.\.%5c/gi,
+  /%2e%2e%2f/gi,
+  /%2e%2e%5c/gi,
+  /\/etc\/passwd/gi,
+  /\/proc\/self\/environ/gi,
+  /\/windows\/system32/gi,
+  
+  // SQL injection patterns
+  /union\s+select/gi,
+  /or\s+1\s*=\s*1/gi,
+  /drop\s+table/gi,
+  /delete\s+from/gi,
+  /insert\s+into/gi,
+  /update\s+.*set/gi,
+  
+  // Command injection
+  /\|\s*ls/gi,
+  /\|\s*cat/gi,
+  /\|\s*rm/gi,
+  /\|\s*chmod/gi,
+  /;\s*ls/gi,
+  /;\s*cat/gi,
+  /;\s*rm/gi,
+  /&&\s*ls/gi,
+  /&&\s*cat/gi
 ];
 
 // Function to detect XSS in any input

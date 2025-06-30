@@ -8,6 +8,7 @@ import { AIMarketplaceCore } from '../services/aiMarketplaceCore';
 import { ServiceDeliveryCore } from '../services/serviceDeliveryCore';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
+import { strictXSSProtection } from '../middleware/xssProtection';
 import { z } from 'zod';
 import multer from 'multer';
 import DOMPurify from 'isomorphic-dompurify';
@@ -259,7 +260,7 @@ router.post('/register-human', async (req, res) => {
 /**
  * CRITICAL ENDPOINT: General agent registration (handles both human and AI)
  */
-router.post('/register-agent', async (req, res) => {
+router.post('/register-agent', strictXSSProtection, async (req, res) => {
   try {
     // Comprehensive security validation and sanitization
     let sanitizedBody;
@@ -321,7 +322,7 @@ router.post('/register-agent', async (req, res) => {
 /**
  * CRITICAL ENDPOINT: AI agent registration
  */
-router.post('/register-ai', async (req, res) => {
+router.post('/register-ai', strictXSSProtection, async (req, res) => {
   try {
     // Comprehensive security validation and sanitization
     let sanitizedBody;

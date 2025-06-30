@@ -58,8 +58,8 @@ export default function Landing() {
               15+ blockchain networks including Base and BNB Chain • Send money globally • Buy/Sell • DEX aggregator • XRP Ledger FULLY Integrated • AI Agent Marketplace
             </p>
 
-            {/* Action Buttons - Moved to Hero Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
+            {/* Action Buttons - Mobile Optimized */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 max-w-2xl mx-auto">
               <Button 
                 onClick={handleSignIn}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"

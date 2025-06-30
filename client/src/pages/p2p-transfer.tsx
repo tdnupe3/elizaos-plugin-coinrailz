@@ -169,15 +169,17 @@ export default function P2PTransfer() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setLocation('/demo')}
+                className="min-h-[44px] touch-manipulation"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Demo
+                <span className="hidden sm:inline">Back to Demo</span>
+                <span className="sm:hidden">Back</span>
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">P2P Transfer</h1>

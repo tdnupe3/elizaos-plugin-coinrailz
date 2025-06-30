@@ -32,28 +32,34 @@ export class InputValidator {
   static sanitizeString(input: string): string {
     if (typeof input !== 'string') return input;
     
-    // Allow legitimate business data patterns
-    const isLegitimateData = this.isLegitimateBusinessData(input);
-    if (isLegitimateData) {
-      // Just remove XSS but allow business content
-      return DOMPurify.sanitize(input, { ALLOWED_TAGS: [] }).trim();
+    // FIRST: Check for malicious patterns before any processing
+    // Check for XSS patterns in original input
+    for (const pattern of XSS_PATTERNS) {
+      if (pattern.test(input)) {
+        throw new Error('Invalid input detected');
+      }
+    }
+    
+    // Check for SQL injection patterns in original input
+    for (const pattern of SQL_INJECTION_PATTERNS) {
+      if (pattern.test(input)) {
+        throw new Error('Invalid input detected');
+      }
     }
     
     // Remove potential XSS content
     let sanitized = DOMPurify.sanitize(input, { ALLOWED_TAGS: [] });
     
-    // Check for actual SQL injection attempts (refined patterns)
-    for (const pattern of SQL_INJECTION_PATTERNS) {
-      if (pattern.test(sanitized)) {
-        throw new Error('Invalid input detected');
-      }
+    // Allow legitimate business data patterns only after security checks
+    const isLegitimateData = this.isLegitimateBusinessData(sanitized);
+    if (isLegitimateData) {
+      return sanitized.trim();
     }
     
-    // Additional XSS pattern checks for comprehensive protection
-    for (const pattern of XSS_PATTERNS) {
-      if (pattern.test(sanitized)) {
-        throw new Error('Invalid input detected');
-      }
+    // For non-legitimate data, apply additional security checks
+    if (sanitized !== input) {
+      // DOMPurify removed something, which means potential XSS
+      throw new Error('Invalid input detected');
     }
     
     return sanitized.trim();

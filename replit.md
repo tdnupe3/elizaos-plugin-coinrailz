@@ -14,11 +14,12 @@ Comprehensive fintech platform serving as a cross-platform P2P payment and crypt
 ✅ **ENVIRONMENT CONFIGURATION**: Fixed publishable key loading and Stripe credential validation
 ✅ **INTEGRATED P2P FLOW**: Stripe payments seamlessly integrated into 3-step P2P transfer process
 ✅ **PAYMENT SECURITY**: Stripe-secured card processing with PCI compliance and encryption
-✅ **PROFITABLE FEE STRUCTURE**: Corrected to account for PayPal/Stripe processing costs (2.9% + $0.30)
-  - Small transfers (<$25): 3.5% + $2.00 fee (74.9% profit margin)
-  - Medium transfers ($25-50): 3.2% + $1.10 fee (46.1% profit margin)  
-  - Large transfers ($50+): 3.2% + $0.35 fee (9.9% profit margin)
-✅ **PROCESSING COST COVERAGE**: All P2P transactions now profitable after external payment processor fees
+✅ **CROSS-PLATFORM FEE STRUCTURE**: Implemented dual-fee accounting for P2P transfers across different platforms
+  - Cross-platform transfers (PayPal↔Stripe): 10% fee (30-36% profit margin after dual processing costs)
+  - Same-platform transfers: Tiered structure (3.2-3.5% + fixed fees, 10-75% profit margin)
+  - Internal transfers (to Coin Railz): Original tiered structure with maximum profitability
+✅ **DUAL PROCESSING COST COVERAGE**: Accounts for both incoming (2.9%+$0.30) and outgoing (2.9%+$0.30) fees
+✅ **TRANSPARENT COST BREAKDOWN**: API provides detailed processing cost analysis for user transparency
 📈 **ENHANCED REVENUE**: Credit/debit card availability significantly expands addressable market
 
 ### P2P FUNCTIONALITY UPDATE - PAYPAL PRODUCTION INTEGRATION COMPLETE (June 29, 2025)

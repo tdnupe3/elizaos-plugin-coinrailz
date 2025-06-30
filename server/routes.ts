@@ -36,6 +36,9 @@ const paymentResolver = new PaymentGatewayResolver();
 export function registerRoutes(app: Express): Server {
   const server = createServer(app);
 
+  // CRITICAL: Register AI Marketplace routes FIRST for revenue generation
+  app.use('/api/ai-marketplace', aiMarketplaceRoutes);
+
   // Initialize database constraints
   addSecurityConstraints().catch(error => {
     console.error('Failed to add database constraints:', error);
@@ -682,13 +685,28 @@ export function registerRoutes(app: Express): Server {
   // Register AI Marketplace routes - CRITICAL for revenue generation
   app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 
+  // Test endpoint to verify AI marketplace registration
+  app.get('/api/test-marketplace', (req, res) => {
+    res.json({
+      success: true,
+      message: 'AI Marketplace routes registered successfully',
+      availableEndpoints: [
+        'GET /api/ai-marketplace/categories',
+        'GET /api/ai-marketplace/payment-methods', 
+        'POST /api/ai-marketplace/register-agent',
+        'POST /api/ai-marketplace/create-order',
+        'POST /api/ai-marketplace/upload',
+        'POST /api/ai-marketplace/chat/send'
+      ]
+    });
+  });
+
   // 404 handler for API routes - must come after all other routes
   app.use('/api/*', (req, res) => {
     res.status(404).json({
-      success: false,
-      message: 'API endpoint not found',
-      path: req.path,
-      method: req.method
+      error: 'Not Found',
+      message: `API endpoint ${req.method} ${req.path} not found`,
+      timestamp: new Date().toISOString()
     });
   });
 

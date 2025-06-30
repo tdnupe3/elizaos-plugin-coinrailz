@@ -99,7 +99,9 @@ app.get('/api/health', (req, res) => {
 import { setupProductionAuth } from './productionAuth';
 setupProductionAuth(app);
 
-
+// CRITICAL: Register AI Marketplace routes for revenue generation
+import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
+app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 
 // === MISSING ENDPOINTS - REGISTER BEFORE VITE MIDDLEWARE ===
 

@@ -150,6 +150,15 @@ export function registerAuthRoutes(app: Express) {
         // Store user session
         (req.session as any).userId = user.id;
         (req.session as any).email = user.email;
+        
+        // Ensure session is saved
+        req.session.save((err) => {
+          if (err) {
+            console.log('Session save error:', err);
+          } else {
+            console.log('Session saved successfully');
+          }
+        });
 
         res.json({
           success: true,
@@ -197,8 +206,13 @@ export function registerAuthRoutes(app: Express) {
   // Get current user with session-based authentication
   app.get('/api/auth/user', async (req, res) => {
     try {
+      // Debug: Log session data
+      console.log('Session data:', req.session);
+      console.log('Session ID:', req.sessionID);
+      
       const userId = (req.session as any)?.userId;
       if (!userId) {
+        console.log('No userId in session');
         return res.status(401).json({ 
           error: 'Unauthorized',
           message: 'Authentication required'

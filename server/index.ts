@@ -130,6 +130,7 @@ app.use('/api/referrals', referralRoutes);
 app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/xrp', blockchainRoutes);
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);
+app.use('/api/ai-marketplace', aiMarketplaceSimpleRoutes);
 
 // Enhanced security middleware for production readiness (rate limiting already implemented above)
 

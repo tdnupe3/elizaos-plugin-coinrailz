@@ -45,9 +45,20 @@ export class FeeCalculator {
   private static readonly PLATFORM_BASE_FEE = 0.045;
   
   /**
-   * XRP fee structure: Ultra-low network fees (~$0.0002) + tiered platform fees
+   * XRP fee structure: Ultra-low network fees (~$0.0002) + competitive tiered platform fees
+   * Designed to be 40-60% cheaper than traditional methods while ensuring strong profitability
    */
   private static readonly XRP_NETWORK_FEE = 0.0002; // ~$0.0002 per transaction
+  
+  /**
+   * XRP tiered service fees for competitive yet profitable pricing
+   */
+  private static readonly XRP_TIER_FEES = {
+    under100: { serviceFee: 2.50, platformRate: 0.015 },    // $2.50 + 1.5%
+    tier100to500: { serviceFee: 3.50, platformRate: 0.0125 }, // $3.50 + 1.25%
+    tier500to2000: { serviceFee: 5.00, platformRate: 0.01 },   // $5.00 + 1.0%
+    over2000: { serviceFee: 7.50, platformRate: 0.0075 }      // $7.50 + 0.75%
+  };
   
   /**
    * Ethereum fee structure: Dynamic gas fees + competitive platform rates
@@ -157,26 +168,41 @@ export class FeeCalculator {
     
     let serviceFee = 0;
     let platformFee = 0;
+    let tierName = '';
     
-    // Corrected fee structure for proper profitability
+    // Enhanced tiered fee structure for competitive yet profitable pricing
     if (amount < 100) {
-      // Under $100: $3 service fee + 1% platform fee
-      serviceFee = 3.00;
-      platformFee = Math.round(amount * 0.01 * 100) / 100; // 1% platform fee
+      // Under $100: $2.50 service fee + 1.5% platform fee
+      serviceFee = this.XRP_TIER_FEES.under100.serviceFee;
+      platformFee = Math.round(amount * this.XRP_TIER_FEES.under100.platformRate * 100) / 100;
+      tierName = 'Small Transaction Tier';
+    } else if (amount < 500) {
+      // $100-$500: $3.50 service fee + 1.25% platform fee  
+      serviceFee = this.XRP_TIER_FEES.tier100to500.serviceFee;
+      platformFee = Math.round(amount * this.XRP_TIER_FEES.tier100to500.platformRate * 100) / 100;
+      tierName = 'Medium Transaction Tier';
+    } else if (amount < 2000) {
+      // $500-$2000: $5.00 service fee + 1.0% platform fee
+      serviceFee = this.XRP_TIER_FEES.tier500to2000.serviceFee;
+      platformFee = Math.round(amount * this.XRP_TIER_FEES.tier500to2000.platformRate * 100) / 100;
+      tierName = 'Large Transaction Tier';
     } else {
-      // $100 and above: $5 service fee + 0.75% platform fee
-      serviceFee = 5.00;
-      platformFee = Math.round(amount * 0.0075 * 100) / 100; // 0.75% platform fee
+      // Over $2000: $7.50 service fee + 0.75% platform fee
+      serviceFee = this.XRP_TIER_FEES.over2000.serviceFee;
+      platformFee = Math.round(amount * this.XRP_TIER_FEES.over2000.platformRate * 100) / 100;
+      tierName = 'Enterprise Transaction Tier';
     }
     
     const totalFee = processingFee + serviceFee + platformFee;
     const totalAmount = amount + totalFee;
     const netAmount = totalAmount - processingFee;
     
-    // Calculate savings vs traditional wire transfer (typically $25-50 + 3-5%)
-    const wireTransferFee = Math.max(25, amount * 0.03); // $25 minimum or 3%
-    const savings = wireTransferFee - totalFee;
-    const percentageSaved = Math.round((savings / wireTransferFee) * 100);
+    // Calculate savings vs traditional payment methods
+    const wireTransferFee = Math.max(25, amount * 0.03); // Wire transfer: $25 minimum or 3%
+    const stripeFee = amount * 0.029 + 0.30; // Stripe: 2.9% + $0.30
+    const competitorFee = Math.max(stripeFee, wireTransferFee);
+    const savings = competitorFee - totalFee;
+    const percentageSaved = Math.round((savings / competitorFee) * 100);
     
     return {
       originalAmount: amount,
@@ -191,11 +217,11 @@ export class FeeCalculator {
         networkFee: processingFee,
         serviceFee: serviceFee,
         platformFee: platformFee,
-        description: FeeCalculator.getXRPFeeDescription(amount)
+        description: `${tierName}: ${this.getXRPFeeDescription(amount)}`
       },
       savings: {
         vsWireTransfer: savings,
-        vsCompetitor: wireTransferFee,
+        vsCompetitor: competitorFee,
         percentageSaved: percentageSaved
       }
     };

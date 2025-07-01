@@ -16,6 +16,48 @@ import rateLimitImport from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
+// Critical Rate Limiting Implementation
+const createRateLimit = rateLimitImport;
+
+// API rate limiting - critical security measure
+const apiLimiter = createRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    error: 'Too many requests',
+    message: 'Rate limit exceeded. Please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Strict rate limiting for sensitive endpoints
+const strictLimiter = createRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: {
+    error: 'Too many requests',
+    message: 'Rate limit exceeded for sensitive endpoint. Please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Auth rate limiting - prevent brute force
+const authLimiter = createRateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 auth attempts per windowMs
+  message: {
+    error: 'Too many authentication attempts',
+    message: 'Account temporarily locked. Please try again later.',
+    retryAfter: '15 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // Initialize blockchain services
 if (bnbChainService.isEnabled()) {
   console.log('✅ BNB Chain service initialized:', { 
@@ -34,6 +76,9 @@ if (pulseChainService.isEnabled()) {
 // Essential middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Apply general API rate limiting to all /api routes
+app.use('/api', apiLimiter);
 
 // Session middleware for authentication
 import session from 'express-session';
@@ -86,24 +131,7 @@ app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/xrp', blockchainRoutes);
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 
-// Enhanced security middleware for production readiness
-
-// Rate limiting for different endpoint types
-const createRateLimit = (windowMs: number, max: number, message: string) => {
-  return rateLimitImport({
-    windowMs,
-    max,
-    message: { error: message, status: 429 },
-    standardHeaders: true,
-    legacyHeaders: false
-  });
-};
-
-// Rate limiting DISABLED - was blocking authentication system
-// app.use('/api/auth', createRateLimit(15 * 60 * 1000, 5, 'Too many authentication attempts'));
-// app.use('/api/agents/register', createRateLimit(15 * 60 * 1000, 3, 'Too many agent registrations'));
-// app.use('/api/p2p', createRateLimit(15 * 60 * 1000, 10, 'Too many P2P requests'));
-// app.use('/api', createRateLimit(60 * 1000, 50, 'Rate limit exceeded'));
+// Enhanced security middleware for production readiness (rate limiting already implemented above)
 
 // Security middleware removed to prevent platform crashes
 

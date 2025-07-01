@@ -47,6 +47,67 @@ router.post('/transfer', async (req, res) => {
 });
 
 /**
+ * POST /api/p2p/quote
+ * Get transfer quote for P2P transaction
+ */
+router.post('/quote', async (req, res) => {
+  try {
+    const { amount, fromPlatform, toPlatform } = req.body;
+    
+    if (!amount || !fromPlatform || !toPlatform) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: amount, fromPlatform, toPlatform'
+      });
+    }
+
+    const transferAmount = parseFloat(amount);
+    if (isNaN(transferAmount) || transferAmount < 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Minimum transfer amount is $10'
+      });
+    }
+
+    // Calculate fees based on platform type
+    const isCrossPlatform = ['paypal', 'stripe', 'credit', 'debit'].includes(fromPlatform) && 
+                           ['paypal', 'stripe'].includes(toPlatform);
+    
+    let fee, description;
+    if (isCrossPlatform) {
+      fee = transferAmount * 0.10; // 10% for cross-platform
+      description = 'Cross-platform transfer';
+    } else {
+      fee = transferAmount * 0.025; // 2.5% for standard
+      description = 'Standard transfer';
+    }
+
+    const total = transferAmount + fee;
+
+    res.json({
+      success: true,
+      quote: {
+        amount: transferAmount,
+        fee: fee,
+        total: total,
+        fromPlatform,
+        toPlatform,
+        transferType: description,
+        estimatedDelivery: isCrossPlatform ? '15-30 minutes' : '5-15 minutes',
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes
+      }
+    });
+
+  } catch (error) {
+    console.error('P2P quote error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Quote generation failed'
+    });
+  }
+});
+
+/**
  * POST /api/p2p/initiate
  * Initiate a P2P transfer with profitable fee structure
  */

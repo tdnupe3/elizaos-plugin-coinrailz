@@ -179,6 +179,22 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
+      // Validate new password meets security requirements
+      const passwordValidation = z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$/, 
+          'Password must contain uppercase, lowercase, number, and special character (@$!%*?&)');
+      
+      try {
+        passwordValidation.parse(newPassword);
+      } catch (validationError: any) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid password',
+          message: validationError.errors[0]?.message || 'Password does not meet security requirements'
+        });
+      }
+
       // Check if user exists
       const user = await storage.getUserByEmail(email);
       if (!user) {

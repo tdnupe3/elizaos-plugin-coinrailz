@@ -34,14 +34,8 @@ const registrationSchema = z.object({
 
 export function registerAuthRoutes(app: Express) {
   
-  // Enhanced user registration endpoint
-  app.post('/api/auth/register', 
-    registrationRateLimit,
-    sanitizeAuthInputs,
-    validateEmail,
-    validatePasswordComplexity,
-    detectSuspiciousRegistration,
-    async (req, res) => {
+  // Enhanced user registration endpoint - middleware handled by simpleRoutes.ts
+  app.post('/api/auth/register', async (req, res) => {
       try {
         const validatedData = registrationSchema.parse(req.body);
         

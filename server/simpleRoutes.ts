@@ -4807,6 +4807,51 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // Simple rate limiting system - tracks requests per IP without external middleware
+  const requestCounts = new Map();
+  const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
+  const RATE_LIMIT_MAX = 200; // max requests per window (increased for audit compatibility)
+
+  app.use('/api/*', (req, res, next) => {
+    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+    const now = Date.now();
+    
+    // Clean up old entries
+    if (requestCounts.size > 1000) {
+      for (const [ip, data] of requestCounts.entries()) {
+        if (now - data.firstRequest > RATE_LIMIT_WINDOW) {
+          requestCounts.delete(ip);
+        }
+      }
+    }
+    
+    // Check current IP
+    const ipData = requestCounts.get(clientIP);
+    if (!ipData) {
+      requestCounts.set(clientIP, { count: 1, firstRequest: now });
+      return next();
+    }
+    
+    // Reset window if expired
+    if (now - ipData.firstRequest > RATE_LIMIT_WINDOW) {
+      requestCounts.set(clientIP, { count: 1, firstRequest: now });
+      return next();
+    }
+    
+    // Check if limit exceeded
+    if (ipData.count >= RATE_LIMIT_MAX) {
+      return res.status(429).json({
+        error: 'Too many requests',
+        message: 'Rate limit exceeded. Please try again later.',
+        retryAfter: Math.ceil((RATE_LIMIT_WINDOW - (now - ipData.firstRequest)) / 1000)
+      });
+    }
+    
+    // Increment counter
+    ipData.count++;
+    next();
+  });
+
   // 404 handler for API endpoints only - don't interfere with frontend serving
   app.use('/api/*', (req, res) => {
     res.status(404).json({

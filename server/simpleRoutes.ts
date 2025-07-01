@@ -4810,7 +4810,7 @@ export function setupSimpleRoutes(app: Express) {
   // Simple rate limiting system - tracks requests per IP without external middleware
   const requestCounts = new Map();
   const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-  const RATE_LIMIT_MAX = 200; // max requests per window (increased for audit compatibility)
+  const RATE_LIMIT_MAX = 1000; // max requests per window (temporarily increased for audit)
 
   app.use('/api/*', (req, res, next) => {
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';

@@ -129,42 +129,39 @@ export default function Landing() {
             <div className="max-w-2xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem Dashboard:</p>
+                  <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem:</p>
                   <div className="text-xs text-blue-700 space-y-1">
                     <p>• Explore XRP financial services</p>
                     <p>• Cross-border payments & settlements</p>
-                    <p>• Liquidity pools & escrow services</p>
                   </div>
                 </div>
 
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-800 font-medium mb-2">DEX Aggregator:</p>
+                  <p className="text-sm text-purple-800 font-medium mb-2">DEX Swap:</p>
                   <div className="text-xs text-purple-700 space-y-1">
                     <p>• Access instantly, no registration</p>
                     <p>• Compare rates across exchanges</p>
-                    <p>• 15+ blockchain networks including Base</p>
                   </div>
                 </div>
 
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-800 font-medium mb-2">AI Agent Marketplace:</p>
+                  <p className="text-sm text-orange-800 font-medium mb-2">AI Marketplace:</p>
                   <div className="text-xs text-orange-700 space-y-1">
                     <p>• Browse autonomous AI agents</p>
                     <p>• Commission global services</p>
-                    <p>• Earn by registering your own agent</p>
                   </div>
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                  <p className="text-sm text-emerald-800 font-medium mb-2">Full Platform Demo:</p>
+                  <p className="text-sm text-emerald-800 font-medium mb-2">Demo Mode:</p>
                   <div className="text-xs text-emerald-700 space-y-1">
-                    <p>• Test all features with sample data</p>
-                    <p>• Digital wallet with demo funds</p>
-                    <p>• Complete transaction flow</p>
+                    <p>• Test features with sample data</p>
+                    <p>• Demo wallet with funds</p>
                   </div>
                 </div>
               </div>
             </div>
+          </div>
 
           {/* Core Platform Features */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">

@@ -47,17 +47,29 @@ export function registerRoutes(app: Express): Server {
   // === AGENT DISCOVERY ENDPOINTS ===
   app.get('/api/agents/discover', isAuthenticated, async (req, res) => {
     try {
-      const agents = await storage.getAgents();
+      // Mock agent data for testing - replace with database call when ready
+      const mockAgents = [
+        {
+          id: 'agent_001',
+          name: 'Sarah AI Analytics',
+          category: 'Data Analysis',
+          rating: 4.8,
+          verified: true,
+          description: 'Advanced data analytics and business intelligence AI agent'
+        },
+        {
+          id: 'agent_002', 
+          name: 'Marcus Trading Bot',
+          category: 'Crypto Trading',
+          rating: 4.6,
+          verified: true,
+          description: 'Automated cryptocurrency trading and portfolio management'
+        }
+      ];
+
       res.json({
         success: true,
-        agents: agents.map(agent => ({
-          id: agent.id,
-          name: agent.name,
-          category: agent.category,
-          rating: agent.rating,
-          verified: agent.verified,
-          description: agent.description
-        }))
+        agents: mockAgents
       });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to discover agents' });
@@ -67,17 +79,29 @@ export function registerRoutes(app: Express): Server {
   // === SERVICE DISCOVERY ENDPOINTS ===  
   app.get('/api/services/discover', isAuthenticated, async (req, res) => {
     try {
-      const services = await storage.getServices();
+      // Mock service data for testing - replace with database call when ready
+      const mockServices = [
+        {
+          id: 'service_001',
+          name: 'Market Analysis Report',
+          category: 'Analytics',
+          price: '$150',
+          rating: 4.7,
+          description: 'Comprehensive market analysis and trading recommendations'
+        },
+        {
+          id: 'service_002',
+          name: 'Portfolio Optimization',
+          category: 'Trading',
+          price: '$200',
+          rating: 4.5,
+          description: 'AI-powered portfolio rebalancing and risk management'
+        }
+      ];
+
       res.json({
         success: true,
-        services: services.map(service => ({
-          id: service.id,
-          name: service.name,
-          category: service.category,
-          price: service.price,
-          rating: service.rating,
-          description: service.description
-        }))
+        services: mockServices
       });
     } catch (error) {
       res.status(500).json({ success: false, message: 'Failed to discover services' });

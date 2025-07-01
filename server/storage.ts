@@ -853,11 +853,11 @@ export class DatabaseStorage implements IStorage {
       const agents = await db.select().from(globalAIAgents).limit(50);
       return agents.map(agent => ({
         id: agent.id,
-        name: agent.name,
-        category: agent.category || 'General',
+        name: agent.agentName,
+        category: 'AI Services',
         rating: 4.5, // Default rating
-        verified: agent.verified || false,
-        description: agent.description || `AI agent: ${agent.name}`
+        verified: agent.isVerified || false,
+        description: agent.description || `AI agent: ${agent.agentName}`
       }));
     } catch (error) {
       console.error('Error fetching agents:', error);
@@ -872,7 +872,7 @@ export class DatabaseStorage implements IStorage {
         id: service.id,
         name: service.serviceName,
         category: service.category || 'General',
-        price: service.price,
+        price: service.basePrice,
         rating: 4.3, // Default rating
         description: service.description
       }));

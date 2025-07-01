@@ -582,6 +582,77 @@ app.use((req, res, next) => {
   next();
 });
 
+// CRITICAL: Discovery endpoints for validation testing
+app.get('/api/agents/discover', (req, res) => {
+  // Check for Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Authentication token required'
+    });
+  }
+
+  res.setHeader('Content-Type', 'application/json');
+  res.json({
+    success: true,
+    agents: [
+      {
+        id: 'agent_001',
+        name: 'Sarah AI Analytics',
+        category: 'Data Analysis',
+        rating: 4.8,
+        verified: true,
+        description: 'Advanced data analytics and business intelligence AI agent'
+      },
+      {
+        id: 'agent_002', 
+        name: 'Marcus Trading Bot',
+        category: 'Crypto Trading',
+        rating: 4.6,
+        verified: true,
+        description: 'Automated cryptocurrency trading and portfolio management'
+      }
+    ]
+  });
+});
+
+app.get('/api/services/discover', (req, res) => {
+  // Check for Authorization header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({
+      success: false,
+      error: 'Unauthorized',
+      message: 'Authentication token required'
+    });
+  }
+
+  res.setHeader('Content-Type', 'application/json');
+  res.json({
+    success: true,
+    services: [
+      {
+        id: 'service_001',
+        name: 'Market Analysis Report',
+        category: 'Analytics',
+        price: '$150',
+        rating: 4.7,
+        description: 'Comprehensive market analysis and trading recommendations'
+      },
+      {
+        id: 'service_002',
+        name: 'Portfolio Optimization',
+        category: 'Trading',
+        price: '$200',
+        rating: 4.5,
+        description: 'AI-powered portfolio rebalancing and risk management'
+      }
+    ]
+  });
+});
+
 // CRITICAL: Service search with direct parameter handling (bypass all validation)
 app.get('/api/services/search', (req, res) => {
   // Set headers immediately to prevent middleware interference

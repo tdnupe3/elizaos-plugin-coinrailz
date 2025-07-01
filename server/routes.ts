@@ -10,14 +10,14 @@ import { db } from "./db";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
 import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
-import { paymentSchema, validateSchema } from "./middleware/smartSecurity";
+// import { paymentSchema, validateSchema } from "./middleware/smartSecurity";
 import { agentQualityControl } from "./services/agentQualityControl";
 import { agentRoutes } from "./routes/agentRoutes";
 import { default as aiMarketplaceRoutes } from "./routes/aiMarketplaceRoutes";
 import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
-import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
+// import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
-import { addSecurityConstraints } from "./utils/databaseConstraints";
+// import { addSecurityConstraints } from "./utils/databaseConstraints";
 
 // Initialize services
 let stripe: any;

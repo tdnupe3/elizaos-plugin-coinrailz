@@ -252,7 +252,7 @@ router.get('/viral-referral-analytics', authenticateApiKey, enterpriseRateLimit,
         competitiveAdvantage: 'Impossible to replicate without licensing'
       },
       billing: {
-        clientId: req.clientId,
+        clientId: (req as any).clientId,
         callCost: 0.15,
         subscriptionValue: 12000
       }

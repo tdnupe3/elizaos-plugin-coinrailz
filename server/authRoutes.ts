@@ -163,6 +163,79 @@ export function registerAuthRoutes(app: Express) {
     });
   });
 
+  // Password reset endpoint (for existing users who forgot password)
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { email, newPassword } = req.body;
+      
+      if (!email || !newPassword) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields',
+          message: 'Email and new password are required'
+        });
+      }
+
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found',
+          message: 'No account found with this email address'
+        });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      
+      // Update user password
+      await storage.updateUser(user.id, { password: hashedPassword });
+
+      res.json({
+        success: true,
+        message: 'Password reset successfully. You can now login with your new password.'
+      });
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Password reset failed',
+        message: 'Unable to reset password. Please try again.'
+      });
+    }
+  });
+
+  // Check if email exists endpoint (for better UX)
+  app.post('/api/auth/check-email', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing email',
+          message: 'Email is required'
+        });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      
+      res.json({
+        success: true,
+        exists: !!user,
+        message: user ? 'Account exists - try signing in instead' : 'Email available for registration'
+      });
+    } catch (error: any) {
+      console.error('Email check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Check failed',
+        message: 'Unable to verify email availability'
+      });
+    }
+  });
+
   // Dashboard stats endpoint
   app.get('/api/dashboard/stats', async (req, res) => {
     try {

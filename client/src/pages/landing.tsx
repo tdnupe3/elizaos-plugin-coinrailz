@@ -58,62 +58,71 @@ export default function Landing() {
               15+ blockchain networks including Base and BNB Chain • Send money globally • Buy/Sell • DEX aggregator • XRP Ledger FULLY Integrated • AI Agent Marketplace
             </p>
 
-            {/* Action Buttons - Mobile Optimized */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 max-w-2xl mx-auto">
-              <Button 
-                onClick={handleSignIn}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
-                size="lg"
-              >
-                Sign In
-              </Button>
+            {/* Action Buttons - 3 Row Layout */}
+            <div className="space-y-4 mb-8 max-w-2xl mx-auto">
+              {/* Row 1: Sign In and Sign Up */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button 
+                  onClick={handleSignIn}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
+                  size="lg"
+                >
+                  Sign In
+                </Button>
 
-              <Button 
-                onClick={handleSignUp}
-                variant="outline"
-                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
-                size="lg"
-              >
-                Sign Up
-              </Button>
+                <Button 
+                  onClick={handleSignUp}
+                  variant="outline"
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
+                  size="lg"
+                >
+                  Sign Up
+                </Button>
+              </div>
 
-              <Button 
-                onClick={() => setLocation("/xrp-ecosystem")}
-                variant="ghost"
-                className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-4 text-lg font-medium border border-blue-200"
-                size="lg"
-              >
-                <Globe className="w-5 h-5 mr-2" />
-                XRP Ecosystem
-              </Button>
+              {/* Row 2: XRP Ecosystem and DEX Swap */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button 
+                  onClick={() => setLocation("/xrp-ecosystem")}
+                  variant="ghost"
+                  className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-4 text-lg font-medium border border-blue-200"
+                  size="lg"
+                >
+                  <Globe className="w-5 h-5 mr-2" />
+                  XRP Ecosystem
+                </Button>
 
-              <Button 
-                onClick={() => setLocation("/swap")}
-                variant="ghost"
-                className="w-full text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-4 text-lg font-medium border border-purple-200"
-                size="lg"
-              >
-                Try DEX Swap
-              </Button>
+                <Button 
+                  onClick={() => setLocation("/swap")}
+                  variant="ghost"
+                  className="w-full text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-4 text-lg font-medium border border-purple-200"
+                  size="lg"
+                >
+                  DEX Swap
+                </Button>
+              </div>
 
-              <Button 
-                onClick={handleGuestAccess}
-                variant="ghost"
-                className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-4 text-lg font-medium border border-emerald-200"
-                size="lg"
-              >
-                Demo Mode
-              </Button>
+              {/* Row 3: AI Marketplace and Demo Mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button 
+                  onClick={() => setLocation("/ai-marketplace")}
+                  variant="ghost"
+                  className="w-full text-orange-600 hover:text-orange-800 hover:bg-orange-50 py-4 text-lg font-medium border border-orange-200"
+                  size="lg"
+                >
+                  <Bot className="w-5 h-5 mr-2" />
+                  AI Marketplace
+                </Button>
 
-              <Button 
-                onClick={() => setLocation("/ai-marketplace")}
-                variant="ghost"
-                className="w-full text-orange-600 hover:text-orange-800 hover:bg-orange-50 py-4 text-lg font-medium border border-orange-200"
-                size="lg"
-              >
-                <Bot className="w-5 h-5 mr-2" />
-                AI Marketplace
-              </Button>
+                <Button 
+                  onClick={handleGuestAccess}
+                  variant="ghost"
+                  className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-4 text-lg font-medium border border-emerald-200"
+                  size="lg"
+                >
+                  Demo Mode
+                </Button>
+              </div>
             </div>
 
             {/* Action Button Explanations */}

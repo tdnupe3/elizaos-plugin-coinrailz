@@ -212,6 +212,11 @@ function Router() {
         {() => isLoading || !isAuthenticated ? <Landing /> : <MainMenu />}
       </Route>
       
+      {/* Dashboard route - same as authenticated main menu */}
+      <Route path="/dashboard">
+        <Dashboard />
+      </Route>
+      
       {/* Authenticated routes */}
       <Route path="/crypto">
         {() => <LazyLoadWrapper><CryptoWallet /></LazyLoadWrapper>}

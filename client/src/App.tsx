@@ -77,13 +77,24 @@ const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading) {
+    return <PageLoadingFallback />;
+  }
+
   return (
     <>
       <Switch>
-        {/* Demo routes - accessible without authentication */}
-      <Route path="/demo">
-        {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
-      </Route>
+        {/* Authentication routes - always accessible */}
+        <Route path="/auth" component={AuthPage} />
+        <Route path="/login" component={AuthPage} />
+        <Route path="/signup" component={AuthPage} />
+        <Route path="/sign-in" component={SignIn} />
+        <Route path="/sign-up" component={SignUp} />
+
+        {/* Public routes - accessible without authentication */}
+        <Route path="/demo">
+          {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
+        </Route>
       <Route path="/demo/dashboard">
         {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
       </Route>

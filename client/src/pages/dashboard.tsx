@@ -58,14 +58,16 @@ export default function Dashboard() {
     enabled: !!user
   });
 
-  // Mock data for demonstration
-  const mockStats: DashboardStats = stats || {
+  // Default stats with proper typing
+  const defaultStats: DashboardStats = {
     balance: 2847.50,
     totalTransactions: 47,
     monthlyVolume: 12840.00,
     activeAgents: 3,
     referralEarnings: 127.30
   };
+
+  const mockStats: DashboardStats = stats || defaultStats;
 
   const mockTransactions: Transaction[] = transactions || [
     {
@@ -154,7 +156,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Welcome back, {user.firstName || 'User'}!
+                Welcome back, {(user as any)?.firstName || user?.email || 'User'}!
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
                 Your financial gateway dashboard

@@ -1,450 +1,467 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Send, ArrowLeft, ArrowRight, DollarSign, Clock, CheckCircle, CreditCard, Smartphone, Building2 } from "@/lib/icons";
-import { useLocation } from "wouter";
-import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
-import { StripePayment } from "@/components/stripe-payment";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { 
+  Send, 
+  CreditCard, 
+  Wallet, 
+  Bitcoin, 
+  DollarSign,
+  CheckCircle,
+  AlertCircle,
+  ArrowRight,
+  Loader2
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { Link, useLocation } from "wouter";
 
-const SENDER_METHODS = [
-  { id: 'paypal', name: 'PayPal', icon: CreditCard, description: 'Instant transfer from PayPal balance', available: true },
-  { id: 'debit', name: 'Debit Card', icon: CreditCard, description: 'Instant transfer via Stripe', available: true },
-  { id: 'credit', name: 'Credit Card', icon: CreditCard, description: 'Instant transfer via Stripe', available: true },
-  { id: 'bank', name: 'Bank Account', icon: Building2, description: '1-3 business days', available: false },
-  { id: 'crypto', name: 'Cryptocurrency', icon: DollarSign, description: 'USDC, USDT, BTC, ETH', available: true },
-  { id: 'coinrailz', name: 'Coin Railz Balance', icon: Smartphone, description: 'Use platform balance', available: true }
-];
-
-const RECIPIENT_PLATFORMS = [
-  { id: 'paypal', name: 'PayPal', identifier: 'email', placeholder: 'recipient@email.com', available: true },
-  { id: 'zelle', name: 'Zelle', identifier: 'email/phone', placeholder: 'email@example.com or +1 555-0123', available: false },
-  { id: 'venmo', name: 'Venmo', identifier: 'username/phone', placeholder: '@username or +1 555-0123', available: false },
-  { id: 'cashapp', name: 'Cash App', identifier: '$cashtag/phone', placeholder: '$username or +1 555-0123', available: false },
-  { id: 'bank', name: 'Bank Transfer', identifier: 'account', placeholder: 'Account/routing number', available: false },
-  { id: 'crypto', name: 'Crypto Wallet', identifier: 'address', placeholder: 'Wallet address', available: true },
-  { id: 'coinrailz', name: 'Coin Railz User', identifier: 'email/id', placeholder: 'user@email.com or CR123456', available: true }
-];
+interface P2PTransferData {
+  recipient: string;
+  amount: number;
+  senderMethod: string;
+  recipientMethod: string;
+  note?: string;
+}
 
 export default function P2PTransfer() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [step, setStep] = useState(1); // 1: Sender Method, 2: Recipient Details, 3: Review
   
-  // Form state
-  const [senderMethod, setSenderMethod] = useState("");
-  const [recipientPlatform, setRecipientPlatform] = useState("");
-  const [recipientIdentifier, setRecipientIdentifier] = useState("");
-  const [amount, setAmount] = useState("");
-  const [message, setMessage] = useState("");
-  const [showFlowOrchestrator, setShowFlowOrchestrator] = useState(false);
-  const [showStripePayment, setShowStripePayment] = useState(false);
-  const [stripePaymentSuccess, setStripePaymentSuccess] = useState(false);
-  const [paymentIntentId, setPaymentIntentId] = useState("");
+  const [step, setStep] = useState(1);
+  const [transferData, setTransferData] = useState<P2PTransferData>({
+    recipient: '',
+    amount: 0,
+    senderMethod: '',
+    recipientMethod: '',
+    note: ''
+  });
 
-  const calculateFee = () => {
-    const amt = parseFloat(amount) || 0;
-    if (amt === 0) return 0;
-    
-    // Cross-platform fee structure accounting for dual processing costs
-    const isCrossPlatform = isCrossPlatformTransfer(senderMethod, recipientPlatform);
-    
-    if (isCrossPlatform) {
-      // Cross-platform transfers: 10% fee to cover dual processing costs
-      return Math.round((amt * 0.10) * 100) / 100;
-    } else {
-      // Same-platform or internal transfers: tiered structure
-      if (amt < 25) {
-        return Math.round((amt * 0.035 + 2.00) * 100) / 100;
-      } else if (amt < 50) {
-        return Math.round((amt * 0.032 + 1.10) * 100) / 100;
-      } else {
-        return Math.round((amt * 0.032 + 0.35) * 100) / 100;
-      }
+  const transferMutation = useMutation({
+    mutationFn: async (data: P2PTransferData) => {
+      return await apiRequest("POST", "/api/p2p/transfer", data);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      toast({
+        title: "Transfer Successful",
+        description: `$${transferData.amount} sent successfully!`
+      });
+      setStep(4); // Success step
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Transfer Failed",
+        description: error.message || "Unable to process transfer",
+        variant: "destructive"
+      });
     }
+  });
+
+  const calculateFees = (amount: number) => {
+    const baseFee = Math.max(amount * 0.025, 5.00); // 2.5% with $5 minimum
+    const processingFee = transferData.senderMethod === 'credit-card' ? amount * 0.029 : 0;
+    return {
+      baseFee: baseFee,
+      processingFee: processingFee,
+      total: baseFee + processingFee
+    };
   };
 
-  const isCrossPlatformTransfer = (sender: string, recipient: string) => {
-    const externalPlatforms = ['paypal', 'credit', 'debit'];
-    return externalPlatforms.includes(sender) && externalPlatforms.includes(recipient);
-  };
+  const fees = calculateFees(transferData.amount);
+  const totalAmount = transferData.amount + fees.total;
 
-  const selectedSenderMethod = SENDER_METHODS.find(m => m.id === senderMethod);
-  const selectedRecipientPlatform = RECIPIENT_PLATFORMS.find(p => p.id === recipientPlatform);
+  const paymentMethods = [
+    { id: 'wallet-balance', name: 'Coin Railz Balance', icon: Wallet, available: true },
+    { id: 'credit-card', name: 'Credit/Debit Card', icon: CreditCard, available: true },
+    { id: 'paypal', name: 'PayPal', icon: DollarSign, available: true },
+    { id: 'crypto', name: 'Cryptocurrency', icon: Bitcoin, available: true },
+    { id: 'bank-transfer', name: 'Bank Transfer', icon: DollarSign, available: false },
+    { id: 'apple-pay', name: 'Apple Pay', icon: DollarSign, available: false }
+  ];
 
-  const handleNextStep = () => {
-    if (step === 1 && senderMethod) {
-      setStep(2);
-    } else if (step === 2 && recipientPlatform && recipientIdentifier && amount) {
-      const amountValue = parseFloat(amount);
-      if (amountValue < 2.50) {
-        alert('Minimum transaction $2.50');
-        return;
-      }
-      setStep(3);
+  const handleStepNext = () => {
+    if (step === 1 && (!transferData.recipient || !transferData.amount || transferData.amount <= 0)) {
+      toast({
+        title: "Missing Information",
+        description: "Please enter recipient and amount",
+        variant: "destructive"
+      });
+      return;
     }
-  };
-
-  const handleSubmit = () => {
-    // Check if using Stripe payment methods (credit/debit cards)
-    if (senderMethod === 'credit' || senderMethod === 'debit') {
-      setShowStripePayment(true);
-    } else {
-      setShowFlowOrchestrator(true);
+    if (step === 2 && !transferData.senderMethod) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a payment method",
+        variant: "destructive"
+      });
+      return;
     }
+    if (step === 3 && !transferData.recipientMethod) {
+      toast({
+        title: "Missing Information",
+        description: "Please select recipient method",
+        variant: "destructive"
+      });
+      return;
+    }
+    setStep(step + 1);
   };
 
-  const handleStripeSuccess = (paymentId: string) => {
-    setPaymentIntentId(paymentId);
-    setStripePaymentSuccess(true);
-    setShowStripePayment(false);
-    setShowFlowOrchestrator(true);
+  const handleSubmitTransfer = () => {
+    transferMutation.mutate(transferData);
   };
 
-  const handleStripeCancel = () => {
-    setShowStripePayment(false);
-  };
-
-  const handleTransactionComplete = () => {
-    setShowFlowOrchestrator(false);
-    // Reset form
-    setStep(1);
-    setSenderMethod("");
-    setRecipientPlatform("");
-    setRecipientIdentifier("");
-    setAmount("");
-    setMessage("");
-  };
-
-  const handleTransactionCancel = () => {
-    setShowFlowOrchestrator(false);
-  };
-
-  if (showStripePayment) {
+  if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <StripePayment
-          amount={parseFloat(amount) + calculateFee()}
-          onSuccess={handleStripeSuccess}
-          onCancel={handleStripeCancel}
-        />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle>Authentication Required</CardTitle>
+            <CardDescription>Please sign in to send money</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Link href="/auth">
+              <Button>Sign In</Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
-    );
-  }
-
-  if (showFlowOrchestrator) {
-    return (
-      <TransactionFlowOrchestrator
-        isOpen={showFlowOrchestrator}
-        onClose={handleTransactionCancel}
-        flowConfig={{
-          type: 'p2p_transfer',
-          data: {
-            senderMethod,
-            recipientPlatform,
-            recipientIdentifier,
-            amount: parseFloat(amount),
-            message,
-            fee: calculateFee(),
-            total: parseFloat(amount) + calculateFee(),
-            ...(stripePaymentSuccess && { paymentIntentId })
-          },
-          steps: [
-            { id: 'validate', name: 'Validate Details', status: 'pending' },
-            { id: 'authorize', name: 'Authorize Payment', status: 'pending' },
-            { id: 'process', name: 'Process Transfer', status: 'pending' },
-            { id: 'confirm', name: 'Confirm Receipt', status: 'pending' }
-          ]
-        }}
-      />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation('/demo')}
-                className="min-h-[44px] touch-manipulation"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Back to Demo</span>
-                <span className="sm:hidden">Back</span>
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">P2P Transfer</h1>
-                <p className="text-sm text-gray-600">Send money between platforms</p>
-              </div>
-            </div>
-            <Badge variant="outline">Production Ready</Badge>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-2xl mx-auto px-4 py-8">
-        {/* Progress Indicator */}
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-center space-x-4">
-            <div className={`flex items-center space-x-2 ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-                1
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Send Money</h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Fast, secure P2P transfers worldwide
+          </p>
+        </div>
+
+        {/* Progress Steps */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            {[1, 2, 3, 4].map((num) => (
+              <div key={num} className="flex items-center">
+                <div className={`
+                  w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium
+                  ${step >= num 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                  }
+                `}>
+                  {step > num ? <CheckCircle className="h-5 w-5" /> : num}
+                </div>
+                {num < 4 && (
+                  <div className={`
+                    flex-1 h-1 mx-4
+                    ${step > num ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}
+                  `} />
+                )}
               </div>
-              <span className="text-sm font-medium">Payment Method</span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-            <div className={`flex items-center space-x-2 ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-                2
-              </div>
-              <span className="text-sm font-medium">Recipient Details</span>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-            <div className={`flex items-center space-x-2 ${step >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-                3
-              </div>
-              <span className="text-sm font-medium">Review & Send</span>
-            </div>
+            ))}
+          </div>
+          <div className="flex justify-between mt-2 text-sm">
+            <span className={step >= 1 ? 'text-blue-600' : 'text-gray-500'}>Amount</span>
+            <span className={step >= 2 ? 'text-blue-600' : 'text-gray-500'}>Payment</span>
+            <span className={step >= 3 ? 'text-blue-600' : 'text-gray-500'}>Recipient</span>
+            <span className={step >= 4 ? 'text-blue-600' : 'text-gray-500'}>Complete</span>
           </div>
         </div>
 
-        <Card className="bg-white">
-          {/* Step 1: Sender Payment Method Selection */}
-          {step === 1 && (
-            <>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <CreditCard className="w-5 h-5" />
-                  <span>How would you like to send money?</span>
-                </CardTitle>
-                <p className="text-sm text-gray-600">
-                  Choose your preferred payment method
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {SENDER_METHODS.map((method) => (
-                  <div
-                    key={method.id}
-                    className={`p-4 border rounded-lg transition-all relative min-h-[64px] touch-manipulation ${
-                      !method.available
-                        ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
-                        : senderMethod === method.id
-                        ? 'border-blue-500 bg-blue-50 cursor-pointer'
-                        : 'border-gray-200 hover:border-gray-300 cursor-pointer'
-                    }`}
-                    onClick={() => method.available && setSenderMethod(method.id)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <method.icon className="w-5 h-5 text-gray-600" />
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <div className="font-medium">{method.name}</div>
-                          {!method.available && (
-                            <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
-                              Coming Soon
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-500">{method.description}</div>
-                      </div>
-                      {senderMethod === method.id && method.available && (
-                        <CheckCircle className="w-5 h-5 text-blue-600" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <Button 
-                  onClick={handleNextStep} 
-                  disabled={!senderMethod}
-                  className="w-full mt-6"
-                >
-                  Continue to Recipient Details
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </CardContent>
-            </>
-          )}
-
-          {/* Step 2: Recipient Details */}
-          {step === 2 && (
-            <>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Send className="w-5 h-5" />
-                  <span>Recipient Details</span>
-                </CardTitle>
-                <p className="text-sm text-gray-600">
-                  Where should we send the money?
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Recipient's Platform</Label>
-                  <Select value={recipientPlatform} onValueChange={setRecipientPlatform}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select recipient's platform" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {RECIPIENT_PLATFORMS.map((platform) => (
-                        <SelectItem 
-                          key={platform.id} 
-                          value={platform.id}
-                          disabled={!platform.available}
-                        >
-                          <div className="flex items-center justify-between w-full">
-                            <span>{platform.name}</span>
-                            {!platform.available && (
-                              <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full ml-2">
-                                Coming Soon
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {selectedRecipientPlatform && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Transfer Form */}
+          <div className="lg:col-span-2">
+            {step === 1 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Send className="h-5 w-5 mr-2" />
+                    Transfer Details
+                  </CardTitle>
+                  <CardDescription>Enter the recipient and amount</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label>
-                      Recipient's {selectedRecipientPlatform.identifier.split('/').map(s => 
-                        s.charAt(0).toUpperCase() + s.slice(1)
-                      ).join(' or ')}
-                    </Label>
+                    <Label htmlFor="recipient">Recipient Email or Username</Label>
                     <Input
-                      placeholder={selectedRecipientPlatform.placeholder}
-                      value={recipientIdentifier}
-                      onChange={(e) => setRecipientIdentifier(e.target.value)}
+                      id="recipient"
+                      placeholder="Enter email or @username"
+                      value={transferData.recipient}
+                      onChange={(e) => setTransferData(prev => ({ ...prev, recipient: e.target.value }))}
                     />
                   </div>
-                )}
 
-                <div className="space-y-2">
-                  <Label>Amount (USD)</Label>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    step="0.01"
-                    min="2.50"
-                  />
-                  <p className="text-xs text-gray-500">Minimum: $2.50</p>
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">Amount (USD)</Label>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        id="amount"
+                        type="number"
+                        placeholder="0.00"
+                        className="pl-10"
+                        min="1"
+                        step="0.01"
+                        value={transferData.amount || ''}
+                        onChange={(e) => setTransferData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                      />
+                    </div>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label>Message (Optional)</Label>
-                  <Textarea
-                    placeholder="What's this for?"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    maxLength={200}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="note">Note (Optional)</Label>
+                    <Input
+                      id="note"
+                      placeholder="What's this for?"
+                      value={transferData.note}
+                      onChange={(e) => setTransferData(prev => ({ ...prev, note: e.target.value }))}
+                    />
+                  </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 sm:space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(1)}
-                    className="flex-1 min-h-[48px] touch-manipulation"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back
-                  </Button>
                   <Button 
-                    onClick={handleNextStep}
-                    disabled={!recipientPlatform || !recipientIdentifier || !amount}
-                    className="flex-1 min-h-[48px] touch-manipulation"
+                    onClick={handleStepNext} 
+                    className="w-full"
+                    disabled={!transferData.recipient || !transferData.amount || transferData.amount <= 0}
                   >
-                    Review Transfer
-                    <ArrowRight className="w-4 h-4 ml-2" />
+                    Continue
+                    <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
-                </div>
-              </CardContent>
-            </>
-          )}
+                </CardContent>
+              </Card>
+            )}
 
-          {/* Step 3: Review & Confirm */}
-          {step === 3 && (
-            <>
+            {step === 2 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <CreditCard className="h-5 w-5 mr-2" />
+                    Payment Method
+                  </CardTitle>
+                  <CardDescription>How would you like to pay?</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {paymentMethods.map((method) => (
+                    <div
+                      key={method.id}
+                      className={`
+                        p-4 border rounded-lg cursor-pointer transition-colors
+                        ${transferData.senderMethod === method.id 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                        }
+                        ${!method.available ? 'opacity-50 cursor-not-allowed' : ''}
+                      `}
+                      onClick={() => method.available && setTransferData(prev => ({ ...prev, senderMethod: method.id }))}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <method.icon className="h-5 w-5 mr-3 text-gray-600 dark:text-gray-300" />
+                          <span className="font-medium">{method.name}</span>
+                        </div>
+                        <div className="flex items-center">
+                          {!method.available && (
+                            <Badge variant="secondary" className="mr-2">Coming Soon</Badge>
+                          )}
+                          {transferData.senderMethod === method.id && (
+                            <CheckCircle className="h-5 w-5 text-blue-500" />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex space-x-4 mt-6">
+                    <Button variant="outline" onClick={() => setStep(1)} className="flex-1">
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleStepNext} 
+                      className="flex-1"
+                      disabled={!transferData.senderMethod}
+                    >
+                      Continue
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 3 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Wallet className="h-5 w-5 mr-2" />
+                    Recipient Method
+                  </CardTitle>
+                  <CardDescription>How should {transferData.recipient} receive the money?</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {paymentMethods.filter(method => method.available).map((method) => (
+                    <div
+                      key={method.id}
+                      className={`
+                        p-4 border rounded-lg cursor-pointer transition-colors
+                        ${transferData.recipientMethod === method.id 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                        }
+                      `}
+                      onClick={() => setTransferData(prev => ({ ...prev, recipientMethod: method.id }))}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <method.icon className="h-5 w-5 mr-3 text-gray-600 dark:text-gray-300" />
+                          <span className="font-medium">{method.name}</span>
+                        </div>
+                        {transferData.recipientMethod === method.id && (
+                          <CheckCircle className="h-5 w-5 text-blue-500" />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex space-x-4 mt-6">
+                    <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleStepNext} 
+                      className="flex-1"
+                      disabled={!transferData.recipientMethod}
+                    >
+                      Review Transfer
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {step === 4 && (
+              <Card>
+                <CardHeader className="text-center">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <CardTitle className="text-green-700">Transfer Successful!</CardTitle>
+                  <CardDescription>
+                    Your transfer of ${transferData.amount} has been sent to {transferData.recipient}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center space-y-4">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Transaction ID: TXN_{Date.now().toString().slice(-8)}
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="flex space-x-4">
+                    <Button variant="outline" onClick={() => setLocation('/dashboard')} className="flex-1">
+                      View Dashboard
+                    </Button>
+                    <Button onClick={() => {
+                      setStep(1);
+                      setTransferData({
+                        recipient: '',
+                        amount: 0,
+                        senderMethod: '',
+                        recipientMethod: '',
+                        note: ''
+                      });
+                    }} className="flex-1">
+                      Send Another
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Summary Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="sticky top-8">
               <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <CheckCircle className="w-5 h-5" />
-                  <span>Review Transfer</span>
-                </CardTitle>
-                <p className="text-sm text-gray-600">
-                  Please review your transfer details
-                </p>
+                <CardTitle>Transfer Summary</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="bg-gray-50 p-4 rounded-lg space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Sending from:</span>
-                    <span className="font-medium">{selectedSenderMethod?.name}</span>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Recipient:</span>
+                    <span className="font-medium">
+                      {transferData.recipient || '—'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Sending to:</span>
-                    <span className="font-medium">{selectedRecipientPlatform?.name}</span>
+                  <div className="flex justify-between text-sm">
+                    <span>Amount:</span>
+                    <span className="font-medium">
+                      ${transferData.amount?.toFixed(2) || '0.00'}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Recipient:</span>
-                    <span className="font-medium">{recipientIdentifier}</span>
+                  <div className="flex justify-between text-sm">
+                    <span>Platform Fee:</span>
+                    <span className="font-medium">
+                      ${fees.baseFee.toFixed(2)}
+                    </span>
                   </div>
+                  {fees.processingFee > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span>Processing Fee:</span>
+                      <span className="font-medium">
+                        ${fees.processingFee.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                   <Separator />
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Amount:</span>
-                    <span className="font-medium">${parseFloat(amount).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Platform fee (1%):</span>
-                    <span className="font-medium">${calculateFee().toFixed(2)}</span>
-                  </div>
-                  <Separator />
-                  <div className="flex justify-between text-lg font-semibold">
+                  <div className="flex justify-between font-medium">
                     <span>Total:</span>
-                    <span>${(parseFloat(amount) + calculateFee()).toFixed(2)}</span>
+                    <span>${totalAmount.toFixed(2)}</span>
                   </div>
                 </div>
 
-                {message && (
-                  <div className="bg-blue-50 p-3 rounded-lg">
-                    <p className="text-sm text-gray-600">Message:</p>
-                    <p className="text-sm">{message}</p>
+                {step === 3 && (
+                  <div className="pt-4">
+                    <Button 
+                      onClick={handleSubmitTransfer}
+                      className="w-full"
+                      disabled={transferMutation.isPending}
+                    >
+                      {transferMutation.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        `Send $${totalAmount.toFixed(2)}`
+                      )}
+                    </Button>
                   </div>
                 )}
 
-                <div className="flex space-x-3">
-                  <Button
-                    variant="outline"
-                    onClick={() => setStep(2)}
-                    className="flex-1"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Edit Details
-                  </Button>
-                  <Button 
-                    onClick={handleSubmit}
-                    className="flex-1"
-                  >
-                    Send Money
-                    <Send className="w-4 h-4 ml-2" />
-                  </Button>
+                <div className="text-xs text-gray-500 pt-4">
+                  <p>• Transfers typically complete within minutes</p>
+                  <p>• All transactions are encrypted and secure</p>
+                  <p>• 24/7 support available</p>
                 </div>
               </CardContent>
-            </>
-          )}
-        </Card>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

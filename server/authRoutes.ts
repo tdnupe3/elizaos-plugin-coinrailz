@@ -7,10 +7,13 @@ import { storage } from "./storage";
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 
-// Registration validation schema
+// Registration validation schema with secure password requirements
 const registrationSchema = z.object({
   email: z.string().email('Invalid email address'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+      'Password must contain uppercase, lowercase, number, and special character'),
   firstName: z.string().optional(),
   lastName: z.string().optional(),
   acceptTerms: z.boolean().optional()

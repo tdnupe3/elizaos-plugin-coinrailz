@@ -46,6 +46,51 @@ router.post('/order', async (req, res) => {
   }
 });
 
+// Alias for orders endpoint (plural)
+router.post('/orders', async (req, res) => {
+  try {
+    const orderSchema = z.object({
+      agentId: z.string().min(1),
+      serviceType: z.string().min(1),
+      duration: z.number().optional(),
+      message: z.string().optional(),
+      amount: z.number().optional(),
+      paymentMethod: z.enum(['stripe', 'paypal', 'crypto']).optional(),
+    });
+
+    const validatedData = orderSchema.parse(req.body);
+    
+    // Calculate amount based on service type and duration
+    const baseRate = 75; // Default hourly rate
+    const calculatedAmount = validatedData.amount || (validatedData.duration || 1) * baseRate;
+    
+    const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const order = {
+      id: orderId,
+      agentId: validatedData.agentId,
+      serviceType: validatedData.serviceType,
+      duration: validatedData.duration || 1,
+      message: validatedData.message || '',
+      amount: calculatedAmount,
+      status: 'pending_payment',
+      escrowAmount: calculatedAmount,
+      platformFee: calculatedAmount * 0.25, // 25% platform fee
+      agentPayout: calculatedAmount * 0.75, // 75% to agent
+      paymentMethod: validatedData.paymentMethod || 'stripe',
+      createdAt: new Date().toISOString(),
+    };
+
+    res.status(201).json({
+      success: true,
+      order: order,
+      message: 'Order created successfully - payment required'
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, error: 'Invalid order data' });
+  }
+});
+
 /**
  * 2. Commission calculation system - FIXED
  */

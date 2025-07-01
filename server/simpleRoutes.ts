@@ -2991,9 +2991,17 @@ export function setupSimpleRoutes(app: Express) {
         enabled: true
       },
       {
+        id: 'xrp',
+        name: 'XRP (Ripple)',
+        description: 'Ultra-fast, ultra-low cost payments via XRP Ledger',
+        processingFee: 0.1,
+        enabled: true,
+        features: ['instant_settlement', 'cross_border', 'ultra_low_fees']
+      },
+      {
         id: 'crypto',
-        name: 'Cryptocurrency',
-        description: 'XRP, BTC, ETH, USDC, USDT',
+        name: 'Other Cryptocurrency',
+        description: 'BTC, ETH, USDC, USDT',
         processingFee: 2.0,
         enabled: true
       }

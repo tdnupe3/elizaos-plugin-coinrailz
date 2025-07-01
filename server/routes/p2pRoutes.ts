@@ -303,13 +303,15 @@ router.get('/supported-platforms', (req, res) => {
         { id: 'paypal', name: 'PayPal', available: true, processingFee: '2.9% + $0.30' },
         { id: 'credit', name: 'Credit Card', available: true, processingFee: '2.9% + $0.30' },
         { id: 'debit', name: 'Debit Card', available: true, processingFee: '2.9% + $0.30' },
-        { id: 'crypto', name: 'Cryptocurrency', available: true, processingFee: '~$0.001' },
+        { id: 'xrp', name: 'XRP (Ripple)', available: true, processingFee: '0.1% + ~$0.0002' },
+        { id: 'crypto', name: 'Other Cryptocurrency', available: true, processingFee: '~$0.001' },
         { id: 'coinrailz', name: 'Coin Railz Balance', available: true, processingFee: '$0' },
         { id: 'bank', name: 'Bank Account', available: false, processingFee: 'Coming Soon' }
       ],
       recipients: [
         { id: 'paypal', name: 'PayPal', available: true, deliveryTime: 'Instant' },
-        { id: 'crypto', name: 'Crypto Wallet', available: true, deliveryTime: '5-15 minutes' },
+        { id: 'xrp', name: 'XRP Wallet', available: true, deliveryTime: '3-5 seconds' },
+        { id: 'crypto', name: 'Other Crypto Wallet', available: true, deliveryTime: '5-15 minutes' },
         { id: 'coinrailz', name: 'Coin Railz User', available: true, deliveryTime: 'Instant' },
         { id: 'zelle', name: 'Zelle', available: false, deliveryTime: 'Coming Soon' },
         { id: 'venmo', name: 'Venmo', available: false, deliveryTime: 'Coming Soon' },

@@ -383,9 +383,17 @@ router.get('/payment-methods', async (req, res) => {
       enabled: true
     },
     {
+      id: 'xrp',
+      name: 'XRP (Ripple)',
+      description: 'Ultra-low cost instant payments via XRP Ledger',
+      processingFee: 0.1,
+      enabled: true,
+      features: ['instant_settlement', 'cross_border', 'ultra_low_fees']
+    },
+    {
       id: 'crypto',
-      name: 'Cryptocurrency',
-      description: 'XRP, BTC, ETH, USDC, USDT',
+      name: 'Other Cryptocurrency',
+      description: 'BTC, ETH, USDC, USDT',
       processingFee: 0.5,
       enabled: true
     }

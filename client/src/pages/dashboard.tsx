@@ -1,49 +1,415 @@
-import { NavigationHeader } from "@/components/navigation-header";
-import { MobileNavigation } from "@/components/mobile-navigation";
-import { BalanceCards } from "@/components/balance-cards";
-import { SendMoneyForm } from "@/components/send-money-form";
-import { RecentActivity } from "@/components/recent-activity";
-import { CryptoHoldings } from "@/components/crypto-holdings";
-import { SecurityBanner } from "@/components/security-banner";
-import { AdBanner } from "@/components/ad-banner";
-import { WalletConnect } from "@/components/wallet-connect";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  ArrowUpRight, 
+  ArrowDownLeft, 
+  DollarSign, 
+  TrendingUp, 
+  Users, 
+  Zap,
+  CreditCard,
+  Wallet,
+  BarChart3,
+  Send,
+  Coins
+} from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
+
+interface Transaction {
+  id: string;
+  type: 'p2p' | 'dex' | 'marketplace';
+  amount: number;
+  currency: string;
+  status: 'completed' | 'pending' | 'failed';
+  timestamp: string;
+  description: string;
+}
+
+interface DashboardStats {
+  balance: number;
+  totalTransactions: number;
+  monthlyVolume: number;
+  activeAgents: number;
+  referralEarnings: number;
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [selectedTab, setSelectedTab] = useState("overview");
+
+  // Fetch user dashboard data
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ["/api/dashboard/stats"],
+    enabled: !!user
+  });
+
+  const { data: transactions, isLoading: transactionsLoading } = useQuery({
+    queryKey: ["/api/dashboard/transactions"],
+    enabled: !!user
+  });
+
+  const { data: portfolioData } = useQuery({
+    queryKey: ["/api/dashboard/portfolio"],
+    enabled: !!user
+  });
+
+  // Mock data for demonstration
+  const mockStats: DashboardStats = stats || {
+    balance: 2847.50,
+    totalTransactions: 47,
+    monthlyVolume: 12840.00,
+    activeAgents: 3,
+    referralEarnings: 127.30
+  };
+
+  const mockTransactions: Transaction[] = transactions || [
+    {
+      id: "txn_001",
+      type: "p2p",
+      amount: 250.00,
+      currency: "USD",
+      status: "completed",
+      timestamp: "2025-07-01T00:30:00Z",
+      description: "P2P Transfer to Alice"
+    },
+    {
+      id: "txn_002", 
+      type: "dex",
+      amount: 0.5,
+      currency: "ETH",
+      status: "completed",
+      timestamp: "2025-06-30T18:45:00Z",
+      description: "ETH to USDC Swap"
+    },
+    {
+      id: "txn_003",
+      type: "marketplace",
+      amount: 150.00,
+      currency: "USD",
+      status: "pending",
+      timestamp: "2025-06-30T14:20:00Z",
+      description: "AI Analytics Service Payment"
+    }
+  ];
+
+  const formatCurrency = (amount: number, currency: string = "USD") => {
+    if (currency === "USD") {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(amount);
+    }
+    return `${amount} ${currency}`;
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>;
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>;
+      case 'failed':
+        return <Badge variant="destructive">Failed</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getTransactionIcon = (type: string) => {
+    switch (type) {
+      case 'p2p':
+        return <Send className="h-4 w-4" />;
+      case 'dex':
+        return <Coins className="h-4 w-4" />;
+      case 'marketplace':
+        return <Users className="h-4 w-4" />;
+      default:
+        return <DollarSign className="h-4 w-4" />;
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Please Sign In</h1>
+          <Link href="/auth">
+            <Button>Go to Sign In</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NavigationHeader />
-      <MobileNavigation />
-      
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20 md:pb-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold text-neutral-800 mb-2">
-            Welcome back, {user?.firstName || "User"}!
-          </h1>
-          <p className="text-neutral-500">Manage your payments and crypto portfolio</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                Welcome back, {user.firstName || 'User'}!
+              </h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                Your financial gateway dashboard
+              </p>
+            </div>
+            <div className="flex space-x-4">
+              <Button variant="outline" asChild>
+                <Link href="/p2p-transfer">
+                  <Send className="h-4 w-4 mr-2" />
+                  Send Money
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/ai-marketplace">
+                  <Zap className="h-4 w-4 mr-2" />
+                  AI Marketplace
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Balance</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(mockStats.balance)}</div>
+              <p className="text-xs text-muted-foreground">
+                +12.5% from last month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{mockStats.totalTransactions}</div>
+              <p className="text-xs text-muted-foreground">
+                +3 this week
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monthly Volume</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(mockStats.monthlyVolume)}</div>
+              <p className="text-xs text-muted-foreground">
+                +18.2% from last month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Agents</CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{mockStats.activeAgents}</div>
+              <p className="text-xs text-muted-foreground">
+                2 new this month
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Referral Earnings</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(mockStats.referralEarnings)}</div>
+              <p className="text-xs text-muted-foreground">
+                +$23.40 this week
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        <BalanceCards />
+        {/* Main Content Tabs */}
+        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+            <TabsTrigger value="agents">AI Agents</TabsTrigger>
+          </TabsList>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <SendMoneyForm />
-          </div>
-          
-          <div className="space-y-6">
-            <WalletConnect />
-            <RecentActivity />
-            <CryptoHoldings />
-          </div>
-        </div>
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Activity */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                  <CardDescription>Your latest transactions and activities</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {mockTransactions.slice(0, 5).map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
+                            {getTransactionIcon(transaction.type)}
+                          </div>
+                          <div>
+                            <p className="font-medium">{transaction.description}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(transaction.timestamp).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">
+                            {formatCurrency(transaction.amount, transaction.currency)}
+                          </p>
+                          {getStatusBadge(transaction.status)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-        <SecurityBanner />
-      </main>
-      
-      <AdBanner position="bottom" />
+              {/* Quick Actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quick Actions</CardTitle>
+                  <CardDescription>Common tasks and shortcuts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Button variant="outline" className="h-20" asChild>
+                      <Link href="/p2p-transfer">
+                        <div className="text-center">
+                          <Send className="h-6 w-6 mx-auto mb-2" />
+                          <span>Send Money</span>
+                        </div>
+                      </Link>
+                    </Button>
+                    
+                    <Button variant="outline" className="h-20" asChild>
+                      <Link href="/dex-aggregator">
+                        <div className="text-center">
+                          <Coins className="h-6 w-6 mx-auto mb-2" />
+                          <span>Swap Crypto</span>
+                        </div>
+                      </Link>
+                    </Button>
+                    
+                    <Button variant="outline" className="h-20" asChild>
+                      <Link href="/ai-marketplace">
+                        <div className="text-center">
+                          <Users className="h-6 w-6 mx-auto mb-2" />
+                          <span>AI Services</span>
+                        </div>
+                      </Link>
+                    </Button>
+                    
+                    <Button variant="outline" className="h-20" asChild>
+                      <Link href="/add-funds">
+                        <div className="text-center">
+                          <CreditCard className="h-6 w-6 mx-auto mb-2" />
+                          <span>Add Funds</span>
+                        </div>
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="transactions" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Transaction History</CardTitle>
+                <CardDescription>Complete history of all your transactions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {mockTransactions.map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center space-x-4">
+                        <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
+                          {getTransactionIcon(transaction.type)}
+                        </div>
+                        <div>
+                          <p className="font-medium">{transaction.description}</p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(transaction.timestamp).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-400">ID: {transaction.id}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg">
+                          {formatCurrency(transaction.amount, transaction.currency)}
+                        </p>
+                        {getStatusBadge(transaction.status)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="portfolio" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Portfolio Overview</CardTitle>
+                <CardDescription>Your digital asset holdings and performance</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p className="text-gray-500">Portfolio tracking coming soon...</p>
+                  <Button className="mt-4" asChild>
+                    <Link href="/dex-aggregator">Start Trading</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="agents" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Your AI Agents</CardTitle>
+                <CardDescription>Manage your active AI service providers</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No active AI agents yet</p>
+                  <Button className="mt-4" asChild>
+                    <Link href="/ai-marketplace">Browse AI Marketplace</Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 }

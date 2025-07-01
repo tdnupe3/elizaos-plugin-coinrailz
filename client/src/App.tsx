@@ -15,6 +15,7 @@ import ContactWidget from "@/components/ContactWidget";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
+import AuthPage from "@/pages/auth";
 import MainMenu from "@/pages/main-menu";
 import P2PTransfer from "@/pages/p2p-transfer";
 

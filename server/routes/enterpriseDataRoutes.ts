@@ -22,17 +22,22 @@ const authenticateApiKey = (req: Request, res: Response, next: any) => {
     });
   }
 
+  // Convert to string if it's an array
+  const keyString = Array.isArray(apiKey) ? apiKey[0] : apiKey;
+
   // In production, validate against client database
-  if (apiKey === 'invalid' || apiKey === 'expired') {
+  if (keyString === 'invalid' || keyString === 'expired') {
     return res.status(403).json({
       error: 'Invalid or expired API key',
       message: 'Contact support@coinrailz.com to renew access'
     });
   }
 
-  // Attach client info to request
-  req.clientId = apiKey.startsWith('demo_') ? 'demo_client' : 'enterprise_client_001';
-  req.clientTier = apiKey.startsWith('demo_') ? 'starter' : 'enterprise';
+  // Attach client info to request using Object.assign to avoid TypeScript issues
+  Object.assign(req, {
+    clientId: keyString.startsWith('demo_') ? 'demo_client' : 'enterprise_client_001',
+    clientTier: keyString.startsWith('demo_') ? 'starter' : 'enterprise'
+  });
   
   next();
 };
@@ -69,8 +74,8 @@ router.get('/crypto-flows', authenticateApiKey, enterpriseRateLimit, async (req:
       product: 'Crypto Flow Intelligence',
       data: flowData,
       billing: {
-        clientId: req.clientId,
-        tier: req.clientTier,
+        clientId: (req as any).clientId,
+        tier: (req as any).clientTier,
         callCost: 0.50,
         subscriptionValue: 25000
       },
@@ -119,7 +124,7 @@ router.get('/ai-marketplace-analytics', authenticateApiKey, enterpriseRateLimit,
         ]
       },
       billing: {
-        clientId: req.clientId,
+        clientId: (req as any).clientId,
         callCost: 0.25,
         subscriptionValue: 15000
       }
@@ -188,7 +193,7 @@ router.get('/defi-intelligence', authenticateApiKey, enterpriseRateLimit, async 
       product: 'DeFi Aggregation Intelligence',
       data: defiData,
       billing: {
-        clientId: req.clientId,
+        clientId: (req as any).clientId,
         callCost: 0.75,
         subscriptionValue: 35000
       },

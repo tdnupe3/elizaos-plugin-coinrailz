@@ -14,6 +14,7 @@ import { paymentSchema, validateSchema } from "./middleware/smartSecurity";
 import { agentQualityControl } from "./services/agentQualityControl";
 import { agentRoutes } from "./routes/agentRoutes";
 import { default as aiMarketplaceRoutes } from "./routes/aiMarketplaceRoutes";
+import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
 import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
 import { addSecurityConstraints } from "./utils/databaseConstraints";
@@ -35,6 +36,10 @@ export function registerRoutes(app: Express): Server {
 
   // CRITICAL: Register AI Marketplace routes FIRST for revenue generation
   app.use('/api/ai-marketplace', aiMarketplaceRoutes);
+  
+  // === ENTERPRISE DATA MONETIZATION ROUTES ===
+  // High-value revenue generating data APIs ($500K-2M potential)
+  app.use('/api/enterprise-data', enterpriseDataRoutes);
 
   // === AUTHENTICATION SYSTEM ===
   // Authentication routes moved to authRoutes.ts for proper session handling

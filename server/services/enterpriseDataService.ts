@@ -149,11 +149,11 @@ export class EnterpriseDataService {
 
       return {
         timeframe: `${timeframe} hours`,
-        totalVolume: mockFlowData.reduce((sum: number, row: any) => sum + parseFloat(row.volume || 0), 0),
+        totalVolume: mockFlowData.reduce((sum: number, row: any) => sum + parseFloat(row.volume || '0'), 0),
         networkBreakdown: this.aggregateByNetwork(mockFlowData),
         efficiencyMetrics: networkAnalysis,
         arbitrageAlerts: arbitrageOpportunities,
-        predictiveInsights: await this.generateFlowPredictions(flowData),
+        predictiveInsights: await this.generateFlowPredictions(mockFlowData),
         generated: new Date().toISOString()
       };
     } catch (error) {

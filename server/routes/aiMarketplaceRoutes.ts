@@ -449,8 +449,18 @@ router.get('/payment-methods', async (req, res) => {
         currencies: ['USD', 'EUR', 'GBP']
       },
       {
+        id: 'xrp',
+        name: 'XRP (Ripple)',
+        type: 'blockchain',
+        enabled: true,
+        fees: { fixed: 0.0002, percentage: 0.1 },
+        processingTime: '3-5 seconds',
+        currencies: ['XRP', 'USD', 'EUR'],
+        features: ['instant_settlement', 'cross_border', 'ultra_low_fees']
+      },
+      {
         id: 'crypto',
-        name: 'Cryptocurrency',
+        name: 'Other Cryptocurrency',
         type: 'blockchain',
         enabled: true,
         fees: { fixed: 0, percentage: 0.5 },
@@ -889,7 +899,7 @@ router.post('/create-order', async (req, res) => {
       agentId: z.string().min(1),
       serviceType: z.string().min(1),
       amount: z.number().min(25), // $25 minimum for profitability
-      paymentMethod: z.enum(['stripe', 'paypal', 'crypto']).optional().default('stripe'),
+      paymentMethod: z.enum(['stripe', 'paypal', 'xrp', 'crypto']).optional().default('stripe'),
       serviceDescription: z.string().min(1),
       deliverables: z.any().optional(),
       customerRequirements: z.any().optional(),

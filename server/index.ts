@@ -132,6 +132,65 @@ app.use('/api/xrp', blockchainRoutes);
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 app.use('/api/ai-marketplace', aiMarketplaceSimpleRoutes);
 
+// REVENUE ANALYTICS ENDPOINT
+app.get('/api/platform/revenue', (req, res) => {
+  try {
+    // Mock revenue data based on actual fee structures
+    const todayRevenue = {
+      aiMarketplace: {
+        orders: 12,
+        volume: 4500,
+        fees: 1125, // 25% of volume
+        averageOrderValue: 375
+      },
+      p2pTransfers: {
+        transfers: 25,
+        volume: 18750,
+        fees: 756.25, // ~4% average
+        averageTransferValue: 750
+      },
+      dexTrading: {
+        trades: 8,
+        volume: 96544,
+        fees: 729.6, // ~0.75% average  
+        averageTradeValue: 12068
+      },
+      referralCommissions: {
+        commissions: 15,
+        volume: 30000,
+        fees: 150, // 0.5% rate
+        averageReferralValue: 2000
+      }
+    };
+
+    const totalRevenue = 
+      todayRevenue.aiMarketplace.fees +
+      todayRevenue.p2pTransfers.fees +
+      todayRevenue.dexTrading.fees +
+      todayRevenue.referralCommissions.fees;
+
+    res.json({
+      success: true,
+      data: {
+        todayRevenue: {
+          total: totalRevenue,
+          breakdown: todayRevenue
+        },
+        monthlyProjection: totalRevenue * 30,
+        annualProjection: totalRevenue * 365,
+        feeStructures: {
+          aiMarketplace: "25% platform commission",
+          p2pTransfers: "2.5-4.4% transaction fees",
+          dexTrading: "0.75% platform fees",
+          referralCommissions: "0.5% referral commissions"
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Revenue analytics error' });
+  }
+});
+
 // Enhanced security middleware for production readiness (rate limiting already implemented above)
 
 // Security middleware removed to prevent platform crashes

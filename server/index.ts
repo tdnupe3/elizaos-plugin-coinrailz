@@ -1147,15 +1147,41 @@ app.get('/api/platform/performance', (req, res) => {
 });
 
 // XRP Ecosystem endpoints
-app.get('/api/xrp/rate', (req, res) => {
-  res.json({
-    success: true,
-    rate: {
-      XRP_USD: 0.65,
-      lastUpdated: new Date().toISOString(),
-      change24h: '+2.5%'
+app.get('/api/xrp/rate', async (req, res) => {
+  try {
+    // Fetch real XRP price from CoinGecko
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ripple&vs_currencies=usd&include_24hr_change=true');
+    const data = await response.json();
+    
+    if (data.ripple && data.ripple.usd) {
+      const price = data.ripple.usd;
+      const change24h = data.ripple.usd_24h_change || 0;
+      const changeSign = change24h >= 0 ? '+' : '';
+      
+      res.json({
+        success: true,
+        rate: {
+          XRP_USD: price,
+          lastUpdated: new Date().toISOString(),
+          change24h: `${changeSign}${change24h.toFixed(2)}%`
+        }
+      });
+    } else {
+      throw new Error('Invalid API response');
     }
-  });
+  } catch (error) {
+    console.error('Error fetching XRP rate:', error);
+    // Fallback to a reasonable estimate if API fails
+    res.json({
+      success: true,
+      rate: {
+        XRP_USD: 2.20, // Current market estimate
+        lastUpdated: new Date().toISOString(),
+        change24h: 'N/A',
+        source: 'fallback'
+      }
+    });
+  }
 });
 
 app.get('/api/xrp/balance', (req, res) => {

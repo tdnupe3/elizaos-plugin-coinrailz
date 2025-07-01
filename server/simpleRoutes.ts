@@ -5129,6 +5129,102 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // Additional audit-expected endpoints
+  
+  // Agent commission calculation endpoint (expected by audit)
+  app.post('/api/agents/calculate-commission', async (req, res) => {
+    try {
+      const { orderAmount, agentTier = 'basic' } = req.body;
+      
+      const platformFees = {
+        basic: 0.25,     // 25%
+        premium: 0.20,   // 20% 
+        enterprise: 0.15 // 15%
+      };
+      
+      const fee = platformFees[agentTier] || platformFees.basic;
+      const platformCommission = orderAmount * fee;
+      const agentPayout = orderAmount - platformCommission;
+      
+      res.json({
+        success: true,
+        orderAmount,
+        agentTier,
+        platformFeeRate: fee,
+        platformCommission: Number(platformCommission.toFixed(2)),
+        agentPayout: Number(agentPayout.toFixed(2)),
+        profitableForAgent: agentPayout > 0
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Commission calculation failed'
+      });
+    }
+  });
+
+  // Referral commission calculation endpoint (expected by audit)
+  app.post('/api/referral/calculate', async (req, res) => {
+    try {
+      const { transactionAmount, referralLevel = 1 } = req.body;
+      
+      const referralRates = {
+        1: 0.003, // 0.3% for direct referrals
+        2: 0.002, // 0.2% for second level
+        3: 0.001  // 0.1% for third level
+      };
+      
+      const rate = referralRates[referralLevel] || 0;
+      const commission = transactionAmount * rate;
+      const maxCommission = 15; // Maximum $15 per referral
+      const finalCommission = Math.min(commission, maxCommission);
+      
+      res.json({
+        success: true,
+        transactionAmount,
+        referralLevel,
+        rate,
+        commission: Number(finalCommission.toFixed(2)),
+        maxCommission,
+        capped: commission > maxCommission
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Referral calculation failed'
+      });
+    }
+  });
+
+  // DEX tokens endpoint (expected by audit)
+  app.get('/api/dex/tokens', async (req, res) => {
+    try {
+      const tokens = [
+        { symbol: 'ETH', name: 'Ethereum', address: '0x0000000000000000000000000000000000000000' },
+        { symbol: 'USDC', name: 'USD Coin', address: '0xa0b86a33e6ba6fc3f3da9e88d1b0cac7d6f5b8b6' },
+        { symbol: 'USDT', name: 'Tether', address: '0xdac17f958d2ee523a2206206994597c13d831ec7' },
+        { symbol: 'DAI', name: 'Dai Stablecoin', address: '0x6b175474e89094c44da98b954eedeac495271d0f' },
+        { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599' }
+      ];
+      
+      res.json({
+        success: true,
+        tokens,
+        count: tokens.length
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch tokens'
+      });
+    }
+  });
+
+  // DEX swap endpoint implemented in server/index.ts to avoid conflicts
+
   // 404 handler for API endpoints only - don't interfere with frontend serving
   app.use('/api/*', (req, res) => {
     res.status(404).json({

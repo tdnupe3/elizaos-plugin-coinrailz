@@ -78,6 +78,10 @@ export interface IStorage {
   createComplianceReport(report: any): Promise<any>;
   createAPILog(log: any): Promise<any>;
   createKYCVerification(verification: any): Promise<any>;
+  
+  // Agent and Service operations
+  getAgents(): Promise<any[]>;
+  getServices(): Promise<any[]>;
   updateUserKYCStatus(userId: string, status: string): Promise<User>;
   
   // Referral operations
@@ -841,6 +845,41 @@ export class DatabaseStorage implements IStorage {
         lastPaymentDate: tier === 'premium' ? new Date() : undefined
       })
       .where(eq(globalAIAgents.id, agentId));
+  }
+
+  // Agent and Service Discovery operations
+  async getAgents(): Promise<any[]> {
+    try {
+      const agents = await db.select().from(globalAIAgents).limit(50);
+      return agents.map(agent => ({
+        id: agent.id,
+        name: agent.name,
+        category: agent.category || 'General',
+        rating: 4.5, // Default rating
+        verified: agent.verified || false,
+        description: agent.description || `AI agent: ${agent.name}`
+      }));
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      return [];
+    }
+  }
+
+  async getServices(): Promise<any[]> {
+    try {
+      const services = await db.select().from(agentServiceListings).limit(50);
+      return services.map(service => ({
+        id: service.id,
+        name: service.serviceName,
+        category: service.category || 'General',
+        price: service.price,
+        rating: 4.3, // Default rating
+        description: service.description
+      }));
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      return [];
+    }
   }
 
   // AI Agent Referral operations

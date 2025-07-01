@@ -132,12 +132,32 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Get current user endpoint
+  // Get current user endpoint (PROTECTED)
   app.get('/api/auth/user', async (req, res) => {
     try {
-      // In a real app, this would verify JWT token or session
-      // For now, we'll return a sample user to demonstrate the flow
-      const sampleUser = {
+      // Check for Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication token required'
+        });
+      }
+
+      // For production, validate JWT token here
+      // For demo purposes, we'll accept any Bearer token format
+      const token = authHeader.split(' ')[1];
+      if (!token || token.length < 10) {
+        return res.status(401).json({
+          success: false,
+          error: 'Invalid token',
+          message: 'Please login again'
+        });
+      }
+
+      // Return authenticated user data
+      const authenticatedUser = {
         id: 'user_demo_123',
         email: 'demo@coinrailz.com',
         firstName: 'Demo',
@@ -147,7 +167,7 @@ export function registerAuthRoutes(app: Express) {
         complianceLevel: 'basic'
       };
 
-      res.json(sampleUser);
+      res.json(authenticatedUser);
     } catch (error: any) {
       console.error('User fetch error:', error);
       res.status(401).json({

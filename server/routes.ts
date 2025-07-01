@@ -43,6 +43,46 @@ export function registerRoutes(app: Express): Server {
 
   // === AUTHENTICATION SYSTEM ===
   // Authentication routes moved to authRoutes.ts for proper session handling
+  
+  // === AGENT DISCOVERY ENDPOINTS ===
+  app.get('/api/agents/discover', isAuthenticated, async (req, res) => {
+    try {
+      const agents = await storage.getAgents();
+      res.json({
+        success: true,
+        agents: agents.map(agent => ({
+          id: agent.id,
+          name: agent.name,
+          category: agent.category,
+          rating: agent.rating,
+          verified: agent.verified,
+          description: agent.description
+        }))
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to discover agents' });
+    }
+  });
+
+  // === SERVICE DISCOVERY ENDPOINTS ===  
+  app.get('/api/services/discover', isAuthenticated, async (req, res) => {
+    try {
+      const services = await storage.getServices();
+      res.json({
+        success: true,
+        services: services.map(service => ({
+          id: service.id,
+          name: service.name,
+          category: service.category,
+          price: service.price,
+          rating: service.rating,
+          description: service.description
+        }))
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Failed to discover services' });
+    }
+  });
 
   // === P2P TRANSFER SYSTEM ===
   

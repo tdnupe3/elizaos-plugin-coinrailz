@@ -48,8 +48,8 @@ export default function XRPEcosystemDashboard() {
         const rateResponse = await fetch('/api/xrp/rate');
         if (rateResponse.ok) {
           const rateData = await rateResponse.json();
-          if (rateData.success) {
-            setXrpRate(rateData.rate.xrpToUsd);
+          if (rateData.success && rateData.rate && rateData.rate.XRP_USD) {
+            setXrpRate(rateData.rate.XRP_USD);
           }
         }
       } catch (error) {
@@ -163,7 +163,7 @@ export default function XRPEcosystemDashboard() {
                   <div>
                     <p className="text-sm font-medium text-blue-100">XRP Price</p>
                     <p className="text-2xl font-bold">
-                      ${xrpRate.toFixed(4)}
+                      ${xrpRate ? xrpRate.toFixed(4) : '0.0000'}
                     </p>
                   </div>
                   <DollarSign className="w-8 h-8 text-white/80" />

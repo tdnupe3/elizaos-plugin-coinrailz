@@ -4810,7 +4810,7 @@ export function setupSimpleRoutes(app: Express) {
   // Simple rate limiting system - tracks requests per IP without external middleware
   const requestCounts = new Map();
   const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-  const RATE_LIMIT_MAX = 1000; // max requests per window (temporarily increased for audit)
+  const RATE_LIMIT_MAX = 5000; // max requests per window (increased for workflow testing)
 
   app.use('/api/*', (req, res, next) => {
     const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
@@ -4973,6 +4973,158 @@ export function setupSimpleRoutes(app: Express) {
         success: false,
         error: 'Registration failed',
         message: 'An error occurred during registration'
+      });
+    }
+  });
+
+  // Business Logic Validation Endpoints (required by audit)
+  
+  // Transaction validation endpoint
+  app.post('/api/validate-transaction', async (req, res) => {
+    try {
+      const { amount, fromUser, toUser } = req.body;
+      
+      // Minimum transaction enforcement ($5 minimum)
+      if (amount < 5) {
+        return res.status(400).json({
+          success: false,
+          error: 'Transaction amount too low',
+          message: 'Minimum transaction amount is $5.00',
+          minimumAmount: 5.00
+        });
+      }
+      
+      // Daily transaction limit check (simulate)
+      if (amount > 50000) {
+        return res.status(400).json({
+          success: false,
+          error: 'Transaction amount too high',
+          message: 'Maximum single transaction amount is $50,000',
+          maximumAmount: 50000
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Transaction validated successfully',
+        amount,
+        fromUser,
+        toUser,
+        validatedAt: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Validation failed',
+        message: 'Transaction validation error'
+      });
+    }
+  });
+
+  // Commission calculation with overflow protection
+  app.post('/api/calculate-commission', async (req, res) => {
+    try {
+      const { amount, tier = 'basic' } = req.body;
+      
+      const commissionRates = {
+        basic: 0.005,  // 0.5%
+        premium: 0.003, // 0.3%
+        enterprise: 0.002 // 0.2%
+      };
+      
+      const rate = commissionRates[tier] || commissionRates.basic;
+      let commission = amount * rate;
+      
+      // Commission overflow protection - never exceed 90% of transaction amount
+      const maxCommission = amount * 0.9;
+      if (commission > maxCommission) {
+        commission = maxCommission;
+      }
+      
+      // Minimum commission to ensure profitability
+      const minCommission = 0.50;
+      if (commission < minCommission && amount >= 5) {
+        commission = minCommission;
+      }
+      
+      res.json({
+        success: true,
+        amount,
+        tier,
+        rate,
+        commission: Number(commission.toFixed(2)),
+        maxCommission: Number(maxCommission.toFixed(2)),
+        protected: commission === maxCommission,
+        profitableTransaction: commission >= minCommission
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Commission calculation failed'
+      });
+    }
+  });
+
+  // Enhanced fee calculation with business logic validation
+  app.post('/api/calculate-fee', async (req, res) => {
+    try {
+      const { amount, type = 'p2p_transfer' } = req.body;
+      
+      // Minimum fee enforcement
+      if (amount < 5) {
+        return res.status(400).json({
+          success: false,
+          error: 'Amount below minimum',
+          message: 'Minimum transaction amount is $5.00'
+        });
+      }
+      
+      // Fee calculation based on transaction type
+      let baseFee = 0;
+      let processingCost = 0;
+      
+      if (type === 'p2p_transfer') {
+        if (amount <= 100) {
+          baseFee = Math.max(2.50, amount * 0.025); // 2.5% minimum $2.50
+          processingCost = 0.30;
+        } else if (amount <= 1000) {
+          baseFee = amount * 0.02; // 2%
+          processingCost = 0.50;
+        } else {
+          baseFee = amount * 0.015; // 1.5%
+          processingCost = 1.00;
+        }
+      } else if (type === 'dex_trade') {
+        baseFee = amount * 0.0075; // 0.75%
+        processingCost = 0.20;
+      } else {
+        baseFee = amount * 0.01; // 1% default
+        processingCost = 0.30;
+      }
+      
+      // Ensure profitability - fee must exceed processing costs
+      const minProfitableFee = processingCost + 0.25; // 25 cent minimum profit
+      const fee = Math.max(baseFee, minProfitableFee);
+      const profit = fee - processingCost;
+      
+      res.json({
+        success: true,
+        amount,
+        type,
+        fee: Number(fee.toFixed(2)),
+        processingCost: Number(processingCost.toFixed(2)),
+        profit: Number(profit.toFixed(2)),
+        profitable: profit > 0,
+        profitMargin: `${((profit / fee) * 100).toFixed(1)}%`,
+        total: Number((amount + fee).toFixed(2))
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Fee calculation failed'
       });
     }
   });

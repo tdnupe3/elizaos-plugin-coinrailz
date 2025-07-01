@@ -368,8 +368,6 @@ export function RealSwapInterface() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm">
           <div className="font-medium text-yellow-800 mb-1">⚠️ Real Blockchain Transactions</div>
           <div className="text-yellow-700 space-y-1">
-            <p>• This executes actual swaps on Ethereum mainnet</p>
-            <p>• You'll pay real gas fees (usually $10-50)</p>
             <p>• Transactions are irreversible once confirmed</p>
             <p>• Supports 5 major wallets: MetaMask, Phantom (ETH), Coinbase, Trust & WalletConnect</p>
             <p>• Always verify amounts before confirming</p>

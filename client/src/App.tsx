@@ -40,6 +40,7 @@ import {
   EnhancedReferralDashboard,
   HumanReferralDashboard,
 
+  XRPEcosystemDashboard,
   XRPCrossBorderPayments,
   XRPInstantSettlements,
   XRPEscrowServices,
@@ -152,7 +153,10 @@ function Router() {
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
       </Route>
-      {/* XRP Ecosystem Hub handled by server-side route */}
+      {/* XRP Ecosystem Hub */}
+      <Route path="/xrp-ecosystem">
+        {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
+      </Route>
       <Route path="/xrp-cross-border-payments">
         {() => <LazyLoadWrapper><XRPCrossBorderPayments /></LazyLoadWrapper>}
       </Route>

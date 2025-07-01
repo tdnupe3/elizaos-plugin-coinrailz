@@ -6,6 +6,7 @@ import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogic
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
+import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
 import p2pRoutes from "./routes/p2pRoutes";
 import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
 import { registerAuthRoutes } from "./authRoutes";
@@ -131,6 +132,9 @@ app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/xrp', blockchainRoutes);
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 app.use('/api/ai-marketplace', aiMarketplaceSimpleRoutes);
+
+// === ENTERPRISE DATA MONETIZATION ROUTES (HIGH REVENUE POTENTIAL) ===
+app.use('/api/enterprise-data', enterpriseDataRoutes);
 
 // REVENUE ANALYTICS ENDPOINT
 app.get('/api/platform/revenue', (req, res) => {

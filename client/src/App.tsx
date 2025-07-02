@@ -123,6 +123,9 @@ function Router() {
       <Route path="/swap">
         {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
       </Route>
+      <Route path="/dex-aggregator">
+        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+      </Route>
       <Route path="/ai-agents">
         {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}
       </Route>
@@ -225,6 +228,9 @@ function Router() {
         {() => <LazyLoadWrapper><TransactionHistory /></LazyLoadWrapper>}
       </Route>
       <Route path="/funds">
+        {() => <LazyLoadWrapper><FundsManagement /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/add-funds">
         {() => <LazyLoadWrapper><FundsManagement /></LazyLoadWrapper>}
       </Route>
       <Route path="/referrals">

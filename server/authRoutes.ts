@@ -7,6 +7,9 @@ import { storage } from "./storage";
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 
+// Simple session store (in production, use Redis or database)
+const sessionStore = new Map<string, { userId: string, userEmail: string, createdAt: number }>();
+
 // Registration validation schema with secure password requirements
 const registrationSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -114,13 +117,23 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // Create session (simplified - in production would use JWT or sessions)
+      // Create session token (simplified - in production would use JWT)
+      const sessionToken = `cr_session_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store session in memory (in production, this would be in Redis/database)
+      sessionStore.set(sessionToken, {
+        userId: user.id,
+        userEmail: user.email || '',
+        createdAt: Date.now()
+      });
+      
       const { password: _, ...userResponse } = user;
       
       res.json({
         success: true,
         message: 'Login successful',
-        user: userResponse
+        user: userResponse,
+        token: sessionToken
       });
     } catch (error: any) {
       console.error('Login error:', error);
@@ -145,10 +158,9 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // For production, validate JWT token here
-      // For demo purposes, we'll accept any Bearer token format
+      // Extract and validate session token
       const token = authHeader.split(' ')[1];
-      if (!token || token.length < 10) {
+      if (!token) {
         return res.status(401).json({
           success: false,
           error: 'Invalid token',
@@ -156,18 +168,40 @@ export function registerAuthRoutes(app: Express) {
         });
       }
 
-      // Return authenticated user data
-      const authenticatedUser = {
-        id: 'user_demo_123',
-        email: 'demo@coinrailz.com',
-        firstName: 'Demo',
-        lastName: 'User',
-        usdBalance: '2847.50',
-        kycStatus: 'verified',
-        complianceLevel: 'basic'
-      };
+      // Check if session exists and is valid
+      const session = sessionStore.get(token);
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          error: 'Session expired',
+          message: 'Please login again'
+        });
+      }
 
-      res.json(authenticatedUser);
+      // Check if session is too old (24 hours)
+      const sessionAge = Date.now() - session.createdAt;
+      if (sessionAge > 24 * 60 * 60 * 1000) {
+        sessionStore.delete(token);
+        return res.status(401).json({
+          success: false,
+          error: 'Session expired',
+          message: 'Please login again'
+        });
+      }
+
+      // Get user data from storage
+      const user = await storage.getUserByEmail(session.userEmail);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'User not found',
+          message: 'Please login again'
+        });
+      }
+
+      // Return user data without password
+      const { password: _, ...userResponse } = user;
+      res.json(userResponse);
     } catch (error: any) {
       console.error('User fetch error:', error);
       res.status(401).json({

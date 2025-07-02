@@ -7,16 +7,33 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Simple query function
+// Helper to get auth token from localStorage
+const getAuthToken = () => {
+  try {
+    return localStorage.getItem('auth_token');
+  } catch {
+    return null;
+  }
+};
+
+// Simple query function with authentication
 export const getQueryFn: <T>(options: {
   on401: "returnNull" | "throw";
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey, signal }) => {
     try {
+      const headers: Record<string, string> = {};
+      const authToken = getAuthToken();
+      
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+
       const res = await fetch(queryKey[0] as string, {
         credentials: "include",
         signal,
+        headers,
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -34,10 +51,11 @@ export const getQueryFn: <T>(options: {
     }
   };
 
-// Simplified query client
+// Simplified query client with authentication
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
+      queryFn: getQueryFn({ on401: "returnNull" }),
       retry: 1, // Reduced retries
       retryDelay: 1000,
       refetchOnWindowFocus: false,
@@ -51,7 +69,7 @@ export const queryClient = new QueryClient({
   },
 });
 
-// Simple API request function with two signatures
+// Simple API request function with authentication
 export const apiRequest = async (
   methodOrUrl: string, 
   urlOrOptions?: string | RequestInit, 
@@ -60,6 +78,13 @@ export const apiRequest = async (
   let url: string;
   let options: RequestInit;
 
+  // Get auth token
+  const authToken = getAuthToken();
+  const baseHeaders: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    baseHeaders['Authorization'] = `Bearer ${authToken}`;
+  }
+
   // Handle both signatures: (url, options) and (method, url, data)
   if (typeof urlOrOptions === 'string') {
     // Three-argument signature: (method, url, data)
@@ -67,15 +92,17 @@ export const apiRequest = async (
     url = urlOrOptions;
     options = {
       method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: baseHeaders as HeadersInit,
       ...(data && { body: JSON.stringify(data) })
     };
   } else {
     // Two-argument signature: (url, options)
     url = methodOrUrl;
+    const existingOptions = urlOrOptions || {};
+    const existingHeaders = existingOptions.headers || {};
     options = {
-      headers: { 'Content-Type': 'application/json' },
-      ...(urlOrOptions || {})
+      ...existingOptions,
+      headers: { ...baseHeaders, ...existingHeaders } as HeadersInit
     };
   }
 

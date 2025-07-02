@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { queryClient } from "@/lib/queryClient";
 
 interface AuthFormProps {
   mode: 'signin' | 'signup';
@@ -52,6 +53,13 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
       const data = await response.json();
 
       if (data.success) {
+        // Store authentication token for login
+        if (mode === 'signin' && data.token) {
+          localStorage.setItem('auth_token', data.token);
+          // Invalidate auth cache to refetch user data
+          queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+        }
+
         toast({
           title: mode === 'signup' ? "Account Created" : "Welcome Back",
           description: data.message,

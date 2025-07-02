@@ -58,46 +58,19 @@ export default function Dashboard() {
     enabled: !!user
   });
 
-  // Default stats with proper typing
-  const defaultStats: DashboardStats = {
-    balance: 2847.50,
-    totalTransactions: 47,
-    monthlyVolume: 12840.00,
-    activeAgents: 3,
-    referralEarnings: 127.30
-  };
+  // Use actual user data (no mock data fallback)
+  const userStats: DashboardStats = (stats && typeof stats === 'object' && 'balance' in stats) 
+    ? stats as DashboardStats 
+    : {
+        balance: 0.00,
+        totalTransactions: 0,
+        monthlyVolume: 0.00,
+        activeAgents: 0,
+        referralEarnings: 0.00
+      };
 
-  const mockStats: DashboardStats = stats || defaultStats;
-
-  const mockTransactions: Transaction[] = transactions || [
-    {
-      id: "txn_001",
-      type: "p2p",
-      amount: 250.00,
-      currency: "USD",
-      status: "completed",
-      timestamp: "2025-07-01T00:30:00Z",
-      description: "P2P Transfer to Alice"
-    },
-    {
-      id: "txn_002", 
-      type: "dex",
-      amount: 0.5,
-      currency: "ETH",
-      status: "completed",
-      timestamp: "2025-06-30T18:45:00Z",
-      description: "ETH to USDC Swap"
-    },
-    {
-      id: "txn_003",
-      type: "marketplace",
-      amount: 150.00,
-      currency: "USD",
-      status: "pending",
-      timestamp: "2025-06-30T14:20:00Z",
-      description: "AI Analytics Service Payment"
-    }
-  ];
+  // Use actual user transactions (empty array for new users)
+  const userTransactions: Transaction[] = Array.isArray(transactions) ? transactions : [];
 
   const formatCurrency = (amount: number, currency: string = "USD") => {
     if (currency === "USD") {
@@ -156,7 +129,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-center py-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Welcome back, {(user as any)?.firstName || user?.email || 'User'}!
+                Welcome back, {(user as any)?.firstName || (user as any)?.email || 'User'}!
               </h1>
               <p className="text-gray-600 dark:text-gray-300">
                 Your financial gateway dashboard
@@ -189,7 +162,7 @@ export default function Dashboard() {
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(mockStats.balance)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(userStats.balance)}</div>
               <p className="text-xs text-muted-foreground">
                 +12.5% from last month
               </p>
@@ -202,7 +175,7 @@ export default function Dashboard() {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.totalTransactions}</div>
+              <div className="text-2xl font-bold">{userStats.totalTransactions}</div>
               <p className="text-xs text-muted-foreground">
                 +3 this week
               </p>
@@ -215,7 +188,7 @@ export default function Dashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(mockStats.monthlyVolume)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(userStats.monthlyVolume)}</div>
               <p className="text-xs text-muted-foreground">
                 +18.2% from last month
               </p>
@@ -228,7 +201,7 @@ export default function Dashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{mockStats.activeAgents}</div>
+              <div className="text-2xl font-bold">{userStats.activeAgents}</div>
               <p className="text-xs text-muted-foreground">
                 2 new this month
               </p>
@@ -241,7 +214,7 @@ export default function Dashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(mockStats.referralEarnings)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(userStats.referralEarnings)}</div>
               <p className="text-xs text-muted-foreground">
                 +$23.40 this week
               </p>
@@ -268,27 +241,34 @@ export default function Dashboard() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {mockTransactions.slice(0, 5).map((transaction) => (
-                      <div key={transaction.id} className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
-                            {getTransactionIcon(transaction.type)}
+                    {userTransactions.length > 0 ? (
+                      userTransactions.slice(0, 5).map((transaction) => (
+                        <div key={transaction.id} className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-full">
+                              {getTransactionIcon(transaction.type)}
+                            </div>
+                            <div>
+                              <p className="font-medium">{transaction.description}</p>
+                              <p className="text-sm text-gray-500">
+                                {new Date(transaction.timestamp).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{transaction.description}</p>
-                            <p className="text-sm text-gray-500">
-                              {new Date(transaction.timestamp).toLocaleDateString()}
+                          <div className="text-right">
+                            <p className="font-medium">
+                              {formatCurrency(transaction.amount, transaction.currency)}
                             </p>
+                            {getStatusBadge(transaction.status)}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {formatCurrency(transaction.amount, transaction.currency)}
-                          </p>
-                          {getStatusBadge(transaction.status)}
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <p>No transactions yet</p>
+                        <p className="text-sm">Start by making a P2P transfer or trading on the DEX aggregator</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -350,28 +330,43 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {mockTransactions.map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-4">
-                        <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
-                          {getTransactionIcon(transaction.type)}
+                  {userTransactions.length > 0 ? (
+                    userTransactions.map((transaction) => (
+                      <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
+                            {getTransactionIcon(transaction.type)}
+                          </div>
+                          <div>
+                            <p className="font-medium">{transaction.description}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(transaction.timestamp).toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-400">ID: {transaction.id}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{transaction.description}</p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(transaction.timestamp).toLocaleString()}
+                        <div className="text-right">
+                          <p className="font-bold text-lg">
+                            {formatCurrency(transaction.amount, transaction.currency)}
                           </p>
-                          <p className="text-xs text-gray-400">ID: {transaction.id}</p>
+                          {getStatusBadge(transaction.status)}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-bold text-lg">
-                          {formatCurrency(transaction.amount, transaction.currency)}
-                        </p>
-                        {getStatusBadge(transaction.status)}
+                    ))
+                  ) : (
+                    <div className="text-center py-12 text-gray-500">
+                      <p className="text-lg">No transactions yet</p>
+                      <p className="text-sm mt-2">Your transaction history will appear here once you start using the platform</p>
+                      <div className="mt-6 space-x-4">
+                        <Button asChild>
+                          <Link href="/p2p-transfer">Send Money</Link>
+                        </Button>
+                        <Button variant="outline" asChild>
+                          <Link href="/dex-aggregator">Trade Crypto</Link>
+                        </Button>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

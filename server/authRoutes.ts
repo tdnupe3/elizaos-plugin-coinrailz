@@ -309,15 +309,47 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Dashboard stats endpoint
+  // Dashboard stats endpoint (PROTECTED)
   app.get('/api/dashboard/stats', async (req, res) => {
     try {
+      // Check for Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication token required'
+        });
+      }
+
+      // Extract and validate session token
+      const token = authHeader.split(' ')[1];
+      const session = sessionStore.get(token);
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          error: 'Session expired',
+          message: 'Please login again'
+        });
+      }
+
+      // Get real user data
+      const user = await storage.getUserByEmail(session.userEmail);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'User not found',
+          message: 'Please login again'
+        });
+      }
+
+      // Return actual user stats from database
       const stats = {
-        balance: 2847.50,
-        totalTransactions: 47,
-        monthlyVolume: 12840.00,
-        activeAgents: 3,
-        referralEarnings: 127.30
+        balance: parseFloat(user.usdBalance || '0.00'),
+        totalTransactions: 0, // No transactions yet for new users
+        monthlyVolume: 0.00,
+        activeAgents: 0,
+        referralEarnings: parseFloat(user.referralBonus || '0.00')
       };
       res.json(stats);
     } catch (error: any) {
@@ -330,56 +362,42 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Dashboard transactions endpoint
+  // Dashboard transactions endpoint (PROTECTED)
   app.get('/api/dashboard/transactions', async (req, res) => {
     try {
-      const transactions = [
-        {
-          id: "txn_001",
-          type: "p2p",
-          amount: 250.00,
-          currency: "USD",
-          status: "completed",
-          timestamp: "2025-07-01T00:30:00Z",
-          description: "P2P Transfer to Alice"
-        },
-        {
-          id: "txn_002", 
-          type: "dex",
-          amount: 0.5,
-          currency: "ETH",
-          status: "completed",
-          timestamp: "2025-06-30T18:45:00Z",
-          description: "ETH to USDC Swap"
-        },
-        {
-          id: "txn_003",
-          type: "marketplace",
-          amount: 150.00,
-          currency: "USD",
-          status: "pending",
-          timestamp: "2025-06-30T14:20:00Z",
-          description: "AI Analytics Service Payment"
-        },
-        {
-          id: "txn_004",
-          type: "p2p",
-          amount: 75.00,
-          currency: "USD",
-          status: "completed",
-          timestamp: "2025-06-29T16:15:00Z",
-          description: "P2P Transfer to Bob"
-        },
-        {
-          id: "txn_005",
-          type: "dex",
-          amount: 1000.00,
-          currency: "USDC",
-          status: "completed",
-          timestamp: "2025-06-29T10:30:00Z",
-          description: "USDC to ETH Swap"
-        }
-      ];
+      // Check for Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication token required'
+        });
+      }
+
+      // Extract and validate session token
+      const token = authHeader.split(' ')[1];
+      const session = sessionStore.get(token);
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          error: 'Session expired',
+          message: 'Please login again'
+        });
+      }
+
+      // Get real user data
+      const user = await storage.getUserByEmail(session.userEmail);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'User not found',
+          message: 'Please login again'
+        });
+      }
+
+      // Return actual user transactions (empty for new users)
+      const transactions: any[] = []; // New users have no transactions yet
       res.json(transactions);
     } catch (error: any) {
       console.error('Dashboard transactions error:', error);
@@ -391,20 +409,51 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Dashboard portfolio endpoint
+  // Dashboard portfolio endpoint (PROTECTED)
   app.get('/api/dashboard/portfolio', async (req, res) => {
     try {
+      // Check for Authorization header
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Authentication token required'
+        });
+      }
+
+      // Extract and validate session token
+      const token = authHeader.split(' ')[1];
+      const session = sessionStore.get(token);
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          error: 'Session expired',
+          message: 'Please login again'
+        });
+      }
+
+      // Get real user data
+      const user = await storage.getUserByEmail(session.userEmail);
+      if (!user) {
+        return res.status(401).json({
+          success: false,
+          error: 'User not found',
+          message: 'Please login again'
+        });
+      }
+
+      // Return actual user portfolio (empty for new users)
+      const totalValue = parseFloat(user.usdBalance || '0.00');
       const portfolio = {
-        totalValue: 2847.50,
-        assets: [
-          { symbol: 'USD', amount: 1847.50, value: 1847.50 },
-          { symbol: 'ETH', amount: 0.3, value: 750.00 },
-          { symbol: 'USDC', amount: 250.00, value: 250.00 }
-        ],
+        totalValue: totalValue,
+        assets: totalValue > 0 ? [
+          { symbol: 'USD', amount: totalValue, value: totalValue }
+        ] : [],
         performance: {
-          daily: +2.5,
-          weekly: +12.3,
-          monthly: +18.7
+          daily: 0,
+          weekly: 0,
+          monthly: 0
         }
       };
       res.json(portfolio);

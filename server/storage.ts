@@ -946,6 +946,11 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
+  async createAgentTransaction(transactionData: any): Promise<any> {
+    const [transaction] = await db.insert(agentTransactions).values(transactionData).returning();
+    return transaction;
+  }
+
   async getServiceOrder(orderId: string): Promise<any> {
     const [order] = await db.select().from(agentServiceOrders).where(eq(agentServiceOrders.orderId, orderId));
     return order;

@@ -47,31 +47,16 @@ export function registerRoutes(app: Express): Server {
   // === AGENT DISCOVERY ENDPOINTS ===
   app.get('/api/agents/discover', isAuthenticated, async (req, res) => {
     try {
-      // Mock agent data for testing - replace with database call when ready
-      const mockAgents = [
-        {
-          id: 'agent_001',
-          name: 'Sarah AI Analytics',
-          category: 'Data Analysis',
-          rating: 4.8,
-          verified: true,
-          description: 'Advanced data analytics and business intelligence AI agent'
-        },
-        {
-          id: 'agent_002', 
-          name: 'Marcus Trading Bot',
-          category: 'Crypto Trading',
-          rating: 4.6,
-          verified: true,
-          description: 'Automated cryptocurrency trading and portfolio management'
-        }
-      ];
-
+      // Get real agents from database
+      const agents = await storage.getAgents();
+      
       res.json({
         success: true,
-        agents: mockAgents
+        agents: agents,
+        total: agents.length
       });
     } catch (error) {
+      console.error('Agent discovery error:', error);
       res.status(500).json({ success: false, message: 'Failed to discover agents' });
     }
   });
@@ -79,32 +64,136 @@ export function registerRoutes(app: Express): Server {
   // === SERVICE DISCOVERY ENDPOINTS ===  
   app.get('/api/services/discover', isAuthenticated, async (req, res) => {
     try {
-      // Mock service data for testing - replace with database call when ready
-      const mockServices = [
-        {
-          id: 'service_001',
-          name: 'Market Analysis Report',
-          category: 'Analytics',
-          price: '$150',
-          rating: 4.7,
-          description: 'Comprehensive market analysis and trading recommendations'
-        },
-        {
-          id: 'service_002',
-          name: 'Portfolio Optimization',
-          category: 'Trading',
-          price: '$200',
-          rating: 4.5,
-          description: 'AI-powered portfolio rebalancing and risk management'
-        }
-      ];
+      // Get real services from database
+      const services = await storage.getServices();
+      
+      res.json({
+        success: true,
+        services: services,
+        total: services.length
+      });
+    } catch (error) {
+      console.error('Service discovery error:', error);
+      res.status(500).json({ success: false, message: 'Failed to discover services' });
+    }
+  });
+
+  // === SERVICE ORDERING SYSTEM ===
+  app.post('/api/services/order', isAuthenticated, async (req, res) => {
+    try {
+      const { serviceId, agentId, customerNotes, deliveryMethod = 'message' } = req.body;
+      const userId = req.user?.claims?.sub;
+      
+      if (!serviceId || !agentId || !userId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: serviceId, agentId'
+        });
+      }
+
+      // Get service details to calculate pricing
+      const service = await storage.getServiceListing(serviceId);
+      if (!service) {
+        return res.status(404).json({
+          success: false,
+          error: 'Service not found'
+        });
+      }
+
+      const basePrice = parseFloat(service.basePrice) || 100;
+      const platformFee = basePrice * 0.25; // 25% platform fee
+      const agentPayout = basePrice * 0.75; // 75% agent payout
+      const totalPrice = basePrice;
+
+      // Create order in database
+      const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+      
+      const orderData = {
+        id: orderId,
+        serviceId,
+        agentId,
+        customerId: userId,
+        orderAmount: totalPrice.toString(),
+        platformFee: platformFee.toString(),
+        agentPayout: agentPayout.toString(),
+        status: 'pending',
+        customerNotes: customerNotes || '',
+        deliveryMethod,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      await storage.createServiceOrder(orderData);
+
+      // Create transaction record for revenue tracking
+      await storage.createAgentTransaction({
+        orderId,
+        agentId,
+        customerId: userId,
+        amount: totalPrice.toString(),
+        platformFee: platformFee.toString(),
+        agentPayout: agentPayout.toString(),
+        status: 'pending',
+        createdAt: new Date()
+      });
 
       res.json({
         success: true,
-        services: mockServices
+        orderId,
+        service: service.serviceName,
+        totalPrice,
+        platformFee,
+        agentPayout,
+        status: 'pending',
+        message: 'Service order created successfully',
+        estimatedDelivery: '24-48 hours'
       });
     } catch (error) {
-      res.status(500).json({ success: false, message: 'Failed to discover services' });
+      console.error('Service order error:', error);
+      res.status(500).json({ success: false, message: 'Failed to create service order' });
+    }
+  });
+
+  // === ORDER MANAGEMENT SYSTEM ===
+  app.get('/api/orders/my-orders', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'User not authenticated' });
+      }
+
+      const orders = await storage.getAgentServiceOrders(userId);
+      
+      res.json({
+        success: true,
+        orders: orders,
+        total: orders.length
+      });
+    } catch (error) {
+      console.error('Get orders error:', error);
+      res.status(500).json({ success: false, message: 'Failed to get orders' });
+    }
+  });
+
+  app.get('/api/orders/:orderId', isAuthenticated, async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const order = await storage.getServiceOrder(orderId);
+      
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        order
+      });
+    } catch (error) {
+      console.error('Get order error:', error);
+      res.status(500).json({ success: false, message: 'Failed to get order' });
     }
   });
 

@@ -1162,6 +1162,65 @@ export class DatabaseStorage implements IStorage {
       .set({ status })
       .where(eq(fundingTransactions.id, parseInt(intentId)));
   }
+
+  // === ESCROW AND COMMISSION METHODS ===
+  async updateServiceOrder(orderId: string, updates: any): Promise<any> {
+    const [order] = await db.update(agentServiceOrders)
+      .set(updates)
+      .where(eq(agentServiceOrders.orderId, orderId))
+      .returning();
+    return order;
+  }
+
+  async updateAgentTransaction(orderId: string, updates: any): Promise<any> {
+    const [transaction] = await db.update(agentTransactions)
+      .set(updates)
+      .where(eq(agentTransactions.orderId, orderId))
+      .returning();
+    return transaction;
+  }
+
+  async getAgentTransaction(orderId: string): Promise<any> {
+    const [transaction] = await db.select()
+      .from(agentTransactions)
+      .where(eq(agentTransactions.orderId, orderId))
+      .limit(1);
+    return transaction;
+  }
+
+  async createPlatformRevenue(revenueData: any): Promise<any> {
+    // Store platform revenue in transactions table for tracking
+    const [revenue] = await db.insert(transactions).values({
+      userId: 'platform',
+      amount: parseFloat(revenueData.amount),
+      currency: 'USD',
+      type: 'commission',
+      status: 'completed',
+      description: `Platform commission from order ${revenueData.orderId}`,
+      metadata: JSON.stringify(revenueData)
+    }).returning();
+    return revenue;
+  }
+
+  async createDispute(disputeData: any): Promise<any> {
+    // Store dispute in agent service orders for now
+    // In production, this would use a dedicated disputes table
+    const disputeRecord = {
+      ...disputeData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    // For now, store dispute info in order metadata
+    await this.updateServiceOrder(disputeData.orderId, {
+      disputeId: disputeData.id,
+      disputeReason: disputeData.reason,
+      disputeStatus: disputeData.status,
+      disputeCreatedAt: new Date()
+    });
+    
+    return disputeRecord;
+  }
 }
 
 export const storage = new DatabaseStorage();

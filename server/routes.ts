@@ -145,12 +145,177 @@ export function registerRoutes(app: Express): Server {
         platformFee,
         agentPayout,
         status: 'pending',
-        message: 'Service order created successfully',
-        estimatedDelivery: '24-48 hours'
+        escrowStatus: 'held',
+        message: 'Service order created successfully - payment held in escrow',
+        estimatedDelivery: '24-48 hours',
+        disputeDeadline: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString() // 72 hours
       });
     } catch (error) {
       console.error('Service order error:', error);
       res.status(500).json({ success: false, message: 'Failed to create service order' });
+    }
+  });
+
+  // === ESCROW RELEASE SYSTEM ===
+  app.post('/api/services/verify-delivery', isAuthenticated, async (req, res) => {
+    try {
+      const { orderId, confirmed, qualityScore, feedback } = req.body;
+      const userId = req.user?.claims?.sub;
+      
+      if (!orderId || confirmed === undefined) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: orderId, confirmed'
+        });
+      }
+
+      // Get order details
+      const order = await storage.getServiceOrder(orderId);
+      if (!order || order.customerId !== userId) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found or unauthorized'
+        });
+      }
+
+      if (confirmed) {
+        // Customer confirms delivery - release escrow
+        await storage.updateServiceOrder(orderId, {
+          status: 'completed',
+          customerConfirmed: true,
+          qualityScore: qualityScore || 5,
+          customerFeedback: feedback || '',
+          completedAt: new Date(),
+          updatedAt: new Date()
+        });
+
+        // Release commission to agent
+        await storage.updateAgentTransaction(orderId, {
+          status: 'paid',
+          paidAt: new Date()
+        });
+
+        // Collect platform fee
+        await storage.createPlatformRevenue({
+          orderId,
+          amount: order.platformFee,
+          source: 'marketplace_commission',
+          collectedAt: new Date()
+        });
+
+        res.json({
+          success: true,
+          message: 'Delivery confirmed - payment released to agent',
+          escrowStatus: 'released',
+          commissionPaid: true
+        });
+      } else {
+        // Customer disputes delivery - hold escrow
+        res.json({
+          success: true,
+          message: 'Delivery disputed - payment held in escrow',
+          escrowStatus: 'disputed',
+          disputeDeadline: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+        });
+      }
+    } catch (error) {
+      console.error('Delivery verification error:', error);
+      res.status(500).json({ success: false, message: 'Failed to verify delivery' });
+    }
+  });
+
+  // === DISPUTE RESOLUTION SYSTEM ===
+  app.post('/api/services/create-dispute', isAuthenticated, async (req, res) => {
+    try {
+      const { orderId, reason, description, evidence } = req.body;
+      const userId = req.user?.claims?.sub;
+      
+      if (!orderId || !reason || !description) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: orderId, reason, description'
+        });
+      }
+
+      // Verify order exists and user authorization
+      const order = await storage.getServiceOrder(orderId);
+      if (!order || order.customerId !== userId) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found or unauthorized'
+        });
+      }
+
+      // Create dispute record
+      const disputeId = `dispute_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+      
+      const disputeData = {
+        id: disputeId,
+        orderId,
+        customerId: userId,
+        agentId: order.agentId,
+        reason,
+        description,
+        evidence: evidence || [],
+        status: 'open',
+        priority: 'medium',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+
+      await storage.createDispute(disputeData);
+
+      // Update order status
+      await storage.updateServiceOrder(orderId, {
+        status: 'disputed',
+        disputeId,
+        updatedAt: new Date()
+      });
+
+      res.json({
+        success: true,
+        disputeId,
+        message: 'Dispute created successfully - payment held in escrow pending resolution',
+        escrowStatus: 'disputed',
+        expectedResolution: '2-5 business days'
+      });
+    } catch (error) {
+      console.error('Dispute creation error:', error);
+      res.status(500).json({ success: false, message: 'Failed to create dispute' });
+    }
+  });
+
+  // === COMMISSION COLLECTION TRACKING ===
+  app.get('/api/services/commission-status/:orderId', isAuthenticated, async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user?.claims?.sub;
+
+      // Get order and transaction details
+      const order = await storage.getServiceOrder(orderId);
+      const transaction = await storage.getAgentTransaction(orderId);
+      
+      if (!order || (order.customerId !== userId && order.agentId !== userId)) {
+        return res.status(404).json({
+          success: false,
+          error: 'Order not found or unauthorized'
+        });
+      }
+
+      res.json({
+        success: true,
+        orderId,
+        orderStatus: order.status,
+        escrowStatus: order.escrowStatus || 'held',
+        platformFee: order.platformFee,
+        agentPayout: order.agentPayout,
+        commissionStatus: transaction?.status || 'pending',
+        paidAt: transaction?.paidAt || null,
+        disputeStatus: order.disputeId ? 'active' : 'none'
+      });
+    } catch (error) {
+      console.error('Commission status error:', error);
+      res.status(500).json({ success: false, message: 'Failed to get commission status' });
     }
   });
 

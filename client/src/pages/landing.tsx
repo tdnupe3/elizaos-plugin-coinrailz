@@ -635,6 +635,10 @@ export default function Landing() {
           <div className="border-t border-gray-200 pt-6">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 text-xs text-gray-500">
               <div className="flex items-center gap-4">
+                <Link href="/docs" className="hover:text-blue-700 hover:underline transition-colors font-medium">
+                  Platform Guide
+                </Link>
+                <span className="text-gray-300">|</span>
                 <Link href="/contact-us" className="hover:text-blue-700 hover:underline transition-colors font-medium">
                   Contact Support
                 </Link>

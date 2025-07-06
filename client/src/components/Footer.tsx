@@ -9,6 +9,9 @@ export function Footer() {
           <div className="flex flex-col items-center space-y-3">
             {/* Legal Links */}
             <div className="flex flex-wrap items-center justify-center space-x-6 text-sm">
+              <Link href="/docs" className="text-gray-600 hover:text-gray-900 hover:underline">
+                Platform Guide
+              </Link>
               <Link href="/legal-disclaimers" className="text-gray-600 hover:text-gray-900 hover:underline">
                 Legal Disclaimers
               </Link>

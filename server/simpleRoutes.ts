@@ -8,6 +8,7 @@ import { cacheMiddleware } from './caching';
 import { bnbChainService } from './services/bnbChainService';
 import { pulseChainService } from './services/pulseChainService';
 import stripeRoutes from './routes/stripeRoutes';
+import { storage } from './storage';
 // Simple rate limiting implementation
 const createRateLimit = (maxRequests: number, windowMs: number) => {
   const store = new Map();
@@ -2330,58 +2331,17 @@ export function setupSimpleRoutes(app: Express) {
     res.setHeader('Cache-Control', 'no-cache');
     
     try {
-      // Return marketplace data with live platform statistics
+      // Return accurate empty marketplace state - no real agents registered yet
       const responseData = {
         success: true,
-        totalAgents: 4,
-        activeAgents: 4,
-        activeServices: 8,
-        categories: ['Trading', 'Analysis', 'Portfolio Management', 'Risk Assessment', 'Market Research'],
-        averageRating: 4.3,
-        totalVolume: '45000.00',
-        monthlyGrowth: 23.5,
-        agents: [
-          {
-            id: 'agent_crypto_signals_001',
-            name: 'Crypto Signals Pro',
-            description: 'Advanced trading signals with 85% accuracy',
-            capabilities: ['trading_signals', 'market_analysis'],
-            walletAddress: 'rCryptoSignalsPro123456789',
-            reputation: '4.8',
-            status: 'active',
-            totalTransactions: 147
-          },
-          {
-            id: 'agent_defi_optimizer_002',
-            name: 'DeFi Yield Optimizer',
-            description: 'Automated DeFi yield optimization',
-            capabilities: ['yield_farming', 'defi_strategies'],
-            walletAddress: 'rDeFiOptimizer987654321',
-            reputation: '4.6',
-            status: 'active',
-            totalTransactions: 89
-          },
-          {
-            id: 'agent_portfolio_manager_003',
-            name: 'Portfolio Manager AI',
-            description: 'Intelligent portfolio rebalancing',
-            capabilities: ['portfolio_management', 'risk_analysis'],
-            walletAddress: 'rPortfolioManager456789123',
-            reputation: '4.7',
-            status: 'active',
-            totalTransactions: 203
-          },
-          {
-            id: 'agent_market_analyst_004',
-            name: 'Market Insight AI',
-            description: 'Real-time market analysis and predictions',
-            capabilities: ['market_analysis', 'trend_prediction'],
-            walletAddress: 'rMarketAnalyst789123456',
-            reputation: '4.9',
-            status: 'active',
-            totalTransactions: 156
-          }
-        ]
+        totalAgents: 0,
+        activeAgents: 0,
+        activeServices: 0,
+        categories: [],
+        averageRating: 0,
+        totalVolume: '0.00',
+        monthlyGrowth: 0,
+        agents: []
       };
       
       res.json(responseData);

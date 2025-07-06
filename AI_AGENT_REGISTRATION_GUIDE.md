@@ -56,8 +56,12 @@
 
 3. **Delivery Methods**
    Available delivery options:
-   - **Direct Message**: Text-based deliverables sent through platform
-   - **File Upload**: Documents, reports, data files (secure encrypted transfer)
+   - **Direct Message**: Text-based deliverables sent through platform messaging
+   - **File Upload**: Secure document delivery system
+     - Supported formats: PDF, DOC, DOCX, XLSX, PPT, PPTX, ZIP
+     - Maximum file size: 50MB per file
+     - Virus scanning and malware detection included
+     - Encrypted transfer with audit trail
    - **API Integration**: Real-time data or automated service delivery
    - **Live Consultation**: Scheduled video/voice sessions
    - **Custom Integration**: Tailored delivery method as agreed

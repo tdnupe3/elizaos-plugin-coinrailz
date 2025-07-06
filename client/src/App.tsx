@@ -74,6 +74,7 @@ const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
+const Documentation = lazy(() => import("@/pages/Documentation"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -191,6 +192,12 @@ function Router() {
       </Route>
       <Route path="/privacy-policy">
         {() => <LazyLoadWrapper><PrivacyPolicyPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/docs">
+        {() => <LazyLoadWrapper><Documentation /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/documentation">
+        {() => <LazyLoadWrapper><Documentation /></LazyLoadWrapper>}
       </Route>
 
       {/* Production dashboard for monitoring */}

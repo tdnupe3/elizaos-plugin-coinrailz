@@ -28,6 +28,26 @@ export default function AuthPage() {
     lastName: "",
     confirmPassword: ""
   });
+  
+  // Password validation helper
+  const validatePassword = (password: string) => {
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[@$!%*?&]/.test(password);
+    const hasMinLength = password.length >= 8;
+    
+    return {
+      hasUppercase,
+      hasLowercase,
+      hasNumber,
+      hasSpecialChar,
+      hasMinLength,
+      isValid: hasUppercase && hasLowercase && hasNumber && hasSpecialChar && hasMinLength
+    };
+  };
+  
+  const passwordValidation = validatePassword(registerData.password);
 
   // Redirect if already authenticated
   if (!isLoading && isAuthenticated) {
@@ -112,10 +132,10 @@ export default function AuthPage() {
       return;
     }
     
-    if (registerData.password.length < 8) {
+    if (!passwordValidation.isValid) {
       toast({
-        title: "Weak Password",
-        description: "Password must be at least 8 characters long",
+        title: "Invalid Password",
+        description: "Password does not meet all requirements. Check the requirements below.",
         variant: "destructive"
       });
       return;
@@ -251,6 +271,40 @@ export default function AuthPage() {
                       onChange={(e) => setRegisterData(prev => ({ ...prev, password: e.target.value }))}
                       required
                     />
+                    
+                    {/* Password Requirements */}
+                    <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 space-y-3">
+                      <p className="text-lg font-bold text-yellow-800">🔒 Password Requirements:</p>
+                      <div className="space-y-2 text-sm">
+                        <div className={`flex items-center space-x-2 ${passwordValidation?.hasMinLength ? 'text-green-600' : 'text-red-600'}`}>
+                          <span>{passwordValidation?.hasMinLength ? '✓' : '✗'}</span>
+                          <span>At least 8 characters</span>
+                        </div>
+                        <div className={`flex items-center space-x-2 ${passwordValidation?.hasUppercase ? 'text-green-600' : 'text-red-600'}`}>
+                          <span>{passwordValidation?.hasUppercase ? '✓' : '✗'}</span>
+                          <span>One uppercase letter (A-Z)</span>
+                        </div>
+                        <div className={`flex items-center space-x-2 ${passwordValidation?.hasLowercase ? 'text-green-600' : 'text-red-600'}`}>
+                          <span>{passwordValidation?.hasLowercase ? '✓' : '✗'}</span>
+                          <span>One lowercase letter (a-z)</span>
+                        </div>
+                        <div className={`flex items-center space-x-2 ${passwordValidation?.hasNumber ? 'text-green-600' : 'text-red-600'}`}>
+                          <span>{passwordValidation?.hasNumber ? '✓' : '✗'}</span>
+                          <span>One number (0-9)</span>
+                        </div>
+                        <div className={`flex items-center space-x-2 ${passwordValidation?.hasSpecialChar ? 'text-green-600' : 'text-red-600'}`}>
+                          <span>{passwordValidation?.hasSpecialChar ? '✓' : '✗'}</span>
+                          <span>One special character (@$!%*?&)</span>
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                        <p className="text-xs text-blue-800 font-medium">Examples that work:</p>
+                        <p className="text-xs text-blue-600">MyPass123! • SecureKey2025@ • CoinRailz$123</p>
+                      </div>
+                      {passwordValidation?.isValid && (
+                        <p className="text-green-600 font-medium text-xs">✓ Password meets all requirements!</p>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="space-y-2">

@@ -58,7 +58,11 @@ export default function AuthPage() {
     mutationFn: async (data: { email: string; password: string }) => {
       return await apiRequest("POST", "/api/auth/login", data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Store the auth token in localStorage
+      if (response.token) {
+        localStorage.setItem('auth_token', response.token);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login Successful",
@@ -79,7 +83,11 @@ export default function AuthPage() {
     mutationFn: async (data: any) => {
       return await apiRequest("POST", "/api/auth/register", data);
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
+      // Store the auth token in localStorage
+      if (response.token) {
+        localStorage.setItem('auth_token', response.token);
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Registration Successful",

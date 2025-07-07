@@ -59,13 +59,24 @@ export function registerAuthRoutes(app: Express) {
         pepsCheck: false
       });
 
+      // Create session token for auto-login after registration
+      const sessionToken = `cr_session_${newUser.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store session in memory (in production, this would be in Redis/database)
+      sessionStore.set(sessionToken, {
+        userId: newUser.id,
+        userEmail: newUser.email || '',
+        createdAt: Date.now()
+      });
+
       // Don't return password in response
       const { password, ...userResponse } = newUser;
 
       res.status(201).json({
         success: true,
         message: 'Account created successfully',
-        user: userResponse
+        user: userResponse,
+        token: sessionToken
       });
     } catch (error: any) {
       console.error('Registration error:', error);

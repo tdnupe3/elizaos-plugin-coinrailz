@@ -71,7 +71,7 @@ export default function Referrals() {
     if (navigator.share) {
       navigator.share({
         title: "Join Coin Railz",
-        text: "Get $5 bonus when you join Coin Railz using my referral code!",
+        text: "Join Coin Railz and earn commission bonuses on transactions using my referral code!",
         url: referralUrl,
       });
     } else {
@@ -204,7 +204,7 @@ export default function Referrals() {
                 <span>Your Referral Code</span>
               </CardTitle>
               <CardDescription>
-                Share this code with friends to earn $5 for each successful referral
+                Share this code with friends to earn commission on their transactions (0.3-0.6% based on amount)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -259,7 +259,7 @@ export default function Referrals() {
             <CardHeader>
               <CardTitle>Have a Referral Code?</CardTitle>
               <CardDescription>
-                Enter a friend's referral code to get your $5 bonus
+                Enter a friend's referral code to get commission bonuses on transactions
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -284,7 +284,7 @@ export default function Referrals() {
                 </div>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                <span className="text-red-600 text-xs">*</span> Bonus is paid after your first transaction
+                <span className="text-red-600 text-xs">*</span> Commission paid after qualifying transaction ($50+ minimum)
               </p>
             </CardContent>
           </Card>
@@ -311,16 +311,16 @@ export default function Referrals() {
                   </div>
                   <h3 className="font-semibold">They Join & Transact</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    Your friend signs up and makes their first transaction
+                    Your friend signs up and makes a qualifying transaction ($50+ minimum)
                   </p>
                 </div>
                 <div className="text-center space-y-2">
                   <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center mx-auto">
                     <span className="text-xl font-bold text-emerald-600">3</span>
                   </div>
-                  <h3 className="font-semibold">Both Get $5</h3>
+                  <h3 className="font-semibold">Earn Commission</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-300">
-                    You and your friend each receive $5 bonus
+                    You earn 0.3-0.6% commission based on transaction amount (max $15)
                   </p>
                 </div>
               </div>

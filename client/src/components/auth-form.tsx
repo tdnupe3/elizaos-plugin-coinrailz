@@ -25,11 +25,18 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
   // Debug: Log when component renders
   console.log('AuthForm rendering with mode:', mode);
   const [isLoading, setIsLoading] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     firstName: '',
     lastName: ''
+  });
+  const [resetData, setResetData] = useState({
+    email: '',
+    newPassword: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   
@@ -119,6 +126,50 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (error) setError(''); // Clear error when user starts typing
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetLoading(true);
+    setError('');
+
+    if (resetData.newPassword !== resetData.confirmPassword) {
+      setError('Passwords do not match');
+      setResetLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: resetData.email,
+          newPassword: resetData.newPassword
+        }),
+        credentials: 'include'
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        toast({
+          title: "Password Reset Successful",
+          description: "You can now sign in with your new password.",
+        });
+        setShowResetPassword(false);
+        setResetData({ email: '', newPassword: '', confirmPassword: '' });
+      } else {
+        setError(data.message || 'Password reset failed');
+      }
+    } catch (error) {
+      setError('Password reset failed. Please try again.');
+      console.error('Password reset error:', error);
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   return (
@@ -233,6 +284,69 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
             }
           </Button>
         </form>
+
+        {mode === 'signin' && (
+          <div className="mt-4 text-center">
+            <Button
+              variant="link"
+              onClick={() => setShowResetPassword(!showResetPassword)}
+              className="text-sm text-blue-600"
+            >
+              {showResetPassword ? 'Back to Sign In' : 'Forgot Password?'}
+            </Button>
+          </div>
+        )}
+
+        {showResetPassword && mode === 'signin' && (
+          <Card className="mt-4 border-blue-200">
+            <CardHeader>
+              <CardTitle className="text-lg">Reset Password</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div>
+                  <Label htmlFor="reset-email">Email Address</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    value={resetData.email}
+                    onChange={(e) => setResetData(prev => ({ ...prev, email: e.target.value }))}
+                    required
+                    placeholder="Enter your email address"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="reset-new-password">New Password</Label>
+                  <Input
+                    id="reset-new-password"
+                    type="password"
+                    value={resetData.newPassword}
+                    onChange={(e) => setResetData(prev => ({ ...prev, newPassword: e.target.value }))}
+                    required
+                    placeholder="Enter new password"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="reset-confirm-password">Confirm New Password</Label>
+                  <Input
+                    id="reset-confirm-password"
+                    type="password"
+                    value={resetData.confirmPassword}
+                    onChange={(e) => setResetData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                    required
+                    placeholder="Confirm new password"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={resetLoading}>
+                  {resetLoading ? 'Resetting Password...' : 'Reset Password'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="mt-4 text-center">
           <Button

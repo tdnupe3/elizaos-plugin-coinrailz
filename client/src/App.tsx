@@ -222,9 +222,9 @@ function Router() {
         {() => isLoading || !isAuthenticated ? <Landing /> : <MainMenu />}
       </Route>
       
-      {/* Dashboard route - same as authenticated main menu */}
+      {/* Dashboard route - redirect to main menu for now */}
       <Route path="/dashboard">
-        <Dashboard />
+        {() => isAuthenticated ? <MainMenu /> : <Dashboard />}
       </Route>
       
       {/* Authenticated routes */}

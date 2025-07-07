@@ -136,13 +136,19 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex space-x-4">
+              <Button className="bg-blue-600 hover:bg-blue-700" asChild>
+                <Link href="/">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  All Services
+                </Link>
+              </Button>
               <Button variant="outline" asChild>
                 <Link href="/p2p-transfer">
                   <Send className="h-4 w-4 mr-2" />
                   Send Money
                 </Link>
               </Button>
-              <Button asChild>
+              <Button variant="outline" asChild>
                 <Link href="/ai-marketplace">
                   <Zap className="h-4 w-4 mr-2" />
                   AI Marketplace

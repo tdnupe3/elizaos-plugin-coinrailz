@@ -86,7 +86,7 @@ export default function MainMenu() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                Welcome back, {user?.firstName || 'User'}!
+                Welcome back, {user && (user as any).firstName ? (user as any).firstName : 'User'}!
               </h1>
               <p className="text-gray-600 mt-1">Your complete fintech platform - choose an action below</p>
             </div>
@@ -122,6 +122,22 @@ export default function MainMenu() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Referral Section - Make it easy to find */}
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-purple-900 mb-2">Earn $5 for Each Friend</h2>
+              <p className="text-purple-700 text-sm">Share your referral link and earn rewards when friends join</p>
+            </div>
+            <Button 
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              onClick={() => setLocation('/referrals')}
+            >
+              Get Referral Link
+            </Button>
+          </div>
         </div>
 
         {/* Platform Overview */}

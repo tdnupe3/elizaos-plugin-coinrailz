@@ -29,6 +29,26 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
     lastName: ''
   });
   const [error, setError] = useState('');
+  
+  // Password validation helper
+  const validatePassword = (password: string) => {
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasLowercase = /[a-z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSpecialChar = /[@$!%*?&]/.test(password);
+    const hasMinLength = password.length >= 8;
+    
+    return {
+      hasUppercase,
+      hasLowercase,
+      hasNumber,
+      hasSpecialChar,
+      hasMinLength,
+      isValid: hasUppercase && hasLowercase && hasNumber && hasSpecialChar && hasMinLength
+    };
+  };
+  
+  const passwordValidation = mode === 'signup' ? validatePassword(formData.password) : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,16 +177,37 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
               disabled={isLoading}
             />
             {mode === 'signup' && (
-              <div className="text-sm text-gray-500 space-y-1">
-                <p className="font-medium">Password requirements:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li>At least 8 characters long</li>
-                  <li>Must contain uppercase letter (A-Z)</li>
-                  <li>Must contain lowercase letter (a-z)</li>
-                  <li>Must contain number (0-9)</li>
-                  <li>Must contain special character (@$!%*?&)</li>
-                </ul>
-                <p className="text-green-600 font-medium text-xs">Example: MyPass123!</p>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Password requirements:</p>
+                <div className="space-y-1 text-xs">
+                  <div className={`flex items-center space-x-2 ${passwordValidation?.hasMinLength ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>{passwordValidation?.hasMinLength ? '✓' : '✗'}</span>
+                    <span>At least 8 characters</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordValidation?.hasUppercase ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>{passwordValidation?.hasUppercase ? '✓' : '✗'}</span>
+                    <span>One uppercase letter (A-Z)</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordValidation?.hasLowercase ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>{passwordValidation?.hasLowercase ? '✓' : '✗'}</span>
+                    <span>One lowercase letter (a-z)</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordValidation?.hasNumber ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>{passwordValidation?.hasNumber ? '✓' : '✗'}</span>
+                    <span>One number (0-9)</span>
+                  </div>
+                  <div className={`flex items-center space-x-2 ${passwordValidation?.hasSpecialChar ? 'text-green-600' : 'text-red-600'}`}>
+                    <span>{passwordValidation?.hasSpecialChar ? '✓' : '✗'}</span>
+                    <span>One special character (@$!%*?&)</span>
+                  </div>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                  <p className="text-xs text-blue-800 font-medium">Examples that work:</p>
+                  <p className="text-xs text-blue-600">MyPass123! • SecureKey2025@ • CoinRailz$123</p>
+                </div>
+                {passwordValidation?.isValid && (
+                  <p className="text-green-600 font-medium text-xs">✓ Password meets all requirements!</p>
+                )}
               </div>
             )}
           </div>

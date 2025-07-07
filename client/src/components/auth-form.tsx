@@ -52,7 +52,7 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (response.ok && data.success) {
         // Store authentication token for login
         if (mode === 'signin' && data.token) {
           localStorage.setItem('auth_token', data.token);
@@ -71,7 +71,12 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
           setLocation('/dashboard');
         }
       } else {
-        setError(data.message || `${mode === 'signup' ? 'Registration' : 'Login'} failed`);
+        // Handle specific validation errors
+        if (data.message && data.message.includes('Password must contain')) {
+          setError('Password does not meet requirements. Please check the password rules below.');
+        } else {
+          setError(data.message || `${mode === 'signup' ? 'Registration' : 'Login'} failed`);
+        }
       }
     } catch (error) {
       setError(`${mode === 'signup' ? 'Registration' : 'Login'} failed. Please try again.`);
@@ -152,9 +157,17 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
               disabled={isLoading}
             />
             {mode === 'signup' && (
-              <p className="text-sm text-gray-500">
-                Password must be at least 8 characters long
-              </p>
+              <div className="text-sm text-gray-500 space-y-1">
+                <p className="font-medium">Password requirements:</p>
+                <ul className="list-disc list-inside space-y-1 text-xs">
+                  <li>At least 8 characters long</li>
+                  <li>Must contain uppercase letter (A-Z)</li>
+                  <li>Must contain lowercase letter (a-z)</li>
+                  <li>Must contain number (0-9)</li>
+                  <li>Must contain special character (@$!%*?&)</li>
+                </ul>
+                <p className="text-green-600 font-medium text-xs">Example: MyPass123!</p>
+              </div>
             )}
           </div>
 

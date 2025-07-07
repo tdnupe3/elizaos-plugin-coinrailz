@@ -21,6 +21,9 @@ interface AuthFormProps {
 export function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  
+  // Debug: Log when component renders
+  console.log('AuthForm rendering with mode:', mode);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -49,6 +52,11 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
   };
   
   const passwordValidation = mode === 'signup' ? validatePassword(formData.password) : null;
+  
+  // Debug log to check if validation is working
+  if (mode === 'signup') {
+    console.log('Password validation:', passwordValidation);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,9 +185,9 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
               disabled={isLoading}
             />
             {mode === 'signup' && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Password requirements:</p>
-                <div className="space-y-1 text-xs">
+              <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 space-y-3">
+                <p className="text-lg font-bold text-yellow-800">🔒 Password Requirements:</p>
+                <div className="space-y-2 text-sm">
                   <div className={`flex items-center space-x-2 ${passwordValidation?.hasMinLength ? 'text-green-600' : 'text-red-600'}`}>
                     <span>{passwordValidation?.hasMinLength ? '✓' : '✗'}</span>
                     <span>At least 8 characters</span>

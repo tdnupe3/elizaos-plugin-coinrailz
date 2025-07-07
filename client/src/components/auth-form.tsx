@@ -102,6 +102,8 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
         // Handle specific validation errors
         if (data.message && data.message.includes('Password must contain')) {
           setError('Password does not meet requirements. Please check the password rules below.');
+        } else if (mode === 'signup' && response.status === 409) {
+          setError('This email already has an account. Please sign in instead or use a different email.');
         } else {
           setError(data.message || `${mode === 'signup' ? 'Registration' : 'Login'} failed`);
         }

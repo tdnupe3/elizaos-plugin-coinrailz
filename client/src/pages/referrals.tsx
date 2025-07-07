@@ -14,20 +14,20 @@ export default function Referrals() {
   const { toast } = useToast();
 
   const { data: referralStats, isLoading } = useQuery({
-    queryKey: ["/api/referrals/stats"],
+    queryKey: ["/api/referrals/my-stats"],
   });
 
   // Type-safe access to referral stats
   const stats = referralStats || {};
 
   const generateCodeMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/referrals/generate-code"),
+    mutationFn: () => apiRequest("POST", "/api/referrals/generate-link"),
     onSuccess: (response) => {
       toast({
         title: "Referral Code Generated",
         description: "Your new referral code is ready to share!",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/referrals/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/referrals/my-stats"] });
     },
     onError: (error: any) => {
       toast({
@@ -40,14 +40,14 @@ export default function Referrals() {
 
   const applyReferralMutation = useMutation({
     mutationFn: (referralCode: string) =>
-      apiRequest("POST", "/api/referrals/apply", { referralCode }),
+      apiRequest("POST", "/api/referrals/process-signup", { referralCode }),
     onSuccess: () => {
       toast({
         title: "Referral Applied",
         description: "You'll receive your bonus after your first transaction!",
       });
       setReferralCodeInput("");
-      queryClient.invalidateQueries({ queryKey: ["/api/referrals/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/referrals/my-stats"] });
     },
     onError: (error: any) => {
       toast({
@@ -108,7 +108,7 @@ export default function Referrals() {
               <Sparkles className="h-8 w-8 text-purple-500 animate-pulse" />
             </div>
             <p className="text-lg text-gray-600 dark:text-gray-300">
-              Earn $5 for every friend you refer to Coin Railz!
+              Earn commission for every friend you refer to Coin Railz!
             </p>
             <div className="flex items-center justify-center space-x-1 text-emerald-600">
               <Star className="h-4 w-4 fill-current" />

@@ -47,7 +47,7 @@ export default function MainMenu() {
     {
       id: 'referrals',
       title: 'Referrals',
-      description: 'Earn $5 for each friend',
+      description: 'Earn commission for each friend',
       icon: Users,
       color: 'bg-purple-500 hover:bg-purple-600',
       route: '/referrals'
@@ -128,7 +128,7 @@ export default function MainMenu() {
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-6 mb-6">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-purple-900 mb-2">Earn $5 for Each Friend</h2>
+              <h2 className="text-lg font-semibold text-purple-900 mb-2">Earn Commission for Each Friend</h2>
               <p className="text-purple-700 text-sm">Share your referral link and earn rewards when friends join</p>
             </div>
             <Button 

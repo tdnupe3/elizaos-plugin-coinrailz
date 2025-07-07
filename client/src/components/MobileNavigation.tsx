@@ -77,7 +77,7 @@ export default function MobileNavigation() {
       title: 'Referrals',
       icon: Users,
       route: '/referrals',
-      badge: '$5',
+      badge: 'Commission',
     },
   ];
 

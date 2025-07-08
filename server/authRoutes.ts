@@ -223,8 +223,32 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Logout endpoint
+  // Logout endpoint (GET - for frontend redirects)
+  app.get('/api/logout', (req, res) => {
+    // Clear any session data (if using sessions)
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction error:', err);
+        }
+      });
+    }
+    
+    // Redirect to home page after logout
+    res.redirect('/');
+  });
+
+  // Logout endpoint (POST - for API calls)
   app.post('/api/auth/logout', (req, res) => {
+    // Clear any session data (if using sessions)
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction error:', err);
+        }
+      });
+    }
+    
     res.json({
       success: true,
       message: 'Logged out successfully'

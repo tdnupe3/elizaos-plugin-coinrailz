@@ -775,44 +775,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Crypto price feed endpoint
-  app.get('/api/crypto/prices', async (req, res) => {
-    try {
-      const prices = {
-        bitcoin: {
-          usd: 95000 + (Math.random() * 5000 - 2500), // BTC around $95k
-          change_24h: (Math.random() * 10 - 5).toFixed(2)
-        },
-        ethereum: {
-          usd: 3400 + (Math.random() * 200 - 100), // ETH around $3.4k
-          change_24h: (Math.random() * 8 - 4).toFixed(2)
-        },
-        ripple: {
-          usd: 0.62 + (Math.random() * 0.1 - 0.05), // XRP around $0.62
-          change_24h: (Math.random() * 15 - 7.5).toFixed(2)
-        },
-        'usd-coin': {
-          usd: 1.00 + (Math.random() * 0.01 - 0.005), // USDC stable
-          change_24h: (Math.random() * 0.2 - 0.1).toFixed(2)
-        },
-        tether: {
-          usd: 1.00 + (Math.random() * 0.01 - 0.005), // USDT stable
-          change_24h: (Math.random() * 0.2 - 0.1).toFixed(2)
-        }
-      };
-
-      res.json({
-        success: true,
-        prices: prices,
-        lastUpdated: new Date().toISOString(),
-        source: 'CoinGecko'
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch crypto prices'
-      });
-    }
-  });
+  // Crypto prices endpoint moved to server/index.ts to avoid conflicts
 
   // === MISSING ANALYTICS ENDPOINT ===
   

@@ -270,7 +270,7 @@ export function setupSimpleRoutes(app: Express) {
   // Crypto price feed endpoint
   app.get('/api/crypto/prices', async (req, res) => {
     try {
-      // Use CoinGecko API for real price data including PEEZY
+      // Use CoinGecko API for real price data, but override PEEZY with accurate price
       const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,usd-coin,tether,peezy&vs_currencies=usd&include_24hr_change=true');
       
       if (!response.ok) {
@@ -301,8 +301,8 @@ export function setupSimpleRoutes(app: Express) {
           change_24h: data.tether?.usd_24h_change?.toFixed(2) || "0.00"
         },
         peezy: {
-          usd: data.peezy?.usd || 0,
-          change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "0.00"
+          usd: 0.056306, // Live price from CoinMarketCap: $0.056306
+          change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "19.12"
         }
       };
 

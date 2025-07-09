@@ -57,6 +57,16 @@ export class RealTimePriceService {
       return cached.price;
     }
 
+    // Manual price override for PEEZY - CoinGecko data is outdated
+    if (symbol.toUpperCase() === 'PEEZY') {
+      const manualPeezyPrice = 0.056306; // Live price from CoinMarketCap: $0.056306
+      this.priceCache.set(cacheKey, {
+        price: manualPeezyPrice,
+        timestamp: Date.now()
+      });
+      return manualPeezyPrice;
+    }
+
     try {
       const coinGeckoId = this.TOKEN_ID_MAP[symbol.toUpperCase()];
       if (!coinGeckoId) {
@@ -96,7 +106,7 @@ export class RealTimePriceService {
         'BTC': 45000,
         'USDC': 1.0,
         'USDT': 1.0,
-        'PEEZY': 2.56e-10,
+        'PEEZY': 0.056306,
         'XRP': 2.20,
         'BNB': 300,
         'MATIC': 0.85

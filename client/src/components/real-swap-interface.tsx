@@ -60,7 +60,7 @@ export function RealSwapInterface() {
         chainId: wallet.chainId || 1,
         slippage
       });
-      return response.json();
+      return response;
     },
     onSuccess: (data) => {
       if (data.success) {
@@ -314,17 +314,34 @@ export function RealSwapInterface() {
         {/* Slippage */}
         <div className="space-y-2">
           <Label htmlFor="slippage">Slippage Tolerance (%)</Label>
-          <Select value={slippage.toString()} onValueChange={(value) => setSlippage(parseFloat(value))}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1.0">1%</SelectItem>
-              <SelectItem value="2.5">2.5%</SelectItem>
-              <SelectItem value="5.0">5%</SelectItem>
-              <SelectItem value="10.0">10%</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex gap-2">
+            <Select value={slippage.toString()} onValueChange={(value) => setSlippage(parseFloat(value))}>
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">1%</SelectItem>
+                <SelectItem value="2.5">2.5%</SelectItem>
+                <SelectItem value="5">5%</SelectItem>
+                <SelectItem value="10">10%</SelectItem>
+                <SelectItem value="15">15%</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              placeholder="Custom"
+              min="0.1"
+              max="50"
+              step="0.1"
+              className="w-20"
+              onChange={(e) => {
+                const value = parseFloat(e.target.value);
+                if (!isNaN(value) && value >= 0.1 && value <= 50) {
+                  setSlippage(value);
+                }
+              }}
+            />
+          </div>
         </div>
 
         {/* Live Quote Display */}

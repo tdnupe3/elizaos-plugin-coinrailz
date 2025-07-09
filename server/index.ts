@@ -1473,15 +1473,34 @@ app.post('/api/dex/quote', (req, res) => {
     res.json({
       success: true,
       quote: {
-        fromToken,
-        toToken,
-        fromAmount: amount,
-        toAmount: (outputAmount - platformFee).toString(),
-        exchangeRate,
+        bestQuote: {
+          dex: 'Uniswap V3',
+          inputAmount: amount,
+          outputAmount: (outputAmount - platformFee).toString(),
+          exchangeRate,
+          priceImpact: 0.1,
+          gasEstimate: '150000',
+          route: [fromToken, toToken],
+          confidence: 95,
+          estimatedTime: '30 seconds'
+        },
+        allQuotes: [
+          {
+            dex: 'Uniswap V3',
+            outputAmount: (outputAmount - platformFee).toString(),
+            priceImpact: 0.1
+          },
+          {
+            dex: 'SushiSwap',
+            outputAmount: (outputAmount * 0.98 - platformFee).toString(),
+            priceImpact: 0.15
+          }
+        ],
         platformFee: platformFee.toString(),
-        estimatedGas: '150000',
-        protocols: ['uniswap_v3', 'sushiswap'],
-        priceImpact: 0.1
+        platformFeeUSD: (platformFee * 1).toFixed(2),
+        totalOutputAfterFees: (outputAmount - platformFee).toString(),
+        priceImpactWarning: outputAmount > 5000,
+        slippageWarning: slippage > 10
       }
     });
   } catch (error) {

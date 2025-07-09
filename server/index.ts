@@ -1460,11 +1460,15 @@ app.post('/api/dex/quote', (req, res) => {
     if (fromToken === 'ETH' && toToken === 'USDC') {
       exchangeRate = 2432;
     } else if (fromToken === 'PEEZY' && toToken === 'USDC') {
-      exchangeRate = 0.0012; // PEEZY to USD rate
+      exchangeRate = 2.56e-10; // PEEZY to USD rate (real CoinGecko rate)
     } else if (fromToken === 'ETH' && toToken === 'PEEZY') {
-      exchangeRate = 1666.67; // ETH to PEEZY rate
+      exchangeRate = 9.5e12; // ETH to PEEZY rate (much higher due to tiny PEEZY value)
     } else if (fromToken === 'PEEZY' && toToken === 'ETH') {
-      exchangeRate = 0.0006; // PEEZY to ETH rate
+      exchangeRate = 1.05e-13; // PEEZY to ETH rate
+    } else if (fromToken === 'USDC' && toToken === 'PEEZY') {
+      exchangeRate = 3.9e9; // USDC to PEEZY rate
+    } else if (fromToken === 'PEEZY' && toToken === 'USDT') {
+      exchangeRate = 2.56e-10; // PEEZY to USDT rate
     }
     
     const outputAmount = parseFloat(amount) * exchangeRate;

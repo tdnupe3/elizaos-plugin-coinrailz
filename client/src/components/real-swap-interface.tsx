@@ -315,9 +315,12 @@ export function RealSwapInterface() {
         <div className="space-y-2">
           <Label htmlFor="slippage">Slippage Tolerance (%)</Label>
           <div className="flex gap-2">
-            <Select value={slippage.toString()} onValueChange={(value) => setSlippage(parseFloat(value))}>
+            <Select 
+              value={[1, 2.5, 5, 10, 15].includes(slippage) ? slippage.toString() : ""} 
+              onValueChange={(value) => setSlippage(parseFloat(value))}
+            >
               <SelectTrigger className="flex-1">
-                <SelectValue />
+                <SelectValue placeholder="Select %" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">1%</SelectItem>
@@ -334,10 +337,13 @@ export function RealSwapInterface() {
               max="50"
               step="0.1"
               className="w-20"
+              value={![1, 2.5, 5, 10, 15].includes(slippage) ? slippage.toString() : ""}
               onChange={(e) => {
                 const value = parseFloat(e.target.value);
                 if (!isNaN(value) && value >= 0.1 && value <= 50) {
                   setSlippage(value);
+                } else if (e.target.value === "") {
+                  setSlippage(5); // Default back to 5%
                 }
               }}
             />

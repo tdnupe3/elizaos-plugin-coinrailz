@@ -102,6 +102,7 @@ const cryptoTokens = [
   { symbol: 'USDC', name: 'USD Coin', networks: ['ethereum', 'polygon', 'solana'] },
   { symbol: 'USDT', name: 'Tether', networks: ['ethereum', 'polygon', 'bsc'] },
   { symbol: 'WBTC', name: 'Wrapped Bitcoin', networks: ['ethereum'] },
+  { symbol: 'PEEZY', name: 'PEEZY Token', networks: ['ethereum'] },
 ];
 
 export default function CryptoTransferPage() {

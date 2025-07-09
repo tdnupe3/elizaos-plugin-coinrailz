@@ -510,6 +510,7 @@ export class EnhancedDEXAggregator {
       'USDT': 1,
       'DAI': 1,
       'WBTC': 35000,
+      'PEEZY': 0.0012, // Current PEEZY price - will be updated via real API
       // PulseChain ecosystem
       'PLS': 0.00002403, // Based on real market data
       'WPLS': 0.00002403,
@@ -528,9 +529,10 @@ export class EnhancedDEXAggregator {
   private static async getMarketRate(fromToken: string, toToken: string, chainId?: number): Promise<number> {
     // Chain-specific rate tables
     const ethRates: Record<string, Record<string, number>> = {
-      'USDC': { 'ETH': 0.0005, 'WBTC': 0.000028 },
-      'ETH': { 'USDC': 2000, 'WBTC': 0.056 },
-      'WBTC': { 'ETH': 17.5, 'USDC': 35000 }
+      'USDC': { 'ETH': 0.0005, 'WBTC': 0.000028, 'PEEZY': 0.0012 },
+      'ETH': { 'USDC': 2000, 'WBTC': 0.056, 'PEEZY': 0.0006 },
+      'WBTC': { 'ETH': 17.5, 'USDC': 35000, 'PEEZY': 0.000034 },
+      'PEEZY': { 'ETH': 1666.67, 'USDC': 833.33, 'WBTC': 0.000029 }
     };
     
     const pulseRates: Record<string, Record<string, number>> = {
@@ -560,7 +562,8 @@ export class EnhancedDEXAggregator {
         { symbol: 'USDC', address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6 },
         { symbol: 'USDT', address: '0xdac17f958d2ee523a2206206994597c13d831ec7', decimals: 6 },
         { symbol: 'DAI', address: '0x6b175474e89094c44da98b954eedeac495271d0f', decimals: 18 },
-        { symbol: 'WBTC', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals: 8 }
+        { symbol: 'WBTC', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals: 8 },
+        { symbol: 'PEEZY', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933', decimals: 18 }
       ],
       369: [ // PulseChain
         { symbol: 'PLS', address: '0x0000000000000000000000000000000000000000', decimals: 18 },

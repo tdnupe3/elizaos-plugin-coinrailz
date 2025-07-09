@@ -14,6 +14,7 @@ import { registerRoutes } from "./routes";
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
+import { peezyService } from './services/peezyIntegrationService';
 import rateLimitImport from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
@@ -279,7 +280,8 @@ app.get('/api/dex/tokens', (req, res) => {
       { symbol: 'ETH', name: 'Ethereum', address: '0x0000000000000000000000000000000000000000' },
       { symbol: 'USDC', name: 'USD Coin', address: '0xA0b86a33E6441E23B0F63E1ef1C07b3b1f24d13D' },
       { symbol: 'USDT', name: 'Tether USD', address: '0xdAC17F958D2ee523a2206206994597C13D831ec7' },
-      { symbol: 'BTC', name: 'Bitcoin', address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' }
+      { symbol: 'BTC', name: 'Bitcoin', address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599' },
+      { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933' }
     ]
   });
 });
@@ -1176,26 +1178,39 @@ app.get('/api/wallet/balance/multi', async (req, res) => {
 // Crypto prices endpoint
 app.get('/api/crypto/prices', async (req, res) => {
   try {
+    // Use CoinGecko API for real price data including PEEZY
+    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,usd-coin,tether,peezy&vs_currencies=usd&include_24hr_change=true');
+    
+    if (!response.ok) {
+      throw new Error(`CoinGecko API error: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
     const prices = {
       bitcoin: {
-        usd: 95000 + (Math.random() * 5000 - 2500),
-        change_24h: (Math.random() * 10 - 5).toFixed(2)
+        usd: data.bitcoin?.usd || 0,
+        change_24h: data.bitcoin?.usd_24h_change?.toFixed(2) || "0.00"
       },
       ethereum: {
-        usd: 3400 + (Math.random() * 200 - 100),
-        change_24h: (Math.random() * 8 - 4).toFixed(2)
+        usd: data.ethereum?.usd || 0,
+        change_24h: data.ethereum?.usd_24h_change?.toFixed(2) || "0.00"
       },
       ripple: {
-        usd: 0.62 + (Math.random() * 0.1 - 0.05),
-        change_24h: (Math.random() * 15 - 7.5).toFixed(2)
+        usd: data.ripple?.usd || 0,
+        change_24h: data.ripple?.usd_24h_change?.toFixed(2) || "0.00"
       },
       'usd-coin': {
-        usd: 1.00 + (Math.random() * 0.01 - 0.005),
-        change_24h: (Math.random() * 0.2 - 0.1).toFixed(2)
+        usd: data['usd-coin']?.usd || 0,
+        change_24h: data['usd-coin']?.usd_24h_change?.toFixed(2) || "0.00"
       },
       tether: {
-        usd: 1.00 + (Math.random() * 0.01 - 0.005),
-        change_24h: (Math.random() * 0.2 - 0.1).toFixed(2)
+        usd: data.tether?.usd || 0,
+        change_24h: data.tether?.usd_24h_change?.toFixed(2) || "0.00"
+      },
+      peezy: {
+        usd: data.peezy?.usd || 0,
+        change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "0.00"
       }
     };
 
@@ -1203,7 +1218,7 @@ app.get('/api/crypto/prices', async (req, res) => {
       success: true,
       prices: prices,
       lastUpdated: new Date().toISOString(),
-      source: 'Live Market Data'
+      source: 'CoinGecko API'
     });
   } catch (error) {
     res.status(500).json({
@@ -1440,8 +1455,18 @@ app.post('/api/dex/quote', (req, res) => {
       });
     }
 
-    // Simulate realistic quote response
-    const exchangeRate = fromToken === 'ETH' && toToken === 'USDC' ? 2432 : 1;
+    // Simulate realistic quote response with PEEZY support
+    let exchangeRate = 1;
+    if (fromToken === 'ETH' && toToken === 'USDC') {
+      exchangeRate = 2432;
+    } else if (fromToken === 'PEEZY' && toToken === 'USDC') {
+      exchangeRate = 0.0012; // PEEZY to USD rate
+    } else if (fromToken === 'ETH' && toToken === 'PEEZY') {
+      exchangeRate = 1666.67; // ETH to PEEZY rate
+    } else if (fromToken === 'PEEZY' && toToken === 'ETH') {
+      exchangeRate = 0.0006; // PEEZY to ETH rate
+    }
+    
     const outputAmount = parseFloat(amount) * exchangeRate;
     const platformFee = outputAmount * 0.0075; // 0.75% platform fee
     
@@ -1612,6 +1637,72 @@ app.get('/api/data/enterprise/sample', (req, res) => {
       }
     }
   });
+});
+
+// PEEZY Token Integration Endpoints
+app.get('/api/peezy/info', async (req, res) => {
+  try {
+    const tokenInfo = await peezyService.getPeezyTokenInfo();
+    res.json({
+      success: true,
+      tokenInfo
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch PEEZY token info'
+    });
+  }
+});
+
+app.get('/api/peezy/price', async (req, res) => {
+  try {
+    const price = await peezyService.getPeezyPrice();
+    res.json({
+      success: true,
+      price,
+      currency: 'USD',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch PEEZY price'
+    });
+  }
+});
+
+app.get('/api/peezy/balance/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    const balance = await peezyService.getPeezyBalance(address);
+    res.json({
+      success: true,
+      address,
+      balance,
+      symbol: 'PEEZY'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch PEEZY balance'
+    });
+  }
+});
+
+app.get('/api/peezy/market-stats', async (req, res) => {
+  try {
+    const marketStats = await peezyService.getPeezyMarketStats();
+    res.json({
+      success: true,
+      marketStats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch PEEZY market stats'
+    });
+  }
 });
 
 // Dashboard endpoint for authentication testing

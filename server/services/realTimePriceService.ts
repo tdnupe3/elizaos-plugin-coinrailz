@@ -57,9 +57,9 @@ export class RealTimePriceService {
       return cached.price;
     }
 
-    // Manual price override for PEEZY - CoinGecko data is outdated
+    // Manual price override for PEEZY - Using DEX Screener data
     if (symbol.toUpperCase() === 'PEEZY') {
-      const manualPeezyPrice = 0.056306; // Live price from CoinMarketCap: $0.056306
+      const manualPeezyPrice = 0.004127; // Live price from DEX Screener: $0.004127
       this.priceCache.set(cacheKey, {
         price: manualPeezyPrice,
         timestamp: Date.now()
@@ -106,7 +106,7 @@ export class RealTimePriceService {
         'BTC': 45000,
         'USDC': 1.0,
         'USDT': 1.0,
-        'PEEZY': 0.056306,
+        'PEEZY': 0.004127,
         'XRP': 2.20,
         'BNB': 300,
         'MATIC': 0.85

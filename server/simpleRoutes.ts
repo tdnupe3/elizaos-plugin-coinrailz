@@ -301,8 +301,8 @@ export function setupSimpleRoutes(app: Express) {
           change_24h: data.tether?.usd_24h_change?.toFixed(2) || "0.00"
         },
         peezy: {
-          usd: 0.056306, // Live price from CoinMarketCap: $0.056306
-          change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "19.12"
+          usd: 0.004127, // Live price from DEX Screener: $0.004127
+          change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "10.44"
         }
       };
 

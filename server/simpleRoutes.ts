@@ -301,7 +301,7 @@ export function setupSimpleRoutes(app: Express) {
           change_24h: data.tether?.usd_24h_change?.toFixed(2) || "0.00"
         },
         peezy: {
-          usd: 0.056233, // Live price from DEX Screener Ethereum: $0.056233
+          usd: 0.06234, // Live price from DEX Screener Ethereum: $0.06234
           change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "18.05"
         }
       };

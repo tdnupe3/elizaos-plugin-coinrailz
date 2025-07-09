@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useWallet } from "@/hooks/useWallet";
+import peezyMascot from "@assets/peezy logo_1752028927702.jpg";
 
 interface SwapQuote {
   bestQuote: {
@@ -230,7 +231,22 @@ export function RealSwapInterface() {
               <SelectContent>
                 {supportedTokens.map((token) => (
                   <SelectItem key={token.symbol} value={token.symbol}>
-                    {token.symbol}
+                    <div className="flex items-center gap-2">
+                      {token.symbol === 'PEEZY' ? (
+                        <img 
+                          src={peezyMascot} 
+                          alt="PEEZY" 
+                          className="w-4 h-4 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">
+                            {token.symbol.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                      <span>{token.symbol}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -269,7 +285,22 @@ export function RealSwapInterface() {
               <SelectContent>
                 {supportedTokens.map((token) => (
                   <SelectItem key={token.symbol} value={token.symbol}>
-                    {token.symbol}
+                    <div className="flex items-center gap-2">
+                      {token.symbol === 'PEEZY' ? (
+                        <img 
+                          src={peezyMascot} 
+                          alt="PEEZY" 
+                          className="w-4 h-4 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">
+                            {token.symbol.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                      <span>{token.symbol}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>

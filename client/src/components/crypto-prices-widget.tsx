@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, Clock } from "@/lib/icons";
 import { apiRequest } from "@/lib/queryClient";
+import peezyMascot from "@assets/peezy logo_1752028927702.jpg";
+import peezyBanner from "@assets/peezy_banner-nobg_1752028927706.png";
 
 interface CryptoPriceData {
   usd: number;
@@ -132,12 +134,24 @@ export function CryptoPricesWidget() {
             const info = cryptoInfo[key as keyof typeof cryptoInfo];
             if (!info) return null;
 
+            const isPeezy = key === 'peezy';
+
             return (
               <div key={key} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 ${info.color} rounded-full flex items-center justify-center`}>
-                    <span className="text-white font-bold text-xs">{info.symbol}</span>
-                  </div>
+                  {isPeezy ? (
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
+                      <img 
+                        src={peezyMascot} 
+                        alt="PEEZY Mascot" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className={`w-8 h-8 ${info.color} rounded-full flex items-center justify-center`}>
+                      <span className="text-white font-bold text-xs">{info.symbol}</span>
+                    </div>
+                  )}
                   <div>
                     <p className="font-medium">{info.name}</p>
                     <p className="text-sm text-gray-500">{info.symbol}</p>

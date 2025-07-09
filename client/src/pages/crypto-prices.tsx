@@ -7,6 +7,8 @@ import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import peezyMascot from "@assets/peezy logo_1752028927702.jpg";
+import peezyBanner from "@assets/peezy_banner-nobg_1752028927706.png";
 
 interface CryptoPriceData {
   usd: number;
@@ -225,9 +227,19 @@ export default function CryptoPricesPage() {
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-12 h-12 ${info.color} rounded-full flex items-center justify-center`}>
-                        <span className="text-white font-bold text-sm">{info.symbol}</span>
-                      </div>
+                      {isPeezy ? (
+                        <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center">
+                          <img 
+                            src={peezyMascot} 
+                            alt="PEEZY Mascot" 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className={`w-12 h-12 ${info.color} rounded-full flex items-center justify-center`}>
+                          <span className="text-white font-bold text-sm">{info.symbol}</span>
+                        </div>
+                      )}
                       <div>
                         <h3 className="font-semibold text-lg">{info.name}</h3>
                         <p className="text-sm text-gray-500">{info.symbol}</p>
@@ -252,8 +264,15 @@ export default function CryptoPricesPage() {
                     <p className="text-sm text-gray-600">{info.description}</p>
                     
                     {isPeezy && peezyInfo?.success && (
-                      <div className="mt-4 p-3 bg-purple-50 rounded-lg">
-                        <h4 className="font-medium text-purple-900 mb-2">Token Details</h4>
+                      <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-orange-50 rounded-lg border border-purple-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <img 
+                            src={peezyBanner} 
+                            alt="PEEZY Logo" 
+                            className="h-6 w-auto"
+                          />
+                          <span className="text-sm font-medium text-purple-900">Token Details</span>
+                        </div>
                         <div className="space-y-1 text-xs text-purple-700">
                           <p>Contract: {peezyInfo.tokenInfo.address.slice(0, 6)}...{peezyInfo.tokenInfo.address.slice(-4)}</p>
                           <p>Decimals: {peezyInfo.tokenInfo.decimals}</p>

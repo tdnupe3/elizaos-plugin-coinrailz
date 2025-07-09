@@ -1444,7 +1444,7 @@ app.get('/api/xrp/network-status', (req, res) => {
 });
 
 // DEX functionality endpoints
-app.post('/api/dex/quote', (req, res) => {
+app.post('/api/dex/quote', async (req, res) => {
   try {
     const { fromToken, toToken, amount, chainId, slippage } = req.body;
     
@@ -1455,62 +1455,26 @@ app.post('/api/dex/quote', (req, res) => {
       });
     }
 
-    // Simulate realistic quote response with PEEZY support
-    let exchangeRate = 1;
-    if (fromToken === 'ETH' && toToken === 'USDC') {
-      exchangeRate = 2432;
-    } else if (fromToken === 'PEEZY' && toToken === 'USDC') {
-      exchangeRate = 2.56e-10; // PEEZY to USD rate (real CoinGecko rate)
-    } else if (fromToken === 'ETH' && toToken === 'PEEZY') {
-      exchangeRate = 9.5e12; // ETH to PEEZY rate (much higher due to tiny PEEZY value)
-    } else if (fromToken === 'PEEZY' && toToken === 'ETH') {
-      exchangeRate = 1.05e-13; // PEEZY to ETH rate
-    } else if (fromToken === 'USDC' && toToken === 'PEEZY') {
-      exchangeRate = 3.9e9; // USDC to PEEZY rate
-    } else if (fromToken === 'PEEZY' && toToken === 'USDT') {
-      exchangeRate = 2.56e-10; // PEEZY to USDT rate
-    }
+    // Import DEX aggregator service
+    const { dexAggregatorService } = await import('./services/dexAggregatorService');
     
-    const outputAmount = parseFloat(amount) * exchangeRate;
-    const platformFee = outputAmount * 0.0075; // 0.75% platform fee
+    // Get aggregated quote from multiple DEX sources
+    const aggregatedQuote = await dexAggregatorService.getAggregatedQuote(
+      fromToken,
+      toToken,
+      amount,
+      slippage || 5
+    );
     
     res.json({
       success: true,
-      quote: {
-        bestQuote: {
-          dex: 'Uniswap V3',
-          inputAmount: amount,
-          outputAmount: (outputAmount - platformFee).toString(),
-          exchangeRate,
-          priceImpact: 0.1,
-          gasEstimate: '150000',
-          route: [fromToken, toToken],
-          confidence: 95,
-          estimatedTime: '30 seconds'
-        },
-        allQuotes: [
-          {
-            dex: 'Uniswap V3',
-            outputAmount: (outputAmount - platformFee).toString(),
-            priceImpact: 0.1
-          },
-          {
-            dex: 'SushiSwap',
-            outputAmount: (outputAmount * 0.98 - platformFee).toString(),
-            priceImpact: 0.15
-          }
-        ],
-        platformFee: platformFee.toString(),
-        platformFeeUSD: (platformFee * 1).toFixed(2),
-        totalOutputAfterFees: (outputAmount - platformFee).toString(),
-        priceImpactWarning: outputAmount > 5000,
-        slippageWarning: slippage > 10
-      }
+      quote: aggregatedQuote
     });
   } catch (error) {
+    console.error('DEX quote error:', error);
     res.status(500).json({
       success: false,
-      error: 'Quote generation failed'
+      error: error.message || 'Quote generation failed'
     });
   }
 });

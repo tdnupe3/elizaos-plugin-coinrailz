@@ -75,6 +75,7 @@ const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 const Documentation = lazy(() => import("@/pages/Documentation"));
+const CryptoPrices = lazy(() => import("@/pages/crypto-prices"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -156,6 +157,12 @@ function Router() {
       </Route>
       <Route path="/transfer">
         {() => <LazyLoadWrapper><CryptoTransferPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/crypto-prices">
+        {() => <LazyLoadWrapper><CryptoPrices /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/prices">
+        {() => <LazyLoadWrapper><CryptoPrices /></LazyLoadWrapper>}
       </Route>
       {/* XRP Ecosystem Hub */}
       <Route path="/xrp-ecosystem">

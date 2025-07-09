@@ -59,7 +59,7 @@ export class RealTimePriceService {
 
     // Manual price override for PEEZY - Using DEX Screener data
     if (symbol.toUpperCase() === 'PEEZY') {
-      const manualPeezyPrice = 0.004127; // Live price from DEX Screener: $0.004127
+      const manualPeezyPrice = 0.056233; // Live price from DEX Screener Ethereum: $0.056233
       this.priceCache.set(cacheKey, {
         price: manualPeezyPrice,
         timestamp: Date.now()
@@ -106,7 +106,7 @@ export class RealTimePriceService {
         'BTC': 45000,
         'USDC': 1.0,
         'USDT': 1.0,
-        'PEEZY': 0.004127,
+        'PEEZY': 0.056233,
         'XRP': 2.20,
         'BNB': 300,
         'MATIC': 0.85

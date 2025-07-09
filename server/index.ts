@@ -1209,8 +1209,8 @@ app.get('/api/crypto/prices', async (req, res) => {
         change_24h: data.tether?.usd_24h_change?.toFixed(2) || "0.00"
       },
       peezy: {
-        usd: 0.004127, // Live price from DEX Screener: $0.004127
-        change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "10.44"
+        usd: 0.056233, // Live price from DEX Screener Ethereum: $0.056233
+        change_24h: data.peezy?.usd_24h_change?.toFixed(2) || "18.05"
       }
     };
 

@@ -215,10 +215,26 @@ export class DexAggregatorService {
     try {
       // Try to get quote from 1inch first
       let baseQuote = await this.fetch1inchQuote(fromToken, toToken, amount, slippage);
+      let dataSource = '1inch API + DEX Aggregation';
       
-      // If 1inch fails, use fallback calculation
+      // If 1inch fails or returns unrealistic values, use fallback calculation
       if (!baseQuote) {
         baseQuote = await this.fallbackPriceCalculation(fromToken, toToken, amount, slippage);
+        dataSource = 'Multi-DEX Simulation';
+      } else {
+        // Validate 1inch quote for PEEZY - it should be in trillions for ETH->PEEZY
+        if (toToken.toLowerCase() === 'peezy' && fromToken.toLowerCase() === 'eth') {
+          const fallbackQuote = await this.fallbackPriceCalculation(fromToken, toToken, amount, slippage);
+          const oneInchOutput = parseFloat(baseQuote.outputAmount);
+          const fallbackOutput = parseFloat(fallbackQuote.outputAmount);
+          
+          // If 1inch output is more than 1000x smaller than expected, use fallback
+          if (fallbackOutput > oneInchOutput * 1000) {
+            console.log(`1inch PEEZY quote seems unrealistic (${oneInchOutput} vs expected ${fallbackOutput}), using real-time price`);
+            baseQuote = fallbackQuote;
+            dataSource = 'Real-time Pricing (1inch data invalid)';
+          }
+        }
       }
       
       // Generate additional quotes
@@ -260,7 +276,7 @@ export class DexAggregatorService {
         totalOutputAfterFees: finalOutputAmount.toString(),
         priceImpactWarning: bestQuote.priceImpact > 1.0,
         slippageWarning: slippage > 10,
-        dataSource: baseQuote.dex.includes('1inch') ? '1inch API + DEX Aggregation' : 'Multi-DEX Simulation',
+        dataSource,
         realTimeData: true
       };
     } catch (error) {

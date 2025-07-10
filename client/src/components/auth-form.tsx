@@ -30,6 +30,7 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    confirmPassword: '',
     firstName: '',
     lastName: ''
   });
@@ -71,9 +72,16 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
     setError('');
 
     try {
+      // Validation for signup
+      if (mode === 'signup' && formData.password !== formData.confirmPassword) {
+        setError('Passwords do not match');
+        setIsLoading(false);
+        return;
+      }
+
       const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login';
       const payload = mode === 'signup' 
-        ? formData 
+        ? { email: formData.email, password: formData.password, firstName: formData.firstName, lastName: formData.lastName }
         : { email: formData.email, password: formData.password };
 
       const response = await fetch(endpoint, {
@@ -109,8 +117,10 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
         // Handle specific validation errors
         if (data.message && data.message.includes('Password must contain')) {
           setError('Password does not meet requirements. Please check the password rules below.');
-        } else if (mode === 'signup' && response.status === 409) {
+        } else if (mode === 'signup' && (response.status === 409 || data.error === 'Account exists')) {
           setError('This email already has an account. Please sign in instead or use a different email.');
+        } else if (response.status === 400 && data.error === 'Validation failed') {
+          setError(`Registration failed: ${data.message}. Please check your information and try again.`);
         } else {
           setError(data.message || `${mode === 'signup' ? 'Registration' : 'Login'} failed`);
         }
@@ -272,6 +282,24 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
               </div>
             )}
           </div>
+
+          {mode === 'signup' && (
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                required
+                minLength={8}
+                disabled={isLoading}
+              />
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-red-600 text-sm">Passwords do not match</p>
+              )}
+            </div>
+          )}
 
           <Button 
             type="submit" 

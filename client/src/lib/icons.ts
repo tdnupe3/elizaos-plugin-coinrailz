@@ -23,6 +23,7 @@ export {
   Calendar,
   Check,
   CheckCircle,
+  CheckCircle2,
   ChevronDown,
   ChevronLeft,
   ChevronRight,

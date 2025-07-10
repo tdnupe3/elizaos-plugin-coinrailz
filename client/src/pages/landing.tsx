@@ -71,9 +71,9 @@ export default function Landing() {
                 <div>
                   <h3 className="font-semibold text-purple-800 mb-2">💰 Ultra-Low Fees</h3>
                   <ul className="text-sm text-gray-700 space-y-1">
-                    <li>• XRP payments: ~$0.0002 cost</li>
-                    <li>• P2P transfers: 1-2.5% fee</li>
-                    <li>• DEX trades: 0.75% platform fee</li>
+                    <li>• XRP payments: Ultra-low cost</li>
+                    <li>• P2P transfers: Competitive rates</li>
+                    <li>• DEX trades: Best market prices</li>
                   </ul>
                 </div>
               </div>

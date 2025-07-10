@@ -15,7 +15,8 @@ import {
   Lock, 
   Clock, 
   DollarSign,
-  ArrowRight
+  ArrowRight,
+  BarChart3
 } from "@/lib/icons";
 
 interface XRPService {
@@ -65,10 +66,52 @@ export default function XRPEcosystemDashboard() {
   }, []);
 
   const xrpServices: XRPService[] = [
+    // DEX Trading Services - NEW
+    {
+      id: 'dex-trading',
+      title: 'DEX Trading',
+      description: 'Professional XRP DEX trading with advanced order types and real-time charts',
+      benefits: ['Native DEX integration', 'Advanced order book', 'Real-time trading'],
+      icon: TrendingUp,
+      status: 'active',
+      route: '/xrp-dex-trading',
+      color: 'bg-indigo-500'
+    },
+    {
+      id: 'token-explorer',
+      title: 'Token Explorer',
+      description: 'Discover and track XRP-based tokens with portfolio management',
+      benefits: ['Token discovery', 'Portfolio tracking', 'Real-time analytics'],
+      icon: DollarSign,
+      status: 'active',
+      route: '/xrp-token-explorer',
+      color: 'bg-cyan-500'
+    },
+    {
+      id: 'liquidity-dashboard',
+      title: 'Liquidity Dashboard',
+      description: 'Provide liquidity to XRP pairs and earn competitive yields',
+      benefits: ['Yield farming', 'LP token management', 'Impermanent loss tracking'],
+      icon: BarChart3,
+      status: 'active',
+      route: '/xrp-liquidity-dashboard',
+      color: 'bg-teal-500'
+    },
+    {
+      id: 'bridge-services',
+      title: 'Bridge Services',
+      description: 'Cross-chain bridges connecting XRP with Ethereum, BSC, and other networks',
+      benefits: ['Multi-chain support', 'Arbitrage opportunities', 'Wrapped tokens'],
+      icon: ArrowRight,
+      status: 'active',
+      route: '/xrp-bridge-services',
+      color: 'bg-violet-500'
+    },
+    // Core XRP Services
     {
       id: 'cross-border',
       title: 'Cross-Border Payments',
-      description: 'Send money globally in 3-5 seconds with ultra-low fees (~$0.0002)',
+      description: 'Send money globally in 3-5 seconds with ultra-low fees',
       benefits: ['Instant settlements', '99.9% cost reduction vs traditional banking', 'Real-time tracking'],
       icon: Globe,
       status: 'active',
@@ -94,16 +137,6 @@ export default function XRPEcosystemDashboard() {
       status: 'active',
       route: '/xrp-escrow-services',
       color: 'bg-purple-500'
-    },
-    {
-      id: 'liquidity-pools',
-      title: 'Liquidity Provision',
-      description: 'Provide liquidity and earn rewards on XRP transactions',
-      benefits: ['Passive income generation', 'Low impermanent loss', 'Automated market making'],
-      icon: TrendingUp,
-      status: 'beta',
-      route: '/xrp-liquidity-provision',
-      color: 'bg-green-500'
     },
     {
       id: 'wallet-services',

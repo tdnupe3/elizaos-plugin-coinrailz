@@ -80,6 +80,9 @@ if (pulseChainService.isEnabled()) {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Fix trust proxy for rate limiting
+app.set('trust proxy', 1);
+
 // Apply general API rate limiting to all /api routes
 app.use('/api', apiLimiter);
 

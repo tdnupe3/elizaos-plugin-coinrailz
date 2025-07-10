@@ -41,6 +41,13 @@ export const XRPEscrowServices = lazy(() => import('@/pages/xrp-escrow-services'
 export const XRPLiquidityProvision = lazy(() => import('@/pages/xrp-liquidity-provision'));
 export const XRPWalletManagement = lazy(() => import('@/pages/xrp-wallet-management'));
 export const XRPComplianceTools = lazy(() => import('@/pages/xrp-compliance-tools'));
+
+// XRP DEX Ecosystem Components - NEW
+export const XRPDEXTrading = lazy(() => import('@/pages/xrp-dex-trading'));
+export const XRPTokenExplorer = lazy(() => import('@/pages/xrp-token-explorer'));
+export const XRPLiquidityDashboard = lazy(() => import('@/pages/xrp-liquidity-dashboard'));
+export const XRPBridgeServices = lazy(() => import('@/pages/xrp-bridge-services'));
+
 export const SystemDashboard = lazy(() => import('@/pages/system-dashboard'));
 
 // Heavy components that are rarely used immediately

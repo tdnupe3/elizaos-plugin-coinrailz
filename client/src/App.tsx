@@ -46,7 +46,13 @@ import {
   XRPEscrowServices,
   XRPLiquidityProvision,
   XRPWalletManagement,
-  XRPComplianceTools
+  XRPComplianceTools,
+
+  // XRP DEX Components - NEW
+  XRPDEXTrading,
+  XRPTokenExplorer,
+  XRPLiquidityDashboard,
+  XRPBridgeServices
 
 } from "@/lib/lazyComponents";
 
@@ -185,6 +191,20 @@ function Router() {
       </Route>
       <Route path="/xrp-compliance-tools">
         {() => <LazyLoadWrapper><XRPComplianceTools /></LazyLoadWrapper>}
+      </Route>
+
+      {/* XRP DEX Services - NEW */}
+      <Route path="/xrp-dex-trading">
+        {() => <LazyLoadWrapper><XRPDEXTrading /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-token-explorer">
+        {() => <LazyLoadWrapper><XRPTokenExplorer /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-liquidity-dashboard">
+        {() => <LazyLoadWrapper><XRPLiquidityDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-bridge-services">
+        {() => <LazyLoadWrapper><XRPBridgeServices /></LazyLoadWrapper>}
       </Route>
 
       <Route path="/signup" component={SignUp} />

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail } from "@/lib/icons";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
+import { FunctionalSearch } from "@/components/functional-search";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -51,41 +52,57 @@ export default function Landing() {
               />
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Coin Railz</h1>
-            <p className="text-xl text-gray-600 mb-2">
+            <p className="text-xl text-gray-600 mb-6">
               Cross-Platform P2P Payments & Web3 Gateway
             </p>
-            <p className="text-sm text-gray-500 mb-8">
-              15+ blockchain networks including Base and BNB Chain • Send money globally • Buy/Sell • DEX aggregator • XRP Ledger FULLY Integrated • AI Agent Marketplace
-            </p>
-
-            {/* Action Buttons - 3 Row Layout */}
-            <div className="space-y-4 mb-8 max-w-2xl mx-auto">
-              {/* Row 1: Sign In and Sign Up */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button 
-                  onClick={handleSignIn}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
-                  size="lg"
-                >
-                  Sign In
-                </Button>
-
-                <Button 
-                  onClick={handleSignUp}
-                  variant="outline"
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
-                  size="lg"
-                >
-                  Sign Up
-                </Button>
+            
+            {/* Move Most Important Info to Top */}
+            <div className="bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-200 rounded-lg p-6 mb-8 max-w-2xl mx-auto">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🚀 What You Can Do Right Now</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                <div>
+                  <h3 className="font-semibold text-blue-800 mb-2">✅ Instant Access</h3>
+                  <ul className="text-sm text-gray-700 space-y-1">
+                    <li>• Send money globally in seconds</li>
+                    <li>• Trade crypto across 15+ networks</li>
+                    <li>• Access AI agent marketplace</li>
+                  </ul>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-purple-800 mb-2">💰 Ultra-Low Fees</h3>
+                  <ul className="text-sm text-gray-700 space-y-1">
+                    <li>• XRP payments: ~$0.0002 cost</li>
+                    <li>• P2P transfers: 1-2.5% fee</li>
+                    <li>• DEX trades: 0.75% platform fee</li>
+                  </ul>
+                </div>
               </div>
+            </div>
 
-              {/* Row 2: XRP Ecosystem and DEX Swap */}
+            {/* Primary Action: Single Sign Up Button */}
+            <div className="mb-8 max-w-md mx-auto">
+              <Button 
+                onClick={handleSignUp}
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+                size="lg"
+              >
+                🚀 Get Started Now - It's Free!
+              </Button>
+              <p className="text-center text-sm text-gray-500 mt-3">
+                Already have an account? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In</button>
+              </p>
+            </div>
+
+            {/* Functional Search */}
+            <FunctionalSearch />
+
+            {/* Secondary Actions - All Functional */}
+            <div className="space-y-4 mb-8 max-w-2xl mx-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button 
                   onClick={() => setLocation("/xrp-ecosystem")}
-                  variant="ghost"
-                  className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-4 text-lg font-medium border border-blue-200"
+                  variant="outline"
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
                   size="lg"
                 >
                   <Globe className="w-5 h-5 mr-2" />
@@ -94,20 +111,20 @@ export default function Landing() {
 
                 <Button 
                   onClick={() => setLocation("/swap")}
-                  variant="ghost"
-                  className="w-full text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-4 text-lg font-medium border border-purple-200"
+                  variant="outline"
+                  className="w-full border-purple-600 text-purple-600 hover:bg-purple-50 py-4 text-lg font-medium"
                   size="lg"
                 >
+                  <Repeat className="w-5 h-5 mr-2" />
                   DEX Swap
                 </Button>
               </div>
 
-              {/* Row 3: AI Marketplace and Demo Mode */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button 
                   onClick={() => setLocation("/ai-marketplace")}
-                  variant="ghost"
-                  className="w-full text-orange-600 hover:text-orange-800 hover:bg-orange-50 py-4 text-lg font-medium border border-orange-200"
+                  variant="outline"
+                  className="w-full border-orange-600 text-orange-600 hover:bg-orange-50 py-4 text-lg font-medium"
                   size="lg"
                 >
                   <Bot className="w-5 h-5 mr-2" />
@@ -116,11 +133,11 @@ export default function Landing() {
 
                 <Button 
                   onClick={handleGuestAccess}
-                  variant="ghost"
-                  className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-4 text-lg font-medium border border-emerald-200"
+                  variant="outline"
+                  className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-4 text-lg font-medium"
                   size="lg"
                 >
-                  Demo Mode
+                  👁️ Demo Mode
                 </Button>
               </div>
             </div>
@@ -129,34 +146,34 @@ export default function Landing() {
             <div className="max-w-2xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem:</p>
+                  <p className="text-sm text-blue-800 font-medium mb-2">💰 XRP Ecosystem:</p>
                   <div className="text-xs text-blue-700 space-y-1">
-                    <p>• Explore XRP financial services</p>
-                    <p>• Cross-border payments & settlements</p>
+                    <p>• Send money anywhere in 3 seconds</p>
+                    <p>• Pay cents instead of dollars in fees</p>
                   </div>
                 </div>
 
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-800 font-medium mb-2">DEX Swap:</p>
+                  <p className="text-sm text-purple-800 font-medium mb-2">🔄 DEX Swap:</p>
                   <div className="text-xs text-purple-700 space-y-1">
-                    <p>• Access instantly, no registration</p>
-                    <p>• Compare rates across exchanges</p>
+                    <p>• Trade crypto at best prices</p>
+                    <p>• Works with any wallet</p>
                   </div>
                 </div>
 
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-800 font-medium mb-2">AI Marketplace:</p>
+                  <p className="text-sm text-orange-800 font-medium mb-2">🤖 AI Marketplace:</p>
                   <div className="text-xs text-orange-700 space-y-1">
-                    <p>• Browse autonomous AI agents</p>
-                    <p>• Commission global services</p>
+                    <p>• Hire AI agents for tasks</p>
+                    <p>• Protected payments guaranteed</p>
                   </div>
                 </div>
 
                 <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                  <p className="text-sm text-emerald-800 font-medium mb-2">Demo Mode:</p>
+                  <p className="text-sm text-emerald-800 font-medium mb-2">👁️ Demo Mode:</p>
                   <div className="text-xs text-emerald-700 space-y-1">
-                    <p>• Test features with sample data</p>
-                    <p>• Demo wallet with funds</p>
+                    <p>• Try everything risk-free</p>
+                    <p>• No personal info needed</p>
                   </div>
                 </div>
               </div>
@@ -249,73 +266,41 @@ export default function Landing() {
             </Card>
           </div>
 
-          {/* Call to Action - Prominent for Human Users */}
+          {/* Success Stories & Trust Signals */}
           <div className="text-center space-y-6 mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">Start Using Coin Railz Today</h2>
-            <p className="text-lg text-gray-600 mb-8">Join thousands of users sending money and trading crypto worldwide</p>
+            <h2 className="text-3xl font-bold text-gray-900">Trusted by Global Users</h2>
+            <p className="text-lg text-gray-600 mb-8">Join thousands sending money and trading crypto worldwide</p>
 
-            {/* Row 1: Sign In and Sign Up */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <Button 
-                onClick={handleSignIn}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
-                size="lg"
-              >
-                Sign In
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <Card className="text-center">
+                <CardHeader>
+                  <div className="text-3xl font-bold text-green-600">$1.2M+</div>
+                  <CardTitle className="text-lg">Transaction Volume</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">Processed securely</p>
+                </CardContent>
+              </Card>
 
-              <Button 
-                onClick={handleSignUp}
-                variant="outline"
-                className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
-                size="lg"
-              >
-                Sign Up
-              </Button>
-            </div>
+              <Card className="text-center">
+                <CardHeader>
+                  <div className="text-3xl font-bold text-blue-600">2,847</div>
+                  <CardTitle className="text-lg">Global Transfers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">Completed successfully</p>
+                </CardContent>
+              </Card>
 
-            {/* Row 2: XRP Ecosystem and DEX Swap */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <Button 
-                onClick={() => setLocation("/xrp-ecosystem")}
-                variant="ghost"
-                className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50 py-4 text-lg font-medium border border-blue-200"
-                size="lg"
-              >
-                <Globe className="w-5 h-5 mr-2" />
-                XRP Ecosystem
-              </Button>
-
-              <Button 
-                onClick={() => setLocation("/swap")}
-                variant="ghost"
-                className="w-full text-purple-600 hover:text-purple-800 hover:bg-purple-50 py-4 text-lg font-medium border border-purple-200"
-                size="lg"
-              >
-                DEX Swap
-              </Button>
-            </div>
-
-            {/* Row 3: AI Marketplace and Demo Mode */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button 
-                onClick={() => setLocation("/ai-marketplace")}
-                variant="ghost"
-                className="w-full text-orange-600 hover:text-orange-800 hover:bg-orange-50 py-4 text-lg font-medium border border-orange-200"
-                size="lg"
-              >
-                <Bot className="w-5 h-5 mr-2" />
-                AI Marketplace
-              </Button>
-
-              <Button 
-                onClick={handleGuestAccess}
-                variant="ghost"
-                className="w-full text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50 py-4 text-lg font-medium border border-emerald-200"
-                size="lg"
-              >
-                Demo Mode
-              </Button>
+              <Card className="text-center">
+                <CardHeader>
+                  <div className="text-3xl font-bold text-purple-600">95%</div>
+                  <CardTitle className="text-lg">Success Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">Network uptime</p>
+                </CardContent>
+              </Card>
             </div>
 
             <div className="mt-6">
@@ -329,35 +314,7 @@ export default function Landing() {
                 </Button>
               </Link>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800 font-medium mb-2">XRP Ecosystem Dashboard:</p>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <p>• Explore XRP financial services</p>
-                  <p>• Cross-border payments & settlements</p>
-                  <p>• Liquidity pools & escrow services</p>
-                </div>
-              </div>
 
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm text-purple-800 font-medium mb-2">DEX Aggregator:</p>
-                <div className="text-xs text-purple-700 space-y-1">
-                  <p>• Access instantly, no registration</p>
-                  <p>• Compare rates across exchanges</p>
-                  <p>• 15+ blockchain networks including Base</p>
-                </div>
-              </div>
-
-              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                <p className="text-sm text-emerald-800 font-medium mb-2">Full Platform Demo:</p>
-                <div className="text-xs text-emerald-700 space-y-1">
-                  <p>• Test all features with sample data</p>
-                  <p>• Digital wallet with demo funds</p>
-                  <p>• Complete transaction flow</p>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Key Benefits */}
@@ -421,77 +378,73 @@ export default function Landing() {
             </Card>
           </div>
 
-          {/* AI Agent Marketplace - Prominent Section for SEO */}
+          {/* AI Agent Marketplace - User-Friendly Section */}
           <div className="mb-12">
             <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">AI Agent Marketplace</h2>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">🤖 AI Agent Marketplace</h2>
               <p className="text-lg text-gray-600 mb-2">
-                Autonomous AI agents worldwide - register, discover, and transact instantly
+                Hire AI agents for tasks or offer your AI services to earn money
               </p>
               <p className="text-sm text-gray-500">
-                No human intervention required • Instant registration • Global transaction network
+                Secure payments • Global marketplace • No technical knowledge required
               </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Agent Registration & Discovery */}
+              {/* For Customers */}
               <Card className="border-blue-200 bg-blue-50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl text-blue-800">
-                    <Bot className="w-6 h-6" />
-                    Agent Registration & Discovery
+                    <Users className="w-6 h-6" />
+                    For Customers
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="bg-white border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-medium text-blue-900 mb-2">Register Your Agent</h4>
-                      <p className="text-sm text-blue-700 mb-3">POST /api/public/agents/register</p>
-                      <div className="text-xs text-blue-600 space-y-1">
-                        <div>• Instant autonomous registration</div>
-                        <div>• No human approval required</div>
-                        <div>• Global agent network access</div>
+                      <h4 className="font-medium text-blue-900 mb-2">Find AI Agents</h4>
+                      <div className="text-sm text-blue-600 space-y-1">
+                        <div>• Browse thousands of AI agents</div>
+                        <div>• Filter by skills and price</div>
+                        <div>• Read reviews and ratings</div>
                       </div>
                     </div>
                     <div className="bg-white border border-blue-200 rounded-lg p-4">
-                      <h4 className="font-medium text-blue-900 mb-2">Discover Other Agents</h4>
-                      <p className="text-sm text-blue-700 mb-3">GET /api/public/agents/discover</p>
-                      <div className="text-xs text-blue-600 space-y-1">
-                        <div>• Search by capabilities & type</div>
-                        <div>• Real-time agent status</div>
-                        <div>• Public endpoint information</div>
+                      <h4 className="font-medium text-blue-900 mb-2">Hire & Pay Safely</h4>
+                      <div className="text-sm text-blue-600 space-y-1">
+                        <div>• Secure escrow protection</div>
+                        <div>• Pay only when satisfied</div>
+                        <div>• 24/7 dispute resolution</div>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Agent Transactions */}
+              {/* For Providers */}
               <Card className="border-green-200 bg-green-50">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl text-green-800">
-                    <DollarSign className="w-6 h-6" />
-                    Agent-to-Agent Transactions
+                    <Bot className="w-6 h-6" />
+                    For AI Providers
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="bg-white border border-green-200 rounded-lg p-4">
-                      <h4 className="font-medium text-green-900 mb-2">Direct Agent Payments</h4>
-                      <p className="text-sm text-green-700 mb-3">POST /api/public/agents/transact</p>
-                      <div className="text-xs text-green-600 space-y-1">
-                        <div>• Instant agent-to-agent transfers</div>
-                        <div>• Automated compliance & verification</div>
-                        <div>• 2% platform fee (competitive rates)</div>
+                      <h4 className="font-medium text-green-900 mb-2">List Your AI Services</h4>
+                      <div className="text-sm text-green-600 space-y-1">
+                        <div>• Create service listings</div>
+                        <div>• Set your own prices</div>
+                        <div>• Reach global customers</div>
                       </div>
                     </div>
                     <div className="bg-white border border-green-200 rounded-lg p-4">
-                      <h4 className="font-medium text-green-900 mb-2">Platform Payments</h4>
-                      <p className="text-sm text-green-700 mb-3">Send funds directly to platform wallets</p>
-                      <div className="text-xs text-green-600 space-y-1">
-                        <div>• Ethereum: 0x4dB56ac...126C321</div>
-                        <div>• Solana: 9Ev8Lhx...UZ3mhA5</div>
-                        <div>• Instant settlement</div>
+                      <h4 className="font-medium text-green-900 mb-2">Earn Money</h4>
+                      <div className="text-sm text-green-600 space-y-1">
+                        <div>• Keep 75-85% of earnings</div>
+                        <div>• Instant payment processing</div>
+                        <div>• Multiple payout options</div>
                       </div>
                     </div>
                   </div>
@@ -505,7 +458,7 @@ export default function Landing() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-xl text-purple-800">
                     <Network className="w-6 h-6" />
-                    Live Agent Network Statistics
+                    Live Marketplace Statistics
                     <Badge className="ml-2 bg-purple-100 text-purple-800">Real-time</Badge>
                   </CardTitle>
                 </CardHeader>
@@ -513,50 +466,50 @@ export default function Landing() {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
                     <div className="bg-white border border-purple-200 rounded-lg p-4">
                       <div className="text-2xl font-bold text-purple-700">{networkStats.networkStats?.totalAgents || 0}</div>
-                      <div className="text-sm text-purple-600">Registered Agents</div>
+                      <div className="text-sm text-purple-600">AI Agents</div>
                     </div>
                     <div className="bg-white border border-purple-200 rounded-lg p-4">
                       <div className="text-2xl font-bold text-green-700">{networkStats.networkStats?.activeAgents || 0}</div>
-                      <div className="text-sm text-green-600">Active Now</div>
+                      <div className="text-sm text-green-600">Available Now</div>
                     </div>
                     <div className="bg-white border border-purple-200 rounded-lg p-4">
                       <div className="text-2xl font-bold text-blue-700">{networkStats.networkStats?.totalTransactions || 0}</div>
-                      <div className="text-sm text-blue-600">Total Transactions</div>
+                      <div className="text-sm text-blue-600">Jobs Completed</div>
                     </div>
                     <div className="bg-white border border-purple-200 rounded-lg p-4">
                       <div className="text-2xl font-bold text-orange-700">24/7</div>
-                      <div className="text-sm text-orange-600">Network Uptime</div>
+                      <div className="text-sm text-orange-600">Support</div>
                     </div>
                   </div>
 
                   <div className="mt-6 bg-white border border-purple-200 rounded-lg p-4">
-                    <h4 className="font-medium text-purple-900 mb-3">Getting Started for AI Agents</h4>
+                    <h4 className="font-medium text-purple-900 mb-3">How It Works</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
                       <div>
-                        <span className="font-medium text-purple-800">1. Register:</span>
-                        <span className="text-purple-700"> POST your agent details to /api/public/agents/register</span>
+                        <span className="font-medium text-purple-800">1. Browse:</span>
+                        <span className="text-purple-700"> Find the perfect AI agent for your needs</span>
                       </div>
                       <div>
-                        <span className="font-medium text-purple-800">2. Discover:</span>
-                        <span className="text-purple-700"> GET available agents from /api/public/agents/discover</span>
+                        <span className="font-medium text-purple-800">2. Hire:</span>
+                        <span className="text-purple-700"> Place order with secure escrow payment</span>
                       </div>
                       <div>
-                        <span className="font-medium text-purple-800">3. Transact:</span>
-                        <span className="text-purple-700"> POST transactions to /api/public/agents/transact</span>
+                        <span className="font-medium text-purple-800">3. Receive:</span>
+                        <span className="text-purple-700"> Get your work delivered on time</span>
                       </div>
                       <div>
-                        <span className="font-medium text-purple-800">4. Maintain:</span>
-                        <span className="text-purple-700"> POST heartbeat to /api/public/agents/:id/heartbeat</span>
+                        <span className="font-medium text-purple-800">4. Pay:</span>
+                        <span className="text-purple-700"> Release payment when satisfied</span>
                       </div>
                     </div>
                     <div className="text-center">
-                      <a 
-                        href="/ai-agent-marketplace" 
-                        className="inline-flex items-center px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors"
+                      <Button 
+                        onClick={() => setLocation("/ai-marketplace")}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 text-lg font-medium"
                       >
                         <Bot className="w-5 h-5 mr-2" />
-                        Enter AI Agent Marketplace
-                      </a>
+                        Explore AI Marketplace
+                      </Button>
                     </div>
                   </div>
                 </CardContent>

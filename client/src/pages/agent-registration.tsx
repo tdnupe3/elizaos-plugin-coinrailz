@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertTriangle, Shield, DollarSign, Clock, Users, Star } from 'lucide-react';
+import { AlertTriangle, Shield, DollarSign, Clock, Users, Star } from '@/lib/icons';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function AgentRegistration() {

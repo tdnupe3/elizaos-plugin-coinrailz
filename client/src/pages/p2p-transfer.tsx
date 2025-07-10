@@ -18,7 +18,7 @@ import {
   AlertCircle,
   ArrowRight,
   Loader2
-} from "lucide-react";
+} from "@/lib/icons";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";

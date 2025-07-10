@@ -91,5 +91,11 @@ export {
   Gift,
   Gavel,
   Droplets,
-  PieChart
+  PieChart,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Upload,
+  Video,
+  Settings,
+  ArrowRightLeft
 } from '@/lib/minimal-icons-clean';

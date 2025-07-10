@@ -14,7 +14,7 @@ import {
   Clock,
   CheckCircle,
   AlertCircle
-} from 'lucide-react';
+} from '@/lib/icons';
 
 interface Order {
   id: string;

@@ -16,7 +16,7 @@ import {
   BarChart3,
   Send,
   Coins
-} from "lucide-react";
+} from "@/lib/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 

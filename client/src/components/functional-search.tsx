@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, ArrowRight, DollarSign, Users, Globe, Bot } from "lucide-react";
+import { Search, ArrowRight, DollarSign, Users, Globe, Bot } from "@/lib/icons";
 import { useLocation } from "wouter";
 
 interface SearchResult {

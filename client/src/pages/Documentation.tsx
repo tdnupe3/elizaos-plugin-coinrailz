@@ -16,7 +16,7 @@ import {
   MessageSquare,
   Video,
   Settings
-} from 'lucide-react';
+} from '@/lib/icons';
 
 export default function Documentation() {
   const [activeSection, setActiveSection] = useState('overview');

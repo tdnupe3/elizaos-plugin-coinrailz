@@ -10,7 +10,7 @@ import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { 
   ArrowRightLeft, 
-  Bridge, 
+ 
   Globe, 
   TrendingUp, 
   TrendingDown,

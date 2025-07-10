@@ -15,7 +15,7 @@ import {
   Filter,
   Download,
   AlertTriangle
-} from 'lucide-react';
+} from '@/lib/icons';
 
 interface Order {
   id: string;

@@ -90,5 +90,6 @@ export {
   Github,
   Gift,
   Gavel,
-  Droplets
+  Droplets,
+  PieChart
 } from '@/lib/minimal-icons-clean';

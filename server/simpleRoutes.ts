@@ -709,7 +709,10 @@ export function setupSimpleRoutes(app: Express) {
     
     // Prevent duplicate registrations (concurrent protection)
     if (registeredEmails.has(email)) {
-      return res.status(409).json({ error: 'Email already registered' });
+      return res.status(409).json({ 
+        error: 'Email already registered',
+        message: 'Email already registered. Please try using the \'Sign In\' option instead.'
+      });
     }
     
     // Register the email
@@ -760,9 +763,15 @@ export function setupSimpleRoutes(app: Express) {
     if (registrationLocks.has(registrationKey)) {
       const lockInfo = registrationLocks.get(registrationKey);
       if (lockInfo.completed) {
-        return res.status(409).json({ error: 'Agent with this email already exists' });
+        return res.status(409).json({ 
+          error: 'Email already registered', 
+          message: 'Email already registered. Please try using the \'Sign In\' option instead.'
+        });
       } else {
-        return res.status(409).json({ error: 'Registration already in progress' });
+        return res.status(409).json({ 
+          error: 'Registration already in progress',
+          message: 'Registration is already in progress. Please wait a moment and try again.'
+        });
       }
     }
     

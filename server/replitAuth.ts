@@ -211,7 +211,8 @@ function setupFallbackAuth(app: Express) {
       if (existingUser) {
         return res.status(409).json({ 
           success: false, 
-          message: 'User already exists',
+          error: 'Email already registered',
+          message: 'Email already registered. Please try using the \'Sign In\' option instead.',
           code: 'USER_EXISTS'
         });
       }

@@ -36,8 +36,8 @@ export function registerAuthRoutes(app: Express) {
       if (existingUser) {
         return res.status(409).json({
           success: false,
-          error: 'Account exists',
-          message: 'An account with this email already exists'
+          error: 'Email already registered',
+          message: 'Email already registered. Please try using the \'Sign In\' option instead.'
         });
       }
 

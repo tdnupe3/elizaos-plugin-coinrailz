@@ -172,7 +172,8 @@ router.post('/register', async (req, res) => {
     if (existingAgent) {
       return res.status(409).json({
         success: false,
-        error: 'Agent with this email already exists'
+        error: 'Email already registered',
+        message: 'Email already registered. Please try using the \'Sign In\' option instead.'
       });
     }
 

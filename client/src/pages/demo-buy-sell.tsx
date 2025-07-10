@@ -1,49 +1,99 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, TrendingUp, TrendingDown, DollarSign, Bitcoin, CheckCircle } from "@/lib/icons";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import TransactionFlowOrchestrator from "@/components/TransactionFlowOrchestrator";
-
-const DEMO_CRYPTO_PRICES = {
-  BTC: { price: 45000, change: 2.5, name: "Bitcoin", symbol: "₿", volume: "$28.5B", marketCap: "$889B" },
-  ETH: { price: 3200, change: -1.2, name: "Ethereum", symbol: "Ξ", volume: "$15.2B", marketCap: "$385B" },
-  ADA: { price: 0.85, change: 4.8, name: "Cardano", symbol: "₳", volume: "$892M", marketCap: "$28.5B" },
-  DOT: { price: 25.30, change: -0.9, name: "Polkadot", symbol: "●", volume: "$456M", marketCap: "$31.2B" },
-  SOL: { price: 180.50, change: 5.67, name: "Solana", symbol: "◎", volume: "$2.1B", marketCap: "$85.4B" },
-  XRP: { price: 0.62, change: 1.23, name: "XRP", symbol: "✕", volume: "$1.8B", marketCap: "$35.1B" },
-  AVAX: { price: 42.80, change: 4.12, name: "Avalanche", symbol: "▲", volume: "$718M", marketCap: "$17.9B" },
-  MATIC: { price: 1.15, change: -1.87, name: "Polygon", symbol: "⬟", volume: "$524M", marketCap: "$11.3B" },
-  USDC: { price: 1.00, change: 0.0, name: "USD Coin", symbol: "$", volume: "$4.2B", marketCap: "$34.8B" }
-};
 
 export default function DemoBuySell() {
   const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState("buy");
+  
+  // Fetch real-time crypto prices from API
+  const { data: pricesResponse, isLoading: pricesLoading } = useQuery({
+    queryKey: ['/api/crypto/prices'],
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+  
+  // Transform API response to component format
+  const cryptoPrices = pricesResponse?.success ? {
+    BTC: { 
+      price: pricesResponse.prices.bitcoin.usd, 
+      change: parseFloat(pricesResponse.prices.bitcoin.change_24h), 
+      name: "Bitcoin", 
+      symbol: "₿" 
+    },
+    ETH: { 
+      price: pricesResponse.prices.ethereum.usd, 
+      change: parseFloat(pricesResponse.prices.ethereum.change_24h), 
+      name: "Ethereum", 
+      symbol: "Ξ" 
+    },
+    XRP: { 
+      price: pricesResponse.prices.ripple.usd, 
+      change: parseFloat(pricesResponse.prices.ripple.change_24h), 
+      name: "XRP", 
+      symbol: "✕" 
+    },
+    USDC: { 
+      price: pricesResponse.prices['usd-coin'].usd, 
+      change: parseFloat(pricesResponse.prices['usd-coin'].change_24h), 
+      name: "USD Coin", 
+      symbol: "$" 
+    },
+    USDT: { 
+      price: pricesResponse.prices.tether.usd, 
+      change: parseFloat(pricesResponse.prices.tether.change_24h), 
+      name: "Tether", 
+      symbol: "₮" 
+    },
+    PEEZY: { 
+      price: pricesResponse.prices.peezy.usd, 
+      change: parseFloat(pricesResponse.prices.peezy.change_24h), 
+      name: "PEEZY", 
+      symbol: "🫧" 
+    }
+  } : {
+    // Fallback with current market approximations while loading
+    BTC: { price: 111000, change: 2.5, name: "Bitcoin", symbol: "₿" },
+    ETH: { price: 4100, change: 1.8, name: "Ethereum", symbol: "Ξ" },
+    XRP: { price: 2.45, change: 3.2, name: "XRP", symbol: "✕" },
+    USDC: { price: 1.00, change: 0.0, name: "USD Coin", symbol: "$" },
+    USDT: { price: 1.00, change: 0.0, name: "Tether", symbol: "₮" },
+    PEEZY: { price: 0.000006234, change: 18.05, name: "PEEZY", symbol: "🫧" }
+  };
+
   const [selectedCrypto, setSelectedCrypto] = useState("");
   const [amount, setAmount] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showFlowOrchestrator, setShowFlowOrchestrator] = useState(false);
 
+  // Calculate purchase amounts
+  const price = selectedCrypto ? cryptoPrices[selectedCrypto as keyof typeof cryptoPrices]?.price || 0 : 0;
+  const fee = amount ? parseFloat(amount) * 0.015 : 0;
+  const crypto = amount && price ? (parseFloat(amount) - fee) / price : 0;
+  const total = amount && price ? parseFloat(amount) * price - fee : 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || !selectedCrypto) {
-      return;
-    }
-    setShowFlowOrchestrator(true);
-  };
+    if (!selectedCrypto || !amount) return;
 
-  const handleTransactionComplete = () => {
-    setShowFlowOrchestrator(false);
+    setIsSubmitting(true);
+    
+    // Simulate processing
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    setIsSubmitting(false);
     setShowSuccess(true);
     
-    // Reset after 3 seconds
     setTimeout(() => {
       setShowSuccess(false);
       setAmount("");
@@ -51,62 +101,19 @@ export default function DemoBuySell() {
     }, 3000);
   };
 
-  const handleTransactionCancel = () => {
-    setShowFlowOrchestrator(false);
+  const handleExploreFlows = () => {
+    setShowFlowOrchestrator(true);
   };
 
-  const calculateTotal = () => {
-    if (!selectedCrypto || !amount) return { crypto: 0, fee: 0, total: 0 };
-    
-    const usdAmount = parseFloat(amount) || 0;
-    const cryptoPrice = DEMO_CRYPTO_PRICES[selectedCrypto as keyof typeof DEMO_CRYPTO_PRICES]?.price || 0;
-    const fee = usdAmount * 0.015; // 1.5% fee
-    
-    if (activeTab === "buy") {
-      const cryptoAmount = (usdAmount - fee) / cryptoPrice;
-      return { crypto: cryptoAmount, fee, total: usdAmount };
-    } else {
-      const totalUsd = usdAmount * cryptoPrice - fee;
-      return { crypto: usdAmount, fee, total: totalUsd };
-    }
-  };
-
-  const { crypto, fee, total } = calculateTotal();
-
-  if (showSuccess) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-6">
-            <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <CheckCircle className="w-8 h-8 text-green-600" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {activeTab === "buy" ? "Purchase" : "Sale"} Complete!
-            </h2>
-            <p className="text-gray-600 mb-4">
-              {activeTab === "buy" 
-                ? `You bought ${crypto.toFixed(6)} ${selectedCrypto}`
-                : `You sold ${amount} ${selectedCrypto} for $${total.toFixed(2)}`
-              }
-            </p>
-            <Badge variant="secondary" className="mb-4">
-              Demo Mode - No actual crypto traded
-            </Badge>
-            <Button onClick={() => setLocation('/demo')} className="w-full">
-              Back to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+  if (showFlowOrchestrator) {
+    return <TransactionFlowOrchestrator />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+      <div className="bg-white border-b shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <Button
@@ -160,7 +167,7 @@ export default function DemoBuySell() {
                             <SelectValue placeholder="Choose crypto to buy" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(DEMO_CRYPTO_PRICES).map(([symbol, data]) => (
+                            {Object.entries(cryptoPrices).map(([symbol, data]) => (
                               <SelectItem key={symbol} value={symbol}>
                                 <div className="flex justify-between w-full items-center">
                                   <span>{data.name} ({symbol})</span>
@@ -237,7 +244,7 @@ export default function DemoBuySell() {
                             <SelectValue placeholder="Choose crypto to sell" />
                           </SelectTrigger>
                           <SelectContent>
-                            {Object.entries(DEMO_CRYPTO_PRICES).map(([symbol, data]) => (
+                            {Object.entries(cryptoPrices).map(([symbol, data]) => (
                               <SelectItem key={symbol} value={symbol}>
                                 <div className="flex justify-between w-full items-center">
                                   <span>{data.name} ({symbol})</span>
@@ -272,7 +279,7 @@ export default function DemoBuySell() {
                           </div>
                           <div className="flex justify-between text-sm">
                             <span>Market Value:</span>
-                            <span>${(parseFloat(amount) * DEMO_CRYPTO_PRICES[selectedCrypto as keyof typeof DEMO_CRYPTO_PRICES]?.price || 0).toFixed(2)}</span>
+                            <span>${(parseFloat(amount) * price).toFixed(2)}</span>
                           </div>
                           <div className="flex justify-between text-sm">
                             <span>Trading Fee (1.5%):</span>
@@ -305,71 +312,82 @@ export default function DemoBuySell() {
                     </form>
                   </TabsContent>
                 </Tabs>
-
-                <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-xs text-blue-800">
-                    <strong>Demo Mode:</strong> This is a demonstration interface. No real cryptocurrency 
-                    will be bought or sold, and no actual funds will be transferred.
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Market Overview */}
-          <div>
+          <div className="space-y-6">
             <Card className="bg-white">
               <CardHeader>
-                <CardTitle>Live Market Prices (Demo)</CardTitle>
+                <CardTitle>Live Market Prices</CardTitle>
+                <p className="text-sm text-gray-600">Real-time cryptocurrency prices</p>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {Object.entries(DEMO_CRYPTO_PRICES).map(([symbol, data]) => (
-                    <div key={symbol} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{data.name}</p>
-                        <p className="text-sm text-gray-500">{symbol}</p>
+                {pricesLoading && (
+                  <div className="text-center py-4">
+                    <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">Loading live prices...</p>
+                  </div>
+                )}
+                <div className="space-y-3">
+                  {Object.entries(cryptoPrices).slice(0, 6).map(([symbol, data]) => (
+                    <div key={symbol} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-lg">{data.symbol}</span>
+                        <div>
+                          <div className="font-medium">{data.name}</div>
+                          <div className="text-xs text-gray-500">{symbol}</div>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-medium">${data.price.toLocaleString()}</p>
-                        <p className={`text-sm ${data.change > 0 ? 'text-green-600' : data.change < 0 ? 'text-red-600' : 'text-gray-500'}`}>
-                          {data.change > 0 ? '+' : ''}{data.change}%
-                        </p>
+                        <div className="font-medium">${data.price.toLocaleString()}</div>
+                        <div className={`text-xs ${data.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {data.change >= 0 ? '+' : ''}{data.change}%
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
+
+            <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold mb-2">Explore More Features</h3>
+                <p className="text-blue-100 mb-4">
+                  Check out our advanced transaction flows and payment routing system
+                </p>
+                <Button 
+                  onClick={handleExploreFlows}
+                  variant="secondary"
+                  className="bg-white text-blue-600 hover:bg-blue-50"
+                >
+                  View Transaction Flows
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
 
-      {/* Transaction Flow Orchestrator */}
-      {showFlowOrchestrator && (
-        <TransactionFlowOrchestrator
-          isOpen={showFlowOrchestrator}
-          onClose={handleTransactionCancel}
-          flowConfig={{
-            type: activeTab === 'buy' ? 'onramp' : 'offramp',
-            data: {
-              amount,
-              selectedCrypto,
-              transactionType: activeTab,
-              cryptoPrice: DEMO_CRYPTO_PRICES[selectedCrypto]?.price || 0,
-              ...calculateTotal(),
-              isDemoMode: true
-            },
-            steps: [
-              { id: 'validate', name: 'Validate Transaction', status: 'pending', description: 'Verifying transaction details' },
-              { id: 'safety', name: 'Safety Confirmation', status: 'pending', description: 'User safety acknowledgment' },
-              { id: 'kyc', name: 'KYC Verification', status: 'pending', description: 'Identity verification check' },
-              { id: 'payment', name: 'Payment Processing', status: 'pending', description: `Processing ${activeTab === 'buy' ? 'purchase' : 'sale'}` },
-              { id: 'confirmation', name: 'Confirmation', status: 'pending', description: 'Transaction completed' }
-            ]
-          }}
-        />
-      )}
+        {/* Success Animation */}
+        {showSuccess && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <Card className="bg-white p-8 max-w-md mx-4">
+              <div className="text-center">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Demo Transaction Complete!</h3>
+                <p className="text-gray-600 mb-4">
+                  Your {activeTab} order has been processed successfully in demo mode.
+                </p>
+                <p className="text-sm text-gray-500">
+                  This was a demonstration. No real funds were transferred.
+                </p>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

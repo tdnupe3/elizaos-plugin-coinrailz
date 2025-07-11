@@ -1422,14 +1422,16 @@ app.get('/api/xrp/rate', async (req, res) => {
 });
 
 app.get('/api/xrp/balance', (req, res) => {
+  // Return zero balance until user connects a real XRP wallet
   res.json({
     success: true,
     balance: {
-      available: '150.25',
+      available: '0.00',
       frozen: '0.00',
-      total: '150.25',
+      total: '0.00',
       currency: 'XRP'
-    }
+    },
+    message: 'Connect your XRP wallet to see real balance'
   });
 });
 

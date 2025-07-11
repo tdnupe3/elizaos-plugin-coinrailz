@@ -21,16 +21,7 @@ import {
   AlertCircle,
   CheckCircle2
 } from "@/lib/icons";
-
-interface TokenPair {
-  base: string;
-  quote: string;
-  price: number;
-  change24h: number;
-  volume24h: number;
-  high24h: number;
-  low24h: number;
-}
+import { DEFAULT_TRADING_PAIRS, XRP_TOKENS, type TokenPair } from "@/data/xrp-tokens";
 
 interface OrderBookEntry {
   price: number;
@@ -58,82 +49,10 @@ export default function XRPDEXTrading() {
   const [price, setPrice] = useState('');
   const [isTrading, setIsTrading] = useState(false);
   const [balance, setBalance] = useState({ XRP: 0, USD: 0 });
+  const [walletConnected, setWalletConnected] = useState(false);
 
-  const tokenPairs: TokenPair[] = [
-    {
-      base: 'XRP',
-      quote: 'USD',
-      price: 2.25,
-      change24h: 5.2,
-      volume24h: 1250000,
-      high24h: 2.31,
-      low24h: 2.18
-    },
-    {
-      base: 'XRP',
-      quote: 'BTC',
-      price: 0.0000225,
-      change24h: -2.1,
-      volume24h: 850000,
-      high24h: 0.0000235,
-      low24h: 0.0000220
-    },
-    {
-      base: 'USD',
-      quote: 'XRP',
-      price: 0.444,
-      change24h: -4.9,
-      volume24h: 980000,
-      high24h: 0.458,
-      low24h: 0.432
-    },
-    // XRP Ledger Tokens
-    {
-      base: 'SOLO',
-      quote: 'XRP',
-      price: 0.14,
-      change24h: 12.5,
-      volume24h: 245000,
-      high24h: 0.16,
-      low24h: 0.12
-    },
-    {
-      base: 'CSC',
-      quote: 'XRP',
-      price: 0.002,
-      change24h: -8.3,
-      volume24h: 85000,
-      high24h: 0.0022,
-      low24h: 0.0018
-    },
-    {
-      base: 'COREUM',
-      quote: 'XRP',
-      price: 0.45,
-      change24h: 5.7,
-      volume24h: 125000,
-      high24h: 0.48,
-      low24h: 0.42
-    },
-    {
-      base: 'XRPAYNET',
-      quote: 'XRP',
-      price: 0.0001,
-      change24h: 25.8,
-      volume24h: 15000,
-      high24h: 0.00012,
-      low24h: 0.00008
-    },
-    {
-      base: 'XPUNK',
-      quote: 'XRP',
-      price: 0.055,
-      change24h: -15.2,
-      volume24h: 35000,
-      high24h: 0.065,
-      low24h: 0.051
-    }
-  ];
+  // Use tokens from configuration file
+  const tokenPairs: TokenPair[] = DEFAULT_TRADING_PAIRS;
 
   // Initialize with first token pair and fetch real balance
   useEffect(() => {
@@ -158,12 +77,15 @@ export default function XRPDEXTrading() {
         
         if (balanceData.success && rateData.success) {
           const xrpAmount = parseFloat(balanceData.balance.available) || 0;
-          const xrpRate = rateData.rate?.xrpToUsd || 2.25;
+          const xrpRate = rateData.rate?.XRP_USD || 2.25;
           
           setBalance({
             XRP: xrpAmount,
             USD: xrpAmount * xrpRate
           });
+          
+          // Set wallet connected if balance > 0
+          setWalletConnected(xrpAmount > 0);
         }
       }
     } catch (error) {
@@ -288,14 +210,15 @@ export default function XRPDEXTrading() {
                     <SelectValue placeholder="Select a trading pair" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="XRP/USD">XRP/USD - Major Pair</SelectItem>
-                    <SelectItem value="XRP/BTC">XRP/BTC - Crypto Pair</SelectItem>
-                    <SelectItem value="USD/XRP">USD/XRP - Reverse Pair</SelectItem>
-                    <SelectItem value="SOLO/XRP">SOLO/XRP - Sologenic Token</SelectItem>
-                    <SelectItem value="CSC/XRP">CSC/XRP - CasinoCoin</SelectItem>
-                    <SelectItem value="COREUM/XRP">COREUM/XRP - Coreum Token</SelectItem>
-                    <SelectItem value="XRPAYNET/XRP">XRPAYNET/XRP - XRP Payment Network</SelectItem>
-                    <SelectItem value="XPUNK/XRP">XPUNK/XRP - XRP Punk NFT Token</SelectItem>
+                    {tokenPairs.map((pair, index) => {
+                      const baseToken = XRP_TOKENS.find(t => t.symbol === pair.base);
+                      const quoteToken = XRP_TOKENS.find(t => t.symbol === pair.quote);
+                      return (
+                        <SelectItem key={index} value={`${pair.base}/${pair.quote}`}>
+                          {pair.base}/{pair.quote} - {baseToken?.name || pair.base} {baseToken?.verified && "✓"}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </CardContent>

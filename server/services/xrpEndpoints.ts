@@ -36,7 +36,17 @@ export class XRPEndpoints {
    */
   static async calculateFees(amount: number) {
     try {
-      const platformFee = amount * 0.005; // 0.5% platform fee
+      // Use tiered platform fee structure for better profitability
+      let platformFeeRate = 0.015; // 1.5% default
+      if (amount >= 2000) {
+        platformFeeRate = 0.0075; // 0.75% for large amounts
+      } else if (amount >= 500) {
+        platformFeeRate = 0.01; // 1% for medium amounts
+      } else if (amount >= 100) {
+        platformFeeRate = 0.0125; // 1.25% for small amounts
+      }
+      
+      const platformFee = amount * platformFeeRate;
       const networkFee = await XRPLedgerService.calculateTransactionFee();
       const networkFeeUSD = await XRPLedgerService.xrpToUSD(networkFee);
       
@@ -65,7 +75,7 @@ export class XRPEndpoints {
         },
         costComparison,
         advantages: [
-          `Platform fee: ${(platformFee).toFixed(2)} (0.5%)`,
+          `Platform fee: $${(platformFee).toFixed(2)} (${(platformFeeRate * 100).toFixed(2)}%)`,
           `Ultra-low network fee: ~$${networkFeeUSD.toFixed(6)}`,
           `${(costComparison.savings.percentage).toFixed(1)}% cheaper than traditional transfers`,
           "Instant settlement vs days for wire transfers"

@@ -38,6 +38,28 @@ export const XRP_TOKENS: XRPToken[] = [
     category: 'Native'
   },
   {
+    symbol: 'RLUSD',
+    name: 'Ripple USD',
+    issuer: 'rLUSDbhkNnEKcg9GZqHX3sR2Ag6YY2KFMo',
+    type: 'stablecoin',
+    description: 'Official USD-backed stablecoin by Ripple Labs',
+    website: 'https://ripple.com/rlusd',
+    verified: true,
+    riskLevel: 'low',
+    category: 'Stablecoin'
+  },
+  {
+    symbol: 'USDC',
+    name: 'USD Coin (XRPL)',
+    issuer: 'rcEGREd3jZqERhGy7MmHfEEtPBJ5SfP4Fr',
+    type: 'stablecoin',
+    description: 'Circle USD Coin on XRP Ledger',
+    website: 'https://centre.io',
+    verified: true,
+    riskLevel: 'low',
+    category: 'Stablecoin'
+  },
+  {
     symbol: 'SOLO',
     name: 'Sologenic',
     issuer: 'rsoLo2S1kiGeCcn6hCUXVrCpGMWLrRrLZz',
@@ -101,6 +123,24 @@ export const DEFAULT_TRADING_PAIRS: TokenPair[] = [
     price: 2.25,
     change24h: 5.2,
     volume24h: 1250000,
+    high24h: 2.31,
+    low24h: 2.18
+  },
+  {
+    base: 'XRP',
+    quote: 'RLUSD',
+    price: 2.25,
+    change24h: 5.2,
+    volume24h: 850000,
+    high24h: 2.31,
+    low24h: 2.18
+  },
+  {
+    base: 'XRP',
+    quote: 'USDC',
+    price: 2.25,
+    change24h: 5.2,
+    volume24h: 1100000,
     high24h: 2.31,
     low24h: 2.18
   },

@@ -115,23 +115,6 @@ export default function XRPBridgeServices() {
   }, []);
 
   // All bridge data now comes from real API endpoints
-      priceXRP: 0.32,
-      priceETH: 0.335,
-      priceBSC: 0.318,
-      bestBuy: 'BSC',
-      bestSell: 'ETH',
-      profitPercent: 5.3,
-      profitUSD: 170,
-      volume24h: 85000,
-      confidence: 'medium'
-    }
-  ];
-
-  useEffect(() => {
-    // Load mock data
-    setTransactions(mockTransactions);
-    setArbitrageOpportunities(mockArbitrageOpportunities);
-  }, []);
 
   const getChainById = (id: string) => supportedChains.find(chain => chain.id === id);
 

@@ -54,10 +54,10 @@ export class FeeCalculator {
    * XRP tiered service fees for competitive yet profitable pricing
    */
   private static readonly XRP_TIER_FEES = {
-    under100: { serviceFee: 2.50, platformRate: 0.015 },    // $2.50 + 1.5%
-    tier100to500: { serviceFee: 3.50, platformRate: 0.0125 }, // $3.50 + 1.25%
-    tier500to2000: { serviceFee: 5.00, platformRate: 0.01 },   // $5.00 + 1.0%
-    over2000: { serviceFee: 7.50, platformRate: 0.0075 }      // $7.50 + 0.75%
+    under100: { serviceFee: 2.50, platformRate: 0.005 },    // $2.50 + 0.5%
+    tier100to500: { serviceFee: 3.50, platformRate: 0.005 }, // $3.50 + 0.5%
+    tier500to2000: { serviceFee: 5.00, platformRate: 0.005 },   // $5.00 + 0.5%
+    over2000: { serviceFee: 7.50, platformRate: 0.005 }      // $7.50 + 0.5%
   };
   
   /**
@@ -172,22 +172,22 @@ export class FeeCalculator {
     
     // Enhanced tiered fee structure for competitive yet profitable pricing
     if (amount < 100) {
-      // Under $100: $2.50 service fee + 1.5% platform fee
+      // Under $100: $2.50 service fee + 0.5% platform fee
       serviceFee = this.XRP_TIER_FEES.under100.serviceFee;
       platformFee = Math.round(amount * this.XRP_TIER_FEES.under100.platformRate * 100) / 100;
       tierName = 'Small Transaction Tier';
     } else if (amount < 500) {
-      // $100-$500: $3.50 service fee + 1.25% platform fee  
+      // $100-$500: $3.50 service fee + 0.5% platform fee  
       serviceFee = this.XRP_TIER_FEES.tier100to500.serviceFee;
       platformFee = Math.round(amount * this.XRP_TIER_FEES.tier100to500.platformRate * 100) / 100;
       tierName = 'Medium Transaction Tier';
     } else if (amount < 2000) {
-      // $500-$2000: $5.00 service fee + 1.0% platform fee
+      // $500-$2000: $5.00 service fee + 0.5% platform fee
       serviceFee = this.XRP_TIER_FEES.tier500to2000.serviceFee;
       platformFee = Math.round(amount * this.XRP_TIER_FEES.tier500to2000.platformRate * 100) / 100;
       tierName = 'Large Transaction Tier';
     } else {
-      // Over $2000: $7.50 service fee + 0.75% platform fee
+      // Over $2000: $7.50 service fee + 0.5% platform fee
       serviceFee = this.XRP_TIER_FEES.over2000.serviceFee;
       platformFee = Math.round(amount * this.XRP_TIER_FEES.over2000.platformRate * 100) / 100;
       tierName = 'Enterprise Transaction Tier';
@@ -232,9 +232,13 @@ export class FeeCalculator {
    */
   static getXRPFeeDescription(amount: number): string {
     if (amount < 100) {
-      return `Under $100: $3 service fee + 1% platform fee. Ensures profitability while covering referral payouts and operational costs.`;
+      return `Under $100: $2.50 service fee + 0.5% platform fee. Ensures profitability while covering referral payouts and operational costs.`;
+    } else if (amount < 500) {
+      return `$100-$500: $3.50 service fee + 0.5% platform fee. Competitive rates with sustainable revenue margins.`;
+    } else if (amount < 2000) {
+      return `$500-$2000: $5.00 service fee + 0.5% platform fee. Higher service fee generates solid revenue after referral commissions.`;
     } else {
-      return `$100+: $5 service fee + 0.75% platform fee. Higher service fee generates solid revenue after referral commissions.`;
+      return `$2000+: $7.50 service fee + 0.5% platform fee. Enterprise tier with premium service and instant settlement.`;
     }
   }
 

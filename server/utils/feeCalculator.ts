@@ -326,7 +326,7 @@ Fee Collection Wallet: ${this.getFeeWalletAddress(calculation.currency)}
 
   // Individual method calculations
   static calculateXRPFee(amount: number): number {
-    return Math.max(amount * 0.001, 0.01); // 0.1% with $0.01 minimum
+    return Math.max(amount * 0.005, 0.01); // 0.5% with $0.01 minimum
   }
 
   static calculateCreditCardFee(amount: number): number {

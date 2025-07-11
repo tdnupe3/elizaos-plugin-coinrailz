@@ -40,14 +40,17 @@ export class XRPEndpoints {
       const networkFee = await XRPLedgerService.calculateTransactionFee();
       const networkFeeUSD = await XRPLedgerService.xrpToUSD(networkFee);
       
+      // Total fee includes both platform commission and network fee
+      const totalFee = platformFee + networkFeeUSD;
+      
       // Calculate cost comparison
       const traditionalFee = Math.max(25, amount * 0.05);
       const costComparison = {
-        xrp: { fee: networkFeeUSD, time: '3-5 seconds', total: amount + networkFeeUSD },
+        xrp: { fee: totalFee, time: '3-5 seconds', total: amount + totalFee },
         traditional: { fee: traditionalFee, time: '3-5 days', total: amount + traditionalFee },
         savings: { 
-          fee: traditionalFee - networkFeeUSD,
-          percentage: ((traditionalFee - networkFeeUSD) / traditionalFee) * 100
+          fee: traditionalFee - totalFee,
+          percentage: ((traditionalFee - totalFee) / traditionalFee) * 100
         }
       };
       
@@ -57,11 +60,12 @@ export class XRPEndpoints {
           amount,
           platformFee,
           networkFee: networkFeeUSD,
-          totalFee: platformFee + networkFeeUSD,
-          total: amount + platformFee + networkFeeUSD
+          totalFee,
+          total: amount + totalFee
         },
         costComparison,
         advantages: [
+          `Platform fee: ${(platformFee).toFixed(2)} (0.5%)`,
           `Ultra-low network fee: ~$${networkFeeUSD.toFixed(6)}`,
           `${(costComparison.savings.percentage).toFixed(1)}% cheaper than traditional transfers`,
           "Instant settlement vs days for wire transfers"

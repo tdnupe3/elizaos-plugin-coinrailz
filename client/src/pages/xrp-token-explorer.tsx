@@ -62,6 +62,33 @@ export default function XRPTokenExplorer() {
   const [portfolio, setPortfolio] = useState<Portfolio[]>([]);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
+
+  // Fetch real token data from API
+  const fetchTokens = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/xrp/tokens');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTokens(data.tokens);
+          setLastUpdated(data.lastUpdated);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching tokens:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTokens();
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchTokens, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const categories = [
     'all',
@@ -74,115 +101,24 @@ export default function XRPTokenExplorer() {
     'wrapped'
   ];
 
-  const mockTokens: Token[] = [
-    {
-      id: 'xrp',
-      symbol: 'XRP',
-      name: 'XRP',
-      price: 2.25,
-      change24h: 5.2,
-      volume24h: 1250000,
-      marketCap: 128000000000,
-      supply: 99991791560,
-      verified: true,
-      category: 'utility',
-      description: 'Native cryptocurrency of the XRP Ledger',
-      website: 'https://xrpl.org',
-      issuer: 'Native',
-      trustLines: 0,
-      rating: 4.8,
-      riskLevel: 'low',
-      isWatched: true,
-      holders: 5200000
-    },
-    {
-      id: 'csc',
-      symbol: 'CSC',
-      name: 'CasinoCoin',
-      price: 0.0045,
-      change24h: -2.1,
-      volume24h: 85000,
-      marketCap: 180000000,
-      supply: 40000000000,
-      verified: true,
-      category: 'gaming',
-      description: 'Digital currency for regulated gaming jurisdictions',
-      website: 'https://casinocoin.org',
-      issuer: 'rCSCManTZ8ME9EoLrSHHYKW8PPwWMgkwr',
-      trustLines: 1250,
-      rating: 4.2,
-      riskLevel: 'medium',
-      isWatched: false,
-      holders: 15000
-    },
-    {
-      id: 'solo',
-      symbol: 'SOLO',
-      name: 'Sologenic',
-      price: 0.32,
-      change24h: 8.7,
-      volume24h: 145000,
-      marketCap: 128000000,
-      supply: 400000000,
-      verified: true,
-      category: 'defi',
-      description: 'Ecosystem for tokenized stocks and crypto',
-      website: 'https://sologenic.com',
-      issuer: 'rSOLOrdEr4xNJMN3JkqRRQWx8J3nDHqhAE',
-      trustLines: 2100,
-      rating: 4.5,
-      riskLevel: 'medium',
-      isWatched: true,
-      holders: 8500
-    },
-    {
-      id: 'core',
-      symbol: 'CORE',
-      name: 'CoreCoin',
-      price: 0.0012,
-      change24h: -15.3,
-      volume24h: 12000,
-      marketCap: 1200000,
-      supply: 1000000000,
-      verified: false,
-      category: 'utility',
-      description: 'Community-driven utility token',
-      issuer: 'rCOREEkJCqLJBWuGBgKjR3XpBZeXEeHJF',
-      trustLines: 85,
-      rating: 2.8,
-      riskLevel: 'high',
-      isWatched: false,
-      holders: 350
-    }
-  ];
-
+  // All token data now comes from real API endpoints
+  
+  // Mock portfolio until user connects wallet
   const mockPortfolio: Portfolio[] = [
     {
-      tokenId: 'xrp',
-      symbol: 'XRP',
-      amount: 1000,
-      value: 2250,
-      pnl: 125,
-      pnlPercent: 5.9
-    },
-    {
-      tokenId: 'solo',
-      symbol: 'SOLO',
-      amount: 500,
-      value: 160,
-      pnl: -20,
-      pnlPercent: -11.1
+      tokenId: 'connect-wallet',
+      symbol: 'CONNECT',
+      amount: 0,
+      value: 0,
+      pnl: 0,
+      pnlPercent: 0
     }
   ];
 
+  // Initialize portfolio
   useEffect(() => {
-    // Simulate loading
-    setTimeout(() => {
-      setTokens(mockTokens);
-      setPortfolio(mockPortfolio);
-      setWatchlist(['xrp', 'solo']);
-      setIsLoading(false);
-    }, 1000);
+    setPortfolio(mockPortfolio);
+    setWatchlist([]);
   }, []);
 
   const filteredTokens = tokens.filter(token => {

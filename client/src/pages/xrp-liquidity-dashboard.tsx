@@ -68,107 +68,45 @@ export default function XRPLiquidityDashboard() {
   const [totalValue, setTotalValue] = useState(0);
   const [totalEarnings, setTotalEarnings] = useState(0);
   const [dailyEarnings, setDailyEarnings] = useState(0);
+  const [platformFee, setPlatformFee] = useState(0.3);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const mockPools: LiquidityPool[] = [
-    {
-      id: 'xrp-usd',
-      tokenA: 'XRP',
-      tokenB: 'USD',
-      symbolA: 'XRP',
-      symbolB: 'USD',
-      reserveA: 1000000,
-      reserveB: 2250000,
-      totalLiquidity: 5000000,
-      apy: 12.5,
-      volume24h: 125000,
-      fees24h: 375,
-      myLiquidity: 1000,
-      myShare: 0.02,
-      impermanentLoss: -2.3,
-      status: 'active'
-    },
-    {
-      id: 'xrp-btc',
-      tokenA: 'XRP',
-      tokenB: 'BTC',
-      symbolA: 'XRP',
-      symbolB: 'BTC',
-      reserveA: 2000000,
-      reserveB: 45,
-      totalLiquidity: 2800000,
-      apy: 18.7,
-      volume24h: 85000,
-      fees24h: 255,
-      myLiquidity: 0,
-      myShare: 0,
-      impermanentLoss: 0,
-      status: 'active'
-    },
-    {
-      id: 'solo-xrp',
-      tokenA: 'SOLO',
-      tokenB: 'XRP',
-      symbolA: 'SOLO',
-      symbolB: 'XRP',
-      reserveA: 500000,
-      reserveB: 160000,
-      totalLiquidity: 280000,
-      apy: 24.3,
-      volume24h: 25000,
-      fees24h: 75,
-      myLiquidity: 500,
-      myShare: 0.18,
-      impermanentLoss: 1.8,
-      status: 'active'
+  // Fetch real liquidity data from API
+  const fetchLiquidityData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/xrp/liquidity');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setPools(data.pools);
+          setTotalValue(data.totalValue);
+          setTotalEarnings(data.totalEarnings);
+          setDailyEarnings(data.dailyEarnings);
+          setPlatformFee(data.platformFee);
+          setLastUpdated(data.lastUpdated);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching liquidity data:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
-
-  const mockPositions: UserPosition[] = [
-    {
-      poolId: 'xrp-usd',
-      tokenA: 'XRP',
-      tokenB: 'USD',
-      symbolA: 'XRP',
-      symbolB: 'USD',
-      liquidityTokens: 1000,
-      valueUSD: 1000,
-      dailyEarnings: 0.34,
-      totalEarnings: 125.50,
-      impermanentLoss: -23.00,
-      entryPrice: 2.12,
-      currentPrice: 2.25
-    },
-    {
-      poolId: 'solo-xrp',
-      tokenA: 'SOLO',
-      tokenB: 'XRP',
-      symbolA: 'SOLO',
-      symbolB: 'XRP',
-      liquidityTokens: 500,
-      valueUSD: 500,
-      dailyEarnings: 0.33,
-      totalEarnings: 89.75,
-      impermanentLoss: 9.00,
-      entryPrice: 0.30,
-      currentPrice: 0.32
-    }
-  ];
+  };
 
   useEffect(() => {
-    // Simulate loading data
-    setTimeout(() => {
-      setPools(mockPools);
-      setPositions(mockPositions);
-      
-      // Calculate totals
-      const totalVal = mockPositions.reduce((sum, pos) => sum + pos.valueUSD, 0);
-      const totalEarn = mockPositions.reduce((sum, pos) => sum + pos.totalEarnings, 0);
-      const dailyEarn = mockPositions.reduce((sum, pos) => sum + pos.dailyEarnings, 0);
-      
-      setTotalValue(totalVal);
-      setTotalEarnings(totalEarn);
-      setDailyEarnings(dailyEarn);
-    }, 1000);
+    fetchLiquidityData();
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchLiquidityData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // All liquidity data now comes from real API endpoints
+  
+  // Initialize positions as empty until user provides liquidity
+  useEffect(() => {
+    setPositions([]);
   }, []);
 
   const handleAddLiquidity = async () => {

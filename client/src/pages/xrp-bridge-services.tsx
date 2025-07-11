@@ -80,137 +80,41 @@ export default function XRPBridgeServices() {
   const [arbitrageOpportunities, setArbitrageOpportunities] = useState<ArbitrageOpportunity[]>([]);
   const [isBridging, setIsBridging] = useState(false);
   const [bridgeStep, setBridgeStep] = useState(0);
+  const [supportedChains, setSupportedChains] = useState<SupportedChain[]>([]);
+  const [platformFees, setPlatformFees] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<string>('');
 
-  const supportedChains: SupportedChain[] = [
-    {
-      id: 'xrp',
-      name: 'XRP Ledger',
-      symbol: 'XRP',
-      logo: '🔷',
-      rpcUrl: 'https://xrpl.org',
-      explorer: 'https://xrpscan.com',
-      bridgeFee: 0.1,
-      estimatedTime: '3-5 min',
-      status: 'active',
-      tvl: 125000000,
-      dailyVolume: 2500000
-    },
-    {
-      id: 'ethereum',
-      name: 'Ethereum',
-      symbol: 'ETH',
-      logo: '⟠',
-      rpcUrl: 'https://mainnet.infura.io',
-      explorer: 'https://etherscan.io',
-      bridgeFee: 0.003,
-      estimatedTime: '15-20 min',
-      status: 'active',
-      tvl: 85000000,
-      dailyVolume: 1800000
-    },
-    {
-      id: 'bsc',
-      name: 'BNB Smart Chain',
-      symbol: 'BNB',
-      logo: '🟡',
-      rpcUrl: 'https://bsc-dataseed.binance.org',
-      explorer: 'https://bscscan.com',
-      bridgeFee: 0.001,
-      estimatedTime: '5-10 min',
-      status: 'active',
-      tvl: 45000000,
-      dailyVolume: 950000
-    },
-    {
-      id: 'polygon',
-      name: 'Polygon',
-      symbol: 'MATIC',
-      logo: '🟣',
-      rpcUrl: 'https://polygon-rpc.com',
-      explorer: 'https://polygonscan.com',
-      bridgeFee: 0.0001,
-      estimatedTime: '2-5 min',
-      status: 'active',
-      tvl: 28000000,
-      dailyVolume: 620000
-    },
-    {
-      id: 'arbitrum',
-      name: 'Arbitrum',
-      symbol: 'ARB',
-      logo: '🔵',
-      rpcUrl: 'https://arb1.arbitrum.io/rpc',
-      explorer: 'https://arbiscan.io',
-      bridgeFee: 0.002,
-      estimatedTime: '10-15 min',
-      status: 'active',
-      tvl: 35000000,
-      dailyVolume: 750000
-    },
-    {
-      id: 'solana',
-      name: 'Solana',
-      symbol: 'SOL',
-      logo: '🌅',
-      rpcUrl: 'https://api.mainnet-beta.solana.com',
-      explorer: 'https://solscan.io',
-      bridgeFee: 0.0005,
-      estimatedTime: '1-3 min',
-      status: 'coming_soon',
-      tvl: 0,
-      dailyVolume: 0
+  // Fetch real bridge data from API
+  const fetchBridgeData = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/xrp/bridge');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSupportedChains(data.supportedChains);
+          setTransactions(data.transactions);
+          setArbitrageOpportunities(data.arbitrageOpportunities);
+          setPlatformFees(data.platformFees);
+          setLastUpdated(data.lastUpdated);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching bridge data:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
-  const mockTransactions: BridgeTransaction[] = [
-    {
-      id: 'bridge-001',
-      fromChain: 'XRP Ledger',
-      toChain: 'Ethereum',
-      fromToken: 'XRP',
-      toToken: 'wXRP',
-      amount: 1000,
-      fee: 0.1,
-      status: 'completed',
-      timestamp: '2025-01-10T14:30:00Z',
-      txHash: '0x1234...5678',
-      estimatedTime: '15-20 min',
-      actualTime: '18 min'
-    },
-    {
-      id: 'bridge-002',
-      fromChain: 'Ethereum',
-      toChain: 'BNB Smart Chain',
-      fromToken: 'wXRP',
-      toToken: 'XRP-BEP20',
-      amount: 500,
-      fee: 0.003,
-      status: 'processing',
-      timestamp: '2025-01-10T15:45:00Z',
-      txHash: '0x9876...4321',
-      estimatedTime: '5-10 min'
-    }
-  ];
+  useEffect(() => {
+    fetchBridgeData();
+    // Refresh data every 30 seconds
+    const interval = setInterval(fetchBridgeData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const mockArbitrageOpportunities: ArbitrageOpportunity[] = [
-    {
-      id: 'arb-001',
-      tokenSymbol: 'XRP',
-      tokenName: 'XRP',
-      priceXRP: 2.25,
-      priceETH: 2.28,
-      priceBSC: 2.22,
-      bestBuy: 'BSC',
-      bestSell: 'ETH',
-      profitPercent: 2.7,
-      profitUSD: 60,
-      volume24h: 125000,
-      confidence: 'high'
-    },
-    {
-      id: 'arb-002',
-      tokenSymbol: 'SOLO',
-      tokenName: 'Sologenic',
+  // All bridge data now comes from real API endpoints
       priceXRP: 0.32,
       priceETH: 0.335,
       priceBSC: 0.318,

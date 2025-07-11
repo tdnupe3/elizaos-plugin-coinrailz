@@ -57,7 +57,7 @@ export default function XRPDEXTrading() {
   const [amount, setAmount] = useState('');
   const [price, setPrice] = useState('');
   const [isTrading, setIsTrading] = useState(false);
-  const [balance, setBalance] = useState({ XRP: 1000, USD: 5000 });
+  const [balance, setBalance] = useState({ XRP: 0, USD: 0 });
 
   const tokenPairs: TokenPair[] = [
     {
@@ -86,17 +86,91 @@ export default function XRPDEXTrading() {
       volume24h: 980000,
       high24h: 0.458,
       low24h: 0.432
+    },
+    // XRP Ledger Tokens
+    {
+      base: 'SOLO',
+      quote: 'XRP',
+      price: 0.14,
+      change24h: 12.5,
+      volume24h: 245000,
+      high24h: 0.16,
+      low24h: 0.12
+    },
+    {
+      base: 'CSC',
+      quote: 'XRP',
+      price: 0.002,
+      change24h: -8.3,
+      volume24h: 85000,
+      high24h: 0.0022,
+      low24h: 0.0018
+    },
+    {
+      base: 'COREUM',
+      quote: 'XRP',
+      price: 0.45,
+      change24h: 5.7,
+      volume24h: 125000,
+      high24h: 0.48,
+      low24h: 0.42
+    },
+    {
+      base: 'XRPAYNET',
+      quote: 'XRP',
+      price: 0.0001,
+      change24h: 25.8,
+      volume24h: 15000,
+      high24h: 0.00012,
+      low24h: 0.00008
+    },
+    {
+      base: 'XPUNK',
+      quote: 'XRP',
+      price: 0.055,
+      change24h: -15.2,
+      volume24h: 35000,
+      high24h: 0.065,
+      low24h: 0.051
     }
   ];
 
-  // Initialize with first token pair
+  // Initialize with first token pair and fetch real balance
   useEffect(() => {
     if (tokenPairs.length > 0) {
       setSelectedPair(tokenPairs[0]);
       loadOrderBook(tokenPairs[0]);
       loadTradeHistory(tokenPairs[0]);
     }
+    fetchBalance();
   }, []);
+
+  const fetchBalance = async () => {
+    try {
+      const [balanceResponse, rateResponse] = await Promise.all([
+        fetch('/api/xrp/balance'),
+        fetch('/api/xrp/rate')
+      ]);
+      
+      if (balanceResponse.ok && rateResponse.ok) {
+        const balanceData = await balanceResponse.json();
+        const rateData = await rateResponse.json();
+        
+        if (balanceData.success && rateData.success) {
+          const xrpAmount = parseFloat(balanceData.balance.available) || 0;
+          const xrpRate = rateData.rate?.xrpToUsd || 2.25;
+          
+          setBalance({
+            XRP: xrpAmount,
+            USD: xrpAmount * xrpRate
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching balance:', error);
+      // Keep balance at 0 if fetch fails
+    }
+  };
 
   const loadOrderBook = (pair: TokenPair) => {
     // Simulate order book data
@@ -189,55 +263,86 @@ export default function XRPDEXTrading() {
             </div>
           </div>
 
-          {/* Market Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {tokenPairs.map((pair, index) => (
-              <Card 
-                key={index} 
-                className={`cursor-pointer transition-all ${
-                  selectedPair?.base === pair.base && selectedPair?.quote === pair.quote
-                    ? 'ring-2 ring-blue-500 bg-blue-50'
-                    : 'hover:shadow-md'
-                }`}
-                onClick={() => {
-                  setSelectedPair(pair);
-                  loadOrderBook(pair);
-                  loadTradeHistory(pair);
-                }}
-              >
+          {/* Token Pair Selector */}
+          <div className="mb-8">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <ArrowUpDown className="w-5 h-5 mr-2" />
+                  Select Trading Pair
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Select 
+                  value={selectedPair ? `${selectedPair.base}/${selectedPair.quote}` : ''}
+                  onValueChange={(value) => {
+                    const pair = tokenPairs.find(p => `${p.base}/${p.quote}` === value);
+                    if (pair) {
+                      setSelectedPair(pair);
+                      loadOrderBook(pair);
+                      loadTradeHistory(pair);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a trading pair" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="XRP/USD">XRP/USD - Major Pair</SelectItem>
+                    <SelectItem value="XRP/BTC">XRP/BTC - Crypto Pair</SelectItem>
+                    <SelectItem value="USD/XRP">USD/XRP - Reverse Pair</SelectItem>
+                    <SelectItem value="SOLO/XRP">SOLO/XRP - Sologenic Token</SelectItem>
+                    <SelectItem value="CSC/XRP">CSC/XRP - CasinoCoin</SelectItem>
+                    <SelectItem value="COREUM/XRP">COREUM/XRP - Coreum Token</SelectItem>
+                    <SelectItem value="XRPAYNET/XRP">XRPAYNET/XRP - XRP Payment Network</SelectItem>
+                    <SelectItem value="XPUNK/XRP">XPUNK/XRP - XRP Punk NFT Token</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Selected Pair Overview */}
+          {selectedPair && (
+            <div className="mb-8">
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{pair.base}/{pair.quote}</CardTitle>
-                    {pair.change24h > 0 ? (
-                      <TrendingUp className="w-5 h-5 text-green-600" />
+                    <CardTitle className="text-xl">{selectedPair.base}/{selectedPair.quote}</CardTitle>
+                    {selectedPair.change24h > 0 ? (
+                      <TrendingUp className="w-6 h-6 text-green-600" />
                     ) : (
-                      <TrendingDown className="w-5 h-5 text-red-600" />
+                      <TrendingDown className="w-6 h-6 text-red-600" />
                     )}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
                       <span className="text-sm text-gray-500">Price</span>
-                      <span className="font-medium">{pair.price.toFixed(6)}</span>
+                      <div className="font-bold text-lg">{selectedPair.price.toFixed(6)}</div>
                     </div>
-                    <div className="flex justify-between">
+                    <div>
                       <span className="text-sm text-gray-500">24h Change</span>
-                      <span className={`font-medium ${
-                        pair.change24h > 0 ? 'text-green-600' : 'text-red-600'
+                      <div className={`font-bold text-lg ${
+                        selectedPair.change24h > 0 ? 'text-green-600' : 'text-red-600'
                       }`}>
-                        {pair.change24h > 0 ? '+' : ''}{pair.change24h.toFixed(2)}%
-                      </span>
+                        {selectedPair.change24h > 0 ? '+' : ''}{selectedPair.change24h.toFixed(2)}%
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-500">Volume</span>
-                      <span className="font-medium">{pair.volume24h.toLocaleString()}</span>
+                    <div>
+                      <span className="text-sm text-gray-500">24h Volume</span>
+                      <div className="font-bold text-lg">{selectedPair.volume24h.toLocaleString()}</div>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-500">24h Range</span>
+                      <div className="font-bold text-lg">{selectedPair.low24h.toFixed(6)} - {selectedPair.high24h.toFixed(6)}</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </div>
+          )}
 
           {/* Main Trading Interface */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

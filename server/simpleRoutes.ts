@@ -5217,6 +5217,76 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // DEX token info endpoint for custom token detection
+  app.get('/api/dex/token-info/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      // Basic address validation
+      if (!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid contract address format'
+        });
+      }
+
+      // Check if it's a known token first
+      const knownTokens = [
+        { symbol: 'ETH', name: 'Ethereum', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18 },
+        { symbol: 'USDC', name: 'USD Coin', address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6 },
+        { symbol: 'USDT', name: 'Tether', address: '0xdac17f958d2ee523a2206206994597c13d831ec7', decimals: 6 },
+        { symbol: 'DAI', name: 'MakerDAO DAI', address: '0x6b175474e89094c44da98b954eedeac495271d0f', decimals: 18 },
+        { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', decimals: 8 },
+        { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933', decimals: 18 },
+        { symbol: 'UNI', name: 'Uniswap', address: '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984', decimals: 18 },
+        { symbol: 'LINK', name: 'Chainlink', address: '0x514910771af9ca656af840dff83e8264ecf986ca', decimals: 18 },
+        { symbol: 'AAVE', name: 'Aave', address: '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9', decimals: 18 },
+        { symbol: 'CRV', name: 'Curve DAO Token', address: '0xd533a949740bb3306d119cc777fa900ba034cd52', decimals: 18 },
+        { symbol: 'COMP', name: 'Compound', address: '0xc00e94cb662c3520282e6f5717214004a7f26888', decimals: 18 },
+        { symbol: 'MKR', name: 'Maker', address: '0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2', decimals: 18 },
+        { symbol: 'SNX', name: 'Synthetix', address: '0xc011a73ee8576fb46f5e1c5751ca3b9fe0af2a6f', decimals: 18 },
+        { symbol: 'SUSHI', name: 'SushiSwap', address: '0x6b3595068778dd592e39a122f4f5a5cf09c90fe2', decimals: 18 },
+        { symbol: 'YFI', name: 'yearn.finance', address: '0x0bc529c00c6401aef6d220be8c6ea1667f6ad93e', decimals: 18 },
+        { symbol: 'LDO', name: 'Lido DAO', address: '0x5a98fcbea516cf06857215779fd812ca3bef1b32', decimals: 18 }
+      ];
+
+      const knownToken = knownTokens.find(t => t.address.toLowerCase() === address.toLowerCase());
+      
+      if (knownToken) {
+        return res.json({
+          success: true,
+          tokenInfo: {
+            symbol: knownToken.symbol,
+            name: knownToken.name,
+            decimals: knownToken.decimals,
+            address: knownToken.address,
+            verified: true
+          }
+        });
+      }
+
+      // For unknown tokens, return basic info with warning
+      res.json({
+        success: true,
+        tokenInfo: {
+          symbol: 'UNKNOWN',
+          name: 'Unknown Token',
+          decimals: 18,
+          address: address,
+          verified: false,
+          warning: 'Unverified token - trade at your own risk'
+        }
+      });
+      
+    } catch (error) {
+      console.error('Token info error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch token information'
+      });
+    }
+  });
+
   // DEX swap endpoint implemented in server/index.ts to avoid conflicts
 
   // PEEZY Token Integration Endpoints

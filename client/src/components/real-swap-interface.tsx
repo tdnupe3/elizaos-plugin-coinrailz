@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,9 +76,31 @@ export function RealSwapInterface() {
   });
   const [tokenSearchTerm, setTokenSearchTerm] = useState('');
   const [isLoadingTokenInfo, setIsLoadingTokenInfo] = useState(false);
+  const [selectedChain, setSelectedChain] = useState(1); // Default to Ethereum
+
+  // Supported chains
+  const supportedChains = [
+    { id: 1, name: 'Ethereum', symbol: 'ETH', color: 'bg-blue-500' },
+    { id: 137, name: 'Polygon', symbol: 'MATIC', color: 'bg-purple-500' },
+    { id: 56, name: 'BNB Chain', symbol: 'BNB', color: 'bg-yellow-500' },
+    { id: 42161, name: 'Arbitrum', symbol: 'ETH', color: 'bg-sky-500' },
+    { id: 10, name: 'Optimism', symbol: 'ETH', color: 'bg-red-500' },
+    { id: 8453, name: 'Base', symbol: 'ETH', color: 'bg-indigo-500' },
+    { id: 369, name: 'PulseChain', symbol: 'PLS', color: 'bg-pink-500' }
+  ];
 
   // Combine predefined and custom tokens
   const allTokens = [...supportedTokens, ...customTokens];
+
+  // Auto-sync chain selection with wallet connection
+  useEffect(() => {
+    if (wallet.isConnected && wallet.chainId) {
+      const isSupported = supportedChains.some(chain => chain.id === wallet.chainId);
+      if (isSupported && selectedChain !== wallet.chainId) {
+        setSelectedChain(wallet.chainId);
+      }
+    }
+  }, [wallet.isConnected, wallet.chainId, selectedChain]);
 
   // Auto-detect token info from contract address
   const detectTokenInfoMutation = useMutation({
@@ -168,7 +190,7 @@ export function RealSwapInterface() {
         fromToken: fromTokenData?.address || fromToken,
         toToken: toTokenData?.address || toToken,
         amount,
-        chainId: wallet.chainId || 1,
+        chainId: selectedChain,
         slippage
       });
       return response;
@@ -218,7 +240,7 @@ export function RealSwapInterface() {
         amount,
         slippage,
         userAddress: wallet.address,
-        chainId: wallet.chainId
+        chainId: selectedChain
       });
       
       const swapData = await response.json();
@@ -280,20 +302,24 @@ export function RealSwapInterface() {
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
-          <span>Real DEX Swap</span>
+          <span>Multi-Chain DEX Swap</span>
           <div className="flex space-x-2">
             <Badge variant="outline" className="bg-green-50 text-green-700">
               Live 1inch API
             </Badge>
+            <Badge variant="outline" className={`${supportedChains.find(c => c.id === selectedChain)?.color} bg-opacity-10`}>
+              <div className={`w-2 h-2 rounded-full ${supportedChains.find(c => c.id === selectedChain)?.color} mr-1`} />
+              {supportedChains.find(c => c.id === selectedChain)?.name}
+            </Badge>
             {wallet.isConnected && (
               <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                MetaMask
+                {wallet.walletType}
               </Badge>
             )}
           </div>
         </CardTitle>
         <p className="text-sm text-gray-600">
-          Real blockchain transactions with MetaMask signing
+          Real blockchain transactions across 7 networks with wallet signing
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -333,6 +359,46 @@ export function RealSwapInterface() {
             </div>
           </div>
         )}
+
+        {/* Chain Selector */}
+        <div className="space-y-2">
+          <Label htmlFor="chain-selector">Network</Label>
+          <Select value={selectedChain.toString()} onValueChange={(value) => setSelectedChain(parseInt(value))}>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {supportedChains.map((chain) => (
+                <SelectItem key={chain.id} value={chain.id.toString()}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${chain.color}`} />
+                    <span className="font-medium">{chain.name}</span>
+                    <span className="text-xs text-gray-500">({chain.symbol})</span>
+                    {wallet.isConnected && wallet.chainId === chain.id && (
+                      <CheckCircle className="w-3 h-3 text-green-500" />
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          
+          {/* Chain Mismatch Warning */}
+          {wallet.isConnected && wallet.chainId !== selectedChain && (
+            <Alert className="bg-amber-50 border-amber-200">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>Network Mismatch:</strong> Your wallet is connected to{' '}
+                {supportedChains.find(c => c.id === wallet.chainId)?.name || `Chain ${wallet.chainId}`}, 
+                but you've selected {supportedChains.find(c => c.id === selectedChain)?.name}.
+                <br />
+                <span className="text-xs mt-1 block">
+                  Switch your wallet network or change the selected network to execute swaps.
+                </span>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
 
         {/* Custom Token Info */}
         {customTokens.length > 0 && (
@@ -674,11 +740,14 @@ export function RealSwapInterface() {
           {quote && (
             <Button
               onClick={handleExecuteSwap}
-              disabled={executeSwapMutation.isPending}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={executeSwapMutation.isPending || (wallet.isConnected && wallet.chainId !== selectedChain)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
             >
               {executeSwapMutation.isPending ? "Executing..." : 
-               !wallet.isConnected ? "Connect MetaMask & Swap" : "Execute Real Swap"}
+               !wallet.isConnected ? "Connect Wallet & Swap" : 
+               wallet.isConnected && wallet.chainId !== selectedChain ? 
+               `Switch to ${supportedChains.find(c => c.id === selectedChain)?.name}` : 
+               "Execute Real Swap"}
             </Button>
           )}
         </div>

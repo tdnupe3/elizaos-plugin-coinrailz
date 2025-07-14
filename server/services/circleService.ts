@@ -61,8 +61,16 @@ class CircleService {
   private entitySecretRegistered: boolean = false;
 
   constructor() {
+    const rawApiKey = process.env.CIRCLE_API_KEY || '';
+    
+    // Format API key properly - add LIVE_API_KEY prefix if not present
+    let formattedApiKey = rawApiKey;
+    if (rawApiKey && !rawApiKey.startsWith('LIVE_API_KEY:') && !rawApiKey.startsWith('TEST_API_KEY:')) {
+      formattedApiKey = `LIVE_API_KEY:${rawApiKey}`;
+    }
+    
     this.config = {
-      apiKey: process.env.CIRCLE_API_KEY || '',
+      apiKey: formattedApiKey,
       entitySecret: process.env.CIRCLE_ENTITY_SECRET || '',
       baseUrl: process.env.CIRCLE_BASE_URL || 'https://api.circle.com'
     };
@@ -197,13 +205,14 @@ class CircleService {
     }
 
     try {
-      const response = await this.client.createWallet({
+      const response = await this.client.createWallets({
         walletSetId: walletSetId,
         blockchains: [blockchain],
-        accountType: accountType
+        accountType: accountType,
+        count: 1
       });
 
-      return response.data.wallet;
+      return response.data.wallets[0];
     } catch (error) {
       console.error('Failed to create wallet:', error);
       throw error;
@@ -219,11 +228,11 @@ class CircleService {
     }
 
     try {
-      const response = await this.client.getWalletBalance({
-        walletId: walletId
+      const response = await this.client.getWalletTokenBalance({
+        id: walletId
       });
 
-      return response.data.balances || [];
+      return response.data.tokenBalances || [];
     } catch (error) {
       console.error('Failed to get wallet balance:', error);
       throw error;
@@ -240,7 +249,7 @@ class CircleService {
 
     try {
       const response = await this.client.getWallet({
-        walletId: walletId
+        id: walletId
       });
 
       return response.data.wallet;

@@ -35,6 +35,9 @@ export const HumanReferralDashboard = lazy(() => import('@/pages/human-referral-
 
 // USDC Ecosystem Components
 export const USDCEcosystemDashboard = lazy(() => import('@/pages/usdc-ecosystem-dashboard'));
+export const USDCBuy = lazy(() => import('@/pages/usdc-buy'));
+export const USDCSavings = lazy(() => import('@/pages/usdc-savings'));
+export const USDCCrossBorder = lazy(() => import('@/pages/usdc-cross-border'));
 
 // XRP Ecosystem Components
 export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-dashboard'));

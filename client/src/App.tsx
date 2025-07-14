@@ -41,6 +41,9 @@ import {
   HumanReferralDashboard,
 
   USDCEcosystemDashboard,
+  USDCBuy,
+  USDCSavings,
+  USDCCrossBorder,
   XRPEcosystemDashboard,
   XRPCrossBorderPayments,
   XRPInstantSettlements,
@@ -174,6 +177,18 @@ function Router() {
       {/* USDC Ecosystem Hub */}
       <Route path="/usdc-ecosystem">
         {() => <LazyLoadWrapper><USDCEcosystemDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-ecosystem-dashboard">
+        {() => <LazyLoadWrapper><USDCEcosystemDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-buy">
+        {() => <LazyLoadWrapper><USDCBuy /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-savings">
+        {() => <LazyLoadWrapper><USDCSavings /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-cross-border">
+        {() => <LazyLoadWrapper><USDCCrossBorder /></LazyLoadWrapper>}
       </Route>
 
       {/* XRP Ecosystem Hub */}

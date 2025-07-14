@@ -2,12 +2,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CreditCard, Send } from '@/lib/icons';
+import { CreditCard, Send, DollarSign, CheckCircle, Zap } from '@/lib/icons';
 import { PayPalPayment } from './PayPalPayment';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useQuery } from '@tanstack/react-query';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
 
@@ -178,6 +179,147 @@ function StripePaymentForm({
   );
 }
 
+function USDCPaymentForm({ amount, onSuccess, onError }: PaymentMethodSelectorProps) {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch user's USDC balance
+  const { data: usdcBalance, isLoading: balanceLoading } = useQuery({
+    queryKey: ['/api/user/circle/balance'],
+    enabled: true
+  });
+
+  const handleUSDCPayment = async () => {
+    setIsProcessing(true);
+    try {
+      const result = await apiRequest('/api/user/circle/transfer', {
+        method: 'POST',
+        body: {
+          amount: amount,
+          currency: 'USD',
+          paymentMethod: 'usdc'
+        }
+      });
+
+      if (result.success) {
+        toast({
+          title: "USDC Payment Successful",
+          description: `$${amount} paid with USDC - Settlement complete!`,
+        });
+        onSuccess?.(result);
+      } else {
+        throw new Error(result.error || 'USDC payment failed');
+      }
+    } catch (error: any) {
+      console.error('USDC payment error:', error);
+      onError?.(error.message || 'USDC payment failed');
+      toast({
+        title: "USDC Payment Failed",
+        description: error.message || 'Payment failed',
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const usdcFee = amount * 0.0125; // 1.25% total fee
+  const totalAmount = amount + usdcFee;
+  const traditionalFee = amount * 0.045; // 4.5% traditional fee
+  const savings = traditionalFee - usdcFee;
+  const savingsPercent = ((savings / traditionalFee) * 100).toFixed(0);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-blue-700">
+          <DollarSign className="h-5 w-5" />
+          Pay with USDC
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Balance Display */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium text-blue-900">Available Balance</h4>
+              <p className="text-2xl font-bold text-blue-700">
+                {balanceLoading ? "Loading..." : `$${usdcBalance?.balance || '0.00'} USDC`}
+              </p>
+            </div>
+            <div className="text-right">
+              <div className="text-green-600 font-medium">
+                Save {savingsPercent}%
+              </div>
+              <div className="text-sm text-gray-600">
+                vs traditional methods
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Fee Breakdown */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Payment Amount:</span>
+            <span>${amount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span>USDC Fee (1.25%):</span>
+            <span>${usdcFee.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm border-t pt-2 font-medium">
+            <span>Total:</span>
+            <span>${totalAmount.toFixed(2)}</span>
+          </div>
+        </div>
+
+        {/* Benefits */}
+        <div className="space-y-2">
+          <div className="flex items-center text-sm text-green-600">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            <span>Instant settlement (3-5 seconds)</span>
+          </div>
+          <div className="flex items-center text-sm text-green-600">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            <span>72% cheaper than traditional methods</span>
+          </div>
+          <div className="flex items-center text-sm text-green-600">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            <span>Global compatibility</span>
+          </div>
+        </div>
+
+        {/* Payment Button */}
+        <Button 
+          onClick={handleUSDCPayment}
+          disabled={isProcessing || balanceLoading || (usdcBalance?.balance || 0) < totalAmount}
+          className="w-full bg-blue-600 hover:bg-blue-700"
+          size="lg"
+        >
+          {isProcessing ? (
+            "Processing USDC Payment..."
+          ) : (
+            <>
+              <Zap className="h-4 w-4 mr-2" />
+              Pay ${totalAmount.toFixed(2)} with USDC
+            </>
+          )}
+        </Button>
+
+        {(usdcBalance?.balance || 0) < totalAmount && !balanceLoading && (
+          <div className="text-sm text-red-600 text-center">
+            Insufficient USDC balance. 
+            <a href="/usdc-buy" className="text-blue-600 hover:underline ml-1">
+              Buy more USDC
+            </a>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PaymentMethodSelector(props: PaymentMethodSelectorProps) {
   const { amount, currency = 'USD', description } = props;
 
@@ -197,8 +339,15 @@ export function PaymentMethodSelector(props: PaymentMethodSelectorProps) {
           </div>
         </div>
 
-        <Tabs defaultValue="stripe" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+        <Tabs defaultValue="usdc" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="usdc" className="flex items-center gap-2 bg-blue-50 text-blue-700 border-blue-200">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/>
+                <text x="12" y="16" textAnchor="middle" fontSize="10" fill="currentColor">USDC</text>
+              </svg>
+              USDC (72% Savings)
+            </TabsTrigger>
             <TabsTrigger value="stripe" className="flex items-center gap-2">
               <CreditCard className="w-4 h-4" />
               Credit/Debit Card
@@ -209,13 +358,17 @@ export function PaymentMethodSelector(props: PaymentMethodSelectorProps) {
               </svg>
               PayPal
             </TabsTrigger>
-                        <TabsTrigger value="bank_transfer" className="flex items-center gap-2">
+            <TabsTrigger value="bank_transfer" className="flex items-center gap-2">
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-8H4V6h16v4z"/>
               </svg>
               Bank Transfer
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="usdc" className="mt-6">
+            <USDCPaymentForm {...props} />
+          </TabsContent>
 
           <TabsContent value="stripe" className="mt-6">
             <Elements stripe={stripePromise}>

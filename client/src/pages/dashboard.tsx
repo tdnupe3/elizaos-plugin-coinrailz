@@ -48,6 +48,12 @@ export default function Dashboard() {
     enabled: !!user
   });
 
+  // Fetch user's USDC balance
+  const { data: usdcBalance, isLoading: usdcBalanceLoading } = useQuery({
+    queryKey: ['/api/user/circle/balance'],
+    enabled: !!user
+  });
+
   const { data: transactions, isLoading: transactionsLoading } = useQuery({
     queryKey: ["/api/dashboard/transactions"],
     enabled: !!user
@@ -160,11 +166,46 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* USDC Balance Highlight Card */}
+        <div className="mb-6">
+          <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950">
+            <CardHeader>
+              <CardTitle className="flex items-center text-blue-700 dark:text-blue-300">
+                <DollarSign className="h-5 w-5 mr-2" />
+                USDC Balance
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">
+                    {usdcBalanceLoading ? "Loading..." : `$${usdcBalance?.balance || '0.00'} USDC`}
+                  </div>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                    Instant settlements • Ultra-low fees
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <Button size="sm" asChild>
+                    <Link href="/usdc-buy">Buy USDC</Link>
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/usdc-savings">Earn Yield</Link>
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/usdc-ecosystem-dashboard">View All</Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Balance</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>

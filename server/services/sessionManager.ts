@@ -3,7 +3,7 @@ export const sessionStore = new Map<string, { userId: string; userEmail: string;
 
 // Add demo user for testing
 sessionStore.set('demo-token', {
-  userId: 'demo-user-123',
+  userId: 'user_1752506974498_dbp5fwbql',
   userEmail: 'demo@example.com',
   createdAt: Date.now()
 });

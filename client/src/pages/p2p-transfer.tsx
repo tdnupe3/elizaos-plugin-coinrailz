@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,12 @@ export default function P2PTransfer() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  // Fetch user's USDC balance
+  const { data: usdcBalance, isLoading: usdcBalanceLoading } = useQuery({
+    queryKey: ['/api/user/circle/balance'],
+    enabled: !!user
+  });
   
   const [step, setStep] = useState(1);
   const [transferData, setTransferData] = useState<P2PTransferData>({
@@ -69,6 +75,17 @@ export default function P2PTransfer() {
   });
 
   const calculateFees = (amount: number) => {
+    // USDC gets ultra-low fees
+    if (transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') {
+      const usdcFee = Math.max(amount * 0.001, 0.50); // 0.1% with $0.50 minimum
+      const platformFee = amount * 0.0025; // 0.25% platform fee
+      return {
+        baseFee: usdcFee,
+        processingFee: platformFee,
+        total: usdcFee + platformFee
+      };
+    }
+    
     const baseFee = Math.max(amount * 0.025, 5.00); // 2.5% with $5 minimum
     const processingFee = transferData.senderMethod === 'credit-card' ? amount * 0.029 : 0;
     return {
@@ -82,6 +99,7 @@ export default function P2PTransfer() {
   const totalAmount = transferData.amount + fees.total;
 
   const paymentMethods = [
+    { id: 'usdc', name: 'USDC (Ultra-Low Fees)', icon: DollarSign, available: true, highlight: true },
     { id: 'wallet-balance', name: 'Coin Railz Balance', icon: Wallet, available: true },
     { id: 'credit-card', name: 'Credit/Debit Card', icon: CreditCard, available: true },
     { id: 'paypal', name: 'PayPal', icon: DollarSign, available: true },
@@ -107,6 +125,22 @@ export default function P2PTransfer() {
       });
       return;
     }
+    
+    // USDC balance validation
+    if (step === 2 && transferData.senderMethod === 'usdc') {
+      const requiredAmount = totalAmount;
+      const availableBalance = usdcBalance?.balance || 0;
+      
+      if (requiredAmount > availableBalance) {
+        toast({
+          title: "Insufficient USDC Balance",
+          description: `You need $${requiredAmount.toFixed(2)} USDC but only have $${availableBalance.toFixed(2)}`,
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
     if (step === 3 && !transferData.recipientMethod) {
       toast({
         title: "Missing Information",
@@ -258,19 +292,41 @@ export default function P2PTransfer() {
                     <div
                       key={method.id}
                       className={`
-                        p-4 border rounded-lg cursor-pointer transition-colors
+                        p-4 border rounded-lg cursor-pointer transition-colors relative
                         ${transferData.senderMethod === method.id 
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                          : method.highlight 
+                            ? 'border-green-500 bg-green-50 dark:bg-green-950 hover:border-green-600' 
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                         }
                         ${!method.available ? 'opacity-50 cursor-not-allowed' : ''}
                       `}
                       onClick={() => method.available && setTransferData(prev => ({ ...prev, senderMethod: method.id }))}
                     >
+                      {method.highlight && (
+                        <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                          96% Savings
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <method.icon className="h-5 w-5 mr-3 text-gray-600 dark:text-gray-300" />
-                          <span className="font-medium">{method.name}</span>
+                          <method.icon className={`h-5 w-5 mr-3 ${method.highlight ? 'text-green-600' : 'text-gray-600 dark:text-gray-300'}`} />
+                          <div>
+                            <span className="font-medium">{method.name}</span>
+                            {method.id === 'usdc' && (
+                              <div className="text-xs text-green-600 dark:text-green-400">
+                                Instant • 3-5 seconds • $0.50-2.00 fees
+                                {usdcBalance && (
+                                  <div className="text-gray-600 dark:text-gray-400">
+                                    Balance: ${usdcBalance.balance || '0.00'} USDC
+                                  </div>
+                                )}
+                                {usdcBalanceLoading && (
+                                  <div className="text-gray-400">Loading balance...</div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center">
                           {!method.available && (
@@ -315,18 +371,32 @@ export default function P2PTransfer() {
                     <div
                       key={method.id}
                       className={`
-                        p-4 border rounded-lg cursor-pointer transition-colors
+                        p-4 border rounded-lg cursor-pointer transition-colors relative
                         ${transferData.recipientMethod === method.id 
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
-                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                          : method.highlight 
+                            ? 'border-green-500 bg-green-50 dark:bg-green-950 hover:border-green-600' 
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                         }
                       `}
                       onClick={() => setTransferData(prev => ({ ...prev, recipientMethod: method.id }))}
                     >
+                      {method.highlight && (
+                        <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                          Instant
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                          <method.icon className="h-5 w-5 mr-3 text-gray-600 dark:text-gray-300" />
-                          <span className="font-medium">{method.name}</span>
+                          <method.icon className={`h-5 w-5 mr-3 ${method.highlight ? 'text-green-600' : 'text-gray-600 dark:text-gray-300'}`} />
+                          <div>
+                            <span className="font-medium">{method.name}</span>
+                            {method.id === 'usdc' && (
+                              <div className="text-xs text-green-600 dark:text-green-400">
+                                Recipient receives USDC instantly
+                              </div>
+                            )}
+                          </div>
                         </div>
                         {transferData.recipientMethod === method.id && (
                           <CheckCircle className="h-5 w-5 text-blue-500" />
@@ -432,6 +502,20 @@ export default function P2PTransfer() {
                     <span>Total:</span>
                     <span>${totalAmount.toFixed(2)}</span>
                   </div>
+                  
+                  {/* USDC Savings Display */}
+                  {(transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') && (
+                    <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="text-xs text-green-700 dark:text-green-300">
+                        <div className="font-medium">USDC Savings:</div>
+                        <div>Traditional fee: ${(transferData.amount * 0.029 + 5.00).toFixed(2)}</div>
+                        <div>USDC fee: ${fees.total.toFixed(2)}</div>
+                        <div className="font-medium text-green-600">
+                          You saved: ${((transferData.amount * 0.029 + 5.00) - fees.total).toFixed(2)} (96%)
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {step === 3 && (
@@ -454,9 +538,19 @@ export default function P2PTransfer() {
                 )}
 
                 <div className="text-xs text-gray-500 pt-4">
-                  <p>• Transfers typically complete within minutes</p>
-                  <p>• All transactions are encrypted and secure</p>
-                  <p>• 24/7 support available</p>
+                  {(transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') ? (
+                    <>
+                      <p>• USDC transfers complete in 3-5 seconds</p>
+                      <p>• Ultra-low fees with Circle security</p>
+                      <p>• Instant settlement globally</p>
+                    </>
+                  ) : (
+                    <>
+                      <p>• Transfers typically complete within minutes</p>
+                      <p>• All transactions are encrypted and secure</p>
+                      <p>• 24/7 support available</p>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>

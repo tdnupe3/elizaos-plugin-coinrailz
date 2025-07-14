@@ -9,21 +9,42 @@ const router = Router();
  */
 router.post('/transfer', async (req, res) => {
   try {
-    const { recipientEmail, amount, currency = 'USD', method, message } = req.body;
+    const { 
+      recipient, 
+      amount, 
+      senderMethod, 
+      recipientMethod, 
+      note 
+    } = req.body;
     
-    if (!recipientEmail || !amount || !method) {
+    if (!recipient || !amount || !senderMethod || !recipientMethod) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: recipientEmail, amount, method'
+        error: 'Missing required fields: recipient, amount, senderMethod, recipientMethod'
       });
     }
 
     const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 10) {
+    if (isNaN(transferAmount) || transferAmount < 1) {
       return res.status(400).json({
         success: false,
-        error: 'Minimum transfer amount is $10'
+        error: 'Minimum transfer amount is $1'
       });
+    }
+
+    // Calculate fees based on USDC usage
+    let fee, processingFee, estimatedDelivery;
+    
+    if (senderMethod === 'usdc' || recipientMethod === 'usdc') {
+      // Ultra-low fees for USDC transfers
+      fee = Math.max(transferAmount * 0.001, 0.50); // 0.1% with $0.50 minimum
+      processingFee = transferAmount * 0.0025; // 0.25% platform fee
+      estimatedDelivery = '3-5 seconds';
+    } else {
+      // Standard fees
+      fee = Math.max(transferAmount * 0.025, 5.00); // 2.5% with $5 minimum
+      processingFee = senderMethod === 'credit-card' ? transferAmount * 0.029 : 0;
+      estimatedDelivery = '5-15 minutes';
     }
 
     const transferId = `p2p_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
@@ -32,11 +53,17 @@ router.post('/transfer', async (req, res) => {
       success: true,
       transferId,
       amount: transferAmount,
-      fee: transferAmount * 0.025, // 2.5% fee
-      currency,
+      fee: fee,
+      processingFee: processingFee,
+      totalFee: fee + processingFee,
+      senderMethod,
+      recipientMethod,
       status: 'initiated',
-      estimatedDelivery: '5-15 minutes',
-      message: 'P2P transfer initiated successfully'
+      estimatedDelivery,
+      note: note || '',
+      message: senderMethod === 'usdc' || recipientMethod === 'usdc' 
+        ? 'USDC transfer initiated - ultra-low fees!' 
+        : 'P2P transfer initiated successfully'
     });
   } catch (error) {
     res.status(500).json({
@@ -300,6 +327,7 @@ router.get('/supported-platforms', (req, res) => {
     success: true,
     platforms: {
       senders: [
+        { id: 'usdc', name: 'USDC (Ultra-Low Fees)', available: true, processingFee: '0.1% + $0.50 minimum' },
         { id: 'paypal', name: 'PayPal', available: true, processingFee: '2.9% + $0.30' },
         { id: 'credit', name: 'Credit Card', available: true, processingFee: '2.9% + $0.30' },
         { id: 'debit', name: 'Debit Card', available: true, processingFee: '2.9% + $0.30' },
@@ -309,6 +337,7 @@ router.get('/supported-platforms', (req, res) => {
         { id: 'bank', name: 'Bank Account', available: false, processingFee: 'Coming Soon' }
       ],
       recipients: [
+        { id: 'usdc', name: 'USDC Wallet', available: true, deliveryTime: '3-5 seconds' },
         { id: 'paypal', name: 'PayPal', available: true, deliveryTime: 'Instant' },
         { id: 'xrp', name: 'XRP Wallet', available: true, deliveryTime: '3-5 seconds' },
         { id: 'crypto', name: 'Other Crypto Wallet', available: true, deliveryTime: '5-15 minutes' },

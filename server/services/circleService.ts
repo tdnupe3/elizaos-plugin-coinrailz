@@ -352,7 +352,7 @@ class CircleService {
    */
   public async getSupportedBlockchains(): Promise<string[]> {
     // Circle supports these blockchains for developer-controlled wallets
-    return ['ETH', 'MATIC', 'AVAX', 'ARB'];
+    return ['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'];
   }
 
   /**
@@ -364,7 +364,8 @@ class CircleService {
       { symbol: 'USDC', name: 'USD Coin', blockchain: 'ETH' },
       { symbol: 'USDC', name: 'USD Coin', blockchain: 'MATIC' },
       { symbol: 'USDC', name: 'USD Coin', blockchain: 'AVAX' },
-      { symbol: 'USDC', name: 'USD Coin', blockchain: 'ARB' }
+      { symbol: 'USDC', name: 'USD Coin', blockchain: 'ARB' },
+      { symbol: 'USDC', name: 'USD Coin', blockchain: 'BNB' }
     ];
   }
 
@@ -384,7 +385,7 @@ class CircleService {
       entitySecretRegistered: this.entitySecretRegistered,
       hasApiKey: !!this.config.apiKey,
       hasEntitySecret: !!this.config.entitySecret,
-      supportedBlockchains: ['ETH', 'MATIC', 'AVAX', 'ARB'],
+      supportedBlockchains: ['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'],
       supportedTokens: ['USDC']
     };
   }

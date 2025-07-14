@@ -40,6 +40,39 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Top Navigation Bar */}
+      <div className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <img 
+                src={coinRailzLogo} 
+                alt="Coin Railz Logo" 
+                className="w-8 h-8"
+              />
+              <span className="text-xl font-bold text-gray-900">Coin Railz</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Button 
+                onClick={handleSignIn}
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                size="sm"
+              >
+                Sign In
+              </Button>
+              <Button 
+                onClick={handleSignUp}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                size="sm"
+              >
+                Sign Up
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -100,6 +133,16 @@ export default function Landing() {
             <div className="space-y-4 mb-8 max-w-2xl mx-auto">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button 
+                  onClick={() => setLocation("/usdc-ecosystem-dashboard")}
+                  variant="outline"
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
+                  size="lg"
+                >
+                  <DollarSign className="w-5 h-5 mr-2" />
+                  USDC Ecosystem
+                </Button>
+
+                <Button 
                   onClick={() => setLocation("/xrp-ecosystem")}
                   variant="outline"
                   className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
@@ -108,7 +151,9 @@ export default function Landing() {
                   <Globe className="w-5 h-5 mr-2" />
                   XRP Ecosystem
                 </Button>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button 
                   onClick={() => setLocation("/swap")}
                   variant="outline"
@@ -118,9 +163,7 @@ export default function Landing() {
                   <Repeat className="w-5 h-5 mr-2" />
                   DEX Swap
                 </Button>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button 
                   onClick={() => setLocation("/ai-marketplace")}
                   variant="outline"
@@ -130,7 +173,9 @@ export default function Landing() {
                   <Bot className="w-5 h-5 mr-2" />
                   AI Marketplace
                 </Button>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                 <Button 
                   onClick={handleGuestAccess}
                   variant="outline"
@@ -146,7 +191,16 @@ export default function Landing() {
             <div className="max-w-2xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-2">💰 XRP Ecosystem:</p>
+                  <p className="text-sm text-blue-800 font-medium mb-2">💰 USDC Ecosystem:</p>
+                  <div className="text-xs text-blue-700 space-y-1">
+                    <p>• Instant settlements (2-5 seconds)</p>
+                    <p>• 72% savings vs traditional fees</p>
+                    <p>• Multi-chain support (ETH, BNB, MATIC, AVAX)</p>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 font-medium mb-2">🌐 XRP Ecosystem:</p>
                   <div className="text-xs text-blue-700 space-y-1">
                     <p>• Send money anywhere in 3 seconds</p>
                     <p>• Pay cents instead of dollars in fees</p>
@@ -169,7 +223,7 @@ export default function Landing() {
                   </div>
                 </div>
 
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 md:col-span-2">
                   <p className="text-sm text-emerald-800 font-medium mb-2">👁️ Demo Mode:</p>
                   <div className="text-xs text-emerald-700 space-y-1">
                     <p>• Try everything risk-free</p>

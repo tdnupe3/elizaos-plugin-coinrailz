@@ -170,7 +170,7 @@ export class UserCircleService {
   }
 
   // Create additional wallet for different blockchain
-  async createAdditionalWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB') {
+  async createAdditionalWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' | 'BNB') {
     try {
       const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       

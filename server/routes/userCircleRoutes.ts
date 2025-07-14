@@ -16,10 +16,10 @@ router.post('/wallet/create', async (req, res) => {
     const { blockchain = 'ETH' } = req.body;
     const userId = req.user.id;
 
-    if (!['ETH', 'MATIC', 'AVAX', 'ARB'].includes(blockchain)) {
+    if (!['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'].includes(blockchain)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, or ARB'
+        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, or BNB'
       });
     }
 
@@ -85,10 +85,10 @@ router.post('/wallet/additional', async (req, res) => {
     const { blockchain } = req.body;
     const userId = req.user.id;
 
-    if (!blockchain || !['ETH', 'MATIC', 'AVAX', 'ARB'].includes(blockchain)) {
+    if (!blockchain || !['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'].includes(blockchain)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, or ARB'
+        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, or BNB'
       });
     }
 
@@ -121,10 +121,10 @@ router.post('/transfer', async (req, res) => {
       });
     }
 
-    if (!['ETH', 'MATIC', 'AVAX', 'ARB'].includes(blockchain)) {
+    if (!['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'].includes(blockchain)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, or ARB'
+        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, or BNB'
       });
     }
 

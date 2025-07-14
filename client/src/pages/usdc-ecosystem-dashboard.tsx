@@ -23,6 +23,7 @@ import {
   Star,
   Network
 } from "@/lib/icons";
+import { GasStationWidget } from "@/components/GasStationWidget";
 
 interface USDCService {
   id: string;
@@ -345,6 +346,11 @@ export default function USDCEcosystemDashboard() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Gas Station Widget */}
+        <div className="mb-8">
+          <GasStationWidget userWalletId={user?.walletId} blockchain="ETH" />
         </div>
 
         {/* Why USDC Section */}

@@ -15,6 +15,7 @@ import { agentQualityControl } from "./services/agentQualityControl";
 import { agentRoutes } from "./routes/agentRoutes";
 import { default as aiMarketplaceRoutes } from "./routes/aiMarketplaceRoutes";
 import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
+import circleRoutes from "./routes/circleRoutes";
 // import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
@@ -36,6 +37,10 @@ export function registerRoutes(app: Express): Server {
 
   // CRITICAL: Register AI Marketplace routes FIRST for revenue generation
   app.use('/api/ai-marketplace', aiMarketplaceRoutes);
+  
+  // === CIRCLE USDC INTEGRATION ROUTES ===
+  // Circle Developer-Controlled Wallets for USDC ecosystem
+  app.use('/api/circle', circleRoutes);
   
   // === ENTERPRISE DATA MONETIZATION ROUTES ===
   // High-value revenue generating data APIs ($500K-2M potential)

@@ -59,6 +59,18 @@ export const users = pgTable("users", {
   solanaWallet: varchar("solana_wallet"), // For Solana transactions
   bitcoinAddress: varchar("bitcoin_address"), // For Bitcoin transactions
   xrpWallet: varchar("xrp_wallet"), // For XRP Ledger transactions
+  
+  // Circle USDC Integration fields
+  circleWalletId: varchar("circle_wallet_id"), // Primary Circle wallet ID
+  circleWalletSetId: varchar("circle_wallet_set_id"), // Circle wallet set ID
+  circleEntitySecret: varchar("circle_entity_secret"), // Encrypted entity secret
+  usdcBalance: decimal("usdc_balance", { precision: 20, scale: 8 }).default("0.00000000"), // USDC balance
+  circleWalletAddress: varchar("circle_wallet_address"), // Circle wallet address
+  circleAccountType: varchar("circle_account_type").default("SCA"), // SCA or EOA
+  circleBlockchain: varchar("circle_blockchain").default("ETH"), // ETH, MATIC, AVAX, ARB
+  circleWalletState: varchar("circle_wallet_state").default("PENDING"), // LIVE, PENDING, FAILED
+  circleRecoveryFile: jsonb("circle_recovery_file"), // Recovery file backup
+  
   referralCode: varchar("referral_code").unique(),
   referredBy: varchar("referred_by"),
   referralBonus: decimal("referral_bonus", { precision: 10, scale: 2 }).default("0.00"),

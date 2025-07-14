@@ -5228,6 +5228,32 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // DEX supported tokens endpoint (alias for compatibility)
+  app.get('/api/dex/supported-tokens', async (req, res) => {
+    try {
+      const tokens = [
+        { symbol: 'ETH', name: 'Ethereum', address: '0x0000000000000000000000000000000000000000' },
+        { symbol: 'USDC', name: 'USD Coin', address: '0xa0b86a33e6ba6fc3f3da9e88d1b0cac7d6f5b8b6' },
+        { symbol: 'USDT', name: 'Tether', address: '0xdac17f958d2ee523a2206206994597c13d831ec7' },
+        { symbol: 'DAI', name: 'Dai Stablecoin', address: '0x6b175474e89094c44da98b954eedeac495271d0f' },
+        { symbol: 'WBTC', name: 'Wrapped Bitcoin', address: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599' },
+        { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933' }
+      ];
+      
+      res.json({
+        success: true,
+        tokens,
+        count: tokens.length
+      });
+      
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch tokens'
+      });
+    }
+  });
+
   // DEX token info endpoint for custom token detection
   app.get('/api/dex/token-info/:address', async (req, res) => {
     try {

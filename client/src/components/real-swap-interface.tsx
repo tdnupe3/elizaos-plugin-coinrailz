@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useWallet } from "@/hooks/useWallet";
+import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import peezyMascot from "@assets/peezy logo_1752028927702.jpg";
 
@@ -61,11 +62,13 @@ const supportedTokens: TokenInfo[] = [
 export function RealSwapInterface() {
   const { toast } = useToast();
   const { wallet, connectWallet, signTransaction } = useWallet();
-  const [fromToken, setFromToken] = useState('ETH');
-  const [toToken, setToToken] = useState('USDC');
+  const { user } = useAuth();
+  const [fromToken, setFromToken] = useState('USDC');
+  const [toToken, setToToken] = useState('ETH');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState(5.0);
   const [quote, setQuote] = useState<SwapQuote | null>(null);
+  const [usdcBalance, setUsdcBalance] = useState('0.00');
   const [customTokens, setCustomTokens] = useState<TokenInfo[]>([]);
   const [showCustomTokenDialog, setShowCustomTokenDialog] = useState(false);
   const [customTokenForm, setCustomTokenForm] = useState<CustomTokenForm>({
@@ -74,6 +77,23 @@ export function RealSwapInterface() {
     name: '',
     decimals: 18
   });
+
+  // Fetch USDC balance for authenticated users
+  useEffect(() => {
+    if (user) {
+      const fetchUSDCBalance = async () => {
+        try {
+          const response = await apiRequest('/api/user/circle/balance');
+          if (response.data && response.data.balance) {
+            setUsdcBalance(response.data.balance);
+          }
+        } catch (error) {
+          console.error('Error fetching USDC balance:', error);
+        }
+      };
+      fetchUSDCBalance();
+    }
+  }, [user]);
   const [tokenSearchTerm, setTokenSearchTerm] = useState('');
   const [isLoadingTokenInfo, setIsLoadingTokenInfo] = useState(false);
   const [selectedChain, setSelectedChain] = useState(1); // Default to Ethereum
@@ -219,40 +239,61 @@ export function RealSwapInterface() {
     }
   });
 
-  // Execute real swap mutation
+  // Execute real swap mutation - supports both external wallets and Circle wallets
   const executeSwapMutation = useMutation({
     mutationFn: async () => {
-      if (!wallet.isConnected || !wallet.address) {
-        throw new Error('Wallet not connected');
-      }
-
       if (!quote) {
         throw new Error('No quote available');
       }
 
-      // Step 1: Get transaction data from our API
-      const fromTokenData = allTokens.find(t => t.symbol === fromToken);
-      const toTokenData = allTokens.find(t => t.symbol === toToken);
+      // Check if user is using Circle wallet (authenticated user) or external wallet
+      const isCircleWallet = user && fromToken === 'USDC';
       
-      const response = await apiRequest('POST', '/api/dex/swap-prepare', {
-        fromToken: fromTokenData?.address || fromToken,
-        toToken: toTokenData?.address || toToken,
-        amount,
-        slippage,
-        userAddress: wallet.address,
-        chainId: selectedChain
-      });
-      
-      const swapData = await response.json();
-      
-      if (!swapData.success) {
-        throw new Error(swapData.error || 'Failed to prepare swap');
+      if (isCircleWallet) {
+        // Use Circle wallet for USDC swaps
+        const response = await apiRequest('POST', '/api/user/circle/swap', {
+          fromToken: 'USDC',
+          toToken,
+          amount,
+          slippage,
+          chainId: selectedChain
+        });
+        
+        if (!response.success) {
+          throw new Error(response.error || 'Circle wallet swap failed');
+        }
+        
+        return response.data;
+      } else {
+        // Use external wallet (MetaMask, etc.)
+        if (!wallet.isConnected || !wallet.address) {
+          throw new Error('Wallet not connected');
+        }
+
+        // Step 1: Get transaction data from our API
+        const fromTokenData = allTokens.find(t => t.symbol === fromToken);
+        const toTokenData = allTokens.find(t => t.symbol === toToken);
+        
+        const response = await apiRequest('POST', '/api/dex/swap-prepare', {
+          fromToken: fromTokenData?.address || fromToken,
+          toToken: toTokenData?.address || toToken,
+          amount,
+          slippage,
+          userAddress: wallet.address,
+          chainId: selectedChain
+        });
+        
+        const swapData = await response.json();
+        
+        if (!swapData.success) {
+          throw new Error(swapData.error || 'Failed to prepare swap');
+        }
+
+        // Step 2: Execute transaction through MetaMask
+        const txHash = await signTransaction(swapData.transactionData);
+
+        return { transactionHash: txHash, ...swapData };
       }
-
-      // Step 2: Execute transaction through MetaMask
-      const txHash = await signTransaction(swapData.transactionData);
-
-      return { transactionHash: txHash, ...swapData };
     },
     onSuccess: (data) => {
       toast({
@@ -323,12 +364,30 @@ export function RealSwapInterface() {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Circle Wallet USDC Balance */}
+        {user && (
+          <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-3 border border-blue-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm font-medium text-blue-800">Circle Wallet Balance</p>
+                <p className="text-2xl font-bold text-green-700">{parseFloat(usdcBalance).toFixed(2)} USDC</p>
+              </div>
+              <div className="text-right">
+                <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                  Instant Settlement
+                </Badge>
+                <p className="text-xs text-blue-600 mt-1">Ready for DEX trading</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Connection Status */}
-        {!wallet.isConnected && (
+        {!wallet.isConnected && !user && (
           <Alert>
             <AlertTriangle className="w-4 h-4" />
             <AlertDescription>
-              Connect your wallet (MetaMask, Phantom, Coinbase, etc.) to execute real swaps
+              Connect your wallet (MetaMask, Phantom, Coinbase, etc.) or sign in to use your Circle wallet
             </AlertDescription>
           </Alert>
         )}

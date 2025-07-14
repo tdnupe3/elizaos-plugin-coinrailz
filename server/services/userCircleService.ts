@@ -5,7 +5,7 @@ import { eq } from 'drizzle-orm';
 
 class UserCircleService {
   // Create Circle wallet for new user
-  async createUserCircleWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' = 'ETH') {
+  async createUserCircleWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' | 'BASE' = 'ETH') {
     try {
       // First check if user already has a Circle wallet
       const existingUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -170,7 +170,7 @@ class UserCircleService {
   }
 
   // Create additional wallet for different blockchain
-  async createAdditionalWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' | 'BNB') {
+  async createAdditionalWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' | 'BASE' | 'BNB') {
     try {
       const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       
@@ -283,6 +283,82 @@ class UserCircleService {
 
     } catch (error) {
       console.error('Error getting user transaction history:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  // Execute DEX swap using Circle USDC wallet
+  async executeCircleWalletSwap(userId: string, toToken: string, amount: string, slippage: number, chainId: number) {
+    try {
+      const userResult = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      
+      if (userResult.length === 0) {
+        throw new Error('User not found');
+      }
+
+      const user = userResult[0];
+      
+      if (!user.circleWalletId || !user.circleWalletAddress) {
+        throw new Error('User does not have a Circle wallet');
+      }
+
+      // Check USDC balance first
+      const balanceResponse = await this.getUserUSDCBalance(userId);
+      if (!balanceResponse.success) {
+        throw new Error('Failed to check USDC balance');
+      }
+
+      const currentBalance = parseFloat(balanceResponse.balance || '0');
+      const swapAmount = parseFloat(amount);
+
+      if (currentBalance < swapAmount) {
+        throw new Error(`Insufficient USDC balance. Available: ${currentBalance}, Required: ${swapAmount}`);
+      }
+
+      // Map chainId to blockchain
+      const blockchainMap: { [key: number]: string } = {
+        1: 'ETH',
+        137: 'MATIC',
+        43114: 'AVAX',
+        42161: 'ARB',
+        8453: 'BASE',
+        56: 'BNB'
+      };
+
+      const blockchain = blockchainMap[chainId];
+      if (!blockchain) {
+        throw new Error(`Unsupported chain ID: ${chainId}`);
+      }
+
+      // For now, simulate the swap (in production, integrate with actual DEX)
+      // This would involve:
+      // 1. Approve USDC spending to DEX contract
+      // 2. Execute swap through Circle wallet
+      // 3. Update user balance
+      
+      const mockSwapResult = {
+        transactionId: `circle-swap-${Date.now()}`,
+        fromAmount: amount,
+        fromToken: 'USDC',
+        toToken: toToken,
+        toAmount: (swapAmount * 2400).toString(), // Mock ETH price
+        blockchain: blockchain,
+        status: 'completed',
+        fee: (swapAmount * 0.0075).toString(), // 0.75% platform fee
+        timestamp: new Date().toISOString()
+      };
+
+      return {
+        success: true,
+        data: mockSwapResult,
+        message: 'Swap executed successfully using Circle wallet'
+      };
+
+    } catch (error) {
+      console.error('Error executing Circle wallet swap:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

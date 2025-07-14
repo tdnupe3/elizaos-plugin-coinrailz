@@ -16,10 +16,10 @@ router.post('/wallet/create', async (req, res) => {
     const { blockchain = 'ETH' } = req.body;
     const userId = req.user.id;
 
-    if (!['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'].includes(blockchain)) {
+    if (!['ETH', 'MATIC', 'AVAX', 'ARB', 'BASE', 'BNB'].includes(blockchain)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, or BNB'
+        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, BASE, or BNB'
       });
     }
 
@@ -85,10 +85,10 @@ router.post('/wallet/additional', async (req, res) => {
     const { blockchain } = req.body;
     const userId = req.user.id;
 
-    if (!blockchain || !['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'].includes(blockchain)) {
+    if (!blockchain || !['ETH', 'MATIC', 'AVAX', 'ARB', 'BASE', 'BNB'].includes(blockchain)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, or BNB'
+        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, BASE, or BNB'
       });
     }
 
@@ -121,10 +121,10 @@ router.post('/transfer', async (req, res) => {
       });
     }
 
-    if (!['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'].includes(blockchain)) {
+    if (!['ETH', 'MATIC', 'AVAX', 'ARB', 'BASE', 'BNB'].includes(blockchain)) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, or BNB'
+        error: 'Invalid blockchain. Must be ETH, MATIC, AVAX, ARB, BASE, or BNB'
       });
     }
 
@@ -211,6 +211,62 @@ router.get('/wallet/info', async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting user wallet info:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+// Execute DEX swap using Circle USDC wallet
+router.post('/swap', async (req, res) => {
+  try {
+    const { toToken, amount, slippage, chainId } = req.body;
+    const userId = req.user.id;
+
+    if (!toToken || !amount || !chainId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: toToken, amount, chainId'
+      });
+    }
+
+    // Validate amount is positive number
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || numAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid amount. Must be a positive number'
+      });
+    }
+
+    // Validate slippage
+    const numSlippage = parseFloat(slippage || '5');
+    if (isNaN(numSlippage) || numSlippage < 0 || numSlippage > 50) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid slippage. Must be between 0 and 50'
+      });
+    }
+
+    // Validate chainId
+    const validChainIds = [1, 137, 43114, 42161, 8453, 56]; // ETH, MATIC, AVAX, ARB, BASE, BNB
+    if (!validChainIds.includes(chainId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid chainId. Must be one of: 1 (ETH), 137 (MATIC), 43114 (AVAX), 42161 (ARB), 8453 (BASE), 56 (BNB)'
+      });
+    }
+
+    const result = await userCircleService.executeCircleWalletSwap(userId, toToken, amount, numSlippage, chainId);
+    
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error executing Circle wallet swap:', error);
     res.status(500).json({
       success: false,
       error: 'Internal server error'

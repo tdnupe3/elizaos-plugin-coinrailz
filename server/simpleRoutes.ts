@@ -4623,6 +4623,17 @@ export function setupSimpleRoutes(app: Express) {
           fees: { average: '5 gwei', fast: '10 gwei' }
         },
         {
+          id: 8453,
+          name: 'Base',
+          symbol: 'ETH',
+          chainId: 8453,
+          rpcUrl: 'https://mainnet.base.org/',
+          blockExplorer: 'https://basescan.org',
+          nativeCurrency: 'ETH',
+          enabled: true,
+          fees: { average: '0.1 gwei', fast: '0.2 gwei' }
+        },
+        {
           id: 369,
           name: 'PulseChain',
           symbol: 'PLS',
@@ -4634,7 +4645,7 @@ export function setupSimpleRoutes(app: Express) {
           fees: { average: '1 gwei', fast: '2 gwei' }
         }
       ],
-      total: 4
+      total: 5
     });
   });
 
@@ -4645,7 +4656,7 @@ export function setupSimpleRoutes(app: Express) {
       status: 'operational',
       version: '2.0.0',
       supportedProtocols: ['1inch', '0x Protocol', 'Uniswap V3', 'PancakeSwap'],
-      supportedNetworks: 4,
+      supportedNetworks: 5,
       totalLiquidity: '$2.5B+',
       averageSlippage: '0.15%',
       uptime: '99.8%',

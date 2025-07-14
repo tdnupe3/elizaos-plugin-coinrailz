@@ -49,7 +49,7 @@ export default function USDCEcosystemDashboard() {
     avgSettlementTime: 'N/A',
     uptime: '100%',
     activeWallets: 0,
-    supportedChains: 5
+    supportedChains: 6
   });
 
   const [circleHealth, setCircleHealth] = useState({
@@ -86,9 +86,9 @@ export default function USDCEcosystemDashboard() {
     {
       id: 'instant-payments',
       title: 'Instant USDC Payments',
-      description: 'Send and receive USDC instantly across 4 blockchain networks',
+      description: 'Send and receive USDC instantly across 6 blockchain networks',
       benefits: [
-        'Multi-chain support (ETH, MATIC, AVAX, ARB)',
+        'Multi-chain support (ETH, MATIC, AVAX, ARB, BASE)',
         'Circle programmable wallets',
         'Instant settlement',
         'Low fees (0.1-0.5%)'

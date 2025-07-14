@@ -2038,6 +2038,17 @@ app.get('/api/dex/networks', (req, res) => {
         fees: { average: '5 gwei', fast: '10 gwei' }
       },
       {
+        id: 8453,
+        name: 'Base',
+        symbol: 'ETH',
+        chainId: 8453,
+        rpcUrl: 'https://mainnet.base.org/',
+        blockExplorer: 'https://basescan.org',
+        nativeCurrency: 'ETH',
+        enabled: true,
+        fees: { average: '0.1 gwei', fast: '0.2 gwei' }
+      },
+      {
         id: 369,
         name: 'PulseChain',
         symbol: 'PLS',
@@ -2049,7 +2060,7 @@ app.get('/api/dex/networks', (req, res) => {
         fees: { average: '1 gwei', fast: '2 gwei' }
       }
     ],
-    total: 4
+    total: 5
   });
 });
 

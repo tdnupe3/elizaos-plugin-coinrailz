@@ -391,3 +391,6 @@ class CircleService {
 }
 
 export default CircleService;
+
+// Create singleton instance
+export const circleService = new CircleService();

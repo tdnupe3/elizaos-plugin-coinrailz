@@ -120,6 +120,7 @@ import referralRoutes from './routes/referralRoutes';
 import blockchainRoutes from './routes/blockchainRoutes';
 import aiMarketplaceRoutes from './routes/aiMarketplaceRoutes';
 import circleRoutes from './routes/circleRoutes';
+import userCircleRoutes from './routes/userCircleRoutes';
 
 // Authentication system integration
 import { setupAuth } from './replitAuth';
@@ -141,6 +142,7 @@ app.use('/api/ai-marketplace', aiMarketplaceSimpleRoutes);
 
 // === CIRCLE USDC INTEGRATION ROUTES ===
 app.use('/api/circle', circleRoutes);
+app.use('/api/user-circle', userCircleRoutes);
 
 // === ENTERPRISE DATA MONETIZATION ROUTES (HIGH REVENUE POTENTIAL) ===
 app.use('/api/enterprise-data', enterpriseDataRoutes);

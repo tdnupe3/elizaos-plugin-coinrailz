@@ -40,6 +40,7 @@ import {
   EnhancedReferralDashboard,
   HumanReferralDashboard,
 
+  USDCEcosystemDashboard,
   XRPEcosystemDashboard,
   XRPCrossBorderPayments,
   XRPInstantSettlements,
@@ -170,6 +171,11 @@ function Router() {
       <Route path="/prices">
         {() => <LazyLoadWrapper><CryptoPrices /></LazyLoadWrapper>}
       </Route>
+      {/* USDC Ecosystem Hub */}
+      <Route path="/usdc-ecosystem">
+        {() => <LazyLoadWrapper><USDCEcosystemDashboard /></LazyLoadWrapper>}
+      </Route>
+
       {/* XRP Ecosystem Hub */}
       <Route path="/xrp-ecosystem">
         {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}

@@ -6,9 +6,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
-
-// Simple session store (in production, use Redis or database)
-const sessionStore = new Map<string, { userId: string, userEmail: string, createdAt: number }>();
+import { sessionStore, createSession } from './services/sessionManager';
 
 // Registration validation schema with secure password requirements
 const registrationSchema = z.object({
@@ -60,14 +58,7 @@ export function registerAuthRoutes(app: Express) {
       });
 
       // Create session token for auto-login after registration
-      const sessionToken = `cr_session_${newUser.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Store session in memory (in production, this would be in Redis/database)
-      sessionStore.set(sessionToken, {
-        userId: newUser.id,
-        userEmail: newUser.email || '',
-        createdAt: Date.now()
-      });
+      const sessionToken = createSession(newUser.id, newUser.email || '');
 
       // Don't return password in response
       const { password, ...userResponse } = newUser;

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
-import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe } from "@/lib/icons";
+import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -67,6 +67,14 @@ export default function MainMenu() {
       icon: Bot,
       color: 'bg-purple-500 hover:bg-purple-600',
       route: '/ai-marketplace'
+    },
+    {
+      id: 'usdc-ecosystem',
+      title: 'USDC Ecosystem',
+      description: 'Enterprise-grade stablecoin infrastructure powered by Circle',
+      icon: DollarSign,
+      color: 'bg-blue-600 hover:bg-blue-700',
+      route: '/usdc-ecosystem'
     },
     {
       id: 'xrp-ecosystem',

@@ -19,6 +19,7 @@ import {
 } from "@/lib/icons";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
+import OnboardingFlow from "@/components/onboarding-flow";
 
 interface Transaction {
   id: string;
@@ -166,6 +167,11 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Onboarding Flow for New Users */}
+        <div className="mb-8">
+          <OnboardingFlow />
+        </div>
+
         {/* USDC Balance Highlight Card */}
         <div className="mb-6">
           <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950">

@@ -7,6 +7,7 @@ import { storage } from "./storage";
 import bcrypt from 'bcrypt';
 import { z } from 'zod';
 import { sessionStore, createSession } from './services/sessionManager';
+import { userCircleService } from './services/userCircleService';
 
 // Registration validation schema with secure password requirements
 const registrationSchema = z.object({
@@ -57,6 +58,24 @@ export function registerAuthRoutes(app: Express) {
         pepsCheck: false
       });
 
+      // Create Circle wallet automatically for new user
+      let circleWalletInfo = null;
+      try {
+        const walletResult = await userCircleService.createUserCircleWallet(newUser.id, 'ETH');
+        if (walletResult.success) {
+          circleWalletInfo = {
+            address: walletResult.address,
+            blockchain: walletResult.blockchain,
+            state: walletResult.state
+          };
+          console.log(`✅ Circle wallet created for user ${newUser.id}: ${walletResult.address}`);
+        } else {
+          console.warn(`⚠️ Circle wallet creation failed for user ${newUser.id}: ${walletResult.error}`);
+        }
+      } catch (error) {
+        console.error('Error creating Circle wallet during registration:', error);
+      }
+
       // Create session token for auto-login after registration
       const sessionToken = createSession(newUser.id, newUser.email || '');
 
@@ -67,7 +86,8 @@ export function registerAuthRoutes(app: Express) {
         success: true,
         message: 'Account created successfully',
         user: userResponse,
-        token: sessionToken
+        token: sessionToken,
+        circleWallet: circleWalletInfo
       });
     } catch (error: any) {
       console.error('Registration error:', error);

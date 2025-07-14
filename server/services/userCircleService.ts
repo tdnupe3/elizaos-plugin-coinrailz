@@ -3,7 +3,7 @@ import { db } from '../db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
-export class UserCircleService {
+class UserCircleService {
   // Create Circle wallet for new user
   async createUserCircleWallet(userId: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' = 'ETH') {
     try {

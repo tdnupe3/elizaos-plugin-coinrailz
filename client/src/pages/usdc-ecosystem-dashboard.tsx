@@ -43,12 +43,12 @@ export default function USDCEcosystemDashboard() {
   const [, setLocation] = useLocation();
   const [usdcRate, setUsdcRate] = useState<number>(1.00);
   const [platformStats, setPlatformStats] = useState({
-    totalUSDCVolume: 2847532.50,
-    totalTransactions: 8247,
-    avgSettlementTime: '2.1s',
-    uptime: '99.99%',
-    activeWallets: 1247,
-    supportedChains: 4
+    totalUSDCVolume: 0,
+    totalTransactions: 0,
+    avgSettlementTime: 'N/A',
+    uptime: '100%',
+    activeWallets: 0,
+    supportedChains: 5
   });
 
   const [circleHealth, setCircleHealth] = useState({
@@ -236,7 +236,7 @@ export default function USDCEcosystemDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-blue-100">Total Volume</p>
-                    <p className="text-2xl font-bold">${(platformStats.totalUSDCVolume / 1000000).toFixed(1)}M</p>
+                    <p className="text-2xl font-bold">${platformStats.totalUSDCVolume === 0 ? '0.00' : (platformStats.totalUSDCVolume / 1000000).toFixed(1) + 'M'}</p>
                   </div>
                   <BarChart3 className="w-8 h-8 text-white/80" />
                 </div>
@@ -246,7 +246,7 @@ export default function USDCEcosystemDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-blue-100">Active Wallets</p>
-                    <p className="text-2xl font-bold">{platformStats.activeWallets.toLocaleString()}</p>
+                    <p className="text-2xl font-bold">{platformStats.activeWallets === 0 ? '0' : platformStats.activeWallets.toLocaleString()}</p>
                   </div>
                   <Users className="w-8 h-8 text-white/80" />
                 </div>
@@ -255,21 +255,24 @@ export default function USDCEcosystemDashboard() {
           </div>
         </div>
 
-        {/* Circle Health Status */}
-        <Card className="mb-8 border-green-200 bg-green-50">
+        {/* Platform Status */}
+        <Card className="mb-8 border-blue-200 bg-blue-50">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <CheckCircle className="w-6 h-6 text-green-600" />
+                <CheckCircle className="w-6 h-6 text-blue-600" />
                 <div>
-                  <h3 className="font-semibold text-green-800">Circle Service Status</h3>
-                  <p className="text-sm text-green-700">
-                    All systems operational • Last check: {new Date(circleHealth.lastCheck).toLocaleTimeString()}
+                  <h3 className="font-semibold text-blue-800">Platform Status</h3>
+                  <p className="text-sm text-blue-700">
+                    {platformStats.totalTransactions === 0 ? 
+                      'Platform ready for first transactions • All systems operational' : 
+                      `All systems operational • Last check: ${new Date(circleHealth.lastCheck).toLocaleTimeString()}`
+                    }
                   </p>
                 </div>
               </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {String(circleHealth.status).toUpperCase()}
+              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                {platformStats.totalTransactions === 0 ? 'READY' : String(circleHealth.status).toUpperCase()}
               </Badge>
             </div>
           </CardContent>

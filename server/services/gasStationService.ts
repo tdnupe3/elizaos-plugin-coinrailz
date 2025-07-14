@@ -231,10 +231,10 @@ class GasStationService {
   }> {
     // In production, this would query a database
     return {
-      totalTransactions: 1250,
-      totalGasFeesSponsored: '0.875',
-      totalUSDCCollected: '3062.50',
-      totalPlatformFees: '153.13',
+      totalTransactions: 0,
+      totalGasFeesSponsored: '0.000',
+      totalUSDCCollected: '0.00',
+      totalPlatformFees: '0.00',
       supportedChains: this.SUPPORTED_CHAINS
     };
   }

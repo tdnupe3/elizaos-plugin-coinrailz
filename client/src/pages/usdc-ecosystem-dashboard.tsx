@@ -269,7 +269,7 @@ export default function USDCEcosystemDashboard() {
                 </div>
               </div>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {circleHealth.status.toUpperCase()}
+                {String(circleHealth.status).toUpperCase()}
               </Badge>
             </div>
           </CardContent>

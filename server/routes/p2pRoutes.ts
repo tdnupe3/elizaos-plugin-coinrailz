@@ -32,18 +32,18 @@ router.post('/transfer', async (req, res) => {
       });
     }
 
-    // Calculate fees based on USDC usage
+    // Calculate fees based on USDC usage (updated to account for referral costs)
     let fee, processingFee, estimatedDelivery;
     
     if (senderMethod === 'usdc' || recipientMethod === 'usdc') {
-      // Ultra-low fees for USDC transfers
-      fee = Math.max(transferAmount * 0.001, 0.50); // 0.1% with $0.50 minimum
-      processingFee = transferAmount * 0.0025; // 0.25% platform fee
+      // USDC fees (increased to cover referral costs)
+      fee = Math.max(transferAmount * 0.005, 1.00); // 0.5% with $1.00 minimum
+      processingFee = transferAmount * 0.0075; // 0.75% platform fee
       estimatedDelivery = '3-5 seconds';
     } else {
-      // Standard fees
-      fee = Math.max(transferAmount * 0.025, 5.00); // 2.5% with $5 minimum
-      processingFee = senderMethod === 'credit-card' ? transferAmount * 0.029 : 0;
+      // Standard fees (increased to cover referral costs)
+      fee = Math.max(transferAmount * 0.035, 7.50); // 3.5% with $7.50 minimum
+      processingFee = senderMethod === 'credit-card' ? transferAmount * 0.029 : transferAmount * 0.01;
       estimatedDelivery = '5-15 minutes';
     }
 
@@ -327,7 +327,7 @@ router.get('/supported-platforms', (req, res) => {
     success: true,
     platforms: {
       senders: [
-        { id: 'usdc', name: 'USDC (Ultra-Low Fees)', available: true, processingFee: '0.1% + $0.50 minimum' },
+        { id: 'usdc', name: 'USDC (Low Fees)', available: true, processingFee: '0.5% + 0.75% platform fee' },
         { id: 'paypal', name: 'PayPal', available: true, processingFee: '2.9% + $0.30' },
         { id: 'credit', name: 'Credit Card', available: true, processingFee: '2.9% + $0.30' },
         { id: 'debit', name: 'Debit Card', available: true, processingFee: '2.9% + $0.30' },

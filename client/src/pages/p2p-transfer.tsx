@@ -75,10 +75,11 @@ export default function P2PTransfer() {
   });
 
   const calculateFees = (amount: number) => {
-    // USDC gets ultra-low fees
+    // Updated fees to account for referral costs
     if (transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') {
-      const usdcFee = Math.max(amount * 0.001, 0.50); // 0.1% with $0.50 minimum
-      const platformFee = amount * 0.0025; // 0.25% platform fee
+      // USDC fees (increased to cover referral costs)
+      const usdcFee = Math.max(amount * 0.005, 1.00); // 0.5% with $1.00 minimum
+      const platformFee = amount * 0.0075; // 0.75% platform fee
       return {
         baseFee: usdcFee,
         processingFee: platformFee,
@@ -86,8 +87,9 @@ export default function P2PTransfer() {
       };
     }
     
-    const baseFee = Math.max(amount * 0.025, 5.00); // 2.5% with $5 minimum
-    const processingFee = transferData.senderMethod === 'credit-card' ? amount * 0.029 : 0;
+    // Standard fees (increased to cover referral costs)
+    const baseFee = Math.max(amount * 0.035, 7.50); // 3.5% with $7.50 minimum
+    const processingFee = transferData.senderMethod === 'credit-card' ? amount * 0.029 : amount * 0.01;
     return {
       baseFee: baseFee,
       processingFee: processingFee,
@@ -99,7 +101,7 @@ export default function P2PTransfer() {
   const totalAmount = transferData.amount + fees.total;
 
   const paymentMethods = [
-    { id: 'usdc', name: 'USDC (Ultra-Low Fees)', icon: DollarSign, available: true, highlight: true },
+    { id: 'usdc', name: 'USDC (Low Fees)', icon: DollarSign, available: true, highlight: true },
     { id: 'wallet-balance', name: 'Coin Railz Balance', icon: Wallet, available: true },
     { id: 'credit-card', name: 'Credit/Debit Card', icon: CreditCard, available: true },
     { id: 'paypal', name: 'PayPal', icon: DollarSign, available: true },
@@ -305,7 +307,7 @@ export default function P2PTransfer() {
                     >
                       {method.highlight && (
                         <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                          96% Savings
+                          72% Savings
                         </div>
                       )}
                       <div className="flex items-center justify-between">
@@ -315,7 +317,7 @@ export default function P2PTransfer() {
                             <span className="font-medium">{method.name}</span>
                             {method.id === 'usdc' && (
                               <div className="text-xs text-green-600 dark:text-green-400">
-                                Instant • 3-5 seconds • $0.50-2.00 fees
+                                Instant • 3-5 seconds • 1.25% total fees
                                 {usdcBalance && (
                                   <div className="text-gray-600 dark:text-gray-400">
                                     Balance: ${usdcBalance.balance || '0.00'} USDC
@@ -508,10 +510,10 @@ export default function P2PTransfer() {
                     <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
                       <div className="text-xs text-green-700 dark:text-green-300">
                         <div className="font-medium">USDC Savings:</div>
-                        <div>Traditional fee: ${(transferData.amount * 0.029 + 5.00).toFixed(2)}</div>
+                        <div>Traditional fee: ${(transferData.amount * 0.045 + 7.50).toFixed(2)}</div>
                         <div>USDC fee: ${fees.total.toFixed(2)}</div>
                         <div className="font-medium text-green-600">
-                          You saved: ${((transferData.amount * 0.029 + 5.00) - fees.total).toFixed(2)} (96%)
+                          You saved: ${((transferData.amount * 0.045 + 7.50) - fees.total).toFixed(2)} (72%)
                         </div>
                       </div>
                     </div>

@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Zap, DollarSign, Clock, Shield, ArrowRight, CheckCircle } from "lucide-react";
-import NavigationHeader from "@/components/NavigationHeader";
-import MobileNavigation from "@/components/MobileNavigation";
+import { Zap, DollarSign, Clock, Shield, ArrowRight, CheckCircle } from "@/lib/icons";
+import { NavigationHeader } from "@/components/navigation-header";
+import { MobileNavigation } from "@/components/mobile-navigation";
 import { Link } from "wouter";
 
 export default function USDCPayments() {

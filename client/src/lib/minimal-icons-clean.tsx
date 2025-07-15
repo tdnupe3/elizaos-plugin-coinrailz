@@ -852,3 +852,18 @@ export const MapPin = ({ className = "", size = 24 }: IconProps) => (
     <circle cx="12" cy="10" r="3"/>
   </svg>
 );
+
+export const Code = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <polyline points="16,18 22,12 16,6"/>
+    <polyline points="8,6 2,12 8,18"/>
+  </svg>
+);
+
+export const Webhook = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2.01C3.17 14.25 3.74 13.61 4.4 13.1a8 8 0 0 1 7.6 0 4 4 0 0 1 6 2.9v1"/>
+    <path d="M10.5 2.5a4 4 0 0 1 6 2.9v1h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 0 6c.01-.7.2-1.4.57-2.01C1.17 3.25 1.74 2.61 2.4 2.1a8 8 0 0 1 7.6 0z"/>
+    <path d="M8.5 21.5a4 4 0 0 1-6-2.9v-1h5.99c1.1 0 1.95-.94 2.48-1.9A4 4 0 0 1 18 18c-.01.7-.2 1.4-.57 2.01--.6.74-1.17 1.38-1.83 1.89a8 8 0 0 1-7.6 0z"/>
+  </svg>
+);

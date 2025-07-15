@@ -99,5 +99,7 @@ export {
   Upload,
   Video,
   Settings,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Code,
+  Webhook
 } from '@/lib/minimal-icons-clean';

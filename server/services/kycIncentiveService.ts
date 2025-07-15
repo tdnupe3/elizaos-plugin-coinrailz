@@ -1,5 +1,5 @@
-import { db } from '../db/index.js';
-import { users } from '../../shared/schema.js';
+import { db } from '../db';
+import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 export class KYCIncentiveService {

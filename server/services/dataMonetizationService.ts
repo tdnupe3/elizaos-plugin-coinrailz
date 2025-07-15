@@ -203,48 +203,7 @@ export class DataMonetizationService {
     }
   }
 
-  /**
-   * Get anonymized user behavior patterns
-   */
-  static async getUserBehaviorPatterns(timeframe: number = 30): Promise<any> {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - timeframe);
 
-    try {
-      const behaviorData = await db
-        .select({
-          transactionCount: sql<number>`count(*)`,
-          avgAmount: sql<number>`avg(${transactions.amount})`,
-          preferredNetwork: transactions.network,
-          userType: users.referralSource,
-          timePattern: sql<string>`extract(hour from ${transactions.createdAt})`
-        })
-        .from(transactions)
-        .leftJoin(users, eq(transactions.userId, users.id))
-        .where(gte(transactions.createdAt, cutoffDate))
-        .groupBy(
-          transactions.network,
-          users.referralSource,
-          sql`extract(hour from ${transactions.createdAt})`
-        );
-
-      return {
-        patterns: behaviorData,
-        insights: {
-          peakHours: [14, 15, 16, 17], // Example: 2-5 PM
-          preferredNetworks: ['Ethereum', 'BNB Chain', 'Polygon'],
-          userSegments: {
-            'organic': 0.4,
-            'referred': 0.6
-          }
-        }
-      };
-
-    } catch (error) {
-      console.error('Error getting user behavior patterns:', error);
-      throw new Error('Failed to analyze user behavior');
-    }
-  }
 
   /**
    * Generate API data feed for external clients

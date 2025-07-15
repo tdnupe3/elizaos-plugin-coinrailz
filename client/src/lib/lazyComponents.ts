@@ -38,6 +38,10 @@ export const USDCEcosystemDashboard = lazy(() => import('@/pages/usdc-ecosystem-
 export const USDCBuy = lazy(() => import('@/pages/usdc-buy'));
 export const USDCSavings = lazy(() => import('@/pages/usdc-savings'));
 export const USDCCrossBorder = lazy(() => import('@/pages/usdc-cross-border'));
+export const USDCPayments = lazy(() => import('@/pages/usdc-payments'));
+export const USDCWallets = lazy(() => import('@/pages/usdc-wallets'));
+export const USDCDefi = lazy(() => import('@/pages/usdc-defi'));
+export const USDCEnterprise = lazy(() => import('@/pages/usdc-enterprise'));
 
 // XRP Ecosystem Components
 export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-dashboard'));

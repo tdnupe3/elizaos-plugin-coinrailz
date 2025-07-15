@@ -44,6 +44,10 @@ import {
   USDCBuy,
   USDCSavings,
   USDCCrossBorder,
+  USDCPayments,
+  USDCWallets,
+  USDCDefi,
+  USDCEnterprise,
   XRPEcosystemDashboard,
   XRPCrossBorderPayments,
   XRPInstantSettlements,
@@ -190,6 +194,18 @@ function Router() {
       </Route>
       <Route path="/usdc-cross-border">
         {() => <LazyLoadWrapper><USDCCrossBorder /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-payments">
+        {() => <LazyLoadWrapper><USDCPayments /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-wallets">
+        {() => <LazyLoadWrapper><USDCWallets /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-defi">
+        {() => <LazyLoadWrapper><USDCDefi /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-enterprise">
+        {() => <LazyLoadWrapper><USDCEnterprise /></LazyLoadWrapper>}
       </Route>
 
       {/* XRP Ecosystem Hub */}

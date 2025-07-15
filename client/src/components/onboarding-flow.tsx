@@ -48,6 +48,13 @@ export default function OnboardingFlow() {
       description: 'Discover AI marketplace, P2P transfers, and more',
       icon: Bot,
       status: hasBalance ? 'current' : 'pending'
+    },
+    {
+      id: 'connect',
+      title: 'Connect & Earn',
+      description: 'Start earning with referrals and marketplace activities',
+      icon: Users,
+      status: hasBalance ? 'current' : 'pending'
     }
   ];
 

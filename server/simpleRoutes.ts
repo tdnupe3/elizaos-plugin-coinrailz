@@ -10,6 +10,7 @@ import { pulseChainService } from './services/pulseChainService';
 import stripeRoutes from './routes/stripeRoutes';
 import { storage } from './storage';
 import { peezyService } from './services/peezyIntegrationService';
+import { demoMarketplaceService } from './services/demoMarketplaceService';
 // Simple rate limiting implementation
 const createRateLimit = (maxRequests: number, windowMs: number) => {
   const store = new Map();
@@ -5428,6 +5429,138 @@ export function setupSimpleRoutes(app: Express) {
       res.status(500).json({
         success: false,
         error: 'Failed to calculate PEEZY fees'
+      });
+    }
+  });
+
+  // Demo marketplace services endpoint
+  app.get('/api/services/demo', (req, res) => {
+    try {
+      const services = demoMarketplaceService.getDemoServices();
+      const stats = demoMarketplaceService.getMarketplaceStats();
+      
+      res.json({
+        success: true,
+        services,
+        stats,
+        total: services.length
+      });
+    } catch (error) {
+      console.error('Demo services error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to load demo services'
+      });
+    }
+  });
+
+  // Featured services endpoint
+  app.get('/api/services/featured', (req, res) => {
+    try {
+      const featuredServices = demoMarketplaceService.getFeaturedServices();
+      
+      res.json({
+        success: true,
+        services: featuredServices,
+        total: featuredServices.length
+      });
+    } catch (error) {
+      console.error('Featured services error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to load featured services'
+      });
+    }
+  });
+
+  // Available agents endpoint
+  app.get('/api/agents/available', (req, res) => {
+    try {
+      const availableAgents = demoMarketplaceService.getAvailableAgents();
+      
+      res.json({
+        success: true,
+        agents: availableAgents,
+        total: availableAgents.length
+      });
+    } catch (error) {
+      console.error('Available agents error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to load available agents'
+      });
+    }
+  });
+
+  // Service search endpoint
+  app.get('/api/services/search', (req, res) => {
+    try {
+      const { query } = req.query;
+      const results = demoMarketplaceService.searchServices(query?.toString() || '');
+      
+      res.json({
+        success: true,
+        services: results,
+        total: results.length,
+        query: query || ''
+      });
+    } catch (error) {
+      console.error('Service search error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to search services'
+      });
+    }
+  });
+
+  // Agent details endpoint
+  app.get('/api/agents/:agentId', (req, res) => {
+    try {
+      const { agentId } = req.params;
+      const agent = demoMarketplaceService.getDemoAgent(agentId);
+      
+      if (!agent) {
+        return res.status(404).json({
+          success: false,
+          message: 'Agent not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        agent
+      });
+    } catch (error) {
+      console.error('Agent details error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to load agent details'
+      });
+    }
+  });
+
+  // Service details endpoint
+  app.get('/api/services/:serviceId', (req, res) => {
+    try {
+      const { serviceId } = req.params;
+      const service = demoMarketplaceService.getDemoService(serviceId);
+      
+      if (!service) {
+        return res.status(404).json({
+          success: false,
+          message: 'Service not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        service
+      });
+    } catch (error) {
+      console.error('Service details error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to load service details'
       });
     }
   });

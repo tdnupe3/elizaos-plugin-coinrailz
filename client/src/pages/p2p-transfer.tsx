@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
+import { UserGuidanceModal, FeatureTooltip, USDCSavingsBadge } from "@/components/user-guidance";
 
 interface P2PTransferData {
   recipient: string;
@@ -101,13 +102,63 @@ export default function P2PTransfer() {
   const totalAmount = transferData.amount + fees.total;
 
   const paymentMethods = [
-    { id: 'usdc', name: 'USDC (Low Fees)', icon: DollarSign, available: true, highlight: true },
-    { id: 'wallet-balance', name: 'Coin Railz Balance', icon: Wallet, available: true },
-    { id: 'credit-card', name: 'Credit/Debit Card', icon: CreditCard, available: true },
-    { id: 'paypal', name: 'PayPal', icon: DollarSign, available: true },
-    { id: 'crypto', name: 'Cryptocurrency', icon: Bitcoin, available: true },
-    { id: 'bank-transfer', name: 'Bank Transfer', icon: DollarSign, available: false },
-    { id: 'apple-pay', name: 'Apple Pay', icon: DollarSign, available: false }
+    { 
+      id: 'usdc', 
+      name: 'USDC (72% Savings)', 
+      icon: DollarSign, 
+      available: true, 
+      highlight: true,
+      savings: '72% cheaper than traditional methods',
+      estimatedTime: '2-5 seconds'
+    },
+    { 
+      id: 'wallet-balance', 
+      name: 'Coin Railz Balance', 
+      icon: Wallet, 
+      available: true,
+      savings: 'Instant transfer',
+      estimatedTime: '< 1 second'
+    },
+    { 
+      id: 'credit-card', 
+      name: 'Credit/Debit Card', 
+      icon: CreditCard, 
+      available: true,
+      savings: 'Standard fees apply',
+      estimatedTime: '1-3 minutes'
+    },
+    { 
+      id: 'paypal', 
+      name: 'PayPal', 
+      icon: DollarSign, 
+      available: true,
+      savings: 'Standard fees apply',
+      estimatedTime: '1-3 minutes'
+    },
+    { 
+      id: 'crypto', 
+      name: 'Cryptocurrency', 
+      icon: Bitcoin, 
+      available: true,
+      savings: 'Network fees apply',
+      estimatedTime: '5-15 minutes'
+    },
+    { 
+      id: 'bank-transfer', 
+      name: 'Bank Transfer', 
+      icon: DollarSign, 
+      available: false,
+      savings: 'Coming soon',
+      estimatedTime: '3-5 business days'
+    },
+    { 
+      id: 'apple-pay', 
+      name: 'Apple Pay', 
+      icon: DollarSign, 
+      available: false,
+      savings: 'Coming soon',
+      estimatedTime: '1-3 minutes'
+    }
   ];
 
   const handleStepNext = () => {
@@ -181,10 +232,15 @@ export default function P2PTransfer() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Send Money</h1>
-          <p className="text-gray-600 dark:text-gray-300">
-            Fast, secure P2P transfers worldwide
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Send Money</h1>
+              <p className="text-gray-600 dark:text-gray-300">
+                Fast, secure P2P transfers worldwide
+              </p>
+            </div>
+            <UserGuidanceModal />
+          </div>
         </div>
 
         {/* Progress Steps */}
@@ -314,10 +370,22 @@ export default function P2PTransfer() {
                         <div className="flex items-center">
                           <method.icon className={`h-5 w-5 mr-3 ${method.highlight ? 'text-green-600' : 'text-gray-600 dark:text-gray-300'}`} />
                           <div>
-                            <span className="font-medium">{method.name}</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium">{method.name}</span>
+                              {method.id === 'usdc' && transferData.amount > 0 && (
+                                <USDCSavingsBadge amount={transferData.amount} />
+                              )}
+                            </div>
                             {method.id === 'usdc' && (
                               <div className="text-xs text-green-600 dark:text-green-400">
-                                Instant • 3-5 seconds • 1.25% total fees
+                                <FeatureTooltip 
+                                  title="USDC Benefits" 
+                                  description="Circle's USDC provides instant settlement, regulatory compliance, and global accessibility with ultra-low fees."
+                                >
+                                  <span className="cursor-help">
+                                    Instant • 3-5 seconds • 1.25% total fees
+                                  </span>
+                                </FeatureTooltip>
                                 {usdcBalance && (
                                   <div className="text-gray-600 dark:text-gray-400">
                                     Balance: ${usdcBalance.balance || '0.00'} USDC
@@ -326,6 +394,11 @@ export default function P2PTransfer() {
                                 {usdcBalanceLoading && (
                                   <div className="text-gray-400">Loading balance...</div>
                                 )}
+                              </div>
+                            )}
+                            {method.id !== 'usdc' && (
+                              <div className="text-xs text-gray-500">
+                                {method.savings} • {method.estimatedTime}
                               </div>
                             )}
                           </div>
@@ -507,16 +580,21 @@ export default function P2PTransfer() {
                   
                   {/* USDC Savings Display */}
                   {(transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') && (
-                    <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
-                      <div className="text-xs text-green-700 dark:text-green-300">
-                        <div className="font-medium">USDC Savings:</div>
-                        <div>Traditional fee: ${(transferData.amount * 0.045 + 7.50).toFixed(2)}</div>
-                        <div>USDC fee: ${fees.total.toFixed(2)}</div>
-                        <div className="font-medium text-green-600">
-                          You saved: ${((transferData.amount * 0.045 + 7.50) - fees.total).toFixed(2)} (72%)
+                    <FeatureTooltip 
+                      title="Why USDC Saves Money" 
+                      description="Traditional bank transfers and wire transfers charge 4.5%+ fees plus fixed costs. USDC uses blockchain technology for direct, instant transfers with minimal fees."
+                    >
+                      <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800 cursor-help">
+                        <div className="text-xs text-green-700 dark:text-green-300">
+                          <div className="font-medium">USDC Savings:</div>
+                          <div>Traditional fee: ${(transferData.amount * 0.045 + 7.50).toFixed(2)}</div>
+                          <div>USDC fee: ${fees.total.toFixed(2)}</div>
+                          <div className="font-medium text-green-600">
+                            You saved: ${((transferData.amount * 0.045 + 7.50) - fees.total).toFixed(2)} (72%)
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </FeatureTooltip>
                   )}
                 </div>
 

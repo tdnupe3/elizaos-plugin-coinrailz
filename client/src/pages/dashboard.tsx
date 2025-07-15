@@ -20,6 +20,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import OnboardingFlow from "@/components/onboarding-flow";
+import { UserGuidanceModal } from "@/components/user-guidance";
 
 interface Transaction {
   id: string;
@@ -143,6 +144,7 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex space-x-4">
+              <UserGuidanceModal />
               <Button className="bg-blue-600 hover:bg-blue-700" asChild>
                 <Link href="/">
                   <BarChart3 className="h-4 w-4 mr-2" />

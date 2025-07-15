@@ -11,6 +11,7 @@ import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
+import { UserGuidanceModal, FeatureTooltip } from '@/components/user-guidance';
 
 interface MarketplaceService {
   id: string;
@@ -115,6 +116,7 @@ export default function AIMarketplacePage() {
               </p>
             </div>
           </div>
+          <UserGuidanceModal />
         </div>
 
         {/* Marketplace Stats */}

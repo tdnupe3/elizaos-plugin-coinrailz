@@ -220,6 +220,16 @@ class UserCircleService {
         throw new Error('User does not have a Circle wallet');
       }
 
+      const transferAmount = parseFloat(amount);
+
+      // Check KYC/AML compliance for larger transactions
+      const { circleKYCService } = await import('./circleKYCService');
+      const transactionPermission = await circleKYCService.checkTransactionPermission(userId, transferAmount);
+      
+      if (!transactionPermission.allowed) {
+        throw new Error(transactionPermission.reason || 'Transaction not permitted');
+      }
+
       // Initiate transfer through Circle API
       const transferResponse = await circleService.createTransfer({
         sourceWalletId: user.circleWalletId,
@@ -305,6 +315,16 @@ class UserCircleService {
         throw new Error('User does not have a Circle wallet');
       }
 
+      const swapAmount = parseFloat(amount);
+
+      // Check KYC/AML compliance for larger transactions
+      const { circleKYCService } = await import('./circleKYCService');
+      const transactionPermission = await circleKYCService.checkTransactionPermission(userId, swapAmount);
+      
+      if (!transactionPermission.allowed) {
+        throw new Error(transactionPermission.reason || 'Transaction not permitted');
+      }
+
       // Check USDC balance first
       const balanceResponse = await this.getUserUSDCBalance(userId);
       if (!balanceResponse.success) {
@@ -312,7 +332,6 @@ class UserCircleService {
       }
 
       const currentBalance = parseFloat(balanceResponse.balance || '0');
-      const swapAmount = parseFloat(amount);
 
       if (currentBalance < swapAmount) {
         throw new Error(`Insufficient USDC balance. Available: ${currentBalance}, Required: ${swapAmount}`);

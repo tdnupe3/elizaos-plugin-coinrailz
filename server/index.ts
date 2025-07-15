@@ -126,6 +126,9 @@ import gasStationRoutes from './routes/gasStationRoutes';
 // Authentication system integration
 import { setupAuth } from './replitAuth';
 
+// Initialize authentication system
+setupAuth(app);
+
 app.use('/api/agents', agentRegistration);
 app.use('/api/payments', paymentIntegration);
 app.use('/api/messaging', messagingSystem);
@@ -145,6 +148,136 @@ app.use('/api/ai-marketplace', aiMarketplaceSimpleRoutes);
 app.use('/api/circle', circleRoutes);
 app.use('/api/user-circle', userCircleRoutes);
 app.use('/api/gas-station', gasStationRoutes);
+
+// === CIRCLE KYC/AML ROUTES ===
+// Circle KYC/AML compliance and identity verification
+console.log('🔄 Registering Circle KYC routes...');
+
+import { isAuthenticated } from './replitAuth';
+
+app.get('/api/circle/kyc/status', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    // Import KYC service dynamically
+    const { circleKYCService } = await import('./services/circleKYCService');
+    const kycStatus = await circleKYCService.getKYCStatus(userId);
+    
+    res.json({
+      success: true,
+      status: kycStatus
+    });
+  } catch (error) {
+    console.error('KYC status error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/circle/kyc/check-permission', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { amount } = req.body;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    // Import KYC service dynamically
+    const { circleKYCService } = await import('./services/circleKYCService');
+    const permission = await circleKYCService.checkTransactionPermission(userId, amount);
+    
+    res.json({
+      success: true,
+      permission
+    });
+  } catch (error) {
+    console.error('KYC permission check error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/circle/kyc/requirements/:country', isAuthenticated, async (req, res) => {
+  try {
+    const { country } = req.params;
+    
+    // Import KYC service dynamically
+    const { circleKYCService } = await import('./services/circleKYCService');
+    const requirements = await circleKYCService.getKYCRequirements(country);
+    
+    res.json({
+      success: true,
+      requirements
+    });
+  } catch (error) {
+    console.error('KYC requirements error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/circle/kyc/submit', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    // Import KYC service dynamically
+    const { circleKYCService } = await import('./services/circleKYCService');
+    const result = await circleKYCService.submitKYC(userId, req.body, req.files);
+    
+    res.json({
+      success: true,
+      result
+    });
+  } catch (error) {
+    console.error('KYC submission error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/circle/kyc/generate-link', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    // Import KYC service dynamically
+    const { circleKYCService } = await import('./services/circleKYCService');
+    const link = await circleKYCService.generateKYCLink(userId);
+    
+    res.json({
+      success: true,
+      link
+    });
+  } catch (error) {
+    console.error('KYC link generation error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/circle/kyc/webhook/status-update', async (req, res) => {
+  try {
+    // Import KYC service dynamically
+    const { circleKYCService } = await import('./services/circleKYCService');
+    await circleKYCService.handleWebhookStatusUpdate(req.body);
+    
+    res.json({
+      success: true,
+      message: 'Webhook processed successfully'
+    });
+  } catch (error) {
+    console.error('KYC webhook error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+console.log('✅ Circle KYC routes registered successfully');
 
 // === ENTERPRISE DATA MONETIZATION ROUTES (HIGH REVENUE POTENTIAL) ===
 app.use('/api/enterprise-data', enterpriseDataRoutes);

@@ -16,6 +16,8 @@ import { agentRoutes } from "./routes/agentRoutes";
 import { default as aiMarketplaceRoutes } from "./routes/aiMarketplaceRoutes";
 import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
 import circleRoutes from "./routes/circleRoutes";
+// import circleKYCRoutes from "./routes/circleKYCRoutes";
+import userCircleRoutes from "./routes/userCircleRoutes";
 // import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
@@ -41,6 +43,101 @@ export function registerRoutes(app: Express): Server {
   // === CIRCLE USDC INTEGRATION ROUTES ===
   // Circle Developer-Controlled Wallets for USDC ecosystem
   app.use('/api/circle', circleRoutes);
+  
+  // === USER CIRCLE WALLET ROUTES ===
+  // Individual user Circle wallet management
+  app.use('/api/user-circle', userCircleRoutes);
+  
+  // === CIRCLE KYC/AML ROUTES ===
+  // Circle KYC/AML compliance and identity verification
+  // Inline KYC routes for immediate functionality
+  console.log('🔄 Registering Circle KYC routes...');
+  
+  app.get('/api/circle/kyc/status', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+      
+      // Import KYC service dynamically
+      const { circleKYCService } = await import('./services/circleKYCService');
+      const kycStatus = await circleKYCService.getKYCStatus(userId);
+      
+      res.json({
+        success: true,
+        status: kycStatus
+      });
+    } catch (error) {
+      console.error('KYC status error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/circle/kyc/check-permission', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      const { amount } = req.body;
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+      
+      // Import KYC service dynamically
+      const { circleKYCService } = await import('./services/circleKYCService');
+      const permission = await circleKYCService.checkTransactionPermission(userId, amount);
+      
+      res.json({
+        success: true,
+        permission
+      });
+    } catch (error) {
+      console.error('KYC permission check error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  app.get('/api/circle/kyc/requirements/:country', isAuthenticated, async (req, res) => {
+    try {
+      const { country } = req.params;
+      
+      // Import KYC service dynamically
+      const { circleKYCService } = await import('./services/circleKYCService');
+      const requirements = await circleKYCService.getKYCRequirements(country);
+      
+      res.json({
+        success: true,
+        requirements
+      });
+    } catch (error) {
+      console.error('KYC requirements error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/circle/kyc/submit', isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user?.id;
+      
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+      
+      // Import KYC service dynamically
+      const { circleKYCService } = await import('./services/circleKYCService');
+      const result = await circleKYCService.submitKYC(userId, req.body, req.files);
+      
+      res.json({
+        success: true,
+        result
+      });
+    } catch (error) {
+      console.error('KYC submission error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
+  console.log('✅ Circle KYC routes registered inline successfully');
   
   // === ENTERPRISE DATA MONETIZATION ROUTES ===
   // High-value revenue generating data APIs ($500K-2M potential)

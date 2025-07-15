@@ -41,7 +41,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   usdBalance: decimal("usd_balance", { precision: 10, scale: 2 }).default("0.00"),
   securityPin: varchar("security_pin", { length: 6 }),
-  kycStatus: varchar("kyc_status").default("pending"), // pending, verified, rejected
+  kycStatus: varchar("kyc_status").default("pending"), // pending, verified, rejected, review_required
   complianceLevel: varchar("compliance_level").default("basic"), // basic, enhanced, institutional
   riskScore: integer("risk_score").default(0), // 0-100 risk assessment
   sanctionsCheck: boolean("sanctions_check").default(false),
@@ -49,6 +49,15 @@ export const users = pgTable("users", {
   dateOfBirth: varchar("date_of_birth"),
   ssn: varchar("ssn"), // Encrypted in production
   address: jsonb("address"), // Store address components
+  
+  // Circle KYC/AML fields
+  kycSubmittedAt: timestamp("kyc_submitted_at"),
+  kycApprovedAt: timestamp("kyc_approved_at"),
+  kycUpdatedAt: timestamp("kyc_updated_at"),
+  kycRejectionReason: text("kyc_rejection_reason"),
+  kycRequiredDocuments: jsonb("kyc_required_documents"),
+  kycVerificationId: varchar("kyc_verification_id"),
+  country: varchar("country", { length: 2 }), // ISO 2-letter country code
   
   // Human referral system fields
   referredByAgent: varchar("referred_by_agent"), // ID of referring AI agent

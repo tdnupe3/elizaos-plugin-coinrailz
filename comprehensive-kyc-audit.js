@@ -138,11 +138,12 @@ class ComprehensiveKYCAudit {
       // Users make multiple transactions per month, not just one
       const transactionsPerMonth = 3; // Average 3 transactions per user per month
       const revenueProtected = usersRetained * scenario.avgTransaction * transactionsPerMonth * 0.015; // 1.5% platform fee
-      // One-time bonus, not per transaction
-      const incentiveCost = usersRetained * 50; // avg $50 bonus (one-time)
+      // NO COMPLETION BONUSES - only reduced revenue from fee discounts
+      const avgFeeDiscount = 0.125; // Average 12.5% fee discount across all KYC levels
+      const revenueReduction = revenueProtected * avgFeeDiscount; // Revenue lost to discounts
       
       totalRevenueProtection += revenueProtected;
-      totalCostIncrease += incentiveCost;
+      totalCostIncrease += revenueReduction;
     }
 
     const netBenefit = totalRevenueProtection - totalCostIncrease;

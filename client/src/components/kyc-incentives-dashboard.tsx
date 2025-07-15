@@ -14,7 +14,6 @@ interface KYCProgress {
   completionPercentage: number;
   availableIncentives: {
     feeDiscount: number;
-    completionBonus: number;
     premiumFeatures: string[];
   };
   requiredDocuments: string[];
@@ -22,7 +21,6 @@ interface KYCProgress {
 
 interface KYCIncentives {
   feeDiscount: number;
-  completionBonus: number;
   premiumFeatures: string[];
   totalSavings: number;
 }
@@ -178,18 +176,12 @@ export default function KYCIncentivesDashboard() {
               <CardTitle>Your Current Benefits</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <div className="text-2xl font-bold text-green-600">
                     {(progress?.availableIncentives?.feeDiscount * 100).toFixed(1)}%
                   </div>
                   <div className="text-sm text-green-700">Fee Discount</div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {formatCurrency(progress?.availableIncentives?.completionBonus || 0)}
-                  </div>
-                  <div className="text-sm text-blue-700">Completion Bonus</div>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
                   <div className="text-2xl font-bold text-purple-600">
@@ -212,17 +204,7 @@ export default function KYCIncentivesDashboard() {
                 </div>
               )}
 
-              {progress?.currentStage === 'basic_complete' && (
-                <div className="mt-4">
-                  <Button 
-                    onClick={() => applyBonusMutation.mutate()}
-                    disabled={applyBonusMutation.isPending}
-                    className="w-full"
-                  >
-                    {applyBonusMutation.isPending ? 'Applying...' : 'Claim Completion Bonus'}
-                  </Button>
-                </div>
-              )}
+
             </CardContent>
           </Card>
         </TabsContent>

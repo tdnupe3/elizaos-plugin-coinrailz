@@ -31,7 +31,7 @@ export class KYCIncentiveService {
       let completionBonus = 0;
       let premiumFeatures: string[] = [];
 
-      // Progressive fee discounts based on KYC level
+      // Progressive fee discounts based on KYC level (NO COMPLETION BONUSES)
       switch (kycStatus) {
         case 'pending':
           feeDiscount = 0.05; // 5% discount for starting KYC
@@ -39,27 +39,24 @@ export class KYCIncentiveService {
         case 'approved':
           switch (complianceLevel) {
             case 'basic':
-              feeDiscount = 0.15; // 15% discount for basic KYC
-              completionBonus = 25; // $25 bonus
+              feeDiscount = 0.10; // 10% discount for basic KYC
               premiumFeatures = ['advancedAnalytics', 'prioritySupport'];
               break;
             case 'enhanced':
-              feeDiscount = 0.25; // 25% discount for enhanced KYC
-              completionBonus = 50; // $50 bonus
+              feeDiscount = 0.15; // 15% discount for enhanced KYC
               premiumFeatures = ['advancedAnalytics', 'prioritySupport', 'institutionalFeatures'];
               break;
             case 'institutional':
-              feeDiscount = 0.35; // 35% discount for institutional KYC
-              completionBonus = 100; // $100 bonus
+              feeDiscount = 0.20; // 20% discount for institutional KYC
               premiumFeatures = ['advancedAnalytics', 'prioritySupport', 'institutionalFeatures', 'customLimits'];
               break;
           }
           break;
       }
 
-      // Calculate total savings
+      // Calculate total savings (fee discounts only)
       const feesSaved = transactionAmount * feeDiscount;
-      const totalSavings = feesSaved + completionBonus;
+      const totalSavings = feesSaved;
 
       return {
         feeDiscount,

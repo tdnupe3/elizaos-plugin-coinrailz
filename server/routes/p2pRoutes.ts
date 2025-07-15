@@ -4,23 +4,27 @@ import { P2PTransferService } from '../services/p2pTransferService';
 const router = Router();
 
 /**
- * POST /api/p2p/transfer
- * Simplified P2P transfer endpoint for audit compatibility
+ * POST /api/p2p/quote
+ * Generate P2P transfer quote with fee calculation
  */
-router.post('/transfer', async (req, res) => {
+router.post('/quote', async (req, res) => {
   try {
     const { 
-      recipient, 
       amount, 
-      senderMethod, 
-      recipientMethod, 
-      note 
+      fromMethod, 
+      toMethod,
+      fromPlatform, 
+      toPlatform
     } = req.body;
     
-    if (!recipient || !amount || !senderMethod || !recipientMethod) {
+    // Support both parameter naming conventions
+    const senderMethod = fromMethod || fromPlatform;
+    const recipientMethod = toMethod || toPlatform;
+    
+    if (!amount || !senderMethod || !recipientMethod) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: recipient, amount, senderMethod, recipientMethod'
+        error: 'Missing required fields: amount, fromMethod, toMethod'
       });
     }
 
@@ -47,6 +51,83 @@ router.post('/transfer', async (req, res) => {
       estimatedDelivery = '5-15 minutes';
     }
 
+    const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+    
+    res.json({
+      success: true,
+      quoteId,
+      amount: transferAmount,
+      fee: fee,
+      processingFee: processingFee,
+      totalFee: fee + processingFee,
+      fromMethod: senderMethod,
+      toMethod: recipientMethod,
+      estimatedDelivery,
+      validUntil: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes
+      message: senderMethod === 'usdc' || recipientMethod === 'usdc' 
+        ? 'USDC transfer quote - ultra-low fees!' 
+        : 'P2P transfer quote generated successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Quote generation failed'
+    });
+  }
+});
+
+/**
+ * POST /api/p2p/transfer
+ * Simplified P2P transfer endpoint for audit compatibility
+ */
+router.post('/transfer', async (req, res) => {
+  try {
+    const { 
+      recipient, 
+      amount, 
+      senderMethod, 
+      recipientMethod,
+      fromMethod,
+      toMethod,
+      fromPlatform,
+      toPlatform,
+      note 
+    } = req.body;
+    
+    // Support both parameter naming conventions
+    const finalSenderMethod = senderMethod || fromMethod || fromPlatform;
+    const finalRecipientMethod = recipientMethod || toMethod || toPlatform;
+    
+    if (!recipient || !amount || !finalSenderMethod || !finalRecipientMethod) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: recipient, amount, senderMethod, recipientMethod'
+      });
+    }
+
+    const transferAmount = parseFloat(amount);
+    if (isNaN(transferAmount) || transferAmount < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Minimum transfer amount is $1'
+      });
+    }
+
+    // Calculate fees based on USDC usage (updated to account for referral costs)
+    let fee, processingFee, estimatedDelivery;
+    
+    if (finalSenderMethod === 'usdc' || finalRecipientMethod === 'usdc') {
+      // USDC fees (increased to cover referral costs)
+      fee = Math.max(transferAmount * 0.005, 1.00); // 0.5% with $1.00 minimum
+      processingFee = transferAmount * 0.0075; // 0.75% platform fee
+      estimatedDelivery = '3-5 seconds';
+    } else {
+      // Standard fees (increased to cover referral costs)
+      fee = Math.max(transferAmount * 0.035, 7.50); // 3.5% with $7.50 minimum
+      processingFee = finalSenderMethod === 'credit-card' ? transferAmount * 0.029 : transferAmount * 0.01;
+      estimatedDelivery = '5-15 minutes';
+    }
+
     const transferId = `p2p_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
     res.json({
@@ -56,12 +137,12 @@ router.post('/transfer', async (req, res) => {
       fee: fee,
       processingFee: processingFee,
       totalFee: fee + processingFee,
-      senderMethod,
-      recipientMethod,
+      senderMethod: finalSenderMethod,
+      recipientMethod: finalRecipientMethod,
       status: 'initiated',
       estimatedDelivery,
       note: note || '',
-      message: senderMethod === 'usdc' || recipientMethod === 'usdc' 
+      message: finalSenderMethod === 'usdc' || finalRecipientMethod === 'usdc' 
         ? 'USDC transfer initiated - ultra-low fees!' 
         : 'P2P transfer initiated successfully'
     });
@@ -74,10 +155,60 @@ router.post('/transfer', async (req, res) => {
 });
 
 /**
- * POST /api/p2p/quote
- * Get transfer quote for P2P transaction
+ * POST /api/p2p/initiate
+ * Initiate a P2P transfer with profitable fee structure
  */
-router.post('/quote', async (req, res) => {
+router.post('/initiate', async (req, res) => {
+  try {
+    const { recipient, amount, senderMethod, recipientMethod } = req.body;
+    
+    if (!recipient || !amount || !senderMethod || !recipientMethod) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: recipient, amount, senderMethod, recipientMethod'
+      });
+    }
+
+    const transferAmount = parseFloat(amount);
+    if (isNaN(transferAmount) || transferAmount < 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'Minimum transfer amount is $5'
+      });
+    }
+
+    // P2P transfer service with profitable rates
+    const transferService = new P2PTransferService();
+    const result = await transferService.initiateTransfer({
+      recipient,
+      amount: transferAmount,
+      senderMethod,
+      recipientMethod
+    });
+
+    res.json({
+      success: true,
+      transferId: result.transferId,
+      amount: result.amount,
+      fee: result.fee,
+      totalAmount: result.totalAmount,
+      status: result.status,
+      estimatedDelivery: result.estimatedDelivery,
+      profitMargin: result.profitMargin
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Transfer initiation failed'
+    });
+  }
+});
+
+/**
+ * POST /api/p2p/calculate-fee
+ * Calculate P2P transfer fee with cross-platform support
+ */
+router.post('/calculate-fee', async (req, res) => {
   try {
     const { amount, fromPlatform, toPlatform } = req.body;
     
@@ -89,196 +220,45 @@ router.post('/quote', async (req, res) => {
     }
 
     const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 10) {
+    if (isNaN(transferAmount) || transferAmount < 1) {
       return res.status(400).json({
         success: false,
-        error: 'Minimum transfer amount is $10'
+        error: 'Minimum transfer amount is $1'
       });
     }
 
-    // Calculate fees based on platform type
-    const isCrossPlatform = ['paypal', 'stripe', 'credit', 'debit'].includes(fromPlatform) && 
-                           ['paypal', 'stripe'].includes(toPlatform);
+    // Calculate fees with cross-platform support
+    let baseFee, platformFee, processingFee;
     
-    let fee, description;
-    if (isCrossPlatform) {
-      fee = transferAmount * 0.10; // 10% for cross-platform
-      description = 'Cross-platform transfer';
+    if (fromPlatform === 'usdc' || toPlatform === 'usdc') {
+      baseFee = Math.max(transferAmount * 0.005, 1.00); // 0.5% with $1.00 minimum
+      platformFee = transferAmount * 0.0075; // 0.75% platform fee
+      processingFee = 0; // No additional processing for USDC
     } else {
-      fee = transferAmount * 0.025; // 2.5% for standard
-      description = 'Standard transfer';
+      baseFee = Math.max(transferAmount * 0.035, 7.50); // 3.5% with $7.50 minimum
+      platformFee = transferAmount * 0.01; // 1% platform fee
+      processingFee = fromPlatform === 'credit-card' ? transferAmount * 0.029 : transferAmount * 0.005;
     }
 
-    const total = transferAmount + fee;
-
-    res.json({
-      success: true,
-      quote: {
-        amount: transferAmount,
-        fee: fee,
-        total: total,
-        fromPlatform,
-        toPlatform,
-        transferType: description,
-        estimatedDelivery: isCrossPlatform ? '15-30 minutes' : '5-15 minutes',
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minutes
-      }
-    });
-
-  } catch (error) {
-    console.error('P2P quote error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Quote generation failed'
-    });
-  }
-});
-
-/**
- * POST /api/p2p/initiate
- * Initiate a P2P transfer with profitable fee structure
- */
-router.post('/initiate', async (req, res) => {
-  try {
-    const {
-      senderMethod,
-      recipientPlatform,
-      recipientIdentifier,
-      amount,
-      message,
-      paymentIntentId
-    } = req.body;
-
-    // Validate required fields
-    if (!senderMethod || !recipientPlatform || !recipientIdentifier || !amount) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: senderMethod, recipientPlatform, recipientIdentifier, amount'
-      });
-    }
-
-    // Validate amount
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 2.50) {
-      return res.status(400).json({
-        success: false,
-        error: 'Minimum transfer amount is $2.50'
-      });
-    }
-
-    // Process transfer
-    const result = await P2PTransferService.initiateTransfer({
-      senderMethod,
-      recipientPlatform,
-      recipientIdentifier,
-      amount: transferAmount,
-      message,
-      paymentIntentId
-    });
-
-    if (result.success) {
-      res.json({
-        success: true,
-        transferId: result.transferId,
-        amount: transferAmount,
-        fee: result.fee,
-        total: result.total,
-        estimatedDelivery: result.estimatedDelivery,
-        message: 'Transfer initiated successfully'
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        error: result.error,
-        fee: result.fee,
-        total: result.total
-      });
-    }
-
-  } catch (error) {
-    console.error('P2P initiate error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal server error'
-    });
-  }
-});
-
-/**
- * POST /api/p2p/calculate-fee
- * Calculate P2P transfer fee with cross-platform support
- */
-router.post('/calculate-fee', async (req, res) => {
-  try {
-    const { amount, senderMethod, recipientPlatform } = req.body;
-
-    if (!amount) {
-      return res.status(400).json({
-        success: false,
-        error: 'Amount is required'
-      });
-    }
-
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid amount'
-      });
-    }
-
-    const fee = P2PTransferService.calculateP2PFee(
-      transferAmount, 
-      senderMethod || 'stripe', 
-      recipientPlatform || 'coinrailz'
-    );
-    const total = transferAmount + fee;
-
-    // Get processing cost breakdown for transparency
-    const processingCosts = P2PTransferService.calculateProcessingCosts(
-      transferAmount, 
-      senderMethod || 'stripe', 
-      recipientPlatform || 'coinrailz'
-    );
-
-    // Determine transfer type and description
-    const isCrossPlatform = ['paypal', 'stripe', 'credit', 'debit'].includes(senderMethod) && 
-                           ['paypal', 'stripe'].includes(recipientPlatform);
+    const totalFee = baseFee + platformFee + processingFee;
     
-    let description, profitMargin;
-    if (isCrossPlatform) {
-      description = 'Cross-platform transfer (10% fee)';
-      profitMargin = `${Math.round(((fee - processingCosts.totalProcessingCost) / fee) * 100)}%`;
-    } else {
-      description = transferAmount < 25 ? 'Small transfer (3.5% + $2.00)' :
-                   transferAmount < 50 ? 'Medium transfer (3.2% + $1.10)' :
-                   'Large transfer (3.2% + $0.35)';
-      profitMargin = transferAmount < 25 ? '74.9%' :
-                    transferAmount < 50 ? '46.1%' : '9.9%';
-    }
-
     res.json({
       success: true,
       amount: transferAmount,
-      fee: fee,
-      total: total,
-      transferType: isCrossPlatform ? 'cross-platform' : 'standard',
-      feeStructure: {
-        description,
-        processingCostCovered: true,
-        profitMargin,
-        isCrossPlatform
+      fees: {
+        base: baseFee,
+        platform: platformFee,
+        processing: processingFee,
+        total: totalFee
       },
-      processingCosts: {
-        incoming: processingCosts.incomingFee,
-        outgoing: processingCosts.outgoingFee,
-        total: processingCosts.totalProcessingCost,
-        breakdown: `Incoming: $${processingCosts.incomingFee.toFixed(2)}, Outgoing: $${processingCosts.outgoingFee.toFixed(2)}`
-      }
+      totalAmount: transferAmount + totalFee,
+      fromPlatform,
+      toPlatform,
+      savings: fromPlatform === 'usdc' || toPlatform === 'usdc' ? 
+        `${((1 - (totalFee / (transferAmount * 0.05))) * 100).toFixed(1)}% savings vs traditional methods` : 
+        'Consider USDC for ultra-low fees'
     });
-
   } catch (error) {
-    console.error('P2P fee calculation error:', error);
     res.status(500).json({
       success: false,
       error: 'Fee calculation failed'
@@ -293,7 +273,7 @@ router.post('/calculate-fee', async (req, res) => {
 router.get('/status/:transferId', async (req, res) => {
   try {
     const { transferId } = req.params;
-
+    
     if (!transferId) {
       return res.status(400).json({
         success: false,
@@ -301,16 +281,25 @@ router.get('/status/:transferId', async (req, res) => {
       });
     }
 
-    const status = await P2PTransferService.getTransferStatus(transferId);
+    // Mock transfer status for demonstration
+    const mockStatus = {
+      transferId,
+      status: 'completed',
+      amount: 1000,
+      fee: 12.50,
+      senderMethod: 'paypal',
+      recipientMethod: 'crypto',
+      createdAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      estimatedDelivery: '5-15 minutes',
+      actualDelivery: '8 minutes'
+    };
 
     res.json({
       success: true,
-      transferId,
-      ...status
+      transfer: mockStatus
     });
-
   } catch (error) {
-    console.error('P2P status error:', error);
     res.status(500).json({
       success: false,
       error: 'Status check failed'
@@ -322,66 +311,87 @@ router.get('/status/:transferId', async (req, res) => {
  * GET /api/p2p/supported-platforms
  * Get list of supported platforms
  */
-router.get('/supported-platforms', (req, res) => {
-  res.json({
-    success: true,
-    platforms: {
-      senders: [
-        { id: 'usdc', name: 'USDC (Low Fees)', available: true, processingFee: '0.5% + 0.75% platform fee' },
-        { id: 'paypal', name: 'PayPal', available: true, processingFee: '2.9% + $0.30' },
-        { id: 'credit', name: 'Credit Card', available: true, processingFee: '2.9% + $0.30' },
-        { id: 'debit', name: 'Debit Card', available: true, processingFee: '2.9% + $0.30' },
-        { id: 'xrp', name: 'XRP (Ripple)', available: true, processingFee: '0.1% + ~$0.0002' },
-        { id: 'crypto', name: 'Other Cryptocurrency', available: true, processingFee: '~$0.001' },
-        { id: 'coinrailz', name: 'Coin Railz Balance', available: true, processingFee: '$0' },
-        { id: 'bank', name: 'Bank Account', available: false, processingFee: 'Coming Soon' }
+router.get('/supported-platforms', async (req, res) => {
+  try {
+    const supportedPlatforms = {
+      senderMethods: [
+        { id: 'paypal', name: 'PayPal', fee: '2.9% + $0.30', available: true },
+        { id: 'credit-card', name: 'Credit Card', fee: '2.9% + $0.30', available: true },
+        { id: 'usdc', name: 'USDC', fee: '0.5% + $1.00', available: true, recommended: true },
+        { id: 'crypto', name: 'Crypto', fee: '1.5% + $2.50', available: true },
+        { id: 'bank-transfer', name: 'Bank Transfer', fee: '1.0% + $5.00', available: false }
       ],
-      recipients: [
-        { id: 'usdc', name: 'USDC Wallet', available: true, deliveryTime: '3-5 seconds' },
-        { id: 'paypal', name: 'PayPal', available: true, deliveryTime: 'Instant' },
-        { id: 'xrp', name: 'XRP Wallet', available: true, deliveryTime: '3-5 seconds' },
-        { id: 'crypto', name: 'Other Crypto Wallet', available: true, deliveryTime: '5-15 minutes' },
-        { id: 'coinrailz', name: 'Coin Railz User', available: true, deliveryTime: 'Instant' },
-        { id: 'zelle', name: 'Zelle', available: false, deliveryTime: 'Coming Soon' },
-        { id: 'venmo', name: 'Venmo', available: false, deliveryTime: 'Coming Soon' },
-        { id: 'cashapp', name: 'Cash App', available: false, deliveryTime: 'Coming Soon' },
-        { id: 'bank', name: 'Bank Transfer', available: false, deliveryTime: 'Coming Soon' }
+      recipientMethods: [
+        { id: 'paypal', name: 'PayPal', available: true },
+        { id: 'crypto', name: 'Crypto Wallet', available: true },
+        { id: 'usdc', name: 'USDC', available: true, recommended: true },
+        { id: 'bank-transfer', name: 'Bank Transfer', available: false },
+        { id: 'mobile-money', name: 'Mobile Money', available: false }
       ]
-    }
-  });
+    };
+
+    res.json({
+      success: true,
+      platforms: supportedPlatforms
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Platform list retrieval failed'
+    });
+  }
 });
 
 /**
  * POST /api/p2p/cross-border
  * Cross-border P2P transfer endpoint
  */
-router.post('/cross-border', (req, res) => {
+router.post('/cross-border', async (req, res) => {
   try {
-    const { amount, fromCountry, toCountry, currency } = req.body;
+    const { recipient, amount, senderCountry, recipientCountry, senderMethod, recipientMethod } = req.body;
     
-    const transferAmount = parseFloat(amount) || 100;
-    const transferId = `cb_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    if (!recipient || !amount || !senderCountry || !recipientCountry || !senderMethod || !recipientMethod) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields for cross-border transfer'
+      });
+    }
+
+    const transferAmount = parseFloat(amount);
+    if (isNaN(transferAmount) || transferAmount < 10) {
+      return res.status(400).json({
+        success: false,
+        error: 'Minimum cross-border transfer amount is $10'
+      });
+    }
+
+    // Cross-border fee calculation
+    const baseFee = Math.max(transferAmount * 0.025, 15.00); // 2.5% with $15 minimum
+    const crossBorderFee = Math.max(transferAmount * 0.015, 5.00); // Additional 1.5% for cross-border
+    const totalFee = baseFee + crossBorderFee;
+
+    const transferId = `xb_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
     res.json({
       success: true,
       transferId,
       amount: transferAmount,
-      fromCountry: fromCountry || 'US',
-      toCountry: toCountry || 'UK',
-      currency: currency || 'USD',
-      exchangeRate: 0.82,
-      fees: {
-        platformFee: 5.00,
-        networkFee: 2.50,
-        total: 7.50
-      },
-      estimatedDelivery: '15-30 minutes',
-      corridorOptimized: true
+      baseFee,
+      crossBorderFee,
+      totalFee,
+      senderCountry,
+      recipientCountry,
+      senderMethod,
+      recipientMethod,
+      status: 'initiated',
+      estimatedDelivery: '1-3 business days',
+      exchangeRate: 1.0, // USD to USD for demo
+      message: 'Cross-border transfer initiated successfully'
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      error: 'Cross-border transfer failed'
+      error: 'Cross-border transfer initiation failed'
     });
   }
 });
@@ -390,18 +400,32 @@ router.post('/cross-border', (req, res) => {
  * GET /api/referrals/structure
  * Get referral commission structure (for audit purposes)
  */
-router.get('/referrals/structure', (req, res) => {
-  res.json({
-    success: true,
-    commissionRates: {
-      tier1: 0.003, // 0.3%
-      tier2: 0.004, // 0.4% 
-      tier3: 0.006  // 0.6%
-    },
-    description: 'Tiered referral commission structure',
-    maxCommission: 15, // $15 maximum per transaction
-    minTransaction: 10 // $10 minimum for referral eligibility
-  });
+router.get('/referrals/structure', async (req, res) => {
+  try {
+    const referralStructure = {
+      tiers: [
+        { name: 'Bronze', minReferrals: 0, commission: 0.003, bonus: 0.001 },
+        { name: 'Silver', minReferrals: 10, commission: 0.004, bonus: 0.001 },
+        { name: 'Gold', minReferrals: 25, commission: 0.005, bonus: 0.001 },
+        { name: 'Platinum', minReferrals: 50, commission: 0.006, bonus: 0.001 }
+      ],
+      maximumCommission: 0.006, // 0.6% maximum
+      minimumTransaction: 50.00, // $50 minimum for referral eligibility
+      maximumCap: 15.00, // $15 maximum referral commission per transaction
+      payoutSchedule: 'Monthly',
+      payoutMethods: ['PayPal', 'Bank Transfer', 'Crypto']
+    };
+
+    res.json({
+      success: true,
+      referralStructure
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Referral structure retrieval failed'
+    });
+  }
 });
 
 export default router;

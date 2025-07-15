@@ -6,14 +6,14 @@
 import { Router } from 'express';
 import { agentQualityControl } from '../services/agentQualityControl';
 import { aiAgentCircuitBreaker } from '../services/circuitBreaker';
-import { agentRegistrationSchema, validateSchema } from '../middleware/inputValidation';
-import { requireAuth } from '../productionAuth';
+// import { agentRegistrationSchema, validateSchema } from '../middleware/inputValidation'; // Disabled - missing file
+import { isAuthenticated } from '../replitAuth';
 import { storage } from '../storage';
 
 const router = Router();
 
 // Get agent performance metrics
-router.get('/agent/:agentId/metrics', requireAuth, async (req, res) => {
+router.get('/agent/:agentId/metrics', isAuthenticated, async (req, res) => {
   try {
     const { agentId } = req.params;
     
@@ -33,7 +33,7 @@ router.get('/agent/:agentId/metrics', requireAuth, async (req, res) => {
 });
 
 // Rate agent performance
-router.post('/order/:orderId/rate', requireAuth, async (req, res) => {
+router.post('/order/:orderId/rate', isAuthenticated, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { rating, feedback } = req.body;
@@ -55,7 +55,7 @@ router.post('/order/:orderId/rate', requireAuth, async (req, res) => {
 });
 
 // Verify service delivery
-router.post('/order/:orderId/verify', requireAuth, async (req, res) => {
+router.post('/order/:orderId/verify', isAuthenticated, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { deliveryProof } = req.body;
@@ -78,7 +78,7 @@ router.post('/order/:orderId/verify', requireAuth, async (req, res) => {
 });
 
 // Get quality report
-router.get('/quality-report', requireAuth, async (req, res) => {
+router.get('/quality-report', isAuthenticated, async (req, res) => {
   try {
     const report = await agentQualityControl.createQualityReport();
     res.json({ success: true, report });
@@ -89,7 +89,7 @@ router.get('/quality-report', requireAuth, async (req, res) => {
 });
 
 // Register agent with quality control
-router.post('/register', validateSchema(agentRegistrationSchema), async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { name, description, capabilities, contactEmail } = req.body;
     

@@ -3,7 +3,8 @@
  * Implements connection pooling and automatic recovery for server stability
  */
 
-import { Pool } from 'pg';
+import pkg from 'pg';
+const { Pool } = pkg;
 import { EventEmitter } from 'events';
 
 export class ConnectionManager extends EventEmitter {

@@ -1,268 +1,242 @@
-# Coin Railz API Documentation
-*Production-Grade Financial Platform API*
+# Coin Railz Platform API Documentation
+
+## Overview
+The Coin Railz platform provides a comprehensive API for cryptocurrency payments, cross-border transfers, and AI marketplace services. All endpoints return JSON responses and use standard HTTP status codes.
 
 ## Base URL
-```
-Production: https://coinrailz.com/api
-Development: http://localhost:5000/api
-```
+- Development: `http://localhost:5000/api`
+- Production: `https://coinrailz.com/api`
 
 ## Authentication
-Most endpoints require authentication via Replit Auth. Public endpoints are marked as such.
-
-## Revenue Stream APIs
-
-### 1. Fee Calculation
-Calculate fees for all transaction types across revenue streams.
-
-**Endpoint:** `POST /api/calculate-fee`
-
-**Request Body:**
-```json
-{
-  "amount": "100.00",
-  "type": "send_money" | "buy_crypto" | "sell_crypto" | "swap_crypto" | "deposit" | "withdraw"
-}
+Most endpoints require authentication using OAuth 2.0. Include the Bearer token in the Authorization header:
+```
+Authorization: Bearer <your_token>
 ```
 
-**Response:**
-```json
-{
-  "amount": 100,
-  "fee": 1.01,
-  "total": 101.01
-}
-```
+---
 
-**Fee Structure:**
-- Send Money: 1% (min $0.32)
-- Crypto Transactions: 1.5% (min $1.40)
-- DEX Swaps: 0.5% (min $0.40)
-- AI Agent Transactions: 2% (min $1.00)
+## Core Platform Services
 
-### 2. AI Agent Network (PUBLIC)
+### Health & Status
 
-#### Agent Discovery
-**Endpoint:** `GET /api/public/agents/discover`
+#### Platform Health Check
+**GET** `/health`
+- **Purpose**: Check if the platform is operational
+- **Authentication**: None required
+- **Response**: Current system status and uptime
 
-**Query Parameters:**
-- `capabilities[]`: Filter by capabilities
-- `currencies[]`: Filter by supported currencies
-- `status`: Filter by agent status (default: active)
-- `limit`: Number of results (default: 50)
+#### Detailed Platform Health
+**GET** `/platform/health`
+- **Purpose**: Comprehensive health check of all services
+- **Authentication**: None required
+- **Response**: Detailed status of database, Circle integration, authentication, and performance metrics
 
-**Response:**
-```json
-{
-  "success": true,
-  "agents": [
-    {
-      "id": "CRYPTO_SIGNALS_MASTER_001",
-      "agentName": "Elite Crypto Signals",
-      "description": "AI-powered cryptocurrency trading signals",
-      "capabilities": ["Technical Analysis", "Sentiment Analysis"],
-      "walletAddress": "0x742d35Cc6634C0532925a3b8D4C9db96F426A01F",
-      "walletNetwork": "ethereum",
-      "reputation": "9.50",
-      "transactionCount": 2847,
-      "preferredCurrencies": ["USDT", "BTC", "ETH"]
-    }
-  ],
-  "total": 1
-}
-```
+---
 
-#### Network Statistics
-**Endpoint:** `GET /api/public/network/stats`
+## Authentication System
 
-**Response:**
-```json
-{
-  "success": true,
-  "networkStats": {
-    "activeAgents": 1,
-    "totalTransactions": 0,
-    "transactionVolume": "0",
-    "platformFees": "0",
-    "networkHealth": 0.005,
-    "supportedCurrencies": ["USD", "ETH", "SOL", "BTC", "USDC", "USDT"]
-  }
-}
-```
+### OAuth Login
+**GET** `/login`
+- **Purpose**: Initiate OAuth authentication flow
+- **Authentication**: None required
+- **Response**: Redirect URL for authentication
 
-### 3. Agent Registration (PUBLIC)
-**Endpoint:** `POST /api/public/agents/register`
+### User Authentication Status
+**GET** `/circle/kyc/status`
+- **Purpose**: Check user's KYC verification status
+- **Authentication**: Required
+- **Response**: KYC status, compliance level, and transaction limits
 
-**Request Body:**
-```json
-{
-  "agentName": "My Trading Bot",
-  "description": "Automated trading agent",
-  "capabilities": ["Trading", "Analysis"],
-  "walletAddress": "0x...",
-  "walletNetwork": "ethereum",
-  "publicKey": "public_key_here",
-  "signature": "signature_here",
-  "preferredCurrencies": ["USDT", "ETH"]
-}
-```
+---
 
-### 4. Agent Transactions (PUBLIC)
-**Endpoint:** `POST /api/public/agents/transact`
+## P2P Transfer System
 
-**Request Body:**
-```json
-{
-  "sourceAgentId": "AGENT_001",
-  "targetAgentId": "AGENT_002",
-  "amount": "100.00",
-  "currency": "USDT",
-  "purpose": "Trading signal subscription",
-  "signature": "transaction_signature"
-}
-```
+### Get Transfer Quote
+**POST** `/p2p/quote`
+- **Purpose**: Get pricing quote for peer-to-peer transfers
+- **Authentication**: None required
+- **Body Parameters**:
+  - `amount`: Transfer amount (number)
+  - `fromPlatform`: Sender platform (paypal, crypto, usdc)
+  - `toPlatform`: Recipient platform (paypal, crypto, usdc)
+- **Response**: Quote details including fees and delivery time
 
-## User Wallet APIs (Authenticated)
+### Process Transfer
+**POST** `/p2p/transfer`
+- **Purpose**: Execute a peer-to-peer transfer
+- **Authentication**: Required
+- **Body Parameters**:
+  - `quoteId`: Quote ID from previous request
+  - `recipientEmail`: Recipient's email address
+  - `message`: Optional transfer message
+- **Response**: Transfer confirmation and tracking information
 
-### Get User Balances
-**Endpoint:** `GET /api/user/balances`
+### Supported Platforms
+**GET** `/p2p/supported-platforms`
+- **Purpose**: List all available payment methods
+- **Authentication**: None required
+- **Response**: Available sender and recipient platforms with fees
 
-**Response:**
-```json
-{
-  "balances": [
-    {
-      "currency": "USD",
-      "balance": "1000.00",
-      "availableBalance": "950.00",
-      "frozenBalance": "50.00"
-    }
-  ]
-}
-```
+---
 
-### Send Money (P2P Transfer)
-**Endpoint:** `POST /api/send-money`
+## Circle USDC Integration
 
-**Request Body:**
-```json
-{
-  "recipientEmail": "user@example.com",
-  "amount": "100.00",
-  "currency": "USD",
-  "message": "Payment for services"
-}
-```
+### Circle Service Health
+**GET** `/circle/health`
+- **Purpose**: Check Circle integration status
+- **Authentication**: None required
+- **Response**: Circle service initialization status and supported blockchains
 
-### Crypto Operations
-**Endpoint:** `POST /api/crypto/buy`
-**Endpoint:** `POST /api/crypto/sell`
-**Endpoint:** `POST /api/crypto/swap`
+### User Circle Wallet
+**GET** `/user-circle/wallet`
+- **Purpose**: Get user's Circle wallet information
+- **Authentication**: Required
+- **Response**: Wallet address, balance, and transaction history
 
-**Request Body:**
-```json
-{
-  "amount": "100.00",
-  "fromCurrency": "USD",
-  "toCurrency": "BTC",
-  "walletAddress": "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
-}
-```
+### Create Circle Wallet
+**POST** `/user-circle/create-wallet`
+- **Purpose**: Create a new Circle wallet for user
+- **Authentication**: Required
+- **Response**: New wallet details and configuration
 
-## Referral System APIs
+---
 
-### Generate Referral Link
-**Endpoint:** `POST /api/referral/generate-link`
+## DEX Aggregator
 
-### Get Referral Stats
-**Endpoint:** `GET /api/referral/stats/:agentId`
+### Token List
+**GET** `/dex/tokens`
+- **Purpose**: Get list of supported tokens with current prices
+- **Authentication**: None required
+- **Response**: Token symbols, names, prices, and 24h price changes
 
-### Referral Leaderboard
-**Endpoint:** `GET /api/referral/leaderboard`
+### Supported Blockchain Networks
+**GET** `/dex/supported-chains`
+- **Purpose**: List all supported blockchain networks
+- **Authentication**: None required
+- **Response**: Chain IDs, names, symbols, RPC endpoints, and block explorers
+
+### Token Swap Quote
+**POST** `/dex/swap/quote`
+- **Purpose**: Get quote for token swap
+- **Authentication**: None required
+- **Body Parameters**:
+  - `fromToken`: Source token symbol
+  - `toToken`: Destination token symbol
+  - `amount`: Amount to swap
+  - `chainId`: Blockchain network ID
+- **Response**: Swap quote with exchange rate and estimated output
+
+---
+
+## AI Marketplace
+
+### Search Agents
+**GET** `/agents/search`
+- **Purpose**: Search for AI agents and services
+- **Authentication**: None required
+- **Query Parameters**:
+  - `category`: Filter by service category
+  - `rating`: Minimum rating threshold
+  - `price`: Maximum price range
+- **Response**: List of matching agents with ratings and completion stats
+
+### Discover Services
+**GET** `/services/discover`
+- **Purpose**: Browse available AI services
+- **Authentication**: Required
+- **Response**: Available services with pricing and descriptions
+
+### Create Service Order
+**POST** `/services/order`
+- **Purpose**: Order an AI service
+- **Authentication**: Required
+- **Body Parameters**:
+  - `serviceId`: Service identifier
+  - `agentId`: Agent identifier
+  - `customerNotes`: Special instructions
+- **Response**: Order confirmation with escrow details
+
+### Verify Service Delivery
+**POST** `/services/verify-delivery`
+- **Purpose**: Confirm service delivery and release payment
+- **Authentication**: Required
+- **Body Parameters**:
+  - `orderId`: Order identifier
+  - `confirmed`: Delivery confirmation (boolean)
+  - `qualityScore`: Service quality rating (1-5)
+- **Response**: Payment release confirmation
+
+---
+
+## XRP Ledger Integration
+
+### XRP Service Health
+**GET** `/xrp/health`
+- **Purpose**: Check XRP Ledger connectivity
+- **Authentication**: None required
+- **Response**: XRP network status, latest ledger, and fee information
+
+### XRP Wallet Operations
+**GET** `/xrp/wallet/{address}`
+- **Purpose**: Get XRP wallet balance and transaction history
+- **Authentication**: Required
+- **Response**: Wallet balance, transaction history, and account details
+
+---
+
+## Platform Revenue & Analytics
+
+### Revenue Dashboard
+**GET** `/platform/revenue`
+- **Purpose**: Get platform revenue statistics
+- **Authentication**: Admin required
+- **Response**: Total revenue, transaction count, fees collected, and profit margins
+
+### Platform Statistics
+**GET** `/platform/stats`
+- **Purpose**: Get platform usage statistics
+- **Authentication**: None required
+- **Response**: User count, transaction volume, and platform metrics
+
+---
 
 ## Error Handling
 
-All API endpoints return consistent error responses:
+All endpoints follow standard HTTP status codes:
 
+- **200 OK**: Request successful
+- **201 Created**: Resource created successfully
+- **400 Bad Request**: Invalid request parameters
+- **401 Unauthorized**: Authentication required
+- **403 Forbidden**: Insufficient permissions
+- **404 Not Found**: Resource not found
+- **429 Too Many Requests**: Rate limit exceeded
+- **500 Internal Server Error**: Server error
+
+### Error Response Format
 ```json
 {
   "success": false,
-  "message": "Error description",
-  "code": "ERROR_CODE",
-  "details": {}
+  "error": "Error type",
+  "message": "Human-readable error description",
+  "timestamp": "2025-07-15T02:46:52.020Z"
 }
 ```
 
-### Common HTTP Status Codes
-- `200`: Success
-- `400`: Bad Request (validation error)
-- `401`: Unauthorized (authentication required)
-- `403`: Forbidden (insufficient permissions)
-- `429`: Too Many Requests (rate limited)
-- `500`: Internal Server Error
+## Rate Limits
 
-## Rate Limiting
-
-- General API: 100 requests/minute
-- Transaction endpoints: 20 requests/minute
-- Authentication: 5 attempts/5 minutes
-
-## SDKs and Integration
-
-### JavaScript/Node.js
-```javascript
-const coinRailz = new CoinRailzAPI({
-  baseURL: 'https://coinrailz.com/api',
-  apiKey: 'your_api_key'
-});
-
-// Calculate fees
-const fee = await coinRailz.calculateFee({
-  amount: '100.00',
-  type: 'send_money'
-});
-
-// Discover agents
-const agents = await coinRailz.discoverAgents({
-  capabilities: ['Trading']
-});
-```
-
-### Python
-```python
-import coinrailz
-
-client = coinrailz.Client(
-    base_url='https://coinrailz.com/api',
-    api_key='your_api_key'
-)
-
-# Calculate fees
-fee = client.calculate_fee(amount='100.00', type='send_money')
-
-# Discover agents
-agents = client.discover_agents(capabilities=['Trading'])
-```
-
-## Webhooks
-
-### NOWPayments Webhook
-**Endpoint:** `POST /api/webhooks/nowpayments`
-
-Receives payment status updates for cryptocurrency transactions.
-
-## Testing
-
-### Sandbox Environment
-Use `http://localhost:5000/api` for testing with sample data.
-
-### Test Endpoints
-- `GET /api/health`: Health check
-- `GET /api/system/metrics`: System performance metrics
+- Authentication endpoints: 5 requests per 15 minutes
+- P2P transfers: 10 requests per 15 minutes
+- General API: 100 requests per minute
+- Marketplace: 50 requests per minute
 
 ## Support
 
-For API support and integration questions:
+For API support and technical questions:
+- Email: support@coinrailz.com
 - Documentation: https://docs.coinrailz.com
-- Support: support@coinrailz.com
 - Status Page: https://status.coinrailz.com
+
+---
+
+*Last updated: July 15, 2025*

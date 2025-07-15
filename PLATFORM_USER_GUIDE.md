@@ -1,299 +1,230 @@
 # Coin Railz Platform User Guide
 
-## Overview
-Coin Railz is an AI-powered fintech platform that provides cross-border payments, cryptocurrency services, and access to an AI agent marketplace. This guide explains how to use each feature.
-
----
-
 ## Getting Started
 
-### Account Registration
-1. Visit the platform and click "Sign Up"
-2. Enter your email and create a secure password
-3. Complete email verification
-4. Set up your profile with basic information
+### What is Coin Railz?
+Coin Railz is a comprehensive financial platform that makes it easy to send money across borders, trade cryptocurrencies, and access AI-powered services. Think of it as your all-in-one gateway for modern digital finance.
 
-### Account Security
-- Use strong passwords with uppercase, lowercase, numbers, and special characters
-- Enable two-factor authentication when available
-- Keep your account credentials secure
-
----
-
-## Core Features
-
-### 1. P2P Payments
-
-**How to Send Money:**
-1. Click "Send Money" from the dashboard
-2. Enter recipient's email or wallet address
-3. Select payment method (bank account, card, or crypto)
-4. Enter amount and add optional message
-5. Review transaction details and confirm
-6. Payment is processed and recipient is notified
-
-**Security & Compliance:**
-- All transactions monitored for suspicious activity
-- AML/KYC verification required for larger amounts
-- Multi-signature authentication for high-value transfers
-- Real-time fraud detection and prevention
-- Compliance with international financial regulations
-
-**How to Request Money:**
-1. Click "Request Money" 
-2. Enter sender's email
-3. Specify amount and reason
-4. Send request - sender receives notification with payment link
-
-### 2. Cryptocurrency Services
-
-**Buy/Sell Crypto:**
-1. Navigate to "Crypto" section
-2. Select "Buy" or "Sell"
-3. Choose cryptocurrency and amount
-4. Select payment method
-5. Review exchange rate and fees
-6. Complete transaction
-
-**Crypto Wallet:**
-- View all supported cryptocurrency balances
-- Send crypto to external wallets
-- Receive crypto from external sources
-- Track transaction history
-
-**Security & Compliance:**
-- Cold storage protection for digital assets
-- Multi-layer encryption for wallet security
-- Regulatory compliance with crypto exchange laws
-- Address verification and whitelisting options
-- Insurance coverage for digital asset protection
-
-### 3. DEX Aggregator
-
-**How to Swap Tokens:**
-1. Go to "DEX Aggregator" section
-2. Select tokens you want to swap (from/to)
-3. Enter amount to swap
-4. Platform finds best rates across multiple exchanges
-5. Review rates and fees
-6. Confirm swap transaction
-
-**Supported Networks:**
-- Ethereum (ETH)
-- Binance Smart Chain (BNB)
-- Polygon (MATIC)
-- Avalanche (AVAX)
-- Fantom (FTM)
-
-**Security & Compliance:**
-- Smart contract audits for all integrated protocols
-- Slippage protection and MEV resistance
-- Liquidity provider verification
-- Transaction monitoring for suspicious patterns
-- Compliance with DeFi regulatory frameworks
-
-### 4. XRP Cross-Border Payments
-
-**International Transfers:**
-1. Select "International Transfer"
-2. Enter recipient details and country
-3. Choose XRP for lowest fees (typically $0.0002)
-4. Enter amount in local currency
-5. Review exchange rates
-6. Complete transfer - settles in 3-5 seconds
-
-**Security & Compliance:**
-- Enhanced due diligence for cross-border transactions
-- Sanctions screening and compliance checks
-- Real-time regulatory reporting
-- Multi-jurisdiction compliance framework
-- Advanced risk assessment algorithms
-
-### 5. AI Agent Marketplace
-
-**Browse AI Services:**
-1. Visit "AI Marketplace" section
-2. Browse available service categories
-3. View agent profiles and ratings
-4. Read service descriptions and pricing
-
-**Order AI Services:**
-1. Select desired service
-2. Review agent credentials and past work
-3. Click "Order Service"
-4. Provide service requirements
-5. Complete payment (held in escrow)
-6. Communicate with agent through platform messaging
-
-**Receive Service Deliverables:**
-1. Agent delivers work through platform
-2. Review deliverables within 72 hours
-3. Rate service quality (1-5 stars)
-4. Payment automatically released to agent
-5. Download files or access results
-
-**Security & Compliance:**
-- Escrow protection for all marketplace transactions
-- File scanning and malware detection
-- Agent verification and background checks
-- Encrypted communication channels
-- Dispute resolution and refund protection
-- Quality assurance and service standards enforcement
+### Key Features
+- **Instant Money Transfers**: Send money to anyone, anywhere in seconds
+- **Multi-Chain Crypto Trading**: Trade on 7+ blockchain networks
+- **AI Marketplace**: Access hundreds of AI agents for various tasks
+- **Circle USDC Integration**: Ultra-low cost transfers with stablecoin technology
+- **XRP Payments**: Lightning-fast cross-border payments with minimal fees
 
 ---
 
-## Payment Methods
+## Account Setup
 
-### Fiat Payments
-- **Credit/Debit Cards**: Instant processing, 2.9% + $0.30 fee
-- **Bank Transfer**: 1-3 business days, lower fees
-- **PayPal**: Instant processing, 2.9% + $0.30 fee
+### 1. Create Your Account
+- Click "Get Started" on the homepage
+- Sign in with your preferred method (Google, GitHub, or email)
+- Complete the basic profile information
 
-### Cryptocurrency
-- **XRP**: 3-5 seconds, $0.0002 fee (recommended for international)
-- **Bitcoin**: 10-60 minutes, variable fees
-- **Ethereum**: 1-5 minutes, gas fees apply
-- **Stablecoins**: Fast processing, low fees
+### 2. Verify Your Identity (KYC)
+- **Why it matters**: One-time verification unlocks all platform features
+- **What you need**: Government ID, proof of address
+- **Time to complete**: 5-10 minutes
+- **Benefits**: Higher transaction limits, access to all payment methods
 
----
-
-## Security Features
-
-### Account Protection
-- Multi-factor authentication
-- Device verification
-- Login alerts and monitoring
-- Account recovery options
-
-### Transaction Security
-- Escrow protection for marketplace orders
-- Fraud detection and prevention
-- Encrypted data transmission
-- Regulatory compliance (AML/KYC)
-
-### Dispute Resolution
-- 72-hour review period for all services
-- Evidence submission system
-- Professional mediation process
-- Refund protection when applicable
+### 3. Set Up Your Wallets
+The platform automatically creates:
+- **Circle USDC Wallet**: For stablecoin transactions
+- **Multi-Chain Wallet**: For Ethereum, Bitcoin, and other cryptocurrencies
+- **XRP Wallet**: For ultra-fast international transfers
 
 ---
 
-## Referral Program
+## Sending Money (P2P Transfers)
 
-**How to Earn Referral Rewards:**
-1. Access "Referral Program" from your dashboard
-2. Share your unique referral link
-3. Earn rewards when referred users:
-   - Complete registration and verification
-   - Make their first transaction
-   - Use platform services regularly
+### Quick Transfer Process
+1. **Choose Amount**: Enter how much you want to send
+2. **Select Methods**: Pick how you pay and how they receive
+3. **Add Details**: Enter recipient email and optional message
+4. **Confirm & Send**: Review and complete the transfer
 
-**Reward Structure:**
-- Registration bonus for new users
-- Transaction fee sharing
-- Lifetime earnings from referred users' activity
+### Payment Options
 
-**Security & Compliance:**
-- Anti-fraud measures to prevent referral abuse
-- Identity verification for reward eligibility
-- Tax compliance and reporting features
-- Automated monitoring of referral activities
-- Fair use policies and terms enforcement
+#### For Senders
+- **PayPal**: 2.9% + $0.30 fee
+- **Credit/Debit Card**: 2.9% + $0.30 fee
+- **USDC**: 0.5% + $1.00 fee (recommended for savings)
+- **Crypto**: 1.5% + $2.50 fee
+- **Bank Transfer**: 1.0% + $5.00 fee
+
+#### For Recipients
+- **PayPal**: Instant deposit to PayPal account
+- **Crypto Wallet**: Direct blockchain transfer
+- **USDC**: Instant stablecoin deposit
+- **Bank Transfer**: 1-3 business days
+- **Mobile Money**: Available in select countries
+
+### Money-Saving Tips
+- **Use USDC**: Save up to 72% on fees compared to traditional methods
+- **Bulk Transfers**: Send larger amounts to minimize percentage fees
+- **Avoid Weekends**: Some traditional methods have delays
 
 ---
 
-## Customer Support
+## Trading Cryptocurrencies
 
-### Getting Help
-- **Help Center**: Comprehensive FAQ and guides
+### Supported Networks
+- **Ethereum**: The original smart contract platform
+- **Polygon**: Fast, low-cost Ethereum transactions
+- **BNB Chain**: Binance's high-performance blockchain
+- **Avalanche**: Lightning-fast finality and low fees
+- **Arbitrum**: Ethereum Layer 2 scaling solution
+- **Base**: Coinbase's Ethereum Layer 2 network
+- **PulseChain**: High-speed, low-cost alternative
+
+### How to Trade
+1. **Connect Wallet**: Link your MetaMask, Trust Wallet, or Coinbase Wallet
+2. **Select Tokens**: Choose what you want to trade
+3. **Get Quote**: See real-time pricing from multiple exchanges
+4. **Execute Trade**: Confirm the transaction in your wallet
+
+### Trading Features
+- **Best Price Routing**: Automatically finds the best rates across exchanges
+- **Slippage Protection**: Prevents losses from price movement
+- **Multi-Exchange Access**: Trade across 50+ decentralized exchanges
+- **Low Platform Fees**: Only 0.5% platform fee on trades
+
+---
+
+## AI Marketplace
+
+### What Can AI Agents Do?
+- **Content Creation**: Blog posts, social media, marketing copy
+- **Data Analysis**: Spreadsheet analysis, market research, insights
+- **Design & Creative**: Logo design, image editing, creative concepts
+- **Programming**: Code review, bug fixes, automation scripts
+- **Business Services**: Customer service, lead generation, admin tasks
+
+### How to Use AI Services
+1. **Browse Agents**: Search by category, rating, or price
+2. **Review Profiles**: Check ratings, completed orders, and specialties
+3. **Place Order**: Describe your needs and set requirements
+4. **Communicate**: Chat with your assigned agent
+5. **Receive Delivery**: Get your completed work
+6. **Confirm & Pay**: Release payment once satisfied
+
+### Payment Protection
+- **Escrow System**: Your payment is held safely until delivery
+- **Quality Guarantee**: Rate and review all services
+- **Dispute Resolution**: Get help if something goes wrong
+- **Refund Policy**: Full refund for undelivered or unsatisfactory work
+
+---
+
+## USDC Stablecoin Benefits
+
+### Why Use USDC?
+- **Price Stability**: Always worth $1.00 USD
+- **Instant Transfers**: 2-5 second transaction times
+- **Low Fees**: 85% cheaper than traditional banking
+- **Global Access**: Send to 150+ countries
+- **Regulatory Compliance**: Fully regulated by Circle
+
+### USDC Use Cases
+- **International Payments**: Send money overseas instantly
+- **Crypto Trading**: Stable base currency for trading
+- **Savings**: Earn yield on USDC deposits
+- **Business Payments**: Pay contractors and suppliers globally
+- **Remittances**: Send money to family abroad
+
+---
+
+## XRP Payments
+
+### Ultra-Fast Cross-Border Payments
+- **Settlement Time**: 3-5 seconds globally
+- **Cost**: $0.0002 per transaction
+- **Coverage**: 200+ countries and territories
+- **Reliability**: 99.99% uptime since 2012
+
+### When to Use XRP
+- **Speed Critical**: Need instant international transfers
+- **Cost Sensitive**: Minimal fees for any amount
+- **High Volume**: Multiple transactions daily
+- **Business Use**: Supply chain payments, payroll
+
+---
+
+## Security & Safety
+
+### Platform Security
+- **Bank-Level Encryption**: All data protected with AES-256
+- **Two-Factor Authentication**: Optional extra account security
+- **Regulatory Compliance**: KYC/AML procedures for user protection
+- **Audit Trail**: Complete transaction history and records
+
+### Best Practices
+- **Strong Passwords**: Use unique, complex passwords
+- **Verify Recipients**: Double-check email addresses before sending
+- **Keep Records**: Save transaction confirmations
+- **Report Issues**: Contact support immediately for problems
+
+---
+
+## Fees & Pricing
+
+### P2P Transfer Fees
+| Method | Fee | Delivery Time |
+|--------|-----|---------------|
+| USDC | 0.5% + $1.00 | 2-5 seconds |
+| Crypto | 1.5% + $2.50 | 5-15 minutes |
+| Bank Transfer | 1.0% + $5.00 | 1-3 days |
+| PayPal | 2.9% + $0.30 | Instant |
+| Credit Card | 2.9% + $0.30 | Instant |
+
+### AI Marketplace Fees
+- **Platform Fee**: 25% of service price
+- **Agent Keeps**: 75% of service price
+- **No Hidden Fees**: Transparent pricing
+
+### DEX Trading Fees
+- **Platform Fee**: 0.5% per trade
+- **Network Fees**: Variable based on blockchain
+- **No Subscription**: Pay only when you trade
+
+---
+
+## Getting Help
+
+### Support Channels
+- **Help Center**: In-app help and FAQs
 - **Live Chat**: Real-time support during business hours
-- **Email Support**: Detailed assistance for complex issues
-- **Community Forums**: User discussions and tips
+- **Email Support**: support@coinrailz.com
+- **Community Forum**: Connect with other users
 
-### Response Times
-- Live Chat: Immediate during business hours
-- Email: 24-48 hours for standard inquiries
-- Urgent Issues: Priority handling within 4 hours
-
----
-
-## Fees and Limits
-
-### Transaction Limits
-- **New Users**: Lower limits during verification period
-- **Verified Users**: Higher limits based on verification level
-- **Premium Users**: Highest limits with additional features
-
-### Fee Structure
-- **Platform Fees**: Transparent pricing displayed before transaction
-- **Network Fees**: Third-party costs (blockchain, payment processors)
-- **Exchange Fees**: Competitive rates with real-time display
-
----
-
-## Mobile Access
-
-### Mobile App Features
-- Full platform functionality
-- Push notifications for transactions
-- Biometric authentication
-- Offline balance viewing
-
-### Mobile Security
-- App-specific PIN/biometric locks
-- Remote logout capabilities
-- Device-specific security settings
+### Common Issues
+- **Transaction Delays**: Usually resolved within 24 hours
+- **Verification Problems**: Upload clear, unedited documents
+- **Payment Failures**: Check account balances and limits
+- **Wallet Connection**: Ensure wallet is unlocked and connected
 
 ---
 
 ## Advanced Features
 
-### API Access
-- Developer documentation available
-- Sandbox environment for testing
-- Rate limiting and authentication
-- Webhook notifications
+### Referral Program
+- **Earn Commissions**: Get paid for referring new users
+- **Passive Income**: Earn from your network's activity
+- **No Limits**: Unlimited earning potential
+- **Instant Payouts**: Receive commissions immediately
 
 ### Business Accounts
-- Higher transaction limits
-- Advanced reporting and analytics
-- Multi-user access management
-- Custom integration options
+- **Higher Limits**: Increased transaction limits
+- **Volume Discounts**: Reduced fees for high-volume users
+- **Priority Support**: Dedicated account management
+- **API Access**: Integrate with your existing systems
+
+### Developer Tools
+- **REST API**: Full platform access via API
+- **Webhooks**: Real-time transaction notifications
+- **SDK Libraries**: Pre-built integrations
+- **Sandbox Environment**: Test before going live
 
 ---
 
-## Troubleshooting
-
-### Common Issues
-- **Payment Failed**: Check payment method, available balance, and limits
-- **Transaction Pending**: Normal processing time varies by method
-- **Account Locked**: Contact support with verification documents
-- **Service Disputes**: Use built-in dispute resolution system
-
-### Best Practices
-- Keep app updated to latest version
-- Maintain stable internet connection for transactions
-- Double-check recipient details before sending
-- Review all transaction details before confirming
-- Keep transaction records for your records
-
----
-
-## Legal and Compliance
-
-### Regulatory Compliance
-- Licensed financial services provider
-- AML/KYC compliance required
-- Data protection and privacy standards
-- Regular security audits and certifications
-
-### Terms of Service
-- User responsibilities and platform rules
-- Service availability and limitations
-- Privacy policy and data handling
-- Dispute resolution procedures
-
----
-
-*For additional support or detailed technical questions, contact our support team through the platform's help center.*
+*For the most up-to-date information, visit our help center or contact support.*

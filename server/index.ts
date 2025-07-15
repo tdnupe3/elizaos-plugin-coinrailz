@@ -277,6 +277,71 @@ app.post('/api/circle/kyc/webhook/status-update', async (req, res) => {
   }
 });
 
+// New KYC incentive and cost tracking endpoints
+app.get('/api/circle/kyc/progress', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const { circleKYCService } = await import('./services/circleKYCService');
+    const progress = await circleKYCService.getKYCProgressWithIncentives(userId);
+    res.json(progress);
+  } catch (error) {
+    console.error('KYC progress error:', error);
+    res.status(500).json({ error: 'Failed to get KYC progress' });
+  }
+});
+
+app.post('/api/circle/kyc/calculate-incentives', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { transactionAmount } = req.body;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const { circleKYCService } = await import('./services/circleKYCService');
+    const feeDiscount = await circleKYCService.applyKYCFeeDiscount(userId, transactionAmount || 1000);
+    res.json(feeDiscount);
+  } catch (error) {
+    console.error('KYC incentive calculation error:', error);
+    res.status(500).json({ error: 'Failed to calculate incentives' });
+  }
+});
+
+app.post('/api/circle/kyc/apply-bonus', isAuthenticated, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+    
+    const { kycIncentiveService } = await import('./services/kycIncentiveService.js');
+    const success = await kycIncentiveService.applyKYCCompletionBonus(userId);
+    
+    res.json({ success, message: success ? 'Bonus applied successfully' : 'Bonus not applicable' });
+  } catch (error) {
+    console.error('KYC bonus application error:', error);
+    res.status(500).json({ error: 'Failed to apply bonus' });
+  }
+});
+
+app.get('/api/circle/kyc/cost-metrics', isAuthenticated, async (req, res) => {
+  try {
+    const { kycCostTrackingService } = await import('./services/kycCostTrackingService.js');
+    const metrics = await kycCostTrackingService.getKYCCostMetrics();
+    const recommendations = await kycCostTrackingService.getCostOptimizationRecommendations();
+    
+    res.json({ metrics, recommendations });
+  } catch (error) {
+    console.error('KYC cost metrics error:', error);
+    res.status(500).json({ error: 'Failed to get cost metrics' });
+  }
+});
+
 console.log('✅ Circle KYC routes registered successfully');
 
 // === ENTERPRISE DATA MONETIZATION ROUTES (HIGH REVENUE POTENTIAL) ===

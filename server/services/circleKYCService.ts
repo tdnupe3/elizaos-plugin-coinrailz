@@ -7,6 +7,8 @@ import { circleService } from './circleService';
 import { db } from '../db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { kycIncentiveService } from './kycIncentiveService.js';
+import { kycCostTrackingService } from './kycCostTrackingService.js';
 
 export interface KYCDocumentUpload {
   documentType: 'passport' | 'drivers_license' | 'national_id' | 'utility_bill' | 'bank_statement';
@@ -325,7 +327,13 @@ class CircleKYCService {
       }
 
       // Update KYC status in database
-      // This would typically update the user's KYC status
+      await this.updateKYCStatus(userId, status);
+
+      // Apply completion bonus if approved
+      if (status === 'approved') {
+        await kycIncentiveService.applyKYCCompletionBonus(userId);
+      }
+
       console.log('Processing KYC webhook update:', {
         userId,
         status,
@@ -342,6 +350,63 @@ class CircleKYCService {
     } catch (error) {
       console.error('KYC webhook processing error:', error);
       throw new Error('Failed to process KYC webhook');
+    }
+  }
+
+  /**
+   * Get KYC progress with incentives
+   */
+  async getKYCProgressWithIncentives(userId: string): Promise<{
+    progress: any;
+    incentives: any;
+    costMetrics: any;
+  }> {
+    try {
+      const progress = await kycIncentiveService.getKYCProgress(userId);
+      const incentives = await kycIncentiveService.calculateKYCIncentives(userId, 1000);
+      const costMetrics = await kycCostTrackingService.getKYCCostMetrics();
+
+      return {
+        progress,
+        incentives,
+        costMetrics
+      };
+    } catch (error) {
+      console.error('Error getting KYC progress with incentives:', error);
+      throw new Error('Failed to get KYC progress');
+    }
+  }
+
+  /**
+   * Apply KYC fee discount to transaction
+   */
+  async applyKYCFeeDiscount(userId: string, transactionAmount: number): Promise<{
+    originalFee: number;
+    discountedFee: number;
+    savings: number;
+    discountPercentage: number;
+  }> {
+    try {
+      const incentives = await kycIncentiveService.calculateKYCIncentives(userId, transactionAmount);
+      const baseFeeRate = 0.025; // 2.5% base fee
+      const originalFee = transactionAmount * baseFeeRate;
+      const discountedFee = originalFee * (1 - incentives.feeDiscount);
+      const savings = originalFee - discountedFee;
+
+      return {
+        originalFee,
+        discountedFee,
+        savings,
+        discountPercentage: incentives.feeDiscount * 100
+      };
+    } catch (error) {
+      console.error('Error applying KYC fee discount:', error);
+      return {
+        originalFee: transactionAmount * 0.025,
+        discountedFee: transactionAmount * 0.025,
+        savings: 0,
+        discountPercentage: 0
+      };
     }
   }
 }

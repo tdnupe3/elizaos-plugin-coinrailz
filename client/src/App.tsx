@@ -69,6 +69,7 @@ import ContactUs from "@/pages/contact-us";
 import WalletManagement from "@/pages/wallet-management";
 import SignUp from "@/pages/signup";
 import SignIn from "@/pages/signin";
+import KYCIncentivesDashboard from "@/components/kyc-incentives-dashboard";
 import { lazy } from "react";
 
 // Lazy load remaining components
@@ -226,6 +227,22 @@ function Router() {
       </Route>
       <Route path="/xrp-bridge-services">
         {() => <LazyLoadWrapper><XRPBridgeServices /></LazyLoadWrapper>}
+      </Route>
+      
+      {/* KYC Incentives Dashboard */}
+      <Route path="/kyc-incentives">
+        {() => {
+          const { data: authData } = useAuth();
+          if (!authData) {
+            return <div className="flex items-center justify-center min-h-screen">
+              <div className="text-center">
+                <p className="text-lg mb-4">Please sign in to access KYC incentives</p>
+                <a href="/signin" className="text-blue-600 hover:underline">Sign In</a>
+              </div>
+            </div>;
+          }
+          return <KYCIncentivesDashboard />;
+        }}
       </Route>
 
       <Route path="/signup" component={SignUp} />

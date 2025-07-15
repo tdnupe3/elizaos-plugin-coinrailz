@@ -4,13 +4,19 @@ import { eq } from 'drizzle-orm';
 
 export class KYCIncentiveService {
   /**
-   * Calculate KYC completion incentives for user
+   * Calculate KYC completion incentives for user - SUSTAINABLE MODEL
+   * Focus on enhanced features and reduced friction rather than financial discounts
    */
   async calculateKYCIncentives(userId: string, transactionAmount: number): Promise<{
     feeDiscount: number;
     completionBonus: number;
     premiumFeatures: string[];
     totalSavings: number;
+    enhancedLimits: {
+      dailyLimit: number;
+      monthlyLimit: number;
+      instantWithdrawal: boolean;
+    };
   }> {
     try {
       const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
@@ -20,7 +26,12 @@ export class KYCIncentiveService {
           feeDiscount: 0,
           completionBonus: 0,
           premiumFeatures: [],
-          totalSavings: 0
+          totalSavings: 0,
+          enhancedLimits: {
+            dailyLimit: 1000,
+            monthlyLimit: 5000,
+            instantWithdrawal: false
+          }
         };
       }
 
@@ -30,25 +41,51 @@ export class KYCIncentiveService {
       let feeDiscount = 0;
       let completionBonus = 0;
       let premiumFeatures: string[] = [];
+      let enhancedLimits = {
+        dailyLimit: 1000,
+        monthlyLimit: 5000,
+        instantWithdrawal: false
+      };
 
-      // Progressive fee discounts based on KYC level (NO COMPLETION BONUSES)
+      // SUSTAINABLE MODEL: Focus on enhanced features and limits rather than fee discounts
       switch (kycStatus) {
         case 'pending':
-          feeDiscount = 0.05; // 5% discount for starting KYC
+          feeDiscount = 0.005; // 0.5% discount for starting KYC
+          premiumFeatures = ['basicAnalytics'];
+          enhancedLimits = {
+            dailyLimit: 2000,
+            monthlyLimit: 10000,
+            instantWithdrawal: false
+          };
           break;
         case 'approved':
           switch (complianceLevel) {
             case 'basic':
-              feeDiscount = 0.10; // 10% discount for basic KYC
-              premiumFeatures = ['advancedAnalytics', 'prioritySupport'];
+              feeDiscount = 0.01; // 1% discount for basic KYC
+              premiumFeatures = ['advancedAnalytics', 'prioritySupport', 'reducedHolds'];
+              enhancedLimits = {
+                dailyLimit: 10000,
+                monthlyLimit: 50000,
+                instantWithdrawal: true
+              };
               break;
             case 'enhanced':
-              feeDiscount = 0.15; // 15% discount for enhanced KYC
-              premiumFeatures = ['advancedAnalytics', 'prioritySupport', 'institutionalFeatures'];
+              feeDiscount = 0.015; // 1.5% discount for enhanced KYC
+              premiumFeatures = ['advancedAnalytics', 'prioritySupport', 'institutionalFeatures', 'reducedHolds', 'bulkTransactions'];
+              enhancedLimits = {
+                dailyLimit: 50000,
+                monthlyLimit: 250000,
+                instantWithdrawal: true
+              };
               break;
             case 'institutional':
-              feeDiscount = 0.20; // 20% discount for institutional KYC
-              premiumFeatures = ['advancedAnalytics', 'prioritySupport', 'institutionalFeatures', 'customLimits'];
+              feeDiscount = 0.02; // 2% discount for institutional KYC
+              premiumFeatures = ['advancedAnalytics', 'prioritySupport', 'institutionalFeatures', 'customLimits', 'reducedHolds', 'bulkTransactions', 'dedicatedSupport'];
+              enhancedLimits = {
+                dailyLimit: 250000,
+                monthlyLimit: 1000000,
+                instantWithdrawal: true
+              };
               break;
           }
           break;
@@ -62,7 +99,8 @@ export class KYCIncentiveService {
         feeDiscount,
         completionBonus,
         premiumFeatures,
-        totalSavings
+        totalSavings,
+        enhancedLimits
       };
 
     } catch (error) {
@@ -71,7 +109,12 @@ export class KYCIncentiveService {
         feeDiscount: 0,
         completionBonus: 0,
         premiumFeatures: [],
-        totalSavings: 0
+        totalSavings: 0,
+        enhancedLimits: {
+          dailyLimit: 1000,
+          monthlyLimit: 5000,
+          instantWithdrawal: false
+        }
       };
     }
   }

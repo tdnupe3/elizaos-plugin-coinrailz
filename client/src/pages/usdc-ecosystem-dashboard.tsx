@@ -70,10 +70,20 @@ export default function USDCEcosystemDashboard() {
           setCircleHealth(healthData);
         }
 
-        // USDC is a stablecoin, so rate should be ~$1.00
-        setUsdcRate(1.00);
+        // Fetch live USDC price from CoinGecko API
+        const priceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=usd-coin&vs_currencies=usd');
+        if (priceResponse.ok) {
+          const priceData = await priceResponse.json();
+          const liveUsdcPrice = priceData['usd-coin']?.usd || 1.00;
+          setUsdcRate(liveUsdcPrice);
+        } else {
+          // Fallback to $1.00 if API fails
+          setUsdcRate(1.00);
+        }
       } catch (error) {
         console.error('Error fetching USDC data:', error);
+        // Fallback to $1.00 if API fails
+        setUsdcRate(1.00);
       }
     };
 

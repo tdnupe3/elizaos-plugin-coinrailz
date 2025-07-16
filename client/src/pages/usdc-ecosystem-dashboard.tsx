@@ -123,7 +123,7 @@ export default function USDCEcosystemDashboard() {
       description: 'Enterprise-grade wallet infrastructure powered by Circle',
       benefits: [
         'MPC key management',
-        'Developer-controlled security',
+        'Advanced security controls',
         'Multi-signature support',
         'Compliance-ready'
       ],
@@ -173,7 +173,7 @@ export default function USDCEcosystemDashboard() {
       title: 'Enterprise Solutions',
       description: 'White-label USDC infrastructure for businesses',
       benefits: [
-        'Developer-friendly integration',
+        'Easy integration',
         'Real-time notifications',
         'Multi-tenant support',
         'Custom branding'

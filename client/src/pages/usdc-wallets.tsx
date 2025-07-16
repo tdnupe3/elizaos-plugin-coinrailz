@@ -26,7 +26,7 @@ export default function USDCWallets() {
               Enterprise-grade wallet infrastructure powered by Circle's MPC technology
             </p>
             <Badge className="bg-green-500 text-white px-4 py-2 text-sm">
-              Bank-Grade Security • Developer-Controlled
+              Bank-Grade Security • Advanced Technology
             </Badge>
           </div>
         </div>
@@ -51,7 +51,7 @@ export default function USDCWallets() {
               <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center text-white mx-auto mb-3">
                 <Shield className="w-6 h-6" />
               </div>
-              <CardTitle className="text-lg">Developer Control</CardTitle>
+              <CardTitle className="text-lg">Advanced Control</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-2xl font-bold text-blue-600">Full Control</p>

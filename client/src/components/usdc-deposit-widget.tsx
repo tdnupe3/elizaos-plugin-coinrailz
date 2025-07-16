@@ -57,13 +57,34 @@ export default function USDCDepositWidget() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-red-500" />
-            USDC Deposit
+            <Wallet className="w-5 h-5 text-blue-500" />
+            Get Your USDC Wallet
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center text-gray-500">
-            Circle wallet not found. Please contact support.
+          <div className="text-center space-y-4">
+            <div className="text-gray-600">
+              You're just one step away from instant USDC payments!
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                ✨ Create Your Wallet & Start Saving
+              </h3>
+              <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                <li>• Ultra-low fees (0.1-0.5% vs 2.9% traditional)</li>
+                <li>• Instant 2-5 second settlements</li>
+                <li>• Multi-chain support (6 networks)</li>
+                <li>• Bank-grade Circle security</li>
+              </ul>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                Create Free Wallet
+              </Button>
+              <Button variant="outline">
+                Sign In to Existing Wallet
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

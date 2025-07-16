@@ -170,11 +170,11 @@ export default function USDCEcosystemDashboard() {
     },
     {
       id: 'enterprise-api',
-      title: 'Enterprise API',
+      title: 'Enterprise Solutions',
       description: 'White-label USDC infrastructure for businesses',
       benefits: [
-        'REST and GraphQL APIs',
-        'Webhook notifications',
+        'Developer-friendly integration',
+        'Real-time notifications',
         'Multi-tenant support',
         'Custom branding'
       ],

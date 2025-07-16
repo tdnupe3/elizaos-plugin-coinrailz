@@ -38,10 +38,10 @@ export default function USDCEnterprise() {
               <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center text-white mx-auto mb-3">
                 <Code className="w-6 h-6" />
               </div>
-              <CardTitle className="text-lg">REST & GraphQL</CardTitle>
+              <CardTitle className="text-lg">Developer APIs</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold text-indigo-600">Dual APIs</p>
+              <p className="text-2xl font-bold text-indigo-600">Easy Integration</p>
               <p className="text-sm text-gray-600">Full coverage</p>
             </CardContent>
           </Card>
@@ -92,7 +92,7 @@ export default function USDCEnterprise() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Code className="w-5 h-5 mr-2 text-indigo-600" />
-                REST API Features
+                Developer Integration
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -125,30 +125,30 @@ export default function USDCEnterprise() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Globe className="w-5 h-5 mr-2 text-blue-600" />
-                GraphQL API Features
+                Advanced Integration
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 <li className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  Single endpoint flexibility
+                  Flexible data access
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  Real-time subscriptions
+                  Real-time updates
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  Efficient data fetching
+                  Efficient performance
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  Type-safe queries
+                  Secure connections
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="w-4 h-4 mr-2 text-green-500" />
-                  GraphQL playground
+                  Testing environment
                 </li>
               </ul>
             </CardContent>
@@ -204,10 +204,10 @@ export default function USDCEnterprise() {
           </CardContent>
         </Card>
 
-        {/* API Endpoints */}
+        {/* Core Features */}
         <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="text-2xl">Core API Endpoints</CardTitle>
+            <CardTitle className="text-2xl">Core Platform Features</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -215,16 +215,16 @@ export default function USDCEnterprise() {
                 <h3 className="font-semibold text-lg">Wallet Management</h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <code className="text-sm">POST /wallets</code>
-                    <Badge variant="secondary">Create</Badge>
+                    <span className="text-sm">Create new wallets</span>
+                    <Badge variant="secondary">Instant</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <code className="text-sm">GET /wallets/{id}</code>
-                    <Badge variant="secondary">Retrieve</Badge>
+                    <span className="text-sm">View wallet details</span>
+                    <Badge variant="secondary">Real-time</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <code className="text-sm">GET /wallets/{id}/balance</code>
-                    <Badge variant="secondary">Balance</Badge>
+                    <span className="text-sm">Check balances</span>
+                    <Badge variant="secondary">Live</Badge>
                   </div>
                 </div>
               </div>
@@ -233,16 +233,16 @@ export default function USDCEnterprise() {
                 <h3 className="font-semibold text-lg">Transaction Processing</h3>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <code className="text-sm">POST /transactions</code>
-                    <Badge variant="secondary">Transfer</Badge>
+                    <span className="text-sm">Send payments</span>
+                    <Badge variant="secondary">2-5 seconds</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <code className="text-sm">GET /transactions/{id}</code>
-                    <Badge variant="secondary">Status</Badge>
+                    <span className="text-sm">Track transactions</span>
+                    <Badge variant="secondary">Real-time</Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                    <code className="text-sm">POST /transactions/bulk</code>
-                    <Badge variant="secondary">Batch</Badge>
+                    <span className="text-sm">Bulk operations</span>
+                    <Badge variant="secondary">Efficient</Badge>
                   </div>
                 </div>
               </div>
@@ -262,7 +262,7 @@ export default function USDCEnterprise() {
                 <p className="text-3xl font-bold text-blue-600 mb-2">$2,500</p>
                 <p className="text-sm text-gray-600 mb-4">per month</p>
                 <ul className="text-sm text-left space-y-1">
-                  <li>• Up to 10K API calls/month</li>
+                  <li>• Up to 10K transactions/month</li>
                   <li>• 5 wallet sets</li>
                   <li>• Basic support</li>
                   <li>• Standard SLA</li>
@@ -274,7 +274,7 @@ export default function USDCEnterprise() {
                 <p className="text-3xl font-bold text-green-600 mb-2">$7,500</p>
                 <p className="text-sm text-gray-600 mb-4">per month</p>
                 <ul className="text-sm text-left space-y-1">
-                  <li>• Up to 100K API calls/month</li>
+                  <li>• Up to 100K transactions/month</li>
                   <li>• Unlimited wallet sets</li>
                   <li>• Priority support</li>
                   <li>• Enhanced SLA</li>
@@ -286,7 +286,7 @@ export default function USDCEnterprise() {
                 <p className="text-3xl font-bold text-purple-600 mb-2">Custom</p>
                 <p className="text-sm text-gray-600 mb-4">pricing</p>
                 <ul className="text-sm text-left space-y-1">
-                  <li>• Unlimited API calls</li>
+                  <li>• Unlimited transactions</li>
                   <li>• White-label solutions</li>
                   <li>• Dedicated support</li>
                   <li>• Custom SLA</li>
@@ -306,7 +306,7 @@ export default function USDCEnterprise() {
           </Button>
           <Button size="lg" variant="outline" asChild>
             <Link href="/documentation">
-              View API Docs
+              View Documentation
             </Link>
           </Button>
         </div>

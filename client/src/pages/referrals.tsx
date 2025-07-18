@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { NavigationHeader } from "@/components/navigation-header";
 import { Share2, Copy, Users, DollarSign, Gift, Clock, Sparkles, Trophy, Star } from "@/lib/icons";
+import ReferralAPITest from "@/components/ReferralAPITest";
 
 export default function Referrals() {
   const [referralCodeInput, setReferralCodeInput] = useState("");
@@ -97,6 +98,9 @@ export default function Referrals() {
       <NavigationHeader />
       
       <div className="container mx-auto px-4 py-8">
+        {/* Temporary API Test Component */}
+        <ReferralAPITest />
+        
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}
           <div className="text-center space-y-4">

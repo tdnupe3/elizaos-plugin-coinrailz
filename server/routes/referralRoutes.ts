@@ -2,11 +2,28 @@ import { Router } from 'express';
 
 const router = Router();
 
+// Add JSON parsing middleware
+router.use((req, res, next) => {
+  if (req.method === 'POST' && !req.body) {
+    try {
+      req.body = JSON.parse(req.body || '{}');
+    } catch (e) {
+      // Body might already be parsed
+    }
+  }
+  next();
+});
+
+// Debug route to test if routes are working
+router.get('/test', (req, res) => {
+  res.json({ success: true, message: 'Referral routes are working!' });
+});
+
 /**
- * POST /api/referrals/generate
+ * POST /api/referrals/generate-link
  * Generate referral link for users
  */
-router.post('/generate', (req, res) => {
+router.post('/generate-link', (req, res) => {
   try {
     const { userId, type = 'marketplace' } = req.body;
     
@@ -32,6 +49,36 @@ router.post('/generate', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Referral generation failed'
+    });
+  }
+});
+
+/**
+ * GET /api/referrals/my-stats
+ * Get referral stats for current user
+ */
+router.get('/my-stats', (req, res) => {
+  try {
+    // In a real app, we'd get this from the authenticated user
+    const userId = req.headers['user-id'] as string || 'demo-user';
+    
+    res.json({
+      success: true,
+      userId,
+      referralCode: `REF_${userId.substring(0, 8).toUpperCase()}`,
+      referralLink: `https://coinrailz.com/register?ref=REF_${userId.substring(0, 8).toUpperCase()}`,
+      totalReferrals: 7,
+      totalCommissions: '125.50',
+      pendingCommissions: '45.25',
+      paidCommissions: '80.25',
+      conversionRate: '8.5%',
+      tier: 'premium',
+      nextTierProgress: 65
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch referral stats'
     });
   }
 });
@@ -99,6 +146,44 @@ router.post('/calculate-payout', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Payout calculation failed'
+    });
+  }
+});
+
+/**
+ * POST /api/referrals/process-signup
+ * Process referral code during signup
+ */
+router.post('/process-signup', (req, res) => {
+  try {
+    const { referralCode } = req.body;
+    
+    if (!referralCode) {
+      return res.status(400).json({
+        success: false,
+        error: 'Referral code is required'
+      });
+    }
+
+    // Validate referral code format
+    if (!referralCode.startsWith('REF_')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid referral code format'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Referral code applied successfully',
+      referralCode,
+      bonus: '0.1%',
+      description: 'You will receive a 0.1% bonus on your first transaction!'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process referral signup'
     });
   }
 });

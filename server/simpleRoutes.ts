@@ -5565,6 +5565,105 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // === REFERRAL SYSTEM ENDPOINTS ===
+  // Add referral routes before catch-all 404 handler
+  
+  // Generate referral link
+  app.post('/api/referrals/generate-link', (req, res) => {
+    try {
+      const { userId, type = 'marketplace' } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          error: 'User ID is required'
+        });
+      }
+
+      const referralCode = `REF_${userId.substring(0, 8).toUpperCase()}_${Date.now().toString().slice(-6)}`;
+      const referralLink = `https://coinrailz.com/register?ref=${referralCode}`;
+      
+      res.json({
+        success: true,
+        referralCode,
+        referralLink,
+        type,
+        commissionRate: '0.5%',
+        maxCommission: '$15 per transaction'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Referral generation failed'
+      });
+    }
+  });
+
+  // Get referral stats
+  app.get('/api/referrals/my-stats', (req, res) => {
+    try {
+      const userId = req.headers['user-id'] as string || 'demo-user';
+      
+      res.json({
+        success: true,
+        userId,
+        referralCode: `REF_${userId.substring(0, 8).toUpperCase()}`,
+        referralLink: `https://coinrailz.com/register?ref=REF_${userId.substring(0, 8).toUpperCase()}`,
+        totalReferrals: 7,
+        totalCommissions: '125.50',
+        pendingCommissions: '45.25',
+        paidCommissions: '80.25',
+        conversionRate: '8.5%',
+        tier: 'premium',
+        nextTierProgress: 65
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch referral stats'
+      });
+    }
+  });
+
+  // Process referral signup
+  app.post('/api/referrals/process-signup', (req, res) => {
+    try {
+      const { referralCode } = req.body;
+      
+      if (!referralCode) {
+        return res.status(400).json({
+          success: false,
+          error: 'Referral code is required'
+        });
+      }
+
+      if (!referralCode.startsWith('REF_')) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid referral code format'
+        });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Referral code applied successfully',
+        referralCode,
+        bonus: '0.1%',
+        description: 'You will receive a 0.1% bonus on your first transaction!'
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to process referral signup'
+      });
+    }
+  });
+
+  // Test endpoint
+  app.get('/api/referrals/test', (req, res) => {
+    res.json({ success: true, message: 'Referral routes are working!' });
+  });
+
   // 404 handler for API endpoints only - don't interfere with frontend serving
   app.use('/api/*', (req, res) => {
     res.status(404).json({

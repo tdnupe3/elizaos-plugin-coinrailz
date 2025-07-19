@@ -21,6 +21,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import OnboardingFlow from "@/components/onboarding-flow";
 import { UserGuidanceModal } from "@/components/user-guidance";
+import { IntuitiveOnboarding } from "@/components/intuitive-onboarding";
+import { QuickFunding } from "@/components/quick-funding";
+import { InstantSwap } from "@/components/instant-swap";
 
 interface Transaction {
   id: string;
@@ -169,7 +172,22 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Onboarding Flow for New Users */}
+        {/* Intuitive Onboarding for New Users */}
+        {(!usdcBalance || parseFloat(usdcBalance?.balance || '0') === 0) && (
+          <div className="mb-8">
+            <IntuitiveOnboarding />
+          </div>
+        )}
+
+        {/* Quick Actions for Funded Users */}
+        {usdcBalance && parseFloat(usdcBalance?.balance || '0') > 0 && (
+          <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <QuickFunding />
+            <InstantSwap />
+          </div>
+        )}
+
+        {/* Original Onboarding Flow for Reference */}
         <div className="mb-8">
           <OnboardingFlow />
         </div>

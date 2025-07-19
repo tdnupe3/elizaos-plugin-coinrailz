@@ -32,6 +32,7 @@ export const RevenueDashboard = lazy(() => import('@/pages/revenue-dashboard'));
 export const ReferralDashboard = lazy(() => import('@/pages/referral-dashboard'));
 export const EnhancedReferralDashboard = lazy(() => import('@/pages/enhanced-referral-dashboard'));
 export const HumanReferralDashboard = lazy(() => import('@/pages/human-referral-dashboard'));
+export const PlatformAnalytics = lazy(() => import('@/pages/platform-analytics'));
 
 // USDC Ecosystem Components
 export const USDCEcosystemDashboard = lazy(() => import('@/pages/usdc-ecosystem-dashboard'));

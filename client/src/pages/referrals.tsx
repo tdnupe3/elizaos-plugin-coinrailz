@@ -98,8 +98,7 @@ export default function Referrals() {
       <NavigationHeader />
       
       <div className="container mx-auto px-4 py-8">
-        {/* Temporary API Test Component */}
-        <ReferralAPITest />
+
         
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Header */}

@@ -39,6 +39,7 @@ import {
   DemoCryptoTransfer,
   EnhancedReferralDashboard,
   HumanReferralDashboard,
+  PlatformAnalytics,
 
   USDCEcosystemDashboard,
   USDCBuy,
@@ -329,6 +330,9 @@ function Router() {
       </Route>
       <Route path="/human-referral-dashboard">
         {() => <LazyLoadWrapper><HumanReferralDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/analytics">
+        {() => <LazyLoadWrapper><PlatformAnalytics /></LazyLoadWrapper>}
       </Route>
       <Route path="/settings">
         {() => <LazyLoadWrapper><SettingsPage /></LazyLoadWrapper>}

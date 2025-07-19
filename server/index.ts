@@ -7,6 +7,7 @@ import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
 import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
+import analyticsRoutes from "./routes/analyticsRoutes";
 import p2pRoutes from "./routes/p2pRoutes";
 import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
 import { registerAuthRoutes } from "./authRoutes";
@@ -298,6 +299,7 @@ app.use('/api/ai-marketplace', aiMarketplaceSimpleRoutes);
 app.use('/api/circle', circleRoutes);
 app.use('/api/user-circle', userCircleRoutes);
 app.use('/api/gas-station', gasStationRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // === CIRCLE KYC/AML ROUTES ===
 // Circle KYC/AML compliance and identity verification

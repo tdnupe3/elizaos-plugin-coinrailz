@@ -206,15 +206,69 @@ export default function USDCConversion() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {supportedAssets?.assets?.map((asset: SupportedAsset) => (
-                            <SelectItem key={asset.symbol} value={asset.symbol}>
-                              <div className="flex items-center gap-2">
-                                <span>{getAssetIcon(asset.symbol)}</span>
-                                <span>{asset.symbol}</span>
-                                <span className="text-gray-500">({asset.name})</span>
-                              </div>
-                            </SelectItem>
-                          ))}
+                            <SelectItem value="XRP">
+                            <div className="flex items-center gap-2">
+                              <span>⚡</span>
+                              <span>XRP</span>
+                              <span className="text-gray-500">(Ripple)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="ETH">
+                            <div className="flex items-center gap-2">
+                              <span>Ξ</span>
+                              <span>ETH</span>
+                              <span className="text-gray-500">(Ethereum)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="BTC">
+                            <div className="flex items-center gap-2">
+                              <span>₿</span>
+                              <span>BTC</span>
+                              <span className="text-gray-500">(Bitcoin)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="BNB">
+                            <div className="flex items-center gap-2">
+                              <span>🟡</span>
+                              <span>BNB</span>
+                              <span className="text-gray-500">(BNB Chain)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="ADA">
+                            <div className="flex items-center gap-2">
+                              <span>♠</span>
+                              <span>ADA</span>
+                              <span className="text-gray-500">(Cardano)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="MATIC">
+                            <div className="flex items-center gap-2">
+                              <span>🔮</span>
+                              <span>MATIC</span>
+                              <span className="text-gray-500">(Polygon)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="VET">
+                            <div className="flex items-center gap-2">
+                              <span>⚡</span>
+                              <span>VET</span>
+                              <span className="text-gray-500">(VeChain)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="AVAX">
+                            <div className="flex items-center gap-2">
+                              <span>🔺</span>
+                              <span>AVAX</span>
+                              <span className="text-gray-500">(Avalanche)</span>
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="DOT">
+                            <div className="flex items-center gap-2">
+                              <span>⚫</span>
+                              <span>DOT</span>
+                              <span className="text-gray-500">(Polkadot)</span>
+                            </div>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -244,6 +298,7 @@ export default function USDCConversion() {
                           <SelectItem value="polygon">Polygon (MATIC)</SelectItem>
                           <SelectItem value="base">Base (Coinbase L2)</SelectItem>
                           <SelectItem value="arbitrum">Arbitrum (ARB)</SelectItem>
+                          <SelectItem value="bnb">BNB Chain (BNB)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

@@ -113,6 +113,45 @@ export class USDCConversionService {
         'Ethereum compatibility',
         'Fast transactions'
       ]
+    },
+    VET: {
+      symbol: 'VET',
+      name: 'VeChain',
+      network: 'VeChain',
+      conversionFee: 0.007, // 0.7%
+      networkFee: 0.03, // VET network fee
+      estimatedTime: '10-15 seconds',
+      advantages: [
+        'Enterprise adoption',
+        'Supply chain focus',
+        'Low energy consumption'
+      ]
+    },
+    AVAX: {
+      symbol: 'AVAX',
+      name: 'Avalanche',
+      network: 'Avalanche',
+      conversionFee: 0.0065, // 0.65%
+      networkFee: 0.02, // AVAX network fee
+      estimatedTime: '2-3 seconds',
+      advantages: [
+        'Sub-second finality',
+        'Ethereum compatibility',
+        'High throughput'
+      ]
+    },
+    DOT: {
+      symbol: 'DOT',
+      name: 'Polkadot',
+      network: 'Polkadot',
+      conversionFee: 0.008, // 0.8%
+      networkFee: 0.15, // DOT network fee
+      estimatedTime: '6-12 seconds',
+      advantages: [
+        'Cross-chain interoperability',
+        'Scalable architecture',
+        'Governance features'
+      ]
     }
   };
 
@@ -129,7 +168,7 @@ export class USDCConversionService {
   static async getConversionQuote(
     fromAsset: string,
     amount: number,
-    targetNetwork: 'ethereum' | 'polygon' | 'base' | 'arbitrum' = 'ethereum'
+    targetNetwork: 'ethereum' | 'polygon' | 'base' | 'arbitrum' | 'bnb' = 'ethereum'
   ): Promise<ConversionQuote> {
     const asset = this.SUPPORTED_ASSETS[fromAsset.toUpperCase()];
     if (!asset) {
@@ -176,7 +215,7 @@ export class USDCConversionService {
    */
   static async getXRPToUSDCQuote(
     xrpAmount: number,
-    targetNetwork: 'ethereum' | 'polygon' | 'base' | 'arbitrum' = 'ethereum',
+    targetNetwork: 'ethereum' | 'polygon' | 'base' | 'arbitrum' | 'bnb' = 'ethereum',
     options: {
       expedited?: boolean;
       liquidityPreference?: 'best-rate' | 'fastest';

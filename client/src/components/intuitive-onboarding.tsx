@@ -170,9 +170,14 @@ export function IntuitiveOnboarding() {
                       placeholder="Amount"
                       className="flex-1"
                     />
-                    <Button className="flex-shrink-0">
-                      Add ${fundingAmount}
+                    <Button className="flex-shrink-0" disabled>
+                      Coming Soon
                     </Button>
+                  </div>
+                  
+                  <div className="text-xs text-gray-600 bg-yellow-50 p-3 rounded border">
+                    <strong>Temporary:</strong> Please transfer USDC from an exchange to your wallet address below.
+                    Direct card/bank purchase coming soon!
                   </div>
                   
                   <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded">

@@ -116,9 +116,12 @@ export function QuickFunding() {
               </div>
             </div>
             
-            <Button className="w-full h-12 text-lg font-semibold">
-              Add ${amount} with Debit Card
+            <Button className="w-full h-12 text-lg font-semibold" disabled>
+              Coming Soon - Direct Card Purchase
             </Button>
+            <p className="text-xs text-center text-gray-500 mt-2">
+              Fiat onramp integration in development
+            </p>
           </TabsContent>
           
           <TabsContent value="ach" className="space-y-4">
@@ -153,9 +156,12 @@ export function QuickFunding() {
               </div>
             </div>
             
-            <Button className="w-full h-12 text-lg font-semibold">
-              Add ${amount} via Bank Transfer
+            <Button className="w-full h-12 text-lg font-semibold" disabled>
+              Coming Soon - Bank Transfer
             </Button>
+            <p className="text-xs text-center text-gray-500 mt-2">
+              Direct USDC purchase in development
+            </p>
           </TabsContent>
         </Tabs>
 

@@ -49,6 +49,7 @@ import {
   USDCWallets,
   USDCDefi,
   USDCEnterprise,
+  USDCConversion,
   XRPEcosystemDashboard,
   XRPCrossBorderPayments,
   XRPInstantSettlements,
@@ -207,6 +208,9 @@ function Router() {
       </Route>
       <Route path="/usdc-enterprise">
         {() => <LazyLoadWrapper><USDCEnterprise /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/usdc-conversion">
+        {() => <LazyLoadWrapper><USDCConversion /></LazyLoadWrapper>}
       </Route>
 
       {/* XRP Ecosystem Hub */}

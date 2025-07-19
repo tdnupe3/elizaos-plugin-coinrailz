@@ -305,6 +305,10 @@ app.use('/api/analytics', analyticsRoutes);
 import { businessLogicRoutes } from './routes/businessLogicRoutes';
 app.use('/api/business-logic', businessLogicRoutes);
 
+// === USDC CONVERSION ROUTES ===
+import { usdcConversionRoutes } from './routes/usdcConversionRoutes';
+app.use('/api/usdc-conversion', usdcConversionRoutes);
+
 // === CIRCLE KYC/AML ROUTES ===
 // Circle KYC/AML compliance and identity verification
 console.log('🔄 Registering Circle KYC routes...');

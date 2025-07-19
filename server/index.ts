@@ -301,6 +301,10 @@ app.use('/api/user-circle', userCircleRoutes);
 app.use('/api/gas-station', gasStationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
+// === BUSINESS LOGIC VALIDATION ROUTES ===
+import { businessLogicRoutes } from './routes/businessLogicRoutes';
+app.use('/api/business-logic', businessLogicRoutes);
+
 // === CIRCLE KYC/AML ROUTES ===
 // Circle KYC/AML compliance and identity verification
 console.log('🔄 Registering Circle KYC routes...');

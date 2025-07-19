@@ -40,9 +40,49 @@ export class FeeCalculator {
   private static readonly PAYPAL_FIXED = 0.30;
   
   /**
-   * Platform base fee: 4.5% + fixed fees for sustainable profitability
+   * Platform base fee structure: Standardized tiered rates for consistent profitability
    */
   private static readonly PLATFORM_BASE_FEE = 0.045;
+  
+  /**
+   * Standardized P2P transfer fee structure to address inconsistent pricing
+   */
+  private static readonly P2P_FEE_STRUCTURE = {
+    small: { threshold: 50, rate: 0.065, minFee: 25 },     // Under $50: 6.5% (min $25)
+    medium: { threshold: 200, rate: 0.055, minFee: 15 },   // $50-$200: 5.5% (min $15)  
+    large: { threshold: 1000, rate: 0.045, minFee: 10 },   // $200-$1000: 4.5% (min $10)
+    enterprise: { threshold: Infinity, rate: 0.035, minFee: 25 } // $1000+: 3.5% (min $25)
+  };
+  
+  /**
+   * Transaction minimums to ensure profitability
+   */
+  private static readonly MINIMUM_TRANSACTIONS = {
+    p2p: 25,           // $25 minimum for P2P transfers
+    marketplace: 50,   // $50 minimum for AI marketplace orders  
+    xrp: 10,          // $10 minimum for XRP transfers
+    crypto: 15        // $15 minimum for other crypto
+  };
+  
+  /**
+   * Referral commission limits to ensure sustainability
+   */
+  private static readonly REFERRAL_LIMITS = {
+    maxCommissionPercent: 0.05,  // Maximum 5% of total platform revenue for referrals
+    maxIndividualRate: 0.006,    // Maximum 0.6% commission per transaction
+    monthlyCapPerUser: 500,      // $500 monthly cap per referrer
+    minimumProfit: 0.02          // Minimum 2% profit margin after all costs
+  };
+  
+  /**
+   * AI Marketplace fee structure to address 15% flat rate inconsistency
+   */
+  private static readonly MARKETPLACE_FEE_STRUCTURE = {
+    basic: { threshold: 100, rate: 0.20, agentRate: 0.80 },      // Under $100: 20% platform, 80% agent
+    standard: { threshold: 300, rate: 0.175, agentRate: 0.825 }, // $100-$300: 17.5% platform, 82.5% agent
+    premium: { threshold: 1000, rate: 0.15, agentRate: 0.85 },   // $300-$1000: 15% platform, 85% agent
+    enterprise: { threshold: Infinity, rate: 0.125, agentRate: 0.875 } // $1000+: 12.5% platform, 87.5% agent
+  };
   
   /**
    * XRP fee structure: Ultra-low network fees (~$0.0002) + competitive tiered platform fees
@@ -51,14 +91,11 @@ export class FeeCalculator {
   private static readonly XRP_NETWORK_FEE = 0.0002; // ~$0.0002 per transaction
   
   /**
-   * XRP tiered service fees for competitive yet profitable pricing
+   * XRP simplified fee structure: 0.5% platform fee on all transactions
+   * Competitive and profitable while maintaining simplicity
    */
-  private static readonly XRP_TIER_FEES = {
-    under100: { serviceFee: 2.50, platformRate: 0.015 },    // $2.50 + 1.5%
-    tier100to500: { serviceFee: 3.50, platformRate: 0.0125 }, // $3.50 + 1.25%
-    tier500to2000: { serviceFee: 5.00, platformRate: 0.01 },   // $5.00 + 1.0%
-    over2000: { serviceFee: 7.50, platformRate: 0.0075 }      // $7.50 + 0.75%
-  };
+  private static readonly XRP_PLATFORM_FEE_RATE = 0.005; // 0.5% on all XRP transactions
+  private static readonly XRP_MINIMUM_FEE = 0.25; // $0.25 minimum fee
   
   /**
    * Ethereum fee structure: Dynamic gas fees + competitive platform rates
@@ -75,55 +112,186 @@ export class FeeCalculator {
   private static readonly XRP_PLATFORM_FEE = 0.005; // 0.5% platform fee for large transactions
   
   /**
-   * Calculate fees for Stripe credit card transactions with tiered service fees
+   * Calculate standardized P2P transfer fees with consistent structure
    */
-  static calculateStripeFees(amount: number): FeeCalculation {
-    const processingFee = Math.round((amount * this.STRIPE_PERCENTAGE + this.STRIPE_FIXED) * 100) / 100;
-    
-    // Tiered fee structure to ensure profitability
-    let convenienceFee = 0;
-    let serviceFee = 0;
-    
-    if (amount < 25) {
-      // Very small transactions: Higher service fee to ensure profitability
-      convenienceFee = Math.round((amount * 0.035 + 0.50) * 100) / 100; // 3.5% + $0.50
-      serviceFee = 1.50; // $1.50 service fee for transactions under $25
-    } else if (amount < 50) {
-      // Small transactions: Moderate service fee
-      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
-      serviceFee = 0.75; // $0.75 service fee for transactions $25-$49
-    } else {
-      // Standard transactions: Normal fee structure
-      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
-      serviceFee = 0; // No additional service fee for $50+
+  static calculateP2PFees(amount: number, paymentMethod: string = 'standard'): FeeCalculation {
+    // Enforce minimum transaction amounts
+    if (amount < this.MINIMUM_TRANSACTIONS.p2p) {
+      throw new Error(`Minimum P2P transfer amount is $${this.MINIMUM_TRANSACTIONS.p2p}`);
     }
     
-    // Platform fee on original amount
-    const platformFee = Math.round(amount * this.PLATFORM_BASE_FEE * 100) / 100;
+    // Determine fee tier based on amount
+    let feeStructure = this.P2P_FEE_STRUCTURE.small;
+    if (amount >= this.P2P_FEE_STRUCTURE.enterprise.threshold) {
+      feeStructure = this.P2P_FEE_STRUCTURE.enterprise;
+    } else if (amount >= this.P2P_FEE_STRUCTURE.large.threshold) {
+      feeStructure = this.P2P_FEE_STRUCTURE.large;
+    } else if (amount >= this.P2P_FEE_STRUCTURE.medium.threshold) {
+      feeStructure = this.P2P_FEE_STRUCTURE.medium;
+    }
     
-    const totalFee = convenienceFee + serviceFee + platformFee;
+    // Calculate platform fee (standardized across all tiers)
+    const platformFee = Math.max(
+      Math.round(amount * feeStructure.rate * 100) / 100,
+      feeStructure.minFee
+    );
+    
+    // Processing fees vary by payment method
+    let processingFee = 0;
+    if (paymentMethod === 'stripe' || paymentMethod === 'credit_card') {
+      processingFee = Math.round((amount * this.STRIPE_PERCENTAGE + this.STRIPE_FIXED) * 100) / 100;
+    } else if (paymentMethod === 'paypal') {
+      processingFee = Math.round((amount * this.PAYPAL_PERCENTAGE + this.PAYPAL_FIXED) * 100) / 100;
+    }
+    
+    const totalFee = platformFee + processingFee;
     const totalAmount = amount + totalFee;
-    const netAmount = totalAmount - processingFee;
+    const netAmount = amount; // Net amount received by recipient
     
     return {
       originalAmount: amount,
       processingFee,
-      convenienceFee: convenienceFee + serviceFee, // Combined for display
+      convenienceFee: 0,
       platformFee,
       totalFee,
       totalAmount,
       netAmount,
-      paymentMethod: 'stripe'
+      paymentMethod: 'p2p_transfer',
+      feeBreakdown: {
+        networkFee: processingFee,
+        serviceFee: 0,
+        platformFee,
+        description: `${this.getP2PFeeDescription(amount, feeStructure.rate)}`
+      },
+      savings: {
+        vsWireTransfer: Math.max(0, 25 - platformFee),
+        vsCompetitor: Math.max(0, (amount * 0.05) - platformFee),
+        percentageSaved: Math.max(0, ((amount * 0.05 - platformFee) / (amount * 0.05)) * 100)
+      }
     };
   }
   
   /**
-   * Calculate fees for PayPal transactions with tiered service fees
+   * Legacy Stripe fee calculator for backward compatibility
+   */
+  static calculateStripeFees(amount: number): FeeCalculation {
+    return this.calculateP2PFees(amount, 'stripe');
+  }
+  
+  /**
+   * Get P2P fee description for transparency
+   */
+  static getP2PFeeDescription(amount: number, rate: number): string {
+    const feePercent = (rate * 100).toFixed(1);
+    if (amount < 50) {
+      return `Small transfer: ${feePercent}% fee ensures profitability on smaller amounts while maintaining competitive rates.`;
+    } else if (amount < 200) {
+      return `Standard transfer: ${feePercent}% fee with optimal balance of competitiveness and revenue generation.`;
+    } else if (amount < 1000) {
+      return `Large transfer: ${feePercent}% fee providing excellent value for higher-value transactions.`;
+    } else {
+      return `Enterprise transfer: ${feePercent}% fee with premium service levels and priority processing.`;
+    }
+  }
+  
+  /**
+   * Calculate fees for PayPal transactions with standardized P2P structure
    */
   static calculatePayPalFees(amount: number): FeeCalculation {
-    const processingFee = Math.round((amount * this.PAYPAL_PERCENTAGE + this.PAYPAL_FIXED) * 100) / 100;
+    return this.calculateP2PFees(amount, 'paypal');
+  }
+  
+  /**
+   * Calculate AI Marketplace fees with tiered structure
+   */
+  static calculateMarketplaceFees(amount: number): FeeCalculation {
+    // Enforce minimum transaction amounts
+    if (amount < this.MINIMUM_TRANSACTIONS.marketplace) {
+      throw new Error(`Minimum marketplace order amount is $${this.MINIMUM_TRANSACTIONS.marketplace}`);
+    }
     
-    // Tiered fee structure matching Stripe for consistency
+    // Determine fee tier based on amount
+    let feeStructure = this.MARKETPLACE_FEE_STRUCTURE.basic;
+    if (amount >= this.MARKETPLACE_FEE_STRUCTURE.enterprise.threshold) {
+      feeStructure = this.MARKETPLACE_FEE_STRUCTURE.enterprise;
+    } else if (amount >= this.MARKETPLACE_FEE_STRUCTURE.premium.threshold) {
+      feeStructure = this.MARKETPLACE_FEE_STRUCTURE.premium;
+    } else if (amount >= this.MARKETPLACE_FEE_STRUCTURE.standard.threshold) {
+      feeStructure = this.MARKETPLACE_FEE_STRUCTURE.standard;
+    }
+    
+    const platformFee = Math.round(amount * feeStructure.rate * 100) / 100;
+    const agentPayout = Math.round(amount * feeStructure.agentRate * 100) / 100;
+    
+    return {
+      originalAmount: amount,
+      processingFee: 0, // No external processing fees for marketplace
+      convenienceFee: 0,
+      platformFee,
+      totalFee: platformFee,
+      totalAmount: amount,
+      netAmount: agentPayout,
+      paymentMethod: 'marketplace',
+      feeBreakdown: {
+        networkFee: 0,
+        serviceFee: 0,
+        platformFee,
+        description: `Marketplace tier: ${(feeStructure.rate * 100).toFixed(1)}% platform fee, ${(feeStructure.agentRate * 100).toFixed(1)}% agent payout`
+      },
+      savings: {
+        vsWireTransfer: 0,
+        vsCompetitor: 0,
+        percentageSaved: 0
+      }
+    };
+  }
+  
+  /**
+   * Validate referral commission sustainability
+   */
+  static validateReferralCommission(
+    commissionAmount: number, 
+    transactionAmount: number, 
+    platformFee: number,
+    monthlyReferralTotal: number
+  ): { valid: boolean; adjustedCommission: number; reasons: string[] } {
+    const reasons: string[] = [];
+    let adjustedCommission = commissionAmount;
+    
+    // Check individual transaction commission rate
+    const commissionRate = commissionAmount / transactionAmount;
+    if (commissionRate > this.REFERRAL_LIMITS.maxIndividualRate) {
+      adjustedCommission = Math.round(transactionAmount * this.REFERRAL_LIMITS.maxIndividualRate * 100) / 100;
+      reasons.push(`Commission rate capped at ${(this.REFERRAL_LIMITS.maxIndividualRate * 100).toFixed(1)}%`);
+    }
+    
+    // Check minimum profit margin
+    const profitAfterReferral = platformFee - adjustedCommission;
+    const minimumProfitRequired = transactionAmount * this.REFERRAL_LIMITS.minimumProfit;
+    if (profitAfterReferral < minimumProfitRequired) {
+      adjustedCommission = Math.max(0, platformFee - minimumProfitRequired);
+      reasons.push('Adjusted to maintain minimum 2% profit margin');
+    }
+    
+    // Check monthly cap
+    if (monthlyReferralTotal + adjustedCommission > this.REFERRAL_LIMITS.monthlyCapPerUser) {
+      const remainingCap = Math.max(0, this.REFERRAL_LIMITS.monthlyCapPerUser - monthlyReferralTotal);
+      adjustedCommission = Math.min(adjustedCommission, remainingCap);
+      reasons.push(`Monthly referral cap of $${this.REFERRAL_LIMITS.monthlyCapPerUser} enforced`);
+    }
+    
+    return {
+      valid: adjustedCommission > 0,
+      adjustedCommission,
+      reasons
+    };
+  }
+  
+  /**
+   * Calculate fees for legacy Stripe transactions (maintained for compatibility)
+   */
+  static calculateStripeFees(amount: number): FeeCalculation {
+    const processingFee = Math.round((amount * this.STRIPE_PERCENTAGE + this.STRIPE_FIXED) * 100) / 100;
     let convenienceFee = 0;
     let serviceFee = 0;
     
@@ -166,32 +334,14 @@ export class FeeCalculator {
   static calculateXRPFees(amount: number): FeeCalculation {
     const processingFee = this.XRP_NETWORK_FEE; // Ultra-low network fee (~$0.0002)
     
-    let serviceFee = 0;
-    let platformFee = 0;
-    let tierName = '';
+    // Simplified 0.5% platform fee on all XRP transactions
+    const platformFee = Math.max(
+      Math.round(amount * this.XRP_PLATFORM_FEE_RATE * 100) / 100,
+      this.XRP_MINIMUM_FEE
+    );
     
-    // Enhanced tiered fee structure for competitive yet profitable pricing
-    if (amount < 100) {
-      // Under $100: $2.50 service fee + 1.5% platform fee
-      serviceFee = this.XRP_TIER_FEES.under100.serviceFee;
-      platformFee = Math.round(amount * this.XRP_TIER_FEES.under100.platformRate * 100) / 100;
-      tierName = 'Small Transaction Tier';
-    } else if (amount < 500) {
-      // $100-$500: $3.50 service fee + 1.25% platform fee  
-      serviceFee = this.XRP_TIER_FEES.tier100to500.serviceFee;
-      platformFee = Math.round(amount * this.XRP_TIER_FEES.tier100to500.platformRate * 100) / 100;
-      tierName = 'Medium Transaction Tier';
-    } else if (amount < 2000) {
-      // $500-$2000: $5.00 service fee + 1.0% platform fee
-      serviceFee = this.XRP_TIER_FEES.tier500to2000.serviceFee;
-      platformFee = Math.round(amount * this.XRP_TIER_FEES.tier500to2000.platformRate * 100) / 100;
-      tierName = 'Large Transaction Tier';
-    } else {
-      // Over $2000: $7.50 service fee + 0.75% platform fee
-      serviceFee = this.XRP_TIER_FEES.over2000.serviceFee;
-      platformFee = Math.round(amount * this.XRP_TIER_FEES.over2000.platformRate * 100) / 100;
-      tierName = 'Enterprise Transaction Tier';
-    }
+    const serviceFee = 0; // No additional service fees - just the 0.5% platform fee
+    const tierName = 'XRP Instant Transfer';
     
     const totalFee = processingFee + serviceFee + platformFee;
     const totalAmount = amount + totalFee;
@@ -228,18 +378,11 @@ export class FeeCalculator {
   }
 
   /**
-   * Get XRP fee description based on transaction amount
+   * Get XRP fee description - simplified structure
    */
   static getXRPFeeDescription(amount: number): string {
-    if (amount < 100) {
-      return `Under $100: $2.50 service fee + 1.5% platform fee. Ensures profitability while covering referral payouts and operational costs.`;
-    } else if (amount < 500) {
-      return `$100-$500: $3.50 service fee + 1.25% platform fee. Competitive rates with sustainable revenue margins.`;
-    } else if (amount < 2000) {
-      return `$500-$2000: $5.00 service fee + 1.0% platform fee. Higher service fee generates solid revenue after referral commissions.`;
-    } else {
-      return `$2000+: $7.50 service fee + 0.75% platform fee. Enterprise tier with premium service and instant settlement.`;
-    }
+    const fee = Math.max(amount * this.XRP_PLATFORM_FEE_RATE, this.XRP_MINIMUM_FEE);
+    return `Simple 0.5% platform fee ($${fee.toFixed(2)}) + ultra-low network fee (~$0.0002). Instant settlement in 3-5 seconds vs 3-5 days for traditional transfers.`;
   }
 
   /**

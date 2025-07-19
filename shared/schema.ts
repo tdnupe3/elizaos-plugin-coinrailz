@@ -253,6 +253,25 @@ export const cryptoTransfers = pgTable("crypto_transfers", {
   confirmedAt: timestamp("confirmed_at"),
 });
 
+// USDC Conversion System - Missing critical table for revenue optimization
+export const usdcConversions = pgTable("usdc_conversions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  sourceAsset: varchar("source_asset").notNull(), // XRP, ETH, BTC, etc.
+  sourceAmount: decimal("source_amount", { precision: 20, scale: 8 }).notNull(),
+  targetNetwork: varchar("target_network").notNull(), // ETH, MATIC, BASE, ARB, BNB
+  usdcAmount: decimal("usdc_amount", { precision: 20, scale: 8 }).notNull(),
+  conversionRate: decimal("conversion_rate", { precision: 20, scale: 8 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 4 }).notNull(), // 1.0%-2.0%
+  feeAmount: decimal("fee_amount", { precision: 20, scale: 8 }).notNull(),
+  expedited: boolean("expedited").default(false), // +$1 for expedited processing
+  status: varchar("status").default("pending"), // pending, processing, completed, failed
+  txHash: varchar("tx_hash"), // Blockchain transaction hash
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sentTransactions: many(transactions, { relationName: "sentTransactions" }),

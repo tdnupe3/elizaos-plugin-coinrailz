@@ -13,6 +13,7 @@ import {
   agentReferrals,
   agentServiceListings,
   agentServiceOrders,
+  agentTransactions,
   type User,
   type UpsertUser,
   type Transaction,
@@ -856,7 +857,7 @@ export class DatabaseStorage implements IStorage {
         name: agent.agentName,
         category: 'AI Services',
         rating: 4.5, // Default rating
-        verified: agent.isVerified || false,
+        verified: agent.status === 'active',
         description: agent.description || `AI agent: ${agent.agentName}`
       }));
     } catch (error) {
@@ -1172,18 +1173,18 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async updateAgentTransaction(orderId: string, updates: any): Promise<any> {
+  async updateAgentTransaction(transactionId: string, updates: any): Promise<any> {
     const [transaction] = await db.update(agentTransactions)
       .set(updates)
-      .where(eq(agentTransactions.orderId, orderId))
+      .where(eq(agentTransactions.transactionId, transactionId))
       .returning();
     return transaction;
   }
 
-  async getAgentTransaction(orderId: string): Promise<any> {
+  async getAgentTransaction(transactionId: string): Promise<any> {
     const [transaction] = await db.select()
       .from(agentTransactions)
-      .where(eq(agentTransactions.orderId, orderId))
+      .where(eq(agentTransactions.transactionId, transactionId))
       .limit(1);
     return transaction;
   }
@@ -1191,13 +1192,13 @@ export class DatabaseStorage implements IStorage {
   async createPlatformRevenue(revenueData: any): Promise<any> {
     // Store platform revenue in transactions table for tracking
     const [revenue] = await db.insert(transactions).values({
-      userId: 'platform',
-      amount: parseFloat(revenueData.amount),
+      fromUserId: 'platform',
+      amount: revenueData.amount.toString(),
       currency: 'USD',
-      type: 'commission',
+      transactionType: 'commission',
       status: 'completed',
-      description: `Platform commission from order ${revenueData.orderId}`,
-      metadata: JSON.stringify(revenueData)
+      message: `Platform commission from order ${revenueData.orderId}`,
+      metadata: revenueData
     }).returning();
     return revenue;
   }

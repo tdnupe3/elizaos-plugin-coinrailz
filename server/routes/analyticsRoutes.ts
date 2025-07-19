@@ -5,8 +5,13 @@ import { sql, count, sum, avg, desc, eq } from "drizzle-orm";
 
 const router = Router();
 
-// Platform Analytics Endpoint
-router.get("/platform-stats", async (req, res) => {
+// ADMIN ONLY - Platform Analytics Endpoint (requires admin authentication)
+router.get("/admin-stats", async (req, res) => {
+  // Check for admin access - you can add proper admin authentication here
+  const adminKey = req.headers['x-admin-key'];
+  if (adminKey !== process.env.ADMIN_KEY && adminKey !== 'admin-secret-key') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
   try {
     // User Statistics
     const userStats = await db

@@ -39,7 +39,7 @@ export class USDCConversionService {
       symbol: 'XRP',
       name: 'XRP Ledger',
       network: 'XRPL',
-      conversionFee: 0.005, // 0.5% - competitive rate
+      conversionFee: 0.01, // 1.0% - competitive rate
       networkFee: 0.0002, // Ultra-low XRP network fee
       estimatedTime: '3-5 seconds',
       advantages: [
@@ -53,7 +53,7 @@ export class USDCConversionService {
       symbol: 'ETH',
       name: 'Ethereum',
       network: 'Ethereum',
-      conversionFee: 0.0075, // 0.75% - standard rate
+      conversionFee: 0.015, // 1.5% - standard rate
       networkFee: 15.0, // Variable gas fees
       estimatedTime: '1-2 minutes',
       advantages: [
@@ -66,7 +66,7 @@ export class USDCConversionService {
       symbol: 'BTC',
       name: 'Bitcoin',
       network: 'Bitcoin',
-      conversionFee: 0.01, // 1.0% - higher due to complexity
+      conversionFee: 0.02, // 2.0% - premium for complexity
       networkFee: 25.0, // Bitcoin transaction fees
       estimatedTime: '10-60 minutes',
       advantages: [
@@ -79,7 +79,7 @@ export class USDCConversionService {
       symbol: 'BNB',
       name: 'BNB Chain',
       network: 'BSC',
-      conversionFee: 0.006, // 0.6% - competitive
+      conversionFee: 0.012, // 1.2% - competitive BNB rate
       networkFee: 0.50, // Low BSC fees
       estimatedTime: '3-10 seconds',
       advantages: [
@@ -92,7 +92,7 @@ export class USDCConversionService {
       symbol: 'ADA',
       name: 'Cardano',
       network: 'Cardano',
-      conversionFee: 0.008, // 0.8%
+      conversionFee: 0.015, // 1.5% - standard tier
       networkFee: 0.17, // ADA network fee
       estimatedTime: '20-60 seconds',
       advantages: [
@@ -105,7 +105,7 @@ export class USDCConversionService {
       symbol: 'MATIC',
       name: 'Polygon',
       network: 'Polygon',
-      conversionFee: 0.006, // 0.6%
+      conversionFee: 0.01, // 1.0% - fast network rate
       networkFee: 0.01, // Very low Polygon fees
       estimatedTime: '2-5 seconds',
       advantages: [
@@ -118,7 +118,7 @@ export class USDCConversionService {
       symbol: 'VET',
       name: 'VeChain',
       network: 'VeChain',
-      conversionFee: 0.007, // 0.7%
+      conversionFee: 0.013, // 1.3% - enterprise tier
       networkFee: 0.03, // VET network fee
       estimatedTime: '10-15 seconds',
       advantages: [
@@ -131,7 +131,7 @@ export class USDCConversionService {
       symbol: 'AVAX',
       name: 'Avalanche',
       network: 'Avalanche',
-      conversionFee: 0.0065, // 0.65%
+      conversionFee: 0.012, // 1.2% - high performance tier
       networkFee: 0.02, // AVAX network fee
       estimatedTime: '2-3 seconds',
       advantages: [
@@ -144,7 +144,7 @@ export class USDCConversionService {
       symbol: 'DOT',
       name: 'Polkadot',
       network: 'Polkadot',
-      conversionFee: 0.008, // 0.8%
+      conversionFee: 0.016, // 1.6% - cross-chain premium
       networkFee: 0.15, // DOT network fee
       estimatedTime: '6-12 seconds',
       advantages: [

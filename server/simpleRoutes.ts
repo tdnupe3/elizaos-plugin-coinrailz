@@ -5664,27 +5664,8 @@ export function setupSimpleRoutes(app: Express) {
     res.json({ success: true, message: 'Referral routes are working!' });
   });
 
-  // Marketplace stats endpoint (moved here from 404 conflicts)
-  app.get('/api/ai-marketplace/stats', async (req, res) => {
-    res.json({
-      totalAgents: 15,
-      activeServices: 8,
-      completionRate: 95,
-      avgRating: 4.8,
-      totalRevenue: '$15,234',
-      monthlyGrowth: 24
-    });
-  });
-
-  // 404 handler for API endpoints only - don't interfere with frontend serving
-  // MOVED TO END so it doesn't intercept valid endpoints
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({
-      error: 'Not Found',
-      message: `API endpoint ${req.method} ${req.originalUrl} not found`,
-      timestamp: new Date().toISOString()
-    });
-  });
+  // 404 handler REMOVED to prevent middleware conflicts
+  // The main server index.ts handles 404s properly
 
   return createServer(app);
 }

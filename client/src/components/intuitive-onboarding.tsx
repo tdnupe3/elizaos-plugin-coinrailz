@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,78 +27,41 @@ interface OnboardingStep {
 
 export function IntuitiveOnboarding() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [currentStep, setCurrentStep] = useState(0);
   const [fundingAmount, setFundingAmount] = useState("50");
   
-  // Manually handle API calls to prevent unhandled rejections
-  const [walletStatus, setWalletStatus] = useState(null);
-  const [usdcBalance, setUsdcBalance] = useState(null);
+  // Check user's Circle wallet status with proper error handling
+  const { data: walletStatus, error: walletError } = useQuery({
+    queryKey: ['/api/user-circle/wallet/info'],
+    enabled: !!user,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    throwOnError: false
+  });
 
-  useEffect(() => {
-    if (!user) return;
-    
-    // Manually fetch wallet status with full error handling
-    const fetchWalletData = async () => {
-      try {
-        const response = await fetch('/api/user-circle/wallet/info', {
-          credentials: 'include',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setWalletStatus(data);
-        }
-      } catch (error) {
-        // Silently handle error - no console logs
-      }
+  // Check USDC balance with proper error handling
+  const { data: usdcBalance, error: balanceError } = useQuery({
+    queryKey: ['/api/user-circle/balance'],
+    enabled: !!user,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000,
+    throwOnError: false
+  });
 
-      try {
-        const response = await fetch('/api/user-circle/balance', {
-          credentials: 'include',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-          }
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setUsdcBalance(data);
-        }
-      } catch (error) {
-        // Silently handle error - no console logs
-      }
-    };
-
-    fetchWalletData();
-  }, [user]);
-
-  // Manual wallet creation to avoid unhandled rejections
-  const [walletCreating, setWalletCreating] = useState(false);
-  
-  const createWalletMutation = {
-    mutate: async () => {
-      setWalletCreating(true);
-      try {
-        const response = await fetch('/api/user-circle/wallet/create', {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`
-          }
-        });
-        if (response.ok) {
-          // Refresh wallet data
-          window.location.reload();
-        }
-      } catch (error) {
-        // Silently handle error
-      } finally {
-        setWalletCreating(false);
-      }
+  // Auto-create wallet mutation
+  const createWalletMutation = useMutation({
+    mutationFn: () => apiRequest('/api/user-circle/wallet/create', 'POST'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user-circle/wallet/info'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-circle/balance'] });
     },
-    isPending: walletCreating
-  };
+    onError: (error) => {
+      console.error('Wallet creation failed:', error);
+    }
+  });
 
   const steps: OnboardingStep[] = [
     {

@@ -51,20 +51,22 @@ export const getQueryFn: <T>(options: {
     }
   };
 
-// Simplified query client with authentication
+// Simplified query client with comprehensive error handling
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "returnNull" }),
-      retry: 1, // Reduced retries
-      retryDelay: 1000,
+      retry: false, // No retries to prevent multiple failed attempts
       refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
       staleTime: 5 * 60 * 1000,
       throwOnError: false, // Prevent unhandled promise rejections
+      useErrorBoundary: false, // Don't use error boundaries
     },
     mutations: {
-      retry: 0, // No retries for mutations
+      retry: false, // No retries for mutations
       throwOnError: false, // Prevent unhandled promise rejections
+      useErrorBoundary: false, // Don't use error boundaries
     },
   },
 });

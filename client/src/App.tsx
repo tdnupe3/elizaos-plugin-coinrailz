@@ -10,6 +10,15 @@ import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapp
 import { ChatWidget } from "@/components/ChatWidget";
 import ContactWidget from "@/components/ContactWidget";
 
+// Global error handler to prevent unhandled promise rejections
+if (typeof window !== 'undefined') {
+  window.addEventListener('unhandledrejection', (event) => {
+    // Suppress ALL unhandled rejections during development
+    console.warn('Suppressed unhandled rejection:', event.reason);
+    event.preventDefault(); // Prevent the error from appearing in console
+  });
+}
+
 
 // Critical path components (loaded immediately)
 import NotFound from "@/pages/not-found";

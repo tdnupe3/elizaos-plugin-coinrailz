@@ -31,18 +31,35 @@ export function IntuitiveOnboarding() {
   const [currentStep, setCurrentStep] = useState(0);
   const [fundingAmount, setFundingAmount] = useState("50");
   
-  // For demo purposes, use mock data instead of API calls
-  // This prevents authentication errors in the preview
-  const walletStatus = user ? { success: false, wallet: null } : null;
-  const usdcBalance = user ? { success: false, balance: '0.00' } : null;
+  // Check user's Circle wallet status with proper error handling
+  const { data: walletStatus, error: walletError } = useQuery({
+    queryKey: ['/api/user-circle/wallet/info'],
+    enabled: !!user,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000
+  });
 
-  // Demo wallet creation (would integrate with Circle API when authenticated)
-  const createWalletMutation = {
-    mutate: () => {
-      console.log('Demo: Wallet creation would happen here with proper authentication');
+  // Check USDC balance with proper error handling
+  const { data: usdcBalance, error: balanceError } = useQuery({
+    queryKey: ['/api/user-circle/balance'],
+    enabled: !!user,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 30000
+  });
+
+  // Auto-create wallet mutation
+  const createWalletMutation = useMutation({
+    mutationFn: () => apiRequest('/api/user-circle/wallet/create', 'POST'),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/user-circle/wallet/info'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/user-circle/balance'] });
     },
-    isPending: false
-  };
+    onError: (error) => {
+      console.error('Wallet creation failed:', error);
+    }
+  });
 
   const steps: OnboardingStep[] = [
     {

@@ -14,9 +14,10 @@ export default function Referrals() {
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const { toast } = useToast();
 
-  // Demo mode: disable API calls for preview
-  const referralStats = null;
-  const isLoading = false;
+  const { data: referralStats, isLoading } = useQuery({
+    queryKey: ["/api/referrals/my-stats"],
+    retry: false
+  });
 
   // Type-safe access to referral stats
   const stats = referralStats || {};

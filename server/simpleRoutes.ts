@@ -387,7 +387,7 @@ export function setupSimpleRoutes(app: Express) {
 
       // Test authentication with Stripe
       const Stripe = (await import('stripe')).default;
-      const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+      const stripe = new Stripe(env.STRIPE_SECRET_KEY as string);
       
       const account = await stripe.balance.retrieve();
       
@@ -751,7 +751,7 @@ export function setupSimpleRoutes(app: Express) {
           'research': ['research', 'analysis'],
           'consultation': ['consulting', 'advice']
         };
-        finalCapabilities = categoryCapabilities[category] || ['general_services'];
+        finalCapabilities = categoryCapabilities[category as keyof typeof categoryCapabilities] || ['general_services'];
       } else {
         finalCapabilities = ['general_services']; // Default capability
       }
@@ -1254,7 +1254,7 @@ export function setupSimpleRoutes(app: Express) {
       'consultation', 'financial_planning', 'legal_research', 'medical_assistance'
     ];
     
-    const invalidCapabilities = agentData.capabilities.filter(cap => !approvedCapabilities.includes(cap));
+    const invalidCapabilities = agentData.capabilities.filter((cap: string) => !approvedCapabilities.includes(cap));
     if (invalidCapabilities.length > 0) {
       return res.status(400).json({
         success: false,
@@ -1516,7 +1516,7 @@ export function setupSimpleRoutes(app: Express) {
           'Authorization': `Bearer ${apiKey}`,
           'accept': 'application/json'
         },
-        timeout: 10000
+        // timeout: 10000 // Commented out - timeout not supported in RequestInit
       });
 
       if (response.ok) {
@@ -1548,7 +1548,7 @@ export function setupSimpleRoutes(app: Express) {
         success: false,
         status: 'connection_error',
         message: '1inch API connection failed',
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
@@ -1579,11 +1579,11 @@ export function setupSimpleRoutes(app: Express) {
           
           const oneInchUrl = `https://api.1inch.dev/swap/v6.0/${chainId}/quote`;
           const params = new URLSearchParams({
-            src: fromToken === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : 
-                 fromToken === 'PEEZY' ? '0x698b1d54E936b9F772b8F58447194bBc82EC1933' : fromToken,
-            dst: toToken === 'USDC' ? '0xA0b86a33E6441546a8d8BF9b28A8E1bD8E4aFF86' : 
-                 toToken === 'PEEZY' ? '0x698b1d54E936b9F772b8F58447194bBc82EC1933' : toToken,
-            amount: amountInWei
+            src: String(fromToken === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : 
+                 fromToken === 'PEEZY' ? '0x698b1d54E936b9F772b8F58447194bBc82EC1933' : fromToken),
+            dst: String(toToken === 'USDC' ? '0xA0b86a33E6441546a8d8BF9b28A8E1bD8E4aFF86' : 
+                 toToken === 'PEEZY' ? '0x698b1d54E936b9F772b8F58447194bBc82EC1933' : toToken),
+            amount: String(amountInWei)
           });
 
           const response = await fetch(`${oneInchUrl}?${params}`, {
@@ -1612,7 +1612,7 @@ export function setupSimpleRoutes(app: Express) {
             });
           }
         } catch (apiError) {
-          console.log('1inch API error, using fallback:', apiError.message);
+          console.log('1inch API error, using fallback:', apiError instanceof Error ? apiError.message : 'Unknown error');
         }
       }
 
@@ -1997,7 +1997,7 @@ export function setupSimpleRoutes(app: Express) {
         rateCache: {
           size: status.cacheSize,
           circuitBreakerActive: status.circuitBreakerStatus,
-          rates: status.rates.map(rate => ({
+          rates: status.rates.map((rate: any) => ({
             pair: rate.pair,
             rate: rate.rate,
             ageSeconds: Math.round(rate.age / 1000),

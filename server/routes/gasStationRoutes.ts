@@ -10,7 +10,27 @@ import { z } from 'zod';
 
 const router = Router();
 
-// All gas station routes require authentication
+// Health check endpoint (no auth required)
+router.get('/health', (req, res) => {
+  res.json({
+    success: true,
+    service: 'USDC Gas Station',
+    status: 'operational',
+    features: ['Multi-chain gas payment', '5% revenue markup', 'USDC integration'],
+    supportedChains: ['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB'],
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Supported chains endpoint (no auth required)
+router.get('/supported-chains', (req, res) => {
+  res.json({
+    success: true,
+    chains: ['ETH', 'MATIC', 'AVAX', 'ARB', 'BNB']
+  });
+});
+
+// All other gas station routes require authentication
 router.use(requireAuth);
 
 /**

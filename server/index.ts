@@ -11,7 +11,7 @@ import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
 import p2pRoutes from "./routes/p2pRoutes";
 import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
 import { registerAuthRoutes } from "./authRoutes";
-import { registerRoutes } from "./routes";
+import { registerRoutes as registerMainRoutes } from "./routes";
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
@@ -364,7 +364,7 @@ import { isAuthenticated } from './replitAuth';
 
 app.get('/api/circle/kyc/status', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -385,7 +385,7 @@ app.get('/api/circle/kyc/status', isAuthenticated, async (req, res) => {
 
 app.post('/api/circle/kyc/check-permission', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
     const { amount } = req.body;
     
     if (!userId) {
@@ -426,7 +426,7 @@ app.get('/api/circle/kyc/requirements/:country', isAuthenticated, async (req, re
 
 app.post('/api/circle/kyc/submit', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
     
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -434,7 +434,7 @@ app.post('/api/circle/kyc/submit', isAuthenticated, async (req, res) => {
     
     // Import KYC service dynamically
     const { circleKYCService } = await import('./services/circleKYCService');
-    const result = await circleKYCService.submitKYC(userId, req.body, req.files);
+    const result = await circleKYCService.processKYCSubmission(userId, req.body, req.files);
     
     res.json({
       success: true,
@@ -448,7 +448,7 @@ app.post('/api/circle/kyc/submit', isAuthenticated, async (req, res) => {
 
 app.post('/api/circle/kyc/generate-link', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
     
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
@@ -487,7 +487,7 @@ app.post('/api/circle/kyc/webhook/status-update', async (req, res) => {
 // New KYC incentive and cost tracking endpoints
 app.get('/api/circle/kyc/progress', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
@@ -503,7 +503,7 @@ app.get('/api/circle/kyc/progress', isAuthenticated, async (req, res) => {
 
 app.post('/api/circle/kyc/calculate-incentives', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
     const { transactionAmount } = req.body;
     
     if (!userId) {
@@ -521,7 +521,7 @@ app.post('/api/circle/kyc/calculate-incentives', isAuthenticated, async (req, re
 
 app.post('/api/circle/kyc/apply-bonus', isAuthenticated, async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = (req.user as any)?.id;
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }

@@ -47,27 +47,14 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Fetch user dashboard data
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["/api/dashboard/stats"],
-    enabled: !!user
-  });
-
-  // Fetch user's USDC balance
-  const { data: usdcBalance, isLoading: usdcBalanceLoading } = useQuery({
-    queryKey: ['/api/user/circle/balance'],
-    enabled: !!user
-  });
-
-  const { data: transactions, isLoading: transactionsLoading } = useQuery({
-    queryKey: ["/api/dashboard/transactions"],
-    enabled: !!user
-  });
-
-  const { data: portfolioData } = useQuery({
-    queryKey: ["/api/dashboard/portfolio"],
-    enabled: !!user
-  });
+  // Demo data for preview (replace with real API calls when authenticated)
+  const stats = null;
+  const statsLoading = false;
+  const usdcBalance = { balance: '0.00' };
+  const usdcBalanceLoading = false;
+  const transactions = [];
+  const transactionsLoading = false;
+  const portfolioData = null;
 
   // Use actual user data (no mock data fallback)
   const userStats: DashboardStats = (stats && typeof stats === 'object' && 'balance' in stats) 
@@ -173,19 +160,15 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Intuitive Onboarding for New Users */}
-        {(!usdcBalance || parseFloat(usdcBalance?.balance || '0') === 0) && (
-          <div className="mb-8">
-            <IntuitiveOnboarding />
-          </div>
-        )}
+        <div className="mb-8">
+          <IntuitiveOnboarding />
+        </div>
 
-        {/* Quick Actions for Funded Users */}
-        {usdcBalance && parseFloat(usdcBalance?.balance || '0') > 0 && (
-          <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <QuickFunding />
-            <InstantSwap />
-          </div>
-        )}
+        {/* Quick Actions for Funded Users - Show alongside onboarding */}
+        <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <QuickFunding />
+          <InstantSwap />
+        </div>
 
         {/* Original Onboarding Flow for Reference */}
         <div className="mb-8">

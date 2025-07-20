@@ -81,7 +81,7 @@ class GasStationService {
       };
     } catch (error) {
       console.error('Gas estimation error:', error);
-      throw new Error(`Failed to estimate gas: ${error.message}`);
+      throw new Error(`Failed to estimate gas: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 

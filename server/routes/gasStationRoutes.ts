@@ -5,7 +5,8 @@
 
 import { Router } from 'express';
 import { gasStationService } from '../services/gasStationService';
-import { requireAuth } from '../middleware/authMiddleware';
+// Import authentication from replitAuth instead
+import { isAuthenticated } from '../replitAuth';
 import { z } from 'zod';
 
 const router = Router();
@@ -31,7 +32,7 @@ router.get('/supported-chains', (req, res) => {
 });
 
 // All other gas station routes require authentication
-router.use(requireAuth);
+router.use(isAuthenticated);
 
 /**
  * POST /api/gas-station/estimate

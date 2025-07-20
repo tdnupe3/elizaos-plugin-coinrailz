@@ -12,6 +12,7 @@ import p2pRoutes from "./routes/p2pRoutes";
 import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
 import { registerAuthRoutes } from "./authRoutes";
 import { registerRoutes as registerMainRoutes } from "./routes";
+import gasStationRoutes from './routes/gasStationRoutes';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
@@ -285,9 +286,9 @@ app.post('/api/referrals/process-signup', express.json(), (req, res) => {
   }
 });
 
-// Register all main routes from routes.ts AFTER critical endpoints
-import { registerRoutes } from './routes';
-registerRoutes(app);
+// Main routes registration moved to AFTER setupSimpleRoutes to prevent 404 handler from intercepting Gas Station routes
+// import { registerRoutes } from './routes';
+// registerRoutes(app); // Moved later to prevent Gas Station 404 conflicts
 
 app.use('/api/agents', agentRegistration);
 app.use('/api/payments', paymentIntegration);
@@ -346,7 +347,7 @@ app.use('/api', dashboardRoutes);
 // === CIRCLE USDC INTEGRATION ROUTES ===
 app.use('/api/circle', circleRoutes);
 app.use('/api/user-circle', userCircleRoutes);
-app.use('/api/gas-station', gasStationRoutes);
+// Gas Station routes moved after setupSimpleRoutes
 
 // === BUSINESS LOGIC VALIDATION ROUTES ===
 import { businessLogicRoutes } from './routes/businessLogicRoutes';
@@ -2492,8 +2493,15 @@ app.use(errorHandlerMiddleware());
 // Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)
 const server = setupSimpleRoutes(app);
 
+// Gas Station routes are now registered inside setupSimpleRoutes to avoid middleware conflicts
+console.log('✅ Gas Station routes included in setupSimpleRoutes');
+
 // Register AI Marketplace routes AFTER setupSimpleRoutes but BEFORE enhanced routes
 app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
+
+// Register main routes AFTER setupSimpleRoutes to prevent Gas Station 404 conflicts
+import { registerRoutes } from './routes';
+registerRoutes(app);
 
 // Setup enhanced business logic routes with all safety mechanisms
 setupEnhancedBusinessLogicRoutes(app);

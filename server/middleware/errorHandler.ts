@@ -1,0 +1,79 @@
+/**
+ * Global Error Handler Middleware
+ * Handles unhandled promises and provides proper error responses
+ */
+
+import { Request, Response, NextFunction } from 'express';
+
+export class GlobalErrorHandler {
+  static init() {
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+      // Don't crash the application, just log the error
+    });
+
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (error) => {
+      console.error('Uncaught Exception:', error);
+      // Log but don't crash in development
+      if (process.env.NODE_ENV === 'production') {
+        process.exit(1);
+      }
+    });
+  }
+
+  static middleware() {
+    return (error: any, req: Request, res: Response, next: NextFunction) => {
+      console.error('Express Error Handler:', error);
+
+      // Authentication errors
+      if (error.name === 'UnauthorizedError' || error.status === 401) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required',
+          message: 'Please log in to access this resource'
+        });
+      }
+
+      // Validation errors
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          message: error.message
+        });
+      }
+
+      // API errors
+      if (error.response) {
+        return res.status(error.response.status || 500).json({
+          success: false,
+          error: 'External API error',
+          message: 'Service temporarily unavailable'
+        });
+      }
+
+      // Database errors
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        return res.status(503).json({
+          success: false,
+          error: 'Database connection failed',
+          message: 'Service temporarily unavailable'
+        });
+      }
+
+      // Default error response
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: isDevelopment ? error.message : 'Something went wrong',
+        ...(isDevelopment && { stack: error.stack })
+      });
+    };
+  }
+}
+
+export const initGlobalErrorHandling = GlobalErrorHandler.init;
+export const errorHandlerMiddleware = GlobalErrorHandler.middleware;

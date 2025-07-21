@@ -42,6 +42,7 @@ interface TokenInfo {
   decimals?: number;
   verified?: boolean;
   logoURI?: string;
+  coinGeckoId?: string;
 }
 
 interface CustomTokenForm {
@@ -52,10 +53,10 @@ interface CustomTokenForm {
 }
 
 const supportedTokens: TokenInfo[] = [
-  { symbol: 'ETH', name: 'Ethereum', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18, verified: true },
-  { symbol: 'USDC', name: 'USD Coin', address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6, verified: true },
-  { symbol: 'USDT', name: 'Tether', address: '0xdac17f958d2ee523a2206206994597c13d831ec7', decimals: 6, verified: true },
-  { symbol: 'DAI', name: 'MakerDAO DAI', address: '0x6b175474e89094c44da98b954eedeac495271d0f', decimals: 18, verified: true },
+  { symbol: 'ETH', name: 'Ethereum', address: '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', decimals: 18, verified: true, coinGeckoId: 'ethereum' },
+  { symbol: 'USDC', name: 'USD Coin', address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', decimals: 6, verified: true, coinGeckoId: 'usd-coin' },
+  { symbol: 'USDT', name: 'Tether', address: '0xdac17f958d2ee523a2206206994597c13d831ec7', decimals: 6, verified: true, coinGeckoId: 'tether' },
+  { symbol: 'DAI', name: 'MakerDAO DAI', address: '0x6b175474e89094c44da98b954eedeac495271d0f', decimals: 18, verified: true, coinGeckoId: 'dai' },
   { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933', decimals: 18, verified: true }
 ];
 
@@ -97,6 +98,41 @@ export function RealSwapInterface() {
   const [tokenSearchTerm, setTokenSearchTerm] = useState('');
   const [isLoadingTokenInfo, setIsLoadingTokenInfo] = useState(false);
   const [selectedChain, setSelectedChain] = useState(1); // Default to Ethereum
+  const [tokenLogos, setTokenLogos] = useState<Record<string, string>>({});
+
+  // Token logo fetching utility
+  const getTokenLogo = (token: TokenInfo): string => {
+    // Return cached logo if available
+    if (tokenLogos[token.symbol]) {
+      return tokenLogos[token.symbol];
+    }
+    
+    // Special case for PEEZY - use local asset
+    if (token.symbol === 'PEEZY') {
+      return peezyMascot;
+    }
+    
+    // Use CoinGecko API for other tokens
+    if (token.coinGeckoId) {
+      const logoUrl = `https://assets.coingecko.com/coins/images/${getCoinGeckoImageId(token.coinGeckoId)}/thumb/${token.symbol.toLowerCase()}.png`;
+      // Cache the logo URL
+      setTokenLogos(prev => ({ ...prev, [token.symbol]: logoUrl }));
+      return logoUrl;
+    }
+    
+    return '';
+  };
+
+  // CoinGecko image ID mapping
+  const getCoinGeckoImageId = (coinGeckoId: string): string => {
+    const idMap: Record<string, string> = {
+      'ethereum': '279',
+      'usd-coin': '6319',
+      'tether': '325',
+      'dai': '9956'
+    };
+    return idMap[coinGeckoId] || coinGeckoId;
+  };
 
   // Supported chains
   const supportedChains = [
@@ -111,6 +147,50 @@ export function RealSwapInterface() {
 
   // Combine predefined and custom tokens
   const allTokens = [...supportedTokens, ...customTokens];
+
+  // Token Logo Component
+  const TokenLogo = ({ token, size = "w-4 h-4" }: { token: TokenInfo, size?: string }) => {
+    const [logoError, setLogoError] = useState(false);
+    const logoUrl = getTokenLogo(token);
+    
+    // Special case for PEEZY - use local asset
+    if (token.symbol === 'PEEZY') {
+      return (
+        <img 
+          src={peezyMascot} 
+          alt={token.symbol} 
+          className={`${size} rounded-full object-cover`}
+        />
+      );
+    }
+    
+    // Use CoinGecko logo if available and not errored
+    if (logoUrl && !logoError) {
+      return (
+        <img 
+          src={logoUrl} 
+          alt={token.symbol} 
+          className={`${size} rounded-full object-cover`}
+          onError={() => setLogoError(true)}
+        />
+      );
+    }
+    
+    // Fallback to colored circle with first letter
+    const colors = [
+      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 
+      'bg-red-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500'
+    ];
+    const colorIndex = token.symbol.charCodeAt(0) % colors.length;
+    
+    return (
+      <div className={`${size} rounded-full ${colors[colorIndex]} flex items-center justify-center`}>
+        <span className="text-white text-xs font-bold">
+          {token.symbol.charAt(0)}
+        </span>
+      </div>
+    );
+  };
 
   // Auto-sync chain selection with wallet connection
   useEffect(() => {

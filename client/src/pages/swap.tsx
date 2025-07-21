@@ -1,6 +1,7 @@
 import React from "react";
 import { WalletConnect } from "@/components/wallet-connect";
 import { RealSwapInterface } from "@/components/real-swap-interface";
+import { TokenLogoSwapInterface } from "@/components/token-logo-swap";
 
 export default function SwapPage() {
   return (
@@ -11,7 +12,7 @@ export default function SwapPage() {
             Multi-Wallet DEX Aggregator
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Execute real blockchain transactions with live 1inch API quotes.
+            Execute real blockchain transactions with live 1inch API quotes and automatic token logos.
             Connect any of 5 supported wallets for optimal EVM trading experience.
           </p>
         </div>
@@ -22,9 +23,18 @@ export default function SwapPage() {
             <WalletConnect className="mb-6" />
           </div>
 
-          {/* Real Swap Interface */}
+          {/* Token Logo Swap Interface (Enhanced) */}
           <div className="lg:col-span-2">
-            <RealSwapInterface />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Enhanced with Token Logos</h3>
+                <TokenLogoSwapInterface />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Full Trading Interface</h3>
+                <RealSwapInterface />
+              </div>
+            </div>
           </div>
         </div>
       </div>

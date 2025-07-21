@@ -2,6 +2,7 @@ import { Bell, Zap } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
+import { LanguageSwitcher } from "./language-switcher";
 
 interface NavigationHeaderProps {
   isDemo?: boolean;
@@ -60,6 +61,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
           </div>
 
           <div className="flex items-center space-x-4">
+            <LanguageSwitcher />
             <Button variant="ghost" size="sm" className="p-2 rounded-lg hover:bg-neutral-100 relative">
               <Bell className="w-4 h-4 text-neutral-500" />
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>

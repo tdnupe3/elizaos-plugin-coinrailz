@@ -8,9 +8,12 @@ import { Separator } from "@/components/ui/separator";
 import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail } from "@/lib/icons";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
 import { FunctionalSearch } from "@/components/functional-search";
+import { LanguageSwitcher } from "@/components/language-switcher";
+import { useTranslation } from "react-i18next";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   const handleSignIn = () => {
     setLocation("/signin");
@@ -53,20 +56,21 @@ export default function Landing() {
               <span className="text-xl font-bold text-gray-900">Coin Railz</span>
             </div>
             <div className="flex items-center space-x-3">
+              <LanguageSwitcher />
               <Button 
                 onClick={handleSignIn}
                 variant="outline"
                 className="border-blue-600 text-blue-600 hover:bg-blue-50"
                 size="sm"
               >
-                Sign In
+                {t('auth.signIn')}
               </Button>
               <Button 
                 onClick={handleSignUp}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 size="sm"
               >
-                Sign Up
+                {t('auth.signUp')}
               </Button>
             </div>
           </div>
@@ -86,7 +90,7 @@ export default function Landing() {
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Coin Railz</h1>
             <p className="text-xl text-gray-600 mb-6">
-              Cross-Platform P2P Payments & Web3 Gateway
+              {t('home.title')}
             </p>
             
             {/* Move Most Important Info to Top */}

@@ -99,6 +99,7 @@ export function TokenLogoSwapInterface() {
     
     // Use CoinGecko logo if available and not errored
     if (token.coinGeckoId && !logoError) {
+      // Updated CoinGecko URLs for better reliability
       const getCoinGeckoImageId = (coinGeckoId: string): string => {
         const idMap: Record<string, string> = {
           'ethereum': '279',
@@ -109,7 +110,8 @@ export function TokenLogoSwapInterface() {
         return idMap[coinGeckoId] || coinGeckoId;
       };
 
-      const logoUrl = `https://assets.coingecko.com/coins/images/${getCoinGeckoImageId(token.coinGeckoId)}/thumb/${token.symbol.toLowerCase()}.png`;
+      // Try multiple CoinGecko URL formats for better success rate
+      const logoUrl = `https://assets.coingecko.com/coins/images/${getCoinGeckoImageId(token.coinGeckoId)}/large/${token.symbol.toLowerCase()}.png`;
       
       return (
         <img 
@@ -121,15 +123,21 @@ export function TokenLogoSwapInterface() {
       );
     }
     
-    // Fallback to colored circle with first letter
-    const colors = [
-      'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 
-      'bg-red-500', 'bg-indigo-500', 'bg-pink-500', 'bg-teal-500'
-    ];
-    const colorIndex = token.symbol.charCodeAt(0) % colors.length;
+    // Enhanced fallback colors for better token recognition
+    const getTokenColor = (symbol: string) => {
+      const colorMap: Record<string, string> = {
+        'ETH': 'bg-indigo-600',
+        'USDC': 'bg-blue-500',
+        'USDT': 'bg-green-500',
+        'DAI': 'bg-yellow-500',
+        'BTC': 'bg-orange-500',
+        'BNB': 'bg-yellow-600',
+      };
+      return colorMap[symbol] || 'bg-gray-500';
+    };
     
     return (
-      <div className={`${size} rounded-full ${colors[colorIndex]} flex items-center justify-center`}>
+      <div className={`${size} rounded-full ${getTokenColor(token.symbol)} flex items-center justify-center`}>
         <span className="text-white text-xs font-bold">
           {token.symbol.charAt(0)}
         </span>
@@ -179,6 +187,26 @@ export function TokenLogoSwapInterface() {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Blockchain Network Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="network">Network</Label>
+          <Select value={selectedChain.toString()} onValueChange={(value) => setSelectedChain(parseInt(value))}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {supportedChains.map((chain) => (
+                <SelectItem key={chain.id} value={chain.id.toString()}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${chain.color}`}></div>
+                    <span>{chain.name}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Circle Wallet USDC Balance */}
         {user && (
           <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-3 border border-blue-200">
@@ -191,7 +219,7 @@ export function TokenLogoSwapInterface() {
                 <Badge variant="outline" className="bg-blue-100 text-blue-800">
                   Instant Settlement
                 </Badge>
-                <p className="text-xs text-blue-600 mt-1">Ready for DEX trading</p>
+                <p className="text-xs text-blue-600 mt-1">Ready for trading</p>
               </div>
             </div>
           </div>

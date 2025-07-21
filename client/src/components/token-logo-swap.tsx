@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -181,16 +182,16 @@ export function TokenLogoSwapInterface() {
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
         <CardTitle className="text-center">
-          <span>Swap Tokens</span>
+          <span>{t('swap.title')}</span>
         </CardTitle>
         <p className="text-sm text-gray-600 text-center">
-          Get the best rates instantly
+          {t('swap.subtitle')}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Blockchain Network Selection */}
         <div className="space-y-2">
-          <Label htmlFor="network">Network</Label>
+          <Label htmlFor="network">{t('swap.network')}</Label>
           <Select value={selectedChain.toString()} onValueChange={(value) => setSelectedChain(parseInt(value))}>
             <SelectTrigger>
               <SelectValue />
@@ -213,14 +214,14 @@ export function TokenLogoSwapInterface() {
           <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-3 border border-blue-200">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium text-blue-800">Circle Wallet Balance</p>
+                <p className="text-sm font-medium text-blue-800">{t('swap.circleWallet')}</p>
                 <p className="text-2xl font-bold text-green-700">{parseFloat(usdcBalance).toFixed(2)} USDC</p>
               </div>
               <div className="text-right">
                 <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                  Instant Settlement
+                  {t('swap.instantSettlement')}
                 </Badge>
-                <p className="text-xs text-blue-600 mt-1">Ready for trading</p>
+                <p className="text-xs text-blue-600 mt-1">{t('swap.readyForTrading')}</p>
               </div>
             </div>
           </div>
@@ -228,7 +229,7 @@ export function TokenLogoSwapInterface() {
 
         {/* From Token */}
         <div className="space-y-2">
-          <Label htmlFor="from-token">From</Label>
+          <Label htmlFor="from-token">{t('swap.from')}</Label>
           <div className="flex space-x-2">
             <Select value={fromToken} onValueChange={setFromToken}>
               <SelectTrigger className="w-40">
@@ -285,7 +286,7 @@ export function TokenLogoSwapInterface() {
 
         {/* To Token */}
         <div className="space-y-2">
-          <Label htmlFor="to-token">To</Label>
+          <Label htmlFor="to-token">{t('swap.to')}</Label>
           <div className="flex space-x-2">
             <Select value={toToken} onValueChange={setToToken}>
               <SelectTrigger className="w-40">
@@ -321,7 +322,7 @@ export function TokenLogoSwapInterface() {
 
         {/* Swap Button */}
         <Button className="w-full bg-blue-600 hover:bg-blue-700" disabled={!amount || parseFloat(amount) <= 0}>
-          Get Best Rate
+          {t('swap.getBestRate')}
         </Button>
       </CardContent>
     </Card>

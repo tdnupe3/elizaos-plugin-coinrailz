@@ -99,28 +99,29 @@ export function TokenLogoSwapInterface() {
     
     // Use CoinGecko logo if available and not errored
     if (token.coinGeckoId && !logoError) {
-      // Updated CoinGecko URLs for better reliability
-      const getCoinGeckoImageId = (coinGeckoId: string): string => {
-        const idMap: Record<string, string> = {
-          'ethereum': '279',
-          'usd-coin': '6319',
-          'tether': '325',
-          'dai': '9956'
+      // Correct CoinGecko image IDs and filenames
+      const getCoinGeckoUrl = (coinGeckoId: string): string => {
+        const urlMap: Record<string, string> = {
+          'ethereum': 'https://assets.coingecko.com/coins/images/279/small/ethereum.png',
+          'usd-coin': 'https://assets.coingecko.com/coins/images/6319/small/USD_Coin_icon.png',
+          'tether': 'https://assets.coingecko.com/coins/images/325/small/Tether.png',
+          'dai': 'https://assets.coingecko.com/coins/images/9956/small/Badge_Dai.png'
         };
-        return idMap[coinGeckoId] || coinGeckoId;
+        return urlMap[coinGeckoId] || '';
       };
 
-      // Try multiple CoinGecko URL formats for better success rate
-      const logoUrl = `https://assets.coingecko.com/coins/images/${getCoinGeckoImageId(token.coinGeckoId)}/large/${token.symbol.toLowerCase()}.png`;
+      const logoUrl = getCoinGeckoUrl(token.coinGeckoId);
       
-      return (
-        <img 
-          src={logoUrl} 
-          alt={token.symbol} 
-          className={`${size} rounded-full object-cover`}
-          onError={() => setLogoError(true)}
-        />
-      );
+      if (logoUrl) {
+        return (
+          <img 
+            src={logoUrl} 
+            alt={token.symbol} 
+            className={`${size} rounded-full object-cover`}
+            onError={() => setLogoError(true)}
+          />
+        );
+      }
     }
     
     // Enhanced fallback colors for better token recognition

@@ -169,21 +169,13 @@ export function TokenLogoSwapInterface() {
   const allTokens = [...supportedTokens, ...customTokens];
 
   return (
-    <Card className="w-full max-w-md mx-auto">
+    <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Multi-Chain DEX Swap</span>
-          <div className="flex space-x-2">
-            <Badge variant="outline" className="bg-green-50 text-green-700">
-              Live 1inch API
-            </Badge>
-            <Badge variant="outline" className="bg-blue-50 text-blue-700">
-              CoinGecko Logos
-            </Badge>
-          </div>
+        <CardTitle className="text-center">
+          <span>Swap Tokens</span>
         </CardTitle>
-        <p className="text-sm text-gray-600">
-          Real blockchain transactions with authentic token logos
+        <p className="text-sm text-gray-600 text-center">
+          Get the best rates instantly
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -210,7 +202,7 @@ export function TokenLogoSwapInterface() {
           <Label htmlFor="from-token">From</Label>
           <div className="flex space-x-2">
             <Select value={fromToken} onValueChange={setFromToken}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -267,7 +259,7 @@ export function TokenLogoSwapInterface() {
           <Label htmlFor="to-token">To</Label>
           <div className="flex space-x-2">
             <Select value={toToken} onValueChange={setToToken}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-40">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -298,22 +290,10 @@ export function TokenLogoSwapInterface() {
           </div>
         </div>
 
-        {/* Get Quote Button */}
-        <Button className="w-full" disabled={!amount || parseFloat(amount) <= 0}>
-          Get Live Quote
+        {/* Swap Button */}
+        <Button className="w-full bg-blue-600 hover:bg-blue-700" disabled={!amount || parseFloat(amount) <= 0}>
+          Get Best Rate
         </Button>
-
-        {/* Demo Notice */}
-        <Alert className="bg-blue-50 border-blue-200">
-          <AlertTriangle className="w-4 h-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <strong>Token Logos:</strong> Automatic logo fetching from CoinGecko API with graceful fallbacks to colored circles.
-            <br />
-            <span className="text-xs text-blue-600 mt-1">
-              ✨ ETH, USDC, USDT, DAI show real logos | PEEZY shows mascot | Others use colored fallbacks
-            </span>
-          </AlertDescription>
-        </Alert>
       </CardContent>
     </Card>
   );

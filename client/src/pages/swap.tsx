@@ -1,6 +1,5 @@
 import React from "react";
 import { WalletConnect } from "@/components/wallet-connect";
-import { RealSwapInterface } from "@/components/real-swap-interface";
 import { TokenLogoSwapInterface } from "@/components/token-logo-swap";
 
 export default function SwapPage() {
@@ -9,32 +8,22 @@ export default function SwapPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Multi-Wallet DEX Aggregator
+            Crypto Swap
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Execute real blockchain transactions with live 1inch API quotes and automatic token logos.
-            Connect any of 5 supported wallets for optimal EVM trading experience.
+            Trade cryptocurrencies instantly with the best rates across multiple exchanges.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {/* Wallet Connection */}
           <div>
             <WalletConnect className="mb-6" />
           </div>
 
-          {/* Token Logo Swap Interface (Enhanced) */}
+          {/* Simple Swap Interface */}
           <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800">Enhanced with Token Logos</h3>
-                <TokenLogoSwapInterface />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800">Full Trading Interface</h3>
-                <RealSwapInterface />
-              </div>
-            </div>
+            <TokenLogoSwapInterface />
           </div>
         </div>
       </div>

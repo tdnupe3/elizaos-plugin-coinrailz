@@ -69,21 +69,21 @@ export function IntuitiveOnboarding() {
       title: 'Create Your Digital Wallet',
       description: 'Get a secure wallet in seconds - bank-grade security included',
       icon: <Wallet className="w-6 h-6" />,
-      completed: !!(walletStatus?.success && walletStatus?.wallet?.address)
+      completed: !!(walletStatus && (walletStatus as any)?.success && (walletStatus as any)?.wallet?.address)
     },
     {
       id: 'fund',
       title: 'Add Money to Your Wallet',
       description: 'Fund your wallet instantly with your debit card or bank account',
       icon: <CreditCard className="w-6 h-6" />,
-      completed: parseFloat(usdcBalance?.success ? usdcBalance?.balance || '0' : '0') > 0
+      completed: parseFloat((usdcBalance as any)?.success ? (usdcBalance as any)?.balance || '0' : '0') > 0
     },
     {
       id: 'ready',
       title: 'You\'re Ready to Go!',
       description: 'Send money, trade crypto, or hire AI agents - all in one place',
       icon: <CheckCircle className="w-6 h-6" />,
-      completed: parseFloat(usdcBalance?.success ? usdcBalance?.balance || '0' : '0') > 0
+      completed: parseFloat((usdcBalance as any)?.success ? (usdcBalance as any)?.balance || '0' : '0') > 0
     }
   ];
 
@@ -154,12 +154,12 @@ export function IntuitiveOnboarding() {
                     ✓ Wallet Created
                   </Badge>
                   <p className="text-sm text-gray-600 font-mono">
-                    {walletStatus?.wallet?.address?.slice(0, 20)}...
+                    {(walletStatus as any)?.wallet?.address?.slice(0, 20)}...
                   </p>
                 </div>
               )}
 
-              {step.id === 'fund' && !step.completed && walletStatus?.wallet?.address && (
+              {step.id === 'fund' && !step.completed && (walletStatus as any)?.wallet?.address && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-2">
                     {['25', '50', '100'].map(amount => (

@@ -24,6 +24,7 @@ import { UserGuidanceModal } from "@/components/user-guidance";
 import { IntuitiveOnboarding } from "@/components/intuitive-onboarding";
 import { QuickFunding } from "@/components/quick-funding";
 import { InstantSwap } from "@/components/instant-swap";
+import { WalletDisplay } from "@/components/wallet-display";
 
 interface Transaction {
   id: string;
@@ -180,6 +181,11 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Wallet Display - Show immediately */}
+        <div className="mb-8">
+          <WalletDisplay />
+        </div>
+
         {/* Intuitive Onboarding for New Users */}
         <div className="mb-8">
           <IntuitiveOnboarding />
@@ -209,7 +215,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">
-                    {usdcBalanceLoading ? "Loading..." : `$${usdcBalance?.balance || '0.00'} USDC`}
+                    {usdcBalanceLoading ? "Loading..." : `$${(usdcBalance as any)?.balance || '0.00'} USDC`}
                   </div>
                   <p className="text-sm text-blue-600 dark:text-blue-400">
                     Instant settlements • Ultra-low fees

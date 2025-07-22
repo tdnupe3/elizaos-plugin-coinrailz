@@ -21,6 +21,7 @@ import {
   Shield,
   Send
 } from "@/lib/icons";
+import { Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
 import { useToast } from "@/hooks/use-toast";
@@ -340,14 +341,22 @@ export function EnhancedWalletManager() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <Button className="w-full bg-blue-600 hover:bg-blue-700">
                       <DollarSign className="w-4 h-4 mr-2" />
                       Add Funds
                     </Button>
-                    <Button variant="outline" className="w-full">
-                      <Send className="w-4 h-4 mr-2" />
-                      Send USDC
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link href="/p2p-transfer">
+                        <Send className="w-4 h-4 mr-2" />
+                        Send USDC
+                      </Link>
+                    </Button>
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link href="/usdc-off-ramp">
+                        <ArrowRight className="w-4 h-4 mr-2" />
+                        Cash Out
+                      </Link>
                     </Button>
                   </div>
 

@@ -314,13 +314,18 @@ export default function P2PTransfer() {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="recipient">Recipient Email or Username</Label>
+                    <Label htmlFor="recipient">Recipient Identifier</Label>
                     <Input
                       id="recipient"
-                      placeholder="Enter email or @username"
+                      placeholder="Email, @username, or wallet address (0x... or XRP address)"
                       value={transferData.recipient}
                       onChange={(e) => setTransferData(prev => ({ ...prev, recipient: e.target.value }))}
                     />
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <p>✓ <strong>Email:</strong> john@example.com (recipient must have Coin Railz account)</p>
+                      <p>✓ <strong>Username:</strong> @johnsmith (Coin Railz user)</p>
+                      <p>✓ <strong>Wallet Address:</strong> 0x742d35Cc or rN7n7otQDd6FczFgLdSqDskp83FeZl2xDc</p>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

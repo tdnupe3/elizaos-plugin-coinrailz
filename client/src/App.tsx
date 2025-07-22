@@ -58,6 +58,7 @@ import {
   USDCWallets,
   USDCDefi,
   USDCEnterprise,
+  USDCOffRamp,
   USDCConversion,
   XRPEcosystemDashboard,
   XRPCrossBorderPayments,
@@ -302,6 +303,9 @@ function Router() {
 
       {/* Authenticated routes */}
       <Route path="/wallet-management" component={WalletManagement} />
+      <Route path="/usdc-off-ramp">
+        {() => <LazyLoadWrapper><USDCOffRamp /></LazyLoadWrapper>}
+      </Route>
       <Route path="/send">
         {() => <LazyLoadWrapper><SendMoney /></LazyLoadWrapper>}
       </Route>

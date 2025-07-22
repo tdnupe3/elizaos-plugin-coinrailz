@@ -2413,6 +2413,14 @@ import('./routes/walletRoutes').then(({ walletRoutes }) => {
   console.log('❌ Wallet routes registration failed:', err.message);
 });
 
+// Register USDC off-ramp routes
+import('./routes/usdcOffRampRoutes').then(({ usdcOffRampRoutes }) => {
+  app.use('/api/usdc/off-ramp', usdcOffRampRoutes);
+  console.log('✅ USDC off-ramp routes registered successfully');
+}).catch(err => {
+  console.log('❌ USDC off-ramp routes registration failed:', err.message);
+});
+
 // Referral routes cleanup completed - duplicate routes removed
 
 // Register DEX endpoints BEFORE simpleRoutes to prevent 404 interception

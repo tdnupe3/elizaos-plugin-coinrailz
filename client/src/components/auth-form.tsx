@@ -103,15 +103,29 @@ export function AuthForm({ mode, onSuccess }: AuthFormProps) {
           queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
         }
 
-        toast({
-          title: mode === 'signup' ? "Account Created" : "Welcome Back",
-          description: data.message,
-        });
-        
-        if (onSuccess) {
-          onSuccess();
+        if (mode === 'signup') {
+          toast({
+            title: "Account Created Successfully!",
+            description: "Check your email for verification link to activate your account",
+          });
+          // Show success message and stay on signup page for email verification
+          setFormData({
+            email: '',
+            password: '',
+            confirmPassword: '',
+            firstName: '',
+            lastName: ''
+          });
         } else {
-          setLocation('/dashboard');
+          toast({
+            title: "Welcome Back",
+            description: data.message,
+          });
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            setLocation('/dashboard');
+          }
         }
       } else {
         // Handle specific validation errors

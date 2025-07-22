@@ -24,6 +24,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { UserGuidanceModal, FeatureTooltip, USDCSavingsBadge } from "@/components/user-guidance";
+import { PaymentMethodSetup } from "@/components/payment-method-setup";
 
 interface P2PTransferData {
   recipient: string;
@@ -46,6 +47,7 @@ export default function P2PTransfer() {
   });
   
   const [step, setStep] = useState(1);
+  const [showPaymentSetup, setShowPaymentSetup] = useState<string | null>(null);
   const [transferData, setTransferData] = useState<P2PTransferData>({
     recipient: '',
     amount: 0,
@@ -179,6 +181,12 @@ export default function P2PTransfer() {
       return;
     }
     
+    // Check if payment method requires setup
+    if (step === 2 && (transferData.senderMethod === 'credit-card' || transferData.senderMethod === 'paypal' || transferData.senderMethod === 'bank-transfer')) {
+      setShowPaymentSetup(transferData.senderMethod);
+      return;
+    }
+    
     // USDC balance validation
     if (step === 2 && transferData.senderMethod === 'usdc') {
       const requiredAmount = totalAmount;
@@ -223,6 +231,24 @@ export default function P2PTransfer() {
             </Link>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Show payment setup modal if needed
+  if (showPaymentSetup) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+        <div className="container mx-auto px-4">
+          <PaymentMethodSetup
+            method={showPaymentSetup as 'credit-card' | 'paypal' | 'bank-transfer'}
+            onComplete={() => {
+              setShowPaymentSetup(null);
+              setStep(3); // Move to next step after setup
+            }}
+            onCancel={() => setShowPaymentSetup(null)}
+          />
+        </div>
       </div>
     );
   }

@@ -2,7 +2,8 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Wallet, ExternalLink, Copy, CheckCircle, AlertCircle } from "@/lib/icons";
+import { Wallet, ExternalLink, Copy, CheckCircle, AlertCircle, Info } from "@/lib/icons";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useWallet } from "@/hooks/useWallet";
 
 interface WalletConnectProps {
@@ -59,8 +60,14 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
             <span>Connect Wallet</span>
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Connect your Web3 wallet to access multi-chain crypto features
+            Connect your Web3 wallet for DEX trading and multi-chain access
           </p>
+          <Alert className="mt-3">
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              Your Circle USDC wallet is automatically created. This Web3 wallet is for DEX trading and DeFi access.
+            </AlertDescription>
+          </Alert>
         </CardHeader>
         <CardContent>
           <div className="bg-blue-50 rounded-lg p-4 mb-4">
@@ -237,7 +244,7 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
                   key={chain.id}
                   variant={wallet.chainId === chain.id ? "default" : "outline"}
                   size="sm"
-                  onClick={() => switchChain(chain.id)}
+                  onClick={() => switchChain(typeof chain.id === 'number' ? chain.id : parseInt(chain.id as string))}
                   className="justify-start text-xs h-8"
                 >
                   <div className={`w-2 h-2 ${chain.color} rounded-full mr-2`}></div>

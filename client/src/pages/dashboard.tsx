@@ -25,6 +25,7 @@ import { IntuitiveOnboarding } from "@/components/intuitive-onboarding";
 import { QuickFunding } from "@/components/quick-funding";
 import { InstantSwap } from "@/components/instant-swap";
 import { WalletDisplay } from "@/components/wallet-display";
+import { EnhancedWalletManager } from "@/components/enhanced-wallet-manager";
 
 interface Transaction {
   id: string;
@@ -181,9 +182,9 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Wallet Display - Show immediately */}
+        {/* Enhanced Wallet Manager - Primary wallet interface */}
         <div className="mb-8">
-          <WalletDisplay />
+          <EnhancedWalletManager />
         </div>
 
         {/* Intuitive Onboarding for New Users */}

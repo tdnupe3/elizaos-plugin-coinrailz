@@ -2405,6 +2405,14 @@ app.use('/api/data', dataMonetizationRoutes);
 // Register P2P routes with profitable fee structure BEFORE catch-all handler
 app.use('/api/p2p', p2pRoutes);
 
+// Register wallet management routes  
+import('./routes/walletRoutes').then(({ walletRoutes }) => {
+  app.use('/api/wallets', walletRoutes);
+  console.log('✅ Wallet management routes registered successfully');
+}).catch(err => {
+  console.log('❌ Wallet routes registration failed:', err.message);
+});
+
 // Referral routes cleanup completed - duplicate routes removed
 
 // Register DEX endpoints BEFORE simpleRoutes to prevent 404 interception

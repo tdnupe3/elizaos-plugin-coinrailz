@@ -43,46 +43,46 @@ const offRampOptions: OffRampOption[] = [
     id: 'bank-deposit',
     name: 'Bank Deposit (ACH)',
     icon: Building2,
-    description: 'Direct deposit to your bank account',
+    description: 'Direct deposit to your bank account - Coming Soon',
     fee: '0.5% + $1.00',
     time: '1-2 business days',
     minAmount: 25,
     maxAmount: 25000,
-    available: true,
-    highlight: true
+    available: false,
+    highlight: false
   },
   {
     id: 'debit-card',
     name: 'Instant Debit Card',
     icon: CreditCard,
-    description: 'Instant cash to your debit card',
+    description: 'Instant cash to your debit card - Coming Soon',
     fee: '1.5% + $2.50',
     time: '30 seconds',
     minAmount: 10,
     maxAmount: 2500,
-    available: true
+    available: false
   },
   {
     id: 'cash-pickup',
     name: 'Cash Pickup',
     icon: DollarSign,
-    description: 'Pick up cash at 50,000+ locations',
+    description: 'Pick up cash at locations worldwide - Coming Soon',
     fee: '2.0% + $5.00',
     time: '15 minutes',
     minAmount: 20,
     maxAmount: 2000,
-    available: true
+    available: false
   },
   {
     id: 'gift-cards',
     name: 'Gift Cards',
     icon: ShoppingCart,
-    description: 'Amazon, Walmart, Target, and 200+ retailers',
+    description: 'Digital gift cards for shopping - Coming Soon',
     fee: '1.0% discount',
     time: 'Instant',
     minAmount: 5,
     maxAmount: 500,
-    available: true
+    available: false
   }
 ];
 
@@ -239,7 +239,7 @@ export default function USDCOffRamp() {
                       }
                       ${!option.available ? 'opacity-50 cursor-not-allowed' : ''}
                     `}
-                    onClick={() => option.available && setSelectedMethod(option.id)}
+                    onClick={() => {/* Coming soon */}}
                   >
                     {option.highlight && (
                       <Badge className="absolute -top-2 -right-2 bg-green-500">
@@ -430,23 +430,15 @@ export default function USDCOffRamp() {
               </Card>
             )}
 
-            {/* Submit Button */}
-            {selectedMethod && amount && (
-              <Button 
-                onClick={handleOffRamp}
-                disabled={offRampMutation.isPending || amountNum < (selectedOption?.minAmount || 0)}
-                size="lg"
-                className="w-full"
-              >
-                {offRampMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Zap className="h-4 w-4 mr-2" />
-                )}
-                Convert ${amountNum.toFixed(2)} USDC
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            )}
+            {/* Coming Soon Notice */}
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Coming Soon!</strong><br />
+                USDC off-ramp features are currently being integrated with our banking partners. 
+                In the meantime, you can send USDC to other users via P2P transfers or convert to other cryptocurrencies.
+              </AlertDescription>
+            </Alert>
           </div>
 
           {/* Sidebar Info */}

@@ -90,7 +90,7 @@ export default function Landing() {
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Coin Railz</h1>
             <p className="text-xl text-gray-600 mb-6">
-              {t('home.title')}
+              AI-Powered Cross-Border Payments & Multi-Chain Trading Platform
             </p>
             
             {/* Move Most Important Info to Top */}

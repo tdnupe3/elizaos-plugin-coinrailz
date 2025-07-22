@@ -106,43 +106,35 @@ export default function P2PTransfer() {
   const paymentMethods = [
     { 
       id: 'usdc', 
-      name: 'USDC (72% Savings)', 
+      name: 'USDC', 
       icon: DollarSign, 
       available: true, 
       highlight: true,
-      savings: '72% cheaper than traditional methods',
+      savings: 'Instant settlement',
       estimatedTime: '2-5 seconds'
-    },
-    { 
-      id: 'wallet-balance', 
-      name: 'Coin Railz Balance', 
-      icon: Wallet, 
-      available: true,
-      savings: 'Instant transfer',
-      estimatedTime: '< 1 second'
     },
     { 
       id: 'credit-card', 
       name: 'Credit/Debit Card', 
       icon: CreditCard, 
-      available: true,
-      savings: 'Standard fees apply',
+      available: false,
+      savings: 'Coming Soon - Card payment integration',
       estimatedTime: '1-3 minutes'
     },
     { 
       id: 'paypal', 
       name: 'PayPal', 
       icon: DollarSign, 
-      available: true,
-      savings: 'Standard fees apply',
+      available: false,
+      savings: 'Coming Soon - PayPal integration',
       estimatedTime: '1-3 minutes'
     },
     { 
       id: 'crypto', 
       name: 'Cryptocurrency', 
       icon: Bitcoin, 
-      available: true,
-      savings: 'Network fees apply',
+      available: false,
+      savings: 'Coming Soon - Multi-crypto support',
       estimatedTime: '5-15 minutes'
     },
     { 
@@ -150,7 +142,7 @@ export default function P2PTransfer() {
       name: 'Bank Transfer', 
       icon: DollarSign, 
       available: false,
-      savings: 'Coming soon',
+      savings: 'Coming Soon - Banking integration',
       estimatedTime: '3-5 business days'
     },
     { 
@@ -158,7 +150,7 @@ export default function P2PTransfer() {
       name: 'Apple Pay', 
       icon: DollarSign, 
       available: false,
-      savings: 'Coming soon',
+      savings: 'Coming Soon',
       estimatedTime: '1-3 minutes'
     }
   ];
@@ -190,7 +182,7 @@ export default function P2PTransfer() {
     // USDC balance validation
     if (step === 2 && transferData.senderMethod === 'usdc') {
       const requiredAmount = totalAmount;
-      const availableBalance = usdcBalance?.balance || 0;
+      const availableBalance = (usdcBalance as any)?.balance || 0;
       
       if (requiredAmount > availableBalance) {
         toast({
@@ -417,14 +409,15 @@ export default function P2PTransfer() {
                                     Instant • 3-5 seconds • 1.25% total fees
                                   </span>
                                 </FeatureTooltip>
-                                {usdcBalance && (
-                                  <div className="text-gray-600 dark:text-gray-400">
-                                    Balance: ${usdcBalance.balance || '0.00'} USDC
-                                  </div>
-                                )}
-                                {usdcBalanceLoading && (
-                                  <div className="text-gray-400">Loading balance...</div>
-                                )}
+                                <div className="text-gray-600 dark:text-gray-400 mt-1">
+                                  {usdcBalanceLoading ? (
+                                    <span>Loading balance...</span>
+                                  ) : usdcBalance ? (
+                                    <span>Balance: ${(usdcBalance as any)?.balance || '0.00'} USDC</span>
+                                  ) : (
+                                    <span>Balance: $0.00 USDC</span>
+                                  )}
+                                </div>
                               </div>
                             )}
                             {method.id !== 'usdc' && (

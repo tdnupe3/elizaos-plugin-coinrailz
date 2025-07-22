@@ -45,6 +45,7 @@ export const USDCDefi = lazy(() => import('@/pages/usdc-defi'));
 export const USDCEnterprise = lazy(() => import('@/pages/usdc-enterprise'));
 export const USDCOffRamp = lazy(() => import('@/pages/usdc-off-ramp'));
 export const USDCConversion = lazy(() => import('@/pages/usdc-conversion'));
+export const BankConnectivity = lazy(() => import('@/pages/bank-connectivity'));
 
 // XRP Ecosystem Components
 export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-dashboard'));

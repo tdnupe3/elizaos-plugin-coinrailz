@@ -303,6 +303,9 @@ function Router() {
 
       {/* Authenticated routes */}
       <Route path="/wallet-management" component={WalletManagement} />
+      <Route path="/bank-connectivity">
+        {() => <LazyLoadWrapper><BankConnectivity /></LazyLoadWrapper>}
+      </Route>
       <Route path="/usdc-off-ramp">
         {() => <LazyLoadWrapper><USDCOffRamp /></LazyLoadWrapper>}
       </Route>

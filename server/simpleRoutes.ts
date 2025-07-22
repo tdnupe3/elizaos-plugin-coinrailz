@@ -8,6 +8,7 @@ import { cacheMiddleware } from './caching';
 import { bnbChainService } from './services/bnbChainService';
 import { pulseChainService } from './services/pulseChainService';
 import stripeRoutes from './routes/stripeRoutes';
+import plaidRoutes from './routes/plaidRoutes';
 import { storage } from './storage';
 import { peezyService } from './services/peezyIntegrationService';
 import { demoMarketplaceService } from './services/demoMarketplaceService';
@@ -197,6 +198,9 @@ export function setupSimpleRoutes(app: Express) {
 
   // Add Stripe payment routes first
   app.use('/api/stripe', stripeRoutes);
+  
+  // Register Plaid routes for bank connectivity
+  app.use('/api/plaid', plaidRoutes);
   
   // Light security enhancements - no complex middleware
   app.use('/api/ai-agents', (req, res, next) => {

@@ -101,7 +101,7 @@ export default function Landing() {
                   <h3 className="font-semibold text-blue-800 mb-2">✅ Instant Access</h3>
                   <ul className="text-sm text-gray-700 space-y-1">
                     <li>• Send money globally in seconds</li>
-                    <li>• Trade crypto across 15+ networks</li>
+                    <li>• Trade digital assets across 15+ networks</li>
                     <li>• Access AI agent marketplace</li>
                   </ul>
                 </div>

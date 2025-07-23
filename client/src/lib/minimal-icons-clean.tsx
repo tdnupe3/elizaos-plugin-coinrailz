@@ -611,6 +611,26 @@ export const Loader2 = ({ className = "", size = 24 }: IconProps) => (
   </svg>
 );
 
+// USDC Logo - Official colors and design
+export const USDCLogo = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <circle cx="12" cy="12" r="12" fill="#2775CA"/>
+    <path d="M12.81 5.64c3.51.31 6.3 3.23 6.3 6.81 0 3.58-2.79 6.5-6.3 6.81v-1.49c2.66-.29 4.77-2.51 4.77-5.32s-2.11-5.03-4.77-5.32V5.64z" fill="white"/>
+    <path d="M11.19 18.36c-3.51-.31-6.3-3.23-6.3-6.81 0-3.58 2.79-6.5 6.3-6.81v1.49c-2.66.29-4.77 2.51-4.77 5.32s2.11 5.03 4.77 5.32v1.49z" fill="white"/>
+    <path d="M9.72 10.2h.9c.3 0 .54.24.54.54v2.52c0 .3-.24.54-.54.54h-.9v1.08h4.56V13.8h-.9c-.3 0-.54-.24-.54-.54V10.74c0-.3.24-.54.54-.54h.9V9.12H9.72v1.08z" fill="white"/>
+  </svg>
+);
+
+// XRP Logo - Official Ripple design
+export const XRPLogo = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className}>
+    <circle cx="12" cy="12" r="12" fill="#23292F"/>
+    <path d="M6.25 7.5h2.4l2.85 2.85 2.85-2.85h2.4l-4.25 4.25 4.25 4.25h-2.4L12 13.15 10.5 14.65l-1.5 1.6h-2.4l4.25-4.25L6.25 7.5z" fill="white"/>
+    <circle cx="8.5" cy="15.5" r="1.5" fill="white"/>
+    <circle cx="15.5" cy="15.5" r="1.5" fill="white"/>
+  </svg>
+);
+
 export const FileText = ({ className = "", size = 24 }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
     <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>

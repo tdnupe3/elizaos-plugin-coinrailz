@@ -101,5 +101,7 @@ export {
   Settings,
   ArrowRightLeft,
   Code,
-  Webhook
+  Webhook,
+  USDCLogo,
+  XRPLogo
 } from '@/lib/minimal-icons-clean';

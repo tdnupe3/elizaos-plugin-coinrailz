@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail } from "@/lib/icons";
+import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail, USDCLogo, XRPLogo } from "@/lib/icons";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
 import { FunctionalSearch } from "@/components/functional-search";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -147,7 +147,7 @@ export default function Landing() {
                   className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
                   size="lg"
                 >
-                  <DollarSign className="w-5 h-5 mr-2" />
+                  <USDCLogo className="w-5 h-5 mr-2" />
                   USDC Ecosystem
                 </Button>
 
@@ -157,7 +157,7 @@ export default function Landing() {
                   className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
                   size="lg"
                 >
-                  <Globe className="w-5 h-5 mr-2" />
+                  <XRPLogo className="w-5 h-5 mr-2" />
                   XRP Ecosystem
                 </Button>
               </div>

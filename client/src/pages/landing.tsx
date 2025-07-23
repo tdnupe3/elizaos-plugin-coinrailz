@@ -27,6 +27,10 @@ export default function Landing() {
     setLocation("/demo-dashboard");
   };
 
+  const handleSendMoney = () => {
+    setLocation("/p2p-transfer");
+  };
+
   // Network stats completely removed to prevent excessive API calls
   const networkStats = {
     success: true,
@@ -182,6 +186,14 @@ export default function Landing() {
 
               <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
                 <Button 
+                  onClick={handleSendMoney}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
+                  size="lg"
+                >
+                  <Send className="w-5 h-5 mr-2" />
+                  Send Money
+                </Button>
+                <Button 
                   onClick={handleGuestAccess}
                   variant="outline"
                   className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50 py-4 text-lg font-medium"
@@ -228,7 +240,15 @@ export default function Landing() {
                   </div>
                 </div>
 
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 md:col-span-2">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 font-medium mb-2">💸 Send Money:</p>
+                  <div className="text-xs text-blue-700 space-y-1">
+                    <p>• P2P transfers with multiple payment options</p>
+                    <p>• Ultra-low fees and instant settlements</p>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
                   <p className="text-sm text-emerald-800 font-medium mb-2">👁️ Demo Mode:</p>
                   <div className="text-xs text-emerald-700 space-y-1">
                     <p>• Try everything risk-free</p>

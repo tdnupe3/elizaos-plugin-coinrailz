@@ -6,9 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { DollarSign, CreditCard, Building2, Copy, ExternalLink, Wallet, CheckCircle, Clock } from "@/lib/icons";
+import { useLocation } from "wouter";
 
 export default function USDCDepositWidget() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [copiedAddress, setCopiedAddress] = useState(false);
 
   const { data: circleWallet, isLoading } = useQuery({
@@ -78,10 +80,16 @@ export default function USDCDepositWidget() {
               </ul>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              <Button 
+                onClick={() => setLocation('/auth')}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
                 Create Free Wallet
               </Button>
-              <Button variant="outline">
+              <Button 
+                onClick={() => setLocation('/auth')}
+                variant="outline"
+              >
                 Sign In to Existing Wallet
               </Button>
             </div>

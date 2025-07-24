@@ -639,7 +639,7 @@ export function setupSimpleRoutes(app: Express) {
       const recipient = recipientResult.rows[0];
       const recipientBalance = parseFloat(recipient.usdc_balance);
 
-      // Validate that both users have Circle wallets
+      // Validate sender has Circle wallet
       if (!sender.circle_wallet_id) {
         return res.status(400).json({
           success: false,
@@ -647,22 +647,56 @@ export function setupSimpleRoutes(app: Express) {
         });
       }
 
-      if (!recipient.circle_wallet_id) {
-        return res.status(400).json({
-          success: false,
-          error: 'Recipient does not have a Circle wallet. Please ask them to create a wallet first.'
-        });
-      }
+      // Recipient wallet will be created automatically if needed
 
-      // TEMPORARILY DISABLED: Real Circle transfers pending SDK fix
-      // Circle SDK has configuration errors preventing real transfers
-      // Using placeholder system until Circle technical support resolves SDK issue
+      // EXECUTE REAL CIRCLE USDC TRANSFER
+      console.log(`🚀 Initiating Circle USDC transfer: ${senderEmail} → ${recipientEmail} | $${transferAmount}`);
       
-      console.log(`⚠️ Circle SDK Issue - Transfer simulation: ${senderEmail} → ${recipientEmail} | $${transferAmount}`);
+      // Import and validate Circle service
+      const circleServiceModule = await import('./services/circleService.js');
+      const circleService = circleServiceModule.circleService;
       
-      const transactionId = 'pending_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      if (!circleService) {
+        throw new Error('Circle service not available');
+      }
       
-      // Record transaction as pending
+      if (!circleService.isInitialized()) {
+        throw new Error('Circle service not properly initialized - check API keys');
+      }
+      
+      // First ensure recipient has a Circle wallet
+      if (!recipient.circle_wallet_id) {
+        console.log(`🔧 Creating Circle wallet for recipient: ${recipientEmail}`);
+        const userCircleModule = await import('./services/userCircleService.js');
+        const userCircleService = userCircleModule.userCircleService;
+        
+        const recipientWallet = await userCircleService.createUserWallet(recipientEmail);
+        recipient.circle_wallet_id = recipientWallet.walletId;
+        recipient.circle_wallet_address = recipientWallet.address;
+        
+        // Update database with new wallet info
+        await db.execute(sql`
+          UPDATE users 
+          SET circle_wallet_id = ${recipientWallet.walletId}, 
+              circle_wallet_address = ${recipientWallet.address}
+          WHERE email = ${recipientEmail}
+        `);
+        
+        console.log(`✅ Circle wallet created for ${recipientEmail}: ${recipientWallet.address}`);
+      }
+      
+      // Create actual Circle USDC transfer using real Circle wallet IDs
+      const circleTransaction = await circleService.createTransfer(
+        sender.circle_wallet_id,
+        recipient.circle_wallet_address,
+        transferAmount.toString(),
+        'b037d751-fb22-5f0d-bae6-47373e7ae3e3' // USDC token ID
+      );
+
+      console.log(`✅ Circle transfer initiated: ${circleTransaction.id}`);
+
+      // Record transaction in database
+      const transactionId = circleTransaction.id;
       await db.execute(sql`
         INSERT INTO transactions (
           id, from_user_id, to_email, amount, currency, 
@@ -670,26 +704,27 @@ export function setupSimpleRoutes(app: Express) {
           external_transaction_id, created_at, completed_at
         ) VALUES (
           ${transactionId}, ${senderEmail}, ${recipientEmail}, ${transferAmount}, 'USDC',
-          ${description || 'P2P Transfer'}, 'pending_circle_fix', 'send_money', ${platformFee},
-          ${transactionId}, NOW(), NULL
+          ${description || 'P2P Transfer'}, 'pending', 'send_money', ${platformFee},
+          ${circleTransaction.id}, NOW(), NULL
         )
       `);
 
-      console.log(`⚠️ Transfer recorded as pending Circle SDK resolution: ${senderEmail} → ${recipientEmail} | $${transferAmount}`);
+      console.log(`✅ Real USDC Transfer initiated: ${senderEmail} → ${recipientEmail} | $${transferAmount} (fee: $${platformFee.toFixed(2)})`);
 
       res.json({
         success: true,
-        transactionId: transactionId,
+        transactionId: circleTransaction.id,
         sender: senderEmail,
         recipient: recipientEmail,
         amount: transferAmount,
         platformFee: platformFee.toFixed(2),
         totalDeducted: totalRequired.toFixed(2),
-        status: 'pending_circle_fix',
+        circleTransactionId: circleTransaction.id,
+        status: circleTransaction.state,
+        txHash: circleTransaction.txHash || 'pending',
         description: description || 'P2P Transfer',
         timestamp: new Date().toISOString(),
-        message: 'Transfer pending - Circle SDK configuration issue being resolved',
-        technicalNote: 'Circle client config error: Cannot read properties of undefined (reading config) - SDK version incompatibility'
+        message: 'Real USDC transfer initiated via Circle API'
       });
 
     } catch (error) {

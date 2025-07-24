@@ -81,16 +81,14 @@ class CircleService {
 
     // Initialize client only if entity secret exists
     if (this.config.entitySecret) {
-      this.initializeClient().catch(error => {
-        console.error('Failed to initialize Circle client during construction:', error);
-      });
+      this.initializeClient();
     }
   }
 
   /**
    * Initialize Circle client with API key and entity secret
    */
-  private async initializeClient() {
+  private initializeClient() {
     try {
       console.log('🔧 Initializing Circle client with config check...');
       console.log('API Key present:', !!this.config.apiKey);
@@ -104,7 +102,6 @@ class CircleService {
       console.log('✅ Circle client initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize Circle client:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       this.client = null;
       this.entitySecretRegistered = false;
       throw error;

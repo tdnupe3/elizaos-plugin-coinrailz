@@ -384,6 +384,38 @@ class UserCircleService {
       };
     }
   }
+  // Create Circle wallet for user by email
+  async createUserWallet(userEmail: string, blockchain: 'ETH' | 'MATIC' | 'AVAX' | 'ARB' | 'BASE' = 'ETH') {
+    try {
+      // First create a wallet set for this user
+      const walletSet = await circleService.createWalletSet(`Wallet Set for ${userEmail}`);
+      if (!walletSet || !walletSet.id) {
+        throw new Error('Failed to create wallet set');
+      }
+
+      // Create wallet using the new wallet set
+      const wallet = await circleService.createWallet(walletSet.id, blockchain);
+      if (!wallet || !wallet.id) {
+        throw new Error('Failed to create wallet');
+      }
+
+      return {
+        success: true,
+        walletId: wallet.id,
+        address: wallet.address,
+        blockchain: blockchain,
+        state: wallet.state,
+        existing: false
+      };
+
+    } catch (error) {
+      console.error('Error creating user wallet by email:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
 }
 
 export const userCircleService = new UserCircleService();

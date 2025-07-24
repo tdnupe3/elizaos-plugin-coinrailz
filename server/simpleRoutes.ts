@@ -6038,29 +6038,51 @@ export function setupSimpleRoutes(app: Express) {
   // Add referral routes before catch-all 404 handler
   
   // Generate referral link
-  app.post('/api/referrals/generate-link', (req, res) => {
+  app.post('/api/referrals/generate-link', async (req, res) => {
     try {
-      const { userId, type = 'marketplace' } = req.body;
+      // Get user from session or token
+      const authHeader = req.headers.authorization;
+      let userId = null;
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        // Extract user from token (simplified - in production use proper JWT verification)
+        userId = req.user?.id || req.session?.user?.id;
+      }
+      
+      // Fallback to user-id header or request body
+      if (!userId) {
+        userId = req.headers['user-id'] as string || req.body.userId;
+      }
       
       if (!userId) {
-        return res.status(400).json({
+        return res.status(401).json({
           success: false,
-          error: 'User ID is required'
+          error: 'Authentication required to generate referral code'
         });
       }
 
-      const referralCode = `REF_${userId.substring(0, 8).toUpperCase()}_${Date.now().toString().slice(-6)}`;
+      // Generate unique referral code using nanoid for better uniqueness
+      const { nanoid } = await import('nanoid');
+      const uniqueId = nanoid(8); // 8 character unique ID
+      const userPrefix = userId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase();
+      const referralCode = `REF_${userPrefix}_${uniqueId}`;
       const referralLink = `https://coinrailz.com/register?ref=${referralCode}`;
+      
+      // Store referral code in database (for production)
+      // await db.update(users).set({ referralCode }).where(eq(users.id, userId));
       
       res.json({
         success: true,
         referralCode,
         referralLink,
-        type,
+        type: req.body.type || 'marketplace',
         commissionRate: '0.5%',
-        maxCommission: '$15 per transaction'
+        maxCommission: '$15 per transaction',
+        userId,
+        generated: new Date().toISOString()
       });
     } catch (error) {
+      console.error('Referral generation error:', error);
       res.status(500).json({
         success: false,
         error: 'Referral generation failed'
@@ -6069,15 +6091,38 @@ export function setupSimpleRoutes(app: Express) {
   });
 
   // Get referral stats
-  app.get('/api/referrals/my-stats', (req, res) => {
+  app.get('/api/referrals/my-stats', async (req, res) => {
     try {
-      const userId = req.headers['user-id'] as string || 'demo-user';
+      // Get user from session or token
+      const authHeader = req.headers.authorization;
+      let userId = null;
+      
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        userId = req.user?.id || req.session?.user?.id;
+      }
+      
+      // Fallback to user-id header (for compatibility)
+      if (!userId) {
+        userId = req.headers['user-id'] as string;
+      }
+      
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          error: 'Authentication required to view referral stats'
+        });
+      }
+
+      // Generate consistent main referral code for user (persistent code)
+      const userPrefix = userId.replace(/[^a-zA-Z0-9]/g, '').substring(0, 6).toUpperCase();
+      const referralCode = `REF_${userPrefix}_MAIN`;
+      const referralLink = `https://coinrailz.com/register?ref=${referralCode}`;
       
       res.json({
         success: true,
         userId,
-        referralCode: `REF_${userId.substring(0, 8).toUpperCase()}`,
-        referralLink: `https://coinrailz.com/register?ref=REF_${userId.substring(0, 8).toUpperCase()}`,
+        referralCode,
+        referralLink,
         totalReferrals: 7,
         totalCommissions: '125.50',
         pendingCommissions: '45.25',
@@ -6087,6 +6132,7 @@ export function setupSimpleRoutes(app: Express) {
         nextTierProgress: 65
       });
     } catch (error) {
+      console.error('Referral stats error:', error);
       res.status(500).json({
         success: false,
         error: 'Failed to fetch referral stats'

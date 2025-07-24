@@ -61,12 +61,10 @@ export const queryClient = new QueryClient({
       refetchOnReconnect: false,
       staleTime: 5 * 60 * 1000,
       throwOnError: false, // Prevent unhandled promise rejections
-      useErrorBoundary: false, // Don't use error boundaries
     },
     mutations: {
       retry: false, // No retries for mutations
       throwOnError: false, // Prevent unhandled promise rejections
-      useErrorBoundary: false, // Don't use error boundaries
     },
   },
 });

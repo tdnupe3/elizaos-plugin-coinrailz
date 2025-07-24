@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,18 +14,26 @@ import ReferralAPITest from "@/components/ReferralAPITest";
 export default function Referrals() {
   const [referralCodeInput, setReferralCodeInput] = useState("");
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
 
   const { data: referralStats, isLoading } = useQuery({
     queryKey: ["/api/referrals/my-stats"],
     retry: false,
-    throwOnError: false
+    throwOnError: false,
+    enabled: isAuthenticated // Only fetch when authenticated
   });
 
   // Type-safe access to referral stats
   const stats = referralStats || {};
 
   const generateCodeMutation = useMutation({
-    mutationFn: () => apiRequest("POST", "/api/referrals/generate-link"),
+    mutationFn: () => {
+      // Include user information in the request
+      const userData = user as any;
+      return apiRequest("POST", "/api/referrals/generate-link", {
+        userId: userData?.id || userData?.email || 'user_' + Date.now()
+      });
+    },
     onSuccess: (response) => {
       toast({
         title: "Referral Code Generated",
@@ -89,6 +98,34 @@ export default function Referrals() {
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show authentication required message
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-sky-50 dark:from-emerald-950 dark:to-sky-950">
+        <NavigationHeader />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto text-center space-y-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-8 shadow-lg">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                Sign In Required
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Please sign in to access your referral dashboard and start earning commissions.
+              </p>
+              <Button 
+                onClick={() => window.location.href = '/signin'}
+                className="bg-gradient-to-r from-purple-600 to-emerald-600 hover:from-purple-700 hover:to-emerald-700"
+              >
+                Sign In to Continue
+              </Button>
+            </div>
           </div>
         </div>
       </div>

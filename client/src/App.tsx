@@ -103,6 +103,7 @@ const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 const Documentation = lazy(() => import("@/pages/Documentation"));
 const CryptoPrices = lazy(() => import("@/pages/crypto-prices"));
+const BalanceCheck = lazy(() => import("@/pages/balance-check"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -139,6 +140,9 @@ function Router() {
       </Route>
       <Route path="/p2p-transfer">
         <P2PTransfer />
+      </Route>
+      <Route path="/balance-check">
+        {() => <LazyLoadWrapper><BalanceCheck /></LazyLoadWrapper>}
       </Route>
       <Route path="/demo/buy-sell">
         {() => <LazyLoadWrapper><DemoBuySell /></LazyLoadWrapper>}

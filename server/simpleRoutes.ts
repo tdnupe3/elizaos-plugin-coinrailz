@@ -491,6 +491,41 @@ export function setupSimpleRoutes(app: Express) {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Public balance check for demo purposes (remove in production)
+  app.get('/api/balance-check/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      
+      const result = await db.execute(sql`
+        SELECT email, usdc_balance, circle_wallet_address 
+        FROM users 
+        WHERE email = ${email} 
+        LIMIT 1
+      `);
+      
+      if (result.rowCount === 0 || !result.rows[0]) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      const user = result.rows[0];
+      res.json({
+        success: true,
+        email: user.email,
+        balance: user.usdc_balance,
+        walletAddress: user.circle_wallet_address
+      });
+    } catch (error) {
+      console.error('Error checking balance:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  });
+
   // Test Stripe credentials directly
   app.get('/api/stripe-test', async (req, res) => {
     try {

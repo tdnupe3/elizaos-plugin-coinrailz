@@ -2106,6 +2106,41 @@ export function registerRoutes(app: Express): Server {
     });
   });
 
+  // Public balance check for demo purposes (remove in production)
+  app.get('/api/balance-check/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      const { users } = await import('../shared/schema');
+      const { eq } = await import('drizzle-orm');
+      
+      const userResult = await db.select({
+        email: users.email,
+        usdcBalance: users.usdc_balance,
+        circleWalletAddress: users.circle_wallet_address
+      }).from(users).where(eq(users.email, email)).limit(1);
+      
+      if (userResult.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        email: userResult[0].email,
+        balance: userResult[0].usdcBalance,
+        walletAddress: userResult[0].circleWalletAddress
+      });
+    } catch (error) {
+      console.error('Error checking balance:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  });
+
   // Global error handler
   app.use((error: any, req: any, res: any, next: any) => {
     console.error('Global error handler:', error);

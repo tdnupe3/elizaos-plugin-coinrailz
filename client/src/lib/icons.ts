@@ -103,5 +103,6 @@ export {
   Code,
   Webhook,
   USDCLogo,
-  XRPLogo
+  XRPLogo,
+  LogOut
 } from '@/lib/minimal-icons-clean';

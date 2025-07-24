@@ -78,10 +78,60 @@ export default function SendMoney() {
           <div className="mb-6">
             <SimpleBalanceDisplay 
               userEmail={formData.senderEmail}
-              title={`${formData.senderEmail} Balance`}
+              title={`Sender Balance`}
             />
           </div>
         )}
+
+        {/* Quick Transfer Presets */}
+        <Card className="mb-6 bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+          <CardHeader>
+            <CardTitle className="text-green-700">Quick Transfer Setup</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setFormData(prev => ({ ...prev, senderEmail: 'a1digitalllc@gmail.com' }))}
+                className="text-left justify-start"
+              >
+                <Send className="h-4 w-4 mr-2" />
+                Use a1digitalllc@gmail.com
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setFormData(prev => ({ ...prev, recipientEmail: 'stell.mary@yahoo.com' }))}
+                className="text-left justify-start"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Send to stell.mary@yahoo.com
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFormData(prev => ({ ...prev, amount: '25' }))}
+              >
+                $25
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFormData(prev => ({ ...prev, amount: '10' }))}
+              >
+                $10
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFormData(prev => ({ ...prev, amount: '50' }))}
+              >
+                $50
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="mb-6">
           <CardHeader>
@@ -186,16 +236,21 @@ export default function SendMoney() {
           <Alert className="mb-6 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-500" />
             <AlertDescription className="text-green-700">
-              <div className="space-y-2">
-                <p className="font-medium">Transfer Successful!</p>
-                <div className="text-sm space-y-1">
-                  <p>Transaction ID: {result.transactionId}</p>
-                  <p>Amount: ${result.amount}</p>
-                  <p>Platform Fee: ${result.platformFee}</p>
-                  <p>Total Deducted: ${result.totalDeducted}</p>
-                  <p>Recipient: {result.recipient}</p>
-                  <p>New Sender Balance: ${result.senderNewBalance}</p>
-                  <p>New Recipient Balance: ${result.recipientNewBalance}</p>
+              <div className="space-y-3">
+                <p className="font-medium text-lg">💰 Transfer Successful!</p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-1">
+                    <p><strong>Amount Sent:</strong> ${result.amount}</p>
+                    <p><strong>Platform Fee:</strong> ${result.platformFee}</p>
+                    <p><strong>Total Deducted:</strong> ${result.totalDeducted}</p>
+                    <p><strong>Recipient:</strong> {result.recipient}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p><strong>Sender Balance:</strong> ${result.senderNewBalance}</p>
+                    <p><strong>Recipient Balance:</strong> ${result.recipientNewBalance}</p>
+                    <p><strong>Transaction ID:</strong> {result.transactionId.slice(-8)}</p>
+                    <p><strong>Time:</strong> {new Date(result.timestamp).toLocaleTimeString()}</p>
+                  </div>
                 </div>
               </div>
             </AlertDescription>

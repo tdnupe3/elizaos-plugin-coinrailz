@@ -18,6 +18,7 @@ import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
 import circleRoutes from "./routes/circleRoutes";
 // import circleKYCRoutes from "./routes/circleKYCRoutes";
 import userCircleRoutes from "./routes/userCircleRoutes";
+import { circleTransactionMonitor } from './services/circleTransactionMonitor';
 // import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
@@ -63,6 +64,56 @@ export function registerRoutes(app: Express): Server {
   // === USER CIRCLE WALLET ROUTES ===
   // Individual user Circle wallet management
   app.use('/api/user-circle', userCircleRoutes);
+  
+  // === CIRCLE TRANSACTION MONITORING ===
+  // Transaction monitoring and balance sync endpoints
+  app.get('/api/circle/monitor/status', (req, res) => {
+    res.json({
+      success: true,
+      status: circleTransactionMonitor.getStatus(),
+      timestamp: new Date().toISOString()
+    });
+  });
+  
+  app.post('/api/circle/monitor/start', async (req, res) => {
+    try {
+      await circleTransactionMonitor.startMonitoring();
+      res.json({
+        success: true,
+        message: 'Transaction monitoring started',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
+  app.post('/api/circle/sync/:userId', isAuthenticated, async (req, res) => {
+    try {
+      const result = await circleTransactionMonitor.forceSyncUserBalance(req.params.userId);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
+  app.get('/api/circle/check-tx/:txHash', async (req, res) => {
+    try {
+      const result = await circleTransactionMonitor.checkTransactionHash(req.params.txHash);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
   
   // === CIRCLE KYC/AML ROUTES ===
   // Circle KYC/AML compliance and identity verification

@@ -395,4 +395,108 @@ router.post('/usdc/payment', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/circle/investigate-transaction/:txHash
+ * Investigate specific transaction hash across all wallets
+ */
+router.get('/investigate-transaction/:txHash', async (req, res) => {
+  try {
+    const { txHash } = req.params;
+    console.log(`🔍 Investigating transaction: ${txHash}`);
+    
+    const investigation = {
+      txHash: txHash,
+      timestamp: new Date().toISOString(),
+      walletSets: [],
+      findings: []
+    };
+    
+    // Get all wallet sets
+    const walletSets = await circleService.listWalletSets();
+    console.log(`Found ${walletSets.length} wallet sets`);
+    
+    for (const walletSet of walletSets) {
+      const walletSetInfo = {
+        id: walletSet.id,
+        name: walletSet.name,
+        wallets: []
+      };
+      
+      // Get wallets in this set
+      const wallets = await circleService.listWallets(walletSet.id);
+      console.log(`Wallet set ${walletSet.name} has ${wallets.length} wallets`);
+      
+      for (const wallet of wallets) {
+        const walletInfo = {
+          id: wallet.id,
+          address: wallet.address,
+          blockchain: wallet.blockchain,
+          state: wallet.state,
+          usdcBalance: '0.00000000',
+          transactions: [],
+          matchingTransaction: null
+        };
+        
+        try {
+          // Get balance
+          const balances = await circleService.getWalletBalance(wallet.id);
+          const usdcBalance = balances.find(b => b.tokenId === 'USDC')?.amount || '0.00000000';
+          walletInfo.usdcBalance = usdcBalance;
+          
+          // Get recent transactions
+          const transactions = await circleService.listTransactions(wallet.id, 20);
+          walletInfo.transactions = transactions.map(tx => ({
+            id: tx.id,
+            type: tx.transactionType,
+            amount: tx.amount,
+            tokenId: tx.tokenId,
+            state: tx.state,
+            txHash: tx.txHash,
+            createDate: tx.createDate
+          }));
+          
+          // Check for matching transaction
+          const matchingTx = transactions.find(tx => tx.txHash === txHash);
+          if (matchingTx) {
+            walletInfo.matchingTransaction = matchingTx;
+            investigation.findings.push({
+              type: 'TRANSACTION_FOUND',
+              walletId: wallet.id,
+              address: wallet.address,
+              transaction: matchingTx,
+              message: `Found matching transaction in wallet ${wallet.address}`
+            });
+            console.log(`🎯 Found matching transaction in wallet ${wallet.address}`);
+          }
+          
+        } catch (error: any) {
+          investigation.findings.push({
+            type: 'ERROR',
+            walletId: wallet.id,
+            address: wallet.address,
+            error: error.message,
+            message: `Error checking wallet ${wallet.address}: ${error.message}`
+          });
+        }
+        
+        walletSetInfo.wallets.push(walletInfo);
+      }
+      
+      investigation.walletSets.push(walletSetInfo);
+    }
+    
+    res.json({
+      success: true,
+      investigation: investigation
+    });
+    
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to investigate transaction',
+      message: error.message
+    });
+  }
+});
+
 export default router;

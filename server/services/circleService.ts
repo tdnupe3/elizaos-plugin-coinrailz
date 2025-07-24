@@ -330,6 +330,27 @@ class CircleService {
   /**
    * List transactions for a wallet
    */
+  public async listTransactions(walletId: string, limit: number = 10): Promise<CircleTransaction[]> {
+    if (!this.client) {
+      throw new Error('Circle client not initialized. Entity secret required.');
+    }
+
+    try {
+      const response = await this.client.listTransactions({
+        walletId: walletId,
+        pageSize: limit
+      });
+
+      return response.data.transactions || [];
+    } catch (error) {
+      console.error('Failed to list transactions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * List transactions for a wallet
+   */
   public async listTransactions(walletId: string): Promise<CircleTransaction[]> {
     if (!this.client) {
       throw new Error('Circle client not initialized. Entity secret required.');

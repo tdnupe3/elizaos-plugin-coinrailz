@@ -106,7 +106,7 @@ export default function AIMarketplacePage() {
           <div className="flex items-center space-x-4">
             <Button 
               variant="ghost" 
-              onClick={() => setLocation("/demo-dashboard")}
+              onClick={() => setLocation("/dashboard")}
               className="flex items-center space-x-2"
             >
               <ArrowLeft className="w-4 h-4" />

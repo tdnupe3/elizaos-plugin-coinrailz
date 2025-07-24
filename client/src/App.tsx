@@ -223,6 +223,9 @@ function Router() {
       <Route path="/usdc-enterprise">
         {() => <LazyLoadWrapper><USDCEnterprise /></LazyLoadWrapper>}
       </Route>
+      <Route path="/send-money">
+        {() => <LazyLoadWrapper><SendMoney /></LazyLoadWrapper>}
+      </Route>
       <Route path="/usdc-conversion">
         {() => <LazyLoadWrapper><USDCConversion /></LazyLoadWrapper>}
       </Route>

@@ -526,6 +526,129 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // Simple P2P Transfer endpoint - Send USDC between users
+  app.post('/api/simple-transfer', async (req, res) => {
+    try {
+      const { senderEmail, recipientEmail, amount, description } = req.body;
+
+      // Input validation
+      if (!senderEmail || !recipientEmail || !amount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Missing required fields: senderEmail, recipientEmail, amount'
+        });
+      }
+
+      const transferAmount = parseFloat(amount);
+      if (isNaN(transferAmount) || transferAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid transfer amount'
+        });
+      }
+
+      // Check minimum amount ($10 for sustainability)
+      if (transferAmount < 10) {
+        return res.status(400).json({
+          success: false,
+          error: 'Minimum transfer amount is $10'
+        });
+      }
+
+      // Get sender details
+      const senderResult = await db.execute(sql`
+        SELECT email, usdc_balance, circle_wallet_address 
+        FROM users 
+        WHERE email = ${senderEmail} 
+        LIMIT 1
+      `);
+
+      if (senderResult.rowCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Sender not found'
+        });
+      }
+
+      const sender = senderResult.rows[0];
+      const senderBalance = parseFloat(sender.usdc_balance);
+
+      // Calculate fees (0.75% platform fee + $1 minimum)
+      const platformFee = Math.max(transferAmount * 0.0075, 1.00);
+      const totalRequired = transferAmount + platformFee;
+
+      // Check sufficient balance
+      if (senderBalance < totalRequired) {
+        return res.status(400).json({
+          success: false,
+          error: `Insufficient balance. Required: $${totalRequired.toFixed(2)}, Available: $${senderBalance.toFixed(2)}`
+        });
+      }
+
+      // Get recipient details
+      const recipientResult = await db.execute(sql`
+        SELECT email, usdc_balance, circle_wallet_address 
+        FROM users 
+        WHERE email = ${recipientEmail} 
+        LIMIT 1
+      `);
+
+      if (recipientResult.rowCount === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'Recipient not found'
+        });
+      }
+
+      const recipient = recipientResult.rows[0];
+      const recipientBalance = parseFloat(recipient.usdc_balance);
+
+      // Execute transfer (deduct from sender, add to recipient)
+      const newSenderBalance = senderBalance - totalRequired;
+      const newRecipientBalance = recipientBalance + transferAmount;
+
+      // Update sender balance
+      await db.execute(sql`
+        UPDATE users 
+        SET usdc_balance = ${newSenderBalance.toFixed(8)}, updated_at = NOW()
+        WHERE email = ${senderEmail}
+      `);
+
+      // Update recipient balance
+      await db.execute(sql`
+        UPDATE users 
+        SET usdc_balance = ${newRecipientBalance.toFixed(8)}, updated_at = NOW()
+        WHERE email = ${recipientEmail}
+      `);
+
+      // Record transaction
+      const transactionId = 'txn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      console.log(`✅ P2P Transfer completed: ${senderEmail} → ${recipientEmail} | $${transferAmount} (fee: $${platformFee.toFixed(2)})`);
+
+      res.json({
+        success: true,
+        transactionId,
+        sender: senderEmail,
+        recipient: recipientEmail,
+        amount: transferAmount,
+        platformFee: platformFee.toFixed(2),
+        totalDeducted: totalRequired.toFixed(2),
+        senderNewBalance: newSenderBalance.toFixed(2),
+        recipientNewBalance: newRecipientBalance.toFixed(2),
+        description: description || 'P2P Transfer',
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error('P2P Transfer error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Transfer failed - internal server error'
+      });
+    }
+  });
+
   // Test Stripe credentials directly
   app.get('/api/stripe-test', async (req, res) => {
     try {

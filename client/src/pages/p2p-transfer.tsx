@@ -658,7 +658,6 @@ export default function P2PTransfer() {
                     </>
                   )}
                 </div>
-                </div>
               </CardContent>
             </Card>
           </div>

@@ -106,6 +106,7 @@ const CryptoPrices = lazy(() => import("@/pages/crypto-prices"));
 const BalanceCheck = lazy(() => import("@/pages/balance-check"));
 const BetaBalanceDemo = lazy(() => import("@/pages/beta-balance-demo"));
 const BalanceDisplay = lazy(() => import("@/pages/balance-display"));
+const ProfilePage = lazy(() => import("@/pages/profile"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -318,8 +319,8 @@ function Router() {
 
       {/* Authenticated routes */}
       <Route path="/wallet-management" component={WalletManagement} />
-      <Route path="/bank-connectivity">
-        {() => <LazyLoadWrapper><BankConnectivity /></LazyLoadWrapper>}
+      <Route path="/profile">
+        {() => <LazyLoadWrapper><ProfilePage /></LazyLoadWrapper>}
       </Route>
       <Route path="/usdc-off-ramp">
         {() => <LazyLoadWrapper><USDCOffRamp /></LazyLoadWrapper>}

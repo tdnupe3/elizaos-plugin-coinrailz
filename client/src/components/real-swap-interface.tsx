@@ -477,7 +477,7 @@ export function RealSwapInterface() {
             <div className="flex justify-between items-center">
               <span className="text-blue-700">Connected:</span>
               <span className="text-blue-800 font-mono">
-                {wallet.address.slice(0, 6)}...{wallet.address.slice(-4)}
+                {wallet.address ? `${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}` : 'Not connected'}
               </span>
             </div>
             <div className="flex justify-between items-center mt-1">

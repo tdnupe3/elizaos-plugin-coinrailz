@@ -183,24 +183,15 @@ router.get('/business-logic/fee-performance', async (req, res) => {
     const daysBack = timeRange === '1d' ? 1 : timeRange === '7d' ? 7 : 30;
     const startDate = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
 
-    // Analyze fee performance by payment method
-    const p2pByMethod = await db
-      .select({
-        senderMethod: sql<string>`sender_method`,
-        count: sql<number>`COUNT(*)`,
-        totalAmount: sql<number>`SUM(CAST(amount AS DECIMAL))`,
-        totalFees: sql<number>`SUM(CAST(fee AS DECIMAL))`,
-        avgAmount: sql<number>`AVG(CAST(amount AS DECIMAL))`,
-        avgFee: sql<number>`AVG(CAST(fee AS DECIMAL))`
-      })
-      .from(p2pTransfers)
-      .where(
-        and(
-          eq(sql`status`, 'completed'),
-          gte(sql`created_at`, startDate)
-        )
-      )
-      .groupBy(sql`sender_method`);
+    // For now, use simulated data until proper transaction tables are connected
+    const p2pByMethod: Array<{
+      senderMethod: string;
+      count: number;
+      totalAmount: number;
+      totalFees: number;
+      avgAmount: number;
+      avgFee: number;
+    }> = [];
 
     // Calculate effective fee rates and profitability
     const feeAnalysis = p2pByMethod.map(method => {

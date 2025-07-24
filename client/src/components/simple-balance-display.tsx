@@ -19,10 +19,19 @@ interface BalanceResponse {
 
 export function SimpleBalanceDisplay({ userEmail, title = "USDC Balance" }: SimpleBalanceDisplayProps) {
   const { data: balanceData, isLoading, error } = useQuery({
-    queryKey: [`/api/balance-check/${encodeURIComponent(userEmail)}`],
+    queryKey: [`balance-check`, userEmail],
+    queryFn: async () => {
+      const response = await fetch(`/api/balance-check/${encodeURIComponent(userEmail)}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch balance: ${response.status}`);
+      }
+      return response.json();
+    },
     enabled: !!userEmail,
-    refetchInterval: 30000, // Refresh every 30 seconds
-    retry: 3
+    refetchInterval: 5000, // Refresh every 5 seconds for beta testing
+    retry: 3,
+    staleTime: 0, // Always consider data stale for beta testing
+    cacheTime: 0 // Don't cache for beta testing
   });
 
   if (isLoading) {
@@ -47,6 +56,8 @@ export function SimpleBalanceDisplay({ userEmail, title = "USDC Balance" }: Simp
     );
   }
 
+  console.log('Balance Debug:', { userEmail, balanceData, isLoading, error });
+  
   const balance = balanceData as BalanceResponse;
   if (error || !balance?.success) {
     return (
@@ -73,6 +84,12 @@ export function SimpleBalanceDisplay({ userEmail, title = "USDC Balance" }: Simp
   }
 
   const balanceAmount = parseFloat(balance.balance || balance.usdBalance || "0");
+  console.log('Balance Parsing:', { 
+    rawBalance: balance.balance, 
+    usdBalance: balance.usdBalance, 
+    parsedAmount: balanceAmount 
+  });
+  
   const formattedBalance = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',

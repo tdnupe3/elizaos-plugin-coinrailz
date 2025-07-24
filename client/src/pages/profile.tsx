@@ -22,7 +22,7 @@ export default function ProfilePage() {
     // TODO: Implement profile save functionality
   };
 
-  const userInitials = user?.username ? user.username.slice(0, 2).toUpperCase() : 'CR';
+  const userInitials = (user as any)?.username ? (user as any).username.slice(0, 2).toUpperCase() : 'CR';
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -42,8 +42,8 @@ export default function ProfilePage() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
-                  <h1 className="text-2xl font-bold">{user?.username || 'User'}</h1>
-                  <p className="text-gray-600 dark:text-gray-400">{user?.email || 'user@example.com'}</p>
+                  <h1 className="text-2xl font-bold">{(user as any)?.username || 'User'}</h1>
+                  <p className="text-gray-600 dark:text-gray-400">{(user as any)?.email || 'user@example.com'}</p>
                   <div className="flex items-center space-x-2 mt-2">
                     <Badge variant="secondary" className="flex items-center">
                       <Shield className="h-3 w-3 mr-1" />
@@ -116,7 +116,7 @@ export default function ProfilePage() {
                         type="email"
                         placeholder="Enter email address"
                         disabled={!isEditing}
-                        defaultValue={user?.email || ''}
+                        defaultValue={(user as any)?.email || ''}
                         className="flex-1"
                       />
                     </div>

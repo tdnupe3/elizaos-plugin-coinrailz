@@ -624,26 +624,26 @@ export default function P2PTransfer() {
                     </FeatureTooltip>
                   )}
 
-                {step === 3 && (
-                  <div className="pt-4">
-                    <Button 
-                      onClick={handleSubmitTransfer}
-                      className="w-full"
-                      disabled={transferMutation.isPending}
-                    >
-                      {transferMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        `Send $${totalAmount.toFixed(2)}`
-                      )}
-                    </Button>
-                  </div>
-                )}
+                  {step === 3 && (
+                    <div className="pt-4">
+                      <Button 
+                        onClick={handleSubmitTransfer}
+                        className="w-full"
+                        disabled={transferMutation.isPending}
+                      >
+                        {transferMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          `Send $${totalAmount.toFixed(2)}`
+                        )}
+                      </Button>
+                    </div>
+                  )}
 
-                <div className="text-xs text-gray-500 pt-4">
+                  <div className="text-xs text-gray-500 pt-4">
                   {(transferData.senderMethod === 'usdc' || transferData.recipientMethod === 'usdc') ? (
                     <>
                       <p>• USDC transfers complete in 3-5 seconds</p>
@@ -657,6 +657,7 @@ export default function P2PTransfer() {
                       <p>• 24/7 support available</p>
                     </>
                   )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

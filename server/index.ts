@@ -94,18 +94,7 @@ app.set('trust proxy', 1);
 // Apply general API rate limiting to all /api routes
 app.use('/api', apiLimiter);
 
-// Session middleware for authentication
-import session from 'express-session';
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'default-dev-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+// Session middleware is configured in setupAuth() - removing duplicate to prevent conflicts
 
 // Path traversal protection removed - was causing frontend loading issues
 

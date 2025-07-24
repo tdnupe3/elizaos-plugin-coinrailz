@@ -158,7 +158,7 @@ export default function Landing() {
                 </button>
               </div>
               <p className="text-xs text-gray-500 mt-2 text-center">
-                Enter a1digitalllc@gmail.com to see your real $50.00 USDC balance
+                Enter any registered email to check your USDC balance instantly
               </p>
             </div>
 

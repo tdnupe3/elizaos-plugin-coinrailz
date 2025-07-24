@@ -29,16 +29,17 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
 
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || 'default-dev-secret-2024',
     resave: false,
     saveUninitialized: false,
-    rolling: true,
+    rolling: true, // Extend session on activity
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Set to false for development to prevent session loss
       maxAge: sessionTtl,
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
+      sameSite: 'lax' // Allow cross-site requests in development
     },
+    name: 'coinrailz.session' // Custom session name
   });
 }
 

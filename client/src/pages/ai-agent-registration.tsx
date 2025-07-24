@@ -77,7 +77,7 @@ const PremiumPaymentForm = ({
         return;
       }
 
-      const response = await apiRequest('POST', '/api/agents/register/premium', {
+      const response = await apiRequest('POST', '/api/ai-agents/register', {
         agentData: {
           ...agentData,
           publicKey: 'generated_key_' + Date.now(),
@@ -201,7 +201,7 @@ export default function AIAgentRegistration() {
     setRegistering(true);
 
     try {
-      const response = await apiRequest('POST', '/api/agents/register/basic', {
+      const response = await apiRequest('POST', '/api/ai-agents/register', {
         ...formData,
         publicKey: 'generated_key_' + Date.now(),
         signature: 'generated_signature_' + Date.now()

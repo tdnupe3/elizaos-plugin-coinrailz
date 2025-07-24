@@ -66,13 +66,62 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
               <Bell className="w-4 h-4 text-neutral-500" />
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
             </Button>
-            <Button
-              variant="ghost"
-              onClick={handleLogout}
-              className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium hover:bg-purple-700"
-            >
-              {getInitials(user?.firstName, user?.lastName)}
-            </Button>
+            
+            {/* User Profile with Dropdown */}
+            <div className="relative group">
+              <Button
+                variant="ghost"
+                className="flex items-center space-x-2 hover:bg-neutral-100 px-3 py-2 rounded-lg"
+              >
+                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  {getInitials(user?.firstName, user?.lastName)}
+                </div>
+                <span className="text-sm text-neutral-700 hidden md:block">
+                  {user?.firstName || "User"}
+                </span>
+                <ChevronDown className="w-4 h-4 text-neutral-500" />
+              </Button>
+              
+              {/* Dropdown Menu */}
+              <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="py-2">
+                  <div className="px-4 py-2 border-b border-gray-100">
+                    <p className="text-sm font-medium text-gray-900">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setLocation('/settings')}
+                    className="w-full justify-start px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-none"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Settings
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setLocation('/profile')}
+                    className="w-full justify-start px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-none"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Profile
+                  </Button>
+                  <div className="border-t border-gray-100 mt-1 pt-1">
+                    <Button
+                      variant="ghost"
+                      onClick={handleLogout}
+                      className="w-full justify-start px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-none"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

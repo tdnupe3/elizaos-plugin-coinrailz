@@ -432,7 +432,10 @@ export const walletWithdrawSchema = z.object({
 
 export const sendMoneySchema = z.object({
   toEmail: z.string().email("Invalid email address"),
-  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  amount: z.string().refine((val) => {
+    const amount = parseFloat(val);
+    return amount >= 10;
+  }, "Minimum transfer amount is $10 to ensure profitable operations"),
   currency: z.string().default("USD"),
   message: z.string().optional(),
   securityPin: z.string().length(6, "Security PIN must be 6 digits"),
@@ -441,7 +444,10 @@ export const sendMoneySchema = z.object({
 export const buyCryptoSchema = z.object({
   coinSymbol: z.string().min(1, "Coin symbol is required"),
   coinName: z.string().min(1, "Coin name is required"),
-  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  amount: z.string().refine((val) => {
+    const amount = parseFloat(val);
+    return amount >= 10;
+  }, "Minimum purchase amount is $10 to ensure profitable operations"),
   pricePerCoin: z.string().refine((val) => parseFloat(val) > 0, "Price must be greater than 0"),
 });
 
@@ -454,7 +460,10 @@ export const sellCryptoSchema = z.object({
 export const cryptoTransferSchema = z.object({
   toWalletAddress: z.string().min(1, "Recipient wallet address is required"),
   cryptoSymbol: z.string().min(1, "Cryptocurrency is required"),
-  amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
+  amount: z.string().refine((val) => {
+    const amount = parseFloat(val);
+    return amount >= 10;
+  }, "Minimum transfer amount is $10 to ensure profitable operations"),
   blockchainNetwork: z.string().min(1, "Blockchain network is required"),
   message: z.string().optional(),
 });

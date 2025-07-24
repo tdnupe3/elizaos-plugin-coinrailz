@@ -20,6 +20,9 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
     return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`.toUpperCase() || "U";
   };
 
+  // Type guard for user properties
+  const userData = user as any;
+
   const navItems = [
     { path: "/", label: "Dashboard" },
     { path: "/send", label: "Send Money" },
@@ -75,10 +78,10 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
                   className="flex items-center space-x-2 hover:bg-neutral-100 px-3 py-2 rounded-lg"
                 >
                   <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    {getInitials(user?.firstName, user?.lastName)}
+                    {getInitials(userData?.firstName, userData?.lastName)}
                   </div>
                   <span className="text-sm text-neutral-700 hidden md:block">
-                    {user?.firstName}
+                    {userData?.firstName}
                   </span>
                   <ChevronDown className="w-4 h-4 text-neutral-500" />
                 </Button>
@@ -88,10 +91,10 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
                 <div className="py-2">
                   <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">
-                      {user?.firstName} {user?.lastName}
+                      {userData?.firstName} {userData?.lastName}
                     </p>
                     <p className="text-xs text-gray-500 truncate">
-                      {user?.email}
+                      {userData?.email}
                     </p>
                   </div>
                   <Button
@@ -122,8 +125,8 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
                   </div>
                 </div>
               </div>
+            </div>
             ) : (
-              /* Show Sign In button when not authenticated */
               <Button
                 onClick={() => setLocation('/auth')}
                 className="bg-blue-600 hover:bg-blue-700 text-white"

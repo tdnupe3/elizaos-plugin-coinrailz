@@ -98,6 +98,16 @@ export default function SendMoney() {
           />
         </div>
 
+        {/* Debug Info */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold text-blue-800 mb-2">🔍 Balance Debug Info</h3>
+          <p className="text-sm text-blue-700">
+            Expected: $50.00 USDC for a1digitalllc@gmail.com<br/>
+            API Endpoint: /api/balance-check/a1digitalllc@gmail.com<br/>
+            Check browser console for balance parsing logs
+          </p>
+        </div>
+
         {/* Balance Display for Sender */}
         {formData.senderEmail && formData.senderEmail !== 'a1digitalllc@gmail.com' && (
           <div className="mb-6">

@@ -85,10 +85,12 @@ export function SimpleBalanceDisplay({ userEmail, title = "USDC Balance" }: Simp
   }
 
   const balanceAmount = parseFloat(balance.balance || balance.usdBalance || "0");
-  console.log('Balance Parsing:', { 
+  console.log('🔍 BALANCE PARSING DEBUG:', { 
+    userEmail,
     rawBalance: balance.balance, 
     usdBalance: balance.usdBalance, 
-    parsedAmount: balanceAmount 
+    parsedAmount: balanceAmount,
+    shouldShow50: userEmail === 'a1digitalllc@gmail.com'
   });
   
   const formattedBalance = new Intl.NumberFormat('en-US', {
@@ -115,7 +117,14 @@ export function SimpleBalanceDisplay({ userEmail, title = "USDC Balance" }: Simp
           <div className="text-4xl font-bold text-green-600">
             {formattedBalance}
           </div>
-          <p className="text-sm text-gray-600 mt-1">Available USDC Balance</p>
+          <p className="text-sm text-gray-600 mt-1">
+            Available USDC Balance
+            {userEmail === 'a1digitalllc@gmail.com' && (
+              <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                ✓ Beta Account
+              </span>
+            )}
+          </p>
         </div>
 
         {/* Account Info */}

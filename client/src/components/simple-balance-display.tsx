@@ -31,7 +31,7 @@ export function SimpleBalanceDisplay({ userEmail, title = "USDC Balance" }: Simp
     refetchInterval: 5000, // Refresh every 5 seconds for beta testing
     retry: 3,
     staleTime: 0, // Always consider data stale for beta testing
-    cacheTime: 0 // Don't cache for beta testing
+    gcTime: 0 // Don't cache for beta testing (TanStack Query v5)
   });
 
   if (isLoading) {

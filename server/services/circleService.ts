@@ -81,23 +81,32 @@ class CircleService {
 
     // Initialize client only if entity secret exists
     if (this.config.entitySecret) {
-      this.initializeClient();
+      this.initializeClient().catch(error => {
+        console.error('Failed to initialize Circle client during construction:', error);
+      });
     }
   }
 
   /**
    * Initialize Circle client with API key and entity secret
    */
-  private initializeClient() {
+  private async initializeClient() {
     try {
+      console.log('🔧 Initializing Circle client with config check...');
+      console.log('API Key present:', !!this.config.apiKey);
+      console.log('Entity Secret present:', !!this.config.entitySecret);
+      
       this.client = initiateDeveloperControlledWalletsClient({
         apiKey: this.config.apiKey,
-        entitySecret: this.config.entitySecret,
-        baseUrl: this.config.baseUrl
+        entitySecret: this.config.entitySecret
       });
       this.entitySecretRegistered = true;
+      console.log('✅ Circle client initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Circle client:', error);
+      console.error('❌ Failed to initialize Circle client:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      this.client = null;
+      this.entitySecretRegistered = false;
       throw error;
     }
   }
@@ -286,13 +295,15 @@ class CircleService {
     walletId: string,
     destinationAddress: string,
     amount: string,
-    tokenId: string = 'USDC'
+    tokenId: string = 'b037d751-fb22-5f0d-bae6-47373e7ae3e3'
   ): Promise<CircleTransaction> {
     if (!this.client) {
       throw new Error('Circle client not initialized. Entity secret required.');
     }
 
     try {
+      console.log(`🔄 Creating Circle transfer: ${walletId} → ${destinationAddress} | ${amount} USDC`);
+      
       const response = await this.client.createTransaction({
         walletId: walletId,
         destinationAddress: destinationAddress,
@@ -300,9 +311,10 @@ class CircleService {
         tokenId: tokenId
       });
 
+      console.log(`✅ Circle transfer created: ${response.data.transaction.id}`);
       return response.data.transaction;
     } catch (error) {
-      console.error('Failed to create transfer:', error);
+      console.error('❌ Failed to create transfer:', error);
       throw error;
     }
   }

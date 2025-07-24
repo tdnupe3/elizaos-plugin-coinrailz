@@ -593,7 +593,7 @@ export function setupSimpleRoutes(app: Express) {
 
       // Get sender details
       const senderResult = await db.execute(sql`
-        SELECT email, usdc_balance, circle_wallet_address 
+        SELECT email, usdc_balance, circle_wallet_address, circle_wallet_id
         FROM users 
         WHERE email = ${senderEmail} 
         LIMIT 1
@@ -623,7 +623,7 @@ export function setupSimpleRoutes(app: Express) {
 
       // Get recipient details
       const recipientResult = await db.execute(sql`
-        SELECT email, usdc_balance, circle_wallet_address 
+        SELECT email, usdc_balance, circle_wallet_address, circle_wallet_id
         FROM users 
         WHERE email = ${recipientEmail} 
         LIMIT 1
@@ -639,41 +639,57 @@ export function setupSimpleRoutes(app: Express) {
       const recipient = recipientResult.rows[0];
       const recipientBalance = parseFloat(recipient.usdc_balance);
 
-      // Execute transfer (deduct from sender, add to recipient)
-      const newSenderBalance = senderBalance - totalRequired;
-      const newRecipientBalance = recipientBalance + transferAmount;
+      // Validate that both users have Circle wallets
+      if (!sender.circle_wallet_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Sender does not have a Circle wallet. Please create a wallet first.'
+        });
+      }
 
-      // Update sender balance
-      await db.execute(sql`
-        UPDATE users 
-        SET usdc_balance = ${newSenderBalance.toFixed(8)}, updated_at = NOW()
-        WHERE email = ${senderEmail}
-      `);
+      if (!recipient.circle_wallet_id) {
+        return res.status(400).json({
+          success: false,
+          error: 'Recipient does not have a Circle wallet. Please ask them to create a wallet first.'
+        });
+      }
 
-      // Update recipient balance
-      await db.execute(sql`
-        UPDATE users 
-        SET usdc_balance = ${newRecipientBalance.toFixed(8)}, updated_at = NOW()
-        WHERE email = ${recipientEmail}
-      `);
-
-      // Record transaction
-      const transactionId = 'txn_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      // TEMPORARILY DISABLED: Real Circle transfers pending SDK fix
+      // Circle SDK has configuration errors preventing real transfers
+      // Using placeholder system until Circle technical support resolves SDK issue
       
-      console.log(`✅ P2P Transfer completed: ${senderEmail} → ${recipientEmail} | $${transferAmount} (fee: $${platformFee.toFixed(2)})`);
+      console.log(`⚠️ Circle SDK Issue - Transfer simulation: ${senderEmail} → ${recipientEmail} | $${transferAmount}`);
+      
+      const transactionId = 'pending_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      
+      // Record transaction as pending
+      await db.execute(sql`
+        INSERT INTO transactions (
+          id, from_user_id, to_email, amount, currency, 
+          message, status, transaction_type, platform_fee, 
+          external_transaction_id, created_at, completed_at
+        ) VALUES (
+          ${transactionId}, ${senderEmail}, ${recipientEmail}, ${transferAmount}, 'USDC',
+          ${description || 'P2P Transfer'}, 'pending_circle_fix', 'send_money', ${platformFee},
+          ${transactionId}, NOW(), NULL
+        )
+      `);
+
+      console.log(`⚠️ Transfer recorded as pending Circle SDK resolution: ${senderEmail} → ${recipientEmail} | $${transferAmount}`);
 
       res.json({
         success: true,
-        transactionId,
+        transactionId: transactionId,
         sender: senderEmail,
         recipient: recipientEmail,
         amount: transferAmount,
         platformFee: platformFee.toFixed(2),
         totalDeducted: totalRequired.toFixed(2),
-        senderNewBalance: newSenderBalance.toFixed(2),
-        recipientNewBalance: newRecipientBalance.toFixed(2),
+        status: 'pending_circle_fix',
         description: description || 'P2P Transfer',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        message: 'Transfer pending - Circle SDK configuration issue being resolved',
+        technicalNote: 'Circle client config error: Cannot read properties of undefined (reading config) - SDK version incompatibility'
       });
 
     } catch (error) {

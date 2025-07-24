@@ -263,7 +263,7 @@ function Router() {
       {/* KYC Incentives Dashboard */}
       <Route path="/kyc-incentives">
         {() => {
-          const { data: authData } = useAuth();
+          const { user: authData } = useAuth();
           if (!authData) {
             return <div className="flex items-center justify-center min-h-screen">
               <div className="text-center">
@@ -317,6 +317,15 @@ function Router() {
       </Route>
       <Route path="/sell">
         {() => <LazyLoadWrapper><BuySellPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/swap">
+        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/dex">
+        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/dex-aggregator">
+        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
       </Route>
 
       {/* Main route - conditional based on auth */}

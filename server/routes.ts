@@ -25,11 +25,22 @@ import p2pRoutes from "./routes/p2pRoutes";
 
 // Initialize services
 let stripe: any;
-try {
-  const Stripe = require('stripe');
-  stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder');
-} catch (error) {
-  console.log('Stripe not configured');
+
+async function initializeStripe() {
+  try {
+    if (process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY.startsWith('sk_')) {
+      const { default: Stripe } = await import('stripe');
+      stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+      console.log('✅ Stripe configured successfully');
+      return true;
+    } else {
+      console.log('⚠️ Stripe keys not found in environment');
+      return false;
+    }
+  } catch (error) {
+    console.log('❌ Stripe initialization failed:', error);
+    return false;
+  }
 }
 
 // Initialize payment gateway resolver

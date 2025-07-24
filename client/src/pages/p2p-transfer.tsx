@@ -657,6 +657,7 @@ export default function P2PTransfer() {
                       <p>• 24/7 support available</p>
                     </>
                   )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

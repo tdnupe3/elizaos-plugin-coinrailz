@@ -3,10 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Send, CheckCircle, AlertCircle } from '@/lib/minimal-icons-clean';
+import { Loader2, Send, CheckCircle, AlertCircle, ArrowLeft } from '@/lib/minimal-icons-clean';
 import { SimpleBalanceDisplay } from '@/components/simple-balance-display';
+import { NavigationHeader } from '@/components/navigation-header';
+import { useLocation } from 'wouter';
 
 export default function SendMoney() {
+  const [, setLocation] = useLocation();
   const [formData, setFormData] = useState({
     senderEmail: '',
     recipientEmail: '',
@@ -66,12 +69,26 @@ export default function SendMoney() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Send Money</h1>
-          <p className="text-gray-600">Transfer USDC instantly between users</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <NavigationHeader />
+      <div className="p-4">
+        <div className="max-w-2xl mx-auto">
+          {/* Back button */}
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => setLocation('/')}
+              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Dashboard</span>
+            </Button>
+          </div>
+
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Send Money</h1>
+            <p className="text-gray-600">Transfer USDC instantly between users</p>
+          </div>
 
         {/* Balance Display for Sender */}
         {formData.senderEmail && (
@@ -271,6 +288,7 @@ export default function SendMoney() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );

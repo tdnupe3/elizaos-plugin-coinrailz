@@ -168,6 +168,16 @@ export default function MobileNavigation() {
                     Settings
                   </span>
                 </button>
+
+                <button
+                  onClick={() => window.location.href = "/api/logout"}
+                  className="w-full flex items-center space-x-3 px-3 py-3 text-left rounded-lg hover:bg-red-50 transition-colors group border-t border-gray-200 mt-2 pt-4"
+                >
+                  <LogOut className="h-5 w-5 text-red-600" />
+                  <span className="flex-1 text-red-600 font-medium">
+                    Sign Out
+                  </span>
+                </button>
               </nav>
             </div>
 

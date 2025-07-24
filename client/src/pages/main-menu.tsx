@@ -11,6 +11,10 @@ export default function MainMenu() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
+  const handleSignOut = () => {
+    window.location.href = "/api/logout";
+  };
+
   const mainActions = [
     {
       id: 'send',

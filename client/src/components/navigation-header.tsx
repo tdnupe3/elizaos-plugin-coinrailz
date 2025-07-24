@@ -1,4 +1,4 @@
-import { Bell, Zap } from "@/lib/icons";
+import { Bell, Zap, ChevronDown, Settings, User, LogOut } from "@/lib/icons";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";

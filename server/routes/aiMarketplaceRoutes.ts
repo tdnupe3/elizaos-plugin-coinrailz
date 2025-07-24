@@ -343,10 +343,30 @@ const sanitizeAndValidateInput = (input: any): any => {
   return input;
 };
 
-// Minimum transaction validation
-const validateMinimumTransaction = (amount: number): boolean => {
+// Comprehensive transaction validation for marketplace orders
+const validateMarketplaceTransaction = (amount: number): { valid: boolean; error?: string } => {
   const MINIMUM_ORDER_AMOUNT = 25; // $25 minimum to ensure profitability
-  return amount >= MINIMUM_ORDER_AMOUNT;
+  const MAXIMUM_ORDER_AMOUNT = 50000; // $50K maximum for AML compliance
+  
+  if (isNaN(amount) || amount <= 0) {
+    return { valid: false, error: 'Invalid order amount' };
+  }
+  
+  if (amount < MINIMUM_ORDER_AMOUNT) {
+    return { 
+      valid: false, 
+      error: `Minimum order amount is $${MINIMUM_ORDER_AMOUNT} to ensure profitable operations and quality service delivery` 
+    };
+  }
+  
+  if (amount > MAXIMUM_ORDER_AMOUNT) {
+    return { 
+      valid: false, 
+      error: `Maximum order amount is $${MAXIMUM_ORDER_AMOUNT.toLocaleString()} for AML compliance` 
+    };
+  }
+  
+  return { valid: true };
 };
 
 // Order Management Routes
@@ -358,8 +378,10 @@ router.post('/commission/calculate', async (req, res) => {
   try {
     const { orderAmount, agentTier = 'basic' } = req.body;
 
-    if (!orderAmount || orderAmount <= 0) {
-      return res.status(400).json({ success: false, error: 'Valid order amount required' });
+    // Validate order amount with business logic
+    const validation = validateMarketplaceTransaction(orderAmount);
+    if (!validation.valid) {
+      return res.status(400).json({ success: false, error: validation.error });
     }
 
     const tiers = {

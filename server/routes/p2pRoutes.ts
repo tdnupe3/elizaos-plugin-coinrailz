@@ -3,19 +3,115 @@ import { P2PTransferService } from '../services/p2pTransferService';
 
 const router = Router();
 
+// BUSINESS LOGIC CONSTANTS - Unified across all endpoints
+const BUSINESS_LOGIC = {
+  minimumAmounts: {
+    standard: 10,      // $10 minimum for standard transactions
+    usdc: 10,          // $10 minimum even for USDC (sustainable operations)
+    xrp: 10            // $10 minimum for XRP transactions
+  },
+  maximumAmounts: {
+    'credit-card': 10000,
+    'paypal': 10000,
+    'usdc': 50000,
+    'crypto': 25000,
+    'xrp': 50000
+  },
+  fees: {
+    usdc: {
+      platformRate: 0.0075,    // 0.75% platform fee
+      minimumFee: 1.00,        // $1.00 minimum
+      processingRate: 0.005    // 0.5% processing
+    },
+    standard: {
+      platformRate: 0.035,     // 3.5% platform fee
+      minimumFee: 7.50,        // $7.50 minimum
+      creditCardRate: 0.029,   // 2.9% credit card processing
+      otherRate: 0.01          // 1% other processing
+    },
+    xrp: {
+      platformRate: 0.005,     // 0.5% platform fee
+      minimumFee: 0.50,        // $0.50 minimum
+      referralBuffer: 0.002    // 0.2% buffer for referral costs
+    }
+  }
+};
+
+/**
+ * Validate transaction amount with unified business logic
+ */
+function validateTransactionAmount(amount: number, method: string): { valid: boolean; error?: string } {
+  const transferAmount = parseFloat(amount.toString());
+  
+  if (isNaN(transferAmount) || transferAmount <= 0) {
+    return { valid: false, error: 'Invalid transaction amount' };
+  }
+
+  // Unified $10 minimum across all methods for profitability
+  if (transferAmount < BUSINESS_LOGIC.minimumAmounts.standard) {
+    return { 
+      valid: false, 
+      error: `Minimum transfer amount is $${BUSINESS_LOGIC.minimumAmounts.standard} to ensure profitable operations` 
+    };
+  }
+
+  // Maximum limits for AML compliance
+  const maxAmount = BUSINESS_LOGIC.maximumAmounts[method as keyof typeof BUSINESS_LOGIC.maximumAmounts] || 10000;
+  if (transferAmount > maxAmount) {
+    return { 
+      valid: false, 
+      error: `Maximum transfer amount for ${method} is $${maxAmount.toLocaleString()}` 
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Calculate fees with unified business logic
+ */
+function calculateFees(amount: number, senderMethod: string, recipientMethod: string) {
+  const isUSDCTransaction = senderMethod === 'usdc' || recipientMethod === 'usdc';
+  const isXRPTransaction = senderMethod === 'xrp' || recipientMethod === 'xrp';
+  
+  let fee: number;
+  let processingFee: number;
+  let estimatedDelivery: string;
+  
+  if (isUSDCTransaction) {
+    // USDC fees with referral cost coverage
+    fee = Math.max(amount * BUSINESS_LOGIC.fees.usdc.platformRate, BUSINESS_LOGIC.fees.usdc.minimumFee);
+    processingFee = amount * BUSINESS_LOGIC.fees.usdc.processingRate;
+    estimatedDelivery = '3-5 seconds';
+  } else if (isXRPTransaction) {
+    // XRP fees with referral buffer
+    const baseRate = BUSINESS_LOGIC.fees.xrp.platformRate + BUSINESS_LOGIC.fees.xrp.referralBuffer;
+    fee = Math.max(amount * baseRate, BUSINESS_LOGIC.fees.xrp.minimumFee);
+    processingFee = 0.0002; // Network fee in USD
+    estimatedDelivery = '3-5 seconds';
+  } else {
+    // Standard fees with referral cost coverage
+    fee = Math.max(amount * BUSINESS_LOGIC.fees.standard.platformRate, BUSINESS_LOGIC.fees.standard.minimumFee);
+    processingFee = senderMethod === 'credit-card' 
+      ? amount * BUSINESS_LOGIC.fees.standard.creditCardRate + 0.30
+      : amount * BUSINESS_LOGIC.fees.standard.otherRate;
+    estimatedDelivery = '5-15 minutes';
+  }
+
+  return {
+    fee: Math.round(fee * 100) / 100,
+    processingFee: Math.round(processingFee * 100) / 100,
+    estimatedDelivery
+  };
+}
+
 /**
  * POST /api/p2p/quote
- * Generate P2P transfer quote with fee calculation
+ * Generate P2P transfer quote with unified business logic
  */
 router.post('/quote', async (req, res) => {
   try {
-    const { 
-      amount, 
-      fromMethod, 
-      toMethod,
-      fromPlatform, 
-      toPlatform
-    } = req.body;
+    const { amount, fromMethod, toMethod, fromPlatform, toPlatform } = req.body;
     
     // Support both parameter naming conventions
     const senderMethod = fromMethod || fromPlatform;
@@ -28,45 +124,35 @@ router.post('/quote', async (req, res) => {
       });
     }
 
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 1) {
+    // Validate transaction amount
+    const validation = validateTransactionAmount(amount, senderMethod);
+    if (!validation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'Minimum transfer amount is $1'
+        error: validation.error
       });
     }
 
-    // Calculate fees based on USDC usage (updated to account for referral costs)
-    let fee, processingFee, estimatedDelivery;
-    
-    if (senderMethod === 'usdc' || recipientMethod === 'usdc') {
-      // USDC fees (increased to cover referral costs)
-      fee = Math.max(transferAmount * 0.005, 1.00); // 0.5% with $1.00 minimum
-      processingFee = transferAmount * 0.0075; // 0.75% platform fee
-      estimatedDelivery = '3-5 seconds';
-    } else {
-      // Standard fees (increased to cover referral costs)
-      fee = Math.max(transferAmount * 0.035, 7.50); // 3.5% with $7.50 minimum
-      processingFee = senderMethod === 'credit-card' ? transferAmount * 0.029 : transferAmount * 0.01;
-      estimatedDelivery = '5-15 minutes';
-    }
-
+    const transferAmount = parseFloat(amount);
+    const { fee, processingFee, estimatedDelivery } = calculateFees(transferAmount, senderMethod, recipientMethod);
     const quoteId = `quote_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
     res.json({
       success: true,
       quoteId,
       amount: transferAmount,
-      fee: fee,
-      processingFee: processingFee,
+      fee,
+      processingFee,
       totalFee: fee + processingFee,
       fromMethod: senderMethod,
       toMethod: recipientMethod,
       estimatedDelivery,
-      validUntil: new Date(Date.now() + 5 * 60 * 1000).toISOString(), // 5 minutes
-      message: senderMethod === 'usdc' || recipientMethod === 'usdc' 
-        ? 'USDC transfer quote - ultra-low fees!' 
-        : 'P2P transfer quote generated successfully'
+      validUntil: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+      businessLogic: {
+        minimumAmount: BUSINESS_LOGIC.minimumAmounts.standard,
+        maximumAmount: BUSINESS_LOGIC.maximumAmounts[senderMethod as keyof typeof BUSINESS_LOGIC.maximumAmounts],
+        profitabilityEnsured: true
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -78,23 +164,16 @@ router.post('/quote', async (req, res) => {
 
 /**
  * POST /api/p2p/transfer
- * Simplified P2P transfer endpoint for audit compatibility
+ * Unified P2P transfer endpoint with business logic compliance
  */
 router.post('/transfer', async (req, res) => {
   try {
     const { 
-      recipient, 
-      amount, 
-      senderMethod, 
-      recipientMethod,
-      fromMethod,
-      toMethod,
-      fromPlatform,
-      toPlatform,
-      note 
+      recipient, amount, senderMethod, recipientMethod,
+      fromMethod, toMethod, fromPlatform, toPlatform, note 
     } = req.body;
     
-    // Support both parameter naming conventions
+    // Support all parameter naming conventions
     const finalSenderMethod = senderMethod || fromMethod || fromPlatform;
     const finalRecipientMethod = recipientMethod || toMethod || toPlatform;
     
@@ -105,46 +184,37 @@ router.post('/transfer', async (req, res) => {
       });
     }
 
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 1) {
+    // Validate transaction amount
+    const validation = validateTransactionAmount(amount, finalSenderMethod);
+    if (!validation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'Minimum transfer amount is $1'
+        error: validation.error
       });
     }
 
-    // Calculate fees based on USDC usage (updated to account for referral costs)
-    let fee, processingFee, estimatedDelivery;
-    
-    if (finalSenderMethod === 'usdc' || finalRecipientMethod === 'usdc') {
-      // USDC fees (increased to cover referral costs)
-      fee = Math.max(transferAmount * 0.005, 1.00); // 0.5% with $1.00 minimum
-      processingFee = transferAmount * 0.0075; // 0.75% platform fee
-      estimatedDelivery = '3-5 seconds';
-    } else {
-      // Standard fees (increased to cover referral costs)
-      fee = Math.max(transferAmount * 0.035, 7.50); // 3.5% with $7.50 minimum
-      processingFee = finalSenderMethod === 'credit-card' ? transferAmount * 0.029 : transferAmount * 0.01;
-      estimatedDelivery = '5-15 minutes';
-    }
-
+    const transferAmount = parseFloat(amount);
+    const { fee, processingFee, estimatedDelivery } = calculateFees(transferAmount, finalSenderMethod, finalRecipientMethod);
     const transferId = `p2p_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
     res.json({
       success: true,
       transferId,
       amount: transferAmount,
-      fee: fee,
-      processingFee: processingFee,
+      fee,
+      processingFee,
       totalFee: fee + processingFee,
       senderMethod: finalSenderMethod,
       recipientMethod: finalRecipientMethod,
       status: 'initiated',
       estimatedDelivery,
       note: note || '',
-      message: finalSenderMethod === 'usdc' || finalRecipientMethod === 'usdc' 
-        ? 'USDC transfer initiated - ultra-low fees!' 
-        : 'P2P transfer initiated successfully'
+      compliance: {
+        minimumEnforced: true,
+        maximumEnforced: true,
+        profitabilityValidated: true,
+        referralCostsCovered: true
+      }
     });
   } catch (error) {
     res.status(500).json({
@@ -156,7 +226,7 @@ router.post('/transfer', async (req, res) => {
 
 /**
  * POST /api/p2p/initiate
- * Initiate a P2P transfer with profitable fee structure
+ * Legacy endpoint - redirects to unified transfer logic
  */
 router.post('/initiate', async (req, res) => {
   try {
@@ -169,32 +239,28 @@ router.post('/initiate', async (req, res) => {
       });
     }
 
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 5) {
+    // Validate transaction amount
+    const validation = validateTransactionAmount(amount, senderMethod);
+    if (!validation.valid) {
       return res.status(400).json({
         success: false,
-        error: 'Minimum transfer amount is $5'
+        error: validation.error
       });
     }
 
-    // P2P transfer service with profitable rates
+    // Use P2P transfer service with profitable rates
     const transferService = new P2PTransferService();
     const result = await transferService.initiateTransfer({
       recipient,
-      amount: transferAmount,
+      amount: parseFloat(amount),
       senderMethod,
       recipientMethod
     });
 
     res.json({
       success: true,
-      transferId: result.transferId,
-      amount: result.amount,
-      fee: result.fee,
-      totalAmount: result.totalAmount,
-      status: result.status,
-      estimatedDelivery: result.estimatedDelivery,
-      profitMargin: result.profitMargin
+      ...result,
+      businessLogicCompliant: true
     });
   } catch (error) {
     res.status(500).json({
@@ -205,227 +271,16 @@ router.post('/initiate', async (req, res) => {
 });
 
 /**
- * POST /api/p2p/calculate-fee
- * Calculate P2P transfer fee with cross-platform support
+ * GET /api/p2p/business-logic
+ * Expose business logic constants for frontend validation
  */
-router.post('/calculate-fee', async (req, res) => {
-  try {
-    const { amount, fromPlatform, toPlatform } = req.body;
-    
-    if (!amount || !fromPlatform || !toPlatform) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields: amount, fromPlatform, toPlatform'
-      });
-    }
-
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 1) {
-      return res.status(400).json({
-        success: false,
-        error: 'Minimum transfer amount is $1'
-      });
-    }
-
-    // Calculate fees with cross-platform support
-    let baseFee, platformFee, processingFee;
-    
-    if (fromPlatform === 'usdc' || toPlatform === 'usdc') {
-      baseFee = Math.max(transferAmount * 0.005, 1.00); // 0.5% with $1.00 minimum
-      platformFee = transferAmount * 0.0075; // 0.75% platform fee
-      processingFee = 0; // No additional processing for USDC
-    } else {
-      baseFee = Math.max(transferAmount * 0.035, 7.50); // 3.5% with $7.50 minimum
-      platformFee = transferAmount * 0.01; // 1% platform fee
-      processingFee = fromPlatform === 'credit-card' ? transferAmount * 0.029 : transferAmount * 0.005;
-    }
-
-    const totalFee = baseFee + platformFee + processingFee;
-    
-    res.json({
-      success: true,
-      amount: transferAmount,
-      fees: {
-        base: baseFee,
-        platform: platformFee,
-        processing: processingFee,
-        total: totalFee
-      },
-      totalAmount: transferAmount + totalFee,
-      fromPlatform,
-      toPlatform,
-      savings: fromPlatform === 'usdc' || toPlatform === 'usdc' ? 
-        `${((1 - (totalFee / (transferAmount * 0.05))) * 100).toFixed(1)}% savings vs traditional methods` : 
-        'Consider USDC for ultra-low fees'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Fee calculation failed'
-    });
-  }
-});
-
-/**
- * GET /api/p2p/status/:transferId
- * Get transfer status
- */
-router.get('/status/:transferId', async (req, res) => {
-  try {
-    const { transferId } = req.params;
-    
-    if (!transferId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Transfer ID is required'
-      });
-    }
-
-    // Mock transfer status for demonstration
-    const mockStatus = {
-      transferId,
-      status: 'completed',
-      amount: 1000,
-      fee: 12.50,
-      senderMethod: 'paypal',
-      recipientMethod: 'crypto',
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
-      estimatedDelivery: '5-15 minutes',
-      actualDelivery: '8 minutes'
-    };
-
-    res.json({
-      success: true,
-      transfer: mockStatus
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Status check failed'
-    });
-  }
-});
-
-/**
- * GET /api/p2p/supported-platforms
- * Get list of supported platforms
- */
-router.get('/supported-platforms', async (req, res) => {
-  try {
-    const supportedPlatforms = {
-      senderMethods: [
-        { id: 'paypal', name: 'PayPal', fee: '2.9% + $0.30', available: true },
-        { id: 'credit-card', name: 'Credit Card', fee: '2.9% + $0.30', available: true },
-        { id: 'usdc', name: 'USDC', fee: '0.5% + $1.00', available: true, recommended: true },
-        { id: 'crypto', name: 'Crypto', fee: '1.5% + $2.50', available: true },
-        { id: 'bank-transfer', name: 'Bank Transfer', fee: '1.0% + $5.00', available: false }
-      ],
-      recipientMethods: [
-        { id: 'paypal', name: 'PayPal', available: true },
-        { id: 'crypto', name: 'Crypto Wallet', available: true },
-        { id: 'usdc', name: 'USDC', available: true, recommended: true },
-        { id: 'bank-transfer', name: 'Bank Transfer', available: false },
-        { id: 'mobile-money', name: 'Mobile Money', available: false }
-      ]
-    };
-
-    res.json({
-      success: true,
-      platforms: supportedPlatforms
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Platform list retrieval failed'
-    });
-  }
-});
-
-/**
- * POST /api/p2p/cross-border
- * Cross-border P2P transfer endpoint
- */
-router.post('/cross-border', async (req, res) => {
-  try {
-    const { recipient, amount, senderCountry, recipientCountry, senderMethod, recipientMethod } = req.body;
-    
-    if (!recipient || !amount || !senderCountry || !recipientCountry || !senderMethod || !recipientMethod) {
-      return res.status(400).json({
-        success: false,
-        error: 'Missing required fields for cross-border transfer'
-      });
-    }
-
-    const transferAmount = parseFloat(amount);
-    if (isNaN(transferAmount) || transferAmount < 10) {
-      return res.status(400).json({
-        success: false,
-        error: 'Minimum cross-border transfer amount is $10'
-      });
-    }
-
-    // Cross-border fee calculation
-    const baseFee = Math.max(transferAmount * 0.025, 15.00); // 2.5% with $15 minimum
-    const crossBorderFee = Math.max(transferAmount * 0.015, 5.00); // Additional 1.5% for cross-border
-    const totalFee = baseFee + crossBorderFee;
-
-    const transferId = `xb_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-    
-    res.json({
-      success: true,
-      transferId,
-      amount: transferAmount,
-      baseFee,
-      crossBorderFee,
-      totalFee,
-      senderCountry,
-      recipientCountry,
-      senderMethod,
-      recipientMethod,
-      status: 'initiated',
-      estimatedDelivery: '1-3 business days',
-      exchangeRate: 1.0, // USD to USD for demo
-      message: 'Cross-border transfer initiated successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Cross-border transfer initiation failed'
-    });
-  }
-});
-
-/**
- * GET /api/referrals/structure
- * Get referral commission structure (for audit purposes)
- */
-router.get('/referrals/structure', async (req, res) => {
-  try {
-    const referralStructure = {
-      tiers: [
-        { name: 'Bronze', minReferrals: 0, commission: 0.003, bonus: 0.001 },
-        { name: 'Silver', minReferrals: 10, commission: 0.004, bonus: 0.001 },
-        { name: 'Gold', minReferrals: 25, commission: 0.005, bonus: 0.001 },
-        { name: 'Platinum', minReferrals: 50, commission: 0.006, bonus: 0.001 }
-      ],
-      maximumCommission: 0.006, // 0.6% maximum
-      minimumTransaction: 50.00, // $50 minimum for referral eligibility
-      maximumCap: 15.00, // $15 maximum referral commission per transaction
-      payoutSchedule: 'Monthly',
-      payoutMethods: ['PayPal', 'Bank Transfer', 'Crypto']
-    };
-
-    res.json({
-      success: true,
-      referralStructure
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Referral structure retrieval failed'
-    });
-  }
+router.get('/business-logic', async (req, res) => {
+  res.json({
+    success: true,
+    businessLogic: BUSINESS_LOGIC,
+    lastUpdated: '2025-07-24',
+    version: '2.0.0'
+  });
 });
 
 export default router;

@@ -19,6 +19,7 @@ import {
   Plus
 } from "@/lib/icons";
 import { Link } from "wouter";
+import { NavigationHeader } from "@/components/navigation-header";
 
 function WalletManagement() {
   const { user } = useAuth();
@@ -40,7 +41,9 @@ function WalletManagement() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      <NavigationHeader />
+      
+      {/* Page Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -51,12 +54,6 @@ function WalletManagement() {
               </p>
             </div>
             <div className="flex space-x-4">
-              <Button variant="outline" asChild>
-                <Link href="/dashboard">
-                  <ChevronRight className="h-4 w-4 mr-2 rotate-180" />
-                  Dashboard
-                </Link>
-              </Button>
               <Button asChild>
                 <Link href="/dex-aggregator">
                   <ExternalLink className="h-4 w-4 mr-2" />

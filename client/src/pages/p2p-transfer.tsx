@@ -25,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
 import { UserGuidanceModal, FeatureTooltip, USDCSavingsBadge } from "@/components/user-guidance";
 import { PaymentMethodSetup } from "@/components/payment-method-setup";
+import { NavigationHeader } from "@/components/navigation-header";
 
 interface P2PTransferData {
   recipient: string;
@@ -246,22 +247,24 @@ export default function P2PTransfer() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Send Money</h1>
-              <p className="text-gray-600 dark:text-gray-300">
-                Fast, secure P2P transfers worldwide
-              </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <NavigationHeader />
+      <div className="py-8">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Send Money</h1>
+                <p className="text-gray-600 dark:text-gray-300">
+                  Fast, secure P2P transfers worldwide
+                </p>
+              </div>
+              <UserGuidanceModal />
             </div>
-            <UserGuidanceModal />
           </div>
-        </div>
 
-        {/* Progress Steps */}
+          {/* Progress Steps */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             {[1, 2, 3, 4].map((num) => (
@@ -620,7 +623,6 @@ export default function P2PTransfer() {
                       </div>
                     </FeatureTooltip>
                   )}
-                </div>
 
                 {step === 3 && (
                   <div className="pt-4">
@@ -655,6 +657,7 @@ export default function P2PTransfer() {
                       <p>• 24/7 support available</p>
                     </>
                   )}
+                </div>
                 </div>
               </CardContent>
             </Card>

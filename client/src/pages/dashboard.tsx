@@ -26,6 +26,7 @@ import { QuickFunding } from "@/components/quick-funding";
 import { InstantSwap } from "@/components/instant-swap";
 import { WalletDisplay } from "@/components/wallet-display";
 import { EnhancedWalletManager } from "@/components/enhanced-wallet-manager";
+import { NavigationHeader } from "@/components/navigation-header";
 
 interface Transaction {
   id: string;
@@ -144,7 +145,9 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
+      <NavigationHeader />
+      
+      {/* Welcome Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -162,18 +165,6 @@ export default function Dashboard() {
                 <Link href="/">
                   <BarChart3 className="h-4 w-4 mr-2" />
                   All Services
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/p2p-transfer">
-                  <Send className="h-4 w-4 mr-2" />
-                  Send Money
-                </Link>
-              </Button>
-              <Button variant="outline" asChild>
-                <Link href="/ai-marketplace">
-                  <Zap className="h-4 w-4 mr-2" />
-                  AI Marketplace
                 </Link>
               </Button>
             </div>

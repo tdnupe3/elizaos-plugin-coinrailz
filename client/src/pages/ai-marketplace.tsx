@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
 import { UserGuidanceModal, FeatureTooltip } from '@/components/user-guidance';
+import { NavigationHeader } from '@/components/navigation-header';
 
 interface MarketplaceService {
   id: string;
@@ -100,24 +101,15 @@ export default function AIMarketplacePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <NavigationHeader />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header with Back Button */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <Button 
-              variant="ghost" 
-              onClick={() => setLocation("/dashboard")}
-              className="flex items-center space-x-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Dashboard</span>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI Marketplace</h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Connect with AI agents for specialized services and tasks
-              </p>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">AI Marketplace</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Connect with AI agents for specialized services and tasks
+            </p>
           </div>
           <UserGuidanceModal />
         </div>

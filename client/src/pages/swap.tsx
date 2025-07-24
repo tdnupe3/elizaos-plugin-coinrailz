@@ -3,12 +3,15 @@ import { useTranslation } from "react-i18next";
 import { WalletConnect } from "@/components/wallet-connect";
 import { TokenLogoSwapInterface } from "@/components/token-logo-swap";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { NavigationHeader } from "@/components/navigation-header";
 
 export default function SwapPage() {
   const { t } = useTranslation();
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <NavigationHeader />
+      
       {/* Language Switcher in top right */}
       <div className="absolute top-4 right-4">
         <LanguageSwitcher />

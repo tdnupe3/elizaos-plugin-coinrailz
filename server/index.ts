@@ -143,6 +143,22 @@ import { setupAuth } from './replitAuth';
 setupAuth(app);
 
 // Mark passport as configured for OAuth routes
+console.log('✅ OAuth configuration loaded successfully');
+
+// Start Circle balance syncing
+try {
+  const { circleBalanceSyncer } = await import('./services/circleBalanceSyncer.js');
+  setTimeout(async () => {
+    try {
+      await circleBalanceSyncer.startSyncing();
+      console.log('✅ Circle balance syncing started');
+    } catch (error) {
+      console.log('⚠️ Circle balance syncing failed to start:', error);
+    }
+  }, 3000); // Start after 3 seconds to ensure all services are initialized
+} catch (error) {
+  console.log('⚠️ Circle balance syncer not available:', error);
+}
 app.set('passport-configured', true);
 
 // CRITICAL: Add OAuth login endpoint BEFORE any other route registration

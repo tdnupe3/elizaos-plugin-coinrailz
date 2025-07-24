@@ -19,6 +19,7 @@ import circleRoutes from "./routes/circleRoutes";
 // import circleKYCRoutes from "./routes/circleKYCRoutes";
 import userCircleRoutes from "./routes/userCircleRoutes";
 import { circleTransactionMonitor } from './services/circleTransactionMonitor';
+import { circleBalanceSyncer } from './services/circleBalanceSyncer';
 // import { requireSecureAuth, financialRateLimit, authRateLimit } from "./middleware/secureAuth";
 import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
@@ -107,6 +108,56 @@ export function registerRoutes(app: Express): Server {
     try {
       const result = await circleTransactionMonitor.checkTransactionHash(req.params.txHash);
       res.json(result);
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // === CIRCLE BALANCE SYNCING ===
+  // Balance synchronization endpoints
+  app.get('/api/circle/balance/status', (req, res) => {
+    res.json({
+      success: true,
+      status: circleBalanceSyncer.getStatus(),
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.post('/api/circle/balance/sync-all', async (req, res) => {
+    try {
+      const result = await circleBalanceSyncer.syncAllBalances();
+      res.json({
+        success: true,
+        result: result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  app.post('/api/circle/balance/sync-user', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          error: 'Email required'
+        });
+      }
+
+      const result = await circleBalanceSyncer.forceSyncUser(email);
+      res.json({
+        success: result.success,
+        result: result,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       res.status(500).json({
         success: false,

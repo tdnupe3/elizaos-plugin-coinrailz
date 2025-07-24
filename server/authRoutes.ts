@@ -245,6 +245,13 @@ export function registerAuthRoutes(app: Express) {
       });
     }
     
+    // Clear session token from header if present
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      sessionStore.delete(token);
+    }
+    
     // Redirect to home page after logout
     res.redirect('/');
   });
@@ -258,6 +265,13 @@ export function registerAuthRoutes(app: Express) {
           console.error('Session destruction error:', err);
         }
       });
+    }
+    
+    // Clear session token from header if present
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      sessionStore.delete(token);
     }
     
     res.json({

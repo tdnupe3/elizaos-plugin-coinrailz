@@ -1172,8 +1172,8 @@ export function registerRoutes(app: Express): Server {
       });
     }
     
-    // Process OAuth callback and redirect to dashboard
-    res.redirect('/dashboard?auth=success');
+    // Process OAuth callback and redirect to home page
+    res.redirect('/?auth=success');
   });
 
   // Authentication status endpoint

@@ -21,29 +21,21 @@ export function WalletDisplay() {
   const { toast } = useToast();
   const [showQR, setShowQR] = useState(false);
   
-  // Check user's Circle wallet status
-  const { data: walletStatus } = useQuery({
-    queryKey: ['/api/user-circle/wallet/info'],
-    enabled: !!user,
+  // Use the working balance check endpoint for now
+  const userEmail = (user as any)?.email || (user as any)?.claims?.email;
+  
+  const { data: balanceData, isLoading } = useQuery({
+    queryKey: ['/api/balance-check', userEmail],
+    enabled: !!userEmail,
     retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 30000,
+    refetchInterval: 5000, // Refresh every 5 seconds
+    staleTime: 0,
     throwOnError: false
   });
 
-  // Check USDC balance
-  const { data: usdcBalance } = useQuery({
-    queryKey: ['/api/user-circle/balance'],
-    enabled: !!user,
-    retry: false,
-    refetchOnWindowFocus: false,
-    staleTime: 30000,
-    throwOnError: false
-  });
-
-  const walletAddress = (walletStatus as any)?.wallet?.address;
-  const balance = parseFloat((usdcBalance as any)?.balance || '0');
-  const hasWallet = !!(walletStatus && (walletStatus as any)?.success && walletAddress);
+  const walletAddress = (balanceData as any)?.walletAddress;
+  const balance = parseFloat((balanceData as any)?.balance || '0');
+  const hasWallet = !!(balanceData && (balanceData as any)?.success && walletAddress);
 
   const copyAddress = () => {
     if (walletAddress) {

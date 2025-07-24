@@ -1,20 +1,27 @@
 import { Router } from 'express';
 import { userCircleService } from '../services/userCircleService';
-import { requireAuth } from '../middleware/requireAuth';
 import { db } from '../db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 
 const router = Router();
 
-// All routes require authentication
-router.use(requireAuth);
+// Simple auth check middleware
+const checkAuth = (req: any, res: any, next: any) => {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required'
+    });
+  }
+  next();
+};
 
 // Create Circle wallet for authenticated user
-router.post('/wallet/create', async (req, res) => {
+router.post('/wallet/create', checkAuth, async (req: any, res) => {
   try {
     const { blockchain = 'ETH' } = req.body;
-    const userId = req.user.id;
+    const userId = (req.user as any).id;
 
     if (!['ETH', 'MATIC', 'AVAX', 'ARB', 'BASE', 'BNB'].includes(blockchain)) {
       return res.status(400).json({
@@ -40,9 +47,9 @@ router.post('/wallet/create', async (req, res) => {
 });
 
 // Get user's USDC balance
-router.get('/balance', async (req, res) => {
+router.get('/balance', checkAuth, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req.user as any).id;
     const result = await userCircleService.getUserUSDCBalance(userId);
     
     if (!result.success) {
@@ -60,9 +67,9 @@ router.get('/balance', async (req, res) => {
 });
 
 // Get all user's Circle wallets
-router.get('/wallets', async (req, res) => {
+router.get('/wallets', checkAuth, async (req: any, res) => {
   try {
-    const userId = req.user.id;
+    const userId = (req.user as any).id;
     const result = await userCircleService.getUserCircleWallets(userId);
     
     if (!result.success) {
@@ -80,10 +87,10 @@ router.get('/wallets', async (req, res) => {
 });
 
 // Create additional wallet for different blockchain
-router.post('/wallet/additional', async (req, res) => {
+router.post('/wallet/additional', checkAuth, async (req: any, res) => {
   try {
     const { blockchain } = req.body;
-    const userId = req.user.id;
+    const userId = (req.user as any).id;
 
     if (!blockchain || !['ETH', 'MATIC', 'AVAX', 'ARB', 'BASE', 'BNB'].includes(blockchain)) {
       return res.status(400).json({

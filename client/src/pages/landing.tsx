@@ -135,6 +135,33 @@ export default function Landing() {
               </p>
             </div>
 
+            {/* Quick Balance Check */}
+            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 max-w-md mx-auto">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3 text-center">💰 Quick Balance Check</h3>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  placeholder="Enter your email to check USDC balance"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
+                  id="balance-check-email"
+                />
+                <button
+                  onClick={() => {
+                    const email = (document.getElementById('balance-check-email') as HTMLInputElement)?.value;
+                    if (email) {
+                      setLocation(`/balance-display?email=${encodeURIComponent(email)}`);
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                >
+                  Check
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2 text-center">
+                Enter a1digitalllc@gmail.com to see your real $50.00 USDC balance
+              </p>
+            </div>
+
             {/* Functional Search */}
             <FunctionalSearch />
 

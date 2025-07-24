@@ -526,6 +526,42 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // Simple user balance endpoint for authenticated frontend components
+  app.get('/api/user/balance/:email', async (req, res) => {
+    try {
+      const { email } = req.params;
+      
+      const result = await db.execute(sql`
+        SELECT email, usdc_balance, circle_wallet_address 
+        FROM users 
+        WHERE email = ${email} 
+        LIMIT 1
+      `);
+      
+      if (result.rowCount === 0 || !result.rows[0]) {
+        return res.status(404).json({
+          success: false,
+          error: 'User not found'
+        });
+      }
+
+      const user = result.rows[0];
+      res.json({
+        success: true,
+        email: user.email,
+        usdBalance: user.usdc_balance,
+        walletAddress: user.circle_wallet_address,
+        currency: "USD"
+      });
+    } catch (error) {
+      console.error('Error getting user balance:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error'
+      });
+    }
+  });
+
   // Simple P2P Transfer endpoint - Send USDC between users
   app.post('/api/simple-transfer', async (req, res) => {
     try {

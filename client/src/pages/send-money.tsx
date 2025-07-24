@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Send, CheckCircle, AlertCircle } from '@/lib/minimal-icons-clean';
+import { SimpleBalanceDisplay } from '@/components/simple-balance-display';
 
 export default function SendMoney() {
   const [formData, setFormData] = useState({
@@ -71,6 +72,16 @@ export default function SendMoney() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Send Money</h1>
           <p className="text-gray-600">Transfer USDC instantly between users</p>
         </div>
+
+        {/* Balance Display for Sender */}
+        {formData.senderEmail && (
+          <div className="mb-6">
+            <SimpleBalanceDisplay 
+              userEmail={formData.senderEmail}
+              title={`${formData.senderEmail} Balance`}
+            />
+          </div>
+        )}
 
         <Card className="mb-6">
           <CardHeader>

@@ -104,6 +104,7 @@ const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 const Documentation = lazy(() => import("@/pages/Documentation"));
 const CryptoPrices = lazy(() => import("@/pages/crypto-prices"));
 const BalanceCheck = lazy(() => import("@/pages/balance-check"));
+const BetaBalanceDemo = lazy(() => import("@/pages/beta-balance-demo"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -143,6 +144,9 @@ function Router() {
       </Route>
       <Route path="/balance-check">
         {() => <LazyLoadWrapper><BalanceCheck /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/beta-balance">
+        {() => <LazyLoadWrapper><BetaBalanceDemo /></LazyLoadWrapper>}
       </Route>
       <Route path="/demo/buy-sell">
         {() => <LazyLoadWrapper><DemoBuySell /></LazyLoadWrapper>}

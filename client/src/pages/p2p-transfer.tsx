@@ -295,9 +295,9 @@ export default function P2PTransfer() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Transfer Form */}
-          <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Transfer Form */}
+            <div className="lg:col-span-2">
             {step === 1 && (
               <Card>
                 <CardHeader>
@@ -563,16 +563,16 @@ export default function P2PTransfer() {
                 </CardContent>
               </Card>
             )}
-          </div>
+            </div>
 
-          {/* Summary Sidebar */}
-          <div className="lg:col-span-1">
-            <Card className="sticky top-8">
-              <CardHeader>
-                <CardTitle>Transfer Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
+            {/* Summary Sidebar */}
+            <div className="lg:col-span-1">
+              <Card className="sticky top-8">
+                <CardHeader>
+                  <CardTitle>Transfer Summary</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Recipient:</span>
                     <span className="font-medium">
@@ -657,10 +657,10 @@ export default function P2PTransfer() {
                       <p>• 24/7 support available</p>
                     </>
                   )}
-                  </div>
                 </div>
               </CardContent>
             </Card>
+            </div>
           </div>
         </div>
       </div>

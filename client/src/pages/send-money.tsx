@@ -90,8 +90,16 @@ export default function SendMoney() {
             <p className="text-gray-600">Transfer USDC instantly between users</p>
           </div>
 
+        {/* Demo Balance Display - Always Show A1Digital Balance */}
+        <div className="mb-6">
+          <SimpleBalanceDisplay 
+            userEmail="a1digitalllc@gmail.com"
+            title="A1Digital Beta Account Balance"
+          />
+        </div>
+
         {/* Balance Display for Sender */}
-        {formData.senderEmail && (
+        {formData.senderEmail && formData.senderEmail !== 'a1digitalllc@gmail.com' && (
           <div className="mb-6">
             <SimpleBalanceDisplay 
               userEmail={formData.senderEmail}

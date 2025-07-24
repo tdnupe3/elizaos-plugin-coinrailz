@@ -57,6 +57,7 @@ export function SimpleBalanceDisplay({ userEmail, title = "USDC Balance" }: Simp
   }
 
   console.log('Balance Debug:', { userEmail, balanceData, isLoading, error });
+  console.log('Raw API Response:', balanceData);
   
   const balance = balanceData as BalanceResponse;
   if (error || !balance?.success) {

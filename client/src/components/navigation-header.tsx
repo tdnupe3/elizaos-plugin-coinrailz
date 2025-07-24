@@ -9,7 +9,7 @@ interface NavigationHeaderProps {
 }
 
 export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [location, setLocation] = useLocation();
 
   const handleLogout = () => {
@@ -67,20 +67,21 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
             </Button>
             
-            {/* User Profile with Dropdown */}
-            <div className="relative group">
-              <Button
-                variant="ghost"
-                className="flex items-center space-x-2 hover:bg-neutral-100 px-3 py-2 rounded-lg"
-              >
-                <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                  {getInitials(user?.firstName, user?.lastName)}
-                </div>
-                <span className="text-sm text-neutral-700 hidden md:block">
-                  {user?.firstName || "User"}
-                </span>
-                <ChevronDown className="w-4 h-4 text-neutral-500" />
-              </Button>
+            {/* User Profile with Dropdown - Only show if authenticated */}
+            {isAuthenticated ? (
+              <div className="relative group">
+                <Button
+                  variant="ghost"
+                  className="flex items-center space-x-2 hover:bg-neutral-100 px-3 py-2 rounded-lg"
+                >
+                  <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                    {getInitials(user?.firstName, user?.lastName)}
+                  </div>
+                  <span className="text-sm text-neutral-700 hidden md:block">
+                    {user?.firstName}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-neutral-500" />
+                </Button>
               
               {/* Dropdown Menu */}
               <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
@@ -121,7 +122,15 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              /* Show Sign In button when not authenticated */
+              <Button
+                onClick={() => setLocation('/auth')}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                Sign In
+              </Button>
+            )}
           </div>
         </div>
       </div>

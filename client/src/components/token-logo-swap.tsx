@@ -62,6 +62,7 @@ const supportedTokens: TokenInfo[] = [
 ];
 
 export function TokenLogoSwapInterface() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const { wallet, connectWallet, signTransaction } = useWallet();
   const { user } = useAuth();

@@ -48,7 +48,36 @@ export function WalletDisplay() {
   };
 
   if (!user) {
-    return null;
+    return (
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          Please sign in to view your USDC wallet and balance.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          Loading your wallet information...
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!userEmail) {
+    return (
+      <Alert>
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          Unable to access wallet information. Please try signing in again.
+        </AlertDescription>
+      </Alert>
+    );
   }
 
   if (!hasWallet) {

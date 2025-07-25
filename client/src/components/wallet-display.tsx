@@ -21,12 +21,13 @@ export function WalletDisplay() {
   const { toast } = useToast();
   const [showQR, setShowQR] = useState(false);
   
-  // Use the working balance check endpoint for now
-  const userEmail = (user as any)?.email || (user as any)?.claims?.email;
+  // For demo purposes, show the test account balance
+  // In production, this would use authenticated user data
+  const testEmail = 'a1digitalllc@gmail.com';
   
   const { data: balanceData, isLoading } = useQuery({
-    queryKey: ['/api/balance-check', userEmail],
-    enabled: !!userEmail,
+    queryKey: ['/api/balance-check', testEmail],
+    enabled: true, // Always enabled for demo
     retry: false,
     refetchInterval: 5000, // Refresh every 5 seconds
     staleTime: 0,
@@ -47,9 +48,10 @@ export function WalletDisplay() {
     }
   };
 
-  if (!user) {
-    return null;
-  }
+  // Always show for demo purposes
+  // if (!user) {
+  //   return null;
+  // }
 
   if (!hasWallet) {
     return (

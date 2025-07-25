@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
+import { WalletDisplay } from "@/components/wallet-display";
 import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -110,6 +111,11 @@ export default function MainMenu() {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* USDC Wallet Balance - Prominently displayed at top */}
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <WalletDisplay />
       </div>
 
       {/* Main Actions Grid - Positioned Higher */}

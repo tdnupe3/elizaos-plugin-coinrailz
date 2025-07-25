@@ -173,6 +173,11 @@ export default function Dashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* USDC Wallet Balance - Prominently displayed at top */}
+        <div className="mb-8">
+          <WalletDisplay />
+        </div>
+
         {/* Enhanced Wallet Manager - Primary wallet interface */}
         <div className="mb-8">
           <EnhancedWalletManager />
@@ -194,23 +199,20 @@ export default function Dashboard() {
           <OnboardingFlow />
         </div>
 
-        {/* USDC Balance Highlight Card */}
+        {/* Additional USDC Services */}
         <div className="mb-6">
           <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-950 dark:to-green-950">
             <CardHeader>
               <CardTitle className="flex items-center text-blue-700 dark:text-blue-300">
                 <DollarSign className="h-5 w-5 mr-2" />
-                USDC Balance
+                USDC Services
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-3xl font-bold text-blue-700 dark:text-blue-300">
-                    {usdcBalanceLoading ? "Loading..." : `$${(usdcBalance as any)?.balance || '0.00'} USDC`}
-                  </div>
                   <p className="text-sm text-blue-600 dark:text-blue-400">
-                    Instant settlements • Ultra-low fees
+                    Instant settlements • Ultra-low fees • Global reach
                   </p>
                 </div>
                 <div className="flex space-x-2">

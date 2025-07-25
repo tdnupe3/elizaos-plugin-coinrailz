@@ -206,7 +206,8 @@ export function registerAuthRoutes(app: Express) {
         }
       }
 
-      // No valid authentication found
+      // For production: require proper authentication
+      // a1digitalllc@gmail.com is a REAL USER with real $50.00 USDC balance
       return res.status(401).json({
         success: false,
         error: 'Unauthorized',

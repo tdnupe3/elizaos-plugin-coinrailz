@@ -290,7 +290,7 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
-  // Demo authentication for beta testing - provides different users
+  // Real authentication endpoint - no demo accounts
   app.get('/api/auth/user', async (req, res) => {
     try {
       if (req.isAuthenticated && req.isAuthenticated()) {
@@ -298,57 +298,19 @@ export function setupSimpleRoutes(app: Express) {
         return res.json({
           success: true,
           id: user?.claims?.sub || 'anonymous',
-          email: user?.claims?.email || 'demo@coinrailz.com',
-          firstName: user?.claims?.first_name || 'Demo',
-          lastName: user?.claims?.last_name || 'User',
+          email: user?.claims?.email,
+          firstName: user?.claims?.first_name,
+          lastName: user?.claims?.last_name,
           profileImage: user?.claims?.profile_image_url || null,
           claims: user?.claims
         });
       } else {
-        // For beta testing - simulate different users based on URL parameter
-        const userType = req.query.user || 'a1digital';
-        
-        if (userType === 'a1digital') {
-          return res.json({
-            success: true,
-            id: 'test-user-a1digital',
-            email: 'a1digitalllc@gmail.com',
-            firstName: 'A1',
-            lastName: 'Digital',
-            profileImage: null,
-            claims: {
-              email: 'a1digitalllc@gmail.com',
-              sub: 'test-user-a1digital'
-            }
-          });
-        } else if (userType === 'testuser') {
-          return res.json({
-            success: true,
-            id: 'test-user-demo',
-            email: 'testuser@example.com',
-            firstName: 'Test',
-            lastName: 'User',
-            profileImage: null,
-            claims: {
-              email: 'testuser@example.com',
-              sub: 'test-user-demo'
-            }
-          });
-        } else {
-          // Default to a1digital for now
-          return res.json({
-            success: true,
-            id: 'test-user-a1digital',
-            email: 'a1digitalllc@gmail.com',
-            firstName: 'A1',
-            lastName: 'Digital',
-            profileImage: null,
-            claims: {
-              email: 'a1digitalllc@gmail.com',
-              sub: 'test-user-a1digital'
-            }
-          });
-        }
+        // No authentication found
+        return res.status(401).json({
+          success: false,
+          error: 'Unauthorized',
+          message: 'Please sign in to access your account'
+        });
       }
     } catch (error) {
       return res.status(401).json({

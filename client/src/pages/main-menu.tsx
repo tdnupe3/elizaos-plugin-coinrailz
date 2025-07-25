@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
 import { WalletDisplay } from "@/components/wallet-display";
-import { BetaUserSwitcher } from "@/components/beta-user-switcher";
+
 import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
@@ -114,10 +114,7 @@ export default function MainMenu() {
         </div>
       </div>
 
-      {/* Beta Testing User Switcher */}
-      <div className="max-w-4xl mx-auto px-4 py-2">
-        <BetaUserSwitcher />
-      </div>
+
 
       {/* USDC Wallet Balance - Prominently displayed at top */}
       <div className="max-w-4xl mx-auto px-4 py-4">

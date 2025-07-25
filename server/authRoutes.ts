@@ -169,19 +169,57 @@ export function registerAuthRoutes(app: Express) {
 
   // Get current user endpoint (PROTECTED)
   app.get('/api/auth/user', async (req, res) => {
-    // For testing: return demo user data immediately
-    return res.json({
-      success: true,
-      id: 'test-user-a1digital',
-      email: 'a1digitalllc@gmail.com',
-      firstName: 'A1',
-      lastName: 'Digital',
-      profileImage: null,
-      claims: {
-        email: 'a1digitalllc@gmail.com',
-        sub: 'test-user-a1digital'
+    try {
+      // Check if user is authenticated via OAuth
+      if (req.isAuthenticated && req.isAuthenticated()) {
+        const user = req.user as any;
+        return res.json({
+          success: true,
+          id: user?.claims?.sub || user?.id,
+          email: user?.claims?.email || user?.email,
+          firstName: user?.claims?.first_name || user?.firstName || 'User',
+          lastName: user?.claims?.last_name || user?.lastName || '',
+          profileImage: user?.claims?.profile_image_url || null,
+          claims: user?.claims
+        });
       }
-    });
+
+      // Check for Bearer token authentication
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        const session = sessionStore.get(token);
+        if (session) {
+          const user = await storage.getUserByEmail(session.userEmail);
+          if (user) {
+            const { password: _, ...userResponse } = user;
+            return res.json({
+              success: true,
+              id: userResponse.id,
+              email: userResponse.email,
+              firstName: userResponse.firstName || 'User',
+              lastName: userResponse.lastName || '',
+              profileImage: null,
+              claims: { email: userResponse.email, sub: userResponse.id }
+            });
+          }
+        }
+      }
+
+      // No valid authentication found
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Please sign in to access your account'
+      });
+    } catch (error) {
+      console.error('Auth user error:', error);
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication failed',
+        message: 'Please sign in to access your account'
+      });
+    }
   });
 
   // Logout endpoint (GET - for frontend redirects)

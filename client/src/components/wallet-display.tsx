@@ -21,15 +21,14 @@ export function WalletDisplay() {
   const { toast } = useToast();
   const [showQR, setShowQR] = useState(false);
   
-  // For demo purposes, show the test account balance
-  // In production, this would use authenticated user data
-  const testEmail = 'a1digitalllc@gmail.com';
+  // Get authenticated user's email for balance lookup
+  const userEmail = (user as any)?.email || (user as any)?.claims?.email;
   
   const { data: balanceData, isLoading } = useQuery({
-    queryKey: ['/api/balance-check', testEmail],
-    enabled: true, // Always enabled for demo
+    queryKey: ['/api/balance-check', userEmail],
+    enabled: !!userEmail,
     retry: false,
-    refetchInterval: 5000, // Refresh every 5 seconds
+    refetchInterval: 5000,
     staleTime: 0,
     throwOnError: false
   });
@@ -48,10 +47,9 @@ export function WalletDisplay() {
     }
   };
 
-  // Always show for demo purposes
-  // if (!user) {
-  //   return null;
-  // }
+  if (!user) {
+    return null;
+  }
 
   if (!hasWallet) {
     return (

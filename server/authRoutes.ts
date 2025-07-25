@@ -206,20 +206,11 @@ export function registerAuthRoutes(app: Express) {
         }
       }
 
-      // For beta testing - provide demo authentication when no OAuth session exists
-      // This enables wallet functionality testing without complex OAuth setup
-      console.log('Authentication failed, providing demo session for beta testing');
-      return res.json({
-        success: true,
-        id: 'demo-user-a1digital',
-        email: 'a1digitalllc@gmail.com',
-        firstName: 'Demo',
-        lastName: 'User',
-        profileImage: null,
-        claims: { 
-          email: 'a1digitalllc@gmail.com', 
-          sub: 'demo-user-a1digital' 
-        }
+      // No valid authentication found
+      return res.status(401).json({
+        success: false,
+        error: 'Unauthorized',
+        message: 'Please sign in to access your account'
       });
     } catch (error) {
       console.error('Auth user error:', error);

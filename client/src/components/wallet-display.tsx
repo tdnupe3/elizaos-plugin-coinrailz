@@ -20,6 +20,7 @@ export function WalletDisplay() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [showQR, setShowQR] = useState(false);
+  const [currentUser, setCurrentUser] = useState('a1digital'); // For beta testing
   
   // Get authenticated user's email for balance lookup
   const userEmail = (user as any)?.email || (user as any)?.claims?.email;

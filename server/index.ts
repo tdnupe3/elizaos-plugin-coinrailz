@@ -16,6 +16,8 @@ import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
 import { registerAuthRoutes } from "./authRoutes";
 import { registerRoutes as registerMainRoutes } from "./routes";
 import gasStationRoutes from './routes/gasStationRoutes';
+import plaidRoutes from './routes/plaidRoutes';
+import coinflipRoutes from './routes/coinflipRoutes';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
@@ -2503,6 +2505,10 @@ app.get('/api/dashboard/stats', (req, res) => {
     }
   });
 });
+
+// Register Plaid and CoinFlip routes for banking integration
+app.use('/api/plaid', plaidRoutes);
+app.use('/api/coinflip', coinflipRoutes);
 
 // Register data monetization routes BEFORE simpleRoutes to prevent 404 interception
 app.use('/api/data', dataMonetizationRoutes);

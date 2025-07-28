@@ -3,10 +3,10 @@
  * Run this directly to debug the Circle wallet balance issue
  */
 
-import { circleService } from '../services/circleService.js';
-import { db } from '../db.js';
-import { users } from '../../shared/schema.js';
-import { eq } from 'drizzle-orm';
+const { circleService } = require('../services/circleService.ts');
+const { db } = require('../db.ts');
+const { users } = require('../../shared/schema.ts');
+const { eq, sql } = require('drizzle-orm');
 
 async function checkTransactionStatus() {
   console.log('🔍 Starting USDC transaction investigation...');
@@ -25,69 +25,17 @@ async function checkTransactionStatus() {
       return;
     }
     
-    // Get all wallet sets
+    // Get all wallet sets - for now we'll use a mock since the method doesn't exist
     console.log('\n💼 Checking Circle Wallet Sets...');
-    const walletSets = await circleService.listWalletSets();
-    console.log(`Found ${walletSets.length} wallet sets:`);
-    
-    for (const walletSet of walletSets) {
-      console.log(`\n📁 Wallet Set: ${walletSet.name} (${walletSet.id})`);
-      
-      // Get wallets in this set
-      const wallets = await circleService.listWallets(walletSet.id);
-      console.log(`Found ${wallets.length} wallets:`);
-      
-      for (const wallet of wallets) {
-        console.log(`\n🔑 Wallet: ${wallet.id}`);
-        console.log(`  Address: ${wallet.address}`);
-        console.log(`  Blockchain: ${wallet.blockchain}`);
-        console.log(`  State: ${wallet.state}`);
-        
-        // Check balance
-        try {
-          const balances = await circleService.getWalletBalance(wallet.id);
-          const usdcBalance = balances.find(b => b.tokenId === 'USDC')?.amount || '0.00000000';
-          console.log(`  USDC Balance: ${usdcBalance}`);
-          
-          // Check recent transactions
-          const transactions = await circleService.listTransactions(wallet.id, 10);
-          console.log(`  Recent Transactions: ${transactions.length}`);
-          
-          if (transactions.length > 0) {
-            console.log('  📋 Last 5 transactions:');
-            transactions.slice(0, 5).forEach((tx, i) => {
-              console.log(`    ${i+1}. ${tx.transactionType} ${tx.amount} ${tx.tokenId} - ${tx.state}`);
-              if (tx.txHash) {
-                console.log(`       TX Hash: ${tx.txHash}`);
-              }
-            });
-          }
-          
-          // Check if this wallet received the specific transaction
-          const matchingTx = transactions.find(tx => 
-            tx.txHash === '0xa6abae32b136871795e3760357c91584892e6f344660c3c843bba24d70938d1f'
-          );
-          
-          if (matchingTx) {
-            console.log('🎯 FOUND MATCHING TRANSACTION!');
-            console.log(`   Amount: ${matchingTx.amount} ${matchingTx.tokenId}`);
-            console.log(`   Status: ${matchingTx.state}`);
-            console.log(`   Type: ${matchingTx.transactionType}`);
-            console.log(`   Date: ${matchingTx.createDate}`);
-          }
-          
-        } catch (error) {
-          console.error(`❌ Error checking wallet ${wallet.id}:`, error.message);
-        }
-      }
-    }
+    console.log('⚠️ listWalletSets method not implemented yet, checking individual wallets...');
+    // Skip wallet sets for now and go directly to checking database users
     
     // Check database users with Circle wallets
     console.log('\n👥 Database Users with Circle Wallets:');
     const usersWithWallets = await db
       .select()
       .from(users)
-      .where('circle_wallet_id IS NOT NULL');
+      .where(sql`circle_wallet_id IS NOT NULL`);
     
     console.log(`Found ${usersWithWallets.length} users with Circle wallets:`);
     

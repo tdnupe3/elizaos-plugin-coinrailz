@@ -179,6 +179,23 @@ class CircleService {
   }
 
   /**
+   * List all wallet sets
+   */
+  public async listWalletSets(): Promise<CircleWalletSet[]> {
+    if (!this.client) {
+      throw new Error('Circle client not initialized. Entity secret required.');
+    }
+
+    try {
+      const response = await this.client.listWalletSets();
+      return response.data.walletSets || [];
+    } catch (error) {
+      console.error('Failed to list wallet sets:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Create a new wallet set
    */
   public async createWalletSet(name: string = 'CoinRailz Wallet Set'): Promise<CircleWalletSet> {

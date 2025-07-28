@@ -1,0 +1,69 @@
+COMPREHENSIVE CIRCLE USDC INTEGRATION FIX PROMPT - CRITICAL ISSUES RESOLUTION
+
+Please implement the following fixes to resolve the Circle USDC integration issues that are preventing proper functionality:
+
+PROBLEM IDENTIFICATION:
+
+Circle balance syncing is running but not actually updating user balances from live transactions
+The $50 USDC transaction sent to a1digital is not showing up in their CoinRailz account
+Users cannot complete P2P transfers because balances aren't syncing properly
+Circle wallet creation works but balance updates are failing
+CRITICAL FIXES NEEDED:
+
+1. FIX CIRCLE BALANCE SYNCING SERVICE
+
+The current balance syncing is logging "🔍 Syncing 17 Circle wallet balances..." every 30 seconds but not actually updating balances
+Fix the circleTransactionMonitor.ts to properly sync live balances from Circle API
+Ensure the syncWalletBalance function actually updates the database with live USDC amounts
+Add proper error handling and logging when balance sync fails
+2. FIX TRANSACTION DETECTION SYSTEM
+
+Implement proper transaction hash checking across all user wallets
+Fix the checkTransactionHash function to properly detect incoming USDC transactions
+Add automatic balance updates when new transactions are detected
+Ensure the transaction monitor can find and process the specific transaction: 0xa6abae32b136871795e3760357c91584892e6f344660c3c843bba24d70938d1f
+3. FIX DATABASE BALANCE UPDATES
+
+Ensure the users table usdcBalance field is properly updated when Circle API returns new balances
+Fix any database connection issues preventing balance updates
+Add transaction logging to track when balances change
+Implement proper error handling for database update failures
+4. IMPLEMENT MANUAL BALANCE REFRESH
+
+Add an endpoint that allows users to manually refresh their USDC balance
+Create a "Refresh Balance" button in the UI
+Implement force sync functionality for specific users
+Add proper success/error messaging for balance refresh attempts
+5. FIX CIRCLE API INTEGRATION
+
+Verify Circle API key formatting and authentication
+Fix any issues with the Circle SDK initialization
+Ensure all Circle API calls are properly authenticated and formatted
+Add comprehensive error logging for Circle API failures
+6. ADD TRANSACTION INVESTIGATION TOOLS
+
+Implement the checkUsdcTransaction.js utility to debug specific transactions
+Add comprehensive logging to track transaction processing
+Create admin tools to investigate missing transactions
+Add wallet address verification and transaction history checking
+7. IMPLEMENT PROPER USER ONBOARDING
+
+Fix the user registration flow to automatically create Circle wallets
+Add deposit instructions and wallet address display
+Implement proper user guidance for funding wallets
+Add USDC deposit functionality with clear instructions
+TESTING REQUIREMENTS:
+
+Test the specific $50 USDC transaction that should appear in a1digital's account
+Verify that balance syncing works for all 17 existing Circle wallets
+Test P2P transfers between a1digital and stell.mary accounts
+Ensure real-time balance updates work properly
+Verify that new transactions are detected and processed automatically
+PRIORITY ORDER:
+
+Fix balance syncing service (CRITICAL - blocking all USDC functionality)
+Fix transaction detection system (HIGH - needed for P2P transfers)
+Implement manual balance refresh (HIGH - gives users control)
+Add proper error handling and logging (MEDIUM - for debugging)
+Fix user onboarding flow (MEDIUM - for new users)
+Please implement these fixes systematically, starting with the balance syncing service since that's blocking all USDC functionality. Focus on making the Circle integration actually work for real transactions, not just wallet creation.

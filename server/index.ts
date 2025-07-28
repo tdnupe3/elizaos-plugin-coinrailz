@@ -2507,8 +2507,64 @@ app.get('/api/dashboard/stats', (req, res) => {
 });
 
 // Register Plaid and CoinFlip routes for banking integration
+import plaidRoutes from './routes/plaidRoutes';
+import coinflipRoutes from './routes/coinflipRoutes';
 app.use('/api/plaid', plaidRoutes);
 app.use('/api/coinflip', coinflipRoutes);
+
+// Add manual balance refresh endpoint
+app.post('/api/circle/balance-sync/force-sync-user/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    // Get user from database
+    const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    if (!user.circleWalletId) {
+      return res.status(400).json({
+        success: false,
+        error: 'User does not have a Circle wallet'
+      });
+    }
+
+    // Force sync using the transaction monitor
+    const result = await circleTransactionMonitor.forceSyncUserBalance(user.id);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Force sync error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to force sync balance'
+    });
+  }
+});
+
+// Add transaction investigation endpoint
+app.get('/api/circle/investigate-transaction/:txHash', async (req, res) => {
+  try {
+    const { txHash } = req.params;
+    
+    console.log(`🔍 Investigating transaction: ${txHash}`);
+    
+    const result = await circleTransactionMonitor.checkTransactionHash(txHash);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Transaction investigation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to investigate transaction'
+    });
+  }
+});
 
 // Register data monetization routes BEFORE simpleRoutes to prevent 404 interception
 app.use('/api/data', dataMonetizationRoutes);

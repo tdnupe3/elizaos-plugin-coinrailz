@@ -64,12 +64,20 @@ class CircleTransactionMonitor {
         .from(users)
         .where(sql`circle_wallet_id IS NOT NULL AND circle_wallet_address IS NOT NULL`);
 
-      console.log(`🔍 Checking ${usersWithWallets.length} Circle wallets for updates...`);
+      console.log(`🔍 Syncing ${usersWithWallets.length} Circle wallet balances...`);
 
+      let updatedCount = 0;
       for (const user of usersWithWallets) {
         if (user.circleWalletId) {
-          await this.syncWalletBalance(user.id, user.circleWalletId);
+          const result = await this.syncWalletBalance(user.id, user.circleWalletId, user.email);
+          if (result.updated) {
+            updatedCount++;
+          }
         }
+      }
+
+      if (updatedCount > 0) {
+        console.log(`💰 Balance sync complete: ${updatedCount} wallets updated`);
       }
     } catch (error) {
       console.error('❌ Error checking wallet balances:', error);
@@ -79,29 +87,34 @@ class CircleTransactionMonitor {
   /**
    * Sync specific wallet balance with Circle API
    */
-  private async syncWalletBalance(userId: string, walletId: string) {
+  private async syncWalletBalance(userId: string, walletId: string, userEmail?: string): Promise<{ updated: boolean; error?: string }> {
     try {
-      // Get current balance from Circle
+      // Get current balance from Circle API
       const balances = await circleService.getWalletBalance(walletId);
       
       if (!balances || !Array.isArray(balances)) {
-        return;
+        console.log(`⚠️ No balance data returned for wallet ${walletId}`);
+        return { updated: false, error: 'No balance data from Circle API' };
       }
 
       // Find USDC balance
-      const usdcBalance = balances.find(b => b.tokenId === 'USDC')?.amount || '0.00000000';
+      const usdcBalance = balances.find(b => b.tokenId === 'USDC' || b.tokenId.includes('usdc'))?.amount || '0.00000000';
       
       // Get current stored balance
       const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
       
       if (user.length === 0) {
-        return;
+        return { updated: false, error: 'User not found in database' };
       }
 
       const currentBalance = user[0].usdcBalance || '0.00000000';
       
-      // Only update if balance changed
-      if (parseFloat(usdcBalance) !== parseFloat(currentBalance)) {
+      // Compare balances with precision handling
+      const currentFloat = parseFloat(currentBalance);
+      const newFloat = parseFloat(usdcBalance);
+      
+      // Only update if balance changed (with small tolerance for floating point precision)
+      if (Math.abs(newFloat - currentFloat) > 0.000001) {
         await db.update(users)
           .set({ 
             usdcBalance: usdcBalance,
@@ -109,19 +122,31 @@ class CircleTransactionMonitor {
           })
           .where(eq(users.id, userId));
 
-        console.log(`💰 Balance updated for user ${userId}: ${currentBalance} → ${usdcBalance} USDC`);
+        const displayEmail = userEmail || userId;
+        console.log(`💰 Balance updated for ${displayEmail}: ${currentBalance} → ${usdcBalance} USDC`);
         
-        // Log the transaction detection
-        if (parseFloat(usdcBalance) > parseFloat(currentBalance)) {
-          const difference = (parseFloat(usdcBalance) - parseFloat(currentBalance)).toFixed(6);
-          console.log(`📥 Incoming USDC detected: +${difference} USDC for wallet ${walletId}`);
+        // Log transaction detection
+        if (newFloat > currentFloat) {
+          const difference = (newFloat - currentFloat).toFixed(6);
+          console.log(`📥 Incoming USDC detected: +${difference} USDC for ${displayEmail} (wallet: ${walletId})`);
           
-          // You could add webhook notifications here
+          // Notify about balance update
           await this.notifyBalanceUpdate(userId, walletId, difference, 'INCOMING');
+        } else if (newFloat < currentFloat) {
+          const difference = (currentFloat - newFloat).toFixed(6);
+          console.log(`📤 Outgoing USDC detected: -${difference} USDC for ${displayEmail} (wallet: ${walletId})`);
+          
+          await this.notifyBalanceUpdate(userId, walletId, difference, 'OUTGOING');
         }
+        
+        return { updated: true };
       }
+      
+      return { updated: false };
     } catch (error) {
-      console.error(`❌ Error syncing wallet ${walletId}:`, error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error(`❌ Error syncing wallet ${walletId}:`, errorMsg);
+      return { updated: false, error: errorMsg };
     }
   }
 
@@ -158,7 +183,7 @@ class CircleTransactionMonitor {
         };
       }
 
-      await this.syncWalletBalance(userId, user[0].circleWalletId);
+      await this.syncWalletBalance(userId, user[0].circleWalletId, user[0].email);
       
       // Get updated balance
       const updatedUser = await db.select().from(users).where(eq(users.id, userId)).limit(1);

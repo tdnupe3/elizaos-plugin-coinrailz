@@ -11,8 +11,9 @@ import {
   DollarSign,
   CheckCircle,
   ArrowRight,
-  Info
-} from "@/lib/icons";
+  Info,
+  RefreshCw
+} from "@/lib/minimal-icons-clean";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,11 +22,12 @@ export function WalletDisplay() {
   const { toast } = useToast();
   const [showQR, setShowQR] = useState(false);
   const [currentUser, setCurrentUser] = useState('a1digital'); // For beta testing
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Get authenticated user's email for balance lookup
   const userEmail = (user as any)?.email || (user as any)?.claims?.email;
   
-  const { data: balanceData, isLoading } = useQuery({
+  const { data: balanceData, isLoading, refetch } = useQuery({
     queryKey: ['/api/balance-check', userEmail],
     enabled: !!userEmail,
     retry: false,
@@ -45,6 +47,25 @@ export function WalletDisplay() {
         title: "Address Copied!",
         description: "Your wallet address has been copied to clipboard",
       });
+    }
+  };
+
+  const handleRefreshBalance = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      toast({
+        title: "Balance Refreshed",
+        description: "Your USDC balance has been updated",
+      });
+    } catch (error) {
+      toast({
+        title: "Refresh Failed", 
+        description: "Unable to refresh balance. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -115,7 +136,18 @@ export function WalletDisplay() {
                 ${balance.toFixed(2)} <span className="text-lg text-gray-600">USDC</span>
               </p>
             </div>
-            <DollarSign className="w-8 h-8 text-blue-500" />
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleRefreshBalance}
+                disabled={isRefreshing}
+                variant="ghost"
+                size="sm"
+                className="p-2"
+              >
+                <RefreshCw className={`w-5 h-5 text-blue-500 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </Button>
+              <DollarSign className="w-8 h-8 text-blue-500" />
+            </div>
           </div>
         </div>
 

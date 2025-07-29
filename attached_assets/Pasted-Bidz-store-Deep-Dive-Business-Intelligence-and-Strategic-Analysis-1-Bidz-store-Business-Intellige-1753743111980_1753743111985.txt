@@ -1,0 +1,121 @@
+Bidz.store – Deep Dive Business Intelligence and Strategic Analysis
+1. Bidz.store Business Intelligence
+Business Model & Ecosystem: Bidz.store (also branded as BIDZ E-Store) operates a hybrid e-commerce and auction ecosystem that bridges traditional online shopping (Web2) with blockchain technology (Web3)
+askforfunding.com
+bidz.store
+. At its core is the BIDZ Token, a cryptocurrency issued on Binance Smart Chain (BSC), and a complementary stable-value currency called BIDZ Credit used for transactions
+askforfunding.com
+bidz.store
+. Users purchase BIDZ Tokens on exchanges and convert them via the proprietary BIDZ Swap tool into BIDZ Credit (pegged 1:1 to USD) for spending on the platform
+bidz.store
+bidz.store
+. This two-tier currency system mitigates crypto volatility by allowing consumers to transact in a stable unit (BIDZ Credit) while still driving demand for the BIDZ Token itself
+bidz.store
+bidz.store
+. The BIDZ ecosystem encompasses: an online marketplace for fixed-price shopping, a bid-auction platform for competitive bidding on goods and services, a VPN service (BIDZ VPN) that can be paid via crypto, a gamified app (Tic-Tac-Toe with crypto rewards), and BIDZ Pay, a digital wallet/payment app for managing tokens and credits
+askforfunding.com
+iq.wiki
+. Through this integrated ecosystem, Bidz.store aims to simplify cross-border e-commerce by handling logistics and compliance (e.g. global shipping via providers like DHL/FedEx) and by blending Web3 innovation with Web2 usability
+askforfunding.com
+bidz.store
+. In summary, Bidz.store’s model is to use blockchain rails to enable global commerce: buyers anywhere can acquire BIDZ tokens, swap to stable credits, and purchase real products or services which the company sources and ships worldwide
+bidz.store
+bidz.store
+. Revenue Streams: Bidz.store’s revenues come from multiple sources within its ecosystem. The primary source is likely marketplace transaction fees and commissions on sales. Every product purchase includes a “BIDZ fee” line item in checkout
+bidz.store
+, suggesting the platform takes a percentage fee on transactions (similar to how eBay or other marketplaces charge commissions). Additionally, Bidz.store benefits economically from its token ecosystem: as more users buy BIDZ Tokens to shop, demand for the token increases, potentially raising its market value – a dynamic explicitly noted in their investor materials
+bidz.store
+. The company also offers value-added services which can generate revenue, such as BIDZ VPN (a subscription-based virtual private network that accepts BIDZ Credit as payment) and in-app advertising in the BIDZ Gamify app
+askforfunding.com
+coinlore.com
+. The BIDZ Pay app could bring in fees or float revenue as it facilitates payments and perhaps offers cashback incentives (the EPAY partnership provides crypto cashback on phone bill payments)
+bidz.store
+. Moreover, Bidz.store has pursued partnerships with brick-and-mortar businesses (e.g. local merchants in Iraq, see below) and may earn referral fees or shared commissions when users transact via BIDZ Pay at those partners. Lastly, as a crypto-enabled platform, there may be ancillary revenue streams such as token listing fees on exchanges or future plans for a BIDZ Pay payment gateway service for other merchants
+askforfunding.com
+. In their funding pitch, the company highlighted potential revenue growth from expanding services like BIDZ VPN and global e-commerce, indicating these are expected to be significant contributors
+askforfunding.com
+. Overall, Bidz.store’s model combines traditional e-commerce income (transaction fees, possibly advertising) with Web3-driven revenue (token value appreciation, crypto payment services). Auction Platform Mechanics: The BIDZ Auction feature functions as a classic online auction house layered into the ecosystem. Users can bid on a variety of items – not just consumer goods but also offerings like travel packages, event tickets, “mystery boxes”, and even bundles of crypto assets
+iq.wiki
+. The auction interface is global: bidders from anywhere can participate, and winners have items shipped internationally. This global bidding model is enabled by the BIDZ Credit currency, which provides a stable medium for bids. Essentially, a user must preload their account with BIDZ Credit (via swapping tokens) and can then place bids in USD-equivalent amounts. When an auction is won, the payment is processed through BIDZ Pay using the pre-loaded credit
+bidz.store
+. The platform takes care of order fulfillment by purchasing the item (if it’s sourced from a third-party supplier) and shipping it to the customer via major logistics partners like FedEx, DHL, etc.
+bidz.store
+bidz.store
+. This indicates Bidz.store may operate a centralized procurement model for auctions: they likely list products (possibly from partner merchants or their own inventory), accept winning bids in BIDZ Credit, then ensure the item is delivered. By requiring all auction payments in their own ecosystem currency, Bidz.store creates a closed loop that drives token usage (users must acquire BIDZ Token/Credit to bid)
+bidz.store
+bidz.store
+. From a technology perspective, real-time auction updates and bid notifications would require a robust backend – likely a web application with realtime database or pub-sub features (though specific stack details aren’t public). The site and apps are live on web, iOS, and Android, indicating a multi-platform tech stack. Given the emphasis on blockchain, the key tech components include smart contracts on BSC for the token, the BIDZ Swap DApp (which connects to users’ crypto wallets like TrustWallet/MetaMask for token conversion)
+medium.com
+medium.com
+, and the BIDZ Pay app which manages user accounts and tracks balances off-chain. The company is leveraging both on-chain technology (crypto wallets, BSC transactions) and off-chain infrastructure (traditional databases, servers for the e-commerce site and apps), effectively combining them into one system
+bidz.store
+. For example, when a user swaps BIDZ Tokens to Credit, a BSC smart contract transaction is executed (requiring a small BNB gas fee) and within ~1.2 seconds the equivalent USD amount is credited to the user’s in-app balance
+medium.com
+medium.com
+. This demonstrates a tightly integrated tech stack bridging blockchain networks with the platform’s internal ledger. User Base and Target Audience: Bidz.store portrays itself as a global platform but with a particular strength in emerging markets. Notably, the company has a strong presence in Iraq’s Kurdistan region – evidenced by local partnerships and sponsorships (e.g. BIDZ sponsored the Duhok FC soccer club in Iraqi Kurdistan)
+coinlore.com
+. The platform’s support for multiple languages (including Kurdish and Arabic) and a customer support phone number in Iraq (+964 country code) confirm Iraq/MENA as a core user base
+bidz.store
+. The CEO has even highlighted that “BIDZ Coin is making headlines in Kurdistan, Iraq” with strong local support
+coinlore.com
+. In addition, Bidz.store is based in the U.S. (registered in Nashville, Tennessee) and positions itself as a global cross-border solution
+askforfunding.com
+askforfunding.com
+, so its target audience includes diasporas and international shoppers who face hurdles with traditional e-commerce. The size of the user base can be approximated from its crypto community: as of late 2024, the BIDZ Token had over 40,000 holders/investors across centralized and decentralized exchanges
+bidz.store
+. This “40k users” figure is often cited by the company as evidence of adoption (it likely counts token holders as a proxy for users)
+askforfunding.com
+. It suggests a significant community, though it should be noted these are crypto investors globally and not all are necessarily active shoppers on the e-store. The platform’s mobile apps are active on Android/iOS; the company claims BIDZ Hub, BIDZ Pay, and BIDZ VPN are available on app stores and that the ecosystem has seen real usage on those apps
+coinlore.com
+. We do not have an official number of daily active users or GMV (gross merchandise value), but the engagement in their crypto games and local merchant sign-ups in Iraq indicates a growing user community. The target demographic skews toward tech-savvy consumers in regions with limited traditional e-commerce options or unstable local currencies. For example, unbanked or underbanked users in the Middle East who can use BIDZ as an alternative to credit cards, or crypto enthusiasts who want to spend crypto on real goods. The large expatriate/diaspora community could also be a target – people who earn in crypto or have family cross-border may use BIDZ to purchase and send items. Overall, Bidz.store is aiming to attract users in global emerging markets and crypto-friendly circles, differentiating itself by solving pain points in those markets (lack of PayPal, high cash-on-delivery usage, etc.). Leadership, Team & Funding: Bidz.store was founded by Shevan Murat, who serves as CEO
+bidz.store
+linkedin.com
+. Shevan is a Kurdish-American entrepreneur (Nashville-based) and is very public about the company’s growth – he claimed in mid-2024 that BIDZ E-Store went from “$0 to a $1.56 billion evaluation in less than 3 years,” likely referencing the token’s market cap surge at its peak
+linkedin.com
+. The team is relatively lean; the website lists Rayan as CTO, and team members like Hazirvan (Social Media Manager) and John (Social Media Operator)
+bidz.store
+bidz.store
+. This suggests a startup-sized team with a focus on tech and community engagement. The company’s investor base includes silent investors from the U.S., Kurdistan, and Abu Dhabi – 3 silent investors from the U.S., 3 from Kurdistan, 1 from Abu Dhabi – reflecting a mix of local and international backing
+bidz.store
+bidz.store
+. There is also a partnership with the exchange Coinstore listed as providing an investor/partnership role
+bidz.store
+. In terms of funding, Bidz.store was seeking to raise $3 million in growth capital as of late 2024
+askforfunding.com
+. They emphasized scaling the ecosystem and integrating more payment processors with that funding
+askforfunding.com
+. While details of closed funding rounds aren’t publicly disclosed, the presence of investors in multiple regions and the token’s exchange listings imply that the project has attracted capital via token sales and private investors. Partnerships and Integrations: Bidz.store has actively pursued partnerships to expand its services. Some notable examples: a partnership with EPAY Global (Feb 2025) enables BIDZ Pay users to pay for mobile phone plans and eSIM activations from major U.S. carriers (Verizon, AT&T, T-Mobile, etc.) using BIDZ tokens
+bidz.store
+. This effectively lets Bidz customers top-up mobile services via crypto and even earn cashback in BIDZ, showcasing an integration of decentralized payments with telecom services
+bidz.store
+bidz.store
+. Another partnership, with Signature Communications Services (Nov 2024), allows BIDZ Pay to be used for services like visa applications, translations, and notary services
+bidz.store
+. Newsom Vending LLC (Nov 2024) teamed up with BIDZ so that vending machine purchases could be done via BIDZ Token – an example of real-world point-of-sale integration
+bidz.store
+. Dev Gears Tech (Nov 2024) partnered with BIDZ to offer discounts on digital solutions when paid with BIDZ Pay
+bidz.store
+. Notably, Blue Wireless (Nashville) joined the BIDZ Pay network to accept BIDZ Credit for payments, indicating early adoption even in the US market
+bidz.store
+. These partnerships suggest that Bidz.store is building out an acceptance network for BIDZ Credit, making it more useful beyond just the e-store. On the blockchain side, BIDZ Token is listed on several exchanges (LBank, BitMart, Coinstore, PancakeSwap DEX, and as of Oct 2024 they planned MEXC)
+askforfunding.com
+iq.wiki
+. The token’s smart contract has been audited by Certik (with a high security score)
+askforfunding.com
+, lending credibility. The project is verified on CoinMarketCap and CoinGecko as well
+askforfunding.com
+. In terms of recent news and developments: in late 2023 the BIDZ token hit an all-time high (~$0.10 on V2, according to their Q&A)
+bidz.store
+, and the team conducted a smart contract migration from v1 to v2 (with mandatory KYC for holders to prevent abuse)
+linkedin.com
+. Throughout 2024, the company rolled out the BIDZ Pay app updates (integrating things like gift card purchases, phone bill pay)
+coinlore.com
+coinlore.com
+. They also started positioning BIDZ Pay as a fintech solution akin to Western Union/MoneyGram – their roadmap for early 2025 included obtaining licenses to enable global remittances via BIDZ Pay
+bidz.store
+. This ambitious move, along with advertising campaigns and planned exchange listings, shows that Bidz.store is in a growth phase. In summary, leadership is focused on innovation and partnerships to drive adoption, leveraging a unique blend of e-commerce, fintech, and crypto. 
+
+BIDZ E-Store is built around the BIDZ Coin ecosystem – a hybrid platform merging crypto with real-world commerce
+bidz.store
+bidz.store
+. The BIDZ Token (logo pictured) fuels transactions by converting into BIDZ Credit, a stable USD-pegged balance used for shopping and services on Bidz.store.

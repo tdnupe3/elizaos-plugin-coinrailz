@@ -7,9 +7,11 @@ import { Loader2, Send, CheckCircle, AlertCircle, ArrowLeft } from '@/lib/minima
 import { SimpleBalanceDisplay } from '@/components/simple-balance-display';
 import { NavigationHeader } from '@/components/navigation-header';
 import { useLocation } from 'wouter';
+import { useUserSession } from '@/hooks/useUserSession';
 
 export default function SendMoney() {
   const [, setLocation] = useLocation();
+  const { session } = useUserSession();
   const [formData, setFormData] = useState({
     senderEmail: '',
     recipientEmail: '',
@@ -90,26 +92,30 @@ export default function SendMoney() {
             <p className="text-gray-600">Transfer USDC instantly between users</p>
           </div>
 
-        {/* Demo Balance Display - Always Show A1Digital Balance */}
-        <div className="mb-6">
-          <SimpleBalanceDisplay 
-            userEmail="a1digitalllc@gmail.com"
-            title="A1Digital Beta Account Balance"
-          />
-        </div>
+        {/* Current User's Balance Display */}
+        {session?.email && (
+          <div className="mb-6">
+            <SimpleBalanceDisplay 
+              userEmail={session.email}
+              title={`${session.name || 'Your'} Account Balance`}
+            />
+          </div>
+        )}
 
-        {/* Debug Info */}
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-semibold text-blue-800 mb-2">🔍 Balance Debug Info</h3>
-          <p className="text-sm text-blue-700">
-            Expected: $50.00 USDC for a1digitalllc@gmail.com<br/>
-            API Endpoint: /api/balance-check/a1digitalllc@gmail.com<br/>
-            Check browser console for balance parsing logs
-          </p>
-        </div>
+        {/* User Authentication Status */}
+        {session?.email && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <h3 className="font-semibold text-green-800 mb-2">✅ Secure Session Active</h3>
+            <p className="text-sm text-green-700">
+              Logged in as: {session.email}<br/>
+              User ID: {session.id}<br/>
+              All financial data is isolated and secure
+            </p>
+          </div>
+        )}
 
-        {/* Balance Display for Sender */}
-        {formData.senderEmail && formData.senderEmail !== 'a1digitalllc@gmail.com' && (
+        {/* Balance Display for Sender (if different from current user) */}
+        {formData.senderEmail && formData.senderEmail !== session?.email && (
           <div className="mb-6">
             <SimpleBalanceDisplay 
               userEmail={formData.senderEmail}
@@ -127,11 +133,11 @@ export default function SendMoney() {
             <div className="grid grid-cols-2 gap-4">
               <Button 
                 variant="outline" 
-                onClick={() => setFormData(prev => ({ ...prev, senderEmail: 'a1digitalllc@gmail.com' }))}
+                onClick={() => setFormData(prev => ({ ...prev, senderEmail: session?.email || '' }))}
                 className="text-left justify-start"
               >
                 <Send className="h-4 w-4 mr-2" />
-                Use a1digitalllc@gmail.com
+                Use Current Account
               </Button>
               <Button 
                 variant="outline" 

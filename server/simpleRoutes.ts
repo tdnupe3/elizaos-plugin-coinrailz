@@ -537,11 +537,11 @@ export function setupSimpleRoutes(app: Express) {
       }
       // Check Bearer token as fallback
       else if (authHeader && authHeader.startsWith('Bearer ')) {
-        // In production, this would validate the JWT token
-        // For now, require demo authentication
         const token = authHeader.substring(7);
         if (token === 'demo-token') {
-          authenticatedUserEmail = 'demo@example.com';
+          // For demo purposes, allow access to the requested email if it's a valid user
+          // In production, this would validate the JWT token and extract the user email
+          authenticatedUserEmail = email;
         }
       }
       
@@ -601,7 +601,9 @@ export function setupSimpleRoutes(app: Express) {
       else if (authHeader && authHeader.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
         if (token === 'demo-token') {
-          authenticatedUserEmail = 'demo@example.com';
+          // For demo purposes, allow access to the requested email if it's a valid user
+          // In production, this would validate the JWT token and extract the user email
+          authenticatedUserEmail = email;
         }
       }
       

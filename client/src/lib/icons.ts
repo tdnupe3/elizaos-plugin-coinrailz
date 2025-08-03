@@ -104,5 +104,6 @@ export {
   Webhook,
   USDCLogo,
   XRPLogo,
-  LogOut
+  LogOut,
+  Import
 } from '@/lib/minimal-icons-clean';

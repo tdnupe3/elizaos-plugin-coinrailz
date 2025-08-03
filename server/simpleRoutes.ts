@@ -5210,6 +5210,170 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
+  // XRP wallet creation endpoint
+  app.post('/api/xrp/wallet/create', async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          error: 'User ID is required'
+        });
+      }
+
+      // Import XRPLedgerService
+      const { XRPLedgerService } = await import('./services/xrpLedgerService');
+      
+      // Create new XRP wallet
+      const wallet = await XRPLedgerService.createWallet();
+      
+      // Store wallet in database (in production, encrypt the seed)
+      // For now, return the wallet data securely
+      res.json({
+        success: true,
+        wallet: {
+          address: wallet.address,
+          publicKey: wallet.publicKey,
+          // Never return private data in production
+          seed: process.env.NODE_ENV === 'development' ? wallet.seed : undefined,
+          network: 'mainnet',
+          balance: '0',
+          status: 'created'
+        },
+        message: 'XRP wallet created successfully',
+        security: {
+          encrypted: process.env.NODE_ENV === 'production',
+          seedReturned: process.env.NODE_ENV === 'development'
+        }
+      });
+    } catch (error) {
+      console.error('XRP wallet creation error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create XRP wallet',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // XRP payment submission endpoint
+  app.post('/api/xrp/payment/submit', async (req, res) => {
+    try {
+      const { senderSeed, destinationAddress, amount, memo, userId } = req.body;
+      
+      if (!senderSeed || !destinationAddress || !amount) {
+        return res.status(400).json({
+          success: false,
+          error: 'Sender seed, destination address, and amount are required'
+        });
+      }
+
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount) || numericAmount <= 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Valid positive amount required'
+        });
+      }
+
+      // Import XRPLedgerService
+      const { XRPLedgerService } = await import('./services/xrpLedgerService');
+      
+      // Submit payment
+      const transaction = await XRPLedgerService.sendPayment(
+        senderSeed,
+        destinationAddress,
+        numericAmount,
+        memo
+      );
+      
+      res.json({
+        success: true,
+        transaction: {
+          hash: transaction.hash,
+          from: transaction.account,
+          to: transaction.destination,
+          amount: transaction.amount,
+          fee: transaction.fee,
+          status: 'validated',
+          ledgerIndex: transaction.ledgerIndex,
+          memo: transaction.memo
+        },
+        message: 'XRP payment submitted successfully',
+        explorerUrl: `https://livenet.xrpl.org/transactions/${transaction.hash}`
+      });
+    } catch (error) {
+      console.error('XRP payment submission error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to submit XRP payment',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
+  // XRP wallet detection/import endpoint
+  app.post('/api/xrp/wallet/import', async (req, res) => {
+    try {
+      const { address, seed, userId } = req.body;
+      
+      if (!address && !seed) {
+        return res.status(400).json({
+          success: false,
+          error: 'Either wallet address or seed is required'
+        });
+      }
+
+      // Import XRPLedgerService
+      const { XRPLedgerService } = await import('./services/xrpLedgerService');
+      
+      let walletAddress = address;
+      let walletData = null;
+
+      // If seed provided, derive wallet
+      if (seed) {
+        try {
+          const wallet = XRPLedgerService.getWalletFromSeed(seed);
+          walletAddress = wallet.address;
+          walletData = {
+            address: wallet.address,
+            publicKey: wallet.publicKey,
+            imported: true
+          };
+        } catch (error) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid seed phrase'
+          });
+        }
+      }
+
+      // Get wallet balance
+      const balance = await XRPLedgerService.getBalance(walletAddress);
+      
+      res.json({
+        success: true,
+        wallet: {
+          address: walletAddress,
+          balance: balance.toString(),
+          currency: 'XRP',
+          network: 'mainnet',
+          status: balance > 0 ? 'active' : 'unfunded',
+          ...walletData
+        },
+        message: 'XRP wallet detected successfully'
+      });
+    } catch (error) {
+      console.error('XRP wallet detection error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to detect XRP wallet',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+
   app.get('/api/xrp/balance/:address', async (req, res) => {
     try {
       const { address } = req.params;

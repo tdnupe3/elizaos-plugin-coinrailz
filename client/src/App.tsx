@@ -67,6 +67,7 @@ import {
   XRPLiquidityProvision,
   XRPWalletManagement,
   XRPComplianceTools,
+  XRPWalletTest,
 
   // XRP DEX Components - NEW
   XRPDEXTrading,
@@ -246,6 +247,9 @@ function Router() {
       {/* XRP Ecosystem Hub */}
       <Route path="/xrp-ecosystem">
         {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-wallet-test">
+        {() => <LazyLoadWrapper><XRPWalletTest /></LazyLoadWrapper>}
       </Route>
       <Route path="/xrp-cross-border-payments">
         {() => <LazyLoadWrapper><XRPCrossBorderPayments /></LazyLoadWrapper>}

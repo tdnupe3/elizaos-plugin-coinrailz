@@ -246,13 +246,14 @@ app.get('/api/referrals/my-stats', (req, res) => {
       userId,
       referralCode: `REF_${userId.substring(0, 8).toUpperCase()}`,
       referralLink: `https://coinrailz.com/register?ref=REF_${userId.substring(0, 8).toUpperCase()}`,
-      totalReferrals: 7,
-      totalCommissions: '125.50',
-      pendingCommissions: '45.25',
-      paidCommissions: '80.25',
-      conversionRate: '8.5%',
-      tier: 'premium',
-      nextTierProgress: 65
+      totalReferrals: 0,
+      totalCommissions: '0.00',
+      pendingCommissions: '0.00',
+      paidCommissions: '0.00',
+      conversionRate: '0%',
+      tier: 'basic',
+      nextTierProgress: 0,
+      note: 'Connect to database for real referral data'
     });
   } catch (error) {
     res.status(500).json({

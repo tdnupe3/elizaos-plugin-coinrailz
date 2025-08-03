@@ -6160,18 +6160,26 @@ export function setupSimpleRoutes(app: Express) {
       const referralCode = `REF_${userPrefix}_MAIN`;
       const referralLink = `https://coinrailz.com/register?ref=${referralCode}`;
       
+      // Get actual referral data from database
+      const userReferrals = await storage.getUserReferrals(userId);
+      const totalReferrals = userReferrals.length;
+      const completedReferrals = userReferrals.filter(r => r.status === 'completed');
+      const totalCommissions = completedReferrals.reduce((sum, r) => sum + parseFloat(r.bonusAmount || '0'), 0);
+      const pendingReferrals = userReferrals.filter(r => r.status === 'pending');
+      const pendingCommissions = pendingReferrals.reduce((sum, r) => sum + parseFloat(r.bonusAmount || '0'), 0);
+
       res.json({
         success: true,
         userId,
         referralCode,
         referralLink,
-        totalReferrals: 7,
-        totalCommissions: '125.50',
-        pendingCommissions: '45.25',
-        paidCommissions: '80.25',
-        conversionRate: '8.5%',
-        tier: 'premium',
-        nextTierProgress: 65
+        totalReferrals,
+        totalCommissions: totalCommissions.toFixed(2),
+        pendingCommissions: pendingCommissions.toFixed(2),
+        paidCommissions: (totalCommissions - pendingCommissions).toFixed(2),
+        conversionRate: totalReferrals > 0 ? `${((completedReferrals.length / totalReferrals) * 100).toFixed(1)}%` : '0%',
+        tier: totalReferrals >= 10 ? 'premium' : totalReferrals >= 5 ? 'silver' : 'basic',
+        nextTierProgress: totalReferrals >= 10 ? 100 : totalReferrals >= 5 ? ((totalReferrals - 5) / 5) * 100 : (totalReferrals / 5) * 100
       });
     } catch (error) {
       console.error('Referral stats error:', error);

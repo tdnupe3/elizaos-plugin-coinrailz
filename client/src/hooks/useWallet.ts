@@ -76,77 +76,131 @@ export function useWallet() {
 
   // MetaMask connection
   const connectMetaMask = async (): Promise<WalletState> => {
-    if (typeof (window as any).ethereum === 'undefined') {
-      throw new Error('MetaMask is not installed. Please install MetaMask to continue.');
+    if (typeof window === 'undefined' || typeof (window as any).ethereum === 'undefined') {
+      throw new Error('MetaMask not detected. Please install MetaMask browser extension.');
     }
 
-    const ethereum = (window as any).ethereum;
-    const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-
-    if (accounts.length === 0) {
-      throw new Error('No accounts found. Please connect your MetaMask wallet.');
-    }
-
-    const chainId = await ethereum.request({ method: 'eth_chainId' });
-
-    return {
-      isConnected: true,
-      address: accounts[0],
-      chainId: parseInt(chainId, 16),
-      walletType: 'MetaMask',
-      isConnecting: false
-    };
-  };
-
-  // WalletConnect integration (simulated for now)
-  const connectWalletConnect = async (): Promise<WalletState> => {
-    // Simulated connection - full WalletConnect requires SDK
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return {
-      isConnected: true,
-      address: '0x' + Math.random().toString(16).substring(2, 42),
-      chainId: 1,
-      walletType: 'WalletConnect',
-      isConnecting: false
-    };
-  };
-
-  // Coinbase Wallet integration
-  const connectCoinbaseWallet = async (): Promise<WalletState> => {
-    if (typeof (window as any).ethereum?.isCoinbaseWallet !== 'undefined') {
+    try {
       const ethereum = (window as any).ethereum;
       const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+
+      if (accounts.length === 0) {
+        throw new Error('No accounts available in MetaMask');
+      }
+
       const chainId = await ethereum.request({ method: 'eth_chainId' });
 
       return {
         isConnected: true,
         address: accounts[0],
         chainId: parseInt(chainId, 16),
-        walletType: 'Coinbase',
+        walletType: 'MetaMask',
         isConnecting: false
       };
+    } catch (error: any) {
+      if (error.code === 4001) {
+        throw new Error('User rejected the connection request');
+      }
+      throw new Error(`MetaMask connection failed: ${error.message}`);
+    }
+  };
+
+  // WalletConnect integration - Enhanced implementation
+  const connectWalletConnect = async (): Promise<WalletState> => {
+    try {
+      // Check if WalletConnect is available via any wallet app
+      if (typeof window !== 'undefined' && (window as any).ethereum) {
+        // Many mobile wallets inject ethereum object via WalletConnect
+        const ethereum = (window as any).ethereum;
+        
+        // Try to connect using standard ethereum provider
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        
+        if (accounts.length === 0) {
+          throw new Error('No accounts available via WalletConnect');
+        }
+        
+        const chainId = await ethereum.request({ method: 'eth_chainId' });
+
+        return {
+          isConnected: true,
+          address: accounts[0],
+          chainId: parseInt(chainId, 16),
+          walletType: 'WalletConnect',
+          isConnecting: false
+        };
+      } else {
+        throw new Error('WalletConnect not available. Please use a mobile wallet that supports WalletConnect.');
+      }
+    } catch (error: any) {
+      if (error.code === 4001) {
+        throw new Error('User rejected the connection request');
+      }
+      throw new Error(`WalletConnect failed: ${error.message}`);
+    }
+  };
+
+  // Coinbase Wallet integration
+  const connectCoinbaseWallet = async (): Promise<WalletState> => {
+    // Check for Coinbase Wallet - it sets isCoinbaseWallet to true
+    if (typeof window !== 'undefined' && (window as any).ethereum?.isCoinbaseWallet === true) {
+      try {
+        const ethereum = (window as any).ethereum;
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        
+        if (accounts.length === 0) {
+          throw new Error('No accounts available in Coinbase Wallet');
+        }
+        
+        const chainId = await ethereum.request({ method: 'eth_chainId' });
+
+        return {
+          isConnected: true,
+          address: accounts[0],
+          chainId: parseInt(chainId, 16),
+          walletType: 'Coinbase',
+          isConnecting: false
+        };
+      } catch (error: any) {
+        if (error.code === 4001) {
+          throw new Error('User rejected the connection request');
+        }
+        throw new Error(`Coinbase Wallet connection failed: ${error.message}`);
+      }
     } else {
-      throw new Error('Coinbase Wallet is not installed. Please install Coinbase Wallet to continue.');
+      throw new Error('Coinbase Wallet not detected. Please install Coinbase Wallet browser extension.');
     }
   };
 
   // Trust Wallet integration
   const connectTrustWallet = async (): Promise<WalletState> => {
-    if (typeof (window as any).ethereum?.isTrust !== 'undefined') {
-      const ethereum = (window as any).ethereum;
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-      const chainId = await ethereum.request({ method: 'eth_chainId' });
+    // Check for Trust Wallet - it sets isTrust to true
+    if (typeof window !== 'undefined' && (window as any).ethereum?.isTrust === true) {
+      try {
+        const ethereum = (window as any).ethereum;
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        
+        if (accounts.length === 0) {
+          throw new Error('No accounts available in Trust Wallet');
+        }
+        
+        const chainId = await ethereum.request({ method: 'eth_chainId' });
 
-      return {
-        isConnected: true,
-        address: accounts[0],
-        chainId: parseInt(chainId, 16),
-        walletType: 'TrustWallet',
-        isConnecting: false
-      };
+        return {
+          isConnected: true,
+          address: accounts[0],
+          chainId: parseInt(chainId, 16),
+          walletType: 'TrustWallet',
+          isConnecting: false
+        };
+      } catch (error: any) {
+        if (error.code === 4001) {
+          throw new Error('User rejected the connection request');
+        }
+        throw new Error(`Trust Wallet connection failed: ${error.message}`);
+      }
     } else {
-      throw new Error('Trust Wallet is not installed. Please install Trust Wallet to continue.');
+      throw new Error('Trust Wallet not detected. Please install Trust Wallet mobile app or browser extension.');
     }
   };
 

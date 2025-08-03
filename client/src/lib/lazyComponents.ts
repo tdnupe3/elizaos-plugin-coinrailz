@@ -56,6 +56,7 @@ export const XRPLiquidityProvision = lazy(() => import('@/pages/xrp-liquidity-pr
 export const XRPWalletManagement = lazy(() => import('@/pages/xrp-wallet-management'));
 export const XRPComplianceTools = lazy(() => import('@/pages/xrp-compliance-tools'));
 export const XRPWalletTest = lazy(() => import('@/pages/xrp-wallet-test'));
+export const XRPWalletCreation = lazy(() => import('@/pages/xrp-wallet-creation'));
 
 // XRP DEX Ecosystem Components - NEW
 export const XRPDEXTrading = lazy(() => import('@/pages/xrp-dex-trading'));

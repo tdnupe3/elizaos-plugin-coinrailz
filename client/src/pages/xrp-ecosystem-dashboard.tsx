@@ -139,13 +139,13 @@ export default function XRPEcosystemDashboard() {
       color: 'bg-purple-500'
     },
     {
-      id: 'wallet-services',
-      title: 'Professional Wallets',
-      description: 'Enterprise-grade XRP wallet management and security',
-      benefits: ['Multi-signature support', 'Hardware integration', 'Advanced security'],
+      id: 'wallet-creation',
+      title: 'Wallet Creation & Management',
+      description: 'Create secure XRP wallets instantly or import existing ones',
+      benefits: ['Instant wallet creation', 'Secure import/export', 'Live balance tracking'],
       icon: Wallet,
       status: 'active',
-      route: '/xrp-wallet-management',
+      route: '/xrp-wallet-creation',
       color: 'bg-orange-500'
     },
     {

@@ -36,20 +36,24 @@ export function useWallet() {
             if (ethereum.isCoinbaseWallet) walletType = 'Coinbase';
             else if (ethereum.isTrust) walletType = 'TrustWallet';
             
-            // Check for Phantom Ethereum mode
-            if (typeof (window as any).phantom?.ethereum) {
-              const phantomEth = (window as any).phantom.ethereum;
-              const phantomAccounts = await phantomEth.request({ method: 'eth_accounts' });
-              if (phantomAccounts.length > 0) {
-                const phantomChainId = await phantomEth.request({ method: 'eth_chainId' });
-                setWallet({
-                  isConnected: true,
-                  address: phantomAccounts[0],
-                  chainId: parseInt(phantomChainId, 16),
-                  walletType: 'Phantom',
-                  isConnecting: false
-                });
-                return;
+            // Check for Phantom Ethereum mode with proper error handling
+            if (typeof window !== 'undefined' && (window as any).phantom?.ethereum) {
+              try {
+                const phantomEth = (window as any).phantom.ethereum;
+                const phantomAccounts = await phantomEth.request({ method: 'eth_accounts' });
+                if (phantomAccounts.length > 0) {
+                  const phantomChainId = await phantomEth.request({ method: 'eth_chainId' });
+                  setWallet({
+                    isConnected: true,
+                    address: phantomAccounts[0],
+                    chainId: parseInt(phantomChainId, 16),
+                    walletType: 'Phantom',
+                    isConnecting: false
+                  });
+                  return;
+                }
+              } catch (error) {
+                console.log('Phantom connection check failed:', error);
               }
             }
             
@@ -148,23 +152,45 @@ export function useWallet() {
 
   // Phantom Wallet integration (Ethereum mode)
   const connectPhantomWallet = async (): Promise<WalletState> => {
+    // Give Phantom time to inject its provider
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     // Check for Phantom's Ethereum provider first
-    if (typeof (window as any).phantom?.ethereum) {
-      const ethereum = (window as any).phantom.ethereum;
-      const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
-      const chainId = await ethereum.request({ method: 'eth_chainId' });
+    if (typeof window !== 'undefined' && (window as any).phantom?.ethereum) {
+      try {
+        const ethereum = (window as any).phantom.ethereum;
+        const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+        
+        if (accounts.length === 0) {
+          throw new Error('No accounts available in Phantom wallet');
+        }
+        
+        const chainId = await ethereum.request({ method: 'eth_chainId' });
 
-      return {
-        isConnected: true,
-        address: accounts[0],
-        chainId: parseInt(chainId, 16),
-        walletType: 'Phantom',
-        isConnecting: false
-      };
-    } else if (typeof (window as any).solana?.isPhantom) {
-      throw new Error('Phantom detected, but please switch to Ethereum mode for DEX trading. Solana DEX coming soon!');
-    } else {
-      throw new Error('Phantom Wallet is not installed. Please install Phantom Wallet to continue.');
+        return {
+          isConnected: true,
+          address: accounts[0],
+          chainId: parseInt(chainId, 16),
+          walletType: 'Phantom',
+          isConnecting: false
+        };
+      } catch (error: any) {
+        if (error.code === 4001) {
+          throw new Error('User rejected the connection request');
+        }
+        throw new Error(`Phantom connection failed: ${error.message}`);
+      }
+    } 
+    // Check for Phantom Solana provider
+    else if (typeof window !== 'undefined' && (window as any).solana?.isPhantom) {
+      throw new Error('Phantom detected but only Solana mode is available. Please enable Ethereum mode in Phantom settings for DEX trading.');
+    }
+    // Check if Phantom is installed but not loaded yet
+    else if (typeof window !== 'undefined' && (window as any).phantom) {
+      throw new Error('Phantom detected but Ethereum provider not available. Please enable Ethereum mode in Phantom wallet settings.');
+    }
+    else {
+      throw new Error('Phantom Wallet not detected. Please install Phantom Wallet and refresh the page.');
     }
   };
 

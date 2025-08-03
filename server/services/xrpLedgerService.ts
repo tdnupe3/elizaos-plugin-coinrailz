@@ -184,16 +184,16 @@ export class XRPLedgerService {
       const response = await this.client.submitAndWait(payment, { wallet });
       
       const meta = response.result.meta as any;
-      if (meta?.TransactionResult !== 'tesSUCCESS') {
-        throw new Error(`Transaction failed: ${meta?.TransactionResult}`);
+      if (meta && typeof meta === 'object' && meta.TransactionResult !== 'tesSUCCESS') {
+        throw new Error(`Transaction failed: ${meta.TransactionResult}`);
       }
 
       return {
         hash: response.result.hash,
         account: payment.Account,
         destination: payment.Destination,
-        amount: dropsToXrp(payment.Amount),
-        fee: dropsToXrp((response.result as any).Fee || '12'),
+        amount: dropsToXrp(payment.Amount.toString()),
+        fee: dropsToXrp(((response.result as any).Fee || '12').toString()),
         sequence: (response.result as any).Sequence || 0,
         memo,
         ledgerIndex: (response.result as any).ledger_index || 0,
@@ -242,8 +242,9 @@ export class XRPLedgerService {
 
       const response = await this.client.submitAndWait(escrowCreate, { wallet });
       
-      if (response.result.meta?.TransactionResult !== 'tesSUCCESS') {
-        throw new Error(`Escrow creation failed: ${response.result.meta?.TransactionResult}`);
+      const escrowMeta = response.result.meta as any;
+      if (escrowMeta && typeof escrowMeta === 'object' && escrowMeta.TransactionResult !== 'tesSUCCESS') {
+        throw new Error(`Escrow creation failed: ${escrowMeta.TransactionResult}`);
       }
 
       return response.result.hash;
@@ -280,8 +281,9 @@ export class XRPLedgerService {
 
       const response = await this.client.submitAndWait(escrowFinish, { wallet });
       
-      if (response.result.meta?.TransactionResult !== 'tesSUCCESS') {
-        throw new Error(`Escrow finish failed: ${response.result.meta?.TransactionResult}`);
+      const finishMeta = response.result.meta as any;
+      if (finishMeta && typeof finishMeta === 'object' && finishMeta.TransactionResult !== 'tesSUCCESS') {
+        throw new Error(`Escrow finish failed: ${finishMeta.TransactionResult}`);
       }
 
       return response.result.hash;

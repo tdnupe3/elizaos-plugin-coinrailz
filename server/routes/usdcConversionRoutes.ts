@@ -52,7 +52,7 @@ router.post('/quote', async (req, res) => {
     // Business logic validation
     const validation = BusinessLogicValidator.validateTransaction({
       amount,
-      transactionType: 'conversion',
+      transactionType: 'crypto',
       paymentMethod: fromAsset.toLowerCase()
     });
 

@@ -25,7 +25,7 @@ import { IntuitiveOnboarding } from "@/components/intuitive-onboarding";
 import { QuickFunding } from "@/components/quick-funding";
 import { InstantSwap } from "@/components/instant-swap";
 import { WalletDisplay } from "@/components/wallet-display";
-
+import { UserSessionManager } from "@/components/UserSessionManager";
 import { EnhancedWalletManager } from "@/components/enhanced-wallet-manager";
 import { NavigationHeader } from "@/components/navigation-header";
 
@@ -175,6 +175,8 @@ export default function Dashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+        {/* User Session Manager - Security Fix for User Isolation */}
+        <UserSessionManager />
 
         {/* USDC Wallet Balance - Prominently displayed at top */}
         <div className="mb-8">

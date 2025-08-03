@@ -7,10 +7,22 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Helper to get auth token from localStorage
+// Helper to get auth token from localStorage - updated for session-based auth
 const getAuthToken = () => {
   try {
-    return localStorage.getItem('auth_token');
+    // First check for standard auth token
+    const authToken = localStorage.getItem('auth_token');
+    if (authToken) return authToken;
+    
+    // Check for coinrailz session-based auth
+    const sessionData = localStorage.getItem('coinrailz_user_session');
+    if (sessionData) {
+      const session = JSON.parse(sessionData);
+      if (session.isAuthenticated) {
+        return 'demo-token'; // Demo token for authenticated users
+      }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -30,7 +42,13 @@ export const getQueryFn: <T>(options: {
         headers['Authorization'] = `Bearer ${authToken}`;
       }
 
-      const res = await fetch(queryKey[0] as string, {
+      // Handle dynamic URLs for balance checks
+      let requestUrl = queryKey[0] as string;
+      if (queryKey.length > 1 && requestUrl.includes('/api/balance-check')) {
+        requestUrl = `${requestUrl}/${queryKey[1]}`;
+      }
+      
+      const res = await fetch(requestUrl, {
         credentials: "include",
         signal,
         headers,

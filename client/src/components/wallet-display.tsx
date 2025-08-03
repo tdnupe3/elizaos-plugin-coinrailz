@@ -16,20 +16,21 @@ import {
 } from "@/lib/minimal-icons-clean";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useUserSession } from "@/hooks/useUserSession";
 
 export function WalletDisplay() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { session, isAuthenticated } = useUserSession();
   const [showQR, setShowQR] = useState(false);
-  const [currentUser, setCurrentUser] = useState('a1digital'); // For beta testing
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Get authenticated user's email for balance lookup
-  const userEmail = (user as any)?.email || (user as any)?.claims?.email;
+  // Get authenticated user's email for balance lookup - prioritize session over auth
+  const userEmail = session?.email || (user as any)?.email || (user as any)?.claims?.email;
   
   const { data: balanceData, isLoading, refetch } = useQuery({
     queryKey: ['/api/balance-check', userEmail],
-    enabled: !!userEmail,
+    enabled: !!userEmail && isAuthenticated,
     retry: false,
     refetchInterval: 5000,
     staleTime: 0,
@@ -69,7 +70,7 @@ export function WalletDisplay() {
     }
   };
 
-  if (!user) {
+  if (!isAuthenticated || !userEmail) {
     return (
       <Alert>
         <Info className="h-4 w-4" />

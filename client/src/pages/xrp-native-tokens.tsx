@@ -14,7 +14,7 @@ import {
   DollarSign, 
   ArrowLeft, 
   Star,
-  StarOff,
+  Star,
   ExternalLink,
   Zap,
   Shield,
@@ -293,7 +293,7 @@ export default function XRPNativeTokens() {
                             variant="ghost"
                             onClick={() => toggleFavorite(symbol)}
                           >
-                            <StarOff className="w-3 h-3" />
+                            <Star className="w-3 h-3" />
                           </Button>
                         </div>
                       ))}
@@ -373,7 +373,7 @@ export default function XRPNativeTokens() {
                                     {favorites.includes(token.symbol) ? (
                                       <Star className="w-4 h-4 text-yellow-500 fill-current" />
                                     ) : (
-                                      <StarOff className="w-4 h-4" />
+                                      <Star className="w-4 h-4 text-gray-400" />
                                     )}
                                   </Button>
                                 </div>

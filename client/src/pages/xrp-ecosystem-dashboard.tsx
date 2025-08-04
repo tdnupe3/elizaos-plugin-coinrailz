@@ -233,6 +233,24 @@ export default function XRPEcosystemDashboard() {
                 </div>
               </div>
             </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+              <Button 
+                onClick={() => setLocation('/xrp-wallet-creation')}
+                className="bg-white text-blue-600 hover:bg-blue-50"
+              >
+                <Wallet className="w-4 h-4 mr-2" />
+                Create XRP Wallet
+              </Button>
+              <Button 
+                onClick={() => setLocation('/xrp-cross-border-payments')}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Send Cross-Border Payment
+              </Button>
+            </div>
           </div>
         </div>
 

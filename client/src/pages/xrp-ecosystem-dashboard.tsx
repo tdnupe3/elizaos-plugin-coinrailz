@@ -66,10 +66,30 @@ export default function XRPEcosystemDashboard() {
   }, []);
 
   const xrpServices: XRPService[] = [
-    // DEX Trading Services - NEW
+    // Trading & Investment Services
+    {
+      id: 'buy-sell',
+      title: 'Buy & Sell XRP',
+      description: 'Purchase XRP with fiat currency or sell XRP for cash with multiple payment methods',
+      benefits: ['Credit card payments', 'Bank transfers', 'Instant processing'],
+      icon: DollarSign,
+      status: 'active',
+      route: '/xrp-buy-sell',
+      color: 'bg-green-500'
+    },
+    {
+      id: 'rlusd-trading',
+      title: 'RLUSD Stablecoin Trading',
+      description: 'Trade Ripple\'s RLUSD stablecoin with XRP and other cryptocurrencies',
+      benefits: ['USD-pegged stability', 'Native XRP Ledger', 'Low fees'],
+      icon: DollarSign,
+      status: 'active',
+      route: '/xrp-rlusd-trading',
+      color: 'bg-emerald-600'
+    },
     {
       id: 'dex-trading',
-      title: 'DEX Trading',
+      title: 'Advanced DEX Trading',
       description: 'Professional XRP DEX trading with advanced order types and real-time charts',
       benefits: ['Native DEX integration', 'Advanced order book', 'Real-time trading'],
       icon: TrendingUp,
@@ -78,13 +98,13 @@ export default function XRPEcosystemDashboard() {
       color: 'bg-indigo-500'
     },
     {
-      id: 'token-explorer',
-      title: 'Token Explorer',
-      description: 'Discover and track XRP-based tokens with portfolio management',
-      benefits: ['Token discovery', 'Portfolio tracking', 'Real-time analytics'],
+      id: 'native-tokens',
+      title: 'Native Token Explorer',
+      description: 'Discover and trade tokens native to the XRP Ledger ecosystem',
+      benefits: ['Native XRPL tokens', 'Real-time trading', 'Portfolio tracking'],
       icon: DollarSign,
       status: 'active',
-      route: '/xrp-token-explorer',
+      route: '/xrp-native-tokens',
       color: 'bg-cyan-500'
     },
     {
@@ -234,7 +254,7 @@ export default function XRPEcosystemDashboard() {
               </div>
             </div>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
               <Button 
                 onClick={() => setLocation('/xrp-wallet-creation')}
                 className="bg-white text-blue-600 hover:bg-blue-50"
@@ -243,12 +263,20 @@ export default function XRPEcosystemDashboard() {
                 Create XRP Wallet
               </Button>
               <Button 
-                onClick={() => setLocation('/xrp-cross-border-payments')}
+                onClick={() => setLocation('/xrp-buy-sell')}
                 variant="outline"
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
-                <Globe className="w-4 h-4 mr-2" />
-                Send Cross-Border Payment
+                <DollarSign className="w-4 h-4 mr-2" />
+                Buy/Sell XRP
+              </Button>
+              <Button 
+                onClick={() => setLocation('/xrp-rlusd-trading')}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Trade RLUSD
               </Button>
             </div>
           </div>

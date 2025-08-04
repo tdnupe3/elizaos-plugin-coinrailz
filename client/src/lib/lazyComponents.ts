@@ -57,6 +57,9 @@ export const XRPWalletManagement = lazy(() => import('@/pages/xrp-wallet-managem
 export const XRPComplianceTools = lazy(() => import('@/pages/xrp-compliance-tools'));
 export const XRPWalletTest = lazy(() => import('@/pages/xrp-wallet-test'));
 export const XRPWalletCreation = lazy(() => import('@/pages/xrp-wallet-creation'));
+export const XRPBuySell = lazy(() => import('@/pages/xrp-buy-sell'));
+export const XRPRLUSDTrading = lazy(() => import('@/pages/xrp-rlusd-trading'));
+export const XRPNativeTokens = lazy(() => import('@/pages/xrp-native-tokens'));
 
 // XRP DEX Ecosystem Components - NEW
 export const XRPDEXTrading = lazy(() => import('@/pages/xrp-dex-trading'));

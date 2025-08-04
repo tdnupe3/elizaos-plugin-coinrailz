@@ -69,6 +69,9 @@ import {
   XRPComplianceTools,
   XRPWalletTest,
   XRPWalletCreation,
+  XRPBuySell,
+  XRPRLUSDTrading,
+  XRPNativeTokens,
 
   // XRP DEX Components - NEW
   XRPDEXTrading,
@@ -254,6 +257,15 @@ function Router() {
       </Route>
       <Route path="/xrp-wallet-creation">
         {() => <LazyLoadWrapper><XRPWalletCreation /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-buy-sell">
+        {() => <LazyLoadWrapper><XRPBuySell /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-rlusd-trading">
+        {() => <LazyLoadWrapper><XRPRLUSDTrading /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/xrp-native-tokens">
+        {() => <LazyLoadWrapper><XRPNativeTokens /></LazyLoadWrapper>}
       </Route>
       <Route path="/xrp-cross-border-payments">
         {() => <LazyLoadWrapper><XRPCrossBorderPayments /></LazyLoadWrapper>}

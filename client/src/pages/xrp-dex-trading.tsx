@@ -5,8 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -40,6 +43,7 @@ interface TradeHistory {
 }
 
 export default function XRPDEXTrading() {
+  const [, setLocation] = useLocation();
   const [selectedPair, setSelectedPair] = useState<TokenPair | null>(null);
   const [orderBook, setOrderBook] = useState<OrderBookEntry[]>([]);
   const [tradeHistory, setTradeHistory] = useState<TradeHistory[]>([]);
@@ -50,6 +54,14 @@ export default function XRPDEXTrading() {
   const [isTrading, setIsTrading] = useState(false);
   const [balance, setBalance] = useState({ XRP: 0, USD: 0 });
   const [walletConnected, setWalletConnected] = useState(false);
+
+  // Check authentication status
+  const { data: user, isLoading: userLoading, error: userError } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false
+  });
+
+  const isAuthenticated = !!user && !userError;
 
   // Use tokens from configuration file
   const tokenPairs: TokenPair[] = DEFAULT_TRADING_PAIRS;
@@ -64,7 +76,17 @@ export default function XRPDEXTrading() {
     fetchBalance();
   }, []);
 
+  const handleConnectWallet = () => {
+    setLocation('/xrp-wallet-creation');
+  };
+
+  const handleSignIn = () => {
+    setLocation('/auth');
+  };
+
   const fetchBalance = async () => {
+    if (!isAuthenticated) return;
+
     try {
       const [balanceResponse, rateResponse] = await Promise.all([
         fetch('/api/xrp/balance'),
@@ -121,18 +143,71 @@ export default function XRPDEXTrading() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!selectedPair || !amount) return;
+    // Authentication and wallet checks FIRST
+    if (!isAuthenticated) {
+      alert('Please sign in to place orders');
+      setLocation('/auth');
+      return;
+    }
+
+    if (!walletConnected) {
+      alert('Please connect your XRP wallet to place orders');
+      setLocation('/xrp-wallet-creation');
+      return;
+    }
+
+    if (!selectedPair || !amount) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Check minimum balance requirements
+    const amountNum = parseFloat(amount);
+    const priceNum = parseFloat(price) || selectedPair.price;
+    const total = amountNum * priceNum;
+
+    if (side === 'buy' && balance.USD < total) {
+      alert(`Insufficient USD balance. Required: $${total.toFixed(2)}, Available: $${balance.USD.toFixed(2)}`);
+      return;
+    }
+
+    if (side === 'sell' && balance.XRP < amountNum) {
+      alert(`Insufficient XRP balance. Required: ${amountNum} XRP, Available: ${balance.XRP.toFixed(2)} XRP`);
+      return;
+    }
 
     setIsTrading(true);
     
     try {
-      // Simulate order placement
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call actual XRP Ledger API for order placement
+      const response = await fetch('/api/xrp/place-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pair: selectedPair.id,
+          side,
+          type: orderType,
+          amount: amountNum,
+          price: orderType === 'limit' ? priceNum : undefined
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Order placement failed');
+      }
+
+      const result = await response.json();
       
+      if (!result.success) {
+        throw new Error(result.error || 'Order placement failed');
+      }
+
       const newTrade: TradeHistory = {
-        id: Date.now().toString(),
-        price: parseFloat(price) || selectedPair.price,
-        amount: parseFloat(amount),
+        id: result.orderId || Date.now().toString(),
+        price: priceNum,
+        amount: amountNum,
         time: new Date().toLocaleTimeString(),
         type: side,
         status: 'pending'
@@ -144,11 +219,14 @@ export default function XRPDEXTrading() {
       setAmount('');
       setPrice('');
       
-      // Show success message
+      // Update balance
+      fetchBalance();
+      
       alert('Order placed successfully!');
       
-    } catch (error) {
-      alert('Error placing order');
+    } catch (error: any) {
+      console.error('Order placement error:', error);
+      alert(error.message || 'Error placing order. Please try again.');
     } finally {
       setIsTrading(false);
     }
@@ -159,9 +237,82 @@ export default function XRPDEXTrading() {
     return parseFloat(amount) * parseFloat(price);
   };
 
+  // Show authentication requirements
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <NavigationHeader />
+        <MobileNavigation />
+        
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <Card className="text-center">
+              <CardContent className="p-8">
+                <AlertCircle className="w-16 h-16 mx-auto text-yellow-500 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h2>
+                <p className="text-gray-600 mb-6">
+                  You must be signed in to access XRP DEX trading. Trading involves real money and requires proper authentication for security.
+                </p>
+                <div className="space-y-3">
+                  <Button onClick={handleSignIn} className="w-full">
+                    Sign In to Continue
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setLocation('/xrp-ecosystem')}
+                    className="w-full"
+                  >
+                    Back to XRP Ecosystem
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show wallet connection requirement
+  if (!walletConnected) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <NavigationHeader />
+        <MobileNavigation />
+        
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <Card className="text-center">
+              <CardContent className="p-8">
+                <Shield className="w-16 h-16 mx-auto text-blue-500 mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Wallet Connection Required</h2>
+                <p className="text-gray-600 mb-6">
+                  Connect your XRP wallet to start trading. Your wallet is needed to execute trades and manage your XRP balance securely.
+                </p>
+                <div className="space-y-3">
+                  <Button onClick={handleConnectWallet} className="w-full">
+                    Connect XRP Wallet
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setLocation('/xrp-ecosystem')}
+                    className="w-full"
+                  >
+                    Back to XRP Ecosystem
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <NavigationHeader />
+      <MobileNavigation />
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
@@ -392,10 +543,29 @@ export default function XRPDEXTrading() {
                         Available: {balance.XRP.toFixed(2)} XRP, {balance.USD.toFixed(2)} USD
                       </div>
 
+                      {/* Authentication Status */}
+                      {!isAuthenticated && (
+                        <Alert className="mb-4">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>
+                            Sign in required to place orders
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
+                      {isAuthenticated && !walletConnected && (
+                        <Alert className="mb-4">
+                          <Shield className="h-4 w-4" />
+                          <AlertDescription>
+                            Connect XRP wallet to start trading
+                          </AlertDescription>
+                        </Alert>
+                      )}
+
                       {/* Place Order Button */}
                       <Button 
                         onClick={handlePlaceOrder}
-                        disabled={isTrading || !amount}
+                        disabled={isTrading || !amount || !isAuthenticated || !walletConnected}
                         className={`w-full ${
                           side === 'buy' 
                             ? 'bg-green-600 hover:bg-green-700' 
@@ -407,6 +577,10 @@ export default function XRPDEXTrading() {
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                             Processing...
                           </div>
+                        ) : !isAuthenticated ? (
+                          'Sign In Required'
+                        ) : !walletConnected ? (
+                          'Connect Wallet Required'
                         ) : (
                           `${side === 'buy' ? 'Buy' : 'Sell'} ${selectedPair?.base || 'XRP'}`
                         )}

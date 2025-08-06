@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
   DollarSign, 
   TrendingUp, 
@@ -18,7 +19,8 @@ import {
   Zap,
   CheckCircle,
   Info,
-  Wallet
+  Wallet,
+  AlertCircle
 } from "@/lib/icons";
 
 interface RLUSDPair {
@@ -52,6 +54,14 @@ export default function XRPRLUSDTrading() {
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
+
+  // Check authentication status
+  const { data: user, isLoading: userLoading, error: userError } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false
+  });
+
+  const isAuthenticated = !!user && !userError;
 
   const rlusdPairs: RLUSDPair[] = [
     {
@@ -98,8 +108,21 @@ export default function XRPRLUSDTrading() {
     }
   }, []);
 
+  const handleSignIn = () => {
+    setLocation('/auth');
+  };
+
   const handlePlaceOrder = async () => {
-    if (!selectedPair || !amount) return;
+    if (!isAuthenticated) {
+      alert('Please sign in to trade RLUSD');
+      setLocation('/auth');
+      return;
+    }
+
+    if (!selectedPair || !amount) {
+      alert('Please fill in all required fields');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -107,29 +130,52 @@ export default function XRPRLUSDTrading() {
       const priceNum = orderType === 'limit' ? parseFloat(price) : selectedPair.price;
       const total = amountNum * priceNum;
 
+      // Call actual RLUSD trading API
+      const response = await fetch('/api/xrp/rlusd-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pair: selectedPair.id,
+          side,
+          type: orderType,
+          amount: amountNum,
+          price: orderType === 'limit' ? priceNum : undefined
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Order placement failed');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Order placement failed');
+      }
+
       const newOrder: TradeOrder = {
-        id: Date.now().toString(),
+        id: result.orderId || Date.now().toString(),
         pair: selectedPair.id,
         side,
         type: orderType,
         amount: amountNum,
         price: orderType === 'limit' ? priceNum : undefined,
         total,
-        status: 'pending',
+        status: 'filled',
         timestamp: new Date().toLocaleTimeString()
       };
-
-      // Simulate order processing
-      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      setOrders(prev => [{ ...newOrder, status: 'filled' }, ...prev]);
+      setOrders(prev => [newOrder, ...prev]);
       
       // Reset form
       setAmount('');
       setPrice('');
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Order placement failed:', error);
+      alert(error.message || 'Failed to place order. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -176,6 +222,21 @@ export default function XRPRLUSDTrading() {
             </p>
           </div>
         </div>
+
+        {/* Authentication Check */}
+        {!isAuthenticated && (
+          <div className="mb-8">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Sign in required to trade RLUSD stablecoin</span>
+                <Button size="sm" onClick={handleSignIn}>
+                  Sign In
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Trading Pairs */}
@@ -306,10 +367,20 @@ export default function XRPRLUSDTrading() {
                   </Card>
                 )}
 
+                {/* Authentication Status */}
+                {!isAuthenticated && (
+                  <Alert className="mb-4">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Sign in required to trade RLUSD
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 {/* Place Order Button */}
                 <Button 
                   onClick={handlePlaceOrder}
-                  disabled={!amount || loading || (orderType === 'limit' && !price)}
+                  disabled={!amount || loading || (orderType === 'limit' && !price) || !isAuthenticated}
                   className={`w-full h-12 ${
                     side === 'buy' 
                       ? 'bg-green-600 hover:bg-green-700' 
@@ -321,6 +392,8 @@ export default function XRPRLUSDTrading() {
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Processing...
                     </div>
+                  ) : !isAuthenticated ? (
+                    'Sign In Required'
                   ) : (
                     `${side === 'buy' ? 'Buy' : 'Sell'} ${selectedPair?.base}`
                   )}

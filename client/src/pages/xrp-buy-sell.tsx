@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { 
   CreditCard, 
   Wallet, 
@@ -20,7 +21,8 @@ import {
   Clock,
   CheckCircle,
   Zap,
-  Info
+  Info,
+  AlertCircle
 } from "@/lib/icons";
 
 interface PaymentMethod {
@@ -51,6 +53,14 @@ export default function XRPBuySell() {
   const [quote, setQuote] = useState<XRPQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Check authentication status
+  const { data: user, isLoading: userLoading, error: userError } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false
+  });
+
+  const isAuthenticated = !!user && !userError;
 
   const paymentMethods: PaymentMethod[] = [
     {
@@ -171,14 +181,49 @@ export default function XRPBuySell() {
     }
   };
 
+  const handleSignIn = () => {
+    setLocation('/auth');
+  };
+
   const handleTransaction = async () => {
-    if (!quote || !selectedMethod) return;
+    if (!isAuthenticated) {
+      alert('Please sign in to buy/sell XRP');
+      setLocation('/auth');
+      return;
+    }
+
+    if (!quote || !selectedMethod) {
+      alert('Please complete all fields and review the quote');
+      return;
+    }
 
     setLoading(true);
+    setError('');
+
     try {
-      // Here you would integrate with actual payment processors
-      // For now, simulate the transaction
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call actual payment processing API
+      const response = await fetch('/api/xrp/transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: activeTab,
+          amount: parseFloat(amount),
+          paymentMethod: selectedMethod,
+          quote: quote
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Transaction failed');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Transaction failed');
+      }
       
       alert(`${activeTab === 'buy' ? 'Purchase' : 'Sale'} initiated successfully!`);
       
@@ -187,8 +232,9 @@ export default function XRPBuySell() {
       setSelectedMethod('');
       setQuote(null);
       
-    } catch (error) {
-      setError(`Failed to ${activeTab} XRP`);
+    } catch (error: any) {
+      console.error('Transaction error:', error);
+      setError(error.message || `Failed to ${activeTab} XRP`);
     } finally {
       setLoading(false);
     }
@@ -230,6 +276,21 @@ export default function XRPBuySell() {
             </div>
           </div>
         </div>
+
+        {/* Authentication Check */}
+        {!isAuthenticated && (
+          <div className="mb-8">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Sign in required to buy/sell XRP with real money</span>
+                <Button size="sm" onClick={handleSignIn}>
+                  Sign In
+                </Button>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main Trading Interface */}
@@ -346,7 +407,7 @@ export default function XRPBuySell() {
                 {/* Action Button */}
                 <Button 
                   onClick={handleTransaction}
-                  disabled={!quote || loading}
+                  disabled={!quote || loading || !isAuthenticated}
                   className="w-full h-12 text-lg"
                   variant={activeTab === 'buy' ? 'default' : 'outline'}
                 >
@@ -355,6 +416,8 @@ export default function XRPBuySell() {
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                       Processing...
                     </div>
+                  ) : !isAuthenticated ? (
+                    'Sign In Required'
                   ) : (
                     <>
                       {activeTab === 'buy' ? 'Buy XRP' : 'Sell XRP'}

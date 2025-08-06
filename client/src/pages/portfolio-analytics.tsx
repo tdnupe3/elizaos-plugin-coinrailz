@@ -28,7 +28,7 @@ function generatePortfolioHistory(walletData: any[], transactionData: any[], tim
       const balance = parseFloat(wallet.balance) || 0;
       // Use estimated prices for common cryptos
       const prices: Record<string, number> = {
-        BTC: 43000, ETH: 2600, ADA: 0.5, SOL: 100, DOT: 7, USDC: 1, XRP: 0.6, MATIC: 0.8, AVAX: 40
+        BTC: 114000, ETH: 3600, ADA: 0.5, SOL: 180, DOT: 7, USDC: 1, XRP: 2.97, MATIC: 0.8, AVAX: 40
       };
       const price = prices[wallet.currency] || 1;
       return total + (balance * price);

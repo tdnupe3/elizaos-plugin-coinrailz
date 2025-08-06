@@ -9,6 +9,7 @@ import { NavigationHeader } from "@/components/navigation-header";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { useCryptoPricing } from "@/hooks/useCryptoPricing";
 import { 
   DollarSign, 
   TrendingUp, 
@@ -55,6 +56,9 @@ export default function XRPRLUSDTrading() {
   const [loading, setLoading] = useState(false);
   const [orders, setOrders] = useState<TradeOrder[]>([]);
 
+  // Get real-time crypto prices
+  const { data: cryptoPrices, isLoading: pricesLoading } = useCryptoPricing();
+
   // Check authentication status
   const { data: user, isLoading: userLoading, error: userError } = useQuery({
     queryKey: ['/api/auth/user'],
@@ -63,50 +67,64 @@ export default function XRPRLUSDTrading() {
 
   const isAuthenticated = !!user && !userError;
 
-  const rlusdPairs: RLUSDPair[] = [
-    {
-      id: 'XRP-RLUSD',
-      base: 'XRP',
-      quote: 'RLUSD',
-      price: 2.97,
-      volume24h: 15420000,
-      change24h: 3.2,
-      liquidity: 8500000
-    },
-    {
-      id: 'RLUSD-USD',
-      base: 'RLUSD',
-      quote: 'USD',
-      price: 1.0001,
-      volume24h: 42300000,
-      change24h: 0.01,
-      liquidity: 12000000
-    },
-    {
-      id: 'BTC-RLUSD',
-      base: 'BTC',
-      quote: 'RLUSD',
-      price: 102450.75,
-      volume24h: 8900000,
-      change24h: 1.8,
-      liquidity: 5200000
-    },
-    {
-      id: 'ETH-RLUSD',
-      base: 'ETH',
-      quote: 'RLUSD',
-      price: 3420.15,
-      volume24h: 12800000,
-      change24h: 2.1,
-      liquidity: 6800000
-    }
-  ];
+  // Generate RLUSD pairs with real-time pricing
+  const getRLUSDPairs = (): RLUSDPair[] => {
+    const realPrices = cryptoPrices?.rates;
+    
+    return [
+      {
+        id: 'XRP-RLUSD',
+        base: 'XRP',
+        quote: 'RLUSD',
+        price: realPrices?.XRP?.USD || 2.97,
+        volume24h: 15420000,
+        change24h: realPrices?.XRP?.change24h || 0.3,
+        liquidity: 8500000
+      },
+      {
+        id: 'RLUSD-USD',
+        base: 'RLUSD',
+        quote: 'USD',
+        price: realPrices?.RLUSD?.USD || 1.0001,
+        volume24h: 42300000,
+        change24h: realPrices?.RLUSD?.change24h || 0.01,
+        liquidity: 12000000
+      },
+      {
+        id: 'BTC-RLUSD',
+        base: 'BTC',
+        quote: 'RLUSD',
+        price: realPrices?.BTC?.USD || 114000, // Real BTC price
+        volume24h: 8900000,
+        change24h: realPrices?.BTC?.change24h || -0.9,
+        liquidity: 5200000
+      },
+      {
+        id: 'ETH-RLUSD',
+        base: 'ETH',
+        quote: 'RLUSD',
+        price: realPrices?.ETH?.USD || 3600, // Real ETH price
+        volume24h: 12800000,
+        change24h: realPrices?.ETH?.change24h || 3.2,
+        liquidity: 6800000
+      }
+    ];
+  };
+
+  const rlusdPairs = getRLUSDPairs();
 
   useEffect(() => {
+    const pairs = getRLUSDPairs();
     if (!selectedPair) {
-      setSelectedPair(rlusdPairs[0]); // Default to XRP-RLUSD
+      setSelectedPair(pairs[0]); // Default to XRP-RLUSD
+    } else {
+      // Update selected pair with latest prices
+      const updatedPair = pairs.find(p => p.id === selectedPair.id);
+      if (updatedPair) {
+        setSelectedPair(updatedPair);
+      }
     }
-  }, []);
+  }, [cryptoPrices, selectedPair?.id]);
 
   const handleSignIn = () => {
     setLocation('/auth');

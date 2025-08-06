@@ -120,29 +120,29 @@ export const DEFAULT_TRADING_PAIRS: TokenPair[] = [
   {
     base: 'XRP',
     quote: 'USD',
-    price: 3.05, // Will be updated with real-time data
-    change24h: 5.2,
+    price: 2.97, // Will be updated with real-time data
+    change24h: -2.5,
     volume24h: 1250000,
-    high24h: 3.12,
-    low24h: 2.98
+    high24h: 3.02,
+    low24h: 2.88
   },
   {
     base: 'XRP',
     quote: 'RLUSD',
-    price: 3.05, // Will be updated with real-time data
-    change24h: 5.2,
+    price: 2.97, // Will be updated with real-time data
+    change24h: -2.5,
     volume24h: 850000,
-    high24h: 3.12,
-    low24h: 2.98
+    high24h: 3.02,
+    low24h: 2.88
   },
   {
     base: 'XRP',
     quote: 'USDC',
-    price: 3.05, // Will be updated with real-time data
-    change24h: 5.2,
+    price: 2.97, // Will be updated with real-time data
+    change24h: -2.5,
     volume24h: 1100000,
-    high24h: 3.12,
-    low24h: 2.98
+    high24h: 3.02,
+    low24h: 2.88
   },
   {
     base: 'SOLO',

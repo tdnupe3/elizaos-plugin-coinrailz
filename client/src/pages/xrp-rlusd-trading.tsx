@@ -68,7 +68,7 @@ export default function XRPRLUSDTrading() {
       id: 'XRP-RLUSD',
       base: 'XRP',
       quote: 'RLUSD',
-      price: 3.05,
+      price: 2.97,
       volume24h: 15420000,
       change24h: 3.2,
       liquidity: 8500000

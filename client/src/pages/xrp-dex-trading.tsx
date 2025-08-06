@@ -126,7 +126,7 @@ export default function XRPDEXTrading() {
         const balanceData = await balanceResponse.json();
         if (balanceData.success) {
           const xrpAmount = parseFloat(balanceData.balance.available) || 0;
-          const xrpRate = realTimePrice || 3.05;
+          const xrpRate = realTimePrice || 2.97;
           
           setBalance({
             XRP: xrpAmount,

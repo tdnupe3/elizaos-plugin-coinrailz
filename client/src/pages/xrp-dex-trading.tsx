@@ -45,6 +45,7 @@ interface TradeHistory {
 export default function XRPDEXTrading() {
   const [, setLocation] = useLocation();
   const [selectedPair, setSelectedPair] = useState<TokenPair | null>(null);
+  const [realTimePrice, setRealTimePrice] = useState<number>(0);
   const [orderBook, setOrderBook] = useState<OrderBookEntry[]>([]);
   const [tradeHistory, setTradeHistory] = useState<TradeHistory[]>([]);
   const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop'>('market');
@@ -74,7 +75,19 @@ export default function XRPDEXTrading() {
       loadTradeHistory(tokenPairs[0]);
     }
     fetchBalance();
+    
+    // Refresh price every 30 seconds
+    const interval = setInterval(fetchBalance, 30000);
+    return () => clearInterval(interval);
   }, []);
+  
+  // Update order book when real price changes
+  useEffect(() => {
+    if (selectedPair && realTimePrice > 0) {
+      loadOrderBook(selectedPair);
+      loadTradeHistory(selectedPair);
+    }
+  }, [realTimePrice, selectedPair]);
 
   const handleConnectWallet = () => {
     setLocation('/xrp-wallet-creation');
@@ -85,21 +98,35 @@ export default function XRPDEXTrading() {
   };
 
   const fetchBalance = async () => {
-    if (!isAuthenticated) return;
-
     try {
       const [balanceResponse, rateResponse] = await Promise.all([
         fetch('/api/xrp/balance'),
         fetch('/api/xrp/rate')
       ]);
       
-      if (balanceResponse.ok && rateResponse.ok) {
-        const balanceData = await balanceResponse.json();
+      if (rateResponse.ok) {
         const rateData = await rateResponse.json();
-        
-        if (balanceData.success && rateData.success) {
+        if (rateData.success && rateData.rate?.XRP_USD) {
+          const newPrice = rateData.rate.XRP_USD;
+          setRealTimePrice(newPrice);
+          
+          // Update selected pair with real price
+          if (selectedPair) {
+            setSelectedPair({
+              ...selectedPair,
+              price: newPrice,
+              low24h: newPrice * 0.98,
+              high24h: newPrice * 1.02
+            });
+          }
+        }
+      }
+      
+      if (isAuthenticated && balanceResponse.ok) {
+        const balanceData = await balanceResponse.json();
+        if (balanceData.success) {
           const xrpAmount = parseFloat(balanceData.balance.available) || 0;
-          const xrpRate = rateData.rate?.XRP_USD || 3.05;
+          const xrpRate = realTimePrice || 3.05;
           
           setBalance({
             XRP: xrpAmount,
@@ -111,33 +138,38 @@ export default function XRPDEXTrading() {
         }
       }
     } catch (error) {
-      console.error('Error fetching balance:', error);
-      // Keep balance at 0 if fetch fails
+      console.error('Error fetching balance and price:', error);
     }
   };
 
   const loadOrderBook = (pair: TokenPair) => {
-    // Simulate order book data
+    // Use real-time price if available, otherwise use pair price
+    const currentPrice = realTimePrice > 0 ? realTimePrice : pair.price;
+    
+    // Generate realistic order book around current price
     const mockOrderBook: OrderBookEntry[] = [
-      // Asks (selling)
-      { price: 3.07, amount: 1000, total: 3070, type: 'ask' },
-      { price: 3.06, amount: 1500, total: 4590, type: 'ask' },
-      { price: 3.05, amount: 2000, total: 6100, type: 'ask' },
-      // Bids (buying)
-      { price: 3.04, amount: 1800, total: 5472, type: 'bid' },
-      { price: 3.03, amount: 2200, total: 6666, type: 'bid' },
-      { price: 3.02, amount: 1600, total: 4832, type: 'bid' },
+      // Asks (selling) - slightly above current price
+      { price: currentPrice * 1.007, amount: 1000, total: currentPrice * 1007, type: 'ask' },
+      { price: currentPrice * 1.003, amount: 1500, total: currentPrice * 1504.5, type: 'ask' },
+      { price: currentPrice * 1.001, amount: 2000, total: currentPrice * 2002, type: 'ask' },
+      // Bids (buying) - slightly below current price
+      { price: currentPrice * 0.997, amount: 1800, total: currentPrice * 1794.6, type: 'bid' },
+      { price: currentPrice * 0.993, amount: 2200, total: currentPrice * 2184.6, type: 'bid' },
+      { price: currentPrice * 0.989, amount: 1600, total: currentPrice * 1582.4, type: 'bid' },
     ];
     setOrderBook(mockOrderBook);
   };
 
   const loadTradeHistory = (pair: TokenPair) => {
-    // Simulate trade history
+    // Use real-time price if available, otherwise use pair price
+    const currentPrice = realTimePrice > 0 ? realTimePrice : pair.price;
+    
+    // Generate realistic trade history around current price
     const mockHistory: TradeHistory[] = [
-      { id: '1', price: 3.05, amount: 500, time: '14:32:15', type: 'buy', status: 'completed' },
-      { id: '2', price: 3.04, amount: 750, time: '14:31:45', type: 'sell', status: 'completed' },
-      { id: '3', price: 3.05, amount: 1000, time: '14:30:12', type: 'buy', status: 'completed' },
-      { id: '4', price: 3.03, amount: 300, time: '14:29:38', type: 'sell', status: 'pending' },
+      { id: '1', price: currentPrice * 1.001, amount: 500, time: '14:32:15', type: 'buy', status: 'completed' },
+      { id: '2', price: currentPrice * 0.999, amount: 750, time: '14:31:45', type: 'sell', status: 'completed' },
+      { id: '3', price: currentPrice * 1.002, amount: 1000, time: '14:30:12', type: 'buy', status: 'completed' },
+      { id: '4', price: currentPrice * 0.997, amount: 300, time: '14:29:38', type: 'sell', status: 'pending' },
     ];
     setTradeHistory(mockHistory);
   };

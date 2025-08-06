@@ -113,12 +113,6 @@ export default function XRPRLUSDTrading() {
   };
 
   const handlePlaceOrder = async () => {
-    if (!isAuthenticated) {
-      alert('Please sign in to trade RLUSD');
-      setLocation('/auth');
-      return;
-    }
-
     if (!selectedPair || !amount) {
       alert('Please fill in all required fields');
       return;
@@ -223,20 +217,7 @@ export default function XRPRLUSDTrading() {
           </div>
         </div>
 
-        {/* Authentication Check */}
-        {!isAuthenticated && (
-          <div className="mb-8">
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <span>Sign in required to trade RLUSD stablecoin</span>
-                <Button size="sm" onClick={handleSignIn}>
-                  Sign In
-                </Button>
-              </AlertDescription>
-            </Alert>
-          </div>
-        )}
+
 
         <div className="grid lg:grid-cols-4 gap-6">
           {/* Trading Pairs */}
@@ -367,20 +348,12 @@ export default function XRPRLUSDTrading() {
                   </Card>
                 )}
 
-                {/* Authentication Status */}
-                {!isAuthenticated && (
-                  <Alert className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Sign in required to trade RLUSD
-                    </AlertDescription>
-                  </Alert>
-                )}
+
 
                 {/* Place Order Button */}
                 <Button 
                   onClick={handlePlaceOrder}
-                  disabled={!amount || loading || (orderType === 'limit' && !price) || !isAuthenticated}
+                  disabled={!amount || loading || (orderType === 'limit' && !price)}
                   className={`w-full h-12 ${
                     side === 'buy' 
                       ? 'bg-green-600 hover:bg-green-700' 
@@ -392,8 +365,6 @@ export default function XRPRLUSDTrading() {
                       <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                       Processing...
                     </div>
-                  ) : !isAuthenticated ? (
-                    'Sign In Required'
                   ) : (
                     `${side === 'buy' ? 'Buy' : 'Sell'} ${selectedPair?.base}`
                   )}

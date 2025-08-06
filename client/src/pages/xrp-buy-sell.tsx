@@ -277,7 +277,7 @@ export default function XRPBuySell() {
           </div>
         </div>
 
-        {/* Authentication Check */}
+        {/* Authentication Check - Keep for Buy/Sell since it involves fiat */}
         {!isAuthenticated && (
           <div className="mb-8">
             <Alert>

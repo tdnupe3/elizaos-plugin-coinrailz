@@ -286,8 +286,19 @@ function Router() {
         {() => <LazyLoadWrapper><XRPComplianceTools /></LazyLoadWrapper>}
       </Route>
 
-      {/* XRP DEX Services - NEW */}
+      {/* XRP DEX Services - Simplified Interface */}
       <Route path="/xrp-dex-trading">
+        {() => {
+          const XRPDEXSimple = lazy(() => import("./pages/xrp-dex-simple"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <XRPDEXSimple />
+            </Suspense>
+          );
+        }}
+      </Route>
+      {/* Advanced DEX Trading */}
+      <Route path="/xrp-dex-advanced">
         {() => <LazyLoadWrapper><XRPDEXTrading /></LazyLoadWrapper>}
       </Route>
       <Route path="/xrp-token-explorer">

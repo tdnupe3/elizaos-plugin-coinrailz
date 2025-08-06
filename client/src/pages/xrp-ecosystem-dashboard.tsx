@@ -89,8 +89,8 @@ export default function XRPEcosystemDashboard() {
     },
     {
       id: 'dex-trading',
-      title: 'Advanced DEX Trading',
-      description: 'Professional XRP DEX trading with advanced order types and real-time charts',
+      title: 'DEX Token Swaps',
+      description: 'Simple token swaps with instant execution and industry-standard interface',
       benefits: ['Native DEX integration', 'Advanced order book', 'Real-time trading'],
       icon: TrendingUp,
       status: 'active',

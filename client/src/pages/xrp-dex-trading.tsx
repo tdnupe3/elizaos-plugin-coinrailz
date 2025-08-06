@@ -99,7 +99,7 @@ export default function XRPDEXTrading() {
         
         if (balanceData.success && rateData.success) {
           const xrpAmount = parseFloat(balanceData.balance.available) || 0;
-          const xrpRate = rateData.rate?.XRP_USD || 2.25;
+          const xrpRate = rateData.rate?.XRP_USD || 3.05;
           
           setBalance({
             XRP: xrpAmount,
@@ -120,13 +120,13 @@ export default function XRPDEXTrading() {
     // Simulate order book data
     const mockOrderBook: OrderBookEntry[] = [
       // Asks (selling)
-      { price: 2.27, amount: 1000, total: 2270, type: 'ask' },
-      { price: 2.26, amount: 1500, total: 3390, type: 'ask' },
-      { price: 2.25, amount: 2000, total: 4500, type: 'ask' },
+      { price: 3.07, amount: 1000, total: 3070, type: 'ask' },
+      { price: 3.06, amount: 1500, total: 4590, type: 'ask' },
+      { price: 3.05, amount: 2000, total: 6100, type: 'ask' },
       // Bids (buying)
-      { price: 2.24, amount: 1800, total: 4032, type: 'bid' },
-      { price: 2.23, amount: 2200, total: 4906, type: 'bid' },
-      { price: 2.22, amount: 1600, total: 3552, type: 'bid' },
+      { price: 3.04, amount: 1800, total: 5472, type: 'bid' },
+      { price: 3.03, amount: 2200, total: 6666, type: 'bid' },
+      { price: 3.02, amount: 1600, total: 4832, type: 'bid' },
     ];
     setOrderBook(mockOrderBook);
   };
@@ -134,10 +134,10 @@ export default function XRPDEXTrading() {
   const loadTradeHistory = (pair: TokenPair) => {
     // Simulate trade history
     const mockHistory: TradeHistory[] = [
-      { id: '1', price: 2.25, amount: 500, time: '14:32:15', type: 'buy', status: 'completed' },
-      { id: '2', price: 2.24, amount: 750, time: '14:31:45', type: 'sell', status: 'completed' },
-      { id: '3', price: 2.25, amount: 1000, time: '14:30:12', type: 'buy', status: 'completed' },
-      { id: '4', price: 2.23, amount: 300, time: '14:29:38', type: 'sell', status: 'pending' },
+      { id: '1', price: 3.05, amount: 500, time: '14:32:15', type: 'buy', status: 'completed' },
+      { id: '2', price: 3.04, amount: 750, time: '14:31:45', type: 'sell', status: 'completed' },
+      { id: '3', price: 3.05, amount: 1000, time: '14:30:12', type: 'buy', status: 'completed' },
+      { id: '4', price: 3.03, amount: 300, time: '14:29:38', type: 'sell', status: 'pending' },
     ];
     setTradeHistory(mockHistory);
   };

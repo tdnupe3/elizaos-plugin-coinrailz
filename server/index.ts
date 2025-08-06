@@ -1836,7 +1836,7 @@ app.get('/api/xrp/rate', async (req, res) => {
     res.json({
       success: true,
       rate: {
-        XRP_USD: 2.20, // Current market estimate
+        XRP_USD: 3.05, // Current market estimate
         lastUpdated: new Date().toISOString(),
         change24h: 'N/A',
         source: 'fallback'

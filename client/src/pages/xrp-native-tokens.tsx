@@ -191,8 +191,8 @@ export default function XRPNativeTokens() {
       tokenSymbol: token.symbol,
       side,
       amount: 100,
-      priceXRP: token.price / 2.95, // Convert USD price to XRP
-      total: 100 * (token.price / 2.95),
+      priceXRP: token.price / 3.05, // Convert USD price to XRP (using current XRP rate)
+      total: 100 * (token.price / 3.05),
       timestamp: new Date().toLocaleTimeString(),
       status: 'completed'
     };

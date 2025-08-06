@@ -49,7 +49,7 @@ export default function XRPBuySell() {
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy');
   const [amount, setAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<string>('');
-  const [xrpPrice, setXRPPrice] = useState(2.95);
+  const [xrpPrice, setXRPPrice] = useState(0); // Will be fetched from API
   const [quote, setQuote] = useState<XRPQuote | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -101,9 +101,9 @@ export default function XRPBuySell() {
     }
   ];
 
-  // Fetch XRP price
+  // Fetch real-time XRP price from CoinGecko via our API
   useEffect(() => {
-    const fetchXRPPrice = async () => {
+    const fetchPrice = async () => {
       try {
         const response = await fetch('/api/xrp/rate');
         if (response.ok) {
@@ -114,17 +114,19 @@ export default function XRPBuySell() {
         }
       } catch (error) {
         console.error('Failed to fetch XRP price:', error);
+        // Keep price at 0 to indicate loading/error state
       }
     };
-
-    fetchXRPPrice();
-    const interval = setInterval(fetchXRPPrice, 30000);
+    
+    fetchPrice();
+    // Refresh price every 30 seconds
+    const interval = setInterval(fetchPrice, 30000);
     return () => clearInterval(interval);
   }, []);
-
+  
   // Calculate quote when amount or method changes
   useEffect(() => {
-    if (amount && selectedMethod && parseFloat(amount) > 0) {
+    if (amount && selectedMethod && parseFloat(amount) > 0 && xrpPrice > 0) {
       calculateQuote();
     } else {
       setQuote(null);

@@ -8,6 +8,7 @@ import { AIMarketplaceCore } from '../services/aiMarketplaceCore';
 import { ServiceDeliveryCore } from '../services/serviceDeliveryCore';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
+import { paymentProcessor } from '../services/paymentProcessor';
 // Input validation implemented inline to avoid middleware conflicts
 // XSS protection implemented inline
 import { z } from 'zod';

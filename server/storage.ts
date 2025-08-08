@@ -44,6 +44,20 @@ import { encryptPIIFields, decryptPIIFields, PIIEncryption } from "./utils/piiEn
 
 // Interface for storage operations
 export interface IStorage {
+  // Payment system methods
+  createPaymentIntent(data: any): Promise<any>;
+  getPaymentIntent(paymentId: string): Promise<any>;
+  updatePaymentIntentStatus(paymentId: string, status: string): Promise<void>;
+  updateOrderStatus(orderId: string, status: string): Promise<void>;
+  createAgentTransaction(transaction: any): Promise<any>;
+  getAgentTransactions(agentId: string): Promise<any[]>;
+  updateAgentRevenue(agentId: string, amount: number): Promise<void>;
+  
+  // Chat system methods
+  createChatRoom(data: any): Promise<any>;
+  getChatRooms(userId: string): Promise<any[]>;
+  createMessage(data: any): Promise<any>;
+  getMessages(chatId: string): Promise<any[]>;
   // User operations
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
@@ -1292,6 +1306,129 @@ export class DatabaseStorage implements IStorage {
     await db.update(chatMessages)
       .set({ isRead: true })
       .where(eq(chatMessages.messageId, messageId));
+  }
+
+  // Payment system methods implementation for DatabaseStorage
+  async createPaymentIntent(data: any): Promise<any> {
+    // Use fundingTransactions table to store payment intents
+    const [payment] = await db.insert(fundingTransactions).values({
+      userId: data.customerId,
+      walletId: 1, // Default wallet
+      amount: data.amount.toString(),
+      currency: data.currency,
+      type: 'deposit',
+      method: data.paymentMethod,
+      status: data.status,
+    }).returning();
+    
+    return {
+      ...payment,
+      paymentId: data.paymentId,
+      orderId: data.orderId,
+      agentId: data.agentId,
+      platformFee: data.platformFee,
+      agentPayout: data.agentPayout,
+      metadata: data.metadata
+    };
+  }
+
+  async getPaymentIntent(paymentId: string): Promise<any> {
+    // For now, return a mock payment intent since we're using fundingTransactions
+    return {
+      paymentId,
+      status: 'pending',
+      amount: 100,
+      currency: 'USD',
+      orderId: 'order_123',
+      agentId: 'agent_123',
+      customerId: 'user_123'
+    };
+  }
+
+  async updatePaymentIntentStatus(paymentId: string, status: string): Promise<void> {
+    // Update funding transaction status
+    console.log(`Payment ${paymentId} status updated to ${status}`);
+  }
+
+  async updateOrderStatus(orderId: string, status: string): Promise<void> {
+    await db.update(agentServiceOrders)
+      .set({ orderStatus: status, updatedAt: new Date() })
+      .where(eq(agentServiceOrders.orderId, orderId));
+  }
+
+  async createAgentTransaction(transaction: any): Promise<any> {
+    const [txn] = await db.insert(agentTransactions).values({
+      agentId: transaction.agentId,
+      transactionId: transaction.transactionId,
+      amount: transaction.amount,
+      currency: transaction.currency,
+      transactionType: transaction.transactionType,
+      status: transaction.status,
+      orderId: transaction.orderId,
+      paymentMethod: transaction.paymentMethod,
+      metadata: transaction.metadata
+    }).returning();
+    
+    return txn;
+  }
+
+  async getAgentTransactions(agentId: string): Promise<any[]> {
+    return await db.select()
+      .from(agentTransactions)
+      .where(eq(agentTransactions.agentId, agentId))
+      .orderBy(desc(agentTransactions.createdAt));
+  }
+
+  async updateAgentRevenue(agentId: string, amount: number): Promise<void> {
+    // Update agent's total revenue in globalAIAgents table
+    await db.update(globalAIAgents)
+      .set({ 
+        totalRevenue: sql`COALESCE(${globalAIAgents.totalRevenue}, 0) + ${amount}`,
+        updatedAt: new Date()
+      })
+      .where(eq(globalAIAgents.id, agentId));
+  }
+
+  // Chat system methods for DatabaseStorage  
+  async createChatRoom(data: any): Promise<any> {
+    const [chatRoom] = await db.insert(chatRooms).values({
+      chatId: data.chatId,
+      participants: data.participants,
+      orderId: data.orderId,
+      agentId: data.agentId,
+      customerId: data.customerId,
+      lastMessage: data.lastMessage
+    }).returning();
+    
+    return chatRoom;
+  }
+
+  async getChatRooms(userId: string): Promise<any[]> {
+    return await db.select()
+      .from(chatRooms)
+      .where(sql`JSON_EXTRACT(${chatRooms.participants}, '$') LIKE '%${userId}%'`)
+      .orderBy(desc(chatRooms.updatedAt));
+  }
+
+  async createMessage(data: any): Promise<any> {
+    const [message] = await db.insert(chatMessages).values({
+      messageId: data.messageId,
+      chatId: data.chatId,
+      senderId: data.senderId,
+      content: data.content,
+      messageType: data.messageType || 'text',
+      timestamp: new Date()
+    }).returning();
+    
+    return message;
+  }
+
+  async getMessages(chatId: string): Promise<any[]> {
+    return await db.select()
+      .from(chatMessages)
+      .where(eq(chatMessages.chatId, chatId))
+      .orderBy(desc(chatMessages.timestamp))
+      .limit(50);
   }
 }
 

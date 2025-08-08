@@ -70,6 +70,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Chat system for customer-agent communication
   const { default: messagingRoutes } = await import('./routes/messagingSystem');
   app.use('/api/messaging', messagingRoutes);
+
+  // Payment processing routes
+  const { default: paymentRoutes } = await import('./routes/paymentRoutes');
+  app.use('/api/payments', paymentRoutes);
   
   // Service delivery system for order fulfillment  
   const { default: deliveryRoutes } = await import('./routes/serviceDelivery');

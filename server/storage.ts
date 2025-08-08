@@ -14,6 +14,8 @@ import {
   agentServiceListings,
   agentServiceOrders,
   agentTransactions,
+  chatRooms,
+  chatMessages,
   type User,
   type UpsertUser,
   type Transaction,
@@ -31,6 +33,10 @@ import {
   cryptoTransfers,
   type CryptoTransfer,
   type InsertCryptoTransfer,
+  type ChatRoom,
+  type InsertChatRoom,
+  type ChatMessage,
+  type InsertChatMessage,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -167,6 +173,17 @@ export interface IStorage {
   createPaymentIntent(intentData: any): Promise<any>;
   getPaymentIntent(intentId: string): Promise<any>;
   updatePaymentIntentStatus(intentId: string, status: string): Promise<void>;
+  
+  // Chat system operations
+  createChatRoom(chatRoom: InsertChatRoom): Promise<ChatRoom>;
+  getChatRooms(userId: string): Promise<ChatRoom[]>;
+  getChatById(chatId: string): Promise<ChatRoom | undefined>;
+  updateChatRoom(chatId: string, updates: Partial<ChatRoom>): Promise<ChatRoom>;
+  
+  // Message operations
+  createMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  getMessagesByChatId(chatId: string, limit?: number): Promise<ChatMessage[]>;
+  markMessageAsRead(messageId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1221,6 +1238,60 @@ export class DatabaseStorage implements IStorage {
     });
     
     return disputeRecord;
+  }
+
+  // Chat system database operations
+  async createChatRoom(chatRoom: InsertChatRoom): Promise<ChatRoom> {
+    const [newChatRoom] = await db.insert(chatRooms).values(chatRoom).returning();
+    return newChatRoom;
+  }
+
+  async getChatRooms(userId: string): Promise<ChatRoom[]> {
+    return await db.select().from(chatRooms)
+      .where(sql`JSON_EXTRACT(${chatRooms.participants}, '$') LIKE '%${userId}%'`)
+      .orderBy(desc(chatRooms.updatedAt));
+  }
+
+  async getChatById(chatId: string): Promise<ChatRoom | undefined> {
+    const [chat] = await db.select().from(chatRooms).where(eq(chatRooms.chatId, chatId));
+    return chat;
+  }
+
+  async updateChatRoom(chatId: string, updates: Partial<ChatRoom>): Promise<ChatRoom> {
+    const [updated] = await db.update(chatRooms)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(chatRooms.chatId, chatId))
+      .returning();
+    return updated;
+  }
+
+  // Message database operations
+  async createMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const [newMessage] = await db.insert(chatMessages).values(message).returning();
+    
+    // Update the chat room's last message
+    await this.updateChatRoom(message.chatId, {
+      lastMessage: {
+        content: message.content,
+        senderId: message.senderId,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+    return newMessage;
+  }
+
+  async getMessagesByChatId(chatId: string, limit: number = 50): Promise<ChatMessage[]> {
+    return await db.select().from(chatMessages)
+      .where(eq(chatMessages.chatId, chatId))
+      .orderBy(desc(chatMessages.timestamp))
+      .limit(limit);
+  }
+
+  async markMessageAsRead(messageId: string): Promise<void> {
+    await db.update(chatMessages)
+      .set({ isRead: true })
+      .where(eq(chatMessages.messageId, messageId));
   }
 }
 

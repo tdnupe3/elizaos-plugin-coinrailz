@@ -20,9 +20,8 @@ const createChatSchema = z.object({
   chatName: z.string().optional()
 });
 
-// In-memory storage (replace with database in production)
-(global as any).chatRooms = (global as any).chatRooms || [];
-(global as any).messages = (global as any).messages || [];
+// Using database storage for production persistence
+import { storage } from "../storage";
 
 // Create new chat room
 router.post('/chat/create', async (req, res) => {
@@ -33,18 +32,16 @@ router.post('/chat/create', async (req, res) => {
     const chatId = `chat_${nanoid()}`;
     const currentUserId = (req.user as any)?.id || 'guest_user';
 
-    const newChat = {
-      id: chatId,
+    const chatRoomData = {
+      chatId: chatId,
       participants: [currentUserId, ...chatData.participantIds],
       orderId: chatData.orderId || null,
       chatName: chatData.chatName || `Chat ${chatId.slice(-6)}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
       lastMessage: null,
       isActive: true
     };
 
-    (global as any).chatRooms.push(newChat);
+    const newChat = await storage.createChatRoom(chatRoomData);
 
     res.status(201).json({
       success: true,
@@ -80,57 +77,46 @@ router.post('/send', async (req, res) => {
     const messageId = `msg_${nanoid()}`;
     const senderId = (req.user as any)?.id || 'guest_user';
 
-    // Find or create chat room
-    let chatRoom = (global as any).chatRooms.find((chat: any) => 
-      chat.participants.includes(senderId) && 
-      chat.participants.includes(messageData.recipientId)
+    // Find or create chat room using database
+    let userChats = await storage.getChatRooms(senderId);
+    let chatRoom = userChats.find((chat: any) => 
+      JSON.stringify(chat.participants).includes(messageData.recipientId)
     );
 
     if (!chatRoom) {
       // Create new chat room automatically
       const chatId = `chat_${nanoid()}`;
-      chatRoom = {
-        id: chatId,
+      const chatRoomData = {
+        chatId: chatId,
         participants: [senderId, messageData.recipientId],
         orderId: messageData.orderId || null,
         chatName: `Chat ${chatId.slice(-6)}`,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
         lastMessage: null,
         isActive: true
       };
-      (global as any).chatRooms.push(chatRoom);
+      chatRoom = await storage.createChatRoom(chatRoomData);
     }
 
-    const newMessage = {
-      id: messageId,
-      chatId: chatRoom.id,
+    const messageDataForDB = {
+      messageId: messageId,
+      chatId: chatRoom.chatId,
       senderId: senderId,
       recipientId: messageData.recipientId,
       content: messageData.content,
       messageType: messageData.messageType,
       fileUrl: messageData.fileUrl || null,
       orderId: messageData.orderId || null,
-      timestamp: new Date().toISOString(),
       isRead: false,
       isDelivered: true
     };
 
-    (global as any).messages.push(newMessage);
-
-    // Update chat room's last message
-    chatRoom.lastMessage = {
-      content: messageData.content,
-      timestamp: newMessage.timestamp,
-      senderId: senderId
-    };
-    chatRoom.updatedAt = new Date().toISOString();
+    const newMessage = await storage.createMessage(messageDataForDB);
 
     res.status(201).json({
       success: true,
       message: 'Message sent successfully',
       messageId: messageId,
-      chatId: chatRoom.id,
+      chatId: chatRoom.chatId,
       messageData: newMessage
     });
 
@@ -156,16 +142,14 @@ router.post('/send', async (req, res) => {
 router.get('/chats', async (req, res) => {
   try {
     const userId = (req.user as any)?.id || 'guest_user';
-    const chatRooms = (global as any).chatRooms || [];
     
-    const userChats = chatRooms
-      .filter((chat: any) => chat.participants.includes(userId))
-      .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    const userChats = await storage.getChatRooms(userId);
 
     res.json({
       success: true,
       chats: userChats.map((chat: any) => ({
-        id: chat.id,
+        id: chat.chatId,
+        chatId: chat.chatId,
         chatName: chat.chatName,
         participants: chat.participants,
         lastMessage: chat.lastMessage,

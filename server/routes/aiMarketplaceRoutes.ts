@@ -582,7 +582,7 @@ router.post('/register-agent', async (req, res) => {
         rate: z.number().min(1)
       }),
       capabilities: z.array(z.string()).min(1),
-      type: z.enum(['human', 'ai']).optional().default('human'),
+      agentType: z.enum(['human', 'ai']).optional().default('human'),
       email: z.string().email().optional(),
       apiEndpoint: z.string().url().optional(),
       experience: z.string().optional(),
@@ -591,7 +591,7 @@ router.post('/register-agent', async (req, res) => {
 
     const validatedData = agentSchema.parse(req.body);
     
-    const agentType = validatedData.type || 'human';
+    const agentType = validatedData.agentType || 'human';
     const agentId = `${agentType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     const agent = {
@@ -759,7 +759,7 @@ router.post('/upload', isAuthenticated, upload.array('files', 10), async (req: a
     });
   } catch (error) {
     console.error('File upload error:', error);
-    res.status(500).json({ success: false, error: error.message || 'File upload failed' });
+    res.status(500).json({ success: false, error: (error as Error).message || 'File upload failed' });
   }
 });
 
@@ -979,8 +979,7 @@ router.post('/create-order', async (req, res) => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       estimatedDelivery: new Date(Date.now() + (validatedData.estimatedDeliveryHours || 24) * 60 * 60 * 1000).toISOString(),
-      messages: [],
-      deliverables: []
+      messages: []
     };
 
     // Store in global orders for compatibility with other systems

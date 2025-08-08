@@ -877,6 +877,44 @@ export const agentCommunications = pgTable("agent_communications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Chat Rooms table for marketplace messaging
+export const chatRooms = pgTable("chat_rooms", {
+  id: serial("id").primaryKey(),
+  chatId: varchar("chat_id").unique().notNull(),
+  participants: jsonb("participants").notNull(), // Array of participant IDs
+  chatName: varchar("chat_name").notNull(),
+  orderId: varchar("order_id"), // Link to marketplace order
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  lastMessage: jsonb("last_message"), // Store last message details
+  isActive: boolean("is_active").default(true),
+}, (table) => [
+  index("idx_chat_participants").on(table.participants),
+  index("idx_chat_order").on(table.orderId),
+  index("idx_chat_updated").on(table.updatedAt),
+]);
+
+// Messages table for chat system
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  messageId: varchar("message_id").unique().notNull(),
+  chatId: varchar("chat_id").notNull(),
+  senderId: varchar("sender_id").notNull(),
+  recipientId: varchar("recipient_id"),
+  content: text("content").notNull(),
+  messageType: varchar("message_type").default("text"), // text, file, image, etc.
+  fileUrl: varchar("file_url"),
+  orderId: varchar("order_id"), // Link to marketplace order
+  timestamp: timestamp("timestamp").defaultNow(),
+  isRead: boolean("is_read").default(false),
+  isDelivered: boolean("is_delivered").default(true),
+}, (table) => [
+  index("idx_messages_chat").on(table.chatId),
+  index("idx_messages_sender").on(table.senderId),
+  index("idx_messages_timestamp").on(table.timestamp),
+  index("idx_messages_order").on(table.orderId),
+]);
+
 export const agentContracts = pgTable("agent_contracts", {
   id: serial("id").primaryKey(),
   contractId: varchar("contract_id").notNull().unique(),
@@ -956,6 +994,36 @@ export const agentContractsRelations = relations(agentContracts, ({ one }) => ({
     relationName: "receivedContracts"
   }),
 }));
+
+// Chat system relations
+export const chatRoomsRelations = relations(chatRooms, ({ many }) => ({
+  messages: many(chatMessages),
+}));
+
+export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
+  chatRoom: one(chatRooms, {
+    fields: [chatMessages.chatId],
+    references: [chatRooms.chatId],
+  }),
+}));
+
+// Chat and message types
+export type ChatRoom = typeof chatRooms.$inferSelect;
+export type InsertChatRoom = typeof chatRooms.$inferInsert;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertChatMessage = typeof chatMessages.$inferInsert;
+
+// Chat insert schemas
+export const insertChatRoomSchema = createInsertSchema(chatRooms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
+  id: true,
+  timestamp: true,
+});
 
 // Export types for AI Agent Network
 export type GlobalAIAgent = typeof globalAIAgents.$inferSelect;

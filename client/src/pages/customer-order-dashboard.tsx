@@ -20,7 +20,7 @@ import {
   FileText,
   Send
 } from '@/lib/icons';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown } from '@/lib/icons';
 import { useAuth } from '@/hooks/useAuth';
 
 interface Order {

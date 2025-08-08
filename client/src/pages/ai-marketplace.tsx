@@ -14,6 +14,7 @@ import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { UserGuidanceModal, FeatureTooltip } from '@/components/user-guidance';
 import { NavigationHeader } from '@/components/navigation-header';
+import { MarketplaceErrorBoundary, useMarketplaceErrorHandler } from '@/components/MarketplaceErrorBoundary';
 
 interface MarketplaceService {
   id: string;
@@ -37,6 +38,7 @@ export default function AIMarketplacePage() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
+  const { handleError, retryWithErrorHandler } = useMarketplaceErrorHandler();
 
   // Fetch marketplace statistics
   const { data: stats } = useQuery({

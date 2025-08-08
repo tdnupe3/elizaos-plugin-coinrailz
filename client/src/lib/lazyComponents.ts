@@ -22,9 +22,9 @@ export const DemoCryptoTransfer = lazy(() => import('@/pages/demo-crypto-transfe
 
 // AI Agent components
 export const AIAgents = lazy(() => import('@/pages/ai-agents'));
-export const AIAgentMarketplace = lazy(() => import('@/pages/ai-agent-marketplace'));
+
 export const AIAgentRegistration = lazy(() => import('@/pages/ai-agent-registration'));
-export const EnhancedAIAgentMarketplace = lazy(() => import('@/pages/enhanced-ai-agent-marketplace'));
+
 export const CryptoSignalsAgent = lazy(() => import('@/pages/crypto-signals-agent'));
 
 // Revenue and Analytics components

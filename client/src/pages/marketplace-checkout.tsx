@@ -322,34 +322,26 @@ export default function MarketplaceCheckout() {
                 <CardTitle>Payment Method</CardTitle>
               </CardHeader>
               <CardContent>
-                <RadioGroup 
-                  value={paymentMethod} 
-                  onValueChange={(value: 'stripe' | 'paypal' | 'usdc') => setPaymentMethod(value)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="stripe" id="stripe" />
-                    <Label htmlFor="stripe" className="flex items-center space-x-2">
-                      <CreditCard className="w-4 h-4" />
-                      <span>Credit/Debit Card</span>
-                      <Badge variant="secondary">Recommended</Badge>
-                    </Label>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center space-x-3">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <span className="font-medium text-gray-900 dark:text-white">Credit/Debit Card</span>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">Secure payment via Stripe</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                      Secure
+                    </Badge>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="usdc" id="usdc" />
-                    <Label htmlFor="usdc" className="flex items-center space-x-2">
-                      <DollarSign className="w-4 h-4" />
-                      <span>USDC (Stablecoin)</span>
-                      <Badge variant="outline">Lower Fees</Badge>
-                    </Label>
+                  <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                    <Shield className="w-4 h-4 text-green-600" />
+                    <span className="text-sm text-gray-600 dark:text-gray-300">
+                      256-bit SSL encryption • PCI DSS compliant • Buyer protection included
+                    </span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="paypal" id="paypal" />
-                    <Label htmlFor="paypal" className="flex items-center space-x-2">
-                      <span>PayPal</span>
-                      <Badge variant="outline">Coming Soon</Badge>
-                    </Label>
-                  </div>
-                </RadioGroup>
+                </div>
               </CardContent>
             </Card>
           </div>

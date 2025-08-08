@@ -918,16 +918,25 @@ router.post('/create-order', async (req, res) => {
     const sanitizedBody = sanitizeAndValidateInput(req.body);
     
     const orderSchema = z.object({
+      // Support both frontend formats
       agentId: z.string().min(1),
-      serviceType: z.string().min(1),
-      amount: z.number().min(25), // $25 minimum for profitability
-      paymentMethod: z.enum(['stripe', 'paypal', 'xrp', 'crypto']).optional().default('stripe'),
+      serviceTitle: z.string().min(1).optional(),
+      serviceType: z.string().min(1).optional().default('general'),
       serviceDescription: z.string().min(1),
+      budget: z.union([z.string(), z.number()]).transform((val) => 
+        typeof val === 'string' ? parseFloat(val) : val
+      ).optional(),
+      amount: z.number().min(25).optional(), // $25 minimum for profitability
+      paymentMethod: z.string().optional().default('USDC'), // Accept any payment method
       deliverables: z.any().optional(),
       customerRequirements: z.any().optional(),
+      requirements: z.string().optional(),
+      deadline: z.string().optional(),
+      agentWallet: z.string().optional(),
       estimatedDeliveryHours: z.number().optional().default(24),
     });
 
+    console.log('Order creation request body:', sanitizedBody);
     const validatedData = orderSchema.parse(sanitizedBody);
     
     // Generate customer ID for demo purposes
@@ -936,30 +945,49 @@ router.post('/create-order', async (req, res) => {
     // Generate order ID
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Calculate commission (75% to agent, 25% platform fee)
-    const platformFeePercentage = 25;
-    const agentPayoutPercentage = 75;
-    const platformFee = (validatedData.amount * platformFeePercentage) / 100;
-    const agentPayout = (validatedData.amount * agentPayoutPercentage) / 100;
+    // Use budget or amount, prioritizing budget from frontend
+    const orderAmount = validatedData.budget || validatedData.amount || 100;
+    
+    // Calculate commission (85% to agent, 15% platform fee as per business logic)
+    const platformFeePercentage = 15;
+    const agentPayoutPercentage = 85;
+    const platformFee = (orderAmount * platformFeePercentage) / 100;
+    const agentPayout = (orderAmount * agentPayoutPercentage) / 100;
 
     const order = {
+      id: orderId,
       orderId,
       agentId: validatedData.agentId,
       customerId,
-      serviceType: validatedData.serviceType,
-      amount: validatedData.amount,
-      platformFee,
-      agentPayout,
-      paymentMethod: validatedData.paymentMethod,
+      serviceTitle: validatedData.serviceTitle || validatedData.serviceType || 'AI Service',
+      serviceType: validatedData.serviceType || 'general',
       serviceDescription: validatedData.serviceDescription,
+      budget: orderAmount.toString(),
+      amount: orderAmount,
+      platformFee: platformFee.toFixed(2),
+      agentPayout: agentPayout.toFixed(2),
+      agentAmount: agentPayout.toFixed(2),
+      paymentMethod: validatedData.paymentMethod,
+      deadline: validatedData.deadline || null,
+      requirements: validatedData.requirements || validatedData.customerRequirements || null,
+      agentWallet: validatedData.agentWallet || null,
       deliverables: validatedData.deliverables || null,
       customerRequirements: validatedData.customerRequirements || null,
       estimatedDeliveryHours: validatedData.estimatedDeliveryHours,
       status: 'pending',
       escrowStatus: 'held',
       createdAt: new Date().toISOString(),
-      estimatedDelivery: new Date(Date.now() + (validatedData.estimatedDeliveryHours || 24) * 60 * 60 * 1000).toISOString()
+      updatedAt: new Date().toISOString(),
+      estimatedDelivery: new Date(Date.now() + (validatedData.estimatedDeliveryHours || 24) * 60 * 60 * 1000).toISOString(),
+      messages: [],
+      deliverables: []
     };
+
+    // Store in global orders for compatibility with other systems
+    if (!(global as any).orders) {
+      (global as any).orders = [];
+    }
+    (global as any).orders.push(order);
 
     res.status(201).json({
       success: true,

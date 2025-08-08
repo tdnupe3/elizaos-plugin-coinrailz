@@ -21,17 +21,17 @@ const createChatSchema = z.object({
 });
 
 // In-memory storage (replace with database in production)
-global.chatRooms = global.chatRooms || [];
-global.messages = global.messages || [];
+(global as any).chatRooms = (global as any).chatRooms || [];
+(global as any).messages = (global as any).messages || [];
 
 // Create new chat room
-router.post('/api/messaging/chat/create', async (req, res) => {
+router.post('/chat/create', async (req, res) => {
   try {
     console.log('Create chat request:', req.body);
 
     const chatData = createChatSchema.parse(req.body);
     const chatId = `chat_${nanoid()}`;
-    const currentUserId = req.user?.id || 'guest_user';
+    const currentUserId = (req.user as any)?.id || 'guest_user';
 
     const newChat = {
       id: chatId,
@@ -44,7 +44,7 @@ router.post('/api/messaging/chat/create', async (req, res) => {
       isActive: true
     };
 
-    global.chatRooms.push(newChat);
+    (global as any).chatRooms.push(newChat);
 
     res.status(201).json({
       success: true,
@@ -72,16 +72,16 @@ router.post('/api/messaging/chat/create', async (req, res) => {
 });
 
 // Send message
-router.post('/api/messaging/send', async (req, res) => {
+router.post('/send', async (req, res) => {
   try {
     console.log('Send message request:', req.body);
 
     const messageData = messageSchema.parse(req.body);
     const messageId = `msg_${nanoid()}`;
-    const senderId = req.user?.id || 'guest_user';
+    const senderId = (req.user as any)?.id || 'guest_user';
 
     // Find or create chat room
-    let chatRoom = global.chatRooms.find(chat => 
+    let chatRoom = (global as any).chatRooms.find((chat: any) => 
       chat.participants.includes(senderId) && 
       chat.participants.includes(messageData.recipientId)
     );
@@ -99,7 +99,7 @@ router.post('/api/messaging/send', async (req, res) => {
         lastMessage: null,
         isActive: true
       };
-      global.chatRooms.push(chatRoom);
+      (global as any).chatRooms.push(chatRoom);
     }
 
     const newMessage = {
@@ -116,7 +116,7 @@ router.post('/api/messaging/send', async (req, res) => {
       isDelivered: true
     };
 
-    global.messages.push(newMessage);
+    (global as any).messages.push(newMessage);
 
     // Update chat room's last message
     chatRoom.lastMessage = {
@@ -153,18 +153,18 @@ router.post('/api/messaging/send', async (req, res) => {
 });
 
 // Get chat rooms for user
-router.get('/api/messaging/chats', async (req, res) => {
+router.get('/chats', async (req, res) => {
   try {
-    const userId = req.user?.id || 'guest_user';
-    const chatRooms = global.chatRooms || [];
+    const userId = (req.user as any)?.id || 'guest_user';
+    const chatRooms = (global as any).chatRooms || [];
     
     const userChats = chatRooms
-      .filter(chat => chat.participants.includes(userId))
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      .filter((chat: any) => chat.participants.includes(userId))
+      .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
     res.json({
       success: true,
-      chats: userChats.map(chat => ({
+      chats: userChats.map((chat: any) => ({
         id: chat.id,
         chatName: chat.chatName,
         participants: chat.participants,
@@ -185,14 +185,14 @@ router.get('/api/messaging/chats', async (req, res) => {
 });
 
 // Get messages for a chat
-router.get('/api/messaging/chat/:chatId/messages', async (req, res) => {
+router.get('/chat/:chatId/messages', async (req, res) => {
   try {
     const { chatId } = req.params;
     const { limit = 50, offset = 0 } = req.query;
-    const userId = req.user?.id || 'guest_user';
+    const userId = (req.user as any)?.id || 'guest_user';
 
     // Check if user is participant in this chat
-    const chatRoom = global.chatRooms.find(chat => 
+    const chatRoom = (global as any).chatRooms.find((chat: any) => 
       chat.id === chatId && chat.participants.includes(userId)
     );
 
@@ -203,9 +203,9 @@ router.get('/api/messaging/chat/:chatId/messages', async (req, res) => {
       });
     }
 
-    const messages = global.messages
-      .filter(msg => msg.chatId === chatId)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    const messages = (global as any).messages
+      .filter((msg: any) => msg.chatId === chatId)
+      .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
       .slice(parseInt(offset as string), parseInt(offset as string) + parseInt(limit as string));
 
     res.json({

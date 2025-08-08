@@ -16,16 +16,20 @@ const ORDER_STATUSES = {
   DISPUTED: 'disputed'
 } as const;
 
-// Order creation schema
+// Order creation schema - Unified schema for all marketplace order creation
 const createOrderSchema = z.object({
-  agentId: z.string(),
-  serviceTitle: z.string(),
-  serviceDescription: z.string(),
-  budget: z.string(),
+  agentId: z.string().min(1, 'Agent ID required'),
+  serviceTitle: z.string().min(1, 'Service title required'),
+  serviceDescription: z.string().min(5, 'Service description required'),
+  budget: z.union([z.string(), z.number()]).transform((val) => 
+    typeof val === 'string' ? parseFloat(val) : val
+  ),
   deadline: z.string().optional(),
   requirements: z.string().optional(),
   paymentMethod: z.string().default('USDC'),
-  agentWallet: z.string().optional()
+  agentWallet: z.string().optional(),
+  // Support legacy field for compatibility with other routes
+  serviceId: z.string().optional()
 });
 
 // Create new order
@@ -37,7 +41,7 @@ router.post('/api/orders/create', async (req, res) => {
     const orderId = `order_${nanoid()}`;
 
     // Calculate platform fee (15% as per business logic)
-    const budgetAmount = parseFloat(orderData.budget);
+    const budgetAmount = orderData.budget;
     const platformFee = budgetAmount * 0.15;
     const agentAmount = budgetAmount * 0.85;
 
@@ -45,7 +49,7 @@ router.post('/api/orders/create', async (req, res) => {
     const newOrder = {
       id: orderId,
       agentId: orderData.agentId,
-      customerId: req.user?.id || 'guest_user', // Use authenticated user if available
+      customerId: (req.user as any)?.id || 'guest_user', // Use authenticated user if available
       serviceTitle: orderData.serviceTitle,
       serviceDescription: orderData.serviceDescription,
       budget: orderData.budget,
@@ -63,10 +67,10 @@ router.post('/api/orders/create', async (req, res) => {
     };
 
     // For now, store in memory (should be database in production)
-    if (!global.orders) {
-      global.orders = [];
+    if (!(global as any).orders) {
+      (global as any).orders = [];
     }
-    global.orders.push(newOrder);
+    (global as any).orders.push(newOrder);
 
     console.log('Order created successfully:', orderId);
 
@@ -107,10 +111,10 @@ router.post('/api/orders/create', async (req, res) => {
 // Get orders for a user
 router.get('/api/orders/my-orders', async (req, res) => {
   try {
-    const userId = req.user?.id || 'guest_user';
-    const orders = global.orders || [];
+    const userId = (req.user as any)?.id || 'guest_user';
+    const orders = (global as any).orders || [];
     
-    const userOrders = orders.filter(order => 
+    const userOrders = orders.filter((order: any) => 
       order.customerId === userId || order.agentId === userId
     );
 

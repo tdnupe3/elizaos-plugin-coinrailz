@@ -55,6 +55,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/ai-marketplace', aiMarketplaceRoutes);
   
   // === AI MARKETPLACE CORE SYSTEMS ===
+  // FREE AGENT REGISTRATION - Public endpoint (no auth required)
+  const { default: freeAgentRoutes } = await import('./routes/freeAgentRegistration');
+  app.use('/', freeAgentRoutes);
+  
+  // PUBLIC MARKETPLACE - Service discovery (no auth required)
+  const { default: publicMarketplaceRoutes } = await import('./routes/publicMarketplace');
+  app.use('/', publicMarketplaceRoutes);
+  
+  // ORDER MANAGEMENT - Complete order lifecycle
+  const { default: orderRoutes } = await import('./routes/orderManagement');
+  app.use('/', orderRoutes);
+  
   // Chat system for customer-agent communication
   const { default: messagingRoutes } = await import('./routes/messagingSystem');
   app.use('/api/messaging', messagingRoutes);

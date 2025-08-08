@@ -923,7 +923,7 @@ router.post('/create-order', async (req, res) => {
       agentId: z.string().min(1),
       serviceTitle: z.string().min(1).optional(),
       serviceType: z.string().min(1).optional().default('general'),
-      serviceDescription: z.string().min(1),
+      serviceDescription: z.string().min(1).optional().default('AI Service Request'),
       budget: z.union([z.string(), z.number()]).transform((val) => 
         typeof val === 'string' ? parseFloat(val) : val
       ).optional(),

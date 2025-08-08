@@ -192,6 +192,9 @@ export default function MarketplaceCheckout() {
   // Create order and payment intent
   const createOrderMutation = useMutation({
     mutationFn: async (data: OrderData) => {
+      if (!isAuthenticated) {
+        throw new Error('Authentication required to create order');
+      }
       return await apiRequest('POST', '/api/ai-marketplace/create-order', {
         serviceTitle: data.serviceTitle,
         serviceDescription: data.serviceDescription,

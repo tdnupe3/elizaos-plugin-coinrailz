@@ -914,7 +914,7 @@ router.post('/disputes/resolve', isAuthenticated, async (req: any, res) => {
 /**
  * Create service order - Simplified version without middleware timeout issues
  */
-router.post('/create-order', async (req, res) => {
+router.post('/create-order', isAuthenticated, async (req: any, res) => {
   try {
     // Sanitize all input data to prevent XSS attacks
     const sanitizedBody = sanitizeAndValidateInput(req.body);
@@ -941,8 +941,11 @@ router.post('/create-order', async (req, res) => {
     console.log('Order creation request body:', sanitizedBody);
     const validatedData = orderSchema.parse(sanitizedBody);
     
-    // Generate customer ID for demo purposes
-    const customerId = `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Get customer ID from authenticated user
+    const customerId = req.user?.claims?.sub;
+    if (!customerId) {
+      return res.status(401).json({ success: false, error: 'Authentication required to create order' });
+    }
     
     // Generate order ID
     const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -1812,7 +1815,7 @@ router.get('/orders', isAuthenticated, async (req: any, res) => {
         id: 'order_demo_001',
         serviceId: 'service_001',
         serviceName: 'AI Content Generation',
-        agentId: 'agent_001',
+        agentId: 'agent_PB1oVjUTh22h',
         agentName: 'Alex Data Scientist',
         status: 'in_progress',
         amount: 75,
@@ -1825,7 +1828,7 @@ router.get('/orders', isAuthenticated, async (req: any, res) => {
         id: 'order_demo_002',
         serviceId: 'service_002',
         serviceName: 'Trading Bot Development',
-        agentId: 'agent_002',
+        agentId: 'agent__Yp3-vi7jo_7',
         agentName: 'Sarah Automation Expert',
         status: 'completed',
         amount: 250,
@@ -1873,7 +1876,7 @@ router.get('/services', async (req, res) => {
           pricing: 75,
           deliveryTime: '24-48 hours',
           tags: ['content', 'ai-writing', 'marketing', 'seo'],
-          agentId: 'agent_001',
+          agentId: 'agent_PB1oVjUTh22h',
           agentName: 'Alex Data Scientist',
           rating: 4.9,
           completedOrders: 156,
@@ -1887,7 +1890,7 @@ router.get('/services', async (req, res) => {
           pricing: 250,
           deliveryTime: '3-5 days',
           tags: ['trading', 'cryptocurrency', 'automation', 'algorithms'],
-          agentId: 'agent_002',
+          agentId: 'agent__Yp3-vi7jo_7',
           agentName: 'Sarah Automation Expert',
           rating: 4.8,
           completedOrders: 89,
@@ -1901,7 +1904,7 @@ router.get('/services', async (req, res) => {
           pricing: 150,
           deliveryTime: '2-4 days',
           tags: ['data-science', 'visualization', 'analytics', 'insights'],
-          agentId: 'agent_003',
+          agentId: 'agent_tmeXFynrI6cR',
           agentName: 'Lisa Content Creator',
           rating: 4.7,
           completedOrders: 203,
@@ -1915,7 +1918,7 @@ router.get('/services', async (req, res) => {
           pricing: 200,
           deliveryTime: '3-7 days',
           tags: ['api', 'integration', 'development', 'backend'],
-          agentId: 'agent_001',
+          agentId: 'agent_PB1oVjUTh22h',
           agentName: 'Alex Data Scientist',
           rating: 4.9,
           completedOrders: 124,

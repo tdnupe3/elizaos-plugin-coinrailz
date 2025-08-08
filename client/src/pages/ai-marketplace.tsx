@@ -11,6 +11,7 @@ import { PaymentMethodSelector } from '@/components/PaymentMethodSelector';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
+import { useAuth } from '@/hooks/useAuth';
 import { UserGuidanceModal, FeatureTooltip } from '@/components/user-guidance';
 import { NavigationHeader } from '@/components/navigation-header';
 
@@ -35,6 +36,7 @@ export default function AIMarketplacePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { user, isAuthenticated } = useAuth();
 
   // Fetch marketplace statistics
   const { data: stats } = useQuery({
@@ -275,13 +277,21 @@ export default function AIMarketplacePage() {
                       </div>
                       <Button 
                         onClick={() => {
-                          setSelectedService(service);
-                          setShowPayment(true);
+                          const orderData = {
+                            serviceTitle: service.name,
+                            serviceDescription: service.description,
+                            amount: service.pricing,
+                            agentId: service.agentId,
+                            estimatedDeliveryHours: parseInt(service.deliveryTime.split('-')[0]) || 24,
+                            requirements: ''
+                          };
+                          sessionStorage.setItem('pendingOrder', JSON.stringify(orderData));
+                          setLocation('/marketplace-checkout');
                         }}
                         className="w-full"
                         disabled={!service.isActive}
                       >
-                        {service.isActive ? 'Order Service' : 'Unavailable'}
+                        {service.isActive ? 'Buy Now - $' + service.pricing : 'Unavailable'}
                       </Button>
                     </CardContent>
                   </Card>

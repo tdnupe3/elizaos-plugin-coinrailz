@@ -1246,3 +1246,6 @@ export type ServiceDispute = typeof serviceDisputes.$inferSelect;
 export type InsertServiceDispute = typeof serviceDisputes.$inferInsert;
 export type CustomerNotification = typeof customerNotifications.$inferSelect;
 export type InsertCustomerNotification = typeof customerNotifications.$inferInsert;
+
+// Export messaging schema for marketplace integration
+export * from "./messagingSchema";

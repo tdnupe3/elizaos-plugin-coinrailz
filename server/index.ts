@@ -298,7 +298,7 @@ app.post('/api/referrals/process-signup', express.json(), (req, res) => {
 
 // Main routes registration moved to AFTER setupSimpleRoutes to prevent 404 handler from intercepting Gas Station routes
 // import { registerRoutes } from './routes';
-// registerRoutes(app); // Moved later to prevent Gas Station 404 conflicts
+// await registerRoutes(app); // Moved later to prevent Gas Station 404 conflicts
 
 app.use('/api/agents', agentRegistration);
 app.use('/api/payments', paymentIntegration);
@@ -2828,7 +2828,7 @@ app.get('/api/dex/status', (req, res) => {
 // Add error handling middleware BEFORE server creation
 app.use(errorHandlerMiddleware());
 
-// Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)
+// Setup simple API routes BEFORE Vite middleware (contains catch-all 404 handler)  
 const server = setupSimpleRoutes(app);
 
 // Gas Station routes are now registered inside setupSimpleRoutes to avoid middleware conflicts
@@ -2837,23 +2837,74 @@ console.log('✅ Gas Station routes included in setupSimpleRoutes');
 // Register AI Marketplace routes AFTER setupSimpleRoutes but BEFORE enhanced routes
 app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
-// Register main routes AFTER setupSimpleRoutes to prevent Gas Station 404 conflicts
-import { registerRoutes } from './routes';
-registerRoutes(app);
+// Wrap main setup in async function
+(async () => {
+  // Register main routes AFTER setupSimpleRoutes to prevent Gas Station 404 conflicts
+  const { registerRoutes } = await import('./routes');
+  const httpServer = await registerRoutes(app);
+  
+  // Setup WebSocket for real-time chat
+  const { WebSocketServer } = await import('ws');
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store connected clients for real-time messaging
+  const clients = new Map();
+  
+  wss.on('connection', (ws, req) => {
+    console.log('WebSocket client connected');
+    
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        // Handle different message types
+        if (message.type === 'join') {
+          clients.set(message.userId, ws);
+          console.log(`User ${message.userId} joined chat`);
+        } else if (message.type === 'chat') {
+          // Broadcast to specific user or all in conversation
+          const targetClient = clients.get(message.toUserId);
+          if (targetClient) {
+            targetClient.send(JSON.stringify({
+              type: 'message',
+              from: message.fromUserId,
+              content: message.content,
+              timestamp: new Date().toISOString()
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      // Remove client from map
+      for (const [userId, client] of clients.entries()) {
+        if (client === ws) {
+          clients.delete(userId);
+          console.log(`User ${userId} disconnected`);
+          break;
+        }
+      }
+    });
+  });
+  
+  console.log('✅ WebSocket server configured for real-time chat');
+  
+  // Setup enhanced business logic routes with all safety mechanisms
+  setupEnhancedBusinessLogicRoutes(app);
 
-// Setup enhanced business logic routes with all safety mechanisms
-setupEnhancedBusinessLogicRoutes(app);
+  // Basic error handling
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('Server error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  });
 
-// Basic error handling
-app.use((err: any, req: any, res: any, next: any) => {
-  console.error('Server error:', err);
-  res.status(500).json({ error: 'Internal server error' });
-});
-
-// Production vs Development setup
-if (process.env.NODE_ENV === 'production') {
-  // Production: serve static files
-  app.use(express.static('dist/public'));
+  // Production vs Development setup
+  if (process.env.NODE_ENV === 'production') {
+    // Production: serve static files
+    app.use(express.static('dist/public'));
   
   // Catch-all handler for SPA routing - exclude API routes
   app.get('*', (req, res) => {
@@ -2864,22 +2915,27 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.resolve('dist/public/index.html'));
   });
   
-  server.listen(port, '0.0.0.0', () => {
+  httpServer.listen(port, '0.0.0.0', () => {
     console.log(`Production server running on 0.0.0.0:${port}`);
   });
 } else {
   // Development: Setup Vite AFTER all API routes are registered
-  setupVite(app, server).then(() => {
+  setupVite(app, httpServer).then(() => {
     console.log('Frontend serving ready');
-    server.listen(port, '0.0.0.0', () => {
+    httpServer.listen(port, '0.0.0.0', () => {
       console.log(`Development server running on 0.0.0.0:${port}`);
     });
   }).catch(error => {
     console.error('Vite setup failed:', error);
-    server.listen(port, '0.0.0.0', () => {
+    httpServer.listen(port, '0.0.0.0', () => {
       console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
     });
   });
 }
+
+})().catch(error => {
+  console.error('Server startup error:', error);
+  process.exit(1);
+});
 
 export default app;

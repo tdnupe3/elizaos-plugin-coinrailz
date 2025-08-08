@@ -48,11 +48,24 @@ async function initializeStripe() {
 // Initialize payment gateway resolver
 const paymentResolver = new PaymentGatewayResolver();
 
-export function registerRoutes(app: Express): Server {
+export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
 
   // CRITICAL: Register AI Marketplace routes FIRST for revenue generation
   app.use('/api/ai-marketplace', aiMarketplaceRoutes);
+  
+  // === AI MARKETPLACE CORE SYSTEMS ===
+  // Chat system for customer-agent communication
+  const { default: messagingRoutes } = await import('./routes/messagingSystem');
+  app.use('/api/messaging', messagingRoutes);
+  
+  // Service delivery system for order fulfillment  
+  const { default: deliveryRoutes } = await import('./routes/serviceDelivery');
+  app.use('/api/delivery', deliveryRoutes);
+  
+  // Stripe payment integration for marketplace orders
+  const { default: stripeRoutes } = await import('./routes/stripeRoutes');
+  app.use('/api/stripe', stripeRoutes);
   
   // === P2P TRANSFER ROUTES ===
   // Peer-to-peer transfer system - core revenue generator

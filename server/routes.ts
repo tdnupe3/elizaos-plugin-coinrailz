@@ -72,7 +72,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/messaging', messagingRoutes);
 
   // Payment processing routes
-  const { default: paymentRoutes } = await import('./routes/paymentRoutes');
+  const { paymentRoutes } = await import('./routes/paymentRoutes');
   app.use('/api/payments', paymentRoutes);
   
   // Service delivery system for order fulfillment  

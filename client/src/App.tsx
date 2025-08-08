@@ -106,6 +106,9 @@ const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
 const AIMarketplaceComplete = lazy(() => import("@/pages/ai-marketplace-complete"));
 const MarketplaceDashboard = lazy(() => import("@/pages/marketplace-dashboard"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
+const AgentOrderManagement = lazy(() => import("@/pages/agent-order-management"));
+const CustomerOrderDashboard = lazy(() => import("@/pages/customer-order-dashboard"));
+const MarketplaceCheckout = lazy(() => import("@/pages/marketplace-checkout"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 const Documentation = lazy(() => import("@/pages/Documentation"));
@@ -368,6 +371,26 @@ function Router() {
       {/* Production dashboard for monitoring */}
       <Route path="/production">
         {() => <LazyLoadWrapper><ProductionDashboard /></LazyLoadWrapper>}
+      </Route>
+
+      {/* AI Marketplace Management Routes */}
+      <Route path="/agent-orders">
+        {() => <LazyLoadWrapper><AgentOrderManagement /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/agent-dashboard">
+        {() => <LazyLoadWrapper><AgentOrderManagement /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/my-orders">
+        {() => <LazyLoadWrapper><CustomerOrderDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/customer-orders">
+        {() => <LazyLoadWrapper><CustomerOrderDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/marketplace-checkout">
+        {() => <LazyLoadWrapper><MarketplaceCheckout /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/checkout">
+        {() => <LazyLoadWrapper><MarketplaceCheckout /></LazyLoadWrapper>}
       </Route>
 
       {/* Authenticated routes */}

@@ -8,6 +8,7 @@ import { AIMarketplaceCore } from '../services/aiMarketplaceCore';
 import { ServiceDeliveryCore } from '../services/serviceDeliveryCore';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
+import { PaymentIntegrationService } from '../services/paymentIntegration';
 import { paymentProcessor } from '../services/paymentProcessor';
 // Input validation implemented inline to avoid middleware conflicts
 // XSS protection implemented inline
@@ -1006,6 +1007,58 @@ router.post('/create-order', async (req, res) => {
 });
 
 /**
+ * Get agent orders
+ */
+router.get('/agent-orders', isAuthenticated, async (req: any, res) => {
+  try {
+    const agentId = req.user?.claims?.sub;
+    
+    if (!agentId) {
+      return res.status(401).json({ success: false, error: 'Agent authentication required' });
+    }
+
+    // Get orders from global storage for demo
+    const allOrders = (global as any).orders || [];
+    const agentOrders = allOrders.filter((order: any) => order.agentId === agentId);
+
+    res.json({
+      success: true,
+      orders: agentOrders,
+      count: agentOrders.length
+    });
+  } catch (error) {
+    console.error('Error fetching agent orders:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch orders' });
+  }
+});
+
+/**
+ * Get customer orders
+ */
+router.get('/customer-orders', isAuthenticated, async (req: any, res) => {
+  try {
+    const customerId = req.user?.claims?.sub;
+    
+    if (!customerId) {
+      return res.status(401).json({ success: false, error: 'Customer authentication required' });
+    }
+
+    // Get orders from global storage for demo
+    const allOrders = (global as any).orders || [];
+    const customerOrders = allOrders.filter((order: any) => order.customerId === customerId);
+
+    res.json({
+      success: true,
+      orders: customerOrders,
+      count: customerOrders.length
+    });
+  } catch (error) {
+    console.error('Error fetching customer orders:', error);
+    res.status(500).json({ success: false, error: 'Failed to fetch orders' });
+  }
+});
+
+/**
  * Submit service delivery with file uploads
  */
 router.post('/submit-delivery', isAuthenticated, upload.array('files', 10), async (req: any, res) => {
@@ -1022,52 +1075,229 @@ router.post('/submit-delivery', isAuthenticated, upload.array('files', 10), asyn
       return res.status(400).json({ success: false, error: 'Order ID is required' });
     }
 
-    // Handle file uploads if present
-    if (req.files && req.files.length > 0) {
-      const result = await ServiceDeliveryCore.uploadDeliveryFiles(
-        orderId,
-        agentId,
-        req.files as Express.Multer.File[],
-        message || 'Service delivery completed'
-      );
+    // Find and update the order
+    const allOrders = (global as any).orders || [];
+    const orderIndex = allOrders.findIndex((order: any) => order.orderId === orderId && order.agentId === agentId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Order not found or access denied' });
+    }
 
-      if (result.success) {
-        res.status(201).json({
-          success: true,
-          deliveryId: result.deliveryId,
-          message: 'Files uploaded and delivery submitted successfully'
+    // Process uploaded files
+    const uploadedFiles: any[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      for (const file of req.files) {
+        uploadedFiles.push({
+          filename: file.filename,
+          originalName: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype,
+          path: file.path
         });
-      } else {
-        res.status(400).json({ success: false, error: result.error });
-      }
-    } else {
-      // Handle non-file deliveries (API response, email, etc.)
-      const deliverySchema = z.object({
-        orderId: z.string().min(1),
-        deliveryMethod: z.enum(['api_response', 'email', 'webhook', 'direct_message', 'consultation']),
-        deliveryContent: z.any(),
-        evidenceUrls: z.array(z.string()).optional(),
-      });
-
-      const validatedData = deliverySchema.parse(req.body);
-
-      const result = await AIMarketplaceCore.submitDelivery({
-        orderId: validatedData.orderId,
-        agentId,
-        deliveryMethod: validatedData.deliveryMethod,
-        deliveryContent: validatedData.deliveryContent || {},
-        evidenceUrls: validatedData.evidenceUrls,
-      });
-
-      if (result.success) {
-        res.status(201).json(result);
-      } else {
-        res.status(400).json(result);
       }
     }
+
+    // Create delivery record
+    const delivery = {
+      id: `delivery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      orderId,
+      agentId,
+      message,
+      files: uploadedFiles,
+      submittedAt: new Date().toISOString(),
+      status: 'submitted'
+    };
+
+    // Update order status and add delivery
+    allOrders[orderIndex].status = 'submitted';
+    allOrders[orderIndex].deliveries = allOrders[orderIndex].deliveries || [];
+    allOrders[orderIndex].deliveries.push(delivery);
+    allOrders[orderIndex].updatedAt = new Date().toISOString();
+
+    res.json({
+      success: true,
+      delivery,
+      message: 'Work submitted successfully for customer review'
+    });
   } catch (error) {
     console.error('Delivery submission error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+    res.status(500).json({ success: false, error: 'Delivery submission failed' });
+  }
+});
+
+/**
+ * Approve delivery and release payment
+ */
+router.post('/approve-delivery', isAuthenticated, async (req: any, res) => {
+  try {
+    const customerId = req.user?.claims?.sub;
+    const { orderId, rating, review } = req.body;
+    
+    if (!customerId || !orderId) {
+      return res.status(400).json({ success: false, error: 'Customer ID and Order ID required' });
+    }
+
+    // Find the order
+    const allOrders = (global as any).orders || [];
+    const orderIndex = allOrders.findIndex((order: any) => order.orderId === orderId && order.customerId === customerId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Order not found or access denied' });
+    }
+
+    // Update order to completed status
+    allOrders[orderIndex].status = 'completed';
+    allOrders[orderIndex].escrowStatus = 'released';
+    allOrders[orderIndex].completedAt = new Date().toISOString();
+    allOrders[orderIndex].customerRating = rating;
+    allOrders[orderIndex].customerReview = review;
+    allOrders[orderIndex].updatedAt = new Date().toISOString();
+
+    // Release escrow payment through payment integration service
+    const paymentResult = await PaymentIntegrationService.releaseEscrowPayment({
+      orderId,
+      agentId: allOrders[orderIndex].agentId,
+      amount: allOrders[orderIndex].amount,
+      platformFee: allOrders[orderIndex].amount * 0.15, // 15% platform fee
+      agentPayout: allOrders[orderIndex].amount * 0.85   // 85% to agent
+    });
+
+    if (paymentResult.success) {
+      res.json({
+        success: true,
+        message: 'Delivery approved and payment released',
+        order: allOrders[orderIndex],
+        transaction: paymentResult.transaction
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: paymentResult.error || 'Failed to release payment'
+      });
+    }
+  } catch (error) {
+    console.error('Delivery approval error:', error);
+    res.status(500).json({ success: false, error: 'Delivery approval failed' });
+  }
+});
+
+/**
+ * Reject delivery and request revision
+ */
+router.post('/reject-delivery', isAuthenticated, async (req: any, res) => {
+  try {
+    const customerId = req.user?.claims?.sub;
+    const { orderId, reason } = req.body;
+    
+    if (!customerId || !orderId) {
+      return res.status(400).json({ success: false, error: 'Customer ID and Order ID required' });
+    }
+
+    // Find the order
+    const allOrders = (global as any).orders || [];
+    const orderIndex = allOrders.findIndex((order: any) => order.orderId === orderId && order.customerId === customerId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Order not found or access denied' });
+    }
+
+    // Update order back to active status for revision
+    allOrders[orderIndex].status = 'revision_requested';
+    allOrders[orderIndex].revisionReason = reason;
+    allOrders[orderIndex].revisionRequestedAt = new Date().toISOString();
+    allOrders[orderIndex].updatedAt = new Date().toISOString();
+
+    res.json({
+      success: true,
+      message: 'Revision requested successfully',
+      order: allOrders[orderIndex]
+    });
+  } catch (error) {
+    console.error('Delivery rejection error:', error);
+    res.status(500).json({ success: false, error: 'Delivery rejection failed' });
+  }
+});
+
+/**
+ * Enhanced chat system with order context
+ */
+router.post('/chat/send', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    const { orderId, message, senderType } = req.body;
+    
+    if (!userId || !orderId || !message) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    // Find the order
+    const allOrders = (global as any).orders || [];
+    const orderIndex = allOrders.findIndex((order: any) => 
+      order.orderId === orderId && 
+      (order.customerId === userId || order.agentId === userId)
+    );
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({ success: false, error: 'Order not found or access denied' });
+    }
+
+    // Create chat message
+    const chatMessage = {
+      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      orderId,
+      senderId: userId,
+      senderType: senderType || 'user',
+      message,
+      timestamp: new Date().toISOString()
+    };
+
+    // Add message to order
+    allOrders[orderIndex].messages = allOrders[orderIndex].messages || [];
+    allOrders[orderIndex].messages.push(chatMessage);
+    allOrders[orderIndex].updatedAt = new Date().toISOString();
+
+    res.json({
+      success: true,
+      message: chatMessage,
+      chatStatus: 'active'
+    });
+  } catch (error) {
+    console.error('Chat send error:', error);
+    res.status(500).json({ success: false, error: 'Failed to send message' });
+  }
+});
+
+/**
+ * Get chat messages for an order
+ */
+router.get('/chat/:orderId', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    const { orderId } = req.params;
+    
+    if (!userId || !orderId) {
+      return res.status(400).json({ success: false, error: 'Missing required parameters' });
+    }
+
+    // Find the order
+    const allOrders = (global as any).orders || [];
+    const order = allOrders.find((order: any) => 
+      order.orderId === orderId && 
+      (order.customerId === userId || order.agentId === userId)
+    );
+    
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'Order not found or access denied' });
+    }
+
+    res.json({
+      success: true,
+      messages: order.messages || [],
+      chatStatus: 'active'
+    });
+  } catch (error) {
+    console.error('Chat get error:', error);
+    res.status(500).json({ success: false, error: 'Failed to get chat messages' });
   }
 });
 

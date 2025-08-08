@@ -123,6 +123,11 @@ export interface IStorage {
   getAgent(agentId: string): Promise<any>;
   createAgent(agentData: any): Promise<any>;
   updateAgentStatus(agentId: string, isActive: boolean): Promise<void>;
+  
+  // Order operations
+  getOrders(): Promise<any[]>;
+  createOrder(orderData: any): Promise<any>;
+  updateOrderStatus(orderId: string, status: string): Promise<void>;
   getUserAgents(userId: string): Promise<any[]>;
   getGlobalAIAgent(agentId: string): Promise<any>;
   createGlobalAIAgent(agentData: any): Promise<any>;
@@ -1049,6 +1054,38 @@ export class DatabaseStorage implements IStorage {
         confirmedAt: status === "confirmed" ? new Date() : undefined
       })
       .where(eq(cryptoTransfers.id, id));
+  }
+
+  // Order operations
+  async getOrders(): Promise<any[]> {
+    try {
+      const orders = await db.select().from(agentServiceOrders).limit(100);
+      return orders;
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+  }
+
+  async createOrder(orderData: any): Promise<any> {
+    try {
+      const [order] = await db.insert(agentServiceOrders).values(orderData).returning();
+      return order;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw error;
+    }
+  }
+
+  async updateOrderStatus(orderId: string, status: string): Promise<void> {
+    try {
+      await db.update(agentServiceOrders)
+        .set({ status, updatedAt: new Date() })
+        .where(eq(agentServiceOrders.orderId, orderId));
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      throw error;
+    }
   }
 
   // Missing agent operations

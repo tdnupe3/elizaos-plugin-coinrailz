@@ -45,7 +45,7 @@ export default function AIMarketplacePage() {
 
   // Fetch available services
   const { data: servicesData, isLoading: servicesLoading } = useQuery({
-    queryKey: ['/api/services/discover'],
+    queryKey: ['/api/ai-marketplace/services'],
     retry: false,
     throwOnError: false
   });
@@ -86,7 +86,7 @@ export default function AIMarketplacePage() {
       });
       setShowPayment(false);
       setSelectedService(null);
-      queryClient.invalidateQueries({ queryKey: ['/api/services/discover'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-marketplace/services'] });
     },
     onError: (error: any) => {
       toast({

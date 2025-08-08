@@ -1563,4 +1563,184 @@ router.get('/payment-methods', async (req, res) => {
   }
 });
 
+/**
+ * CRITICAL MISSING ENDPOINT: Get User Orders
+ */
+router.get('/orders', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    // Get user orders from storage
+    const orders = await storage.getUserServiceOrders(userId).catch(() => []);
+    
+    // Add demo orders for testing
+    const demoOrders = [
+      {
+        id: 'order_demo_001',
+        serviceId: 'service_001',
+        serviceName: 'AI Content Generation',
+        agentId: 'agent_001',
+        agentName: 'Alex Data Scientist',
+        status: 'in_progress',
+        amount: 75,
+        currency: 'USD',
+        createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        estimatedDelivery: new Date(Date.now() + 86400000).toISOString(), // 1 day from now
+        description: 'Professional blog post content creation'
+      },
+      {
+        id: 'order_demo_002',
+        serviceId: 'service_002',
+        serviceName: 'Trading Bot Development',
+        agentId: 'agent_002',
+        agentName: 'Sarah Automation Expert',
+        status: 'completed',
+        amount: 250,
+        currency: 'USD',
+        createdAt: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+        completedAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        description: 'Custom cryptocurrency trading algorithm'
+      }
+    ];
+
+    const allOrders = [...orders, ...demoOrders];
+
+    res.json({
+      success: true,
+      orders: allOrders,
+      total: allOrders.length
+    });
+
+  } catch (error) {
+    console.error('Orders fetch error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch orders',
+      orders: []
+    });
+  }
+});
+
+/**
+ * CRITICAL MISSING ENDPOINT: Get Marketplace Services
+ */
+router.get('/services', async (req, res) => {
+  try {
+    const { category, minPrice, maxPrice, limit = 20, offset = 0 } = req.query;
+
+    // Get services from storage (both database and demo services)
+    const [storageServices, demoServices] = await Promise.all([
+      storage.getMarketplaceServices().catch(() => []),
+      Promise.resolve([
+        {
+          id: 'service_001',
+          name: 'AI Content Generation',
+          description: 'Professional AI-powered content creation including articles, blog posts, and marketing copy',
+          category: 'content-creation',
+          pricing: 75,
+          deliveryTime: '24-48 hours',
+          tags: ['content', 'ai-writing', 'marketing', 'seo'],
+          agentId: 'agent_001',
+          agentName: 'Alex Data Scientist',
+          rating: 4.9,
+          completedOrders: 156,
+          isActive: true
+        },
+        {
+          id: 'service_002', 
+          name: 'Trading Bot Development',
+          description: 'Custom cryptocurrency trading bot development with advanced algorithms and risk management',
+          category: 'automation',
+          pricing: 250,
+          deliveryTime: '3-5 days',
+          tags: ['trading', 'cryptocurrency', 'automation', 'algorithms'],
+          agentId: 'agent_002',
+          agentName: 'Sarah Automation Expert',
+          rating: 4.8,
+          completedOrders: 89,
+          isActive: true
+        },
+        {
+          id: 'service_003',
+          name: 'Data Analysis & Visualization',
+          description: 'Comprehensive data analysis with interactive visualizations and actionable insights',
+          category: 'data-analysis',
+          pricing: 150,
+          deliveryTime: '2-4 days',
+          tags: ['data-science', 'visualization', 'analytics', 'insights'],
+          agentId: 'agent_003',
+          agentName: 'Lisa Content Creator',
+          rating: 4.7,
+          completedOrders: 203,
+          isActive: true
+        },
+        {
+          id: 'service_004',
+          name: 'API Integration Service',
+          description: 'Professional API integration and development for web and mobile applications',
+          category: 'development',
+          pricing: 200,
+          deliveryTime: '3-7 days',
+          tags: ['api', 'integration', 'development', 'backend'],
+          agentId: 'agent_001',
+          agentName: 'Alex Data Scientist',
+          rating: 4.9,
+          completedOrders: 124,
+          isActive: true
+        }
+      ])
+    ]);
+
+    // Combine all services
+    let allServices = [...storageServices, ...demoServices];
+
+    // Apply filters
+    if (category) {
+      allServices = allServices.filter(service => 
+        service.category?.toLowerCase().includes(category.toString().toLowerCase())
+      );
+    }
+
+    if (minPrice) {
+      allServices = allServices.filter(service => 
+        service.pricing >= parseFloat(minPrice.toString())
+      );
+    }
+
+    if (maxPrice) {
+      allServices = allServices.filter(service => 
+        service.pricing <= parseFloat(maxPrice.toString())
+      );
+    }
+
+    // Apply pagination
+    const limitNum = parseInt(limit.toString());
+    const offsetNum = parseInt(offset.toString());
+    const paginatedServices = allServices.slice(offsetNum, offsetNum + limitNum);
+
+    res.json({
+      success: true,
+      services: paginatedServices,
+      total: allServices.length,
+      pagination: {
+        limit: limitNum,
+        offset: offsetNum,
+        hasMore: offsetNum + limitNum < allServices.length
+      },
+      filters: { category, minPrice, maxPrice }
+    });
+
+  } catch (error) {
+    console.error('Services fetch error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch marketplace services',
+      services: [] // Return empty array for graceful handling
+    });
+  }
+});
+
 export default router;

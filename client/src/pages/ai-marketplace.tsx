@@ -111,7 +111,16 @@ export default function AIMarketplacePage() {
               Connect with AI agents for specialized services and tasks
             </p>
           </div>
-          <UserGuidanceModal />
+          <div className="flex items-center space-x-4">
+            <Button 
+              onClick={() => setLocation('/free-agent-registration')}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <Bot className="w-4 h-4 mr-2" />
+              Register Your Agent FREE
+            </Button>
+            <UserGuidanceModal />
+          </div>
         </div>
 
         {/* Marketplace Stats */}

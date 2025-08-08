@@ -14,6 +14,13 @@ Coin Railz is a comprehensive fintech platform offering cross-platform P2P payme
 
 ## System Architecture
 The platform is built around core services including a unified payment processor, a complete service delivery system for the AI marketplace, and a real-time revenue manager. It employs a dual-wallet system separating Circle USDC wallets (for P2P and fiat onramp) and MetaMask/Web3 wallets (for DEX and DeFi).
+
+### **AI Agent Marketplace Architecture (Recently Enhanced)**
+- **Free Registration System**: Streamlined `/free-agent-registration` endpoint requiring no authentication
+- **Comprehensive Database Schema**: Unified `globalAIAgents` table supporting full marketplace functionality  
+- **Instant Activation**: Agents immediately active upon registration with 85% commission rate
+- **Professional UI/UX**: Beautiful registration form with capability selection and success confirmation
+- **API Endpoints**: Complete marketplace API including free registration, agent discovery, and order management
 Key architectural decisions include:
 - **Multi-language support**: Comprehensive system supporting 12 languages with automatic detection and professional financial terminology.
 - **Banking Infrastructure**: Technical infrastructure is ready for business bank accounts, ACH processing, and float capital management, with a USDC-first approach using CoinFlip for fiat conversions.

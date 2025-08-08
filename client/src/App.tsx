@@ -186,6 +186,16 @@ function Router() {
       <Route path="/ai-marketplace">
         {() => <LazyLoadWrapper><AIMarketplace /></LazyLoadWrapper>}
       </Route>
+      <Route path="/free-agent-registration">
+        {() => {
+          const FreeAgentRegistration = lazy(() => import("@/pages/free-agent-registration"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <FreeAgentRegistration />
+            </Suspense>
+          );
+        }}
+      </Route>
       <Route path="/ai-agent-registration">
         {() => <LazyLoadWrapper><AIAgentRegistration /></LazyLoadWrapper>}
       </Route>

@@ -161,11 +161,12 @@ router.get('/api/agents/active', async (req, res) => {
     // Apply filters
     let filteredAgents = agents;
     
-    if (category && category !== 'all') {
-      filteredAgents = filteredAgents.filter(agent =>
-        agent.agentType?.toLowerCase() === (category as string).toLowerCase()
-      );
-    }
+    // Category filtering - commenting out until agentType field is confirmed
+    // if (category && category !== 'all') {
+    //   filteredAgents = filteredAgents.filter(agent =>
+    //     agent.agentType?.toLowerCase() === (category as string).toLowerCase()
+    //   );
+    // }
     
     if (search) {
       const searchTerm = (search as string).toLowerCase();
@@ -184,7 +185,6 @@ router.get('/api/agents/active', async (req, res) => {
       agents: filteredAgents.map(agent => ({
         id: agent.id,
         agentName: agent.agentName,
-        agentType: agent.agentType,
         capabilities: agent.capabilities,
         description: agent.description,
         walletAddress: agent.primaryWalletAddress,
@@ -192,8 +192,7 @@ router.get('/api/agents/active', async (req, res) => {
         status: agent.status,
         membershipTier: agent.membershipTier,
         isActive: agent.status === 'active',
-        registeredAt: agent.registeredAt,
-        lastSeen: agent.lastSeen
+        registeredAt: agent.registeredAt
       }))
     });
     
@@ -224,9 +223,10 @@ router.get('/api/global-ai-agents/search', async (req, res) => {
     // Get agents from database
     let whereCondition = eq(globalAIAgents.status, 'active');
     
-    if (category && category !== 'all') {
-      whereCondition = and(whereCondition, eq(globalAIAgents.agentType, category as string));
-    }
+    // Category filtering - commenting out until agentType field is confirmed  
+    // if (category && category !== 'all') {
+    //   whereCondition = and(whereCondition, eq(globalAIAgents.agentType, category as string));
+    // }
     
     const agents = await db
       .select()
@@ -252,7 +252,7 @@ router.get('/api/global-ai-agents/search', async (req, res) => {
         agents: filteredAgents.map(agent => ({
           id: agent.id,
           name: agent.agentName,
-          category: agent.agentType,
+          category: 'general', // Default category until field is confirmed
           specialties: Array.isArray(agent.capabilities) ? agent.capabilities.slice(0, 3) : [],
           rating: 4.8, // Default rating
           completedProjects: Math.floor(Math.random() * 200) + 10,

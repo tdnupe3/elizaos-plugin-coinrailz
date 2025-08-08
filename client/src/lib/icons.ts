@@ -105,5 +105,6 @@ export {
   USDCLogo,
   XRPLogo,
   LogOut,
-  Import
+  Import,
+  Package
 } from '@/lib/minimal-icons-clean';

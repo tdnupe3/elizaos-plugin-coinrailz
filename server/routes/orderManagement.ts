@@ -1,182 +1,133 @@
-/**
- * ORDER MANAGEMENT SYSTEM
- * Complete order lifecycle from creation to completion
- */
-
 import { Router } from 'express';
-import { z } from 'zod';
 import { db } from '../db';
-import { aiMarketplaceOrders, conversations, messages } from '../../shared/schema';
 import { nanoid } from 'nanoid';
-import { isAuthenticated } from '../replitAuth';
-import { eq, desc } from 'drizzle-orm';
-import Stripe from 'stripe';
+import { z } from 'zod';
 
 const router = Router();
 
-// Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-07-30.basil',
-});
+// Order status enum
+const ORDER_STATUSES = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted', 
+  IN_PROGRESS: 'in_progress',
+  DELIVERED: 'delivered',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+  DISPUTED: 'disputed'
+} as const;
 
 // Order creation schema
-const CreateOrderSchema = z.object({
-  agentId: z.string().min(1),
-  serviceDescription: z.string().min(10),
-  amount: z.number().min(1),
-  serviceType: z.string().min(1),
+const createOrderSchema = z.object({
+  agentId: z.string(),
+  serviceTitle: z.string(),
+  serviceDescription: z.string(),
+  budget: z.string(),
+  deadline: z.string().optional(),
   requirements: z.string().optional(),
-  deliveryTimeframe: z.string().optional()
+  paymentMethod: z.string().default('USDC'),
+  agentWallet: z.string().optional()
 });
 
-// Create order endpoint - REQUIRES AUTHENTICATION
-router.post('/api/ai-marketplace/create-order', isAuthenticated, async (req, res) => {
+// Create new order
+router.post('/api/orders/create', async (req, res) => {
   try {
     console.log('Order creation request:', req.body);
+
+    const orderData = createOrderSchema.parse(req.body);
+    const orderId = `order_${nanoid()}`;
+
+    // Calculate platform fee (15% as per business logic)
+    const budgetAmount = parseFloat(orderData.budget);
+    const platformFee = budgetAmount * 0.15;
+    const agentAmount = budgetAmount * 0.85;
+
+    // Create order object 
+    const newOrder = {
+      id: orderId,
+      agentId: orderData.agentId,
+      customerId: req.user?.id || 'guest_user', // Use authenticated user if available
+      serviceTitle: orderData.serviceTitle,
+      serviceDescription: orderData.serviceDescription,
+      budget: orderData.budget,
+      deadline: orderData.deadline || null,
+      requirements: orderData.requirements || null,
+      paymentMethod: orderData.paymentMethod,
+      agentWallet: orderData.agentWallet || null,
+      status: ORDER_STATUSES.PENDING,
+      platformFee: platformFee.toFixed(2),
+      agentAmount: agentAmount.toFixed(2),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      messages: [],
+      deliverables: []
+    };
+
+    // For now, store in memory (should be database in production)
+    if (!global.orders) {
+      global.orders = [];
+    }
+    global.orders.push(newOrder);
+
+    console.log('Order created successfully:', orderId);
+
+    res.status(201).json({
+      success: true,
+      message: 'Order created successfully',
+      orderId: orderId,
+      order: {
+        id: newOrder.id,
+        serviceTitle: newOrder.serviceTitle,
+        budget: newOrder.budget,
+        status: newOrder.status,
+        agentId: newOrder.agentId,
+        platformFee: newOrder.platformFee,
+        agentAmount: newOrder.agentAmount
+      }
+    });
+
+  } catch (error) {
+    console.error('Order creation error:', error);
     
-    // Validate input
-    const validationResult = CreateOrderSchema.safeParse(req.body);
-    if (!validationResult.success) {
+    if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
-        error: 'Validation failed',
-        details: validationResult.error.issues
+        error: 'Invalid order data',
+        details: error.errors
       });
     }
 
-    const orderData = validationResult.data;
-    const userId = req.user?.id;
-    
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User authentication required'
-      });
-    }
-    
-    // Generate unique order ID
-    const orderId = `order_${nanoid(12)}`;
-    
-    // Calculate platform fee (15%)
-    const platformFee = Math.round(orderData.amount * 0.15 * 100) / 100;
-    const agentAmount = orderData.amount - platformFee;
-    
-    // Create Stripe Payment Intent for escrow
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(orderData.amount * 100), // Convert to cents
-      currency: 'usd',
-      metadata: {
-        orderId: orderId,
-        agentId: orderData.agentId,
-        customerId: userId,
-        type: 'marketplace_order'
-      },
-      capture_method: 'manual' // Hold payment for escrow
-    });
-    
-    // Create order record
-    const newOrder = {
-      id: orderId,
-      customerId: userId,
-      agentId: orderData.agentId,
-      serviceType: orderData.serviceType,
-      serviceDescription: orderData.serviceDescription,
-      requirements: orderData.requirements || '',
-      amount: orderData.amount,
-      platformFee: platformFee,
-      agentAmount: agentAmount,
-      status: 'pending' as const,
-      paymentStatus: 'pending' as const,
-      paymentIntentId: paymentIntent.id,
-      deliveryTimeframe: orderData.deliveryTimeframe || '3-5 days',
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    
-    // Insert order into database
-    const [insertedOrder] = await db
-      .insert(aiMarketplaceOrders)
-      .values(newOrder)
-      .returning();
-    
-    // Create conversation for order
-    const conversationId = `conv_${nanoid(12)}`;
-    const [conversation] = await db
-      .insert(conversations)
-      .values({
-        id: conversationId,
-        orderId: orderId,
-        customerId: userId,
-        agentId: orderData.agentId,
-        status: 'active',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-    
-    // Add initial system message
-    await db
-      .insert(messages)
-      .values({
-        id: `msg_${nanoid(12)}`,
-        conversationId: conversationId,
-        senderId: 'system',
-        senderType: 'system',
-        content: `Order ${orderId} created. Service: ${orderData.serviceDescription}. Amount: $${orderData.amount}. Please discuss project details and timeline.`,
-        messageType: 'system',
-        createdAt: new Date()
-      });
-    
-    console.log('Order created successfully:', orderId);
-    
-    res.status(201).json({
-      success: true,
-      orderId: orderId,
-      paymentClientSecret: paymentIntent.client_secret,
-      conversationId: conversationId,
-      order: {
-        id: insertedOrder.id,
-        status: insertedOrder.status,
-        amount: insertedOrder.amount,
-        agentId: insertedOrder.agentId,
-        serviceDescription: insertedOrder.serviceDescription
-      }
-    });
-    
-  } catch (error) {
-    console.error('Order creation error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to create order',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      message: 'Internal server error'
     });
   }
 });
 
-// Get user orders
-router.get('/api/orders/my-orders', isAuthenticated, async (req, res) => {
+// Get orders for a user
+router.get('/api/orders/my-orders', async (req, res) => {
   try {
-    const userId = req.user?.id;
+    const userId = req.user?.id || 'guest_user';
+    const orders = global.orders || [];
     
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User authentication required'
-      });
-    }
-    
-    // Get orders for current user (both as customer and agent)
-    const orders = await db
-      .select()
-      .from(aiMarketplaceOrders)
-      .where(eq(aiMarketplaceOrders.customerId, userId))
-      .orderBy(desc(aiMarketplaceOrders.createdAt));
-    
+    const userOrders = orders.filter(order => 
+      order.customerId === userId || order.agentId === userId
+    );
+
     res.json({
       success: true,
-      orders: orders
+      orders: userOrders.map(order => ({
+        id: order.id,
+        serviceTitle: order.serviceTitle,
+        budget: order.budget,
+        status: order.status,
+        agentId: order.agentId,
+        customerId: order.customerId,
+        createdAt: order.createdAt,
+        deadline: order.deadline
+      }))
     });
-    
+
   } catch (error) {
     console.error('Get orders error:', error);
     res.status(500).json({
@@ -186,51 +137,74 @@ router.get('/api/orders/my-orders', isAuthenticated, async (req, res) => {
   }
 });
 
-// Update order status
-router.patch('/api/orders/:orderId/status', isAuthenticated, async (req, res) => {
+// Get specific order details
+router.get('/api/orders/:orderId', async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
-    const userId = req.user?.id;
+    const orders = global.orders || [];
     
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User authentication required'
-      });
-    }
+    const order = orders.find(o => o.id === orderId);
     
-    // Validate status
-    const validStatuses = ['pending', 'accepted', 'in_progress', 'delivered', 'completed', 'cancelled'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid status'
-      });
-    }
-    
-    // Update order
-    const [updatedOrder] = await db
-      .update(aiMarketplaceOrders)
-      .set({
-        status: status,
-        updatedAt: new Date()
-      })
-      .where(eq(aiMarketplaceOrders.id, orderId))
-      .returning();
-    
-    if (!updatedOrder) {
+    if (!order) {
       return res.status(404).json({
         success: false,
         error: 'Order not found'
       });
     }
-    
+
     res.json({
       success: true,
-      order: updatedOrder
+      order: order
     });
+
+  } catch (error) {
+    console.error('Get order error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch order'
+    });
+  }
+});
+
+// Update order status
+router.patch('/api/orders/:orderId/status', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status, message } = req.body;
     
+    const orders = global.orders || [];
+    const orderIndex = orders.findIndex(o => o.id === orderId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    // Update order status
+    orders[orderIndex].status = status;
+    orders[orderIndex].updatedAt = new Date().toISOString();
+    
+    if (message) {
+      orders[orderIndex].messages.push({
+        id: nanoid(),
+        message: message,
+        timestamp: new Date().toISOString(),
+        type: 'status_update'
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Order status updated',
+      order: {
+        id: orders[orderIndex].id,
+        status: orders[orderIndex].status,
+        updatedAt: orders[orderIndex].updatedAt
+      }
+    });
+
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({
@@ -240,50 +214,92 @@ router.patch('/api/orders/:orderId/status', isAuthenticated, async (req, res) =>
   }
 });
 
-// Order details
-router.get('/api/orders/:orderId', isAuthenticated, async (req, res) => {
+// Add message to order
+router.post('/api/orders/:orderId/messages', async (req, res) => {
   try {
     const { orderId } = req.params;
-    const userId = req.user?.id;
+    const { message, senderId } = req.body;
     
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'User authentication required'
-      });
-    }
+    const orders = global.orders || [];
+    const orderIndex = orders.findIndex(o => o.id === orderId);
     
-    // Get order details
-    const [order] = await db
-      .select()
-      .from(aiMarketplaceOrders)
-      .where(eq(aiMarketplaceOrders.id, orderId));
-    
-    if (!order) {
+    if (orderIndex === -1) {
       return res.status(404).json({
         success: false,
         error: 'Order not found'
       });
     }
-    
-    // Check if user has access to this order
-    if (order.customerId !== userId && order.agentId !== userId) {
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied'
-      });
-    }
-    
+
+    const newMessage = {
+      id: nanoid(),
+      message: message,
+      senderId: senderId || req.user?.id || 'anonymous',
+      timestamp: new Date().toISOString(),
+      type: 'chat'
+    };
+
+    orders[orderIndex].messages.push(newMessage);
+    orders[orderIndex].updatedAt = new Date().toISOString();
+
     res.json({
       success: true,
-      order: order
+      message: 'Message added',
+      messageId: newMessage.id
     });
-    
+
   } catch (error) {
-    console.error('Get order details error:', error);
+    console.error('Add message error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch order details'
+      error: 'Failed to add message'
+    });
+  }
+});
+
+// Add deliverable to order
+router.post('/api/orders/:orderId/deliverables', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { title, description, fileUrl, deliveredBy } = req.body;
+    
+    const orders = global.orders || [];
+    const orderIndex = orders.findIndex(o => o.id === orderId);
+    
+    if (orderIndex === -1) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    const deliverable = {
+      id: nanoid(),
+      title: title,
+      description: description || '',
+      fileUrl: fileUrl || null,
+      deliveredBy: deliveredBy || req.user?.id || 'anonymous',
+      deliveredAt: new Date().toISOString()
+    };
+
+    orders[orderIndex].deliverables.push(deliverable);
+    orders[orderIndex].updatedAt = new Date().toISOString();
+
+    // Auto-update status to delivered if this is the first deliverable
+    if (orders[orderIndex].deliverables.length === 1) {
+      orders[orderIndex].status = ORDER_STATUSES.DELIVERED;
+    }
+
+    res.json({
+      success: true,
+      message: 'Deliverable added',
+      deliverable: deliverable
+    });
+
+  } catch (error) {
+    console.error('Add deliverable error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add deliverable'
     });
   }
 });

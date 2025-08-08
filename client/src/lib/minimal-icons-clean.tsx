@@ -899,3 +899,12 @@ export const Webhook = ({ className = "", size = 24 }: IconProps) => (
     <path d="M8.5 21.5a4 4 0 0 1-6-2.9v-1h5.99c1.1 0 1.95-.94 2.48-1.9A4 4 0 0 1 18 18c-.01.7-.2 1.4-.57 2.01--.6.74-1.17 1.38-1.83 1.89a8 8 0 0 1-7.6 0z"/>
   </svg>
 );
+
+export const Package = ({ className = "", size = 24 }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="m7.5 4.27 9 5.15" />
+    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+    <path d="m3.3 7 8.7 5 8.7-5" />
+    <path d="M12 22V12" />
+  </svg>
+);

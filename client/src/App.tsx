@@ -103,6 +103,8 @@ const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
 const AIAgents = lazy(() => import("@/pages/ai-agents"));
 const AIAgentMarketplace = lazy(() => import("@/pages/ai-agent-marketplace"));
 const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
+const AIMarketplaceComplete = lazy(() => import("@/pages/ai-marketplace-complete"));
+const MarketplaceDashboard = lazy(() => import("@/pages/marketplace-dashboard"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
@@ -185,6 +187,12 @@ function Router() {
       </Route>
       <Route path="/ai-marketplace">
         {() => <LazyLoadWrapper><AIMarketplace /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/ai-marketplace-complete">
+        {() => <LazyLoadWrapper><AIMarketplaceComplete /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/marketplace-dashboard">
+        {() => <LazyLoadWrapper><MarketplaceDashboard /></LazyLoadWrapper>}
       </Route>
       <Route path="/free-agent-registration">
         {() => {

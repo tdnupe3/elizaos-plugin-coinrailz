@@ -1413,15 +1413,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(agentTransactions.createdAt));
   }
 
-  async updateAgentRevenue(agentId: string, amount: number): Promise<void> {
-    // Update agent's total revenue in globalAIAgents table
-    await db.update(globalAIAgents)
-      .set({ 
-        totalRevenue: sql`COALESCE(${globalAIAgents.totalRevenue}, 0) + ${amount}`,
-        updatedAt: new Date()
-      })
-      .where(eq(globalAIAgents.id, agentId));
-  }
+
 
   // Chat system methods for DatabaseStorage  
   async createChatRoom(data: any): Promise<any> {
@@ -1541,6 +1533,84 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating marketplace service:', error);
       throw new Error('Failed to create marketplace service');
+    }
+  }
+
+  async createMarketplaceOrder(orderData: any): Promise<any> {
+    try {
+      const result = await db.execute(sql`
+        INSERT INTO marketplace_orders (
+          customer_id, service_id, agent_id, total_amount, 
+          currency, payment_method, delivery_requirements
+        ) VALUES (
+          ${orderData.customerId}, ${orderData.serviceId}, ${orderData.agentId},
+          ${orderData.totalAmount}, ${orderData.currency || 'USD'},
+          ${orderData.paymentMethod || 'stripe'}, ${orderData.deliveryRequirements || ''}
+        ) RETURNING id, customer_id, service_id, total_amount, order_status
+      `);
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating marketplace order:', error);
+      throw new Error('Failed to create marketplace order');
+    }
+  }
+
+  async updateMarketplaceOrder(orderId: string, updateData: any): Promise<any> {
+    try {
+      const updateFields = Object.keys(updateData).map(key => 
+        `${key} = '${updateData[key]}'`
+      ).join(', ');
+      
+      const result = await db.execute(sql`
+        UPDATE marketplace_orders 
+        SET ${sql.raw(updateFields)}, updated_at = NOW()
+        WHERE id = ${orderId}
+        RETURNING id, order_status, updated_at
+      `);
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error updating marketplace order:', error);
+      throw new Error('Failed to update marketplace order');
+    }
+  }
+
+  async getMarketplaceOrders(filters: { customerId?: string; agentId?: string; status?: string } = {}): Promise<any[]> {
+    try {
+      let whereClause = '1=1';
+      if (filters.customerId) whereClause += ` AND customer_id = '${filters.customerId}'`;
+      if (filters.agentId) whereClause += ` AND agent_id = '${filters.agentId}'`;
+      if (filters.status) whereClause += ` AND order_status = '${filters.status}'`;
+      
+      const result = await db.execute(sql`
+        SELECT o.*, s.service_name, s.description as service_description, a.agent_name
+        FROM marketplace_orders o
+        LEFT JOIN ai_marketplace_services s ON o.service_id = s.id
+        LEFT JOIN global_ai_agents a ON o.agent_id = a.id
+        WHERE ${sql.raw(whereClause)}
+        ORDER BY o.created_at DESC
+      `);
+      
+      return result.rows.map((order: any) => ({
+        id: order.id,
+        customerId: order.customer_id,
+        serviceId: order.service_id,
+        serviceName: order.service_name,
+        serviceDescription: order.service_description,
+        agentId: order.agent_id,
+        agentName: order.agent_name,
+        orderStatus: order.order_status,
+        totalAmount: parseFloat(order.total_amount),
+        currency: order.currency,
+        paymentMethod: order.payment_method,
+        deliveryRequirements: order.delivery_requirements,
+        createdAt: order.created_at,
+        updatedAt: order.updated_at
+      }));
+    } catch (error) {
+      console.error('Error fetching marketplace orders:', error);
+      return [];
     }
   }
 

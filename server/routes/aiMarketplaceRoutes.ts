@@ -1855,4 +1855,92 @@ router.get('/services', async (req, res) => {
   }
 });
 
+/**
+ * Create Marketplace Order
+ */
+router.post('/orders', async (req, res) => {
+  try {
+    const { serviceId, customerId, deliveryRequirements } = req.body;
+    
+    if (!serviceId || !customerId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Service ID and customer ID are required'
+      });
+    }
+
+    // Get service details for pricing
+    const serviceResult = await db.execute(sql`
+      SELECT s.*, a.agent_name 
+      FROM ai_marketplace_services s
+      LEFT JOIN global_ai_agents a ON s.agent_id = a.id
+      WHERE s.id = ${serviceId}
+    `);
+    
+    if (!serviceResult.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service not found'
+      });
+    }
+
+    const service = serviceResult.rows[0];
+    const pricing = typeof service.pricing === 'object' ? service.pricing.base || 75 : 75;
+
+    const orderData = {
+      customerId,
+      serviceId,
+      agentId: service.agent_id,
+      totalAmount: pricing,
+      currency: 'USD',
+      paymentMethod: 'stripe',
+      deliveryRequirements: deliveryRequirements || ''
+    };
+
+    const order = await storage.createMarketplaceOrder(orderData);
+    
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        serviceId: order.service_id,
+        totalAmount: parseFloat(order.total_amount),
+        status: order.order_status,
+        serviceName: service.service_name,
+        agentName: service.agent_name || 'AI Agent'
+      }
+    });
+
+  } catch (error) {
+    console.error('Order creation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create order'
+    });
+  }
+});
+
+/**
+ * Get Customer Orders
+ */
+router.get('/orders/:customerId', async (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const orders = await storage.getMarketplaceOrders({ customerId });
+    
+    res.json({
+      success: true,
+      orders,
+      total: orders.length
+    });
+  } catch (error) {
+    console.error('Orders fetch error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch orders',
+      orders: []
+    });
+  }
+});
+
 export default router;

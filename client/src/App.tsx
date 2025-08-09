@@ -197,6 +197,14 @@ function Router() {
       <Route path="/marketplace/payment-success">
         {() => <LazyLoadWrapper><PaymentSuccess /></LazyLoadWrapper>}
       </Route>
+      
+      <Route path="/order-management">
+        {() => <LazyLoadWrapper><OrderManagement /></LazyLoadWrapper>}
+      </Route>
+      
+      <Route path="/marketplace-dashboard">
+        {() => <LazyLoadWrapper><MarketplaceDashboard /></LazyLoadWrapper>}
+      </Route>
 
       <Route path="/marketplace-dashboard">
         {() => <LazyLoadWrapper><MarketplaceDashboard /></LazyLoadWrapper>}

@@ -77,6 +77,8 @@ export const SignupFlowDemo = lazy(() => import('@/pages/signup-flow-demo'));
 export const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
 export const MarketplaceCheckout = lazy(() => import("@/pages/marketplace-checkout"));
 export const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
+export const OrderManagement = lazy(() => import("@/pages/order-management"));
+export const MarketplaceDashboard = lazy(() => import("@/pages/marketplace-dashboard"));
 export const LegalDisclaimers = lazy(() => import('@/pages/legal-disclaimers'));
 export const ContactUs = lazy(() => import('@/pages/contact-us'));
 export const TermsOfService = lazy(() => import('@/pages/terms-of-service'));

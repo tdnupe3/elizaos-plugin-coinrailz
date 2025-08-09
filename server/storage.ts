@@ -1655,23 +1655,21 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Use the correct marketplace_orders table structure
+  // Use the actual marketplace_orders table structure
   async createMarketplaceOrder(orderData: any): Promise<any> {
     try {
       const result = await db.execute(sql`
         INSERT INTO marketplace_orders (
-          customer_name, customer_email, service_name, agent_name, 
-          total_amount, currency, payment_method, delivery_requirements
+          user_id, agent_id, service_type, amount, platform_fee, status, description
         ) VALUES (
-          ${orderData.customerName || orderData.customerId}, 
-          ${orderData.customerEmail || `${orderData.customerId}@example.com`},
-          ${orderData.serviceName || 'AI Service'}, 
-          ${orderData.agentName || 'AI Agent'},
-          ${orderData.totalAmount || orderData.amount || 75}, 
-          ${orderData.currency || 'USD'},
-          ${orderData.paymentMethod || 'stripe'}, 
-          ${orderData.deliveryRequirements || ''}
-        ) RETURNING id, customer_name, service_name, total_amount, order_status
+          ${orderData.customerId}, 
+          ${orderData.agentId || 'ai-agent-001'},
+          ${orderData.serviceType || 'general'}, 
+          ${orderData.totalAmount || orderData.amount || 75},
+          ${orderData.platformFee || 0}, 
+          ${orderData.status || 'pending'},
+          ${orderData.deliveryRequirements || orderData.description || 'Service order'}
+        ) RETURNING id, user_id, service_type, amount, status
       `);
       
       return result.rows[0];

@@ -50,16 +50,37 @@ export default function MarketplaceCheckout() {
     mutationFn: async (orderData: any) => {
       return await apiRequest('POST', '/api/ai-marketplace/orders', orderData);
     },
-    onSuccess: (data) => {
-      toast({
-        title: "Order Created Successfully",
-        description: "Proceeding to payment...",
-      });
-      
-      // In a real implementation, redirect to Stripe Checkout
-      setTimeout(() => {
-        setLocation('/marketplace/payment-success');
-      }, 1500);
+    onSuccess: async (data) => {
+      if (data.success && data.order) {
+        toast({
+          title: "Order Created Successfully",
+          description: "Proceeding to payment...",
+        });
+        
+        // Create Stripe payment intent
+        try {
+          const paymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
+            amount: service.pricing,
+            orderId: data.order.id,
+            serviceId: serviceId
+          });
+          
+          if (paymentResponse.clientSecret) {
+            // In a real implementation, redirect to Stripe Checkout
+            console.log('Payment intent created:', paymentResponse.clientSecret);
+            setTimeout(() => {
+              setLocation('/marketplace/payment-success');
+            }, 1500);
+          }
+        } catch (error) {
+          console.error('Payment intent creation failed:', error);
+          toast({
+            title: "Payment Setup Failed",
+            description: "Order created but payment setup failed",
+            variant: "destructive",
+          });
+        }
+      }
     },
     onError: (error) => {
       toast({

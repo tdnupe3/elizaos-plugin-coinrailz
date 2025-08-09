@@ -83,6 +83,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { default: stripeRoutes } = await import('./routes/stripeRoutes');
   app.use('/api/stripe', stripeRoutes);
   
+  // Marketplace dashboard routes
+  const { default: dashboardRoutes } = await import('./routes/marketplaceDashboardRoutes');
+  app.use('/', dashboardRoutes);
+  
   // === P2P TRANSFER ROUTES ===
   // Peer-to-peer transfer system - core revenue generator
   app.use('/api/p2p', p2pRoutes);

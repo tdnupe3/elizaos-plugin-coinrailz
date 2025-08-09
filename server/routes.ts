@@ -85,7 +85,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Marketplace dashboard routes
   const { default: dashboardRoutes } = await import('./routes/marketplaceDashboardRoutes');
-  app.use('/', dashboardRoutes);
+  app.use('/api', dashboardRoutes);
+  
+  // Agent onboarding and management
+  const { default: agentRoutes } = await import('./routes/agentOnboardingRoutes');
+  app.use('/api', agentRoutes);
+  
+  // Notification system for order updates
+  const { default: notificationRoutes } = await import('./routes/notificationRoutes');
+  app.use('/api', notificationRoutes);
   
   // === P2P TRANSFER ROUTES ===
   // Peer-to-peer transfer system - core revenue generator

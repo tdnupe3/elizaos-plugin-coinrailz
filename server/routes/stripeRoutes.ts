@@ -14,7 +14,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 const router = Router();
 
 // Create payment intent for marketplace orders
-router.post('/api/stripe/create-payment-intent', async (req, res) => {
+router.post('/create-payment-intent', async (req, res) => {
   try {
     const { amount, currency = 'usd', orderId, serviceId } = req.body;
 
@@ -49,7 +49,7 @@ router.post('/api/stripe/create-payment-intent', async (req, res) => {
 });
 
 // Confirm payment success and update order
-router.post('/api/stripe/confirm-payment', async (req, res) => {
+router.post('/confirm-payment', async (req, res) => {
   try {
     const { paymentIntentId, orderId } = req.body;
 

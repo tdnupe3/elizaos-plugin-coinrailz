@@ -1,140 +1,182 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useState } from 'react';
 import { 
+  User, 
   DollarSign, 
-  Star, 
-  Users, 
-  MessageSquare, 
   TrendingUp,
+  Package,
+  Star,
   Clock,
   CheckCircle,
-  AlertCircle
-} from '@/lib/icons';
+  Settings,
+  BarChart3
+} from 'lucide-react';
 
-interface Order {
+interface AgentProfile {
   id: string;
-  customerName: string;
-  service: string;
-  amount: number;
-  status: string;
-  deadline: string;
-  createdAt: string;
-}
-
-interface Payout {
-  id: string;
-  amount: number;
-  status: string;
-  method: string;
-  date: string;
+  name: string;
+  email: string;
+  specialties: string[];
+  experience: string;
+  bio: string;
+  skills: string[];
+  hourlyRate: number;
+  rating: number;
+  reviewCount: number;
+  isActive: boolean;
+  verificationStatus: string;
+  statistics: {
+    totalOrders: number;
+    completedOrders: number;
+    totalEarnings: number;
+    avgOrderValue: number;
+  };
 }
 
 export default function AgentDashboard() {
-  const [agentData, setAgentData] = useState(null);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    bio: '',
+    hourlyRate: 0,
+    skills: [] as string[]
+  });
 
-  useEffect(() => {
-    // Simulate agent data loading
-    setTimeout(() => {
-      setAgentData({
-        name: 'Sarah AI Analytics',
-        rating: 4.8,
-        completedOrders: 127,
-        totalEarnings: 15420,
-        pendingEarnings: 850,
-        status: 'verified'
+  // Mock agent ID for demo - in production this would come from auth
+  const agentId = 'demo_agent_001';
+
+  // Fetch agent profile
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['/api/agent', agentId, 'profile'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', `/api/agent/${agentId}/profile`);
+        return response.agent;
+      } catch (error) {
+        // Return demo data if API not ready
+        return {
+          id: agentId,
+          name: 'Demo AI Agent',
+          email: 'demo@aiagent.com',
+          specialties: ['AI Development', 'Machine Learning', 'Data Analysis'],
+          experience: 'expert',
+          bio: 'Expert AI consultant specializing in machine learning and data analysis solutions.',
+          skills: ['Python', 'TensorFlow', 'PyTorch', 'NLP', 'Computer Vision'],
+          hourlyRate: 125,
+          rating: 4.8,
+          reviewCount: 24,
+          isActive: true,
+          verificationStatus: 'approved',
+          statistics: {
+            totalOrders: 15,
+            completedOrders: 12,
+            totalEarnings: 2850,
+            avgOrderValue: 237.50
+          }
+        };
+      }
+    }
+  });
+
+  // Fetch agent earnings
+  const { data: earnings } = useQuery({
+    queryKey: ['/api/agent', agentId, 'earnings'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', `/api/agent/${agentId}/earnings`);
+        return response.earnings;
+      } catch (error) {
+        return {
+          totalEarnings: 2850,
+          commissionRate: 0.85,
+          transactions: [
+            {
+              orderId: '1',
+              orderAmount: 250,
+              agentCommission: 212.50,
+              platformFee: 37.50,
+              status: 'completed',
+              serviceType: 'AI Content Generation',
+              completedAt: new Date().toISOString()
+            },
+            {
+              orderId: '2',
+              orderAmount: 500,
+              agentCommission: 425,
+              platformFee: 75,
+              status: 'completed',
+              serviceType: 'Smart Contract Audit',
+              completedAt: new Date(Date.now() - 86400000).toISOString()
+            }
+          ]
+        };
+      }
+    }
+  });
+
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updateData: any) => {
+      return apiRequest('PUT', `/api/agent/${agentId}/profile`, updateData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/agent', agentId, 'profile'] });
+      setIsEditing(false);
+      toast({
+        title: "Profile Updated",
+        description: "Your agent profile has been updated successfully",
       });
+    },
+    onError: () => {
+      toast({
+        title: "Update Failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
 
-      setOrders([
-        {
-          id: 'ORD_001',
-          customerName: 'TechCorp Inc',
-          service: 'Sales Data Analysis',
-          amount: 150,
-          status: 'in_progress',
-          deadline: '2025-07-05',
-          createdAt: '2025-06-28'
-        },
-        {
-          id: 'ORD_002',
-          customerName: 'StartupXYZ',
-          service: 'Market Research',
-          amount: 250,
-          status: 'pending_delivery',
-          deadline: '2025-07-02',
-          createdAt: '2025-06-25'
-        },
-        {
-          id: 'ORD_003',
-          customerName: 'E-commerce Plus',
-          service: 'Customer Segmentation',
-          amount: 300,
-          status: 'completed',
-          deadline: '2025-06-30',
-          createdAt: '2025-06-20'
-        }
-      ]);
+  const handleEditSubmit = () => {
+    updateProfileMutation.mutate(editForm);
+  };
 
-      setPayouts([
-        {
-          id: 'PAY_001',
-          amount: 225,
-          status: 'completed',
-          method: 'PayPal',
-          date: '2025-06-29'
-        },
-        {
-          id: 'PAY_002',
-          amount: 112.50,
-          status: 'processing',
-          method: 'PayPal',
-          date: '2025-06-30'
-        }
-      ]);
-
-      setLoading(false);
-    }, 1000);
-  }, []);
-
-  const getStatusColor = (status: string) => {
+  const getVerificationBadge = (status: string) => {
     switch (status) {
-      case 'completed': return 'bg-green-500';
-      case 'in_progress': return 'bg-blue-500';
-      case 'pending_delivery': return 'bg-yellow-500';
-      case 'processing': return 'bg-orange-500';
-      default: return 'bg-gray-500';
+      case 'approved':
+        return <Badge className="bg-green-100 text-green-800">✓ Verified</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">⏳ Pending</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800">✗ Rejected</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800">Unverified</Badge>;
     }
   };
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'in_progress': return 'In Progress';
-      case 'pending_delivery': return 'Ready to Deliver';
-      case 'completed': return 'Completed';
-      case 'processing': return 'Processing';
-      default: return status;
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
-  if (loading) {
+  if (profileLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-8 bg-gray-200 rounded w-64"></div>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-32 bg-gray-200 rounded"></div>
-              ))}
-            </div>
-            <div className="h-96 bg-gray-200 rounded"></div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="h-24 bg-gray-200 rounded-lg"></div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -142,256 +184,220 @@ export default function AgentDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              Agent Dashboard
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Welcome back, {agentData?.name}
-            </p>
+            <h1 className="text-3xl font-bold">Agent Dashboard</h1>
+            <p className="text-gray-600 mt-2">Manage your AI marketplace presence and earnings</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="outline" className="text-green-600 border-green-600">
-              <CheckCircle className="w-4 h-4 mr-1" />
-              {agentData?.status}
-            </Badge>
-            <Avatar>
-              <AvatarFallback className="bg-blue-600 text-white">
-                {agentData?.name?.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-          </div>
+          {getVerificationBadge(profile?.verificationStatus || 'pending')}
         </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${agentData?.totalEarnings.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                +12% from last month
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Earnings</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${agentData?.pendingEarnings}</div>
-              <p className="text-xs text-muted-foreground">
-                From 2 active orders
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Orders</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{agentData?.completedOrders}</div>
-              <p className="text-xs text-muted-foreground">
-                +5 this week
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Rating</CardTitle>
-              <Star className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold flex items-center">
-                {agentData?.rating}
-                <Star className="h-5 w-5 text-yellow-400 ml-1 fill-current" />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Based on 89 reviews
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content */}
-        <Tabs defaultValue="orders" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="orders">Active Orders</TabsTrigger>
-            <TabsTrigger value="payouts">Payouts</TabsTrigger>
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="orders" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Orders</CardTitle>
-                <CardDescription>
-                  Manage your active service orders
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {orders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold">{order.service}</h3>
-                          <Badge variant="outline" className={getStatusColor(order.status)}>
-                            {getStatusText(order.status)}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          Customer: {order.customerName} • Deadline: {order.deadline}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-lg font-bold">${order.amount}</div>
-                        <Button size="sm" variant="outline" className="mt-2">
-                          {order.status === 'pending_delivery' ? 'Upload Delivery' : 'View Details'}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="payouts" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Payout History</CardTitle>
-                <CardDescription>
-                  Track your payment history and pending payouts
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {payouts.map((payout) => (
-                    <div key={payout.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${getStatusColor(payout.status)}`}></div>
-                        <div>
-                          <p className="font-medium">${payout.amount}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {payout.method} • {payout.date}
-                          </p>
-                        </div>
-                      </div>
-                      <Badge variant="outline">
-                        {getStatusText(payout.status)}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="messages" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Messages</CardTitle>
-                <CardDescription>
-                  Customer communications and order updates
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 p-4 border rounded-lg">
-                    <MessageSquare className="h-8 w-8 text-blue-500" />
-                    <div className="flex-1">
-                      <p className="font-medium">New message from TechCorp Inc</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        "Can you provide an update on the analysis progress?"
-                      </p>
-                    </div>
-                    <Button size="sm">Reply</Button>
-                  </div>
-                  <div className="flex items-center gap-3 p-4 border rounded-lg">
-                    <AlertCircle className="h-8 w-8 text-orange-500" />
-                    <div className="flex-1">
-                      <p className="font-medium">Order deadline reminder</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        StartupXYZ order due in 2 days
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline">View</Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Performance Overview</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Order Completion Rate</span>
-                      <span>96%</span>
-                    </div>
-                    <Progress value={96} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Customer Satisfaction</span>
-                      <span>4.8/5</span>
-                    </div>
-                    <Progress value={96} className="h-2" />
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>On-time Delivery</span>
-                      <span>94%</span>
-                    </div>
-                    <Progress value={94} className="h-2" />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Monthly Earnings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm">June 2025</span>
-                      <span className="font-medium">$2,150</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">May 2025</span>
-                      <span className="font-medium">$1,890</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm">April 2025</span>
-                      <span className="font-medium">$2,340</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
+
+      {/* Key Performance Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(profile?.statistics?.totalEarnings || 0)}</div>
+            <p className="text-xs text-muted-foreground">
+              {earnings?.commissionRate * 100}% commission rate
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Completed Orders</CardTitle>
+            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile?.statistics?.completedOrders || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {profile?.statistics?.totalOrders || 0} total orders
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Rating</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{profile?.rating || 0}/5</div>
+            <p className="text-xs text-muted-foreground">
+              {profile?.reviewCount || 0} reviews
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hourly Rate</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(profile?.hourlyRate || 0)}</div>
+            <p className="text-xs text-muted-foreground">
+              Per hour rate
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Profile Management */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Agent Profile</CardTitle>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                if (isEditing) {
+                  handleEditSubmit();
+                } else {
+                  setEditForm({
+                    bio: profile?.bio || '',
+                    hourlyRate: profile?.hourlyRate || 0,
+                    skills: profile?.skills || []
+                  });
+                  setIsEditing(true);
+                }
+              }}
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              {isEditing ? 'Save' : 'Edit'}
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Name</label>
+              <p className="text-sm text-gray-600">{profile?.name}</p>
+            </div>
+            
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <p className="text-sm text-gray-600">{profile?.email}</p>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Specialties</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {profile?.specialties?.map((specialty: string) => (
+                  <Badge key={specialty} variant="secondary">{specialty}</Badge>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Bio</label>
+              {isEditing ? (
+                <Textarea
+                  value={editForm.bio}
+                  onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
+                  className="mt-1"
+                />
+              ) : (
+                <p className="text-sm text-gray-600 mt-1">{profile?.bio}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Hourly Rate</label>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={editForm.hourlyRate}
+                  onChange={(e) => setEditForm({ ...editForm, hourlyRate: parseFloat(e.target.value) })}
+                  className="mt-1"
+                />
+              ) : (
+                <p className="text-sm text-gray-600 mt-1">{formatCurrency(profile?.hourlyRate || 0)}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Earnings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Earnings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {earnings?.transactions?.map((transaction: any) => (
+                <div key={transaction.orderId} className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">Order #{transaction.orderId}</p>
+                    <p className="text-sm text-gray-600">{transaction.serviceType}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(transaction.completedAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-medium text-green-600">
+                      +{formatCurrency(transaction.agentCommission)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Order: {formatCurrency(transaction.orderAmount)}
+                    </p>
+                  </div>
+                </div>
+              )) || (
+                <p className="text-gray-500">No recent earnings</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Button 
+              className="justify-start" 
+              variant="outline"
+              onClick={() => window.location.href = '/ai-marketplace'}
+            >
+              <Package className="w-4 h-4 mr-2" />
+              View Marketplace
+            </Button>
+            
+            <Button 
+              className="justify-start" 
+              variant="outline"
+              onClick={() => window.location.href = '/order-management'}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Manage Orders
+            </Button>
+            
+            <Button 
+              className="justify-start" 
+              variant="outline"
+              onClick={() => {
+                toast({
+                  title: "Coming Soon",
+                  description: "Service creation will be available soon",
+                });
+              }}
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Create Service
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

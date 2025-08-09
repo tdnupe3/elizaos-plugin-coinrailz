@@ -6,7 +6,7 @@ import { db } from '../db';
 const router = Router();
 
 // Get marketplace dashboard statistics
-router.get('/api/marketplace/dashboard/stats', async (req, res) => {
+router.get('/marketplace/dashboard/stats', async (req, res) => {
   try {
     // Get order statistics
     const orderStats = await db.execute(sql`
@@ -44,7 +44,7 @@ router.get('/api/marketplace/dashboard/stats', async (req, res) => {
 });
 
 // Get recent orders for dashboard
-router.get('/api/marketplace/dashboard/recent-orders', async (req, res) => {
+router.get('/marketplace/dashboard/recent-orders', async (req, res) => {
   try {
     const recentOrders = await db.execute(sql`
       SELECT 
@@ -82,7 +82,7 @@ router.get('/api/marketplace/dashboard/recent-orders', async (req, res) => {
 });
 
 // Get order analytics
-router.get('/api/marketplace/dashboard/analytics', async (req, res) => {
+router.get('/marketplace/dashboard/analytics', async (req, res) => {
   try {
     // Revenue by month
     const revenueByMonth = await db.execute(sql`

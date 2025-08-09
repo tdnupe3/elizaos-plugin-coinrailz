@@ -72,6 +72,11 @@ export const SystemDashboard = lazy(() => import('@/pages/system-dashboard'));
 // Heavy components that are rarely used immediately
 export const MfaSetup = lazy(() => import('@/components/MfaSetup'));
 export const SignupFlowDemo = lazy(() => import('@/pages/signup-flow-demo'));
+
+// AI Marketplace Components
+export const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
+export const MarketplaceCheckout = lazy(() => import("@/pages/marketplace-checkout"));
+export const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
 export const LegalDisclaimers = lazy(() => import('@/pages/legal-disclaimers'));
 export const ContactUs = lazy(() => import('@/pages/contact-us'));
 export const TermsOfService = lazy(() => import('@/pages/terms-of-service'));

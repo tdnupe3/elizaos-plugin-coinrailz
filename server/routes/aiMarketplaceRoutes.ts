@@ -15,6 +15,8 @@ import { paymentProcessor } from '../services/paymentProcessor';
 import { z } from 'zod';
 import multer from 'multer';
 import DOMPurify from 'isomorphic-dompurify';
+import { sql } from 'drizzle-orm';
+import { db } from '../db';
 
 // Comprehensive security validation patterns
 const SECURITY_THREATS = [

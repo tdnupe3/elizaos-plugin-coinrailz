@@ -1,247 +1,128 @@
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { useLocation, useRoute } from 'wouter';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import { useAuth } from '@/hooks/useAuth';
-import { useLocation, useRouter } from 'wouter';
-import { 
-  CreditCard, 
-  DollarSign, 
-  Shield, 
-  Clock,
-  CheckCircle,
-  ArrowLeft
-} from '@/lib/icons';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import { ArrowLeft, CreditCard, Shield, Clock, CheckCircle } from 'lucide-react';
 
-// Load Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
-
-interface OrderData {
-  serviceTitle: string;
-  serviceDescription: string;
-  amount: number;
+interface Service {
+  id: string;
+  name: string;
+  description: string;
+  pricing: number;
+  deliveryTime: string;
   agentId: string;
-  estimatedDeliveryHours: number;
-  requirements?: string;
-}
-
-interface CheckoutFormProps {
-  orderData: OrderData;
-  clientSecret: string;
-  onSuccess: () => void;
-}
-
-function CheckoutForm({ orderData, clientSecret, onSuccess }: CheckoutFormProps) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const { toast } = useToast();
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    if (!stripe || !elements) {
-      return;
-    }
-
-    setIsProcessing(true);
-
-    try {
-      const { error } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/my-orders`,
-        },
-        redirect: 'if_required'
-      });
-
-      if (error) {
-        toast({
-          title: "Payment Failed",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Payment Successful",
-          description: "Your order has been placed! The agent will begin work shortly.",
-        });
-        onSuccess();
-      }
-    } catch (err) {
-      toast({
-        title: "Payment Error",
-        description: "An unexpected error occurred during payment.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-        <h3 className="font-semibold mb-2">Order Summary</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span>Service:</span>
-            <span className="font-medium">{orderData.serviceTitle}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Amount:</span>
-            <span className="font-medium">${orderData.amount}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Platform Fee (15%):</span>
-            <span>${(orderData.amount * 0.15).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between border-t pt-2">
-            <span className="font-semibold">Total:</span>
-            <span className="font-semibold">${orderData.amount}</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        <Label className="text-base font-semibold">Payment Method</Label>
-        <PaymentElement />
-      </div>
-
-      <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg">
-        <div className="flex items-center space-x-2 mb-2">
-          <Shield className="w-5 h-5 text-blue-600" />
-          <span className="font-semibold text-blue-800 dark:text-blue-200">Escrow Protection</span>
-        </div>
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          Your payment is held securely in escrow until you approve the completed work. 
-          Funds are only released to the agent after successful delivery.
-        </p>
-      </div>
-
-      <Button 
-        type="submit" 
-        disabled={!stripe || isProcessing} 
-        className="w-full"
-        size="lg"
-      >
-        {isProcessing ? (
-          <>
-            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-            Processing Payment...
-          </>
-        ) : (
-          <>
-            <Shield className="w-4 h-4 mr-2" />
-            Secure Payment - ${orderData.amount}
-          </>
-        )}
-      </Button>
-    </form>
-  );
+  agentName: string;
 }
 
 export default function MarketplaceCheckout() {
-  const { toast } = useToast();
-  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
-  const [orderData, setOrderData] = useState<OrderData | null>(null);
-  const [clientSecret, setClientSecret] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'usdc'>('stripe');
-
-  // Get order data from URL params or local storage
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const orderDataParam = urlParams.get('orderData');
-    
-    if (orderDataParam) {
-      try {
-        const parsedData = JSON.parse(decodeURIComponent(orderDataParam));
-        setOrderData(parsedData);
-      } catch (error) {
-        console.error('Failed to parse order data:', error);
-        toast({
-          title: "Invalid Order Data",
-          description: "Please return to the marketplace and try again.",
-          variant: "destructive",
-        });
-      }
-    } else {
-      // Try to get from sessionStorage
-      const savedOrderData = sessionStorage.getItem('pendingOrder');
-      if (savedOrderData) {
-        setOrderData(JSON.parse(savedOrderData));
-      } else {
-        toast({
-          title: "No Order Data",
-          description: "Please select a service from the marketplace first.",
-          variant: "destructive",
-        });
-        setLocation('/ai-marketplace');
-      }
-    }
-  }, [toast, setLocation]);
-
-  // Create order and payment intent
-  const createOrderMutation = useMutation({
-    mutationFn: async (data: OrderData) => {
-      if (!isAuthenticated) {
-        throw new Error('Authentication required to create order');
-      }
-      return await apiRequest('POST', '/api/ai-marketplace/create-order', {
-        serviceTitle: data.serviceTitle,
-        serviceDescription: data.serviceDescription,
-        amount: data.amount,
-        agentId: data.agentId,
-        estimatedDeliveryHours: data.estimatedDeliveryHours,
-        customerRequirements: data.requirements,
-        paymentMethod: paymentMethod
-      });
-    },
-    onSuccess: (data) => {
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
-      }
-      toast({
-        title: "Order Created",
-        description: "Complete payment to proceed with your order.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Order Creation Failed",
-        description: error.message || "Failed to create order. Please try again.",
-        variant: "destructive",
-      });
-    },
+  const [match, params] = useRoute('/marketplace/checkout/:serviceId');
+  const { toast } = useToast();
+  
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
+    email: '',
+    deliveryRequirements: ''
   });
 
-  const handlePaymentSuccess = () => {
-    // Clear pending order data
-    sessionStorage.removeItem('pendingOrder');
-    
-    // Redirect to orders page
-    setTimeout(() => {
-      setLocation('/my-orders');
-    }, 2000);
+  const serviceId = params?.serviceId;
+
+  // Fetch service details
+  const { data: service, isLoading: serviceLoading } = useQuery({
+    queryKey: ['/api/ai-marketplace/services', serviceId],
+    enabled: !!serviceId,
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/ai-marketplace/services`);
+      const services = response.services || [];
+      return services.find((s: Service) => s.id === serviceId);
+    }
+  });
+
+  // Create order mutation
+  const createOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      return await apiRequest('POST', '/api/ai-marketplace/orders', orderData);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Order Created Successfully",
+        description: "Proceeding to payment...",
+      });
+      
+      // In a real implementation, redirect to Stripe Checkout
+      setTimeout(() => {
+        setLocation('/marketplace/payment-success');
+      }, 1500);
+    },
+    onError: (error) => {
+      toast({
+        title: "Order Creation Failed",
+        description: "Please try again or contact support",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleOrderSubmission = () => {
+    if (!customerInfo.name || !customerInfo.email) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const orderData = {
+      serviceId: serviceId,
+      customerId: `customer_${Date.now()}`, // In real app, get from auth
+      customerName: customerInfo.name,
+      customerEmail: customerInfo.email,
+      deliveryRequirements: customerInfo.deliveryRequirements
+    };
+
+    createOrderMutation.mutate(orderData);
   };
 
-  if (!isAuthenticated) {
+  if (!match) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-4">Authentication Required</h2>
-            <p className="text-gray-600 mb-4">Please log in to complete your order.</p>
-            <Button onClick={() => setLocation('/auth')}>
-              Log In
+      <div className="container mx-auto px-4 py-8">
+        <p>Invalid checkout URL</p>
+      </div>
+    );
+  }
+
+  if (serviceLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!service) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p>Service not found</p>
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation('/ai-marketplace')}
+              className="mt-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Marketplace
             </Button>
           </CardContent>
         </Card>
@@ -249,148 +130,204 @@ export default function MarketplaceCheckout() {
     );
   }
 
-  if (!orderData) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-6 text-center">
-            <h2 className="text-xl font-semibold mb-4">Loading Order...</h2>
-            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <Button 
-            variant="ghost" 
-            onClick={() => setLocation('/ai-marketplace')}
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Marketplace
-          </Button>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Secure Checkout</h1>
-          <p className="text-gray-600 dark:text-gray-400">Complete your AI service order</p>
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="mb-6">
+        <Button 
+          variant="ghost" 
+          onClick={() => setLocation('/ai-marketplace')}
+          className="mb-4"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Back to Marketplace
+        </Button>
+        <h1 className="text-3xl font-bold">Checkout</h1>
+        <p className="text-gray-600 mt-2">Complete your service order</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Customer Information */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Full Name *
+                </label>
+                <Input
+                  placeholder="Enter your full name"
+                  value={customerInfo.name}
+                  onChange={(e) => setCustomerInfo(prev => ({
+                    ...prev,
+                    name: e.target.value
+                  }))}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Email Address *
+                </label>
+                <Input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={customerInfo.email}
+                  onChange={(e) => setCustomerInfo(prev => ({
+                    ...prev,
+                    email: e.target.value
+                  }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Delivery Requirements
+                </label>
+                <Textarea
+                  placeholder="Describe any specific requirements or preferences..."
+                  value={customerInfo.deliveryRequirements}
+                  onChange={(e) => setCustomerInfo(prev => ({
+                    ...prev,
+                    deliveryRequirements: e.target.value
+                  }))}
+                  rows={4}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Security Features */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Shield className="w-5 h-5 mr-2" />
+                Security & Guarantees
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                <span className="text-sm">Secure payment processing</span>
+              </div>
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                <span className="text-sm">Money-back guarantee</span>
+              </div>
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                <span className="text-sm">Quality assurance</span>
+              </div>
+              <div className="flex items-center">
+                <CheckCircle className="w-4 h-4 text-green-500 mr-2" />
+                <span className="text-sm">24/7 customer support</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Order Details */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Service Details</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label className="font-semibold">Service:</Label>
-                  <p>{orderData.serviceTitle}</p>
+        {/* Order Summary */}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-semibold text-lg">{service.name}</h3>
+                <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                  {service.description}
+                </p>
+                <div className="flex items-center mt-2 space-x-2">
+                  <Badge variant="secondary">{service.agentName}</Badge>
+                  <Badge variant="outline" className="flex items-center">
+                    <Clock className="w-3 h-3 mr-1" />
+                    {service.deliveryTime}
+                  </Badge>
                 </div>
-                <div>
-                  <Label className="font-semibold">Description:</Label>
-                  <p className="text-gray-600 dark:text-gray-300">{orderData.serviceDescription}</p>
-                </div>
-                {orderData.requirements && (
-                  <div>
-                    <Label className="font-semibold">Your Requirements:</Label>
-                    <p className="text-gray-600 dark:text-gray-300">{orderData.requirements}</p>
-                  </div>
-                )}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label className="font-semibold">Amount:</Label>
-                    <p className="text-2xl font-bold text-green-600">${orderData.amount}</p>
-                  </div>
-                  <div>
-                    <Label className="font-semibold">Delivery Time:</Label>
-                    <div className="flex items-center space-x-1">
-                      <Clock className="w-4 h-4" />
-                      <span>{orderData.estimatedDeliveryHours} hours</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Payment Method Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Method</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center space-x-3">
-                      <CreditCard className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <span className="font-medium text-gray-900 dark:text-white">Credit/Debit Card</span>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">Secure payment via Stripe</p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                      Secure
-                    </Badge>
-                  </div>
-                  <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <Shield className="w-4 h-4 text-green-600" />
-                    <span className="text-sm text-gray-600 dark:text-gray-300">
-                      256-bit SSL encryption • PCI DSS compliant • Buyer protection included
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              <Separator />
 
-          {/* Payment Form */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Information</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {!clientSecret ? (
-                  <div className="space-y-4">
-                    <Button 
-                      onClick={() => createOrderMutation.mutate(orderData)}
-                      disabled={createOrderMutation.isPending}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {createOrderMutation.isPending ? (
-                        <>
-                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                          Creating Order...
-                        </>
-                      ) : (
-                        'Create Order & Proceed to Payment'
-                      )}
-                    </Button>
-                  </div>
-                ) : (
-                  <Elements 
-                    stripe={stripePromise} 
-                    options={{ 
-                      clientSecret,
-                      appearance: {
-                        theme: 'stripe'
-                      }
-                    }}
-                  >
-                    <CheckoutForm 
-                      orderData={orderData} 
-                      clientSecret={clientSecret}
-                      onSuccess={handlePaymentSuccess} 
-                    />
-                  </Elements>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span>Service Price</span>
+                  <span>${service.pricing}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Platform Fee</span>
+                  <span>$0.00</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Processing Fee</span>
+                  <span>$0.00</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="flex justify-between font-semibold text-lg">
+                <span>Total</span>
+                <span>${service.pricing}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Payment Button */}
+          <Card>
+            <CardContent className="pt-6">
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={handleOrderSubmission}
+                disabled={createOrderMutation.isPending}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                {createOrderMutation.isPending ? 'Processing...' : `Pay $${service.pricing}`}
+              </Button>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Secure payment powered by Stripe
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* What Happens Next */}
+          <Card>
+            <CardHeader>
+              <CardTitle>What Happens Next</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-start">
+                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium mr-3 mt-0.5">
+                  1
+                </div>
+                <div>
+                  <p className="font-medium">Payment Processing</p>
+                  <p className="text-sm text-gray-600">Your payment will be securely processed</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium mr-3 mt-0.5">
+                  2
+                </div>
+                <div>
+                  <p className="font-medium">Agent Notification</p>
+                  <p className="text-sm text-gray-600">The AI agent will be notified and begin work</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium mr-3 mt-0.5">
+                  3
+                </div>
+                <div>
+                  <p className="font-medium">Delivery</p>
+                  <p className="text-sm text-gray-600">Receive your completed service within {service.deliveryTime}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

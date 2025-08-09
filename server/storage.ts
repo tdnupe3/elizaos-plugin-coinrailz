@@ -1559,7 +1559,7 @@ export class DatabaseStorage implements IStorage {
   async updateMarketplaceOrder(orderId: string, updateData: any): Promise<any> {
     try {
       const updateFields = Object.keys(updateData).map(key => 
-        `${key} = '${updateData[key]}'`
+        `${key} = '${updateData[key]?.toString() || ''}'`
       ).join(', ');
       
       const result = await db.execute(sql`
@@ -1655,29 +1655,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Use the correct marketplace_orders table structure
   async createMarketplaceOrder(orderData: any): Promise<any> {
     try {
-      const [order] = await db
-        .insert(aiMarketplaceOrders)
-        .values({
-          agentId: orderData.agentId,
-          customerId: orderData.customerId,
-          serviceType: orderData.serviceType || 'general',
-          amount: orderData.amount.toString(),
-          agentCommission: orderData.agentPayout?.toString() || '0',
-          platformFee: orderData.platformFee?.toString() || '0',
-          status: orderData.status || 'pending',
-          paymentMethod: orderData.paymentMethod || 'stripe',
-          serviceDescription: orderData.serviceDescription || orderData.serviceTitle,
-          customerRequirements: orderData.customerRequirements,
-          estimatedDeliveryHours: orderData.estimatedDeliveryHours || 24
-        })
-        .returning();
-
-      return order;
+      const result = await db.execute(sql`
+        INSERT INTO marketplace_orders (
+          customer_name, customer_email, service_name, agent_name, 
+          total_amount, currency, payment_method, delivery_requirements
+        ) VALUES (
+          ${orderData.customerName || orderData.customerId}, 
+          ${orderData.customerEmail || `${orderData.customerId}@example.com`},
+          ${orderData.serviceName || 'AI Service'}, 
+          ${orderData.agentName || 'AI Agent'},
+          ${orderData.totalAmount || orderData.amount || 75}, 
+          ${orderData.currency || 'USD'},
+          ${orderData.paymentMethod || 'stripe'}, 
+          ${orderData.deliveryRequirements || ''}
+        ) RETURNING id, customer_name, service_name, total_amount, order_status
+      `);
+      
+      return result.rows[0];
     } catch (error) {
       console.error('Error creating marketplace order:', error);
-      throw error;
+      throw new Error('Failed to create marketplace order');
     }
   }
 

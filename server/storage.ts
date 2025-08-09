@@ -1171,23 +1171,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getMarketplaceServices(): Promise<any[]> {
-    const services = await db.select()
-      .from(agentServiceListings)
-      .where(eq(agentServiceListings.isActive, true));
-    
-    return services.map(service => ({
-      id: service.id.toString(),
-      name: service.serviceName,
-      description: service.description,
-      category: service.category,
-      pricing: parseFloat(service.basePrice),
-      deliveryTime: service.estimatedDeliveryTime,
-      tags: [], // Tags not stored in current schema
-      isActive: service.isActive,
-      createdAt: service.createdAt
-    }));
-  }
+
 
   async getUserServiceOrders(userId: string): Promise<any[]> {
     return await db.select()
@@ -1481,15 +1465,12 @@ export class DatabaseStorage implements IStorage {
       .limit(50);
   }
 
-  // PHASE 1: Real Marketplace Database Implementation  
+  // Real Marketplace Database Implementation  
   async getMarketplaceServices(filters: { category?: string; limit?: number; offset?: number } = {}): Promise<any[]> {
     try {
       const { category, limit = 20, offset = 0 } = filters;
       
-      // Debug: log the query attempt
-      console.log('🔍 Fetching marketplace services with filters:', { category, limit, offset });
-      
-      // Raw SQL query to bypass Drizzle column mapping issues temporarily
+      // Raw SQL query to bypass Drizzle column mapping issues
       const result = await db.execute(sql`
         SELECT id, service_name, description, pricing, estimated_delivery_time, 
                tags, agent_id, average_rating, order_count, is_active
@@ -1497,8 +1478,6 @@ export class DatabaseStorage implements IStorage {
         WHERE is_active = true 
         LIMIT ${limit} OFFSET ${offset}
       `);
-      
-      console.log('📊 Raw database result:', result.rows?.length || 0, 'services found');
       const services = result.rows;
 
       // Transform raw database results for frontend
@@ -1518,9 +1497,50 @@ export class DatabaseStorage implements IStorage {
       }));
     } catch (error) {
       console.error('Error fetching marketplace services:', error);
-      console.error('Full error details:', JSON.stringify(error, null, 2));
-      // Return empty array instead of fallback to prevent broken UI
       return [];
+    }
+  }
+
+  async getMarketplaceCategories(): Promise<any[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT id, name, description, icon, is_active
+        FROM ai_marketplace_categories 
+        WHERE is_active = true 
+        ORDER BY name
+      `);
+      
+      return result.rows.map((category: any) => ({
+        id: category.id,
+        name: category.name,
+        description: category.description || '',
+        icon: category.icon || '🤖',
+        isActive: category.is_active
+      }));
+    } catch (error) {
+      console.error('Error fetching marketplace categories:', error);
+      return [];
+    }
+  }
+
+  async createMarketplaceService(serviceData: any): Promise<any> {
+    try {
+      const result = await db.execute(sql`
+        INSERT INTO ai_marketplace_services (
+          agent_id, category_id, service_name, description, 
+          pricing, estimated_delivery_time, tags, is_active
+        ) VALUES (
+          ${serviceData.agentId}, ${serviceData.categoryId}, 
+          ${serviceData.serviceName}, ${serviceData.description},
+          ${JSON.stringify(serviceData.pricing)}, ${serviceData.estimatedDeliveryTime},
+          ${JSON.stringify(serviceData.tags)}, ${serviceData.isActive || false}
+        ) RETURNING id, service_name, pricing
+      `);
+      
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error creating marketplace service:', error);
+      throw new Error('Failed to create marketplace service');
     }
   }
 

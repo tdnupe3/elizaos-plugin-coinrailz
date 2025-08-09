@@ -1783,7 +1783,29 @@ router.get('/orders', isAuthenticated, async (req: any, res) => {
 });
 
 /**
- * CRITICAL MISSING ENDPOINT: Get Marketplace Services
+ * Get Marketplace Categories
+ */
+router.get('/categories', async (req, res) => {
+  try {
+    const categories = await storage.getMarketplaceCategories();
+    
+    res.json({
+      success: true,
+      categories,
+      total: categories.length
+    });
+  } catch (error) {
+    console.error('Categories fetch error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch categories',
+      categories: []
+    });
+  }
+});
+
+/**
+ * Get Marketplace Services
  */
 router.get('/services', async (req, res) => {
   try {

@@ -2,63 +2,66 @@ import { Router } from 'express';
 import { storage } from '../storage';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
+import { emailService } from '../services/emailService';
 
 const router = Router();
 
-// Email notification service (placeholder for now - would integrate with SendGrid)
+// Enhanced notification service with SendGrid integration
 class NotificationService {
   async sendOrderConfirmation(order: any, customer: any) {
-    // In production, this would use SendGrid or similar service
-    console.log(`📧 Order confirmation email sent to ${customer.email}`);
-    console.log(`Order #${order.id} - ${order.serviceName} - $${order.totalAmount}`);
+    console.log(`📧 Sending order confirmation to ${customer.email}`);
     
-    // Log notification to database
-    await this.logNotification({
-      type: 'order_confirmation',
-      recipient: customer.email,
-      orderId: order.id,
-      status: 'sent',
-      content: `Order #${order.id} confirmed - ${order.serviceName}`
-    });
+    const result = await emailService.sendOrderConfirmation(order, customer.email);
+    
+    if (result.success) {
+      console.log(`✅ Order confirmation sent successfully to ${customer.email}`);
+    } else {
+      console.error(`❌ Failed to send order confirmation: ${result.error}`);
+    }
+    
+    return result;
   }
 
   async sendPaymentConfirmation(order: any, customer: any) {
-    console.log(`📧 Payment confirmation email sent to ${customer.email}`);
-    console.log(`Payment received for Order #${order.id} - $${order.totalAmount}`);
+    console.log(`📧 Sending payment confirmation to ${customer.email}`);
     
-    await this.logNotification({
-      type: 'payment_confirmation',
-      recipient: customer.email,
-      orderId: order.id,
-      status: 'sent',
-      content: `Payment confirmed for Order #${order.id}`
-    });
+    const result = await emailService.sendPaymentConfirmation(order, customer.email);
+    
+    if (result.success) {
+      console.log(`✅ Payment confirmation sent successfully to ${customer.email}`);
+    } else {
+      console.error(`❌ Failed to send payment confirmation: ${result.error}`);
+    }
+    
+    return result;
   }
 
   async sendOrderStatusUpdate(order: any, customer: any, newStatus: string) {
-    console.log(`📧 Order status update sent to ${customer.email}`);
-    console.log(`Order #${order.id} status changed to: ${newStatus}`);
+    console.log(`📧 Sending order status update to ${customer.email}`);
     
-    await this.logNotification({
-      type: 'status_update',
-      recipient: customer.email,
-      orderId: order.id,
-      status: 'sent',
-      content: `Order #${order.id} status: ${newStatus}`
-    });
+    const result = await emailService.sendOrderStatusUpdate(order, customer.email, newStatus);
+    
+    if (result.success) {
+      console.log(`✅ Order status update sent successfully to ${customer.email}`);
+    } else {
+      console.error(`❌ Failed to send order status update: ${result.error}`);
+    }
+    
+    return result;
   }
 
   async sendAgentNotification(agent: any, order: any, type: string) {
-    console.log(`📧 Agent notification sent to ${agent.email}`);
-    console.log(`${type}: Order #${order.id} - $${order.totalAmount}`);
+    console.log(`📧 Sending agent notification to ${agent.email}`);
     
-    await this.logNotification({
-      type: `agent_${type}`,
-      recipient: agent.email,
-      orderId: order.id,
-      status: 'sent',
-      content: `${type}: Order #${order.id}`
-    });
+    const result = await emailService.sendAgentNotification(agent, order, type as any);
+    
+    if (result.success) {
+      console.log(`✅ Agent notification sent successfully to ${agent.email}`);
+    } else {
+      console.error(`❌ Failed to send agent notification: ${result.error}`);
+    }
+    
+    return result;
   }
 
   private async logNotification(notification: any) {

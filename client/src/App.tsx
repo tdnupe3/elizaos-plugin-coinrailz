@@ -103,6 +103,7 @@ const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
 const AIAgents = lazy(() => import("@/pages/ai-agents"));
 
 const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
+const AgentDashboard = lazy(() => import("@/pages/agent-dashboard"));
 
 const MarketplaceDashboard = lazy(() => import("@/pages/marketplace-dashboard"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));

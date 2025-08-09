@@ -1,196 +1,148 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
+import { useState } from 'react';
+import { Link, useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Badge } from '@/components/ui/badge';
 import { 
   Menu, 
   Home, 
+  CreditCard, 
   Send, 
-  TrendingUp, 
-  ArrowLeftRight, 
+  Wallet, 
   BarChart3, 
-  Users, 
-  Settings, 
-  Shield,
-  LogOut,
-  X,
-  Smartphone
-} from "@/lib/minimal-icons";
-import { useLocation } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
-import { useIsMobile } from "@/hooks/use-mobile";
+  Settings,
+  ShoppingBag,
+  Users,
+  Bot,
+  X
+} from 'lucide-react';
 
 interface NavigationItem {
-  id: string;
-  title: string;
-  icon: React.ComponentType<{ className?: string }>;
-  route: string;
+  label: string;
+  href: string;
+  icon: React.ComponentType<any>;
   badge?: string;
+  category: 'main' | 'marketplace' | 'crypto' | 'admin';
 }
 
-export default function MobileNavigation() {
+const navigationItems: NavigationItem[] = [
+  // Main Platform
+  { label: 'Dashboard', href: '/dashboard', icon: Home, category: 'main' },
+  { label: 'Send Money', href: '/send-money', icon: Send, category: 'main' },
+  { label: 'Wallet', href: '/wallet-management', icon: Wallet, category: 'main' },
+  { label: 'Portfolio', href: '/portfolio-analytics', icon: BarChart3, category: 'main' },
+  
+  // AI Marketplace
+  { label: 'AI Marketplace', href: '/ai-marketplace', icon: ShoppingBag, category: 'marketplace' },
+  { label: 'Agent Dashboard', href: '/agent-dashboard', icon: Bot, category: 'marketplace' },
+  { label: 'Marketplace Analytics', href: '/marketplace-dashboard', icon: BarChart3, category: 'marketplace' },
+  
+  // Crypto Services
+  { label: 'Buy/Sell Crypto', href: '/buy-sell', icon: CreditCard, category: 'crypto' },
+  { label: 'Crypto Swap', href: '/swap', icon: CreditCard, category: 'crypto' },
+  { label: 'XRP Ecosystem', href: '/xrp-ecosystem', icon: Wallet, category: 'crypto' },
+  { label: 'USDC Services', href: '/usdc-ecosystem', icon: CreditCard, category: 'crypto' },
+  
+  // Admin/Settings
+  { label: 'Referrals', href: '/referrals', icon: Users, category: 'admin' },
+  { label: 'Settings', href: '/settings', icon: Settings, category: 'admin' },
+];
+
+export function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
-  const [, setLocation] = useLocation();
-  const { user } = useAuth();
-  const isMobile = useIsMobile();
+  const [location] = useLocation();
 
-  // Haptic feedback for mobile interactions
-  const triggerHaptic = () => {
-    if ('vibrate' in navigator && isMobile) {
-      navigator.vibrate(10); // Short vibration
-    }
-  };
+  const categorizedItems = navigationItems.reduce((acc, item) => {
+    if (!acc[item.category]) acc[item.category] = [];
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, NavigationItem[]>);
 
-  const navigationItems: NavigationItem[] = [
-    {
-      id: 'dashboard',
-      title: 'Dashboard',
-      icon: Home,
-      route: '/',
-    },
-    {
-      id: 'send',
-      title: 'Send Money',
-      icon: Send,
-      route: '/send',
-    },
-    {
-      id: 'buy-sell',
-      title: 'Buy/Sell',
-      icon: TrendingUp,
-      route: '/buy',
-    },
-    {
-      id: 'swap',
-      title: 'Swap',
-      icon: ArrowLeftRight,
-      route: '/swap',
-    },
-    {
-      id: 'analytics',
-      title: 'Portfolio Analytics',
-      icon: BarChart3,
-      route: '/portfolio-analytics',
-    },
-    {
-      id: 'referrals',
-      title: 'Referrals',
-      icon: Users,
-      route: '/referrals',
-      badge: 'Commission',
-    },
-  ];
-
-  const handleNavigation = (route: string) => {
-    triggerHaptic();
-    setLocation(route);
-    setIsOpen(false);
+  const categoryLabels = {
+    main: 'Platform',
+    marketplace: 'AI Marketplace',
+    crypto: 'Crypto Services',
+    admin: 'Account'
   };
 
   return (
-    <div className="lg:hidden">
+    <div className="md:hidden">
       <Sheet open={isOpen} onOpenChange={setIsOpen}>
         <SheetTrigger asChild>
-          <Button variant="outline" size="sm" className="relative">
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Open navigation menu</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed top-4 left-4 z-50 bg-white shadow-lg border"
+          >
+            <Menu className="h-6 w-6" />
           </Button>
         </SheetTrigger>
         
-        <SheetContent side="left" className="w-80 p-0 touch-pan-y">
-          <div className="flex flex-col h-full overscroll-contain">
+        <SheetContent side="left" className="w-80 p-0">
+          <div className="flex flex-col h-full">
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">CR</span>
-                </div>
-                <div>
-                  <h2 className="font-semibold text-gray-900">Coin Railz</h2>
-                  <p className="text-xs text-gray-500">
-                    {user ? 'Authenticated User' : 'Guest User'}
-                  </p>
-                </div>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <h2 className="text-xl font-bold text-blue-600">Coin Railz</h2>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setIsOpen(false)}
-                className="h-8 w-8 p-0"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </Button>
             </div>
 
-            {/* Navigation Items */}
+            {/* Navigation */}
             <div className="flex-1 overflow-auto py-4">
-              <nav className="space-y-2 px-4">
-                {navigationItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavigation(item.route)}
-                    className="w-full flex items-center space-x-3 px-4 py-4 text-left rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-all duration-150 group touch-manipulation min-h-[48px]"
-                  >
-                    <item.icon className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
-                    <span className="flex-1 text-gray-700 group-hover:text-gray-900 font-medium">
-                      {item.title}
-                    </span>
-                    {item.badge && (
-                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </button>
-                ))}
-              </nav>
-
-              {/* Divider */}
-              <div className="my-4 mx-4 border-t border-gray-200" />
-
-              {/* Settings & Security */}
-              <nav className="space-y-2 px-4">
-                <button
-                  onClick={() => handleNavigation('/security')}
-                  className="w-full flex items-center space-x-3 px-3 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors group"
-                >
-                  <Shield className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
-                  <span className="flex-1 text-gray-700 group-hover:text-gray-900 font-medium">
-                    Security
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => handleNavigation('/settings')}
-                  className="w-full flex items-center space-x-3 px-3 py-3 text-left rounded-lg hover:bg-gray-100 transition-colors group"
-                >
-                  <Settings className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
-                  <span className="flex-1 text-gray-700 group-hover:text-gray-900 font-medium">
-                    Settings
-                  </span>
-                </button>
-
-                <button
-                  onClick={() => window.location.href = "/api/logout"}
-                  className="w-full flex items-center space-x-3 px-3 py-3 text-left rounded-lg hover:bg-red-50 transition-colors group border-t border-gray-200 mt-2 pt-4"
-                >
-                  <LogOut className="h-5 w-5 text-red-600" />
-                  <span className="flex-1 text-red-600 font-medium">
-                    Sign Out
-                  </span>
-                </button>
-              </nav>
+              {Object.entries(categorizedItems).map(([category, items]) => (
+                <div key={category} className="mb-6">
+                  <h3 className="px-6 mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                    {categoryLabels[category as keyof typeof categoryLabels]}
+                  </h3>
+                  
+                  <nav className="space-y-1 px-3">
+                    {items.map((item) => {
+                      const isActive = location === item.href;
+                      const Icon = item.icon;
+                      
+                      return (
+                        <Link key={item.href} href={item.href}>
+                          <Button
+                            variant={isActive ? "default" : "ghost"}
+                            className={`w-full justify-start gap-3 h-12 ${
+                              isActive 
+                                ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                                : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <Icon className="h-5 w-5" />
+                            <span className="text-sm font-medium">{item.label}</span>
+                            {item.badge && (
+                              <Badge variant="secondary" className="ml-auto">
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </Button>
+                        </Link>
+                      );
+                    })}
+                  </nav>
+                </div>
+              ))}
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4">
-              <Button
-                variant="outline"
-                className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
-                onClick={() => window.location.href = "/api/logout"}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
+            <div className="border-t p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-semibold">CR</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Coin Railz Platform</p>
+                  <p className="text-xs text-gray-500">AI-Powered Fintech</p>
+                </div>
+              </div>
             </div>
           </div>
         </SheetContent>
@@ -198,3 +150,5 @@ export default function MobileNavigation() {
     </div>
   );
 }
+
+export default MobileNavigation;

@@ -3,6 +3,7 @@ import { storage } from '../storage';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { isAuthenticated } from '../replitAuth';
+import { emailService } from '../services/emailService';
 
 const router = Router();
 
@@ -73,6 +74,9 @@ router.post('/agent/register', async (req, res) => {
         ${agentData.completedJobs}, ${agentData.rating}, ${agentData.reviewCount}
       )
     `);
+
+    // Send welcome email to new agent
+    await emailService.sendAgentWelcomeEmail(agentData);
 
     res.json({
       success: true,

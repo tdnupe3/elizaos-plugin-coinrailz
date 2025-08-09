@@ -141,95 +141,30 @@ const upload = multer({
 const router = Router();
 
 /**
- * CRITICAL ENDPOINT: Agent Search
+ * PHASE 1: Real Database Agent Search
  */
 router.get('/agents/search', async (req, res) => {
   try {
     const { category, skills, minRating, maxPrice, limit = 10, offset = 0 } = req.query;
     
-    // Mock agent data for search results
-    const allAgents = [
-      {
-        id: 'agent_001',
-        name: 'Sarah AI Analytics',
-        category: 'analytics',
-        description: 'Professional financial analysis and data insights AI agent',
-        skills: ['financial-analysis', 'data-visualization', 'risk-assessment'],
-        rating: 4.8,
-        totalReviews: 125,
-        pricing: { hourly: 75, project: 250 },
-        availability: 'available',
-        verified: true,
-        responseTime: '< 1 hour',
-        completionRate: 98.5
-      },
-      {
-        id: 'agent_002', 
-        name: 'Marcus Trading Bot',
-        category: 'trading',
-        description: 'Advanced crypto trading and portfolio management AI',
-        skills: ['algorithmic-trading', 'portfolio-optimization', 'market-analysis'],
-        rating: 4.9,
-        totalReviews: 89,
-        pricing: { hourly: 100, project: 500 },
-        availability: 'available',
-        verified: true,
-        responseTime: '< 30 minutes',
-        completionRate: 99.2
-      },
-      {
-        id: 'agent_003',
-        name: 'Lisa Content Creator',
-        category: 'content',
-        description: 'Professional content writing and marketing copy AI',
-        skills: ['copywriting', 'seo-optimization', 'content-strategy'],
-        rating: 4.7,
-        totalReviews: 203,
-        pricing: { hourly: 45, project: 150 },
-        availability: 'busy',
-        verified: true,
-        responseTime: '< 2 hours',
-        completionRate: 97.8
-      }
-    ];
-
-    // Filter agents based on search criteria
-    let filteredAgents = allAgents;
-    
-    if (category) {
-      filteredAgents = filteredAgents.filter(agent => 
-        agent.category.toLowerCase().includes(category.toString().toLowerCase())
-      );
-    }
-    
-    if (skills) {
-      const searchSkills = skills.toString().toLowerCase();
-      filteredAgents = filteredAgents.filter(agent =>
-        agent.skills.some(skill => skill.toLowerCase().includes(searchSkills))
-      );
-    }
-    
-    if (minRating) {
-      filteredAgents = filteredAgents.filter(agent => agent.rating >= parseFloat(minRating.toString()));
-    }
-    
-    if (maxPrice) {
-      filteredAgents = filteredAgents.filter(agent => agent.pricing.hourly <= parseFloat(maxPrice.toString()));
-    }
-
-    // Apply pagination
-    const limitNum = parseInt(limit.toString());
-    const offsetNum = parseInt(offset.toString());
-    const paginatedAgents = filteredAgents.slice(offsetNum, offsetNum + limitNum);
+    // Get real agents from database
+    const agents = await storage.getMarketplaceAgents({
+      category: category?.toString(),
+      skills: skills?.toString(),
+      minRating: minRating ? parseFloat(minRating.toString()) : undefined,
+      maxPrice: maxPrice ? parseFloat(maxPrice.toString()) : undefined,
+      limit: parseInt(limit.toString()),
+      offset: parseInt(offset.toString())
+    });
 
     res.json({
       success: true,
-      agents: paginatedAgents,
+      agents,
       pagination: {
-        total: filteredAgents.length,
-        limit: limitNum,
-        offset: offsetNum,
-        hasMore: offsetNum + limitNum < filteredAgents.length
+        total: agents.length,
+        limit: parseInt(limit.toString()),
+        offset: parseInt(offset.toString()),
+        hasMore: agents.length === parseInt(limit.toString())
       },
       filters: { category, skills, minRating, maxPrice }
     });
@@ -241,11 +176,11 @@ router.get('/agents/search', async (req, res) => {
 });
 
 /**
- * CRITICAL ENDPOINT: Agent Registration
+ * PHASE 1: Real Database Agent Registration
  */
 router.post('/agents/register', async (req, res) => {
   try {
-    const { name, category, skills, hourlyRate, description, portfolio } = req.body;
+    const { name, category, skills, hourlyRate, description, portfolio, email } = req.body;
     
     if (!name || !category || !skills || !hourlyRate || !description) {
       return res.status(400).json({
@@ -262,28 +197,18 @@ router.post('/agents/register', async (req, res) => {
       });
     }
 
-    const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const newAgent = {
-      id: agentId,
+    // Create agent in database
+    const agentData = {
       name: sanitizeAndValidateInput(name),
+      email: email || `${name.toLowerCase().replace(/\s+/g, '')}@agent.local`,
       category: sanitizeAndValidateInput(category),
-      description: sanitizeAndValidateInput(description),
       skills: Array.isArray(skills) ? skills.map(sanitizeAndValidateInput) : [sanitizeAndValidateInput(skills)],
-      pricing: {
-        hourly: parseFloat(hourlyRate),
-        project: parseFloat(hourlyRate) * 5 // Default project rate
-      },
-      rating: 0,
-      totalReviews: 0,
-      availability: 'available',
-      verified: false,
-      responseTime: 'TBD',
-      completionRate: 0,
-      portfolio: portfolio || null,
-      createdAt: new Date().toISOString(),
-      status: 'pending_approval'
+      description: sanitizeAndValidateInput(description),
+      hourlyRate: parseFloat(hourlyRate),
+      portfolio: portfolio || null
     };
+    
+    const newAgent = await storage.createMarketplaceAgent(agentData);
 
     res.status(201).json({
       success: true,
@@ -1864,104 +1789,36 @@ router.get('/services', async (req, res) => {
   try {
     const { category, minPrice, maxPrice, limit = 20, offset = 0 } = req.query;
 
-    // Get services from storage (both database and demo services)
-    const [storageServices, demoServices] = await Promise.all([
-      storage.getMarketplaceServices().catch(() => []),
-      Promise.resolve([
-        {
-          id: 'service_001',
-          name: 'AI Content Generation',
-          description: 'Professional AI-powered content creation including articles, blog posts, and marketing copy',
-          category: 'content-creation',
-          pricing: 75,
-          deliveryTime: '24-48 hours',
-          tags: ['content', 'ai-writing', 'marketing', 'seo'],
-          agentId: 'agent_PB1oVjUTh22h',
-          agentName: 'Alex Data Scientist',
-          rating: 4.9,
-          completedOrders: 156,
-          isActive: true
-        },
-        {
-          id: 'service_002', 
-          name: 'Trading Bot Development',
-          description: 'Custom cryptocurrency trading bot development with advanced algorithms and risk management',
-          category: 'automation',
-          pricing: 250,
-          deliveryTime: '3-5 days',
-          tags: ['trading', 'cryptocurrency', 'automation', 'algorithms'],
-          agentId: 'agent__Yp3-vi7jo_7',
-          agentName: 'Sarah Automation Expert',
-          rating: 4.8,
-          completedOrders: 89,
-          isActive: true
-        },
-        {
-          id: 'service_003',
-          name: 'Data Analysis & Visualization',
-          description: 'Comprehensive data analysis with interactive visualizations and actionable insights',
-          category: 'data-analysis',
-          pricing: 150,
-          deliveryTime: '2-4 days',
-          tags: ['data-science', 'visualization', 'analytics', 'insights'],
-          agentId: 'agent_tmeXFynrI6cR',
-          agentName: 'Lisa Content Creator',
-          rating: 4.7,
-          completedOrders: 203,
-          isActive: true
-        },
-        {
-          id: 'service_004',
-          name: 'API Integration Service',
-          description: 'Professional API integration and development for web and mobile applications',
-          category: 'development',
-          pricing: 200,
-          deliveryTime: '3-7 days',
-          tags: ['api', 'integration', 'development', 'backend'],
-          agentId: 'agent_PB1oVjUTh22h',
-          agentName: 'Alex Data Scientist',
-          rating: 4.9,
-          completedOrders: 124,
-          isActive: true
-        }
-      ])
-    ]);
+    // PHASE 1: Get real services from database
+    const allServices = await storage.getMarketplaceServices({
+      category: category?.toString(),
+      limit: parseInt(limit.toString()),
+      offset: parseInt(offset.toString())
+    });
 
-    // Combine all services
-    let allServices = [...storageServices, ...demoServices];
-
-    // Apply filters
-    if (category) {
-      allServices = allServices.filter(service => 
-        service.category?.toLowerCase().includes(category.toString().toLowerCase())
-      );
-    }
-
+    // Additional client-side filtering for minPrice/maxPrice if needed
+    let filteredServices = allServices;
+    
     if (minPrice) {
-      allServices = allServices.filter(service => 
-        service.pricing >= parseFloat(minPrice.toString())
+      filteredServices = filteredServices.filter(service => 
+        (typeof service.pricing === 'number' ? service.pricing : 75) >= parseFloat(minPrice.toString())
       );
     }
 
     if (maxPrice) {
-      allServices = allServices.filter(service => 
-        service.pricing <= parseFloat(maxPrice.toString())
+      filteredServices = filteredServices.filter(service => 
+        (typeof service.pricing === 'number' ? service.pricing : 75) <= parseFloat(maxPrice.toString())
       );
     }
 
-    // Apply pagination
-    const limitNum = parseInt(limit.toString());
-    const offsetNum = parseInt(offset.toString());
-    const paginatedServices = allServices.slice(offsetNum, offsetNum + limitNum);
-
     res.json({
       success: true,
-      services: paginatedServices,
-      total: allServices.length,
+      services: filteredServices,
+      total: filteredServices.length,
       pagination: {
-        limit: limitNum,
-        offset: offsetNum,
-        hasMore: offsetNum + limitNum < allServices.length
+        limit: parseInt(limit.toString()),
+        offset: parseInt(offset.toString()),
+        hasMore: filteredServices.length === parseInt(limit.toString())
       },
       filters: { category, minPrice, maxPrice }
     });

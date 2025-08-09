@@ -16,6 +16,9 @@ import {
   agentTransactions,
   chatRooms,
   chatMessages,
+  aiMarketplaceServices,
+  aiMarketplaceCategories, 
+  aiMarketplaceOrders,
   type User,
   type UpsertUser,
   type Transaction,
@@ -58,6 +61,14 @@ export interface IStorage {
   getChatRooms(userId: string): Promise<any[]>;
   createMessage(data: any): Promise<any>;
   getMessages(chatId: string): Promise<any[]>;
+  
+  // PHASE 1: Real Marketplace Database Methods
+  getMarketplaceServices(filters?: { category?: string; limit?: number; offset?: number }): Promise<any[]>;
+  createMarketplaceAgent(agent: any): Promise<any>;
+  getMarketplaceAgents(filters?: any): Promise<any[]>;
+  createMarketplaceOrder(order: any): Promise<any>;
+  getMarketplaceOrder(orderId: string): Promise<any>;
+  updateMarketplaceOrder(orderId: string, updates: any): Promise<any>;
   // User operations
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
@@ -73,6 +84,8 @@ export interface IStorage {
   getWalletBalance(userId: string, currency: string): Promise<WalletBalance | undefined>;
   createWalletBalance(wallet: InsertWalletBalance): Promise<WalletBalance>;
   updateWalletBalance(userId: string, currency: string, amount: string, operation: 'add' | 'subtract'): Promise<WalletBalance>;
+  
+  // PHASE 1: Real Marketplace Database Implementation
   updateUserBalance(userId: string, amount: number, currency: string): Promise<WalletBalance>;
   freezeWalletFunds(userId: string, currency: string, amount: string): Promise<void>;
   unfreezeWalletFunds(userId: string, currency: string, amount: string): Promise<void>;
@@ -1466,6 +1479,149 @@ export class DatabaseStorage implements IStorage {
       .where(eq(chatMessages.chatId, chatId))
       .orderBy(desc(chatMessages.timestamp))
       .limit(50);
+  }
+
+  // PHASE 1: Real Marketplace Database Implementation  
+  async getMarketplaceServices(filters: { category?: string; limit?: number; offset?: number } = {}): Promise<any[]> {
+    try {
+      const { category, limit = 20, offset = 0 } = filters;
+      
+      // Debug: log the query attempt
+      console.log('🔍 Fetching marketplace services with filters:', { category, limit, offset });
+      
+      // Raw SQL query to bypass Drizzle column mapping issues temporarily
+      const result = await db.execute(sql`
+        SELECT id, service_name, description, pricing, estimated_delivery_time, 
+               tags, agent_id, average_rating, order_count, is_active
+        FROM ai_marketplace_services 
+        WHERE is_active = true 
+        LIMIT ${limit} OFFSET ${offset}
+      `);
+      
+      console.log('📊 Raw database result:', result.rows?.length || 0, 'services found');
+      const services = result.rows;
+
+      // Transform raw database results for frontend
+      return services.map((service: any) => ({
+        id: service.id,
+        name: service.service_name,
+        description: service.description,
+        category: 'general', // Will add JOIN later
+        pricing: typeof service.pricing === 'object' ? service.pricing.base || 75 : 75,
+        deliveryTime: `${service.estimated_delivery_time || 24} hours`,
+        tags: Array.isArray(service.tags) ? service.tags : ['ai-service'],
+        agentId: service.agent_id,
+        agentName: 'AI Agent', // Will add JOIN later
+        rating: parseFloat(service.average_rating?.toString() || '4.5'),
+        completedOrders: service.order_count || 0,
+        isActive: service.is_active
+      }));
+    } catch (error) {
+      console.error('Error fetching marketplace services:', error);
+      console.error('Full error details:', JSON.stringify(error, null, 2));
+      // Return empty array instead of fallback to prevent broken UI
+      return [];
+    }
+  }
+
+  async createMarketplaceAgent(agentData: any): Promise<any> {
+    try {
+      const [agent] = await db
+        .insert(globalAIAgents)
+        .values({
+          name: agentData.name,
+          email: agentData.email,
+          category: agentData.category,
+          skills: agentData.skills,
+          description: agentData.description,
+          pricing: agentData.hourlyRate ? { hourly: agentData.hourlyRate } : null,
+          verified: false,
+          apiEndpoint: agentData.apiEndpoint || null,
+          walletAddress: agentData.walletAddress || null,
+          isActive: false, // Requires approval
+          registrationStatus: 'pending'
+        })
+        .returning();
+
+      return agent;
+    } catch (error) {
+      console.error('Error creating marketplace agent:', error);
+      throw error;
+    }
+  }
+
+  async getMarketplaceAgents(filters: any = {}): Promise<any[]> {
+    try {
+      const agents = await db
+        .select()
+        .from(globalAIAgents)
+        .where(eq(globalAIAgents.isActive, true))
+        .limit(filters.limit || 50);
+
+      return agents;
+    } catch (error) {
+      console.error('Error fetching marketplace agents:', error);
+      return [];
+    }
+  }
+
+  async createMarketplaceOrder(orderData: any): Promise<any> {
+    try {
+      const [order] = await db
+        .insert(aiMarketplaceOrders)
+        .values({
+          agentId: orderData.agentId,
+          customerId: orderData.customerId,
+          serviceType: orderData.serviceType || 'general',
+          amount: orderData.amount.toString(),
+          agentCommission: orderData.agentPayout?.toString() || '0',
+          platformFee: orderData.platformFee?.toString() || '0',
+          status: orderData.status || 'pending',
+          paymentMethod: orderData.paymentMethod || 'stripe',
+          serviceDescription: orderData.serviceDescription || orderData.serviceTitle,
+          customerRequirements: orderData.customerRequirements,
+          estimatedDeliveryHours: orderData.estimatedDeliveryHours || 24
+        })
+        .returning();
+
+      return order;
+    } catch (error) {
+      console.error('Error creating marketplace order:', error);
+      throw error;
+    }
+  }
+
+  async getMarketplaceOrder(orderId: string): Promise<any> {
+    try {
+      const [order] = await db
+        .select()
+        .from(aiMarketplaceOrders)
+        .where(eq(aiMarketplaceOrders.id, orderId))
+        .limit(1);
+
+      return order;
+    } catch (error) {
+      console.error('Error fetching marketplace order:', error);
+      return null;
+    }
+  }
+
+  async updateMarketplaceOrder(orderId: string, updates: any): Promise<any> {
+    try {
+      const [order] = await db
+        .update(aiMarketplaceOrders)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
+        .where(eq(aiMarketplaceOrders.id, orderId))
+        .returning();
+
+      return order;
+    } catch (error) {
+      console.error('Error updating marketplace order:', error);
+      throw error;
+    }
   }
 }
 

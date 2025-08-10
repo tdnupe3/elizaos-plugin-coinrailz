@@ -134,7 +134,7 @@ export class XRPLedgerService {
       });
 
       const balanceDrops = response.result.account_data.Balance;
-      const balanceXRP = parseFloat(dropsToXrp(balanceDrops));
+      const balanceXRP = parseFloat(dropsToXrp(balanceDrops.toString()));
       
       // Cache for 30 seconds
       cacheService.set(cacheKey, balanceXRP, 30000);
@@ -192,7 +192,7 @@ export class XRPLedgerService {
         hash: response.result.hash,
         account: payment.Account,
         destination: payment.Destination,
-        amount: dropsToXrp(payment.Amount.toString()),
+        amount: dropsToXrp(payment.Amount),
         fee: dropsToXrp(((response.result as any).Fee || '12').toString()),
         sequence: (response.result as any).Sequence || 0,
         memo,
@@ -307,7 +307,7 @@ export class XRPLedgerService {
     try {
       const wallet = Wallet.fromSeed(senderSeed);
       
-      const channelCreate = {
+      const channelCreate: any = {
         TransactionType: 'PaymentChannelCreate',
         Account: wallet.address,
         Destination: destinationAddress,
@@ -408,8 +408,8 @@ export class XRPLedgerService {
         hash: tx.tx.hash,
         account: tx.tx.Account,
         destination: tx.tx.Destination,
-        amount: tx.tx.Amount ? dropsToXrp(tx.tx.Amount) : '0',
-        fee: dropsToXrp(tx.tx.Fee),
+        amount: tx.tx.Amount ? (typeof tx.tx.Amount === 'string' ? dropsToXrp(tx.tx.Amount) : tx.tx.Amount.toString()) : '0',
+        fee: dropsToXrp(tx.tx.Fee?.toString() || '12'),
         sequence: tx.tx.Sequence,
         memo: tx.tx.Memos?.[0]?.Memo?.MemoData ? 
           Buffer.from(tx.tx.Memos[0].Memo.MemoData, 'hex').toString('utf8') : undefined,
@@ -433,8 +433,8 @@ export class XRPLedgerService {
         command: 'server_info'
       });
 
-      const feeDrops = response.result.info.validated_ledger.base_fee_xrp || '0.00001';
-      return parseFloat(feeDrops);
+      const feeDrops = response.result.info.validated_ledger?.base_fee_xrp || '0.00001';
+      return parseFloat(feeDrops.toString());
     } catch (error) {
       console.error('Error calculating XRP fee:', error);
       return 0.00001; // Default minimal fee

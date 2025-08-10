@@ -246,15 +246,22 @@ export class DexAggregatorService {
         parseFloat(current.outputAmount) > parseFloat(best.outputAmount) ? current : best
       );
       
-      // Calculate platform fee
+      // Calculate platform fee (0.75% of input amount in USD terms)
       const bestOutputAmount = parseFloat(bestQuote.outputAmount);
-      const platformFee = bestOutputAmount * this.PLATFORM_FEE_RATE;
-      const finalOutputAmount = bestOutputAmount - platformFee;
+      const inputAmountNum = parseFloat(amount);
       
-      // Get USD value for fee
+      // Get USD value for input amount to calculate percentage-based fee
       const { realTimePriceService } = await import('./realTimePriceService');
+      const fromTokenUSDPrice = await realTimePriceService.getTokenPrice(fromToken);
+      const inputValueUSD = inputAmountNum * fromTokenUSDPrice;
+      
+      // Calculate 0.75% fee on input value in USD
+      const platformFeeUSD = (inputValueUSD * this.PLATFORM_FEE_RATE).toFixed(2);
+      
+      // Convert USD fee back to output token terms for deduction
       const toTokenUSDPrice = await realTimePriceService.getTokenPrice(toToken);
-      const platformFeeUSD = (platformFee * toTokenUSDPrice).toFixed(2);
+      const platformFee = parseFloat(platformFeeUSD) / toTokenUSDPrice;
+      const finalOutputAmount = bestOutputAmount - platformFee;
       
       // Calculate exchange rate
       const exchangeRate = bestOutputAmount / parseFloat(amount);

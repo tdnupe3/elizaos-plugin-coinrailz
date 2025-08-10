@@ -2140,15 +2140,15 @@ export function setupSimpleRoutes(app: Express) {
         });
       }
 
-      // Calculate 0.25% platform fee on input amount
-      const platformFee = (inputAmountNum * 0.0025).toString();
-      const platformFeeUSD = (outputAmountNum * 0.0025).toString();
+      // Calculate 0.75% platform fee on input amount
+      const platformFee = (inputAmountNum * 0.0075).toString();
+      const platformFeeUSD = (outputAmountNum * 0.0075).toString();
       
       res.json({
         success: true,
         platformFee,
         platformFeeUSD,
-        feePercentage: 0.25,
+        feePercentage: 0.75,
         inputAmount: inputAmount.toString(),
         outputAmount: outputAmount.toString()
       });

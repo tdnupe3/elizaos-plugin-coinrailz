@@ -47,13 +47,17 @@ export class CoinbaseCDPService {
 
   private async initialize() {
     try {
-      if (!process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY) {
-        throw new Error('CDP credentials not configured');
+      // According to the official Coinbase documentation:
+      // Coinbase.configure({ apiKeyName: apiKeyName, privateKey: privateKey });
+      
+      if (!process.env.CDP_API_KEY_NAME || !process.env.CDP_PRIVATE_KEY) {
+        console.warn('⚠️ CDP credentials not configured - service will be limited');
+        return;
       }
 
-      // Initialize Coinbase SDK with proper configuration
-      this.coinbase = new Coinbase({
-        apiKeyName: process.env.CDP_API_KEY_ID!,
+      // Use the official Coinbase SDK configuration method
+      Coinbase.configure({ 
+        apiKeyName: process.env.CDP_API_KEY_NAME!,
         privateKey: process.env.CDP_PRIVATE_KEY!
       });
 
@@ -61,7 +65,7 @@ export class CoinbaseCDPService {
       console.log('✅ Coinbase CDP service initialized successfully');
     } catch (error) {
       console.error('❌ Failed to initialize Coinbase CDP service:', error);
-      throw error;
+      // Don't throw error - let the service continue without CDP functionality
     }
   }
 
@@ -74,12 +78,13 @@ export class CoinbaseCDPService {
   /**
    * Create a new wallet for a user
    */
-  async createWallet(userId: string, network: string = 'base-mainnet'): Promise<CDPWallet> {
+  async createWallet(userId: string, network: string = 'base-sepolia'): Promise<CDPWallet> {
     this.ensureInitialized();
 
     try {
-      const wallet = await this.coinbase.createWallet({
-        networkId: network
+      // Follow the official documentation pattern: const wallet = await Wallet.create();
+      const wallet = await Wallet.create({ 
+        networkId: network === 'base-mainnet' ? Coinbase.networks.BaseMainnet : Coinbase.networks.BaseSepolia 
       });
 
       const address = await wallet.getDefaultAddress();
@@ -109,7 +114,8 @@ export class CoinbaseCDPService {
     this.ensureInitialized();
 
     try {
-      const wallet = await this.coinbase.getWallet(walletId);
+      // Follow the official documentation: const resp = await Wallet.listWallets();
+      const wallet = await Wallet.fetch(walletId);
       const balances = await wallet.listBalances();
       
       const balanceMap: { [currency: string]: number } = {};

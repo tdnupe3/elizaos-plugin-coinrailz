@@ -48,7 +48,7 @@ export const USDCConversion = lazy(() => import('@/pages/usdc-conversion'));
 export const BankConnectivity = lazy(() => import('@/pages/bank-connectivity'));
 
 // XRP Ecosystem Components
-export const XRPEcosystemDashboard = lazy(() => import('@/pages/xrp-ecosystem-dashboard'));
+export const XRPEcosystemDashboard = lazy(() => import('@/pages/XrpEcosystemDashboard'));
 export const XRPCrossBorderPayments = lazy(() => import('@/pages/xrp-cross-border-payments'));
 export const XRPInstantSettlements = lazy(() => import('@/pages/xrp-instant-settlements'));
 export const XRPEscrowServices = lazy(() => import('@/pages/xrp-escrow-services'));

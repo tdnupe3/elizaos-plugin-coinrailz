@@ -207,6 +207,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // === XRP ECOSYSTEM ROUTES ===
+  // Complete XRP Ledger ecosystem with authentication
+  const xrpEcosystemRoutes = await import('./routes/xrpEcosystemRoutes');
+  app.use('/api/xrp', xrpEcosystemRoutes.default);
+  console.log('✅ XRP routes registered successfully');
+
   // === CIRCLE KYC/AML ROUTES ===
   // Circle KYC/AML compliance and identity verification
   // Inline KYC routes for immediate functionality

@@ -1317,3 +1317,194 @@ export type InsertCustomerNotification = typeof customerNotifications.$inferInse
 
 // Export messaging schema for marketplace integration
 export * from "./messagingSchema";
+
+// =====================================
+// XRP LEDGER ECOSYSTEM TABLES
+// =====================================
+
+// XRP Wallets Management
+export const xrpWallets = pgTable("xrp_wallets", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  address: varchar("address").unique().notNull(),
+  seedEncrypted: text("seed_encrypted").notNull(),
+  publicKey: varchar("public_key"),
+  balance: decimal("balance", { precision: 20, scale: 8 }).default("0"),
+  status: varchar("status").default("active"), // active, inactive, suspended
+  network: varchar("network").default("mainnet"), // mainnet, testnet, devnet
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIndex: index("xrp_wallets_user_idx").on(table.userId),
+  addressIndex: index("xrp_wallets_address_idx").on(table.address),
+  statusIndex: index("xrp_wallets_status_idx").on(table.status),
+}));
+
+// XRP Transactions - Enhanced version
+export const xrpTransactions = pgTable("xrp_transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  walletId: integer("wallet_id").references(() => xrpWallets.id),
+  transactionHash: varchar("transaction_hash").unique(),
+  transactionType: varchar("transaction_type").notNull(), // send, receive, trade, buy, sell, liquidity_add, liquidity_remove
+  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
+  fee: decimal("fee", { precision: 20, scale: 8 }).default("0"),
+  fromAddress: varchar("from_address"),
+  toAddress: varchar("to_address").notNull(),
+  currency: varchar("currency").default("XRP"),
+  status: varchar("status").default("pending"), // pending, confirmed, failed, cancelled
+  ledgerIndex: integer("ledger_index"),
+  confirmationCount: integer("confirmation_count").default(0),
+  memo: text("memo"),
+  destinationTag: integer("destination_tag"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  confirmedAt: timestamp("confirmed_at"),
+}, (table) => ({
+  userIdIndex: index("xrp_tx_user_idx").on(table.userId),
+  walletIdIndex: index("xrp_tx_wallet_idx").on(table.walletId),
+  hashIndex: index("xrp_tx_hash_idx").on(table.transactionHash),
+  statusIndex: index("xrp_tx_status_idx").on(table.status),
+  typeIndex: index("xrp_tx_type_idx").on(table.transactionType),
+  createdAtIndex: index("xrp_tx_created_idx").on(table.createdAt),
+}));
+
+// XRP Trading Orders
+export const xrpOrders = pgTable("xrp_orders", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  walletId: integer("wallet_id").references(() => xrpWallets.id),
+  orderType: varchar("order_type").notNull(), // market, limit, stop
+  side: varchar("side").notNull(), // buy, sell
+  baseCurrency: varchar("base_currency").notNull(),
+  quoteCurrency: varchar("quote_currency").notNull(),
+  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
+  price: decimal("price", { precision: 20, scale: 8 }),
+  filledAmount: decimal("filled_amount", { precision: 20, scale: 8 }).default("0"),
+  status: varchar("status").default("open"), // open, filled, cancelled, partial
+  orderHash: varchar("order_hash"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  filledAt: timestamp("filled_at"),
+}, (table) => ({
+  userIdIndex: index("xrp_orders_user_idx").on(table.userId),
+  walletIdIndex: index("xrp_orders_wallet_idx").on(table.walletId),
+  statusIndex: index("xrp_orders_status_idx").on(table.status),
+  sideIndex: index("xrp_orders_side_idx").on(table.side),
+  createdAtIndex: index("xrp_orders_created_idx").on(table.createdAt),
+}));
+
+// XRP Liquidity Positions
+export const xrpLiquidityPositions = pgTable("xrp_liquidity_positions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  walletId: integer("wallet_id").references(() => xrpWallets.id),
+  poolId: varchar("pool_id").notNull(),
+  tokenA: varchar("token_a").notNull(),
+  tokenB: varchar("token_b").notNull(),
+  liquidityAmount: decimal("liquidity_amount", { precision: 20, scale: 8 }).notNull(),
+  sharePercentage: decimal("share_percentage", { precision: 5, scale: 4 }),
+  rewardsEarned: decimal("rewards_earned", { precision: 20, scale: 8 }).default("0"),
+  status: varchar("status").default("active"), // active, withdrawn, expired
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIndex: index("xrp_lp_user_idx").on(table.userId),
+  walletIdIndex: index("xrp_lp_wallet_idx").on(table.walletId),
+  poolIdIndex: index("xrp_lp_pool_idx").on(table.poolId),
+  statusIndex: index("xrp_lp_status_idx").on(table.status),
+}));
+
+// XRP Cross-Border Payments
+export const xrpCrossBorderPayments = pgTable("xrp_cross_border_payments", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  walletId: integer("wallet_id").references(() => xrpWallets.id),
+  paymentId: varchar("payment_id").unique().notNull(),
+  senderAddress: varchar("sender_address").notNull(),
+  recipientAddress: varchar("recipient_address").notNull(),
+  amount: decimal("amount", { precision: 20, scale: 8 }).notNull(),
+  sourceCurrency: varchar("source_currency").notNull(),
+  destinationCurrency: varchar("destination_currency").notNull(),
+  exchangeRate: decimal("exchange_rate", { precision: 15, scale: 8 }),
+  corridorUsed: varchar("corridor_used"), // Payment corridor (e.g., US-MX, EU-JP)
+  status: varchar("status").default("initiated"), // initiated, processing, completed, failed
+  estimatedSettlement: timestamp("estimated_settlement"),
+  actualSettlement: timestamp("actual_settlement"),
+  fees: jsonb("fees"), // Breakdown of all fees
+  compliance: jsonb("compliance"), // KYC/AML data
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userIdIndex: index("xrp_cb_user_idx").on(table.userId),
+  paymentIdIndex: index("xrp_cb_payment_idx").on(table.paymentId),
+  statusIndex: index("xrp_cb_status_idx").on(table.status),
+  corridorIndex: index("xrp_cb_corridor_idx").on(table.corridorUsed),
+}));
+
+// XRP Relations
+export const xrpWalletsRelations = relations(xrpWallets, ({ one, many }) => ({
+  user: one(users, {
+    fields: [xrpWallets.userId],
+    references: [users.id],
+  }),
+  transactions: many(xrpTransactions),
+  orders: many(xrpOrders),
+  liquidityPositions: many(xrpLiquidityPositions),
+  crossBorderPayments: many(xrpCrossBorderPayments),
+}));
+
+export const xrpTransactionsRelations = relations(xrpTransactions, ({ one }) => ({
+  user: one(users, {
+    fields: [xrpTransactions.userId],
+    references: [users.id],
+  }),
+  wallet: one(xrpWallets, {
+    fields: [xrpTransactions.walletId],
+    references: [xrpWallets.id],
+  }),
+}));
+
+export const xrpOrdersRelations = relations(xrpOrders, ({ one }) => ({
+  user: one(users, {
+    fields: [xrpOrders.userId],
+    references: [users.id],
+  }),
+  wallet: one(xrpWallets, {
+    fields: [xrpOrders.walletId],
+    references: [xrpWallets.id],
+  }),
+}));
+
+export const xrpLiquidityPositionsRelations = relations(xrpLiquidityPositions, ({ one }) => ({
+  user: one(users, {
+    fields: [xrpLiquidityPositions.userId],
+    references: [users.id],
+  }),
+  wallet: one(xrpWallets, {
+    fields: [xrpLiquidityPositions.walletId],
+    references: [xrpWallets.id],
+  }),
+}));
+
+export const xrpCrossBorderPaymentsRelations = relations(xrpCrossBorderPayments, ({ one }) => ({
+  user: one(users, {
+    fields: [xrpCrossBorderPayments.userId],
+    references: [users.id],
+  }),
+  wallet: one(xrpWallets, {
+    fields: [xrpCrossBorderPayments.walletId],
+    references: [xrpWallets.id],
+  }),
+}));
+
+// XRP Types
+export type XrpWallet = typeof xrpWallets.$inferSelect;
+export type InsertXrpWallet = typeof xrpWallets.$inferInsert;
+export type XrpTransaction = typeof xrpTransactions.$inferSelect;
+export type InsertXrpTransaction = typeof xrpTransactions.$inferInsert;
+export type XrpOrder = typeof xrpOrders.$inferSelect;
+export type InsertXrpOrder = typeof xrpOrders.$inferInsert;
+export type XrpLiquidityPosition = typeof xrpLiquidityPositions.$inferSelect;
+export type InsertXrpLiquidityPosition = typeof xrpLiquidityPositions.$inferInsert;
+export type XrpCrossBorderPayment = typeof xrpCrossBorderPayments.$inferSelect;
+export type InsertXrpCrossBorderPayment = typeof xrpCrossBorderPayments.$inferInsert;

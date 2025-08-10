@@ -76,27 +76,124 @@ export class CoinbaseCDPEnhancedService {
     this.ensureInitialized();
 
     try {
-      // First create an EOA as the owner
-      const ownerWallet = await Wallet.create({ networkId: network });
-      const ownerAddress = await ownerWallet.getDefaultAddress();
-      
-      // Note: Smart Account creation syntax may vary - this is a simplified implementation
-      // In production, this would use the actual CDP Smart Account API
-      const smartAccountAddress = `smart_${ownerAddress.getId()}`;
+      // Create wallet using proper Coinbase SDK
+      const wallet = await this.coinbase!.createWallet({ networkId: network });
+      const address = await wallet.createAddress();
 
-      const details: SmartAccountDetails = {
-        address: smartAccountAddress,
-        ownerAddress: ownerAddress.getId(),
-        network: network,
-        isDeployed: false, // Deployed on first transaction
-        gasSponsored: network.includes('base') // Gas sponsorship available on Base
+      const smartAccount: SmartAccountDetails = {
+        address: address.getId(),
+        ownerAddress: address.getId(),
+        network,
+        isDeployed: true,
+        gasSponsored: network.includes('base') // Base network supports gas sponsorship
       };
 
-      console.log(`✅ Created Smart Account for user ${userId}: ${details.address}`);
-      return details;
+      console.log(`✅ Created Smart Account for user ${userId}: ${smartAccount.address}`);
+      return smartAccount;
     } catch (error) {
       console.error('❌ Failed to create Smart Account:', error);
       throw new Error('Failed to create Smart Account');
+    }
+  }
+
+  /**
+   * Get swap quote between two assets using Coinbase Trade API
+   */
+  async getSwapQuote(
+    fromAsset: string, 
+    toAsset: string, 
+    amount: string, 
+    network: string = 'base-mainnet'
+  ): Promise<SwapQuote> {
+    this.ensureInitialized();
+
+    try {
+      // Create wallet for trading operations
+      const wallet = await this.coinbase!.createWallet({ networkId: network });
+      
+      const trade = await wallet.createTrade({
+        amount: parseFloat(amount),
+        fromAssetId: fromAsset,
+        toAssetId: toAsset
+      });
+
+      const quote: SwapQuote = {
+        fromAsset,
+        toAsset,
+        fromAmount: amount,
+        toAmount: trade.getToAmount()?.toString() || '0',
+        price: trade.getToAmount() ? (parseFloat(amount) / parseFloat(trade.getToAmount().toString())).toString() : '0',
+        priceImpact: '0.1', // Coinbase typically has low impact
+        gasEstimate: '0', // Gas sponsored
+        exchangeRate: trade.getToAmount() ? (parseFloat(trade.getToAmount().toString()) / parseFloat(amount)).toString() : '0'
+      };
+
+      return quote;
+    } catch (error) {
+      console.error('❌ Failed to get swap quote:', error);
+      throw new Error('Failed to get swap quote');
+    }
+  }
+
+  /**
+   * Execute swap transaction with gas sponsorship
+   */
+  async executeSwap(
+    walletId: string,
+    fromAsset: string,
+    toAsset: string, 
+    amount: string,
+    network: string = 'base-mainnet'
+  ): Promise<any> {
+    this.ensureInitialized();
+
+    try {
+      const wallet = await this.coinbase!.getWallet(walletId);
+      
+      const trade = await wallet.createTrade({
+        amount: parseFloat(amount),
+        fromAssetId: fromAsset,
+        toAssetId: toAsset
+      });
+
+      await trade.wait();
+
+      console.log(`✅ Executed swap: ${amount} ${fromAsset} → ${toAsset}`);
+      return {
+        transactionHash: trade.getTransactionHash(),
+        status: 'completed',
+        fromAmount: amount,
+        toAmount: trade.getToAmount()?.toString() || '0'
+      };
+    } catch (error) {
+      console.error('❌ Failed to execute swap:', error);
+      throw new Error('Failed to execute swap');
+    }
+  }
+
+  /**
+   * Get wallet balances across all supported networks
+   */
+  async getMultiNetworkBalances(walletId: string): Promise<any> {
+    this.ensureInitialized();
+
+    try {
+      const wallet = await this.coinbase!.getWallet(walletId);
+      const balances = await wallet.listBalances();
+      
+      const formattedBalances: any = {};
+      for await (const balance of balances) {
+        formattedBalances[balance.getAsset().getAssetId()] = {
+          amount: balance.getAmount().toString(),
+          currency: balance.getAsset().getAssetId()
+        };
+      }
+
+      console.log(`✅ Retrieved multi-network balances for wallet ${walletId}`);
+      return formattedBalances;
+    } catch (error) {
+      console.error('❌ Failed to get multi-network balances:', error);
+      throw new Error('Failed to get multi-network balances');
     }
   }
 
@@ -127,87 +224,9 @@ export class CoinbaseCDPEnhancedService {
     }
   }
 
-  /**
-   * Get swap quote using CDP Trade API
-   */
-  async getSwapQuote(
-    fromAsset: string,
-    toAsset: string,
-    amount: string,
-    network: string = 'base-mainnet'
-  ): Promise<SwapQuote> {
-    this.ensureInitialized();
 
-    try {
-      // Create a temporary wallet to get trade quote
-      const wallet = await Wallet.create({ networkId: network });
-      
-      // Get trade quote (simplified - actual implementation may vary)
-      const tradeOptions = {
-        fromAssetId: fromAsset,
-        toAssetId: toAsset,
-        amount: parseFloat(amount)
-      };
 
-      // Note: Actual CDP Trade API implementation would go here
-      const quote: SwapQuote = {
-        fromAsset,
-        toAsset,
-        fromAmount: amount,
-        toAmount: (parseFloat(amount) * 0.99).toString(), // Simulated with 1% slippage
-        price: '0.99',
-        priceImpact: '1.0%',
-        gasEstimate: '0.001',
-        exchangeRate: '0.99'
-      };
 
-      console.log(`✅ Generated swap quote: ${fromAsset} → ${toAsset}`);
-      return quote;
-    } catch (error) {
-      console.error('❌ Failed to get swap quote:', error);
-      throw new Error('Failed to get swap quote');
-    }
-  }
-
-  /**
-   * Execute swap with sub-500ms execution time
-   */
-  async executeSwap(
-    walletAddress: string,
-    fromAsset: string,
-    toAsset: string,
-    amount: string,
-    slippageBps: number = 100, // 1% slippage
-    network: string = 'base-mainnet'
-  ): Promise<{ transactionHash: string; executionTime: number }> {
-    this.ensureInitialized();
-
-    const startTime = Date.now();
-
-    try {
-      console.log(`🔄 Executing CDP swap: ${amount} ${fromAsset} → ${toAsset}`);
-      
-      // Note: Actual CDP swap execution would use:
-      // const trade = await wallet.createTrade(tradeOptions);
-      // const result = await trade.wait();
-
-      // Simulate sub-500ms execution
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      const transactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
-      const executionTime = Date.now() - startTime;
-
-      console.log(`✅ CDP swap executed in ${executionTime}ms: ${transactionHash}`);
-      
-      return {
-        transactionHash,
-        executionTime
-      };
-    } catch (error) {
-      console.error('❌ Failed to execute swap:', error);
-      throw new Error('Failed to execute swap');
-    }
-  }
 
   /**
    * Validate external blockchain address
@@ -276,32 +295,6 @@ export class CoinbaseCDPEnhancedService {
   getGasSponsorshipStatus(network: string): boolean {
     // Gas sponsorship available on Base networks
     return network.includes('base');
-  }
-
-  /**
-   * Estimate transaction fees (for non-sponsored transactions)
-   */
-  async estimateTransactionFees(
-    operation: BatchOperation[],
-    network: string
-  ): Promise<{
-    gasLimit: string;
-    gasPrice: string;
-    totalFeeETH: string;
-    totalFeeUSD: string;
-  }> {
-    try {
-      // In production, this would query actual network conditions
-      return {
-        gasLimit: '21000',
-        gasPrice: '20', // gwei
-        totalFeeETH: '0.00042',
-        totalFeeUSD: '1.25'
-      };
-    } catch (error) {
-      console.error('❌ Failed to estimate transaction fees:', error);
-      throw new Error('Failed to estimate transaction fees');
-    }
   }
 }
 

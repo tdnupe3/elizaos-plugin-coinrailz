@@ -59,6 +59,16 @@ export default function CoinbaseCDPWallet() {
   const [showOAuth, setShowOAuth] = useState(false);
   const [isConnectingOAuth, setIsConnectingOAuth] = useState(false);
 
+  // CDP Enhanced Features
+  const [showSwapForm, setShowSwapForm] = useState(false);
+  const [swapFromAsset, setSwapFromAsset] = useState('ETH');
+  const [swapToAsset, setSwapToAsset] = useState('USDC');
+  const [swapAmount, setSwapAmount] = useState('');
+  const [swapQuote, setSwapQuote] = useState(null);
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [showSmartAccount, setShowSmartAccount] = useState(false);
+  const [smartAccount, setSmartAccount] = useState(null);
+
   const { toast } = useToast();
 
   // Load supported networks on component mount
@@ -207,6 +217,115 @@ export default function CoinbaseCDPWallet() {
     }
   };
 
+  // Enhanced CDP Functions
+  const getSwapQuote = async () => {
+    if (!swapFromAsset || !swapToAsset || !swapAmount) {
+      toast({
+        title: "Missing Information", 
+        description: "Please fill in all swap details",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await apiRequest('POST', '/api/cdp/enhanced/swap/quote', {
+        fromAsset: swapFromAsset,
+        toAsset: swapToAsset,
+        amount: swapAmount,
+        network: selectedNetwork
+      });
+
+      if (response.success) {
+        setSwapQuote(response.quote);
+        toast({
+          title: "Quote Retrieved",
+          description: `${swapAmount} ${swapFromAsset} = ${response.quote.toAmount} ${swapToAsset}`,
+        });
+      } else {
+        throw new Error(response.error || 'Failed to get quote');
+      }
+    } catch (error) {
+      console.error('Swap quote error:', error);
+      toast({
+        title: "Quote Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive",
+      });
+    }
+  };
+
+  const executeSwap = async () => {
+    if (!selectedWallet || !swapQuote) {
+      toast({
+        title: "Missing Information",
+        description: "Please get a quote first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSwapping(true);
+    try {
+      const response = await apiRequest('POST', '/api/cdp/enhanced/swap/execute', {
+        walletId: selectedWallet.id,
+        fromAsset: swapFromAsset,
+        toAsset: swapToAsset,
+        amount: swapAmount,
+        network: selectedNetwork
+      });
+
+      if (response.success) {
+        toast({
+          title: "Swap Successful",
+          description: `Executed in ${response.result.executionTime}ms`,
+        });
+        
+        // Reset form and refresh balances
+        setSwapAmount('');
+        setSwapQuote(null);
+        setShowSwapForm(false);
+        loadWalletBalances(selectedWallet.id);
+      } else {
+        throw new Error(response.error || 'Swap failed');
+      }
+    } catch (error) {
+      console.error('Swap execution error:', error);
+      toast({
+        title: "Swap Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive",
+      });
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  const createSmartAccount = async () => {
+    try {
+      const response = await apiRequest('POST', '/api/cdp/enhanced/smart-account', {
+        network: selectedNetwork
+      });
+
+      if (response.success) {
+        setSmartAccount(response.smartAccount);
+        toast({
+          title: "Smart Account Created",
+          description: `Gas-sponsored account on ${selectedNetwork}`,
+        });
+      } else {
+        throw new Error(response.error || 'Failed to create Smart Account');
+      }
+    } catch (error) {
+      console.error('Smart Account creation error:', error);
+      toast({
+        title: "Smart Account Creation Failed",
+        description: error instanceof Error ? error.message : 'Unknown error occurred',
+        variant: "destructive",
+      });
+    }
+  };
+
   // Load wallet data when selected wallet changes
   useEffect(() => {
     if (selectedWallet) {
@@ -338,6 +457,25 @@ export default function CoinbaseCDPWallet() {
                     <ArrowUpRight className="h-4 w-4" />
                     Send
                   </Button>
+                  
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowSwapForm(!showSwapForm)}
+                    className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                    CDP Swap
+                  </Button>
+                  
+                  <Button 
+                    size="sm" 
+                    onClick={() => setShowSmartAccount(!showSmartAccount)}
+                    className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Smart Account
+                  </Button>
+                  
                   <Button 
                     size="sm" 
                     variant="outline"

@@ -50,6 +50,7 @@ import {
   HumanReferralDashboard,
   PlatformAnalytics,
   CDPWalletPage,
+  PlatformIntegrationPage,
 
   USDCEcosystemDashboard,
   USDCBuy,
@@ -273,6 +274,9 @@ function Router() {
       </Route>
       <Route path="/usdc-wallets">
         {() => <LazyLoadWrapper><USDCWallets /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/platform-integration">
+        {() => <LazyLoadWrapper><PlatformIntegrationPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/cdp-wallet">
         {() => <LazyLoadWrapper><CDPWalletPage /></LazyLoadWrapper>}

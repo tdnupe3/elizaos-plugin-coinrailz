@@ -84,3 +84,6 @@ export const LegalDisclaimers = lazy(() => import('@/pages/legal-disclaimers'));
 export const ContactUs = lazy(() => import('@/pages/contact-us'));
 export const TermsOfService = lazy(() => import('@/pages/terms-of-service'));
 export const PrivacyPolicy = lazy(() => import('@/pages/privacy-policy'));
+
+// Platform Integration Hub
+export const PlatformIntegrationPage = lazy(() => import('@/pages/PlatformIntegrationPage'));

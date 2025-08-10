@@ -78,21 +78,21 @@ app.post('/api/orders/create-working', async (req, res) => {
     const orderId = `order_${Date.now()}_${nanoid(8)}`;
     const platformFee = budgetNum * 0.15;
     const agentAmount = budgetNum * 0.85;
-    const customerId = 'oauth-test-user-working';
+    const customerId = 'oauth-test-user-1749701423054';
     
     // Insert into database
-    const newOrder = await db.insert(serviceOrders).values({
+    const newOrder = await db.insert(aiMarketplaceOrders).values({
       id: orderId,
       customerId: customerId,
       agentId: agentId,
-      serviceTitle: serviceTitle,
+      serviceType: serviceTitle, // Map serviceTitle to serviceType field
       serviceDescription: serviceDescription,
-      amount: budgetNum,
-      platformFee: platformFee,
-      agentAmount: agentAmount,
+      amount: budgetNum.toString(), // Convert to string
+      platformFee: platformFee.toString(),
+      agentCommission: agentAmount.toString(), // Map agentAmount to agentCommission
       status: 'pending',
       paymentMethod: paymentMethod,
-      deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      estimatedDeliveryHours: 24, // Default 24 hours
     }).returning();
     
     console.log('✅ ORDER CREATED IN DATABASE:', orderId);
@@ -132,7 +132,7 @@ app.post('/api/orders/create', async (req, res) => {
   try {
     // Import database connection
     const { db } = await import('./db');
-    const { serviceOrders } = await import('../shared/schema');
+    const { aiMarketplaceOrders } = await import('../shared/schema');
     const { nanoid } = await import('nanoid');
     
     // Basic validation
@@ -157,21 +157,21 @@ app.post('/api/orders/create', async (req, res) => {
     const orderId = `order_${Date.now()}_${nanoid(8)}`;
     const platformFee = budgetNum * 0.15;
     const agentAmount = budgetNum * 0.85;
-    const customerId = 'oauth-test-user-priority';
+    const customerId = 'oauth-test-user-1749701423054';
     
-    // Insert into database
-    const newOrder = await db.insert(serviceOrders).values({
+    // Insert into database - fix field mapping to match schema
+    const newOrder = await db.insert(aiMarketplaceOrders).values({
       id: orderId,
       customerId: customerId,
       agentId: agentId,
-      serviceTitle: serviceTitle,
+      serviceType: serviceTitle, // Map serviceTitle to serviceType field
       serviceDescription: serviceDescription,
-      amount: budgetNum,
-      platformFee: platformFee,
-      agentAmount: agentAmount,
+      amount: budgetNum.toString(), // Convert to string for decimal field
+      platformFee: platformFee.toString(),
+      agentCommission: agentAmount.toString(), // Map agentAmount to agentCommission
       status: 'pending',
       paymentMethod: paymentMethod,
-      deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      estimatedDeliveryHours: 24, // Default 24 hours
     }).returning();
     
     console.log('✅ ORDER CREATED IN DATABASE:', orderId);

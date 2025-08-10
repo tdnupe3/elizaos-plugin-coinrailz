@@ -73,6 +73,13 @@ export const users = pgTable("users", {
   circleWalletId: varchar("circle_wallet_id"), // Primary Circle wallet ID
   circleWalletSetId: varchar("circle_wallet_set_id"), // Circle wallet set ID
   circleEntitySecret: varchar("circle_entity_secret"), // Encrypted entity secret
+  
+  // Coinbase CDP Integration fields
+  coinbaseCDPWalletId: varchar("coinbase_cdp_wallet_id"), // CDP wallet ID
+  coinbaseOAuthToken: text("coinbase_oauth_token"), // Encrypted OAuth access token
+  coinbaseOAuthRefreshToken: text("coinbase_oauth_refresh_token"), // Encrypted refresh token
+  coinbaseOAuthExpiresAt: timestamp("coinbase_oauth_expires_at"), // Token expiration
+  coinbaseUserId: varchar("coinbase_user_id"), // Coinbase user ID from OAuth
   usdcBalance: decimal("usdc_balance", { precision: 20, scale: 8 }).default("0.00000000"), // USDC balance
   circleWalletAddress: varchar("circle_wallet_address"), // Circle wallet address
   circleAccountType: varchar("circle_account_type").default("SCA"), // SCA or EOA
@@ -88,6 +95,54 @@ export const users = pgTable("users", {
   suspensionEndDate: timestamp("suspension_end_date"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// CDP Wallets table for Coinbase Developer Platform integration
+export const cdpWallets = pgTable("cdp_wallets", {
+  id: serial("id").primaryKey(),
+  walletId: varchar("wallet_id").notNull().unique(), // CDP wallet ID
+  userId: varchar("user_id").notNull(), // Reference to users table
+  address: varchar("address").notNull(), // Wallet address
+  network: varchar("network").notNull(), // Network (base-mainnet, ethereum-mainnet, etc.)
+  status: varchar("status").default("active"), // active, inactive, suspended
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// CDP Transactions table for tracking CDP wallet transactions
+export const cdpTransactions = pgTable("cdp_transactions", {
+  id: serial("id").primaryKey(),
+  transactionId: varchar("transaction_id").notNull().unique(), // CDP transaction ID
+  walletId: varchar("wallet_id").notNull(), // CDP wallet ID
+  userId: varchar("user_id").notNull(), // User ID for quick lookup
+  type: varchar("type").notNull(), // send, receive, buy, sell
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  currency: varchar("currency").notNull(), // ETH, USDC, BTC, etc.
+  toAddress: varchar("to_address"), // For send transactions
+  fromAddress: varchar("from_address"), // For receive transactions
+  status: varchar("status").notNull(), // pending, completed, failed
+  transactionHash: varchar("transaction_hash"), // Blockchain transaction hash
+  networkFee: decimal("network_fee", { precision: 18, scale: 8 }), // Network fee paid
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }), // Our platform fee
+  metadata: jsonb("metadata"), // Additional transaction metadata
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Coinbase OAuth tokens table for secure token storage
+export const coinbaseOAuthTokens = pgTable("coinbase_oauth_tokens", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().unique(), // Reference to users table
+  accessToken: text("access_token").notNull(), // Encrypted access token
+  refreshToken: text("refresh_token").notNull(), // Encrypted refresh token
+  tokenType: varchar("token_type").default("Bearer"),
+  expiresAt: timestamp("expires_at").notNull(),
+  scope: text("scope"), // OAuth scopes granted
+  coinbaseUserId: varchar("coinbase_user_id"), // Coinbase user ID
+  coinbaseUsername: varchar("coinbase_username"), // Coinbase username
+  lastRefreshed: timestamp("last_refreshed").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Digital Wallet Balances - Support multiple currencies

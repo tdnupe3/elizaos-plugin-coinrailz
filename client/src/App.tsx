@@ -49,6 +49,7 @@ import {
   EnhancedReferralDashboard,
   HumanReferralDashboard,
   PlatformAnalytics,
+  CDPWalletPage,
 
   USDCEcosystemDashboard,
   USDCBuy,
@@ -269,6 +270,12 @@ function Router() {
       </Route>
       <Route path="/usdc-wallets">
         {() => <LazyLoadWrapper><USDCWallets /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/cdp-wallet">
+        {() => <LazyLoadWrapper><CDPWalletPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/coinbase-cdp">
+        {() => <LazyLoadWrapper><CDPWalletPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/usdc-defi">
         {() => <LazyLoadWrapper><USDCDefi /></LazyLoadWrapper>}

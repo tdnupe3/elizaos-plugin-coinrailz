@@ -136,6 +136,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === USER CIRCLE WALLET ROUTES ===
   // Individual user Circle wallet management
   app.use('/api/user-circle', userCircleRoutes);
+
+  // === COINBASE CDP INTEGRATION ROUTES ===
+  // Coinbase Developer Platform for enterprise-grade wallet management
+  const { default: coinbaseCDPRoutes } = await import('./routes/coinbaseCDPRoutes');
+  app.use('/api/cdp', coinbaseCDPRoutes);
+  console.log('✅ Coinbase CDP routes registered successfully');
   
   // === CIRCLE TRANSACTION MONITORING ===
   // Transaction monitoring and balance sync endpoints

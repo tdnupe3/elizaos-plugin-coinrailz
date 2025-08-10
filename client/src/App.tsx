@@ -279,12 +279,6 @@ function Router() {
       <Route path="/cdp-wallet">
         {() => <LazyLoadWrapper><CDPWalletPage /></LazyLoadWrapper>}
       </Route>
-      <Route path="/enhanced-cdp-wallet">
-        {() => <LazyLoadWrapper><EnhancedCDPWallet /></LazyLoadWrapper>}
-      </Route>
-      <Route path="/onramp-preparation">
-        {() => <LazyLoadWrapper><OnrampPreparation /></LazyLoadWrapper>}
-      </Route>
       <Route path="/coinbase-cdp">
         {() => <LazyLoadWrapper><CDPWalletPage /></LazyLoadWrapper>}
       </Route>

@@ -617,6 +617,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === AUTHENTICATION SYSTEM ===
   // Authentication routes moved to authRoutes.ts for proper session handling
   
+  // === CORE MARKETPLACE ENDPOINTS (Public Access) ===
+  app.get('/api/agents', async (req, res) => {
+    try {
+      // Query actual database table that exists
+      const agents = await db.execute(`
+        SELECT id, agent_name, description, category, capabilities, 
+               commission_rate, is_active, trust_score, completed_jobs, 
+               average_rating, created_at
+        FROM global_ai_agents 
+        WHERE is_active = true 
+        LIMIT 50
+      `);
+      
+      res.json({
+        success: true,
+        agents: agents.rows,
+        total: agents.rows.length,
+        message: `Found ${agents.rows.length} active AI agents`
+      });
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch agents'
+      });
+    }
+  });
+
+  app.get('/api/services', async (req, res) => {
+    try {
+      // Query actual database table that exists
+      const services = await db.execute(`
+        SELECT id, title, description, category, base_price, 
+               currency, estimated_delivery, is_active, requirements, 
+               deliverables, created_at
+        FROM agent_service_listings 
+        WHERE is_active = true 
+        LIMIT 50
+      `);
+      
+      res.json({
+        success: true,
+        services: services.rows,
+        total: services.rows.length,
+        message: `Found ${services.rows.length} active services`
+      });
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch services'
+      });
+    }
+  });
+  
   // === AGENT DISCOVERY ENDPOINTS ===
   app.get('/api/agents/discover', isAuthenticated, async (req, res) => {
     try {

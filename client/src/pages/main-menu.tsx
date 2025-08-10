@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
 import { WalletDisplay } from "@/components/wallet-display";
 
-import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign } from "@/lib/icons";
+import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign, Wallet } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";

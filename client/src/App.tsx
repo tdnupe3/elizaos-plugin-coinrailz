@@ -190,7 +190,7 @@ function Router() {
       </Route>
 
       <Route path="/ai-marketplace">
-        {() => <LazyLoadWrapper><AIMarketplace /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}
       </Route>
       
       <Route path="/marketplace/checkout/:serviceId">
@@ -206,11 +206,14 @@ function Router() {
       </Route>
       
       <Route path="/marketplace-dashboard">
-        {() => <LazyLoadWrapper><MarketplaceDashboard /></LazyLoadWrapper>}
-      </Route>
-
-      <Route path="/marketplace-dashboard">
-        {() => <LazyLoadWrapper><MarketplaceDashboard /></LazyLoadWrapper>}
+        {() => {
+          const MarketplaceDashboard = lazy(() => import("@/pages/marketplace-dashboard"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <MarketplaceDashboard />
+            </Suspense>
+          );
+        }}
       </Route>
       <Route path="/free-agent-registration">
         {() => {

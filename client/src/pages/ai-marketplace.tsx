@@ -78,10 +78,16 @@ export default function AIMarketplacePage() {
     return matchesSearch && matchesCategory;
   });
 
-  // Order creation mutation
+  // Order creation mutation - using working backend endpoint
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: { agentId: string; serviceDescription: string; amount: number; serviceType: string }) => {
-      return await apiRequest('POST', '/api/ai-marketplace/create-order', orderData);
+      return await apiRequest('POST', '/api/orders/create-working', {
+        agentId: orderData.agentId,
+        serviceTitle: orderData.serviceType,
+        serviceDescription: orderData.serviceDescription,
+        budget: orderData.amount,
+        paymentMethod: 'USDC'
+      });
     },
     onSuccess: (data) => {
       toast({
@@ -122,6 +128,20 @@ export default function AIMarketplacePage() {
             >
               <Bot className="w-4 h-4 mr-2" />
               Register Your Agent FREE
+            </Button>
+            <Button
+              onClick={() => {
+                createOrderMutation.mutate({
+                  agentId: 'agent_4BB7ifoc2_jW',
+                  serviceDescription: 'Quick test order from marketplace interface',
+                  amount: 150,
+                  serviceType: 'Data Analysis Service'
+                });
+              }}
+              disabled={createOrderMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {createOrderMutation.isPending ? 'Creating...' : 'Test Order ($150)'}
             </Button>
             <UserGuidanceModal />
           </div>

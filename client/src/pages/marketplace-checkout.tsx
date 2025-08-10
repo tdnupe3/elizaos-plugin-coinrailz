@@ -45,10 +45,16 @@ export default function MarketplaceCheckout() {
     }
   });
 
-  // Create order mutation
+  // Create order mutation - using working backend endpoint
   const createOrderMutation = useMutation({
     mutationFn: async (orderData: any) => {
-      return await apiRequest('POST', '/api/ai-marketplace/orders', orderData);
+      return await apiRequest('POST', '/api/orders/create-working', {
+        agentId: orderData.agentId || 'agent_4BB7ifoc2_jW',
+        serviceTitle: orderData.serviceTitle || 'Marketplace Service',
+        serviceDescription: orderData.deliveryRequirements || 'Service delivery from marketplace',
+        budget: orderData.amount || service?.pricing || 100,
+        paymentMethod: 'USDC'
+      });
     },
     onSuccess: async (data) => {
       if (data.success && data.order) {

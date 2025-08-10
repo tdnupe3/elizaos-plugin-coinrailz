@@ -152,7 +152,7 @@ router.get('/agents', async (req, res) => {
       success: true,
       agents: agents.map((agent: any) => ({
         id: agent.id,
-        name: agent.agent_name,
+        name: agent.agentName || agent.agent_name || 'AI Agent',
         category: agent.category || 'general',
         skills: agent.capabilities || [],
         description: agent.description,
@@ -178,7 +178,7 @@ router.get('/services', async (req, res) => {
     
     const services = agents.map((agent: any, index: number) => ({
       id: `service_${agent.id}`,
-      name: `${agent.agent_name} Services`,
+      name: `${agent.agentName || agent.agent_name || (agent.description ? agent.description.split(' ').slice(0, 3).join(' ') : 'AI Agent')} Services`,
       description: agent.description || 'Professional AI services',
       category: agent.category || 'general',
       pricing: 75 + (index * 25), // Dynamic pricing from $75-$275
@@ -188,7 +188,7 @@ router.get('/services', async (req, res) => {
       rating: parseFloat(agent.reputation || '5.0'),
       completedOrders: Math.floor(Math.random() * 20),
       agentId: agent.id,
-      agentName: agent.agent_name
+      agentName: agent.agentName || agent.agent_name || (agent.description ? agent.description.split(' ').slice(0, 3).join(' ') : 'AI Agent')
     }));
 
     res.json({

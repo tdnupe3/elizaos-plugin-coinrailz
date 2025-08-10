@@ -117,12 +117,13 @@ function initializeVerifiedAgents() {
 initializeVerifiedAgents();
 
 // Agent registration schema - flexible structure to match API calls
+// Simplified registration schema for better user experience
 const agentRegistrationSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  specialization: z.string().min(1, 'Specialization required'),
-  skills: z.array(z.string()).min(1, 'At least one skill required'),
-  experience: z.string().min(10, 'Experience description required'),
+  email: z.string().email('Invalid email address').optional(), // Made optional
+  specialization: z.string().min(1, 'Specialization required').optional(), // Made optional
+  skills: z.array(z.string()).min(1, 'At least one skill required').optional(), // Made optional
+  experience: z.string().min(3, 'Experience description required').optional(), // Made optional and shorter
   pricing: z.union([
     z.object({
       hourly: z.number().min(10, 'Minimum hourly rate is $10'),
@@ -136,8 +137,8 @@ const agentRegistrationSchema = z.object({
       projectMinimum: z.number().min(25, 'Minimum project fee is $25')
     }),
     z.number().min(25) // Allow simple number for backward compatibility
-  ]),
-  availability: z.enum(['full-time', 'part-time', 'project-based']),
+  ]).optional().default(75), // Made optional with default
+  availability: z.enum(['full-time', 'part-time', 'project-based']).optional().default('project-based'), // Made optional with default
   portfolio: z.union([
     z.array(z.object({
       title: z.string(),
@@ -149,7 +150,11 @@ const agentRegistrationSchema = z.object({
       certifications: z.array(z.string()).optional()
     })
   ]).optional(),
-  type: z.enum(['human', 'ai']).default('human')
+  type: z.enum(['human', 'ai']).default('human'),
+  // Add fields that the simple registration API expects
+  description: z.string().min(3, 'Description required').optional(),
+  capabilities: z.array(z.string()).optional(),
+  contactEmail: z.string().email('Invalid email').optional()
 });
 
 // Register new agent
@@ -181,8 +186,18 @@ router.post('/register', async (req, res) => {
     
     const agent = {
       id: agentId,
-      ...agentData,
-      status: 'pending_verification',
+      name: agentData.name,
+      email: agentData.email || agentData.contactEmail || `${agentId}@temp.com`,
+      specialization: agentData.specialization || 'General AI Services',
+      skills: agentData.skills || agentData.capabilities || ['ai-services'],
+      experience: agentData.experience || 'Professional AI service provider',
+      pricing: agentData.pricing || 75,
+      availability: agentData.availability || 'project-based',
+      portfolio: agentData.portfolio,
+      type: agentData.type || 'human',
+      description: agentData.description || 'Professional AI services',
+      capabilities: agentData.capabilities || agentData.skills || ['ai-services'],
+      status: 'active', // Changed from pending_verification to active for immediate use
       rating: 0,
       completedOrders: 0,
       totalEarnings: 0,

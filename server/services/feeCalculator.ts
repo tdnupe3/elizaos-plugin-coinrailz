@@ -202,9 +202,9 @@ export class FeeCalculator {
   }
   
   /**
-   * Calculate AI Marketplace fees with tiered structure
+   * Calculate AI Marketplace fees with tiered structure (LEGACY - use calculateMarketplaceFees with paymentMethod)
    */
-  static calculateMarketplaceFees(amount: number): FeeCalculation {
+  static calculateMarketplaceFeesLegacy(amount: number): FeeCalculation {
     // Enforce minimum transaction amounts
     if (amount < this.MINIMUM_TRANSACTIONS.marketplace) {
       throw new Error(`Minimum marketplace order amount is $${this.MINIMUM_TRANSACTIONS.marketplace}`);

@@ -1287,7 +1287,7 @@ export class DatabaseStorage implements IStorage {
     return newChatRoom;
   }
 
-  async getChatRooms(userId: string): Promise<ChatRoom[]> {
+  async getChatRoomsLegacy(userId: string): Promise<ChatRoom[]> {
     return await db.select().from(chatRooms)
       .where(sql`JSON_EXTRACT(${chatRooms.participants}, '$') LIKE '%${userId}%'`)
       .orderBy(desc(chatRooms.updatedAt));

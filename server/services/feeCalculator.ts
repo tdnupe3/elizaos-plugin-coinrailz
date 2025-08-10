@@ -287,46 +287,7 @@ export class FeeCalculator {
     };
   }
   
-  /**
-   * Calculate fees for legacy Stripe transactions (maintained for compatibility)
-   */
-  static calculateStripeFees(amount: number): FeeCalculation {
-    const processingFee = Math.round((amount * this.STRIPE_PERCENTAGE + this.STRIPE_FIXED) * 100) / 100;
-    let convenienceFee = 0;
-    let serviceFee = 0;
-    
-    if (amount < 25) {
-      // Very small transactions: Higher service fee to ensure profitability
-      convenienceFee = Math.round((amount * 0.035 + 0.50) * 100) / 100; // 3.5% + $0.50
-      serviceFee = 1.50; // $1.50 service fee for transactions under $25
-    } else if (amount < 50) {
-      // Small transactions: Moderate service fee
-      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
-      serviceFee = 0.75; // $0.75 service fee for transactions $25-$49
-    } else {
-      // Standard transactions: Normal fee structure
-      convenienceFee = Math.round((amount * 0.032 + 0.35) * 100) / 100; // 3.2% + $0.35
-      serviceFee = 0; // No additional service fee for $50+
-    }
-    
-    // Platform fee on original amount
-    const platformFee = Math.round(amount * this.PLATFORM_BASE_FEE * 100) / 100;
-    
-    const totalFee = convenienceFee + serviceFee + platformFee;
-    const totalAmount = amount + totalFee;
-    const netAmount = totalAmount - processingFee;
-    
-    return {
-      originalAmount: amount,
-      processingFee,
-      convenienceFee: convenienceFee + serviceFee, // Combined for display
-      platformFee,
-      totalFee,
-      totalAmount,
-      netAmount,
-      paymentMethod: 'paypal'
-    };
-  }
+
   
   /**
    * Calculate fees for XRP transactions with enhanced tiered structure
@@ -595,23 +556,7 @@ export class FeeCalculator {
     };
   }
   
-  /**
-   * Calculate fees for P2P transfers (reduced fees for platform loyalty)
-   */
-  static calculateP2PFees(amount: number, paymentMethod: string): FeeCalculation {
-    switch (paymentMethod) {
-      case 'stripe':
-        return this.calculateStripeFees(amount);
-      case 'paypal':
-        return this.calculatePayPalFees(amount);
-      case 'xrp':
-        return this.calculateXRPFees(amount);
-      case 'crypto':
-        return this.calculateCryptoFees(amount);
-      default:
-        throw new Error(`Unsupported payment method: ${paymentMethod}`);
-    }
-  }
+  // Removed duplicate - using main implementation above
   
   /**
    * Calculate fees for agent marketplace transactions

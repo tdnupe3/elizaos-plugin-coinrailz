@@ -84,9 +84,7 @@ import {
 // XRP services now use lazy loading for consistency
 
 // Import signup flow demo directly
-import SignupFlowDemo from "@/pages/signup-flow-demo";
-import LegalDisclaimers from "@/pages/legal-disclaimers";
-import ContactUs from "@/pages/contact-us";
+// Removed static imports to prevent dynamic import conflicts
 import WalletManagement from "@/pages/wallet-management";
 import SignUp from "@/pages/signup";
 import SignIn from "@/pages/signin";
@@ -102,10 +100,13 @@ const ReferralDashboard = lazy(() => import("@/pages/referral-dashboard"));
 const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
 const AIAgents = lazy(() => import("@/pages/ai-agents"));
 
-const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));
-const AgentDashboard = lazy(() => import("@/pages/agent-dashboard"));
+const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
+const OrderManagement = lazy(() => import("@/pages/order-management"));
+const SignupFlowDemo = lazy(() => import("@/pages/signup-flow-demo"));
+const LegalDisclaimers = lazy(() => import("@/pages/legal-disclaimers"));
+const ContactUs = lazy(() => import("@/pages/contact-us"));
 
-const MarketplaceDashboard = lazy(() => import("@/pages/marketplace-dashboard"));
+const AgentDashboard = lazy(() => import("@/pages/agent-dashboard"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const AgentOrderManagement = lazy(() => import("@/pages/agent-order-management"));
 const CustomerOrderDashboard = lazy(() => import("@/pages/customer-order-dashboard"));
@@ -363,9 +364,15 @@ function Router() {
 
       <Route path="/signup" component={SignUp} />
       <Route path="/signin" component={SignIn} />
-      <Route path="/signup-flow" component={SignupFlowDemo} />
-      <Route path="/legal-disclaimers" component={LegalDisclaimers} />
-      <Route path="/contact-us" component={ContactUs} />
+      <Route path="/signup-flow">
+        {() => <LazyLoadWrapper><SignupFlowDemo /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/legal-disclaimers">
+        {() => <LazyLoadWrapper><LegalDisclaimers /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/contact-us">
+        {() => <LazyLoadWrapper><ContactUs /></LazyLoadWrapper>}
+      </Route>
 
       {/* Legal pages - accessible to all users */}
       <Route path="/terms-of-service">

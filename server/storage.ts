@@ -996,10 +996,7 @@ export class DatabaseStorage implements IStorage {
     return order;
   }
 
-  async createAgentTransaction(transactionData: any): Promise<any> {
-    const [transaction] = await db.insert(agentTransactions).values(transactionData).returning();
-    return transaction;
-  }
+  // Removed duplicate - proper implementation exists below
 
   async getServiceOrder(orderId: string): Promise<any> {
     const [order] = await db.select().from(agentServiceOrders).where(eq(agentServiceOrders.orderId, orderId));
@@ -1223,11 +1220,7 @@ export class DatabaseStorage implements IStorage {
     return intent;
   }
 
-  async updatePaymentIntentStatus(intentId: string, status: string): Promise<void> {
-    await db.update(fundingTransactions)
-      .set({ status })
-      .where(eq(fundingTransactions.id, parseInt(intentId)));
-  }
+  // Removed duplicate - proper implementation exists below
 
   // === ESCROW AND COMMISSION METHODS ===
   async updateServiceOrder(orderId: string, updates: any): Promise<any> {
@@ -1392,7 +1385,7 @@ export class DatabaseStorage implements IStorage {
 
   async createAgentTransaction(transaction: any): Promise<any> {
     const [txn] = await db.insert(agentTransactions).values({
-      agentId: transaction.agentId,
+      initiatorAgentId: transaction.agentId || transaction.initiatorAgentId,
       transactionId: transaction.transactionId,
       amount: transaction.amount,
       currency: transaction.currency,
@@ -1409,7 +1402,7 @@ export class DatabaseStorage implements IStorage {
   async getAgentTransactions(agentId: string): Promise<any[]> {
     return await db.select()
       .from(agentTransactions)
-      .where(eq(agentTransactions.agentId, agentId))
+      .where(eq(agentTransactions.initiatorAgentId, agentId))
       .orderBy(desc(agentTransactions.createdAt));
   }
 

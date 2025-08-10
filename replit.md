@@ -7,7 +7,7 @@ Coin Railz is a comprehensive fintech platform offering cross-platform P2P payme
 **🚀 BACKEND RESTORATION & PLATFORM CLARIFICATION COMPLETED:**
 - **Authentication System:** Uses Replit OAuth - users sign in with Replit accounts (NOT Coinbase accounts)
 - **Coinbase CDP Integration:** Server-side enterprise tools using our CDP API keys - users access through our UI after Replit login
-- **Circle USDC Integration:** Server-side programmable wallets using our Circle API - no separate Circle account needed
+- **Circle Integration Status:** Alliance program member - programmable wallets available but no business account approval for on/off ramps yet
 - **AI Marketplace:** 10 real agents from database with full functionality working
 - **DEX Aggregator:** Real-time quotes from 5 major DEXs with accurate pricing (ETH→USDC tested)
 - **XRP Ecosystem:** Live pricing from CoinGecko API with real market data ($2.97 current rate)

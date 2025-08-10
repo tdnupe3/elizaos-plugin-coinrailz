@@ -83,10 +83,10 @@ export default function USDCBuy() {
       // Simulate USDC purchase process
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // In production, this would integrate with Circle's API
-      // to purchase USDC using the selected payment method
+      // Note: Circle business account pending approval
+      // Currently showing demo functionality
       
-      alert(`Successfully purchased $${amount} USDC!`);
+      alert(`Demo: USDC purchase simulation complete. Circle business account approval required for live transactions.`);
       setAmount("");
     } catch (error) {
       console.error('Purchase failed:', error);

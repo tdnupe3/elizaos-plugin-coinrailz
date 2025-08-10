@@ -339,55 +339,9 @@ setTimeout(async () => {
 }, 3000); // Start after 3 seconds to ensure all services are initialized
 app.set('passport-configured', true);
 
-// CRITICAL: Add OAuth login endpoint BEFORE any other route registration
-// This prevents 404 handlers from intercepting the OAuth login endpoint
-app.get('/api/login', (req, res) => {
-  // Check if we have passport configured
-  if (!req.app.get('passport-configured')) {
-    return res.status(500).json({
-      error: 'Authentication not configured',
-      message: 'OAuth system not initialized'
-    });
-  }
-  
-  // Redirect to OAuth provider based on hostname
-  const hostname = req.hostname;
-  console.log(`OAuth login requested for hostname: ${hostname}`);
-  
-  // For development/testing, redirect to OAuth callback simulation
-  if (hostname === 'localhost' || hostname.includes('replit.dev')) {
-    // In a real OAuth flow, this would redirect to the OAuth provider
-    // For now, return a structured response indicating OAuth initiation
-    return res.json({
-      success: true,
-      message: 'OAuth login initiated',
-      redirectUrl: `/api/callback?code=test_auth_code&state=test_state`,
-      hostname: hostname
-    });
-  }
-  
-  // For production, redirect to actual OAuth provider
-  res.redirect(`/api/auth/oauth/start?hostname=${hostname}`);
-});
+// OAuth login endpoint handled by replitAuth.ts - removing conflicting endpoint
 
-// OAuth callback handler
-app.get('/api/callback', (req, res) => {
-  const { code, state } = req.query;
-  
-  if (!code) {
-    return res.status(400).json({
-      error: 'Authorization code missing',
-      message: 'OAuth callback failed - no authorization code'
-    });
-  }
-  
-  // In a real implementation, this would exchange the code for tokens
-  // For now, simulate successful authentication
-  console.log(`OAuth callback received: code=${code}, state=${state}`);
-  
-  // Redirect to dashboard on successful authentication
-  res.redirect('/dashboard?auth=success');
-});
+// OAuth callback handler removed - handled by replitAuth.ts
 
 // Register referral routes BEFORE main routes to prevent 404 interception
 app.get('/api/referrals/test', (req, res) => {

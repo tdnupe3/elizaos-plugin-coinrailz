@@ -1274,39 +1274,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/api/login');
   });
 
-  // OAuth login endpoint (redirect to authentication)
-  app.get('/api/login', (req, res, next) => {
-    // Determine strategy based on hostname
-    const strategyName = `replitauth:${req.hostname}`;
-    console.log(`OAuth login requested - using strategy: ${strategyName}`);
-    
-    // Check if we have passport configured
-    if (!req.app.get('passport-configured')) {
-      return res.status(500).json({
-        error: 'Authentication not configured',
-        message: 'OAuth system not initialized'
-      });
-    }
-    
-    // Redirect to OAuth provider
-    res.redirect(302, `/api/auth/oauth/start?hostname=${req.hostname}`);
-  });
+  // OAuth login endpoint handled by replitAuth.ts - removing conflicting route
 
-  // OAuth callback handler
-  app.get('/api/callback', (req, res) => {
-    // Handle OAuth callback
-    const { code, state } = req.query;
-    
-    if (!code) {
-      return res.status(400).json({
-        error: 'Authorization code missing',
-        message: 'OAuth callback failed - no authorization code'
-      });
-    }
-    
-    // Process OAuth callback and redirect to home page
-    res.redirect('/?auth=success');
-  });
+  // OAuth callback handler handled by replitAuth.ts - removing conflicting route
 
   // Authentication status endpoint
   app.get('/api/auth/status', async (req, res) => {

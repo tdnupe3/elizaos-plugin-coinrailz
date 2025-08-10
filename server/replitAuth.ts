@@ -122,6 +122,8 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    console.log(`OAuth login requested for hostname: ${req.hostname}`);
+    
     // Always use localhost strategy for local testing, actual domain for production
     const strategyName = `replitauth:${req.hostname}`;
     console.log(`Using authentication strategy: ${strategyName} for hostname: ${req.hostname}`);
@@ -135,7 +137,7 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", (req, res, next) => {
     // Use consistent strategy name matching the login endpoint
     const strategyName = `replitauth:${req.hostname}`;
-    console.log(`Using callback strategy: ${strategyName} for hostname: ${req.hostname}`);
+    console.log(`OAuth callback received for strategy: ${strategyName}, hostname: ${req.hostname}`);
       
     passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/",

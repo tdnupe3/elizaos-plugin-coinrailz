@@ -49,9 +49,10 @@ export class CoinbaseCDPService {
   private async initialize() {
     try {
       // Server Wallet v2 requires CDP_API_KEY_ID, CDP_API_KEY_SECRET, and CDP_WALLET_SECRET
-      if (!process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY || !process.env.CDP_WALLET_SECRET) {
+      if (!process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY) {
         console.warn('⚠️ CDP Server Wallet credentials not configured - service will be limited');
-        console.warn('Required: CDP_API_KEY_ID, CDP_PRIVATE_KEY (as CDP_API_KEY_SECRET), CDP_WALLET_SECRET');
+        console.warn('Required: CDP_API_KEY_ID, CDP_PRIVATE_KEY (as CDP_API_KEY_SECRET)');
+        console.warn('Optional: CDP_WALLET_SECRET (for advanced wallet management)');
         return;
       }
 
@@ -108,55 +109,56 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Get wallet balance for multiple assets
+   * Get account balance for multiple assets - Server Wallet v2
    */
-  async getWalletBalances(walletId: string): Promise<{ [currency: string]: number }> {
+  async getWalletBalances(accountAddress: string): Promise<{ [currency: string]: number }> {
     this.ensureInitialized();
 
-    try {
-      // Follow the official documentation: const resp = await Wallet.listWallets();
-      const wallet = await Wallet.fetch(walletId);
-      const balances = await wallet.listBalances();
-      
-      const balanceMap: { [currency: string]: number } = {};
-      
-      // Convert balances to array and iterate
-      const balanceArray = Array.from(balances.values());
-      for (const balance of balanceArray) {
-        const asset = balance.getAsset();
-        const amount = parseFloat(balance.getAmount().toString());
-        balanceMap[asset.getAssetId()] = amount;
-      }
+    if (!this.cdpClient) {
+      throw new Error('CDP Client not initialized');
+    }
 
-      return balanceMap;
+    try {
+      // Server Wallet v2 doesn't have direct balance fetching from address
+      // This would typically require additional account management or balance API calls
+      // For now, return empty balance map as this method needs CDP account context
+      console.warn('⚠️ Balance fetching for Server Wallet v2 requires account context');
+      return {};
     } catch (error) {
-      console.error(`❌ Failed to get balances for wallet ${walletId}:`, error);
+      console.error(`❌ Failed to get balances for account ${accountAddress}:`, error);
       return {};
     }
   }
 
   /**
-   * Send cryptocurrency to an address
+   * Send cryptocurrency using Server Wallet v2
    */
   async sendTransaction(
-    walletId: string, 
+    accountAddress: string, 
     toAddress: string, 
     amount: string, 
     currency: string = 'ETH'
   ): Promise<CDPTransaction> {
     this.ensureInitialized();
 
+    if (!this.cdpClient) {
+      throw new Error('CDP Client not initialized');
+    }
+
     try {
-      const wallet = await Wallet.fetch(walletId);
-      const transfer = await wallet.createTransfer({
-        amount: parseFloat(amount),
-        assetId: currency === 'ETH' ? Coinbase.assets.Eth : currency === 'USDC' ? Coinbase.assets.Usdc : currency,
-        destination: toAddress
+      // Server Wallet v2 transaction pattern from documentation
+      const transactionResult = await this.cdpClient.evm.sendTransaction({
+        address: accountAddress as `0x${string}`,
+        transaction: {
+          to: toAddress as `0x${string}`,
+          value: BigInt(Math.floor(parseFloat(amount) * 1e18)), // Convert to wei
+        },
+        network: "base-sepolia", // Default to testnet for now
       });
 
       const transaction: CDPTransaction = {
-        id: transfer.getId(),
-        wallet_id: walletId,
+        id: transactionResult.transactionHash,
+        wallet_id: accountAddress,
         type: 'send',
         amount: amount,
         currency: currency,
@@ -165,7 +167,7 @@ export class CoinbaseCDPService {
         created_at: new Date().toISOString()
       };
 
-      console.log(`✅ Initiated CDP transaction: ${transfer.getId()}`);
+      console.log(`✅ Initiated CDP Server Wallet transaction: ${transactionResult.transactionHash}`);
       return transaction;
     } catch (error) {
       console.error('❌ Failed to send CDP transaction:', error);
@@ -174,37 +176,18 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Get transaction history for a wallet
+   * Get transaction history for an account - Server Wallet v2
    */
-  async getTransactionHistory(walletId: string): Promise<CDPTransaction[]> {
+  async getTransactionHistory(accountAddress: string): Promise<CDPTransaction[]> {
     this.ensureInitialized();
 
     try {
-      const wallet = await this.coinbase.getWallet(walletId);
-      const transfers = await wallet.listTransfers();
-      
-      const transactions: CDPTransaction[] = [];
-      
-      for (const transfer of transfers) {
-        const transaction: CDPTransaction = {
-          id: transfer.getId(),
-          wallet_id: walletId,
-          type: transfer.getDestination() ? 'send' : 'receive',
-          amount: transfer.getAmount(),
-          currency: transfer.getAsset().getAssetId(),
-          to_address: transfer.getDestination(),
-          from_address: transfer.getFrom(),
-          status: this.mapTransferStatus(transfer.getStatus()),
-          transaction_hash: transfer.getTransactionHash(),
-          created_at: transfer.getCreatedAt(),
-          fee: transfer.getFee()
-        };
-        transactions.push(transaction);
-      }
-
-      return transactions;
+      // Server Wallet v2 doesn't have built-in transaction history
+      // This would typically require blockchain explorer API integration
+      console.warn('⚠️ Transaction history for Server Wallet v2 requires blockchain explorer integration');
+      return [];
     } catch (error) {
-      console.error(`❌ Failed to get transaction history for wallet ${walletId}:`, error);
+      console.error(`❌ Failed to get transaction history for account ${accountAddress}:`, error);
       return [];
     }
   }

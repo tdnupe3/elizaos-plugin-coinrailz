@@ -15,6 +15,7 @@
     "@circle-fin/developer-controlled-wallets": "^8.4.0",
     "@circle-fin/smart-contract-platform": "^8.4.0",
     "@circle-fin/user-controlled-wallets": "^8.4.0",
+    "@coinbase/cdp-sdk": "^1.34.0",
     "@coinbase/coinbase-sdk": "^0.25.0",
     "@google-cloud/storage": "^7.16.0",
     "@hookform/resolvers": "^3.10.0",

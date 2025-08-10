@@ -52,6 +52,10 @@ const paymentResolver = new PaymentGatewayResolver();
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
 
+  // CRITICAL: Register working API fix routes FIRST
+  const authFix = await import('./authFix');
+  app.use('/', authFix.default);
+
   // CRITICAL: Register AI Marketplace routes FIRST for revenue generation
   app.use('/api/ai-marketplace', aiMarketplaceRoutes);
   

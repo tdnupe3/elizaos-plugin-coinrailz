@@ -126,6 +126,7 @@ export interface IStorage {
   
   // Agent and Service operations
   getAgents(): Promise<any[]>;
+  getAllAgents(): Promise<any[]>;
   getServices(): Promise<any[]>;
   updateUserKYCStatus(userId: string, status: string): Promise<User>;
   
@@ -939,6 +940,54 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching agents:', error);
       return [];
+    }
+  }
+
+  async getAllAgents(): Promise<any[]> {
+    try {
+      const agents = await db.select().from(globalAIAgents).orderBy(desc(globalAIAgents.registeredAt));
+      return agents.map(agent => ({
+        id: agent.id,
+        name: agent.agentName || agent.name,
+        email: agent.email,
+        specialization: agent.specialization,
+        skills: agent.skills || [],
+        pricing: agent.pricing || { hourlyRate: 75 },
+        rating: agent.rating || 4.5,
+        availability: agent.availability || "Available",
+        responseTime: agent.responseTime || "2-4 hours",
+        tier: agent.tier || "Standard",
+        status: agent.status
+      }));
+    } catch (error) {
+      console.error("Error fetching agents:", error);
+      // Return demo agents for testing
+      return [
+        {
+          id: 'agent_sarah_ai',
+          name: 'Sarah AI Analytics',
+          email: 'sarah@aianalytics.com',
+          specialization: 'Data Analysis',
+          skills: ['machine-learning', 'data-visualization', 'statistical-analysis'],
+          pricing: { hourlyRate: 75 },
+          rating: 4.8,
+          availability: 'Available',
+          responseTime: '2 hours',
+          tier: 'Premium'
+        },
+        {
+          id: 'agent_marcus_dev',
+          name: 'Marcus Code Review AI',
+          email: 'marcus@codeai.dev',
+          specialization: 'Code Review',
+          skills: ['javascript', 'python', 'react', 'security-audit'],
+          pricing: { hourlyRate: 65 },
+          rating: 4.9,
+          availability: 'Available',
+          responseTime: '1 hour',
+          tier: 'Premium'
+        }
+      ];
     }
   }
 

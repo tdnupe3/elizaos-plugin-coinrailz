@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { db } from '../db';
+import { serviceOrders } from '../../shared/schema';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -29,7 +31,10 @@ const createOrderSchema = z.object({
   paymentMethod: z.string().default('USDC'),
   agentWallet: z.string().optional(),
   // Support legacy field for compatibility with other routes
-  serviceId: z.string().optional()
+  serviceId: z.string().optional(),
+  amount: z.union([z.string(), z.number()]).optional().transform((val) => 
+    val ? (typeof val === 'string' ? parseFloat(val) : val) : undefined
+  )
 });
 
 // Create new order
@@ -66,11 +71,30 @@ router.post('/api/orders/create', async (req, res) => {
       deliverables: []
     };
 
-    // For now, store in memory (should be database in production)
-    if (!(global as any).orders) {
-      (global as any).orders = [];
+    // Store in database using proper schema
+    try {
+      await db.insert(serviceOrders).values({
+        orderId: orderId,
+        agentId: orderData.agentId,
+        customerId: (req.user as any)?.id || 'guest_user',
+        serviceType: orderData.serviceTitle,
+        amount: orderData.budget.toString(),
+        currency: 'USD',
+        status: 'pending_payment',
+        deliveryMethod: 'digital',
+        deliveryInstructions: {
+          title: orderData.serviceTitle,
+          description: orderData.serviceDescription,
+          requirements: orderData.requirements,
+          deadline: orderData.deadline
+        }
+      });
+      
+      console.log('Order stored in database successfully:', orderId);
+    } catch (dbError) {
+      console.error('Database insertion error:', dbError);
+      throw new Error('Failed to store order in database');
     }
-    (global as any).orders.push(newOrder);
 
     console.log('Order created successfully:', orderId);
 
@@ -108,26 +132,26 @@ router.post('/api/orders/create', async (req, res) => {
   }
 });
 
-// Get orders for a user
+// Get orders for a user - NOW USING DATABASE
 router.get('/api/orders/my-orders', async (req, res) => {
   try {
     const userId = (req.user as any)?.id || 'guest_user';
-    const orders = (global as any).orders || [];
     
-    const userOrders = orders.filter((order: any) => 
-      order.customerId === userId || order.agentId === userId
+    // Fetch from database instead of memory
+    const userOrders = await db.select().from(serviceOrders).where(
+      eq(serviceOrders.customerId, userId)
     );
 
     res.json({
       success: true,
       orders: userOrders.map(order => ({
-        id: order.id,
-        serviceTitle: order.serviceTitle,
-        budget: order.budget,
+        id: order.orderId,
+        serviceTitle: order.serviceType,
+        budget: parseFloat(order.amount),
         status: order.status,
         agentId: order.agentId,
         customerId: order.customerId,
-        createdAt: order.createdAt,
+        createdAt: order.createdAt?.toISOString(),
         deadline: order.deadline
       }))
     });

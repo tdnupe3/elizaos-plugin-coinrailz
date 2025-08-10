@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { globalAIAgents } from '../../shared/schema';
 import { nanoid } from 'nanoid';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -79,6 +80,20 @@ router.post('/api/free-agent-registration', async (req, res) => {
       hasAutoUpgraded: false,
       isHumanRegistered: true
     };
+
+    // Check if wallet address already exists
+    const existingAgent = await db.select()
+      .from(globalAIAgents)
+      .where(eq(globalAIAgents.primaryWalletAddress, agentData.walletAddress))
+      .limit(1);
+
+    if (existingAgent.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Wallet address already registered',
+        message: 'This wallet address is already associated with another agent. Please use a different wallet address.'
+      });
+    }
 
     // Insert into database
     const [insertedAgent] = await db

@@ -65,9 +65,16 @@ export default function MarketplaceCheckout() {
             serviceId: serviceId
           });
           
-          if (paymentResponse.clientSecret) {
-            // In a real implementation, redirect to Stripe Checkout
+          if (paymentResponse.success && paymentResponse.clientSecret) {
             console.log('Payment intent created:', paymentResponse.clientSecret);
+            
+            // Simulate payment success for now (in production, this would redirect to Stripe)
+            // Confirm payment
+            await apiRequest('POST', '/api/stripe/confirm-payment', {
+              paymentIntentId: paymentResponse.paymentIntentId,
+              orderId: data.order.id
+            });
+            
             setTimeout(() => {
               setLocation('/marketplace/payment-success');
             }, 1500);

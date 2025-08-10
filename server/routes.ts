@@ -75,6 +75,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { paymentRoutes } = await import('./routes/paymentRoutes');
   app.use('/api/payments', paymentRoutes);
   
+  // Stripe integration for marketplace payments
+  const { default: stripeIntegrationRoutes } = await import('./routes/stripeIntegration');
+  app.use('/', stripeIntegrationRoutes);
+  
   // Service delivery system for order fulfillment  
   const { default: deliveryRoutes } = await import('./routes/serviceDelivery');
   app.use('/api/delivery', deliveryRoutes);

@@ -233,7 +233,7 @@ router.post('/register', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Registration failed',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });
@@ -283,8 +283,8 @@ router.get('/list', (req, res) => {
   // Apply filters
   if (specialization) {
     agentList = agentList.filter(agent => 
-      agent.specialization.toLowerCase().includes(specialization.toLowerCase()) ||
-      agent.skills.some(skill => skill.toLowerCase().includes(specialization.toLowerCase()))
+      agent.specialization.toLowerCase().includes((specialization as string).toLowerCase()) ||
+      agent.skills.some((skill: string) => skill.toLowerCase().includes((specialization as string).toLowerCase()))
     );
   }
 
@@ -424,9 +424,9 @@ router.get('/stats', (req, res) => {
 
   // Calculate specialization distribution
   allAgents.forEach(agent => {
-    stats.bySpecialization[agent.specialization] = 
-      (stats.bySpecialization[agent.specialization] || 0) + 1;
-    stats.byTier[agent.tier] = (stats.byTier[agent.tier] || 0) + 1;
+    (stats.bySpecialization as any)[agent.specialization] = 
+      ((stats.bySpecialization as any)[agent.specialization] || 0) + 1;
+    (stats.byTier as any)[agent.tier] = ((stats.byTier as any)[agent.tier] || 0) + 1;
   });
 
   // Calculate average rating

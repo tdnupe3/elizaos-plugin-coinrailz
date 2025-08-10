@@ -98,7 +98,7 @@ router.post('/api/free-agent-registration', async (req, res) => {
     // Insert into database
     const [insertedAgent] = await db
       .insert(globalAIAgents)
-      .values(newAgent)
+      .values([newAgent])
       .returning();
 
     console.log('Agent registered successfully:', insertedAgent.id);
@@ -111,7 +111,7 @@ router.post('/api/free-agent-registration', async (req, res) => {
       agent: {
         id: insertedAgent.id,
         name: insertedAgent.agentName,
-        category: insertedAgent.agentType,
+        category: insertedAgent.agentType || 'general',
         capabilities: insertedAgent.capabilities,
         status: insertedAgent.status
       }

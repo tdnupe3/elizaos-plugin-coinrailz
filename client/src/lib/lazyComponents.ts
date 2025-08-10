@@ -3,6 +3,8 @@ import { lazy } from 'react';
 // Lazy load heavy components to reduce initial bundle size
 export const PortfolioAnalytics = lazy(() => import('@/pages/portfolio-analytics'));
 export const CDPWalletPage = lazy(() => import('@/pages/CDPWalletPage'));
+export const EnhancedCDPWallet = lazy(() => import('@/pages/EnhancedCDPWallet'));
+export const OnrampPreparation = lazy(() => import('@/pages/OnrampPreparation'));
 export const SettingsPage = lazy(() => import('@/pages/settings'));
 export const TransactionHistory = lazy(() => import('@/pages/transaction-history'));
 export const CryptoWallet = lazy(() => import('@/pages/crypto-wallet'));

@@ -174,12 +174,19 @@ export default function BuySellPage() {
                     </div>
                   )}
 
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    disabled={!selectedCrypto || !amount || !paymentMethod}
-                  >
-                    Buy {selectedCrypto || 'Crypto'}
-                  </Button>
+                  <div className="relative">
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      disabled={true}
+                    >
+                      Buy {selectedCrypto || 'Crypto'}
+                    </Button>
+                    <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center">
+                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md text-sm font-medium border border-yellow-300">
+                        Coming Soon
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -274,12 +281,19 @@ export default function BuySellPage() {
                     </div>
                   )}
 
-                  <Button 
-                    className="w-full bg-red-600 hover:bg-red-700"
-                    disabled={!selectedCrypto || !amount || !paymentMethod}
-                  >
-                    Sell {selectedCrypto || 'Crypto'}
-                  </Button>
+                  <div className="relative">
+                    <Button 
+                      className="w-full bg-red-600 hover:bg-red-700"
+                      disabled={true}
+                    >
+                      Sell {selectedCrypto || 'Crypto'}
+                    </Button>
+                    <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center">
+                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md text-sm font-medium border border-yellow-300">
+                        Coming Soon
+                      </span>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

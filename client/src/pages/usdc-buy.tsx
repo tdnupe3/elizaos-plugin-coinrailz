@@ -72,28 +72,8 @@ export default function USDCBuy() {
   ];
 
   const handlePurchase = async () => {
-    if (!amount || parseFloat(amount) < 10) {
-      alert("Minimum purchase amount is $10");
-      return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
-      // Simulate USDC purchase process
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Note: Circle business account pending approval
-      // Currently showing demo functionality
-      
-      alert(`Demo: USDC purchase simulation complete. Circle business account approval required for live transactions.`);
-      setAmount("");
-    } catch (error) {
-      console.error('Purchase failed:', error);
-      alert("Purchase failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
+    // Feature coming soon
+    alert("USDC purchasing coming soon!");
   };
 
   const calculateFees = (amount: string, method: string) => {
@@ -232,21 +212,22 @@ export default function USDCBuy() {
                 )}
 
                 {/* Purchase Button */}
-                <Button 
-                  onClick={handlePurchase}
-                  disabled={!amount || parseFloat(amount) < 10 || isProcessing}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isProcessing ? (
-                    "Processing..."
-                  ) : (
-                    <>
-                      Purchase ${amount || "0"} USDC
-                      <ArrowRight className="h-4 w-4 ml-2" />
-                    </>
-                  )}
-                </Button>
+                <div className="relative">
+                  <Button 
+                    onClick={handlePurchase}
+                    disabled={true}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Purchase ${amount || "0"} USDC
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                  <div className="absolute inset-0 bg-black/50 rounded-md flex items-center justify-center">
+                    <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                      Coming Soon
+                    </Badge>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

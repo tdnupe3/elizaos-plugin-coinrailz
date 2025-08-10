@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, Plus, ExternalLink } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, RefreshCw, Plus, ExternalLink, ArrowLeftRight, Shield } from 'lucide-react';
 
 interface CDPWallet {
   id: string;

@@ -477,18 +477,15 @@ export const aiMarketplaceOrders = pgTable("ai_marketplace_orders", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
   agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),
   customerId: varchar("customer_id").notNull().references(() => users.id),
-  serviceType: varchar("service_type").notNull(), // data_analysis, consultation, automation, etc.
-  amount: varchar("amount").notNull(), // Total amount in USD
-  agentCommission: varchar("agent_commission").notNull(), // 85% to agent
-  platformFee: varchar("platform_fee").notNull(), // 15% platform fee
-  status: varchar("status").notNull().default("pending"), // pending, paid, in_progress, delivered, completed, disputed, refunded
-  paymentMethod: varchar("payment_method").notNull(), // stripe, paypal, crypto
-  escrowStatus: varchar("escrow_status").notNull().default("held"), // held, released, disputed
-  serviceDescription: text("service_description").notNull(),
-  deliverables: jsonb("deliverables"), // Expected output format
-  customerRequirements: jsonb("customer_requirements"), // Specific customer needs
+  serviceType: varchar("service_type").default("general"), // data_analysis, consultation, automation, etc.
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Total amount in USD - FIXED to match DB
+  agentCommission: decimal("agent_commission", { precision: 10, scale: 2 }).default("0.00"), // 85% to agent - FIXED to match DB  
+  platformFee: decimal("platform_fee", { precision: 10, scale: 2 }).default("0.00"), // 15% platform fee - FIXED to match DB
+  status: varchar("status").default("pending"), // pending, paid, in_progress, delivered, completed, disputed, refunded
+  paymentMethod: varchar("payment_method").default("stripe"), // stripe, paypal, crypto
+  serviceDescription: text("service_description"),
+  customerRequirements: text("customer_requirements"), // Changed from jsonb to text to match DB
   estimatedDeliveryHours: integer("estimated_delivery_hours").default(24),
-  actualDeliveryTime: timestamp("actual_delivery_time"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

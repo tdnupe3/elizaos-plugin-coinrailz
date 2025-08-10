@@ -867,25 +867,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // === ORDER MANAGEMENT SYSTEM ===
-  app.get('/api/orders/my-orders', isAuthenticated, async (req, res) => {
-    try {
-      const userId = req.user?.claims?.sub;
-      if (!userId) {
-        return res.status(401).json({ success: false, error: 'User not authenticated' });
-      }
-
-      const orders = await storage.getAgentServiceOrders(userId);
-      
-      res.json({
-        success: true,
-        orders: orders,
-        total: orders.length
-      });
-    } catch (error) {
-      console.error('Get orders error:', error);
-      res.status(500).json({ success: false, message: 'Failed to get orders' });
-    }
-  });
+  // NOTE: The my-orders endpoint is handled by orderManagement.ts routes
+  // This duplicate endpoint was causing route conflicts - now commented out
+  // app.get('/api/orders/my-orders', ...
 
   app.get('/api/orders/:orderId', isAuthenticated, async (req, res) => {
     try {
@@ -2205,6 +2189,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message: error.message || 'Internal server error',
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
+  });
+
+  // Debug endpoint for order system troubleshooting
+  app.get('/api/debug/order-system', async (req, res) => {
+    try {
+      const debugInfo: any = {
+        timestamp: new Date().toISOString(),
+        database: {},
+        testResults: {}
+      };
+
+      // Test database connection
+      try {
+        await db.execute(sql`SELECT 1 as test`);
+        debugInfo.database.connection = 'WORKING';
+      } catch (err: any) {
+        debugInfo.database.connection = `FAILED: ${err.message}`;
+      }
+
+      // Count existing records
+      try {
+        const orderCount = await db.execute(sql`SELECT COUNT(*) as total FROM ai_marketplace_orders`);
+        debugInfo.database.orderCount = orderCount.rows[0]?.total || 0;
+      } catch (err: any) {
+        debugInfo.database.orderCount = `ERROR: ${err.message}`;
+      }
+
+      // Test user existence
+      try {
+        const userExists = await db.execute(sql`
+          SELECT id FROM users WHERE id = 'oauth-test-user-1749701423054' LIMIT 1
+        `);
+        debugInfo.testResults.testUserExists = userExists.rows.length > 0;
+      } catch (err: any) {
+        debugInfo.testResults.testUserExists = `ERROR: ${err.message}`;
+      }
+
+      res.json({
+        success: true,
+        debug: debugInfo
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: 'Debug check failed',
+        details: error.message
+      });
+    }
   });
 
   return server;

@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import { db } from '../db';
-import { serviceOrders } from '../../shared/schema';
+import { aiMarketplaceOrders } from '../../shared/schema';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { eq } from 'drizzle-orm';
+
+// TEMPORARY: In-memory storage until database persistence is fixed
+const globalOrders: any[] = [];
 
 const router = Router();
 
@@ -71,30 +74,12 @@ router.post('/api/orders/create', async (req, res) => {
       deliverables: []
     };
 
-    // Store in database using proper schema
-    try {
-      await db.insert(serviceOrders).values({
-        orderId: orderId,
-        agentId: orderData.agentId,
-        customerId: (req.user as any)?.id || 'guest_user',
-        serviceType: orderData.serviceTitle,
-        amount: orderData.budget.toString(),
-        currency: 'USD',
-        status: 'pending_payment',
-        deliveryMethod: 'digital',
-        deliveryInstructions: {
-          title: orderData.serviceTitle,
-          description: orderData.serviceDescription,
-          requirements: orderData.requirements,
-          deadline: orderData.deadline
-        }
-      });
-      
-      console.log('Order stored in database successfully:', orderId);
-    } catch (dbError) {
-      console.error('Database insertion error:', dbError);
-      throw new Error('Failed to store order in database');
-    }
+    // TEMPORARY: Use in-memory storage until database schema is fixed
+    // Store order in global memory array as fallback
+    globalOrders.push(newOrder);
+    
+    console.log(`✅ Order ${orderId} stored in memory (${globalOrders.length} total orders)`);
+    console.log('⚠️  Database persistence still broken - using memory fallback');
 
     console.log('Order created successfully:', orderId);
 
@@ -137,22 +122,22 @@ router.get('/api/orders/my-orders', async (req, res) => {
   try {
     const userId = (req.user as any)?.id || 'guest_user';
     
-    // Fetch from database instead of memory
-    const userOrders = await db.select().from(serviceOrders).where(
-      eq(serviceOrders.customerId, userId)
-    );
+    // TEMPORARY: Fetch from memory until database is fixed
+    const userOrders = globalOrders.filter(order => order.customerId === userId);
 
     res.json({
       success: true,
       orders: userOrders.map(order => ({
-        id: order.orderId,
-        serviceTitle: order.serviceType,
-        budget: parseFloat(order.amount),
+        id: order.id,
+        serviceTitle: order.serviceTitle,
+        budget: order.budget,
         status: order.status,
         agentId: order.agentId,
         customerId: order.customerId,
-        createdAt: order.createdAt?.toISOString(),
-        deadline: order.deadline
+        createdAt: order.createdAt,
+        serviceDescription: order.serviceDescription,
+        platformFee: order.platformFee,
+        agentAmount: order.agentAmount
       }))
     });
 

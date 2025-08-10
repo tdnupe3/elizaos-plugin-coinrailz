@@ -63,9 +63,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { default: publicMarketplaceRoutes } = await import('./routes/publicMarketplace');
   app.use('/', publicMarketplaceRoutes);
   
+  // DIRECT ORDER ENDPOINT TEST - Bypass router registration issues
+  app.post('/api/orders/create-direct', (req, res) => {
+    console.log('🎯 DIRECT ORDER CREATE ENDPOINT HIT!');
+    console.log('Method:', req.method, 'Path:', req.path);
+    console.log('Body:', req.body);
+    
+    res.json({
+      success: true,
+      message: 'Direct order creation endpoint working!',
+      data: req.body,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // ORDER MANAGEMENT - Complete order lifecycle
   const { default: orderRoutes } = await import('./routes/orderManagement');
   app.use('/', orderRoutes);
+  
+  // ISOLATED DATABASE TEST - Debug middleware interference
+  const { default: directDbTest } = await import('./routes/directDbTest');
+  app.use('/', directDbTest);
+  
+  // TEST ROUTE - Confirm routing works
+  const { default: testRoute } = await import('./routes/testRoute');
+  app.use('/', testRoute);
+  
+  // SIMPLE ORDER TEST - Verify order endpoint routing
+  const { default: simpleOrderTest } = await import('./routes/simpleOrderTest');
+  app.use('/', simpleOrderTest);
   
   // Chat system for customer-agent communication
   const { default: messagingRoutes } = await import('./routes/messagingSystem');

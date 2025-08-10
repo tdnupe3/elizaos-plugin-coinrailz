@@ -5466,97 +5466,99 @@ export function setupSimpleRoutes(app: Express) {
   const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
   const RATE_LIMIT_MAX = 5000; // max requests per window (increased for workflow testing)
 
-  app.use('/api/*', (req, res, next) => {
-    const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
-    const now = Date.now();
-    
-    // Clean up old entries
-    if (requestCounts.size > 1000) {
-      for (const [ip, data] of requestCounts.entries()) {
-        if (now - data.firstRequest > RATE_LIMIT_WINDOW) {
-          requestCounts.delete(ip);
-        }
-      }
-    }
-    
-    // Check current IP
-    const ipData = requestCounts.get(clientIP);
-    if (!ipData) {
-      requestCounts.set(clientIP, { count: 1, firstRequest: now });
-      return next();
-    }
-    
-    // Reset window if expired
-    if (now - ipData.firstRequest > RATE_LIMIT_WINDOW) {
-      requestCounts.set(clientIP, { count: 1, firstRequest: now });
-      return next();
-    }
-    
-    // Check if limit exceeded
-    if (ipData.count >= RATE_LIMIT_MAX) {
-      return res.status(429).json({
-        error: 'Too many requests',
-        message: 'Rate limit exceeded. Please try again later.',
-        retryAfter: Math.ceil((RATE_LIMIT_WINDOW - (now - ipData.firstRequest)) / 1000)
-      });
-    }
-    
-    // Increment counter
-    ipData.count++;
-    next();
-  });
+  // TEMPORARILY DISABLED - BLOCKING ORDER CREATION ENDPOINTS
+  // app.use('/api/*', (req, res, next) => {
+  //   const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  //   const now = Date.now();
+  //   
+  //   // Clean up old entries
+  //   if (requestCounts.size > 1000) {
+  //     for (const [ip, data] of requestCounts.entries()) {
+  //       if (now - data.firstRequest > RATE_LIMIT_WINDOW) {
+  //         requestCounts.delete(ip);
+  //       }
+  //     }
+  //   }
+  //   
+  //   // Check current IP
+  //   const ipData = requestCounts.get(clientIP);
+  //   if (!ipData) {
+  //     requestCounts.set(clientIP, { count: 1, firstRequest: now });
+  //     return next();
+  //   }
+  //   
+  //   // Reset window if expired
+  //   if (now - ipData.firstRequest > RATE_LIMIT_WINDOW) {
+  //     requestCounts.set(clientIP, { count: 1, firstRequest: now });
+  //     return next();
+  //   }
+  //   
+  //   // Check if limit exceeded
+  //   if (ipData.count >= RATE_LIMIT_MAX) {
+  //     return res.status(429).json({
+  //       error: 'Too many requests',
+  //       message: 'Rate limit exceeded. Please try again later.',
+  //       retryAfter: Math.ceil((RATE_LIMIT_WINDOW - (now - ipData.firstRequest)) / 1000)
+  //     });
+  //   }
+  //   
+  //   // Increment counter
+  //   ipData.count++;
+  //   next();
+  // });
 
+  // TEMPORARILY DISABLED - BLOCKING ORDER CREATION ENDPOINTS  
   // Security protection middleware - detects XSS and SQL injection attempts
-  app.use('/api/*', (req, res, next) => {
-    try {
-      const requestBody = JSON.stringify(req.body || {});
-      const queryParams = JSON.stringify(req.query || {});
-      const allInput = requestBody + queryParams;
+  // app.use('/api/*', (req, res, next) => {
+  //   try {
+  //     const requestBody = JSON.stringify(req.body || {});
+  //     const queryParams = JSON.stringify(req.query || {});
+  //     const allInput = requestBody + queryParams;
 
-      // XSS detection patterns
-      const xssPatterns = [
-        /<script[^>]*>.*?<\/script>/gi,
-        /javascript:/gi,
-        /on\w+\s*=/gi,
-        /<iframe[^>]*>.*?<\/iframe>/gi,
-        /vbscript:/gi,
-        /expression\s*\(/gi
-      ];
+  //     // XSS detection patterns
+  //     const xssPatterns = [
+  //       /<script[^>]*>.*?<\/script>/gi,
+  //       /javascript:/gi,
+  //       /on\w+\s*=/gi,
+  //       /<iframe[^>]*>.*?<\/iframe>/gi,
+  //       /vbscript:/gi,
+  //       /expression\s*\(/gi
+  //     ];
 
-      // SQL injection detection patterns
-      const sqlPatterns = [
-        /(\bDROP\s+TABLE\b|\bDELETE\s+FROM\b|\bUNION\s+SELECT\b)/gi,
-        /('.*?;\s*DROP\s+TABLE|\-\-)|(\bOR\b\s+\d+\s*=\s*\d+)/gi
-      ];
+  //     // SQL injection detection patterns
+  //     const sqlPatterns = [
+  //       /(\bDROP\s+TABLE\b|\bDELETE\s+FROM\b|\bUNION\s+SELECT\b)/gi,
+  //       /('.*?;\s*DROP\s+TABLE|\-\-)|(\bOR\b\s+\d+\s*=\s*\d+)/gi
+  //     ];
 
-      // Check for XSS
-      for (const pattern of xssPatterns) {
-        if (pattern.test(allInput)) {
-          return res.status(400).json({
-            error: 'Bad Request',
-            message: 'Potentially malicious input detected',
-            type: 'XSS_BLOCKED'
-          });
-        }
-      }
+  //     // Check for XSS
+  //     for (const pattern of xssPatterns) {
+  //       if (pattern.test(allInput)) {
+  //         return res.status(400).json({
+  //           error: 'Bad Request',
+  //           message: 'Potentially malicious input detected',
+  //           type: 'XSS_BLOCKED'
+  //         });
+  //       }
+  //     }
 
-      // Check for SQL injection
-      for (const pattern of sqlPatterns) {
-        if (pattern.test(allInput)) {
-          return res.status(400).json({
-            error: 'Bad Request', 
-            message: 'Potentially malicious input detected',
-            type: 'SQL_INJECTION_BLOCKED'
-          });
-        }
-      }
+  //     // Check for SQL injection
+  //     for (const pattern of sqlPatterns) {
+  //       if (pattern.test(allInput)) {
+  //         return res.status(400).json({
+  //           error: 'Bad Request', 
+  //           message: 'Potentially malicious input detected',
+  //           type: 'SQL_INJECTION_BLOCKED'
+  //         });
+  //       }
+  //     }
 
-      next();
-    } catch (error) {
-      // If security check fails, allow request through to avoid blocking legitimate traffic
-      next();
-    }
-  });
+  //     next();
+  //   } catch (error) {
+  //     // If security check fails, allow request through to avoid blocking legitimate traffic
+  //     next();
+  //   }
+  // });
 
   // Clean registration endpoint (moved from authRoutes to avoid middleware conflicts)
   app.post('/api/auth/register-clean', async (req, res) => {

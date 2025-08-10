@@ -26,69 +26,78 @@ const createOrderSchema = z.object({
   agentId: z.string().min(1, 'Agent ID required'),
   serviceTitle: z.string().min(1, 'Service title required'),
   serviceDescription: z.string().min(5, 'Service description required'),
-  budget: z.union([z.string(), z.number()]).transform((val) => 
-    typeof val === 'string' ? parseFloat(val) : val
-  ),
+  budget: z.union([z.string(), z.number()]).transform((val) => {
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (num < 10) throw new z.ZodError([{code: 'too_small', minimum: 10, type: 'number', inclusive: true, exact: false, message: 'Minimum order value is $10', path: ['budget']}]);
+    return num;
+  }),
   deadline: z.string().optional(),
   requirements: z.string().optional(),
   paymentMethod: z.string().default('USDC'),
   agentWallet: z.string().optional(),
-  // Support legacy field for compatibility with other routes
+  // MAKE serviceId OPTIONAL TO FIX VALIDATION
   serviceId: z.string().optional(),
   amount: z.union([z.string(), z.number()]).optional().transform((val) => 
     val ? (typeof val === 'string' ? parseFloat(val) : val) : undefined
   )
 });
 
-// Create new order
+// Create new order - DATABASE FIRST APPROACH WITH COMPREHENSIVE ERROR HANDLING
 router.post('/api/orders/create', async (req, res) => {
+  // IMMEDIATE RESPONSE TO CONFIRM THIS ROUTE IS BEING HIT
+  console.log(`🚨🚨🚨 ORDERMANAGEMENT ROUTE HIT!!! ${new Date().toISOString()} 🚨🚨🚨`);
+  console.log(`Request method: ${req.method}, path: ${req.path}`);
+  console.log(`Request body:`, req.body);
+  
+  // Immediate log to file system (should survive server restarts)
+  require('fs').writeFileSync('/tmp/route_hit.txt', `ORDERMANAGEMENT ROUTE HIT: ${new Date().toISOString()}\n`);
+  
+  // IMMEDIATE LOG FILE TEST - BEFORE TRY BLOCK
   try {
-    console.log('Order creation request:', req.body);
+    const fs = require('fs');
+    const immediateLog = `${new Date().toISOString()} - ROUTE ENTRY: ${req.path}\n`;
+    fs.appendFileSync('/tmp/route_trace.log', immediateLog);
+    console.log(`📝 ROUTE ENTRY LOGGED`);
+  } catch (e) {
+    console.log(`❌ FAILED TO LOG ROUTE ENTRY:`, e);
+  }
+  
+  try {
+    console.log('🔥 ENTERING TRY BLOCK FOR ORDER CREATION:', req.body);
 
     const orderData = createOrderSchema.parse(req.body);
-    const orderId = `order_${nanoid()}`;
+    const orderId = `order_${Date.now()}_${nanoid(8)}`;
 
     // Calculate platform fee (15% as per business logic)
     const budgetAmount = orderData.budget;
     const platformFee = budgetAmount * 0.15;
     const agentAmount = budgetAmount * 0.85;
-
-    // Create order object 
-    const newOrder = {
-      id: orderId,
-      agentId: orderData.agentId,
-      customerId: (req.user as any)?.id || 'oauth-test-user-1749701423054', // Use authenticated user if available
-      serviceTitle: orderData.serviceTitle,
-      serviceDescription: orderData.serviceDescription,
-      budget: orderData.budget,
-      deadline: orderData.deadline || null,
-      requirements: orderData.requirements || null,
-      paymentMethod: orderData.paymentMethod,
-      agentWallet: orderData.agentWallet || null,
-      status: ORDER_STATUSES.PENDING,
-      platformFee: platformFee.toFixed(2),
-      agentAmount: agentAmount.toFixed(2),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      messages: [],
-      deliverables: []
-    };
-
-    // Store order in memory for immediate response, then attempt database storage
-    globalOrders.push(newOrder);
-    console.log(`🚀 Order ${orderId} created - attempting database storage...`);
     
-    // CRITICAL DATABASE STORAGE - Using PROVEN WORKING raw SQL approach
+    const customerId = (req.user as any)?.id || 'oauth-test-user-1749701423054';
+    
+    console.log(`💾 DIRECT DATABASE INSERT: ${orderId}`);
+    console.log(`Customer: ${customerId}, Agent: ${orderData.agentId}, Amount: ${budgetAmount}`);
+    
+    // CRITICAL: DATABASE FIRST - COMPREHENSIVE ERROR CAPTURE  
+    console.log(`🚨 ABOUT TO START DATABASE LOGIC FOR: ${orderId}`);
+    
+    let insertResult;
     try {
-      console.log(`🗄️ DIRECT SQL INSERTION: ${orderId}`);
-      const insertResult = await db.execute(sql`
+      // Write to persistent log file FIRST
+      const fs = require('fs');
+      console.log(`📝 CREATING LOG FILE FOR: ${orderId}`);
+      const logEntry = `${new Date().toISOString()} - STARTING DB INSERT: ${orderId}\n`;
+      fs.appendFileSync('/tmp/order_debug.log', logEntry);
+      console.log(`✅ LOG FILE WRITTEN FOR: ${orderId}`);
+      
+      insertResult = await db.execute(sql`
         INSERT INTO ai_marketplace_orders (
           id, agent_id, customer_id, service_type, amount, agent_commission, 
           platform_fee, status, payment_method, service_description, 
           customer_requirements, estimated_delivery_hours
         ) VALUES (
-          ${orderId}, ${orderData.agentId}, ${newOrder.customerId}, ${orderData.serviceTitle}, 
-          ${orderData.budget}, ${agentAmount}, ${platformFee}, 
+          ${orderId}, ${orderData.agentId}, ${customerId}, ${orderData.serviceTitle}, 
+          ${budgetAmount}, ${agentAmount}, ${platformFee}, 
           'pending', ${orderData.paymentMethod}, 
           ${orderData.serviceDescription || 'AI marketplace service'},
           ${JSON.stringify({
@@ -98,18 +107,43 @@ router.post('/api/orders/create', async (req, res) => {
           })},
           24
         )
-        RETURNING id
+        RETURNING id, created_at
       `);
       
-      console.log(`✅ DIRECT SQL SUCCESS: Order ${orderId} stored in database`);
-      console.log(`Rows affected: ${insertResult.rowCount}`);
-    } catch (dbError: any) {
-      console.error(`❌ DATABASE INSERTION FAILED: ${orderId}`);
-      console.error(`Error message: ${dbError.message}`);
-      console.error(`Error code: ${dbError.code}`);
-      console.error(`Error detail: ${dbError.detail}`);
+      // Log success
+      const successLog = `${new Date().toISOString()} - DB INSERT SUCCESS: ${orderId} - Rows: ${insertResult.rowCount}\n`;
+      fs.appendFileSync('/tmp/order_debug.log', successLog);
+      console.log(`✅ DATABASE INSERT SUCCESS: ${orderId}`);
       
-      // CRITICAL: Don't return success if database fails
+      // CRITICAL VERIFICATION: Ensure the row actually exists
+      const verifyResult = await db.execute(sql`
+        SELECT COUNT(*) as count FROM ai_marketplace_orders WHERE id = ${orderId}
+      `);
+      const actualCount = verifyResult.rows[0]?.count || 0;
+      
+      const verifyLog = `${new Date().toISOString()} - VERIFICATION: ${actualCount} rows found for ${orderId}\n`;
+      fs.appendFileSync('/tmp/order_debug.log', verifyLog);
+      
+      if (actualCount === 0) {
+        const failLog = `${new Date().toISOString()} - VERIFICATION FAILED: ${orderId} - Insert worked but verification shows 0 rows\n`;
+        fs.appendFileSync('/tmp/order_debug.log', failLog);
+        
+        return res.status(500).json({
+          success: false,
+          error: 'Database verification failed - order was not persisted',
+          orderId: orderId,
+          insertResult: insertResult,
+          verificationCount: actualCount
+        });
+      }
+      
+    } catch (dbError: any) {
+      // Log error persistently
+      const errorLog = `${new Date().toISOString()} - DB ERROR: ${orderId} - ${dbError.message}\n`;
+      require('fs').appendFileSync('/tmp/order_debug.log', errorLog);
+      
+      console.error(`❌ DATABASE INSERTION FAILED: ${orderId}`, dbError);
+      
       return res.status(500).json({
         success: false,
         error: 'Database storage failed',
@@ -119,20 +153,19 @@ router.post('/api/orders/create', async (req, res) => {
       });
     }
 
-    console.log('Order created successfully:', orderId);
-
-    res.status(201).json({
+    // CRITICAL SUCCESS: Database insertion and verification completed
+    console.log(`🎉 ORDER SUCCESSFULLY CREATED AND STORED: ${orderId}`);
+    
+    res.json({
       success: true,
-      message: 'Order created successfully',
-      orderId: orderId,
-      order: {
-        id: newOrder.id,
-        serviceTitle: newOrder.serviceTitle,
-        budget: newOrder.budget,
-        status: newOrder.status,
-        agentId: newOrder.agentId,
-        platformFee: newOrder.platformFee,
-        agentAmount: newOrder.agentAmount
+      data: {
+        orderId,
+        status: 'pending_payment',
+        amount: budgetAmount,
+        platformFee: platformFee,
+        agentPayout: agentAmount,
+        paymentInstructions: 'Proceed to payment to secure this order',
+        estimatedCompletion: '3-7 business days'
       }
     });
 
@@ -458,6 +491,44 @@ router.get('/api/debug/order-state', async (req, res) => {
       success: false,
       error: 'Debug check failed',
       details: error.message
+    });
+  }
+});
+
+// ISOLATED DATABASE TEST - NO MIDDLEWARE CONFLICTS
+router.post('/api/test-db-insert', async (req, res) => {
+  try {
+    const testId = `test_${Date.now()}`;
+    console.log(`🧪 ISOLATED TEST: Inserting ${testId}`);
+    
+    const result = await db.execute(sql`
+      INSERT INTO ai_marketplace_orders (
+        id, agent_id, customer_id, service_type, amount, agent_commission, 
+        platform_fee, status, payment_method, service_description, 
+        customer_requirements, estimated_delivery_hours
+      ) VALUES (
+        ${testId}, 'test_agent', 'test_customer', 'ISOLATED TEST', 
+        100, 85, 15, 'pending', 'test', 'Isolated database test',
+        '{"test": true}', 24
+      ) RETURNING id
+    `);
+    
+    console.log(`✅ ISOLATED TEST SUCCESS: ${testId}`);
+    console.log(`Result:`, result);
+    
+    res.json({
+      success: true,
+      testId: testId,
+      result: result,
+      message: 'Isolated database test successful'
+    });
+    
+  } catch (error: any) {
+    console.error(`❌ ISOLATED TEST FAILED:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: error
     });
   }
 });

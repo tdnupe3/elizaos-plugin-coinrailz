@@ -1,9 +1,10 @@
 /**
- * Coinbase Developer Platform (CDP) Service
- * Provides wallet creation, balance monitoring, and transaction capabilities
+ * Coinbase Developer Platform (CDP) Service - Server Wallet v2
+ * Provides server-side account management for EVM and Solana networks
+ * Following official Server Wallet v2 documentation
  */
 
-import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
+import { CdpClient } from '@coinbase/cdp-sdk';
 
 export interface CDPWallet {
   id: string;
@@ -31,7 +32,7 @@ export interface CDPTransaction {
 
 export class CoinbaseCDPService {
   private static instance: CoinbaseCDPService;
-  // Note: Coinbase SDK uses global configuration, no instance needed
+  private cdpClient: CdpClient | null = null;
   private initialized = false;
 
   private constructor() {
@@ -47,25 +48,23 @@ export class CoinbaseCDPService {
 
   private async initialize() {
     try {
-      // According to the official Coinbase documentation:
-      // Coinbase.configure({ apiKeyName: apiKeyName, privateKey: privateKey });
-      
-      if (!process.env.CDP_PRIVATE_KEY) {
-        console.warn('⚠️ CDP credentials not configured - service will be limited');
+      // Server Wallet v2 requires CDP_API_KEY_ID, CDP_API_KEY_SECRET, and CDP_WALLET_SECRET
+      if (!process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY || !process.env.CDP_WALLET_SECRET) {
+        console.warn('⚠️ CDP Server Wallet credentials not configured - service will be limited');
+        console.warn('Required: CDP_API_KEY_ID, CDP_PRIVATE_KEY (as CDP_API_KEY_SECRET), CDP_WALLET_SECRET');
         return;
       }
 
-      // Use the official Coinbase SDK configuration method with your actual API key
-      // From your CDP JSON: id is the API key name, privateKey is the private key
-      Coinbase.configure({ 
-        apiKeyName: "026e8b3d-053b-48eb-898a-ee8d4658af04",
-        privateKey: process.env.CDP_PRIVATE_KEY!
-      });
+      // Set environment variables for CdpClient (it reads from env automatically)
+      process.env.CDP_API_KEY_SECRET = process.env.CDP_PRIVATE_KEY;
+
+      // Initialize CDP Client for Server Wallet v2
+      this.cdpClient = new CdpClient();
 
       this.initialized = true;
-      console.log('✅ Coinbase CDP service initialized successfully');
+      console.log('✅ Coinbase CDP Server Wallet v2 initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize Coinbase CDP service:', error);
+      console.error('❌ Failed to initialize Coinbase CDP Server Wallet:', error);
       // Don't throw error - let the service continue without CDP functionality
     }
   }
@@ -77,22 +76,22 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Create a new wallet for a user
+   * Create a new EVM account for a user using Server Wallet v2
    */
   async createWallet(userId: string, network: string = 'base-sepolia'): Promise<CDPWallet> {
     this.ensureInitialized();
 
-    try {
-      // Follow the official documentation pattern: const wallet = await Wallet.create();
-      const wallet = await Wallet.create({ 
-        networkId: network === 'base-mainnet' ? Coinbase.networks.BaseMainnet : Coinbase.networks.BaseSepolia 
-      });
+    if (!this.cdpClient) {
+      throw new Error('CDP Client not initialized');
+    }
 
-      const address = await wallet.getDefaultAddress();
+    try {
+      // Server Wallet v2 pattern: const account = await cdp.evm.createAccount();
+      const account = await this.cdpClient.evm.createAccount();
       
       const cdpWallet: CDPWallet = {
-        id: wallet.getId(),
-        address: address?.getId() || '',
+        id: account.address, // Use address as ID for Server Wallet v2
+        address: account.address,
         network: network,
         balance: 0,
         currency: 'ETH',
@@ -100,11 +99,11 @@ export class CoinbaseCDPService {
         user_id: userId
       };
 
-      console.log(`✅ Created CDP wallet for user ${userId}: ${address.getId()}`);
+      console.log(`✅ Created CDP Server Wallet account for user ${userId}: ${account.address}`);
       return cdpWallet;
     } catch (error) {
-      console.error('❌ Failed to create CDP wallet:', error);
-      throw new Error('Failed to create CDP wallet');
+      console.error('❌ Failed to create CDP account:', error);
+      throw new Error('Failed to create CDP account');
     }
   }
 

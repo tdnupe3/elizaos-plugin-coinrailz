@@ -1335,53 +1335,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(chatMessages.messageId, messageId));
   }
 
-  // Payment system methods implementation for DatabaseStorage
-  async createPaymentIntent(data: any): Promise<any> {
-    // Use fundingTransactions table to store payment intents
-    const [payment] = await db.insert(fundingTransactions).values({
-      userId: data.customerId,
-      walletId: 1, // Default wallet
-      amount: data.amount.toString(),
-      currency: data.currency,
-      type: 'deposit',
-      method: data.paymentMethod,
-      status: data.status,
-    }).returning();
-    
-    return {
-      ...payment,
-      paymentId: data.paymentId,
-      orderId: data.orderId,
-      agentId: data.agentId,
-      platformFee: data.platformFee,
-      agentPayout: data.agentPayout,
-      metadata: data.metadata
-    };
-  }
-
-  async getPaymentIntent(paymentId: string): Promise<any> {
-    // For now, return a mock payment intent since we're using fundingTransactions
-    return {
-      paymentId,
-      status: 'pending',
-      amount: 100,
-      currency: 'USD',
-      orderId: 'order_123',
-      agentId: 'agent_123',
-      customerId: 'user_123'
-    };
-  }
+  // Removed duplicate - using implementation above
 
   async updatePaymentIntentStatus(paymentId: string, status: string): Promise<void> {
     // Update funding transaction status
     console.log(`Payment ${paymentId} status updated to ${status}`);
   }
 
-  async updateOrderStatus(orderId: string, status: string): Promise<void> {
-    await db.update(agentServiceOrders)
-      .set({ orderStatus: status, updatedAt: new Date() })
-      .where(eq(agentServiceOrders.orderId, orderId));
-  }
+  // Removed duplicate - using main implementation above
 
   async createAgentTransaction(transaction: any): Promise<any> {
     const [txn] = await db.insert(agentTransactions).values({
@@ -1408,39 +1369,15 @@ export class DatabaseStorage implements IStorage {
 
 
 
-  // Chat system methods for DatabaseStorage  
-  async createChatRoom(data: any): Promise<any> {
-    const [chatRoom] = await db.insert(chatRooms).values({
-      chatId: data.chatId,
-      participants: data.participants,
-      orderId: data.orderId,
-      agentId: data.agentId,
-      customerId: data.customerId,
-      lastMessage: data.lastMessage
-    }).returning();
-    
-    return chatRoom;
-  }
+  // Removed duplicate - using typed implementation above
 
-  async getChatRooms(userId: string): Promise<any[]> {
-    return await db.select()
-      .from(chatRooms)
+  async getChatRooms(userId: string): Promise<ChatRoom[]> {
+    return await db.select().from(chatRooms)
       .where(sql`JSON_EXTRACT(${chatRooms.participants}, '$') LIKE '%${userId}%'`)
       .orderBy(desc(chatRooms.updatedAt));
   }
 
-  async createMessage(data: any): Promise<any> {
-    const [message] = await db.insert(chatMessages).values({
-      messageId: data.messageId,
-      chatId: data.chatId,
-      senderId: data.senderId,
-      content: data.content,
-      messageType: data.messageType || 'text',
-      timestamp: new Date()
-    }).returning();
-    
-    return message;
-  }
+  // Removed duplicate - using typed implementation above
 
   async getMessages(chatId: string): Promise<any[]> {
     return await db.select()
@@ -1508,7 +1445,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createMarketplaceService(serviceData: any): Promise<any> {
+  async createMarketplaceServiceDuplicate(serviceData: any): Promise<any> {
     try {
       const result = await db.execute(sql`
         INSERT INTO ai_marketplace_services (
@@ -1529,45 +1466,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createMarketplaceOrder(orderData: any): Promise<any> {
-    try {
-      const result = await db.execute(sql`
-        INSERT INTO marketplace_orders (
-          customer_id, service_id, agent_id, total_amount, 
-          currency, payment_method, delivery_requirements
-        ) VALUES (
-          ${orderData.customerId}, ${orderData.serviceId}, ${orderData.agentId},
-          ${orderData.totalAmount}, ${orderData.currency || 'USD'},
-          ${orderData.paymentMethod || 'stripe'}, ${orderData.deliveryRequirements || ''}
-        ) RETURNING id, customer_id, service_id, total_amount, order_status
-      `);
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating marketplace order:', error);
-      throw new Error('Failed to create marketplace order');
-    }
-  }
-
-  async updateMarketplaceOrder(orderId: string, updateData: any): Promise<any> {
-    try {
-      const updateFields = Object.keys(updateData).map(key => 
-        `${key} = '${updateData[key]?.toString() || ''}'`
-      ).join(', ');
-      
-      const result = await db.execute(sql`
-        UPDATE marketplace_orders 
-        SET ${sql.raw(updateFields)}, updated_at = NOW()
-        WHERE id = ${orderId}
-        RETURNING id, order_status, updated_at
-      `);
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error updating marketplace order:', error);
-      throw new Error('Failed to update marketplace order');
-    }
-  }
+  // Removed duplicates - using implementations above
 
   async getMarketplaceOrders(filters: { customerId?: string; agentId?: string; status?: string } = {}): Promise<any[]> {
     try {
@@ -1649,7 +1548,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Use the actual marketplace_orders table structure
-  async createMarketplaceOrder(orderData: any): Promise<any> {
+  async createMarketplaceOrderDuplicate(orderData: any): Promise<any> {
     try {
       const result = await db.execute(sql`
         INSERT INTO marketplace_orders (
@@ -1687,7 +1586,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateMarketplaceOrder(orderId: string, updates: any): Promise<any> {
+  async updateMarketplaceOrderDuplicate(orderId: string, updates: any): Promise<any> {
     try {
       const [order] = await db
         .update(aiMarketplaceOrders)

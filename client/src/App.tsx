@@ -50,8 +50,6 @@ import {
   HumanReferralDashboard,
   PlatformAnalytics,
   CDPWalletPage,
-  EnhancedCDPWallet,
-  OnrampPreparation,
 
   USDCEcosystemDashboard,
   USDCBuy,

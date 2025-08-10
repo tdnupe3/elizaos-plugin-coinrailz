@@ -27,6 +27,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
     { path: "/", label: "Dashboard" },
     { path: "/send", label: "Send Money" },
     { path: "/crypto", label: "Crypto Wallet" },
+    { path: "/cdp-wallet", label: "CDP Wallet" },
     { path: "/history", label: "History" },
     { path: "/ai-agents", label: "AI Agents" },
   ];

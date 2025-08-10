@@ -279,10 +279,24 @@ function Router() {
         {() => <LazyLoadWrapper><PlatformIntegrationPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/cdp-wallet">
-        {() => <LazyLoadWrapper><CDPWalletPage /></LazyLoadWrapper>}
+        {() => {
+          const CDPWalletPage = lazy(() => import("./pages/cdp-wallet"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <CDPWalletPage />
+            </Suspense>
+          );
+        }}
       </Route>
       <Route path="/coinbase-cdp">
-        {() => <LazyLoadWrapper><CDPWalletPage /></LazyLoadWrapper>}
+        {() => {
+          const CDPWalletPage = lazy(() => import("./pages/cdp-wallet"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <CDPWalletPage />
+            </Suspense>
+          );
+        }}
       </Route>
       <Route path="/usdc-defi">
         {() => <LazyLoadWrapper><USDCDefi /></LazyLoadWrapper>}

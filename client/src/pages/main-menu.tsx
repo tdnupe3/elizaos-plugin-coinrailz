@@ -89,6 +89,14 @@ export default function MainMenu() {
       icon: Globe,
       color: 'bg-blue-500 hover:bg-blue-600',
       route: '/xrp-ecosystem'
+    },
+    {
+      id: 'cdp-wallet',
+      title: 'Enterprise Wallets',
+      description: 'Professional-grade wallet management via Coinbase CDP',
+      icon: Wallet,
+      color: 'bg-indigo-600 hover:bg-indigo-700',
+      route: '/cdp-wallet'
     }
   ];
 

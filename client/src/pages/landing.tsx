@@ -16,11 +16,13 @@ export default function Landing() {
   const { t } = useTranslation();
 
   const handleSignIn = () => {
-    setLocation("/signin");
+    // Use Replit OAuth login
+    window.location.href = "/api/login";
   };
 
   const handleSignUp = () => {
-    setLocation("/signup");
+    // Use Replit OAuth signup (same endpoint)
+    window.location.href = "/api/login";
   };
 
   const handleGuestAccess = () => {

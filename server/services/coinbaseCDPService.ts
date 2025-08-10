@@ -31,7 +31,7 @@ export interface CDPTransaction {
 
 export class CoinbaseCDPService {
   private static instance: CoinbaseCDPService;
-  private coinbase: Coinbase | null = null;
+  // Note: Coinbase SDK uses global configuration, no instance needed
   private initialized = false;
 
   private constructor() {
@@ -50,14 +50,15 @@ export class CoinbaseCDPService {
       // According to the official Coinbase documentation:
       // Coinbase.configure({ apiKeyName: apiKeyName, privateKey: privateKey });
       
-      if (!process.env.CDP_API_KEY_NAME || !process.env.CDP_PRIVATE_KEY) {
+      if (!process.env.CDP_PRIVATE_KEY) {
         console.warn('⚠️ CDP credentials not configured - service will be limited');
         return;
       }
 
-      // Use the official Coinbase SDK configuration method
+      // Use the official Coinbase SDK configuration method with your actual API key
+      // From your CDP JSON: id is the API key name, privateKey is the private key
       Coinbase.configure({ 
-        apiKeyName: process.env.CDP_API_KEY_NAME!,
+        apiKeyName: "026e8b3d-053b-48eb-898a-ee8d4658af04",
         privateKey: process.env.CDP_PRIVATE_KEY!
       });
 
@@ -91,7 +92,7 @@ export class CoinbaseCDPService {
       
       const cdpWallet: CDPWallet = {
         id: wallet.getId(),
-        address: address.getId(),
+        address: address?.getId() || '',
         network: network,
         balance: 0,
         currency: 'ETH',
@@ -120,9 +121,11 @@ export class CoinbaseCDPService {
       
       const balanceMap: { [currency: string]: number } = {};
       
-      for (const balance of balances) {
+      // Convert balances to array and iterate
+      const balanceArray = Array.from(balances.values());
+      for (const balance of balanceArray) {
         const asset = balance.getAsset();
-        const amount = parseFloat(balance.getAmount());
+        const amount = parseFloat(balance.getAmount().toString());
         balanceMap[asset.getAssetId()] = amount;
       }
 
@@ -145,10 +148,10 @@ export class CoinbaseCDPService {
     this.ensureInitialized();
 
     try {
-      const wallet = await this.coinbase.getWallet(walletId);
+      const wallet = await Wallet.fetch(walletId);
       const transfer = await wallet.createTransfer({
-        amount: amount,
-        assetId: currency,
+        amount: parseFloat(amount),
+        assetId: currency === 'ETH' ? Coinbase.assets.Eth : currency === 'USDC' ? Coinbase.assets.Usdc : currency,
         destination: toAddress
       });
 

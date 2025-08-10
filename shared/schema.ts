@@ -1034,6 +1034,8 @@ export type InsertAgentContract = typeof agentContracts.$inferInsert;
 export type NetworkStats = typeof networkStats.$inferSelect;
 export type InsertNetworkStats = typeof networkStats.$inferInsert;
 
+
+
 // Extended user interface for frontend usage
 export interface AuthUser extends User {
   isAuthenticated: boolean;
@@ -1495,10 +1497,36 @@ export const xrpCrossBorderPaymentsRelations = relations(xrpCrossBorderPayments,
 }));
 
 // XRP Types
+// XRP Ledger ecosystem types
 export type XrpWallet = typeof xrpWallets.$inferSelect;
 export type InsertXrpWallet = typeof xrpWallets.$inferInsert;
 export type XrpTransaction = typeof xrpTransactions.$inferSelect;
 export type InsertXrpTransaction = typeof xrpTransactions.$inferInsert;
+export type XrpOrder = typeof xrpOrders.$inferSelect;
+export type InsertXrpOrder = typeof xrpOrders.$inferInsert;
+export type XrpLiquidityPool = typeof xrpLiquidityPools.$inferSelect;
+export type InsertXrpLiquidityPool = typeof xrpLiquidityPools.$inferInsert;
+export type XrpEscrow = typeof xrpEscrows.$inferSelect;
+export type InsertXrpEscrow = typeof xrpEscrows.$inferInsert;
+
+// XRP Insert schemas for validation
+export const insertXrpWalletSchema = createInsertSchema(xrpWallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertXrpTransactionSchema = createInsertSchema(xrpTransactions).omit({
+  id: true,
+  createdAt: true,
+  confirmedAt: true,
+});
+
+export const insertXrpOrderSchema = createInsertSchema(xrpOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export type XrpOrder = typeof xrpOrders.$inferSelect;
 export type InsertXrpOrder = typeof xrpOrders.$inferInsert;
 export type XrpLiquidityPosition = typeof xrpLiquidityPositions.$inferSelect;

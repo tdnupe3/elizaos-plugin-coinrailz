@@ -19,6 +19,11 @@ import {
   aiMarketplaceServices,
   aiMarketplaceCategories, 
   aiMarketplaceOrders,
+  xrpWallets,
+  xrpTransactions,
+  xrpOrders,
+  xrpLiquidityPools,
+  xrpEscrows,
   type User,
   type UpsertUser,
   type Transaction,
@@ -40,6 +45,12 @@ import {
   type InsertChatRoom,
   type ChatMessage,
   type InsertChatMessage,
+  type XrpWallet,
+  type InsertXrpWallet,
+  type XrpTransaction,
+  type InsertXrpTransaction,
+  type XrpOrder,
+  type InsertXrpOrder,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -172,6 +183,22 @@ export interface IStorage {
   getAgentReferrals(agentId: string): Promise<any[]>;
   updateReferralReward(referralId: number, amount: string, currency: string, completed: boolean): Promise<void>;
   getTopReferrers(limit: number): Promise<any[]>;
+  
+  // XRP Ledger ecosystem operations
+  createXrpWallet(walletData: InsertXrpWallet): Promise<XrpWallet>;
+  getUserXrpWallets(userId: string): Promise<XrpWallet[]>;
+  getXrpWallet(walletId: number): Promise<XrpWallet | undefined>;
+  updateXrpWalletBalance(walletId: number, balance: string): Promise<void>;
+  
+  createXrpTransaction(transactionData: InsertXrpTransaction): Promise<XrpTransaction>;
+  getUserXrpTransactions(userId: string, limit?: number): Promise<XrpTransaction[]>;
+  getXrpTransaction(transactionId: number): Promise<XrpTransaction | undefined>;
+  updateXrpTransactionStatus(transactionId: number, status: string, transactionHash?: string): Promise<void>;
+  
+  createXrpOrder(orderData: InsertXrpOrder): Promise<XrpOrder>;
+  getUserXrpOrders(userId: string, limit?: number): Promise<XrpOrder[]>;
+  getXrpOrder(orderId: number): Promise<XrpOrder | undefined>;
+  updateXrpOrderStatus(orderId: number, status: string, filledAmount?: string): Promise<void>;
   
   // AI Agent Service operations
   createServiceListing(listingData: any): Promise<any>;
@@ -1602,6 +1629,130 @@ export class DatabaseStorage implements IStorage {
       console.error('Error updating marketplace order:', error);
       throw error;
     }
+  }
+
+  // XRP Ledger ecosystem implementation methods
+  async createXrpWallet(walletData: InsertXrpWallet): Promise<XrpWallet> {
+    const [wallet] = await db
+      .insert(xrpWallets)
+      .values(walletData)
+      .returning();
+    return wallet;
+  }
+
+  async getUserXrpWallets(userId: string): Promise<XrpWallet[]> {
+    return await db
+      .select()
+      .from(xrpWallets)
+      .where(eq(xrpWallets.userId, userId))
+      .orderBy(desc(xrpWallets.createdAt));
+  }
+
+  async getXrpWallet(walletId: number): Promise<XrpWallet | undefined> {
+    const [wallet] = await db
+      .select()
+      .from(xrpWallets)
+      .where(eq(xrpWallets.id, walletId))
+      .limit(1);
+    return wallet;
+  }
+
+  async updateXrpWalletBalance(walletId: number, balance: string): Promise<void> {
+    await db
+      .update(xrpWallets)
+      .set({
+        balance,
+        updatedAt: new Date()
+      })
+      .where(eq(xrpWallets.id, walletId));
+  }
+
+  async createXrpTransaction(transactionData: InsertXrpTransaction): Promise<XrpTransaction> {
+    const [transaction] = await db
+      .insert(xrpTransactions)
+      .values(transactionData)
+      .returning();
+    return transaction;
+  }
+
+  async getUserXrpTransactions(userId: string, limit: number = 100): Promise<XrpTransaction[]> {
+    return await db
+      .select()
+      .from(xrpTransactions)
+      .where(eq(xrpTransactions.userId, userId))
+      .orderBy(desc(xrpTransactions.createdAt))
+      .limit(limit);
+  }
+
+  async getXrpTransaction(transactionId: number): Promise<XrpTransaction | undefined> {
+    const [transaction] = await db
+      .select()
+      .from(xrpTransactions)
+      .where(eq(xrpTransactions.id, transactionId))
+      .limit(1);
+    return transaction;
+  }
+
+  async updateXrpTransactionStatus(transactionId: number, status: string, transactionHash?: string): Promise<void> {
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
+    
+    if (transactionHash) {
+      updateData.transactionHash = transactionHash;
+    }
+    
+    if (status === 'confirmed') {
+      updateData.confirmedAt = new Date();
+    }
+
+    await db
+      .update(xrpTransactions)
+      .set(updateData)
+      .where(eq(xrpTransactions.id, transactionId));
+  }
+
+  async createXrpOrder(orderData: InsertXrpOrder): Promise<XrpOrder> {
+    const [order] = await db
+      .insert(xrpOrders)
+      .values(orderData)
+      .returning();
+    return order;
+  }
+
+  async getUserXrpOrders(userId: string, limit: number = 100): Promise<XrpOrder[]> {
+    return await db
+      .select()
+      .from(xrpOrders)
+      .where(eq(xrpOrders.userId, userId))
+      .orderBy(desc(xrpOrders.createdAt))
+      .limit(limit);
+  }
+
+  async getXrpOrder(orderId: number): Promise<XrpOrder | undefined> {
+    const [order] = await db
+      .select()
+      .from(xrpOrders)
+      .where(eq(xrpOrders.id, orderId))
+      .limit(1);
+    return order;
+  }
+
+  async updateXrpOrderStatus(orderId: number, status: string, filledAmount?: string): Promise<void> {
+    const updateData: any = {
+      status,
+      updatedAt: new Date()
+    };
+    
+    if (filledAmount) {
+      updateData.filledAmount = filledAmount;
+    }
+
+    await db
+      .update(xrpOrders)
+      .set(updateData)
+      .where(eq(xrpOrders.id, orderId));
   }
 }
 

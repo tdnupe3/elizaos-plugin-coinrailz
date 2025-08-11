@@ -28,6 +28,7 @@ import { WalletDisplay } from "@/components/wallet-display";
 import { UserSessionManager } from "@/components/UserSessionManager";
 import { EnhancedWalletManager } from "@/components/enhanced-wallet-manager";
 import { NavigationHeader } from "@/components/navigation-header";
+import { KYCStatusDisplay } from "@/components/KYCStatusDisplay";
 
 interface Transaction {
   id: string;
@@ -207,6 +208,11 @@ export default function Dashboard() {
         {/* Original Onboarding Flow for Reference */}
         <div className="mb-8">
           <OnboardingFlow />
+        </div>
+
+        {/* KYC Status Display - Show verification status and feature access */}
+        <div className="mb-8">
+          <KYCStatusDisplay />
         </div>
 
         {/* Additional USDC Services */}

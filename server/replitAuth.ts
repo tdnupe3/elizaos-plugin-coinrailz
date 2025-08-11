@@ -160,8 +160,15 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
+  const sessionUser = req.session?.user;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  // Check for Coinbase OAuth session first - these users are automatically authenticated and KYC verified
+  if (sessionUser?.coinbase?.accessToken && sessionUser.coinbase.isVerified) {
+    return next();
+  }
+
+  // Check for Replit OAuth session
+  if (!req.isAuthenticated() || !user?.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

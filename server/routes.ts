@@ -33,6 +33,7 @@ import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupReferralRoutes } from "./routes/referrals";
 import { setupEnterpriseRoutes } from "./routes/enterprise";
 import coinbaseAuthRoutes from "./routes/coinbaseAuth";
+import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
 // Initialize services
 let stripe: any;
@@ -75,17 +76,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Coinbase OAuth authentication routes
   app.use('/auth', coinbaseAuthRoutes);
 
+  // KYC verification endpoints
+  app.get('/api/kyc/status', getKYCStatus);
+  
+  // KYC-protected features to demonstrate Coinbase OAuth bypass
+  app.get('/api/protected/high-limit-transfers', requireKYC, (req, res) => {
+    res.json({
+      success: true,
+      message: 'Access granted to high-limit transfers',
+      maxTransferAmount: 100000,
+      dailyLimit: 500000,
+      kycProvider: req.session?.kycStatus?.provider
+    });
+  });
+
+  app.get('/api/protected/international-transfers', requireKYCLevel('complete'), (req, res) => {
+    res.json({
+      success: true,
+      message: 'Access granted to international transfers',
+      availableCountries: ['US', 'CA', 'UK', 'EU', 'JP', 'AU'],
+      kycLevel: req.session?.kycStatus?.level
+    });
+  });
+
+  app.get('/api/protected/advanced-trading', requireKYCLevel('complete'), (req, res) => {
+    res.json({
+      success: true,
+      message: 'Access granted to advanced trading features',
+      features: ['margin_trading', 'futures', 'options', 'defi_protocols'],
+      kycProvider: req.session?.kycStatus?.provider
+    });
+  });
+  
   // CRITICAL: Register working routes for audit compliance
   
   // === AUTH ROUTES ===
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const sessionUser = req.session?.user;
+      const replitUser = req.user;
+
+      // Check for Coinbase OAuth user first
+      if (sessionUser?.coinbase?.accessToken) {
+        const userId = sessionUser.claims.sub;
+        const user = await storage.getUser(userId);
+        
+        return res.json({
+          success: true,
+          user: user,
+          authProvider: 'coinbase',
+          kycVerified: true,
+          kycLevel: 'complete',
+          features: {
+            highLimitTransactions: true,
+            internationalTransfers: true,
+            advancedTrading: true,
+            institutionalFeatures: true
+          }
+        });
+      }
+
+      // Check for Replit OAuth user
+      if (replitUser?.claims?.sub) {
+        const userId = replitUser.claims.sub;
+        const user = await storage.getUser(userId);
+        
+        return res.json({
+          success: true,
+          user: user,
+          authProvider: 'replit',
+          kycVerified: user?.isKycVerified || false,
+          kycLevel: user?.kycLevel || 'none',
+          features: {
+            highLimitTransactions: user?.kycLevel === 'complete',
+            internationalTransfers: user?.kycLevel === 'complete', 
+            advancedTrading: user?.kycLevel === 'complete',
+            institutionalFeatures: user?.kycLevel === 'enhanced'
+          }
+        });
+      }
+
+      // No authenticated user found
+      return res.status(401).json({
+        success: false,
+        message: 'Not authenticated'
+      });
+      
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to fetch user" 
+      });
     }
   });
 

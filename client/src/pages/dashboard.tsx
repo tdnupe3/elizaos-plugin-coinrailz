@@ -29,6 +29,7 @@ import { UserSessionManager } from "@/components/UserSessionManager";
 import { EnhancedWalletManager } from "@/components/enhanced-wallet-manager";
 import { NavigationHeader } from "@/components/navigation-header";
 import { KYCStatusDisplay } from "@/components/KYCStatusDisplay";
+import CoinbaseConnectionSection from "@/components/coinbase-connection-section";
 
 interface Transaction {
   id: string;
@@ -226,6 +227,11 @@ export default function Dashboard() {
         {/* Intuitive Onboarding for New Users */}
         <div className="mb-8">
           <IntuitiveOnboarding />
+        </div>
+
+        {/* Coinbase Connection Section - Positioned right after demo mode */}
+        <div className="mb-8">
+          <CoinbaseConnectionSection />
         </div>
 
         {/* Quick Actions for Funded Users - Show alongside onboarding */}

@@ -26,6 +26,7 @@ export {
   CheckCircle,
   CheckCircle2,
   ChevronDown,
+  Chrome,
   ChevronLeft,
   ChevronRight,
   ChevronUp,

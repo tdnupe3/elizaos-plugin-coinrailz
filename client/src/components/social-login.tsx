@@ -33,9 +33,9 @@ export default function SocialLoginPage() {
       id: 'google',
       name: 'Google',
       icon: <Chrome className="w-5 h-5" />,
-      status: 'active',
-      users: 1247,
-      conversionRate: 78.5
+      status: 'inactive',
+      users: 0,
+      conversionRate: 0
     },
     {
       id: 'github',

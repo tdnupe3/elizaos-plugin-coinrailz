@@ -33,7 +33,7 @@ import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupReferralRoutes } from "./routes/referrals";
 import { setupEnterpriseRoutes } from "./routes/enterprise";
 import coinbaseAuthRoutes from "./routes/coinbaseAuth";
-import { googleAuthRoutes } from "./routes/googleAuth";
+
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
 // Initialize services
@@ -139,25 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
 
-        // For Google OAuth users - basic KYC level
-        if (sessionUser.google?.isVerified) {
-          const userId = sessionUser.claims.sub;
-          const user = await storage.getUser(userId);
-          
-          return res.json({
-            success: true,
-            user: user || sessionUser.claims,
-            authProvider: 'google',
-            kycVerified: true,
-            kycLevel: 'basic',
-            features: {
-              highLimitTransactions: false,
-              internationalTransfers: true, // Google provides good identity verification
-              advancedTrading: false,
-              institutionalFeatures: false
-            }
-          });
-        }
+
         
         // For Replit OAuth users - check traditional auth
         if (req.isAuthenticated && req.isAuthenticated()) {
@@ -201,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const hasSession = !!req.session;
     const hasUser = !!(req.session?.user);
     const hasCoinbaseAuth = !!(req.session?.user?.coinbase?.accessToken);
-    const hasGoogleAuth = !!(req.session?.user?.google?.accessToken);
+
     const hasReplitAuth = !!(req.user?.claims?.sub);
     
     res.json({
@@ -209,7 +191,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       sessionExists: hasSession,
       userInSession: hasUser,
       coinbaseAuth: hasCoinbaseAuth,
-      googleAuth: hasGoogleAuth,
+
       replitAuth: hasReplitAuth,
       sessionId: req.sessionID,
       timestamp: new Date().toISOString()
@@ -1789,8 +1771,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register enhanced authentication routes
   registerAuthRoutes(app);
   
-  // Register Google OAuth routes
-  app.use('/', googleAuthRoutes);
+
 
   // === MISSING AUTHENTICATION ENDPOINTS ===
   

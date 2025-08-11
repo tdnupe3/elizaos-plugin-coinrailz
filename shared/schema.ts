@@ -95,6 +95,7 @@ export const users = pgTable("users", {
   circleBlockchain: varchar("circle_blockchain").default("ETH"), // ETH, MATIC, AVAX, ARB
   circleWalletState: varchar("circle_wallet_state").default("PENDING"), // LIVE, PENDING, FAILED
   circleRecoveryFile: jsonb("circle_recovery_file"), // Recovery file backup
+  lastBalanceUpdate: timestamp("last_balance_update"), // Last time balance was synced
   
   referralCode: varchar("referral_code").unique(),
   referredBy: varchar("referred_by"),
@@ -802,6 +803,10 @@ export const globalAIAgents = pgTable("global_ai_agents", {
   geolocation: varchar("geolocation"), // ISO country code
   timezone: varchar("timezone"),
   referralCode: varchar("referral_code").unique(), // Unique referral code for this agent
+  
+  // Missing properties found in business logic
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }).default("0.00"), // Hourly rate for services
+  completedJobs: integer("completed_jobs").default(0), // Number of completed jobs
   referredByAgent: varchar("referred_by_agent"), // ID of referring agent
   referralRewards: varchar("referral_rewards").notNull().default("0"), // Total earned from referrals
   referralCount: integer("referral_count").notNull().default(0), // Number of successful referrals

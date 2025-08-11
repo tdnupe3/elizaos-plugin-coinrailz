@@ -158,6 +158,18 @@ class CircleKYCService {
   }
 
   /**
+   * Process KYC submission - alternative method name for compatibility
+   */
+  async processKYCSubmission(request: KYCVerificationRequest): Promise<{
+    success: boolean;
+    verificationId?: string;
+    status?: string;
+    error?: string;
+  }> {
+    return this.submitKYCVerification(request);
+  }
+
+  /**
    * Update KYC status (typically called by Circle webhook)
    */
   async updateKYCStatus(userId: string, status: 'approved' | 'rejected' | 'review_required', metadata?: {

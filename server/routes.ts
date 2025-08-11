@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const hasUser = !!(req.session?.user);
     const hasCoinbaseAuth = !!(req.session?.user?.coinbase?.accessToken);
 
-    const hasReplitAuth = !!(req.user?.claims?.sub);
+    const hasReplitAuth = !!(req.user as any)?.claims?.sub;
     
     res.json({
       success: true,

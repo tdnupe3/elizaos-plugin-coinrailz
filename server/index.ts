@@ -912,7 +912,7 @@ app.post('/api/agents/calculate-commission', (req, res) => {
     enterprise: 0.15 // 15% platform fee, 85% to agent
   };
   
-  const platformFee = orderAmount * commissionRates[agentTier];
+  const platformFee = orderAmount * (commissionRates[agentTier as keyof typeof commissionRates] || commissionRates.basic);
   const agentPayout = orderAmount - platformFee;
   
   res.json({
@@ -920,7 +920,7 @@ app.post('/api/agents/calculate-commission', (req, res) => {
     orderAmount,
     platformFee,
     agentPayout,
-    commissionRate: commissionRates[agentTier]
+    commissionRate: commissionRates[agentTier as keyof typeof commissionRates] || commissionRates.basic
   });
 });
 
@@ -934,14 +934,14 @@ app.post('/api/referral/calculate', (req, res) => {
     3: 0.001  // 0.1% for third level
   };
   
-  const commission = transactionAmount * (referralRates[referralLevel] || 0);
+  const commission = transactionAmount * (referralRates[referralLevel as keyof typeof referralRates] || 0);
   
   res.json({
     success: true,
     transactionAmount,
     referralLevel,
     commission,
-    rate: referralRates[referralLevel] || 0
+    rate: referralRates[referralLevel as keyof typeof referralRates] || 0
   });
 });
 
@@ -2315,11 +2315,11 @@ app.post('/api/dex/quote', async (req, res) => {
       success: true,
       quote: aggregatedQuote
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('DEX quote error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Quote generation failed'
+      error: error?.message || 'Quote generation failed'
     });
   }
 });
@@ -2361,7 +2361,7 @@ app.get('/api/dex/1inch-status', (req, res) => {
 // AI Marketplace endpoints
 app.get('/api/ai-marketplace/agents', async (req, res) => {
   try {
-    let agents = [];
+    let agents: any[] = [];
     
     // Try to fetch from database first
     try {
@@ -2370,7 +2370,7 @@ app.get('/api/ai-marketplace/agents', async (req, res) => {
         agents = dbAgents.map(agent => ({
           id: agent.id,
           name: agent.agentName,
-          category: agent.capabilities?.[0] || 'general',
+          category: (agent.capabilities as any)?.[0] || 'general',
           skills: agent.capabilities || [],
           description: agent.description,
           rating: parseFloat(agent.reputation || '5.0'),
@@ -2415,7 +2415,7 @@ app.get('/api/ai-marketplace/agents', async (req, res) => {
       total: agents.length
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching agents:', error);
     res.status(500).json({
       success: false,
@@ -3037,7 +3037,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     
     ws.on('close', () => {
       // Remove client from map
-      for (const [userId, client] of clients.entries()) {
+      for (const [userId, client] of Array.from(clients.entries())) {
         if (client === ws) {
           clients.delete(userId);
           console.log(`User ${userId} disconnected`);

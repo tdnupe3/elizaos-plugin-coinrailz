@@ -63,7 +63,7 @@ class CircleBalanceSyncer {
       const usersWithWallets = await db
         .select()
         .from(users)
-        .where(sql`circle_wallet_id IS NOT NULL AND circle_wallet_address IS NOT NULL`);
+        .where(sql`${users.circleWalletId} IS NOT NULL AND ${users.circleWalletAddress} IS NOT NULL`);
 
       if (usersWithWallets.length === 0) {
         return { updated: 0, errors: 0, total: 0 };
@@ -83,7 +83,7 @@ class CircleBalanceSyncer {
         // Process batch with delay to respect rate limits
         for (const user of batch) {
           try {
-            const wasUpdated = await this.syncUserBalance(user.id, user.circleWalletId!, user.usdcBalance);
+            const wasUpdated = await this.syncUserBalance(user.id, user.circleWalletId!, user.usdcBalance || undefined);
             if (wasUpdated) {
               updated++;
               console.log(`✅ Updated balance for ${user.email}`);
@@ -151,7 +151,7 @@ class CircleBalanceSyncer {
         
         if (balances.length > 0) {
           // First try to find by symbol "USDC"
-          const usdcBySymbol = balances.find(b => b.tokenId === 'USDC' || b.currency === 'USD' || b.symbol === 'USDC');
+          const usdcBySymbol = balances.find((b: any) => b.tokenId === 'USDC' || b.currency === 'USD' || b.symbol === 'USDC');
           if (usdcBySymbol) {
             usdcBalance = usdcBySymbol.amount || usdcBySymbol.balance || '0.00000000';
           } else {
@@ -173,7 +173,7 @@ class CircleBalanceSyncer {
             .update(users)
             .set({ 
               usdcBalance: usdcBalance,
-              lastBalanceUpdate: new Date().toISOString()
+              lastBalanceUpdate: new Date()
             })
             .where(eq(users.id, userId));
 

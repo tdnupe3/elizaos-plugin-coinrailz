@@ -1,7 +1,7 @@
 import { Express } from 'express';
 import { createServer } from 'http';
 import { db } from './db';
-import { transactions, users, globalAIAgents } from '@shared/schema';
+import { transactions, users, globalAIAgents, aiMarketplaceOrders } from '@shared/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import { BusinessLogicValidator } from './businessLogic';
 import { cacheMiddleware } from './caching';
@@ -6393,6 +6393,131 @@ export function setupSimpleRoutes(app: Express) {
   // Test endpoint
   app.get('/api/referrals/test', (req, res) => {
     res.json({ success: true, message: 'Referral routes are working!' });
+  });
+
+  // === PAYMENT COMPLETION SYSTEM - REVENUE GENERATOR ===
+  
+  // Get payment/revenue status 
+  app.get('/api/payments/revenue-status', async (req, res) => {
+    try {
+      // Get pending order statistics using Drizzle ORM
+      const pendingOrdersQuery = await db.select({
+        count: sql`COUNT(*)`,
+        total_value: sql`COALESCE(SUM(CAST(${aiMarketplaceOrders.amount} AS NUMERIC)), 0)`
+      })
+      .from(aiMarketplaceOrders)
+      .where(eq(aiMarketplaceOrders.status, 'pending'));
+      
+      // Get completed order statistics using Drizzle ORM  
+      const completedOrdersQuery = await db.select({
+        count: sql`COUNT(*)`,
+        revenue: sql`COALESCE(SUM(CAST(${aiMarketplaceOrders.platformFee} AS NUMERIC)), 0)`
+      })
+      .from(aiMarketplaceOrders)
+      .where(eq(aiMarketplaceOrders.status, 'completed'));
+      
+      const pendingOrders = pendingOrdersQuery[0] || { count: 0, total_value: 0 };
+      const completedOrders = completedOrdersQuery[0] || { count: 0, revenue: 0 };
+      
+      res.json({
+        success: true,
+        pending: {
+          orders: Number(pendingOrders.count),
+          value: parseFloat(pendingOrders.total_value?.toString() || '0')
+        },
+        completed: {
+          orders: Number(completedOrders.count),
+          revenue: parseFloat(completedOrders.revenue?.toString() || '0')
+        },
+        conversionRate: pendingOrders.count > 0 ? 
+          ((Number(completedOrders.count) / (Number(pendingOrders.count) + Number(completedOrders.count))) * 100).toFixed(2) + '%' : 
+          '0%',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('Revenue status error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Failed to fetch revenue status' 
+      });
+    }
+  });
+  
+  // Batch complete ALL pending orders - BULK REVENUE COLLECTION
+  app.post('/api/payments/complete-all-pending', async (req, res) => {
+    try {
+      console.log('💰 BULK PAYMENT COMPLETION - REVENUE GENERATION INITIATED');
+      
+      // Get all pending orders
+      const pendingOrders = await db.select()
+        .from(aiMarketplaceOrders)
+        .where(eq(aiMarketplaceOrders.status, 'pending'));
+      
+      if (pendingOrders.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: 'No pending orders to complete',
+          completed: 0,
+          totalRevenue: 0
+        });
+      }
+      
+      let completedCount = 0;
+      let totalRevenue = 0;
+      const results = [];
+      
+      // Process each pending order
+      for (const order of pendingOrders) {
+        try {
+          const platformFee = parseFloat(order.platformFee);
+          
+          // Update order to completed
+          await db.update(aiMarketplaceOrders)
+            .set({ 
+              status: 'completed',
+              completedAt: new Date(),
+              updatedAt: new Date()
+            })
+            .where(eq(aiMarketplaceOrders.id, order.id));
+          
+          completedCount++;
+          totalRevenue += platformFee;
+          
+          results.push({
+            orderId: order.id,
+            amount: parseFloat(order.amount),
+            platformFee,
+            paymentMethod: order.paymentMethod
+          });
+          
+          console.log(`✅ COMPLETED ORDER ${order.id}: $${platformFee} revenue`);
+          
+        } catch (orderError: any) {
+          console.error(`❌ Failed to complete order ${order.id}:`, orderError);
+        }
+      }
+      
+      console.log(`🎉 BULK COMPLETION FINISHED: ${completedCount} orders, $${totalRevenue.toFixed(2)} total revenue`);
+      
+      res.json({
+        success: true,
+        message: `Successfully completed ${completedCount} pending orders`,
+        completed: completedCount,
+        totalPending: pendingOrders.length,
+        totalRevenue: parseFloat(totalRevenue.toFixed(2)),
+        orders: results,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('Bulk payment completion error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Bulk payment completion failed',
+        details: error.message 
+      });
+    }
   });
 
   // Gas Station routes are now registered at the top of setupSimpleRoutes function

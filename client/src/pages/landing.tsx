@@ -288,57 +288,62 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Core Platform Features */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-12">
-            <Card className="text-center">
-              <CardHeader className="pb-3">
-                <Send className="w-8 h-8 mx-auto text-blue-600 mb-2" />
-                <CardTitle className="text-lg">Send Money</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Cross-platform P2P transfers</p>
-              </CardContent>
-            </Card>
+          {/* Streamlined Core Features - Only Working Features */}
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Core Platform Features</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              
+              {/* Send Money - Working */}
+              <Card 
+                className="cursor-pointer hover:shadow-lg transition-shadow border-blue-200 bg-blue-50"
+                onClick={handleSendMoney}
+              >
+                <CardHeader className="pb-3">
+                  <Send className="w-8 h-8 mx-auto text-blue-600 mb-2" />
+                  <CardTitle className="text-lg text-blue-800">Send Money</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-blue-600">Cross-platform P2P transfers</p>
+                  <Button size="sm" className="mt-3 bg-blue-600 hover:bg-blue-700">
+                    Start Transfer
+                  </Button>
+                </CardContent>
+              </Card>
 
-            <Card className="text-center">
-              <CardHeader className="pb-3">
-                <CreditCard className="w-8 h-8 mx-auto text-green-600 mb-2" />
-                <CardTitle className="text-lg">Buy/Sell</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Trade digital assets with competitive rates</p>
-              </CardContent>
-            </Card>
+              {/* DEX Trading - Working */}
+              <Card 
+                className="cursor-pointer hover:shadow-lg transition-shadow border-purple-200 bg-purple-50"
+                onClick={() => setLocation("/swap")}
+              >
+                <CardHeader className="pb-3">
+                  <Repeat className="w-8 h-8 mx-auto text-purple-600 mb-2" />
+                  <CardTitle className="text-lg text-purple-800">Trade Crypto</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-purple-600">Best swap rates across exchanges</p>
+                  <Button size="sm" className="mt-3 bg-purple-600 hover:bg-purple-700">
+                    Start Trading
+                  </Button>
+                </CardContent>
+              </Card>
 
-            <Card className="text-center">
-              <CardHeader className="pb-3">
-                <Repeat className="w-8 h-8 mx-auto text-purple-600 mb-2" />
-                <CardTitle className="text-lg">DEX Aggregator</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Best swap rates across multiple exchanges</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardHeader className="pb-3">
-                <Bot className="w-8 h-8 mx-auto text-purple-600 mb-2" />
-                <CardTitle className="text-lg">AI Agent Marketplace</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Autonomous agents providing global services</p>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center">
-              <CardHeader className="pb-3">
-                <Users className="w-8 h-8 mx-auto text-orange-600 mb-2" />
-                <CardTitle className="text-lg">Referral Program</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">Earn rewards for bringing new users</p>
-              </CardContent>
-            </Card>
+              {/* AI Marketplace - Working */}
+              <Card 
+                className="cursor-pointer hover:shadow-lg transition-shadow border-orange-200 bg-orange-50"
+                onClick={() => setLocation("/ai-marketplace")}
+              >
+                <CardHeader className="pb-3">
+                  <Bot className="w-8 h-8 mx-auto text-orange-600 mb-2" />
+                  <CardTitle className="text-lg text-orange-800">AI Services</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-orange-600">Hire AI agents for tasks</p>
+                  <Button size="sm" className="mt-3 bg-orange-600 hover:bg-orange-700">
+                    Browse Agents
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
 
@@ -625,55 +630,29 @@ export default function Landing() {
             )}
           </div>
 
-          {/* Revenue Optimization Features */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <Card className="border-green-200 bg-green-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-green-800">
-                  <TrendingUp className="w-5 h-5" />
-                  Referral Program
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-700">Earn from referrals</span>
-                    <Badge className="bg-green-100 text-green-800">1% commission</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-green-700">Ongoing residual income</span>
-                    <Badge className="bg-green-100 text-green-800">Every transaction</Badge>
-                  </div>
-                  <div className="text-xs text-green-600">
-                    Unlimited referrals • Lifetime commissions • Passive income
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-purple-200 bg-purple-50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg text-purple-800">
-                  <Globe className="w-5 h-5" />
-                  Market Reach
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-purple-700">Global coverage</span>
-                    <Badge className="bg-purple-100 text-purple-800">150+ countries</Badge>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-purple-700">AI agent network</span>
-                    <Badge className="bg-purple-100 text-purple-800">Worldwide</Badge>
-                  </div>
-                  <div className="text-xs text-purple-600">
-                    24/7 availability • Multiple currencies • Cross-border compliance
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Simple Call to Action */}
+          <div className="text-center bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-8 mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Get Started?</h2>
+            <p className="text-lg text-gray-600 mb-6">
+              Join thousands using Coin Railz for secure global payments and trading
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
+              <Button 
+                onClick={handleSignUp}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-medium"
+                size="lg"
+              >
+                Create Account
+              </Button>
+              <Button 
+                onClick={handleGuestAccess}
+                variant="outline"
+                className="border-blue-600 text-blue-600 hover:bg-blue-50 px-8 py-3 text-lg font-medium"
+                size="lg"
+              >
+                Try Demo
+              </Button>
+            </div>
           </div>
         </div>
 

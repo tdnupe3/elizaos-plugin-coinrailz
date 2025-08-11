@@ -27,9 +27,8 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
     { path: "/", label: "Dashboard" },
     { path: "/onramp", label: "Add Money" },
     { path: "/swap", label: "Trade" },
-    { path: "/wallet", label: "My Wallet" },
-    { path: "/history", label: "History" },
-    { path: "/ai-agents", label: "AI Agents" },
+    { path: "/wallet", label: "Wallet" },
+    { path: "/ai-agents", label: "AI Services" },
   ];
 
   return (
@@ -65,11 +64,15 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
           </div>
 
           <div className="flex items-center space-x-4">
-            <LanguageSwitcher />
-            <Button variant="ghost" size="sm" className="p-2 rounded-lg hover:bg-neutral-100 relative">
-              <Bell className="w-4 h-4 text-neutral-500" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/enterprise")}
+              className="text-xs"
+            >
+              Enterprise
             </Button>
+            <LanguageSwitcher />
             
             {/* User Profile with Dropdown - Only show if authenticated */}
             {isAuthenticated ? (

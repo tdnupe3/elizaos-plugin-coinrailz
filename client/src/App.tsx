@@ -105,6 +105,7 @@ const AIAgents = lazy(() => import("@/pages/ai-agents"));
 const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
 const OrderManagement = lazy(() => import("@/pages/order-management"));
 const OnrampPage = lazy(() => import("@/pages/onramp"));
+const EnterprisePage = lazy(() => import("@/pages/enterprise"));
 const SignupFlowDemo = lazy(() => import("@/pages/signup-flow-demo"));
 const LegalDisclaimers = lazy(() => import("@/pages/legal-disclaimers"));
 const ContactUs = lazy(() => import("@/pages/contact-us"));
@@ -203,6 +204,11 @@ function Router() {
       {/* Streamlined onramp flow */}
       <Route path="/onramp">
         {() => <LazyLoadWrapper><OnrampPage /></LazyLoadWrapper>}
+      </Route>
+      
+      {/* Enterprise section - separate from consumer platform */}
+      <Route path="/enterprise">
+        {() => <LazyLoadWrapper><EnterprisePage /></LazyLoadWrapper>}
       </Route>
       
       <Route path="/marketplace/checkout/:serviceId">

@@ -163,6 +163,8 @@ export function usePerformanceTracking() {
   };
 }
 
+import React from 'react';
+
 // Higher-order component for automatic performance tracking
 export function withPerformanceTracking<T extends object>(
   Component: React.ComponentType<T>,

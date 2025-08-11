@@ -106,5 +106,7 @@ export {
   XRPLogo,
   LogOut,
   Import,
-  Package
+  Package,
+  Wifi,
+  WifiOff
 } from '@/lib/minimal-icons-clean';

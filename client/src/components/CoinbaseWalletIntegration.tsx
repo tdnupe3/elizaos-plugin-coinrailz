@@ -16,11 +16,24 @@ export function CoinbaseWalletIntegration() {
   const [detectedApps, setDetectedApps] = useState<CoinbaseApp[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+  const [isCheckingForNewWallet, setIsCheckingForNewWallet] = useState(false);
   const { toast } = useToast();
 
   // Auto-detect Coinbase apps on component mount
   useEffect(() => {
     detectCoinbaseApps();
+    
+    // Auto-detect when user returns from wallet creation
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        setTimeout(() => {
+          detectCoinbaseApps();
+        }, 2000); // Give time for wallet to initialize
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const detectCoinbaseApps = () => {
@@ -91,12 +104,14 @@ export function CoinbaseWalletIntegration() {
   };
 
   const createNewWallet = (type: 'defi' | 'mobile') => {
+    setIsCheckingForNewWallet(true);
+    
     if (type === 'defi') {
       // Redirect to Coinbase DeFi Wallet download
       window.open('https://wallet.coinbase.com/', '_blank');
       toast({
-        title: "Redirecting to Coinbase",
-        description: "Opening DeFi wallet creation page",
+        title: "Creating Coinbase Wallet",
+        description: "After setup, return here for automatic detection",
         variant: "default",
       });
     } else {
@@ -114,11 +129,33 @@ export function CoinbaseWalletIntegration() {
       
       window.open(downloadUrl, '_blank');
       toast({
-        title: "Redirecting to App Store",
-        description: "Opening Coinbase Wallet download page",
+        title: "Creating Coinbase Wallet",
+        description: "After download and setup, return here for automatic connection",
         variant: "default",
       });
     }
+
+    // Auto-check for new wallet periodically after user returns
+    const checkInterval = setInterval(() => {
+      if (!document.hidden) {
+        detectCoinbaseApps();
+        if (detectedApps.some(app => app.detected)) {
+          setIsCheckingForNewWallet(false);
+          clearInterval(checkInterval);
+          toast({
+            title: "Wallet Detected!",
+            description: "Your new Coinbase wallet is ready to connect",
+            variant: "default",
+          });
+        }
+      }
+    }, 3000);
+
+    // Stop checking after 5 minutes
+    setTimeout(() => {
+      setIsCheckingForNewWallet(false);
+      clearInterval(checkInterval);
+    }, 300000);
   };
 
   const signInWithCoinbase = () => {
@@ -197,22 +234,27 @@ export function CoinbaseWalletIntegration() {
               <Button
                 variant="outline"
                 onClick={() => createNewWallet('defi')}
+                disabled={isCheckingForNewWallet}
                 className="border-orange-600 text-orange-600 hover:bg-orange-50"
               >
                 <Wallet className="w-4 h-4 mr-2" />
-                DeFi Wallet
+                {isCheckingForNewWallet ? 'Setting Up...' : 'DeFi Wallet'}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => createNewWallet('mobile')}
+                disabled={isCheckingForNewWallet}
                 className="border-orange-600 text-orange-600 hover:bg-orange-50"
               >
                 <Download className="w-4 h-4 mr-2" />
-                Mobile App
+                {isCheckingForNewWallet ? 'Setting Up...' : 'Mobile App'}
               </Button>
             </div>
             <p className="text-xs text-orange-600 mt-2">
-              Both options will redirect you to official Coinbase pages for secure wallet creation
+              {isCheckingForNewWallet ? 
+                'Waiting for wallet setup completion - return here after creating your wallet' :
+                'One-click setup: Download → Create → Auto-detect → Connect'
+              }
             </p>
           </div>
 

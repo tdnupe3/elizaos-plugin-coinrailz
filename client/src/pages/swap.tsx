@@ -4,7 +4,9 @@ import { WalletConnect } from "@/components/wallet-connect";
 import { TokenLogoSwapInterface } from "@/components/token-logo-swap";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { NavigationHeader } from "@/components/navigation-header";
-import { FeeCalculator } from "@/components/FeeCalculator";
+import FeeCalculator from "@/components/FeeCalculator";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info } from "lucide-react";
@@ -86,6 +88,22 @@ export default function SwapPage() {
             <TokenLogoSwapInterface 
               onAmountChange={handleSwapAmountChange}
               tradingFees={tradingFees}
+              onSwapComplete={async (swapData) => {
+                // Record trading fees in database for revenue tracking
+                try {
+                  await apiRequest('POST', '/api/balance/record-trading-fee', {
+                    userAddress: swapData.userAddress,
+                    fromToken: swapData.fromToken,
+                    toToken: swapData.toToken,
+                    amount: swapData.amount,
+                    platformFee: tradingFees?.calculation?.platformFee || 0,
+                    transactionHash: swapData.transactionHash
+                  });
+                  console.log('✅ Trading fees recorded successfully');
+                } catch (error) {
+                  console.warn('Failed to record trading fees:', error);
+                }
+              }}
             />
           </div>
         </div>

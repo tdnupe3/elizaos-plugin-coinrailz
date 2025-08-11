@@ -7,6 +7,7 @@ import { FeeCalculator } from "./services/feeCalculator";
 // Legacy auth and route imports removed - functionality consolidated
 import { z } from "zod";
 import { db } from "./db";
+import { sql, eq } from "drizzle-orm";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
 import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
@@ -73,6 +74,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const onrampRoutes = (await import('./routes/onrampRoutes.js')).default;
   app.use('/api/onramp', onrampRoutes);
   
+  // === BALANCE INTEGRATION ROUTES ===
+  const balanceIntegrationRoutes = (await import('./routes/balanceIntegrationRoutes.js')).default;
+  app.use('/api/balance', balanceIntegrationRoutes);
+  
   // === GUEST DEX ACCESS - NO AUTHENTICATION REQUIRED ===
   // Production-ready DEX endpoints with trading fee collection
   app.post('/api/dex/quote', async (req, res) => {
@@ -86,7 +91,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Calculate trading fees using our fee calculator
+      // Calculate trading fees using our fee calculator service
+      const { FeeCalculator } = await import('./services/feeCalculator.js');
       const feeCalculation = FeeCalculator.calculate(parseFloat(amount), 'crypto', 'crypto');
       
       // Simulate DEX quote for guest access (production-ready revenue generation)
@@ -142,6 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Calculate and collect trading fees
+      const { FeeCalculator } = await import('./services/feeCalculator.js');
       const feeCalculation = FeeCalculator.calculate(parseFloat(amount), 'crypto', 'crypto');
       
       // Simulate successful swap execution for production revenue
@@ -2359,8 +2366,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const userResult = await db.select({
         email: users.email,
-        usdcBalance: users.usdc_balance,
-        circleWalletAddress: users.circle_wallet_address
+        usdcBalance: users.usdcBalance,
+        circleWalletAddress: users.circleWalletAddress
       }).from(users).where(eq(users.email, email)).limit(1);
       
       if (userResult.length === 0) {

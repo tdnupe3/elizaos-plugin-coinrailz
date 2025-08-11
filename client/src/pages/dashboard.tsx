@@ -51,9 +51,9 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Fetch user dashboard data with proper error handling
+  // Fetch user dashboard data with real balance integration
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["/api/dashboard/stats"],
+    queryKey: ["/api/balance/dashboard-data"],
     enabled: !!user,
     retry: false,
     throwOnError: false
@@ -67,12 +67,9 @@ export default function Dashboard() {
     throwOnError: false
   });
 
-  const { data: transactions, isLoading: transactionsLoading } = useQuery({
-    queryKey: ["/api/dashboard/transactions"],
-    enabled: !!user,
-    retry: false,
-    throwOnError: false
-  });
+  // Transaction data is now included in the dashboard stats
+  const transactions = stats?.transactions || [];
+  const transactionsLoading = statsLoading;
 
   const { data: portfolioData } = useQuery({
     queryKey: ["/api/dashboard/portfolio"],
@@ -81,15 +78,23 @@ export default function Dashboard() {
     throwOnError: false
   });
 
-  // Use actual user data (no mock data fallback)
+  // Use actual user data from balance integration API
   const userStats: DashboardStats = (stats && typeof stats === 'object' && 'balance' in stats) 
-    ? stats as DashboardStats 
+    ? {
+        balance: stats.balance || 0,
+        totalTransactions: stats.totalTransactions || 0,
+        monthlyVolume: stats.monthlyVolume || 0,
+        activeAgents: stats.activeAgents || 0,
+        referralEarnings: stats.referralEarnings || 0,
+        totalRevenue: stats.totalRevenue || 0
+      } as DashboardStats
     : {
         balance: 0.00,
         totalTransactions: 0,
         monthlyVolume: 0.00,
         activeAgents: 0,
-        referralEarnings: 0.00
+        referralEarnings: 0.00,
+        totalRevenue: 0.00
       };
 
   // Use actual user transactions (empty array for new users)

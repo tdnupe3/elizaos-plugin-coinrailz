@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ArrowRight, CreditCard, Banknote, Shield, Zap } from "lucide-react";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function OnrampPage() {
   const [amount, setAmount] = useState("");
@@ -17,22 +18,30 @@ export default function OnrampPage() {
     if (!amount || parseFloat(amount) <= 0) return;
 
     try {
-      // Create onramp session
-      const response = await fetch('/api/onramp/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: parseFloat(amount),
-          paymentMethod,
-          targetCrypto: 'USDC'
-        })
+      const fundingAmount = parseFloat(amount);
+      
+      // Process onramp payment
+      const response = await apiRequest('POST', '/api/onramp/create', {
+        amount: fundingAmount,
+        paymentMethod,
+        targetCrypto: 'USDC'
       });
 
-      const data = await response.json();
-      
-      if (data.success) {
-        // Simulate successful funding and redirect to trading
-        setLocation(`/swap?funded=${data.session.cryptoAmount}&crypto=${data.session.targetCrypto}`);
+      if (response.success) {
+        // Update user balance in database
+        try {
+          await apiRequest('POST', '/api/balance/update-balance', {
+            amount: fundingAmount,
+            method: paymentMethod,
+            transactionId: `onramp-${Date.now()}`
+          });
+          console.log(`✅ Balance updated: $${fundingAmount} added to user account`);
+        } catch (balanceError) {
+          console.warn('Failed to update balance:', balanceError);
+        }
+
+        // Redirect to trading with funded amount
+        setLocation(`/swap?funded=${fundingAmount}&source=onramp`);
       }
     } catch (error) {
       console.error('Onramp failed:', error);

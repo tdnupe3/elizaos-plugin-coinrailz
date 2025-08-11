@@ -1577,10 +1577,10 @@ export type XrpTransaction = typeof xrpTransactions.$inferSelect;
 export type InsertXrpTransaction = typeof xrpTransactions.$inferInsert;
 export type XrpOrder = typeof xrpOrders.$inferSelect;
 export type InsertXrpOrder = typeof xrpOrders.$inferInsert;
-export type XrpLiquidityPool = typeof xrpLiquidityPools.$inferSelect;
-export type InsertXrpLiquidityPool = typeof xrpLiquidityPools.$inferInsert;
-export type XrpEscrow = typeof xrpEscrows.$inferSelect;
-export type InsertXrpEscrow = typeof xrpEscrows.$inferInsert;
+export type XrpLiquidityPosition = typeof xrpLiquidityPositions.$inferSelect;
+export type InsertXrpLiquidityPosition = typeof xrpLiquidityPositions.$inferInsert;
+export type XrpCrossBorderPayment = typeof xrpCrossBorderPayments.$inferSelect;
+export type InsertXrpCrossBorderPayment = typeof xrpCrossBorderPayments.$inferInsert;
 
 // XRP Insert schemas for validation
 export const insertXrpWalletSchema = createInsertSchema(xrpWallets).omit({
@@ -1600,9 +1600,15 @@ export const insertXrpOrderSchema = createInsertSchema(xrpOrders).omit({
   createdAt: true,
   updatedAt: true,
 });
-export type XrpOrder = typeof xrpOrders.$inferSelect;
-export type InsertXrpOrder = typeof xrpOrders.$inferInsert;
-export type XrpLiquidityPosition = typeof xrpLiquidityPositions.$inferSelect;
-export type InsertXrpLiquidityPosition = typeof xrpLiquidityPositions.$inferInsert;
-export type XrpCrossBorderPayment = typeof xrpCrossBorderPayments.$inferSelect;
-export type InsertXrpCrossBorderPayment = typeof xrpCrossBorderPayments.$inferInsert;
+
+export const insertXrpLiquidityPositionSchema = createInsertSchema(xrpLiquidityPositions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertXrpCrossBorderPaymentSchema = createInsertSchema(xrpCrossBorderPayments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});

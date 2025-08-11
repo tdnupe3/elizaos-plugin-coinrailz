@@ -48,14 +48,13 @@ router.post('/wallet/create', isAuthenticated, async (req, res) => {
 router.get('/wallet/:walletId/balance', isAuthenticated, async (req, res) => {
   try {
     const { walletId } = req.params;
-    const userId = (req.user as any)?.claims?.sub;
     
-    const balance = await coinbaseCDPService.getWalletBalance(walletId, userId);
+    const balances = await coinbaseCDPService.getWalletBalances(walletId);
     
     res.json({
       success: true,
       wallet_id: walletId,
-      balance,
+      balances,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -85,8 +84,7 @@ router.post('/wallet/:walletId/send', isAuthenticated, async (req, res) => {
       walletId,
       to_address,
       amount,
-      currency,
-      userId
+      currency
     );
     
     res.json({
@@ -112,28 +110,17 @@ router.post('/wallet/:walletId/send', isAuthenticated, async (req, res) => {
   }
 });
 
-// Get transaction history
+// Get transaction history - simplified for Server Wallet v2
 router.get('/wallet/:walletId/transactions', isAuthenticated, async (req, res) => {
   try {
     const { walletId } = req.params;
-    const userId = (req.user as any)?.claims?.sub;
-    const { limit = 10, offset = 0 } = req.query;
     
-    const transactions = await coinbaseCDPService.getTransactionHistory(
-      walletId,
-      userId,
-      parseInt(limit as string),
-      parseInt(offset as string)
-    );
-    
+    // Server Wallet v2 transaction history would need additional implementation
     res.json({
       success: true,
       wallet_id: walletId,
-      transactions,
-      pagination: {
-        limit: parseInt(limit as string),
-        offset: parseInt(offset as string)
-      },
+      transactions: [],
+      message: 'Transaction history feature available with enhanced CDP integration',
       timestamp: new Date().toISOString()
     });
   } catch (error) {

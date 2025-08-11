@@ -229,7 +229,7 @@ export default function Dashboard() {
           <IntuitiveOnboarding />
         </div>
 
-        {/* Coinbase Connection Section - Positioned right after demo mode */}
+        {/* Coinbase Connection Section - Positioned immediately after demo mode */}
         <div className="mb-8">
           <CoinbaseConnectionSection />
         </div>

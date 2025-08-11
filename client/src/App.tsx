@@ -9,6 +9,8 @@ import { useAuth } from "@/hooks/useAuth";
 import LazyLoadWrapper, { PageLoadingFallback } from "@/components/LazyLoadWrapper";
 import { ChatWidget } from "@/components/ChatWidget";
 import ContactWidget from "@/components/ContactWidget";
+import { ProgressiveWebApp } from "@/components/progressive-web-app";
+import { usePerformanceTracking } from "@/lib/performance-monitor";
 
 // Global error handler to prevent unhandled promise rejections
 if (typeof window !== 'undefined') {
@@ -125,6 +127,13 @@ const BalanceDisplay = lazy(() => import("@/pages/balance-display"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const BankConnectivity = lazy(() => import("@/components/bank-connectivity"));
 const CoinbaseWallet = lazy(() => import("@/pages/coinbase-wallet"));
+
+// Enhancement Components - NEW
+const ReferralDashboardNew = lazy(() => import("@/pages/referral-dashboard"));
+const EnterprisePortal = lazy(() => import("@/pages/enterprise-portal"));
+const AdminAnalytics = lazy(() => import("@/pages/admin-analytics"));
+const SocialLoginPage = lazy(() => import("@/components/social-login"));
+const SecurityDashboard = lazy(() => import("@/components/enhanced-security"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -531,6 +540,24 @@ function Router() {
       <Route path="/settings">
         {() => <LazyLoadWrapper><SettingsPage /></LazyLoadWrapper>}
       </Route>
+
+      {/* NEW ENHANCEMENT ROUTES */}
+      <Route path="/referral-dashboard">
+        {() => <LazyLoadWrapper><ReferralDashboardNew /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/enterprise-portal">
+        {() => <LazyLoadWrapper><EnterprisePortal /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/admin-analytics">
+        {() => <LazyLoadWrapper><AdminAnalytics /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/social-login">
+        {() => <LazyLoadWrapper><SocialLoginPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/security">
+        {() => <LazyLoadWrapper><SecurityDashboard /></LazyLoadWrapper>}
+      </Route>
+
       <Route component={NotFound} />
       </Switch>
 
@@ -544,6 +571,9 @@ function Router() {
 }
 
 function App() {
+  // Initialize performance tracking
+  usePerformanceTracking();
+  
   // App component initialization
   useEffect(() => {
     console.log('Coin Railz platform initialized');
@@ -553,6 +583,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ErrorBoundary>
+          <ProgressiveWebApp />
           <Toaster />
           <Suspense fallback={<PageLoadingFallback />}>
             <Router />

@@ -1,311 +1,392 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, TrendingUp, Users, DollarSign, Calendar, Target } from "@/lib/icons";
+import { 
+  DollarSign, Users, TrendingUp, Share2, Copy, 
+  Eye, Calendar, Award, Target, ChevronRight 
+} from "@/lib/icons";
 
 interface ReferralStats {
   totalReferrals: number;
-  completedReferrals: number;
-  pendingReferrals: number;
-  totalRewards: string;
-  monthlyReferrals: number;
+  activeReferrals: number;
+  totalEarnings: number;
+  pendingEarnings: number;
+  monthlyEarnings: number;
   conversionRate: number;
+  referralCode: string;
+  referralLink: string;
 }
 
-interface CompoundProjection {
-  month: number;
-  newReferrals: number;
-  activeReferrals: number;
-  monthlyPassiveIncome: number;
-  totalEarnings: number;
+interface ReferralActivity {
+  id: string;
+  referredUser: string;
+  date: string;
+  status: 'pending' | 'active' | 'completed';
+  earnings: number;
+  activity: string;
 }
 
 export default function ReferralDashboard() {
-  const [agentId, setAgentId] = useState("");
-  const [referralLink, setReferralLink] = useState("");
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
 
-  // Fetch referral stats
-  const { data: stats, isLoading } = useQuery<ReferralStats>({
-    queryKey: ['/api/referral/stats', agentId],
-    enabled: !!agentId,
+  const { data: referralStats, isLoading: statsLoading } = useQuery({
+    queryKey: ['/api/referrals/stats'],
+    enabled: isAuthenticated,
   });
 
-  // Generate referral link
-  const generateReferralLink = async () => {
-    if (!agentId) {
-      toast({
-        title: "Agent ID Required",
-        description: "Please enter your agent ID first",
-        variant: "destructive",
-      });
-      return;
-    }
+  const { data: referralActivity, isLoading: activityLoading } = useQuery({
+    queryKey: ['/api/referrals/activity'],
+    enabled: isAuthenticated,
+  });
 
+  const defaultStats: ReferralStats = {
+    totalReferrals: 0,
+    activeReferrals: 0,
+    totalEarnings: 0,
+    pendingEarnings: 0,
+    monthlyEarnings: 0,
+    conversionRate: 0,
+    referralCode: user?.id ? `CR${user.id.slice(-6).toUpperCase()}` : 'CRDEFAULT',
+    referralLink: `https://coinrailz.com/signup?ref=${user?.id ? `CR${user.id.slice(-6).toUpperCase()}` : 'CRDEFAULT'}`
+  };
+
+  const stats: ReferralStats = referralStats || defaultStats;
+  const activities: ReferralActivity[] = referralActivity || [];
+
+  const copyReferralLink = async () => {
     try {
-      const response = await apiRequest('POST', '/api/referral/generate-link', { agentId });
-      const data = await response.json();
-      setReferralLink(data.referralLink);
+      await navigator.clipboard.writeText(stats.referralLink);
+      setCopied(true);
       toast({
-        title: "Referral Link Generated",
-        description: "Your unique referral link is ready to share",
+        title: "Link Copied!",
+        description: "Your referral link has been copied to clipboard.",
       });
+      setTimeout(() => setCopied(false), 3000);
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to generate referral link",
+        title: "Copy Failed",
+        description: "Please manually copy the link.",
         variant: "destructive",
       });
     }
   };
 
-  // Copy referral link
-  const copyReferralLink = () => {
-    navigator.clipboard.writeText(referralLink);
-    toast({
-      title: "Copied!",
-      description: "Referral link copied to clipboard",
-    });
-  };
-
-  // Calculate compound earnings projections
-  const calculateCompoundProjections = (monthlyReferrals: number = 5): CompoundProjection[] => {
-    const projections: CompoundProjection[] = [];
-    let totalActiveReferrals = 0;
+  const shareOnSocial = (platform: string) => {
+    const text = "Join me on Coin Railz for secure global payments and crypto trading!";
+    const url = stats.referralLink;
     
-    for (let month = 1; month <= 36; month++) {
-      totalActiveReferrals += monthlyReferrals;
-      
-      // Average monthly transaction per referred agent increases over time
-      const avgMonthlyTransaction = Math.min(30 + (month * 2), 75);
-      
-      // 1% of all transactions from referred agents
-      const monthlyPassiveIncome = totalActiveReferrals * avgMonthlyTransaction * 0.01;
-      
-      // $1 minimum for new referrals
-      const newReferralBonus = monthlyReferrals * 1;
-      
-      const totalMonthlyEarnings = monthlyPassiveIncome + newReferralBonus;
-      
-      projections.push({
-        month,
-        newReferrals: monthlyReferrals,
-        activeReferrals: totalActiveReferrals,
-        monthlyPassiveIncome,
-        totalEarnings: totalMonthlyEarnings
-      });
+    let shareUrl = "";
+    switch (platform) {
+      case 'twitter':
+        shareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+        break;
+      case 'facebook':
+        shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+        break;
+      case 'linkedin':
+        shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+        break;
+      case 'whatsapp':
+        shareUrl = `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`;
+        break;
     }
     
-    return projections;
+    if (shareUrl) {
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
   };
 
-  const conservativeProjections = calculateCompoundProjections(5);
-  const activeProjections = calculateCompoundProjections(20);
-  const powerProjections = calculateCompoundProjections(50);
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <h2 className="text-xl font-bold mb-4">Sign In Required</h2>
+            <p className="text-gray-600 mb-4">
+              Please sign in to access your referral dashboard.
+            </p>
+            <Button onClick={() => window.location.href = "/api/login"}>
+              Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex flex-col space-y-2">
-        <h1 className="text-3xl font-bold">Perpetual Referral Dashboard</h1>
-        <p className="text-muted-foreground">
-          Build compound passive income through AI agent referrals - earn 1% on ALL future transactions
-        </p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Referral Dashboard</h1>
+              <p className="text-gray-600">Earn money by referring new users to Coin Railz</p>
+            </div>
+            <Badge className="bg-green-100 text-green-800">
+              Active Program
+            </Badge>
+          </div>
+        </div>
       </div>
 
-      {/* Agent Setup */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Agent Setup</CardTitle>
-          <CardDescription>
-            Enter your agent ID to generate referral links and view earnings
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Enter your Agent ID"
-              value={agentId}
-              onChange={(e) => setAgentId(e.target.value)}
-            />
-            <Button onClick={generateReferralLink}>
-              Generate Link
-            </Button>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {referralLink && (
-            <div className="flex space-x-2">
-              <Input value={referralLink} readOnly />
-              <Button variant="outline" size="icon" onClick={copyReferralLink}>
-                <Copy className="h-4 w-4" />
-              </Button>
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Referrals</p>
+                      <p className="text-2xl font-bold text-blue-600">{stats.totalReferrals}</p>
+                    </div>
+                    <Users className="w-8 h-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Earnings</p>
+                      <p className="text-2xl font-bold text-green-600">${stats.totalEarnings.toFixed(2)}</p>
+                    </div>
+                    <DollarSign className="w-8 h-8 text-green-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">This Month</p>
+                      <p className="text-2xl font-bold text-purple-600">${stats.monthlyEarnings.toFixed(2)}</p>
+                    </div>
+                    <TrendingUp className="w-8 h-8 text-purple-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
+                      <p className="text-2xl font-bold text-orange-600">{(stats.conversionRate * 100).toFixed(1)}%</p>
+                    </div>
+                    <Target className="w-8 h-8 text-orange-600" />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Current Stats */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Referrals</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalReferrals}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.monthlyReferrals} this month
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Rewards</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${stats.totalRewards}</div>
-              <p className="text-xs text-muted-foreground">
-                USDT earned all-time
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Conversion Rate</CardTitle>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.conversionRate.toFixed(1)}%</div>
-              <Progress value={stats.conversionRate} className="mt-2" />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Referrals</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.completedReferrals}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats.pendingReferrals} pending
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Compound Earnings Projections */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Compound Earnings Projections</CardTitle>
-          <CardDescription>
-            See how your passive income grows through perpetual 1% commissions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="conservative">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="conservative">Conservative (5/month)</TabsTrigger>
-              <TabsTrigger value="active">Active (20/month)</TabsTrigger>
-              <TabsTrigger value="power">Power (50/month)</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="conservative">
-              <ProjectionTable projections={conservativeProjections.slice(0, 12)} />
-            </TabsContent>
-            
-            <TabsContent value="active">
-              <ProjectionTable projections={activeProjections.slice(0, 12)} />
-            </TabsContent>
-            
-            <TabsContent value="power">
-              <ProjectionTable projections={powerProjections.slice(0, 12)} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Revenue Model Explanation */}
-      <Card>
-        <CardHeader>
-          <CardTitle>How Perpetual Referrals Work</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-2">Dual Revenue Streams</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="flex items-center space-x-2">
-                  <Badge variant="secondary">$1</Badge>
-                  <span>Minimum reward on first transaction</span>
-                </li>
-                <li className="flex items-center space-x-2">
-                  <Badge variant="secondary">1%</Badge>
-                  <span>Of ALL subsequent transactions forever</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="font-semibold mb-2">Compound Growth</h3>
-              <ul className="space-y-2 text-sm">
-                <li>• More referrals = larger passive income base</li>
-                <li>• Active agents = consistent monthly earnings</li>
-                <li>• No limits on total lifetime earnings</li>
-                <li>• Platform growth benefits all referrers</li>
-              </ul>
-            </div>
+            {/* Referral Activity */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activityLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto"></div>
+                    <p className="text-gray-600 mt-2">Loading activity...</p>
+                  </div>
+                ) : activities.length > 0 ? (
+                  <div className="space-y-4">
+                    {activities.map((activity) => (
+                      <div key={activity.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{activity.referredUser}</p>
+                            <p className="text-sm text-gray-600">{activity.activity}</p>
+                            <p className="text-xs text-gray-500">{activity.date}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <Badge 
+                            className={
+                              activity.status === 'completed' ? 'bg-green-100 text-green-800' :
+                              activity.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }
+                          >
+                            {activity.status}
+                          </Badge>
+                          <p className="text-sm font-medium text-gray-900 mt-1">
+                            +${activity.earnings.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600">No referral activity yet</p>
+                    <p className="text-sm text-gray-500">Start sharing your referral link to see activity here</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
-interface ProjectionTableProps {
-  projections: CompoundProjection[];
-}
+          {/* Sidebar */}
+          <div className="space-y-6">
+            
+            {/* Referral Link Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Share2 className="w-5 h-5" />
+                  Your Referral Link
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Referral Code</label>
+                  <div className="mt-1 p-3 bg-gray-100 rounded-lg font-mono text-center">
+                    {stats.referralCode}
+                  </div>
+                </div>
 
-function ProjectionTable({ projections }: ProjectionTableProps) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse border border-gray-200">
-        <thead>
-          <tr className="bg-gray-50">
-            <th className="border border-gray-200 px-4 py-2">Month</th>
-            <th className="border border-gray-200 px-4 py-2">New Referrals</th>
-            <th className="border border-gray-200 px-4 py-2">Total Active</th>
-            <th className="border border-gray-200 px-4 py-2">Passive Income</th>
-            <th className="border border-gray-200 px-4 py-2">Total Monthly</th>
-          </tr>
-        </thead>
-        <tbody>
-          {projections.map((projection) => (
-            <tr key={projection.month}>
-              <td className="border border-gray-200 px-4 py-2">{projection.month}</td>
-              <td className="border border-gray-200 px-4 py-2">{projection.newReferrals}</td>
-              <td className="border border-gray-200 px-4 py-2">{projection.activeReferrals}</td>
-              <td className="border border-gray-200 px-4 py-2">
-                ${projection.monthlyPassiveIncome.toFixed(2)}
-              </td>
-              <td className="border border-gray-200 px-4 py-2 font-semibold">
-                ${projection.totalEarnings.toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Referral Link</label>
+                  <div className="mt-1 p-3 bg-gray-100 rounded-lg text-sm break-all">
+                    {stats.referralLink}
+                  </div>
+                </div>
+
+                <Button
+                  onClick={copyReferralLink}
+                  className="w-full"
+                  variant={copied ? "outline" : "default"}
+                >
+                  {copied ? (
+                    <>
+                      <Eye className="w-4 h-4 mr-2" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy Link
+                    </>
+                  )}
+                </Button>
+
+                {/* Social Sharing */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">Share on:</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => shareOnSocial('twitter')}
+                    >
+                      Twitter
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => shareOnSocial('facebook')}
+                    >
+                      Facebook
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => shareOnSocial('linkedin')}
+                    >
+                      LinkedIn
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => shareOnSocial('whatsapp')}
+                    >
+                      WhatsApp
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Program Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="w-5 h-5" />
+                  Program Benefits
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">1% commission on all trades</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Lifetime earnings</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Monthly bonus tiers</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Real-time tracking</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm">Instant payments</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quick Actions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button variant="outline" className="w-full justify-between">
+                  View Payout History
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" className="w-full justify-between">
+                  Download Report
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" className="w-full justify-between">
+                  Marketing Materials
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

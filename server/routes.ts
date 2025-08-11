@@ -29,6 +29,9 @@ import p2pRoutes from "./routes/p2pRoutes";
 
 import defiWalletRoutes from "./routes/defiWalletRoutes";
 import { coinbaseCDPService } from './services/coinbaseCDPService';
+import { setupAnalyticsRoutes } from "./routes/analytics";
+import { setupReferralRoutes } from "./routes/referrals";
+import { setupEnterpriseRoutes } from "./routes/enterprise";
 
 // Initialize services
 let stripe: any;
@@ -3107,6 +3110,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // === NEW ENHANCEMENT ROUTES ===
+  setupAnalyticsRoutes(app);
+  setupReferralRoutes(app);
+  setupEnterpriseRoutes(app);
+  
+  console.log('✅ All enhancement routes registered successfully');
 
   return server;
 }

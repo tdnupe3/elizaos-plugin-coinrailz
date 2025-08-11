@@ -93,7 +93,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate trading fees using our fee calculator service
       const { FeeCalculator } = await import('./services/feeCalculator.js');
-      const feeCalculation = FeeCalculator.calculate(parseFloat(amount), 'crypto', 'crypto');
+      const feeCalculation = FeeCalculator.calculateTransactionFee({
+        amount: parseFloat(amount),
+        currency: fromToken || 'crypto',
+        paymentMethod: 'crypto',
+        transactionType: 'dex_swap'
+      });
       
       // Simulate DEX quote for guest access (production-ready revenue generation)
       const mockQuote = {
@@ -121,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      console.log(`💰 DEX Quote Generated: $${feeCalculation.platformFee} revenue from ${amount} ${fromToken}`);
+      console.log(`💰 DEX Quote Generated: $${feeCalculation.fee} revenue from ${amount} ${fromToken}`);
 
       res.json({
         success: true,
@@ -149,7 +154,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate and collect trading fees
       const { FeeCalculator } = await import('./services/feeCalculator.js');
-      const feeCalculation = FeeCalculator.calculate(parseFloat(amount), 'crypto', 'crypto');
+      const feeCalculation = FeeCalculator.calculateTransactionFee({
+        amount: parseFloat(amount),
+        currency: fromToken || 'crypto',
+        paymentMethod: 'crypto',
+        transactionType: 'dex_swap'
+      });
       
       // Simulate successful swap execution for production revenue
       const mockTransactionHash = `0x${Math.random().toString(16).substr(2, 64)}`;
@@ -171,13 +181,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fromToken,
           toToken,
           amount: parseFloat(amount).toString(),
-          platformFee: feeCalculation.platformFee.toString(),
+          platformFee: feeCalculation.fee.toString(),
           transactionHash: mockTransactionHash,
-          revenue: feeCalculation.platformFee.toString(),
+          revenue: feeCalculation.fee.toString(),
           status: 'completed',
           chainId: req.body.chainId || 1
         });
-        console.log(`✅ DEX Revenue Generated: $${feeCalculation.platformFee} from ${userAddress.slice(0,8)}...`);
+        console.log(`✅ DEX Revenue Generated: $${feeCalculation.fee} from ${userAddress.slice(0,8)}...`);
       } catch (dbError) {
         console.error('Failed to record trading fee:', dbError);
         // Continue execution even if DB fails

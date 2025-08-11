@@ -909,6 +909,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === MARKETPLACE AGENTS ENDPOINT ===
+  app.get('/api/marketplace/agents', async (req, res) => {
+    try {
+      // Get marketplace agents from database
+      const agents = await storage.getMarketplaceAgents({ limit: 50 });
+      
+      res.json({
+        success: true,
+        data: agents,
+        total: agents.length
+      });
+    } catch (error) {
+      console.error('Marketplace agents error:', error);
+      res.status(500).json({ success: false, error: 'Failed to fetch marketplace agents' });
+    }
+  });
+
   // === SERVICE DISCOVERY ENDPOINTS ===  
   app.get('/api/services/discover', isAuthenticated, async (req, res) => {
     try {
@@ -2200,6 +2217,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === PAYMENT COMPLETION SYSTEM - REVENUE GENERATOR ===
   
   // Complete pending payment for an order - CRITICAL REVENUE ENDPOINT
+  app.post('/api/payments/complete-payment', isAuthenticated, async (req, res) => {
+    try {
+      const { orderId } = req.body;
+      const userId = (req.user as any)?.claims?.sub;
+      
+      if (!orderId) {
+        return res.status(400).json({ error: 'orderId required in request body' });
+      }
+
+      console.log(`💰 Processing payment completion for order: ${orderId}`);
+      
+      // Get order details
+      const [order] = await db.select()
+        .from(aiMarketplaceOrders)
+        .where(eq(aiMarketplaceOrders.id, orderId))
+        .limit(1);
+        
+      if (!order) {
+        return res.status(404).json({ error: 'Order not found' });
+      }
+      
+      if (order.status !== 'pending') {
+        return res.status(400).json({ error: `Order already ${order.status}` });
+      }
+      
+      const amount = parseFloat(order.amount);
+      const platformFee = parseFloat(order.platformFee);
+      const agentCommission = parseFloat(order.agentCommission);
+      
+      // Update order status to completed
+      await db.update(aiMarketplaceOrders)
+        .set({ 
+          status: 'completed',
+          completedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(aiMarketplaceOrders.id, orderId));
+      
+      console.log(`✅ REVENUE COLLECTED: $${platformFee} platform fee from order ${orderId}`);
+      
+      res.json({
+        success: true,
+        message: 'Payment completed successfully',
+        orderId,
+        amount,
+        platformFee,
+        agentCommission,
+        paymentMethod: order.paymentMethod,
+        status: 'completed',
+        revenueCollected: platformFee,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('Payment completion error:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'Payment completion failed',
+        details: error.message 
+      });
+    }
+  });
+
   app.post('/api/payments/complete/:orderId', isAuthenticated, async (req, res) => {
     try {
       const { orderId } = req.params;

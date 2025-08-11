@@ -4,11 +4,11 @@
  */
 
 import express from 'express';
-import { DeFiWalletService } from '../services/defiWalletService';
+import { CoinbaseDefiWalletService } from '../services/defiWalletService';
 import { isAuthenticated } from '../replitAuth';
 
 const router = express.Router();
-const defiWalletService = DeFiWalletService.getInstance();
+const coinbaseWalletService = CoinbaseDefiWalletService.getInstance();
 
 /**
  * GET /api/defi/networks
@@ -16,7 +16,7 @@ const defiWalletService = DeFiWalletService.getInstance();
  */
 router.get('/networks', isAuthenticated, async (req, res) => {
   try {
-    const networks = defiWalletService.getSupportedNetworks();
+    const networks = coinbaseWalletService.getSupportedNetworks();
     res.json({
       success: true,
       networks
@@ -61,12 +61,12 @@ router.post('/wallet/connect', isAuthenticated, async (req: any, res) => {
       message
     };
 
-    const defiWallet = await defiWalletService.connectWallet(userId, connection);
+    const coinbaseWallet = await coinbaseWalletService.connectCoinbaseWallet(userId, connection);
     
     res.json({
       success: true,
-      wallet: defiWallet,
-      message: 'DeFi wallet connected successfully'
+      wallet: coinbaseWallet,
+      message: 'Coinbase wallet connected successfully'
     });
 
   } catch (error: any) {
@@ -93,11 +93,10 @@ router.post('/wallet/verify', isAuthenticated, async (req, res) => {
       });
     }
 
-    const isValid = await defiWalletService.verifyWalletSignature(
+    const isValid = await coinbaseWalletService.verifyCoinbaseSignature(
       address, 
       message, 
-      signature, 
-      walletType
+      signature
     );
 
     res.json({
@@ -131,7 +130,7 @@ router.get('/wallet/:address/balance', isAuthenticated, async (req, res) => {
       });
     }
 
-    const balance = await defiWalletService.getWalletBalance(
+    const balance = await coinbaseWalletService.getCoinbaseWalletBalance(
       address, 
       parseInt(chainId as string)
     );
@@ -166,7 +165,7 @@ router.get('/wallet/:address/transactions', isAuthenticated, async (req, res) =>
       });
     }
 
-    const transactions = await defiWalletService.getTransactionHistory(
+    const transactions = await coinbaseWalletService.getTransactionHistory(
       address,
       parseInt(chainId as string),
       limit ? parseInt(limit as string) : 10
@@ -202,7 +201,7 @@ router.post('/wallet/disconnect', isAuthenticated, async (req: any, res) => {
       });
     }
 
-    const success = await defiWalletService.disconnectWallet(userId, walletId);
+    const success = await coinbaseWalletService.disconnectCoinbaseWallet(userId, walletId);
 
     res.json({
       success,
@@ -234,7 +233,7 @@ router.post('/wallet/generate-message', isAuthenticated, async (req, res) => {
     }
 
     const timestamp = Date.now();
-    const message = defiWalletService.generateConnectionMessage(address, timestamp);
+    const message = coinbaseWalletService.generateCoinbaseConnectionMessage(address, timestamp);
 
     res.json({
       success: true,

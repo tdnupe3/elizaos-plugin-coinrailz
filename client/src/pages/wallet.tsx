@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Wallet, Shield, Zap, ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react';
+import CoinbaseDefiWallet from '@/components/CoinbaseDefiWallet';
 
 export default function WalletPage() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -44,7 +45,7 @@ export default function WalletPage() {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="usdc">USDC Wallet</TabsTrigger>
             <TabsTrigger value="coinbase">Coinbase Wallet</TabsTrigger>
-            <TabsTrigger value="connect">Connect DeFi</TabsTrigger>
+            <TabsTrigger value="connect">Coinbase DeFi</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -163,10 +164,10 @@ export default function WalletPage() {
                     <Zap className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold">DeFi Wallet (Optional)</h4>
+                    <h4 className="font-semibold">Coinbase DeFi Wallet</h4>
                     <p className="text-sm text-muted-foreground">
-                      Connect your existing MetaMask or other DeFi wallet for advanced trading, 
-                      yield farming, and DeFi protocol interactions.
+                      Connect your Coinbase self-custody wallet for advanced DeFi features, 
+                      native swapping, staking, and cross-chain bridging with premium security.
                     </p>
                   </div>
                 </div>
@@ -201,20 +202,7 @@ export default function WalletPage() {
           </TabsContent>
 
           <TabsContent value="connect">
-            <Card>
-              <CardHeader>
-                <CardTitle>Connect DeFi Wallet</CardTitle>
-                <CardDescription>Connect your existing crypto wallet for DeFi access</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">
-                  Connect your MetaMask, Phantom, or other crypto wallet to access DeFi features.
-                </p>
-                <Button variant="outline" disabled>
-                  Connect MetaMask (Coming Soon)
-                </Button>
-              </CardContent>
-            </Card>
+            <CoinbaseDefiWallet />
           </TabsContent>
         </Tabs>
       </div>

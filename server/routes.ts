@@ -25,6 +25,7 @@ import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
 import p2pRoutes from "./routes/p2pRoutes";
 import { enhancedCDPRoutes } from "./routes/coinbaseCDPEnhancedRoutes";
+import defiWalletRoutes from "./routes/defiWalletRoutes";
 
 // Initialize services
 let stripe: any;
@@ -147,6 +148,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { default: coinbaseCDPRoutes } = await import('./routes/coinbaseCDPRoutes');
   app.use('/api/cdp', coinbaseCDPRoutes);
   console.log('✅ Coinbase CDP routes registered successfully');
+
+  // === COINBASE DEFI WALLET ROUTES ===
+  // Self-custody Coinbase wallets with DeFi features
+  app.use('/api/defi', defiWalletRoutes);
+  console.log('✅ Coinbase DeFi wallet routes registered successfully');
   
   // === ENHANCED CDP ROUTES ===
   // Smart Accounts, Gas Sponsorship, and Professional Trading

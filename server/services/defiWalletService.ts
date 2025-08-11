@@ -1,21 +1,27 @@
 /**
- * DeFi Wallet Service - Multi-Protocol Wallet Management
- * Supports MetaMask, Coinbase Wallet, Phantom, and other Web3 wallets
- * Enterprise-grade security with user-controlled custody
+ * Coinbase DeFi Wallet Service - Coinbase Wallet SDK Integration
+ * Enterprise-grade Coinbase self-custody wallets with advanced features
+ * Supports both Coinbase Wallet mobile app and browser extension
  */
 
 import { ethers } from 'ethers';
 
-export interface DeFiWallet {
+export interface CoinbaseDefiWallet {
   id: string;
   address: string;
-  walletType: 'metamask' | 'coinbase' | 'phantom' | 'walletconnect' | 'unknown';
+  walletType: 'coinbase-defi' | 'coinbase-smart';
   network: string;
   balance: number;
   currency: string;
   connected_at: string;
   user_id: string;
   is_active: boolean;
+  features: {
+    canSwap: boolean;
+    canStake: boolean;
+    canBridge: boolean;
+    hasAdvancedSecurity: boolean;
+  };
 }
 
 export interface WalletConnection {
@@ -35,8 +41,8 @@ export interface SupportedNetwork {
   isTestnet: boolean;
 }
 
-export class DeFiWalletService {
-  private static instance: DeFiWalletService;
+export class CoinbaseDefiWalletService {
+  private static instance: CoinbaseDefiWalletService;
   
   // Supported networks for DeFi wallet connections
   private supportedNetworks: SupportedNetwork[] = [
@@ -92,9 +98,9 @@ export class DeFiWalletService {
 
   private constructor() {}
 
-  public static getInstance(): DeFiWalletService {
+  public static getInstance(): CoinbaseDefiWalletService {
     if (!this.instance) {
-      this.instance = new DeFiWalletService();
+      this.instance = new CoinbaseDefiWalletService();
     }
     return this.instance;
   }
@@ -107,78 +113,75 @@ export class DeFiWalletService {
   }
 
   /**
-   * Validate wallet address format
+   * Validate Coinbase wallet address format
    */
-  validateWalletAddress(address: string, walletType: string): boolean {
+  validateCoinbaseWalletAddress(address: string): boolean {
     try {
-      if (walletType === 'phantom') {
-        // Solana address validation (base58, 32-44 chars)
-        return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address);
-      } else {
-        // Ethereum address validation
-        return ethers.isAddress(address);
-      }
+      // Coinbase wallets use standard Ethereum addresses
+      return ethers.isAddress(address);
     } catch (error) {
       return false;
     }
   }
 
   /**
-   * Generate connection message for wallet signature
+   * Generate connection message for Coinbase wallet signature
    */
-  generateConnectionMessage(address: string, timestamp: number): string {
-    return `Connect your wallet to Coin Railz\n\nAddress: ${address}\nTimestamp: ${timestamp}\n\nThis signature proves wallet ownership and will not trigger any blockchain transactions.`;
+  generateCoinbaseConnectionMessage(address: string, timestamp: number): string {
+    return `Connect your Coinbase Wallet to Coin Railz\n\nAddress: ${address}\nTimestamp: ${timestamp}\nPlatform: Coin Railz - AI-Powered Fintech\n\nThis signature proves wallet ownership and enables advanced DeFi features.\nNo blockchain transactions will be triggered.`;
   }
 
   /**
-   * Verify wallet signature
+   * Verify Coinbase wallet signature with enhanced security
    */
-  async verifyWalletSignature(
+  async verifyCoinbaseSignature(
     address: string, 
     message: string, 
-    signature: string, 
-    walletType: string
+    signature: string
   ): Promise<boolean> {
     try {
-      if (walletType === 'phantom') {
-        // Solana signature verification would require additional libraries
-        // For now, return true for valid format
-        return signature.length > 50;
+      // Ethereum signature verification for Coinbase wallets
+      const recoveredAddress = ethers.verifyMessage(message, signature);
+      const isValid = recoveredAddress.toLowerCase() === address.toLowerCase();
+      
+      if (isValid) {
+        console.log(`✅ Coinbase wallet signature verified for address: ${address}`);
       } else {
-        // Ethereum signature verification
-        const recoveredAddress = ethers.verifyMessage(message, signature);
-        return recoveredAddress.toLowerCase() === address.toLowerCase();
+        console.warn(`❌ Invalid Coinbase wallet signature for address: ${address}`);
       }
+      
+      return isValid;
     } catch (error) {
-      console.error('Signature verification failed:', error);
+      console.error('Coinbase wallet signature verification failed:', error);
       return false;
     }
   }
 
   /**
-   * Connect a DeFi wallet to user account
+   * Connect a Coinbase DeFi wallet to user account
    */
-  async connectWallet(
+  async connectCoinbaseWallet(
     userId: string, 
     connection: WalletConnection
-  ): Promise<DeFiWallet> {
-    // Validate wallet address
-    if (!this.validateWalletAddress(connection.address, connection.walletType)) {
-      throw new Error('Invalid wallet address format');
+  ): Promise<CoinbaseDefiWallet> {
+    // Validate Coinbase wallet address
+    if (!this.validateCoinbaseWalletAddress(connection.address)) {
+      throw new Error('Invalid Coinbase wallet address format');
     }
 
-    // Verify signature if provided
-    if (connection.signature && connection.message) {
-      const isValidSignature = await this.verifyWalletSignature(
-        connection.address,
-        connection.message,
-        connection.signature,
-        connection.walletType
-      );
-      
-      if (!isValidSignature) {
-        throw new Error('Invalid wallet signature');
-      }
+    // Verify signature (required for security)
+    if (!connection.signature || !connection.message) {
+      throw new Error('Wallet signature required for Coinbase wallet connection');
+    }
+
+    const isValidSignature = await this.verifyCoinbaseSignature(
+      connection.address,
+      connection.message,
+      connection.signature
+    );
+    
+    if (!isValidSignature) {
+      throw new Error('Invalid Coinbase wallet signature');
     }
 
     // Find network info
@@ -187,60 +190,82 @@ export class DeFiWalletService {
       throw new Error('Unsupported network');
     }
 
-    const defiWallet: DeFiWallet = {
-      id: `defi_${connection.address}_${Date.now()}`,
+    // Determine wallet type and features based on connection method
+    const walletType = connection.walletType === 'coinbase-smart' ? 'coinbase-smart' : 'coinbase-defi';
+    
+    const coinbaseWallet: CoinbaseDefiWallet = {
+      id: `coinbase_${connection.address}_${Date.now()}`,
       address: connection.address,
-      walletType: connection.walletType as any,
+      walletType: walletType as any,
       network: network.name,
       balance: 0, // Will be fetched separately
       currency: network.currency,
       connected_at: new Date().toISOString(),
       user_id: userId,
-      is_active: true
+      is_active: true,
+      features: {
+        canSwap: true,      // Coinbase wallets support native swapping
+        canStake: true,     // Supports staking protocols
+        canBridge: true,    // Cross-chain bridging
+        hasAdvancedSecurity: true // Enhanced security features
+      }
     };
 
-    console.log(`✅ Connected ${connection.walletType} wallet for user ${userId}: ${connection.address}`);
-    return defiWallet;
+    console.log(`✅ Connected Coinbase ${walletType} wallet for user ${userId}: ${connection.address}`);
+    return coinbaseWallet;
   }
 
   /**
-   * Get wallet balance for connected DeFi wallet
+   * Get wallet balance for connected Coinbase wallet using Alchemy integration
    */
-  async getWalletBalance(
+  async getCoinbaseWalletBalance(
     address: string, 
     chainId: number
-  ): Promise<{ balance: string; currency: string }> {
+  ): Promise<{ balance: string; currency: string; usdValue?: string }> {
     try {
       const network = this.supportedNetworks.find(n => n.chainId === chainId);
       if (!network) {
         throw new Error('Unsupported network');
       }
 
-      // For now, return mock balance - in production, integrate with Alchemy/Infura
+      // TODO: Integrate with Alchemy for real balance data
+      // const provider = new ethers.providers.JsonRpcProvider(network.rpcUrl);
+      // const balance = await provider.getBalance(address);
+      // const formattedBalance = ethers.utils.formatEther(balance);
+
+      // For now, return placeholder - will be updated with real Alchemy integration
       return {
         balance: '0.0',
-        currency: network.currency
+        currency: network.currency,
+        usdValue: '0.00'
       };
     } catch (error) {
-      console.error('Failed to fetch wallet balance:', error);
-      return { balance: '0.0', currency: 'ETH' };
+      console.error('Failed to fetch Coinbase wallet balance:', error);
+      return { 
+        balance: '0.0', 
+        currency: 'ETH',
+        usdValue: '0.00'
+      };
     }
   }
 
   /**
-   * Detect wallet type from user agent or connection method
+   * Detect Coinbase wallet type and capabilities
    */
-  detectWalletType(userAgent: string, connectionMethod?: string): string {
+  detectCoinbaseWalletType(userAgent: string, connectionMethod?: string): string {
     if (connectionMethod) {
       return connectionMethod;
     }
 
-    // Basic wallet detection logic
-    if (userAgent.includes('CoinbaseWallet')) return 'coinbase';
-    if (userAgent.includes('MetaMask')) return 'metamask';
-    if (userAgent.includes('Phantom')) return 'phantom';
+    // Coinbase wallet detection logic
+    if (userAgent.includes('CoinbaseWallet')) {
+      return 'coinbase-defi';
+    }
+    if (userAgent.includes('Coinbase')) {
+      return 'coinbase-smart';
+    }
     
-    return 'unknown';
+    return 'coinbase-defi'; // Default to DeFi wallet
   }
 
   /**
@@ -262,15 +287,47 @@ export class DeFiWalletService {
   }
 
   /**
-   * Disconnect DeFi wallet from user account
+   * Disconnect Coinbase wallet from user account
    */
-  async disconnectWallet(userId: string, walletId: string): Promise<boolean> {
+  async disconnectCoinbaseWallet(userId: string, walletId: string): Promise<boolean> {
     try {
-      console.log(`Disconnecting wallet ${walletId} for user ${userId}`);
+      console.log(`✅ Disconnecting Coinbase wallet ${walletId} for user ${userId}`);
+      // TODO: Add database cleanup logic here
       return true;
     } catch (error) {
-      console.error('Failed to disconnect wallet:', error);
+      console.error('❌ Failed to disconnect Coinbase wallet:', error);
       return false;
     }
+  }
+
+  /**
+   * Get Coinbase wallet features and capabilities
+   */
+  getCoinbaseWalletFeatures(walletType: string) {
+    const baseFeatures = {
+      canSwap: true,
+      canStake: true,
+      canBridge: true,
+      hasAdvancedSecurity: true,
+      supportedNetworks: this.supportedNetworks.filter(n => !n.isTestnet),
+      nativeIntegrations: [
+        'Uniswap V3',
+        'Compound',
+        'Aave',
+        'Curve Finance',
+        'Balancer'
+      ]
+    };
+
+    if (walletType === 'coinbase-smart') {
+      return {
+        ...baseFeatures,
+        hasSmartAccountFeatures: true,
+        supportsBatchTransactions: true,
+        hasGasOptimization: true
+      };
+    }
+
+    return baseFeatures;
   }
 }

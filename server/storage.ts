@@ -1649,12 +1649,15 @@ export class DatabaseStorage implements IStorage {
 
   async getMarketplaceAgents(filters: any = {}): Promise<any[]> {
     try {
-      const agents = await db
+      let query = db
         .select()
-        .from(globalAIAgents)
-        .where(eq(globalAIAgents.isActive, true))
-        .limit(filters.limit || 50);
+        .from(globalAIAgents);
 
+      if (filters.limit) {
+        query = query.limit(filters.limit);
+      }
+
+      const agents = await query;
       return agents;
     } catch (error) {
       console.error('Error fetching marketplace agents:', error);

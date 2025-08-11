@@ -285,12 +285,19 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${realTimeStats.balance.toFixed(2)}
+                ${(usdcBalance?.balance || realTimeStats.balance).toFixed(2)}
                 {usdcBalanceLoading && <span className="text-sm ml-2 text-muted-foreground">updating...</span>}
               </div>
               <p className="text-xs text-muted-foreground">
-                {usdcBalance?.currency || 'USDC'} • Last updated: {usdcBalance?.lastUpdated ? new Date(usdcBalance.lastUpdated).toLocaleTimeString() : 'Never'}
+                Total across all wallets • Last updated: {usdcBalance?.lastUpdated ? new Date(usdcBalance.lastUpdated).toLocaleTimeString() : 'Never'}
               </p>
+              {usdcBalance?.breakdown && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Circle: ${usdcBalance.breakdown.circle.amount.toFixed(2)} • 
+                  Coinbase: ${usdcBalance.breakdown.coinbase.amount.toFixed(2)} • 
+                  Crypto: ${usdcBalance.breakdown.crypto.amount.toFixed(2)}
+                </div>
+              )}
             </CardContent>
           </Card>
 

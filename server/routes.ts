@@ -74,7 +74,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup auth first
   await setupAuth(app);
 
-  // Enhanced dashboard endpoints for real-time data
+  // Enhanced dashboard endpoints for real-time data - Total Balance Across All Wallets
   app.get('/api/user/balance', isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any)?.claims?.sub;
@@ -89,12 +89,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const userData = user[0];
       
-      // Return real-time balance information
+      // Get Circle USDC balance
+      const circleBalance = parseFloat(userData.usdcBalance || '0');
+      
+      // Get Coinbase CDP wallet balance (from coinbase_profile or holdings)
+      let cdpBalance = 0;
+      try {
+        if (userData.coinbaseProfile) {
+          const profile = JSON.parse(userData.coinbaseProfile);
+          // Extract balance if available in profile
+          cdpBalance = parseFloat(profile.balance || '0');
+        }
+      } catch (error) {
+        console.error('CDP balance parsing error:', error);
+      }
+      
+      // Get crypto holdings total value
+      let cryptoHoldingsValue = 0;
+      try {
+        const holdings = await db.select({ 
+          totalValue: sql<number>`COALESCE(SUM(${sql`value_usd`}), 0)` 
+        })
+        .from(sql`crypto_holdings`)
+        .where(sql`user_id = ${userId}`);
+        
+        cryptoHoldingsValue = Number(holdings[0]?.totalValue || 0);
+      } catch (error) {
+        // Crypto holdings table might not exist yet
+        console.log('Crypto holdings not available:', error);
+      }
+      
+      // Calculate total balance across all wallets
+      const totalBalance = circleBalance + cdpBalance + cryptoHoldingsValue;
+      
+      // Return comprehensive balance information
       res.json({
-        total: userData.usdcBalance || 0,
-        available: userData.usdcBalance || 0,
-        pending: 0,
-        currency: 'USDC',
+        balance: totalBalance,
+        currency: 'USD',
+        breakdown: {
+          circle: {
+            amount: circleBalance,
+            currency: 'USDC',
+            walletAddress: userData.circleWalletAddress
+          },
+          coinbase: {
+            amount: cdpBalance,
+            currency: 'USD'
+          },
+          crypto: {
+            amount: cryptoHoldingsValue,
+            currency: 'USD'
+          }
+        },
         walletAddress: userData.circleWalletAddress,
         lastUpdated: new Date().toISOString()
       });

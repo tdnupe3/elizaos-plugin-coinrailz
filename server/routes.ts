@@ -150,6 +150,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Separate endpoint for CASH balance only (P2P transfers)
+  app.get('/api/user/cash-balance', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user.length) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const userData = user[0];
+      
+      // Return ONLY Circle USDC balance (cash available for P2P transfers)
+      const cashBalance = parseFloat(userData.usdcBalance || '0');
+      
+      res.json({
+        balance: cashBalance,
+        currency: 'USDC',
+        walletAddress: userData.circleWalletAddress,
+        type: 'cash',
+        note: 'Available for P2P transfers only',
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Cash balance fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch cash balance' });
+    }
+  });
+
   app.get('/api/user/dashboard-stats', isAuthenticated, async (req, res) => {
     try {
       const userId = (req.user as any)?.claims?.sub;

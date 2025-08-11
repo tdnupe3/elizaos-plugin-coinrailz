@@ -41,9 +41,9 @@ export default function P2PTransfer() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
 
-  // Fetch user's USDC balance
-  const { data: usdcBalance, isLoading: usdcBalanceLoading } = useQuery({
-    queryKey: ['/api/user/circle/balance'],
+  // Fetch user's CASH balance (Circle USDC only - NOT total balance)
+  const { data: cashBalance, isLoading: cashBalanceLoading } = useQuery({
+    queryKey: ['/api/user/cash-balance'],
     enabled: !!user
   });
   

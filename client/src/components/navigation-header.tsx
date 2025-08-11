@@ -26,8 +26,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
   const navItems = [
     { path: "/", label: "Dashboard" },
     { path: "/send", label: "Send Money" },
-    { path: "/crypto", label: "Crypto Wallet" },
-    { path: "/cdp-wallet", label: "CDP Wallet" },
+    { path: "/wallet", label: "My Wallet" },
     { path: "/history", label: "History" },
     { path: "/ai-agents", label: "AI Agents" },
   ];

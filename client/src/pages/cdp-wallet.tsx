@@ -34,10 +34,10 @@ export default function CDPWalletPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Coinbase Enterprise Wallets
+            Coinbase Wallet
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mt-2">
-            Professional-grade wallet management powered by Coinbase Developer Platform
+            Professional crypto wallet powered by Coinbase infrastructure
           </p>
         </div>
 

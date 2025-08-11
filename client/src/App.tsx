@@ -482,6 +482,16 @@ function Router() {
       <Route path="/crypto">
         {() => <LazyLoadWrapper><CryptoWallet /></LazyLoadWrapper>}
       </Route>
+      <Route path="/wallet">
+        {() => {
+          const WalletPage = lazy(() => import("@/pages/wallet"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <WalletPage />
+            </Suspense>
+          );
+        }}
+      </Route>
       <Route path="/history">
         {() => <LazyLoadWrapper><TransactionHistory /></LazyLoadWrapper>}
       </Route>

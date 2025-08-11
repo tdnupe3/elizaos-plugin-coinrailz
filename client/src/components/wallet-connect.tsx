@@ -60,17 +60,36 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
             <span>Connect Wallet</span>
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Connect your Web3 wallet for DEX trading and multi-chain access
+            Connect any Web3 wallet for professional DEX trading
           </p>
-          <Alert className="mt-3">
-            <Info className="h-4 w-4" />
-            <AlertDescription className="text-sm">
-              Your Circle USDC wallet is automatically created. This Web3 wallet is for DEX trading and DeFi access.
+          <Alert className="mt-3 bg-green-50 border-green-200">
+            <Info className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-sm text-green-800">
+              <strong>Guest Access:</strong> No Coin Railz account required. Connect any wallet and start trading immediately.
             </AlertDescription>
           </Alert>
         </CardHeader>
         <CardContent>
           <div className="bg-blue-50 rounded-lg p-4 mb-4">
+            <h4 className="font-medium text-blue-900 mb-2">Supported Wallet Types:</h4>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="bg-white rounded-lg p-2 text-center">
+                <div className="text-xs font-medium text-gray-700">Coinbase Wallet</div>
+                <div className="text-xs text-gray-500">Self-custody</div>
+              </div>
+              <div className="bg-white rounded-lg p-2 text-center">
+                <div className="text-xs font-medium text-gray-700">MetaMask</div>
+                <div className="text-xs text-gray-500">Browser extension</div>
+              </div>
+              <div className="bg-white rounded-lg p-2 text-center">
+                <div className="text-xs font-medium text-gray-700">WalletConnect</div>
+                <div className="text-xs text-gray-500">Mobile wallets</div>
+              </div>
+              <div className="bg-white rounded-lg p-2 text-center">
+                <div className="text-xs font-medium text-gray-700">Rainbow</div>
+                <div className="text-xs text-gray-500">Multi-chain</div>
+              </div>
+            </div>
             <h4 className="font-medium text-blue-900 mb-2">Supported Networks:</h4>
             <div className="flex flex-wrap gap-2">
               {supportedChains.map((chain) => (

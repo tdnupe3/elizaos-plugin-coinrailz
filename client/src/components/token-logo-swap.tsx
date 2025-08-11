@@ -61,7 +61,12 @@ const supportedTokens: TokenInfo[] = [
   { symbol: 'PEEZY', name: 'PEEZY Token', address: '0x698b1d54E936b9F772b8F58447194bBc82EC1933', decimals: 18, verified: true }
 ];
 
-export function TokenLogoSwapInterface() {
+interface TokenLogoSwapInterfaceProps {
+  onAmountChange?: (amount: number) => void;
+  tradingFees?: any;
+}
+
+export function TokenLogoSwapInterface({ onAmountChange, tradingFees }: TokenLogoSwapInterfaceProps = {}) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { wallet, connectWallet, signTransaction } = useWallet();
@@ -70,8 +75,37 @@ export function TokenLogoSwapInterface() {
   const [toToken, setToToken] = useState('ETH');
   const [amount, setAmount] = useState('');
   const [slippage, setSlippage] = useState(5.0);
+
+  // Notify parent component when amount changes and calculate fees
+  useEffect(() => {
+    if (onAmountChange && amount) {
+      const numAmount = parseFloat(amount) || 0;
+      onAmountChange(numAmount);
+    }
+    
+    // Calculate trading fees when amount changes
+    if (amount && parseFloat(amount) > 0) {
+      const amountNum = parseFloat(amount);
+      const platformFee = amountNum * 0.003; // 0.3% platform fee
+      const processingFee = amountNum * 0.001; // 0.1% processing fee
+      const networkFee = amountNum * 0.0005; // 0.05% network fee
+      const totalFees = platformFee + processingFee + networkFee;
+      
+      setTradingFees({
+        calculation: {
+          platformFee,
+          processingFee,
+          networkFee,
+          totalFees
+        }
+      });
+    } else {
+      setTradingFees(null);
+    }
+  }, [amount, onAmountChange]);
   const [quote, setQuote] = useState<SwapQuote | null>(null);
   const [usdcBalance, setUsdcBalance] = useState('0.00');
+  const [tradingFees, setTradingFees] = useState<any>(null);
   const [customTokens, setCustomTokens] = useState<TokenInfo[]>([]);
   const [showCustomTokenDialog, setShowCustomTokenDialog] = useState(false);
   const [customTokenForm, setCustomTokenForm] = useState<CustomTokenForm>({
@@ -183,16 +217,16 @@ export function TokenLogoSwapInterface() {
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
         <CardTitle className="text-center">
-          <span>{t('swap.title')}</span>
+          DEX Aggregator
         </CardTitle>
         <p className="text-sm text-gray-600 text-center">
-          {t('swap.subtitle')}
+          Professional DEX aggregator with trading fees
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Blockchain Network Selection */}
         <div className="space-y-2">
-          <Label htmlFor="network">{t('swap.network')}</Label>
+          <Label htmlFor="network">Blockchain Network</Label>
           <Select value={selectedChain.toString()} onValueChange={(value) => setSelectedChain(parseInt(value))}>
             <SelectTrigger>
               <SelectValue />
@@ -215,14 +249,14 @@ export function TokenLogoSwapInterface() {
           <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-3 border border-blue-200">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-sm font-medium text-blue-800">{t('swap.circleWallet')}</p>
+                <p className="text-sm font-medium text-blue-800">Circle USDC Wallet</p>
                 <p className="text-2xl font-bold text-green-700">{parseFloat(usdcBalance).toFixed(2)} USDC</p>
               </div>
               <div className="text-right">
                 <Badge variant="outline" className="bg-blue-100 text-blue-800">
-                  {t('swap.instantSettlement')}
+                  Instant Settlement
                 </Badge>
-                <p className="text-xs text-blue-600 mt-1">{t('swap.readyForTrading')}</p>
+                <p className="text-xs text-blue-600 mt-1">Ready for Trading</p>
               </div>
             </div>
           </div>
@@ -230,7 +264,7 @@ export function TokenLogoSwapInterface() {
 
         {/* From Token */}
         <div className="space-y-2">
-          <Label htmlFor="from-token">{t('swap.from')}</Label>
+          <Label htmlFor="from-token">From Token</Label>
           <div className="flex space-x-2">
             <Select value={fromToken} onValueChange={setFromToken}>
               <SelectTrigger className="w-40">
@@ -287,7 +321,7 @@ export function TokenLogoSwapInterface() {
 
         {/* To Token */}
         <div className="space-y-2">
-          <Label htmlFor="to-token">{t('swap.to')}</Label>
+          <Label htmlFor="to-token">To Token</Label>
           <div className="flex space-x-2">
             <Select value={toToken} onValueChange={setToToken}>
               <SelectTrigger className="w-40">
@@ -323,8 +357,45 @@ export function TokenLogoSwapInterface() {
 
         {/* Swap Button */}
         <Button className="w-full bg-blue-600 hover:bg-blue-700" disabled={!amount || parseFloat(amount) <= 0}>
-          {t('swap.getBestRate')}
+          Get Best Rate & Execute Swap
         </Button>
+        {/* Trading Fees Display */}
+        {tradingFees && (
+          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+            <h3 className="font-medium text-green-800 mb-2">Trading Fee Breakdown</h3>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-green-700">Platform Fee:</span>
+                <span className="font-medium text-green-800">
+                  ${tradingFees.calculation.platformFee.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700">Processing Fee:</span>
+                <span className="font-medium text-green-800">
+                  ${tradingFees.calculation.processingFee.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-green-700">Network Fee:</span>
+                <span className="font-medium text-green-800">
+                  ${tradingFees.calculation.networkFee.toFixed(2)}
+                </span>
+              </div>
+              <div className="border-t border-green-300 pt-1 mt-2">
+                <div className="flex justify-between font-medium">
+                  <span className="text-green-800">Total Fees:</span>
+                  <span className="text-green-900">
+                    ${tradingFees.calculation.totalFees.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-green-600 mt-2">
+              Fees automatically collected on swap execution
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

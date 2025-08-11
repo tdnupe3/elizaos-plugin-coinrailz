@@ -726,6 +726,24 @@ export type InsertNotification = typeof notifications.$inferInsert;
 export type NotificationSettings = typeof notificationSettings.$inferSelect;
 export type InsertNotificationSettings = typeof notificationSettings.$inferInsert;
 
+// Trading fees table for revenue tracking
+export const tradingFees = pgTable("trading_fees", {
+  id: serial("id").primaryKey(),
+  userAddress: varchar("user_address").notNull(),
+  fromToken: varchar("from_token").notNull(),
+  toToken: varchar("to_token").notNull(),
+  amount: decimal("amount", { precision: 18, scale: 8 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 18, scale: 8 }).notNull(),
+  transactionHash: varchar("transaction_hash"),
+  chainId: integer("chain_id").default(1),
+  status: varchar("status").default("completed"), // completed, pending, failed
+  revenue: decimal("revenue", { precision: 18, scale: 8 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type TradingFee = typeof tradingFees.$inferSelect;
+export type InsertTradingFee = typeof tradingFees.$inferInsert;
+
 // Global AI Agent Network Schema
 export const globalAIAgents = pgTable("global_ai_agents", {
   id: varchar("id").primaryKey().notNull(),

@@ -181,10 +181,14 @@ function Router() {
       <Route path="/demo-crypto-transfer">
         {() => <LazyLoadWrapper><DemoCryptoTransfer /></LazyLoadWrapper>}
       </Route>
+      {/* Guest-accessible DEX routes - no authentication required */}
       <Route path="/swap">
         {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/dex-aggregator">
+        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/dex">
         {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/ai-agents">

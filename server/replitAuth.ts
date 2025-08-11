@@ -208,9 +208,8 @@ function setupFallbackAuth(app: Express) {
       const validatedData = registrationSchema.parse(req.body);
       const { email, firstName, lastName } = validatedData;
       
-      // Check if user already exists
-      const existingUsers = await storage.getUsers();
-      const existingUser = existingUsers.find(user => user.email === email);
+      // Check if user already exists (simplified check)
+      const existingUser = await storage.getUserByEmail?.(email);
       
       if (existingUser) {
         return res.status(409).json({ 

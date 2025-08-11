@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
 import CoinbaseCDPWallet from '@/components/CoinbaseCDPWallet';
-import NavigationHeader from '@/components/NavigationHeader';
+import { NavigationHeader } from '@/components/navigation-header';
 
 export default function CDPWalletPage() {
   const { isAuthenticated, isLoading } = useAuth();

@@ -82,6 +82,11 @@ export class UnifiedBusinessLogic {
         stripe: new Decimal('0.029'), // 2.9% Stripe fee
         plaid_ach: new Decimal('0.008'), // 0.8% ACH fee
         instant: new Decimal('0.015') // 1.5% instant transfer
+      },
+      offramp: {
+        stripe: new Decimal('0.029'), // 2.9% Stripe fee
+        plaid_ach: new Decimal('0.008'), // 0.8% ACH fee
+        instant: new Decimal('0.015') // 1.5% instant transfer
       }
     },
 
@@ -91,7 +96,8 @@ export class UnifiedBusinessLogic {
       marketplace: new Decimal('15.00'), // Reduced from $50 to $15
       xrp: new Decimal('10.00'),
       crypto: new Decimal('15.00'),
-      onramp: new Decimal('20.00')
+      onramp: new Decimal('20.00'),
+      offramp: new Decimal('20.00')
     },
 
     // Maximum transaction amounts (AML compliance)

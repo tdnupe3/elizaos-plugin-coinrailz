@@ -218,10 +218,10 @@ export function integrateUnifiedBusinessLogic(app: any) {
   
   // Log fee structure being used
   console.log('💰 Active Fee Structure:');
-  console.log('  - AI Marketplace: 15% platform, 85% agent');
+  console.log('  - AI Marketplace: 15% platform, 85% agent ($15 minimum enforced)');
   console.log('  - P2P Fees: 3.5% - 6.5% tiered (100% platform)');
   console.log('  - XRP Fees: 0.5% + $0.0002 network (100% platform)');
-  console.log('  - Crypto Fees: 2.5% + network fees (100% platform)');
+  console.log('  - Crypto Fees: 1.5% consistent across all chains (100% platform)');
   console.log('  - Referral Limit: 5% of platform revenue');
 }
 

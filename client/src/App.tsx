@@ -122,7 +122,7 @@ const BetaBalanceDemo = lazy(() => import("@/pages/beta-balance-demo"));
 const BalanceDisplay = lazy(() => import("@/pages/balance-display"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const BankConnectivity = lazy(() => import("@/components/bank-connectivity"));
-const CoinbaseWalletDemo = lazy(() => import("@/pages/coinbase-wallet-demo"));
+const CoinbaseWallet = lazy(() => import("@/pages/coinbase-wallet"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -195,9 +195,9 @@ function Router() {
         {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}
       </Route>
 
-      {/* Direct Coinbase Wallet access - bypasses auth middleware */}
+      {/* Professional Coinbase Wallet for production revenue */}
       <Route path="/coinbase-wallet">
-        {() => <LazyLoadWrapper><CoinbaseWalletDemo /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><CoinbaseWallet /></LazyLoadWrapper>}
       </Route>
       
       <Route path="/marketplace/checkout/:serviceId">

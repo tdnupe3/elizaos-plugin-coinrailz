@@ -22,8 +22,6 @@ import {
   xrpWallets,
   xrpTransactions,
   xrpOrders,
-  xrpLiquidityPools,
-  xrpEscrows,
   type User,
   type UpsertUser,
   type Transaction,
@@ -66,6 +64,10 @@ export interface IStorage {
   createAgentTransaction(transaction: any): Promise<any>;
   getAgentTransactions(agentId: string): Promise<any[]>;
   updateAgentRevenue(agentId: string, amount: number): Promise<void>;
+  
+  // Marketplace methods
+  createMarketplaceOrder(data: any): Promise<any>;
+  updateMarketplaceOrder(orderId: string, data: any): Promise<any>;
   
   // Chat system methods
   createChatRoom(data: any): Promise<any>;
@@ -255,6 +257,20 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  
+  // Marketplace methods
+  async createMarketplaceOrder(data: any): Promise<any> {
+    const [order] = await db.insert(aiMarketplaceOrders).values(data).returning();
+    return order;
+  }
+  
+  async updateMarketplaceOrder(orderId: string, data: any): Promise<any> {
+    const [order] = await db.update(aiMarketplaceOrders)
+      .set(data)
+      .where(eq(aiMarketplaceOrders.id, parseInt(orderId)))
+      .returning();
+    return order;
+  }
   // User operations
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
 

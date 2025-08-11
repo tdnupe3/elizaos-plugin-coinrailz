@@ -10,11 +10,13 @@ import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
 import { CoinbaseWalletIntegration } from "@/components/CoinbaseWalletIntegration";
 import { SessionTestComponent } from "@/components/SessionTestComponent";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { UserAuthMenu } from "@/components/UserAuthMenu";
 import { useTranslation } from "react-i18next";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
+  const { isAuthenticated } = useAuth();
 
   const handleSignIn = () => {
     // Use Replit OAuth login
@@ -64,21 +66,27 @@ export default function Landing() {
             </div>
             <div className="flex items-center space-x-3">
               <LanguageSwitcher />
-              <Button 
-                onClick={handleSignIn}
-                variant="outline"
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
-                size="sm"
-              >
-                {t('auth.signIn')}
-              </Button>
-              <Button 
-                onClick={handleSignUp}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                size="sm"
-              >
-                {t('auth.signUp')}
-              </Button>
+              {isAuthenticated ? (
+                <UserAuthMenu />
+              ) : (
+                <>
+                  <Button 
+                    onClick={handleSignIn}
+                    variant="outline"
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                    size="sm"
+                  >
+                    {t('auth.signIn')}
+                  </Button>
+                  <Button 
+                    onClick={handleSignUp}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    size="sm"
+                  >
+                    {t('auth.signUp')}
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -25,9 +25,9 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
 
   const navItems = [
     { path: "/", label: "Dashboard" },
-    { path: "/send", label: "Send Money" },
+    { path: "/onramp", label: "Add Money" },
+    { path: "/swap", label: "Trade" },
     { path: "/wallet", label: "My Wallet" },
-    { path: "/coinbase-wallet", label: "Coinbase Wallet" },
     { path: "/history", label: "History" },
     { path: "/ai-agents", label: "AI Agents" },
   ];

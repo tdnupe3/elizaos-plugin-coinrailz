@@ -3,15 +3,15 @@
 ## Overview
 Coin Railz is a comprehensive fintech platform offering cross-platform P2P payments and a cryptocurrency gateway. It features an AI Agent Marketplace, a patent-protected viral referral system, a DEX aggregator, crypto on/off ramps, and a complete XRP Ledger financial ecosystem. The platform now includes comprehensive XRP trading capabilities with fiat onramps, RLUSD stablecoin integration, native XRPL token trading, and professional DEX interfaces rivaling major crypto platforms. Key recent improvements include real-time XRP pricing integration using CoinGecko API (~$3.00 current market rate), wallet-connection-only DEX access for improved UX, and accurate market data throughout all trading interfaces. The platform aims to expand its total addressable market globally through multi-language support and efficient financial infrastructure, including USDC-first transactions and secure real-money operations. Key capabilities include real-time balance updates, P2P money transfers with automated fee collection, comprehensive XRP trading ecosystem with 7 distinct services, and enterprise-grade security for all financial operations. The business vision is to become a leader in both crypto-to-stablecoin conversion and XRP Ledger financial services, targeting substantial annual revenue through diversified services and strategic partnerships.
 
-## Recent Updates (August 10, 2025)
-**🚀 OAUTH AUTHENTICATION FLOW COMPLETELY FIXED:**
-- **Route Conflicts Resolved:** Removed 3 conflicting `/api/login` endpoints that were causing JSON responses instead of OAuth redirects
-- **OAuth Integration:** Full Replit OAuth integration working - proper OIDC parameters, PKCE challenge generation, session management
-- **Authentication State:** Protected endpoints correctly reject unauthorized users, session cookies properly managed
-- **Coinbase CDP Access:** Users access enterprise wallets via `/cdp-wallet` route in navigation menu after OAuth login
-- **CDP Wallet Types:** Server Wallet v2 (enterprise-grade) on 6 networks - NOT DeFi wallets, but professional crypto infrastructure
-- **Multi-Network Support:** Base, Ethereum, Polygon, Arbitrum (mainnet + testnets) with individual user wallet isolation
-- **Complete Flow:** Login → Replit OAuth → Dashboard → CDP Wallet creation → Multi-chain wallet management
+## Recent Updates (August 11, 2025)
+**🚀 STREAMLINED USER EXPERIENCE - ONRAMP TO TRADE FLOW:**
+- **Simplified Navigation:** Replaced confusing "Coinbase Wallet" with clear "Add Money" → "Trade" flow
+- **New Onramp Page:** Beautiful `/onramp` page with USD funding options (card/bank) and instant trading redirect
+- **Clear User Journey:** 3-step process: Fund wallet → Connect any Web3 wallet → Start trading
+- **Removed Complexity:** Eliminated dual Coinbase wallet confusion (CDP vs DeFi) that was overwhelming users
+- **Production Onramp API:** `/api/onramp/*` endpoints with real fee calculation and payment processing simulation
+- **Guest Trading Ready:** Users can now fund and trade without complex authentication flows
+- **Revenue Generation:** All trading fees automatically calculated and collected on both onramp and DEX swaps
 
 
 

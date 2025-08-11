@@ -69,6 +69,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CRITICAL: Register AI Marketplace routes FIRST for revenue generation
   app.use('/api/ai-marketplace', aiMarketplaceRoutes);
   
+  // === STREAMLINED ONRAMP ROUTES ===
+  const onrampRoutes = (await import('./routes/onrampRoutes.js')).default;
+  app.use('/api/onramp', onrampRoutes);
+  
   // === GUEST DEX ACCESS - NO AUTHENTICATION REQUIRED ===
   // Production-ready DEX endpoints with trading fee collection
   app.post('/api/dex/quote', async (req, res) => {

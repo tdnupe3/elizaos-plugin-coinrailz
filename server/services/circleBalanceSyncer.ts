@@ -4,7 +4,7 @@
  * Prevents balance discrepancies like the $50 USDC sync delay
  */
 
-import { circleService } from './circleService.js';
+import { CircleService } from './circleService';
 import { db } from '../db.js';
 import { users } from '../../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
@@ -132,6 +132,7 @@ class CircleBalanceSyncer {
     while (retries < this.MAX_RETRIES) {
       try {
         // Get live balance from Circle
+        const circleService = new CircleService();
         const balances = await circleService.getWalletBalance(walletId);
         
         // Find USDC balance - handle both "USDC" and token ID formats

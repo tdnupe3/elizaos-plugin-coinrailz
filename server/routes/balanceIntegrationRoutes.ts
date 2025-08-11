@@ -195,22 +195,27 @@ router.post('/record-trading-fee', async (req, res) => {
       const { CircleService } = await import('../services/circleService');
       const circleService = new CircleService();
       
-      // Get main Coin Railz wallet for fee collection
-      const mainWallet = await circleService.getMainWallet();
+      // Determine currency for proper wallet routing
+      const feeCurrency = toToken === 'XRP' ? 'XRP' : 
+                         (toToken === 'BTC' || toToken === 'ETH') ? toToken : 'USDC';
+      
+      // Get appropriate Coin Railz wallet for fee collection
+      const mainWallet = await circleService.getMainWallet(feeCurrency);
       if (mainWallet) {
         coinRailzWalletAddress = mainWallet.address;
         
-        // Simulate fee collection to main wallet (production will use real Circle transfer)
-        await circleService.simulateTransfer({
+        // Collect fee to appropriate Coin Railz wallet (Circle/CDP/XRP)
+        feeCollected = await circleService.collectFee({
           source: userAddress,
           destination: mainWallet.address,
           amount: platformFee,
-          currency: 'USDC',
-          memo: `Trading fee collection - ${fromToken}→${toToken}`
+          currency: feeCurrency,
+          memo: `DEX trading fee - ${fromToken}→${toToken}`
         });
         
-        feeCollected = true;
-        console.log(`💰 FEE COLLECTED: $${platformFee} → ${mainWallet.address.slice(0,8)}... from ${userAddress.slice(0,8)}...`);
+        if (feeCollected) {
+          console.log(`💰 FEE COLLECTED: $${platformFee} ${feeCurrency} → ${mainWallet.id} from ${userAddress.slice(0,8)}...`);
+        }
       }
     } catch (error) {
       console.error('Fee collection error:', error);

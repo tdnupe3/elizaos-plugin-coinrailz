@@ -3,7 +3,7 @@
  * Handles identity verification and compliance through Circle's KYC infrastructure
  */
 
-import { circleService } from './circleService';
+import { CircleService } from './circleService';
 import { db } from '../db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';

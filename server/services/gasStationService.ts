@@ -4,7 +4,7 @@
  * Generates revenue through 5% markup on gas fees
  */
 
-import { circleService } from './circleService';
+import { CircleService } from './circleService';
 // Note: ethers would be imported in production - using simplified implementation for now
 
 interface GasFeeEstimate {
@@ -100,7 +100,7 @@ class GasStationService {
       const gasEstimate = await this.estimateGasFees(blockchain, to, data, value);
 
       // Check user's USDC balance
-      const userBalance = await circleService.getWalletBalance(userWalletId);
+      const userBalance = await const circleService = new CircleService(); circleService.getWalletBalance(userWalletId);
       const usdcBalance = userBalance.find(b => b.tokenId === 'USDC');
 
       if (!usdcBalance || parseFloat(usdcBalance.amount) < parseFloat(gasEstimate.totalUSDC)) {
@@ -186,7 +186,7 @@ class GasStationService {
       }
 
       // Create transfer transaction
-      const transferResult = await circleService.createTransfer(
+      const transferResult = await const circleService = new CircleService(); circleService.createTransfer(
         userWalletId,
         platformTreasuryAddress,
         amount,

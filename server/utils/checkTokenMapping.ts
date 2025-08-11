@@ -3,14 +3,14 @@
  * Investigate the Circle token ID b037d751-fb22-5f0d-bae6-47373e7ae3e3
  */
 
-import { circleService } from '../services/circleService.js';
+import { CircleService } from '../services/const circleService = new CircleService(); circleService.js';
 
 async function checkTokenMapping() {
   console.log('🔍 Investigating Circle Token ID Mapping...');
   
   try {
     // Get supported tokens from Circle
-    const tokens = await circleService.getSupportedTokens();
+    const tokens = await const circleService = new CircleService(); circleService.getSupportedTokens();
     console.log('\n📋 Circle Supported Tokens:');
     tokens.forEach((token, i) => {
       console.log(`   ${i+1}. ID: ${token.id} | Symbol: ${token.symbol} | Name: ${token.name}`);
@@ -38,7 +38,7 @@ async function checkTokenMapping() {
     const walletId = '540d451e-d4b5-5abc-9f29-7a41214d37e0'; // The wallet that received the $50
     console.log(`\n🔍 Checking wallet balance for specific token...`);
     
-    const balances = await circleService.getWalletBalance(walletId);
+    const balances = await const circleService = new CircleService(); circleService.getWalletBalance(walletId);
     console.log(`\n📊 All balances for wallet ${walletId}:`);
     balances.forEach((balance, i) => {
       console.log(`   ${i+1}. Token: ${balance.tokenId} | Amount: ${balance.amount}`);

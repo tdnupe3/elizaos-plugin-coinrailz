@@ -1,4 +1,4 @@
-import { circleService } from './circleService';
+import { CircleService } from './circleService';
 import { db } from '../db';
 import { users } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
@@ -31,6 +31,7 @@ class UserCircleService {
       // Create new wallet set if user doesn't have one
       let walletSetId = user.circleWalletSetId;
       if (!walletSetId) {
+        const circleService = new CircleService();
         const walletSet = await circleService.createWalletSet(`${user.firstName || 'User'} ${user.lastName || userId} Wallet Set`);
         if (!walletSet || !walletSet.id) {
           throw new Error('Failed to create wallet set');

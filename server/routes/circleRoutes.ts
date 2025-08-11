@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import CircleService from '../services/circleService.js';
+import { CircleService } from '../services/circleService';
 import { z } from 'zod';
 
 const router = express.Router();

@@ -3,7 +3,7 @@
  * Monitors incoming USDC transactions and syncs wallet balances
  */
 
-import { circleService } from './circleService';
+import { CircleService } from './circleService';
 import { db } from '../db';
 import { users } from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';

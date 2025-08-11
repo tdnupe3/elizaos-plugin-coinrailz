@@ -75,10 +75,8 @@ export class UnifiedBusinessLogic {
         network: new Decimal('0.0002')  // $0.0002 network fee
       },
       crypto: {
-        base: new Decimal('0.025'), // 2.5% base fee
-        network_eth: new Decimal('0.003'), // 0.3% ETH network
-        network_polygon: new Decimal('0.001'), // 0.1% Polygon
-        network_base: new Decimal('0.0005') // 0.05% Base
+        base: new Decimal('0.015'), // 1.5% consistent across all chains
+        network_fee: new Decimal('0.001') // Standard network fee across chains
       },
       onramp: {
         stripe: new Decimal('0.029'), // 2.9% Stripe fee
@@ -90,7 +88,7 @@ export class UnifiedBusinessLogic {
     // Minimum transaction amounts (prevents losses)
     MINIMUM_AMOUNTS: {
       p2p: new Decimal('25.00'),
-      marketplace: new Decimal('50.00'),
+      marketplace: new Decimal('15.00'), // Reduced from $50 to $15
       xrp: new Decimal('10.00'),
       crypto: new Decimal('15.00'),
       onramp: new Decimal('20.00')
@@ -152,15 +150,9 @@ export class UnifiedBusinessLogic {
         break;
 
       case 'crypto':
+        // Consistent 1.5% crypto swap fee across all chains
         platformFee = amount.mul(feeStructure.base);
-        // Add network-specific fees based on blockchain
-        if (request.currency === 'ETH') {
-          networkFee = amount.mul(feeStructure.network_eth);
-        } else if (request.currency === 'MATIC') {
-          networkFee = amount.mul(feeStructure.network_polygon);
-        } else if (request.currency === 'BASE') {
-          networkFee = amount.mul(feeStructure.network_base);
-        }
+        networkFee = amount.mul(feeStructure.network_fee);
         break;
 
       case 'onramp':
@@ -196,9 +188,23 @@ export class UnifiedBusinessLogic {
     let agentCommission = new Decimal('0');
     
     if (transactionType === 'marketplace' && agentId) {
-      // AI Marketplace: 15% platform, 85% agent
-      platformRevenue = amount.mul(this.FEE_STRUCTURE.MARKETPLACE_PLATFORM_RATE);
-      agentCommission = amount.mul(this.FEE_STRUCTURE.MARKETPLACE_AGENT_RATE);
+      // AI Marketplace: Enforce $15 minimum with platform capturing difference
+      const minAmount = this.FEE_STRUCTURE.MINIMUM_AMOUNTS.marketplace;
+      
+      if (amount.lt(minAmount)) {
+        // Platform charges minimum $15, keeps difference as additional revenue
+        const chargedAmount = minAmount; // $15
+        platformRevenue = chargedAmount.mul(this.FEE_STRUCTURE.MARKETPLACE_PLATFORM_RATE); // 15% of $15
+        agentCommission = amount.mul(this.FEE_STRUCTURE.MARKETPLACE_AGENT_RATE); // 85% of actual amount
+        
+        // Platform keeps the difference as additional revenue
+        const minimumDifference = chargedAmount.sub(amount);
+        platformRevenue = platformRevenue.add(minimumDifference);
+      } else {
+        // Normal 85/15 split for amounts >= $15
+        platformRevenue = amount.mul(this.FEE_STRUCTURE.MARKETPLACE_PLATFORM_RATE);
+        agentCommission = amount.mul(this.FEE_STRUCTURE.MARKETPLACE_AGENT_RATE);
+      }
     } else {
       // All other services: 100% platform, 0% agent
       platformRevenue = amount;

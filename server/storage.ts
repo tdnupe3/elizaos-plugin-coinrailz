@@ -89,6 +89,7 @@ export interface IStorage {
   getUserTransactions(userId: string): Promise<Transaction[]>;
   getUserAIAgents(userId: string): Promise<any[]>;
   updateUser(userId: string, updates: Partial<UpsertUser>): Promise<User>;
+  getUserBalances(userId: string): Promise<any>;
   
   // Digital Wallet operations
   getUserWalletBalances(userId: string): Promise<WalletBalance[]>;
@@ -218,6 +219,13 @@ export interface IStorage {
   createMarketplaceService(service: any): Promise<any>;
   getMarketplaceService(serviceId: string): Promise<any>;
   getMarketplaceServices(): Promise<any[]>;
+
+  // Service Order management - needed for marketplace endpoints
+  updateServiceOrder(orderId: string, updates: any): Promise<void>;
+  getAgentTransaction(orderId: string): Promise<any>;
+  updateAgentTransaction(orderId: string, updates: any): Promise<void>;
+  createPlatformRevenue(data: any): Promise<any>;
+  createDispute(disputeData: any): Promise<any>;
 
   // Tiered registration system methods
   createBasicAgent(agentData: any): Promise<any>;
@@ -1464,6 +1472,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Real Marketplace Database Implementation  
+  // Add getUserBalances implementation
+  async getUserBalances(userId: string): Promise<any> {
+    try {
+      const balances = await db.select()
+        .from(walletBalances)
+        .where(eq(walletBalances.userId, userId));
+      
+      // Convert array to object format expected by API
+      const balanceMap: any = {
+        USDC: '0.00',
+        XRP: '0.00',
+        ETH: '0.00',
+        BTC: '0.00'
+      };
+      
+      balances.forEach(balance => {
+        balanceMap[balance.currency] = balance.balance;
+      });
+      
+      return balanceMap;
+    } catch (error) {
+      console.error('Error fetching user balances:', error);
+      return {
+        USDC: '0.00',
+        XRP: '0.00',
+        ETH: '0.00',
+        BTC: '0.00'
+      };
+    }
+  }
+
   async getMarketplaceServices(filters: { category?: string; limit?: number; offset?: number } = {}): Promise<any[]> {
     try {
       const { category, limit = 20, offset = 0 } = filters;
@@ -1620,6 +1659,80 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching marketplace agents:', error);
       return [];
+    }
+  }
+
+  // Service Order management implementations
+  async updateServiceOrder(orderId: string, updates: any): Promise<void> {
+    try {
+      await db.update(aiMarketplaceOrders)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(aiMarketplaceOrders.id, orderId));
+    } catch (error) {
+      console.error('Error updating service order:', error);
+      throw error;
+    }
+  }
+
+  async getAgentTransaction(orderId: string): Promise<any> {
+    try {
+      const [transaction] = await db.select()
+        .from(agentTransactions)
+        .where(eq(agentTransactions.orderId, orderId))
+        .limit(1);
+      return transaction;
+    } catch (error) {
+      console.error('Error fetching agent transaction:', error);
+      return null;
+    }
+  }
+
+  async updateAgentTransaction(orderId: string, updates: any): Promise<void> {
+    try {
+      await db.update(agentTransactions)
+        .set(updates)
+        .where(eq(agentTransactions.orderId, orderId));
+    } catch (error) {
+      console.error('Error updating agent transaction:', error);
+      throw error;
+    }
+  }
+
+  async createPlatformRevenue(data: any): Promise<any> {
+    try {
+      // For now, log the platform revenue - this would normally go to a revenue tracking table
+      console.log('Platform revenue collected:', data);
+      return { success: true, ...data };
+    } catch (error) {
+      console.error('Error creating platform revenue record:', error);
+      throw error;
+    }
+  }
+
+  async createDispute(disputeData: any): Promise<any> {
+    try {
+      // Create dispute record - using agentTransactions table as temporary storage
+      const [dispute] = await db.insert(agentTransactions)
+        .values({
+          initiatorAgentId: disputeData.agentId,
+          transactionId: disputeData.id,
+          amount: '0',
+          currency: 'USD',
+          transactionType: 'dispute',
+          status: disputeData.status,
+          orderId: disputeData.orderId,
+          metadata: {
+            disputeType: disputeData.reason,
+            customerStatement: disputeData.description,
+            evidence: disputeData.evidence
+          }
+        })
+        .returning();
+      
+      return dispute;
+    } catch (error) {
+      console.error('Error creating dispute:', error);
+      throw error;
     }
   }
 

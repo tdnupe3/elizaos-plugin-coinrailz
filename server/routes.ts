@@ -8,6 +8,7 @@ import { FeeCalculator } from "./services/feeCalculator";
 import { z } from "zod";
 import { db } from "./db";
 import { sql, eq } from "drizzle-orm";
+import { aiMarketplaceOrders, globalAIAgents, users } from "../shared/schema";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
 import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
@@ -86,7 +87,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Direct AI agents endpoint for audit compliance
   app.get('/api/ai-agents', async (req, res) => {
     try {
-      const agents = await db.select().from((await import('../shared/schema.js')).globalAIAgents);
+      const agents = await db.select().from(globalAIAgents);
       res.json({ success: true, agents: agents.slice(0, 10) });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch agents' });
@@ -95,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get('/api/ai-agents/list', async (req, res) => {
     try {
-      const agents = await db.select().from((await import('../shared/schema.js')).globalAIAgents);
+      const agents = await db.select().from(globalAIAgents);
       res.json({ success: true, agents: agents.slice(0, 10) });
     } catch (error) {
       res.status(500).json({ success: false, error: 'Failed to fetch agents' });
@@ -929,7 +930,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/services/order', isAuthenticated, async (req, res) => {
     try {
       const { serviceId, agentId, customerNotes, deliveryMethod = 'message' } = req.body;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       if (!serviceId || !agentId || !userId) {
         return res.status(400).json({
@@ -1007,7 +1008,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/services/verify-delivery', isAuthenticated, async (req, res) => {
     try {
       const { orderId, confirmed, qualityScore, feedback } = req.body;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       if (!orderId || confirmed === undefined) {
         return res.status(400).json({
@@ -1075,7 +1076,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/services/create-dispute', isAuthenticated, async (req, res) => {
     try {
       const { orderId, reason, description, evidence } = req.body;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
       
       if (!orderId || !reason || !description) {
         return res.status(400).json({
@@ -1136,7 +1137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/services/commission-status/:orderId', isAuthenticated, async (req, res) => {
     try {
       const { orderId } = req.params;
-      const userId = req.user?.claims?.sub;
+      const userId = (req.user as any)?.claims?.sub;
 
       // Get order and transaction details
       const order = await storage.getServiceOrder(orderId);
@@ -2352,34 +2353,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get payment/revenue status 
   app.get('/api/payments/revenue-status', isAuthenticated, async (req, res) => {
     try {
-      // Get order statistics
-      const [pendingResult] = await db.execute(sql`
-        SELECT COUNT(*) as count, COALESCE(SUM(CAST(amount AS NUMERIC)), 0) as total_value
-        FROM ai_marketplace_orders 
-        WHERE status = 'pending'
-      `);
+      // Get order statistics using Drizzle ORM
+      const pendingOrders = await db.select({
+        count: sql`COUNT(*)`.mapWith(Number),
+        total: sql`COALESCE(SUM(CAST(${aiMarketplaceOrders.amount} AS NUMERIC)), 0)`.mapWith(Number)
+      })
+      .from(aiMarketplaceOrders)
+      .where(eq(aiMarketplaceOrders.status, 'pending'));
       
-      const [completedResult] = await db.execute(sql`
-        SELECT COUNT(*) as count, COALESCE(SUM(CAST(platform_fee AS NUMERIC)), 0) as revenue
-        FROM ai_marketplace_orders 
-        WHERE status = 'completed'
-      `);
+      const completedOrders = await db.select({
+        count: sql`COUNT(*)`.mapWith(Number),
+        revenue: sql`COALESCE(SUM(CAST(${aiMarketplaceOrders.platformFee} AS NUMERIC)), 0)`.mapWith(Number)
+      })
+      .from(aiMarketplaceOrders)
+      .where(eq(aiMarketplaceOrders.status, 'completed'));
       
-      const pendingOrders = pendingResult.rows?.[0] || { count: 0, total_value: 0 };
-      const completedOrders = completedResult.rows?.[0] || { count: 0, revenue: 0 };
+      const pending = pendingOrders[0] || { count: 0, total: 0 };
+      const completed = completedOrders[0] || { count: 0, revenue: 0 };
       
       res.json({
         success: true,
         pending: {
-          orders: Number(pendingOrders.count),
-          value: parseFloat(pendingOrders.total_value?.toString() || '0')
+          orders: pending.count,
+          value: pending.total
         },
         completed: {
-          orders: Number(completedOrders.count),
-          revenue: parseFloat(completedOrders.revenue?.toString() || '0')
+          orders: completed.count,
+          revenue: completed.revenue
         },
-        conversionRate: pendingOrders.count > 0 ? 
-          ((Number(completedOrders.count) / (Number(pendingOrders.count) + Number(completedOrders.count))) * 100).toFixed(2) + '%' : 
+        conversionRate: (pending.count + completed.count) > 0 ? 
+          ((completed.count / (pending.count + completed.count)) * 100).toFixed(2) + '%' : 
           '0%',
         timestamp: new Date().toISOString()
       });

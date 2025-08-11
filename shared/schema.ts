@@ -541,6 +541,7 @@ export const aiMarketplaceOrders = pgTable("ai_marketplace_orders", {
   serviceDescription: text("service_description"),
   customerRequirements: text("customer_requirements"), // Changed from jsonb to text to match DB
   estimatedDeliveryHours: integer("estimated_delivery_hours").default(24),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -1602,23 +1603,19 @@ export const insertXrpWalletSchema = createInsertSchema(xrpWallets).omit({
 export const insertXrpTransactionSchema = createInsertSchema(xrpTransactions).omit({
   id: true,
   createdAt: true,
-  confirmedAt: true,
 });
 
 export const insertXrpOrderSchema = createInsertSchema(xrpOrders).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertXrpLiquidityPositionSchema = createInsertSchema(xrpLiquidityPositions).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });
 
 export const insertXrpCrossBorderPaymentSchema = createInsertSchema(xrpCrossBorderPayments).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
 });

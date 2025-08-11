@@ -11,8 +11,10 @@ import { eq, sql } from 'drizzle-orm';
 
 class CircleBalanceSyncer {
   private syncInterval: NodeJS.Timeout | null = null;
-  private readonly SYNC_INTERVAL_MS = 30 * 1000; // 30 seconds
+  private readonly SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes (reduced from 30 seconds)
   private readonly MAX_RETRIES = 3;
+  private readonly BATCH_SIZE = 5; // Process 5 wallets at a time
+  private readonly BATCH_DELAY_MS = 2000; // 2 second delay between batches
   
   constructor() {
     console.log('🔄 Circle Balance Syncer initialized');
@@ -27,7 +29,7 @@ class CircleBalanceSyncer {
       return;
     }
 
-    console.log('🚀 Starting Circle balance sync (30-second intervals)');
+    console.log('🚀 Starting Circle balance sync (5-minute intervals with rate limiting)');
     
     // Initial sync
     await this.syncAllBalances();
@@ -72,16 +74,40 @@ class CircleBalanceSyncer {
       let updated = 0;
       let errors = 0;
 
-      for (const user of usersWithWallets) {
-        try {
-          const wasUpdated = await this.syncUserBalance(user.id, user.circleWalletId!, user.usdcBalance);
-          if (wasUpdated) {
-            updated++;
-            console.log(`✅ Updated balance for ${user.email}`);
+      // Process users in batches to avoid rate limiting
+      for (let i = 0; i < usersWithWallets.length; i += this.BATCH_SIZE) {
+        const batch = usersWithWallets.slice(i, i + this.BATCH_SIZE);
+        
+        console.log(`🔄 Processing batch ${Math.floor(i / this.BATCH_SIZE) + 1}/${Math.ceil(usersWithWallets.length / this.BATCH_SIZE)} (${batch.length} wallets)`);
+        
+        // Process batch with delay to respect rate limits
+        for (const user of batch) {
+          try {
+            const wasUpdated = await this.syncUserBalance(user.id, user.circleWalletId!, user.usdcBalance);
+            if (wasUpdated) {
+              updated++;
+              console.log(`✅ Updated balance for ${user.email}`);
+            }
+            
+            // Small delay between individual requests
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+          } catch (error) {
+            errors++;
+            console.error(`❌ Failed to sync balance for ${user.email}:`, error);
+            
+            // If rate limited, wait longer before next request
+            if (error instanceof Error && error.message.includes('rate limit')) {
+              console.log('⏸️ Rate limit detected, waiting 5 seconds...');
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
           }
-        } catch (error) {
-          errors++;
-          console.error(`❌ Failed to sync balance for ${user.email}:`, error);
+        }
+        
+        // Delay between batches to be respectful to API
+        if (i + this.BATCH_SIZE < usersWithWallets.length) {
+          console.log(`⏳ Waiting ${this.BATCH_DELAY_MS}ms before next batch...`);
+          await new Promise(resolve => setTimeout(resolve, this.BATCH_DELAY_MS));
         }
       }
 

@@ -587,7 +587,7 @@ app.post('/api/circle/kyc/submit', isAuthenticated, async (req, res) => {
     
     // Import KYC service dynamically
     const { circleKYCService } = await import('./services/circleKYCService');
-    const result = await circleKYCService.processKYCSubmission(userId, req.body, req.files);
+    const result = await circleKYCService.processKYCSubmission(userId, req.body);
     
     res.json({
       success: true,
@@ -3048,6 +3048,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   
   console.log('✅ WebSocket server configured for real-time chat');
+  
+  // INTEGRATE UNIFIED BUSINESS LOGIC
+  try {
+    console.log('🔄 Integrating unified business logic...');
+    const { integrateUnifiedBusinessLogic } = await import('./services/platformIntegration');
+    integrateUnifiedBusinessLogic(app);
+  } catch (error) {
+    console.error('❌ Failed to integrate unified business logic:', error);
+  }
   
   // Setup enhanced business logic routes with all safety mechanisms
   setupEnhancedBusinessLogicRoutes(app);

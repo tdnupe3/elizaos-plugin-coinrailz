@@ -25,7 +25,7 @@ import { circleBalanceSyncer } from './services/circleBalanceSyncer';
 import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
 import p2pRoutes from "./routes/p2pRoutes";
-import { enhancedCDPRoutes } from "./routes/coinbaseCDPEnhancedRoutes";
+
 import defiWalletRoutes from "./routes/defiWalletRoutes";
 
 // Initialize services
@@ -354,10 +354,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/defi', defiWalletRoutes);
   console.log('✅ Coinbase DeFi wallet routes registered successfully');
   
-  // === ENHANCED CDP ROUTES ===
-  // Smart Accounts, Gas Sponsorship, and Professional Trading
-  app.use('/api/cdp-enhanced', enhancedCDPRoutes);
-  console.log('✅ Enhanced CDP routes with Smart Accounts registered successfully');
+  // Enhanced CDP functionality removed - keeping only essential CDP Server Wallet v2
   
   // === CIRCLE TRANSACTION MONITORING ===
   // Transaction monitoring and balance sync endpoints

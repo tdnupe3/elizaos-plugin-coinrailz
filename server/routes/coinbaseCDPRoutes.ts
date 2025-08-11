@@ -1,11 +1,10 @@
 /**
- * Coinbase CDP (Developer Platform) API Routes
- * Handles wallet creation, balance monitoring, and transactions
+ * Coinbase CDP (Developer Platform) API Routes - Server Wallet v2 Only
+ * Simplified for fee collection and wallet management
  */
 
 import { Router } from 'express';
 import { coinbaseCDPService } from '../services/coinbaseCDPService';
-import { coinbaseOAuthService } from '../services/coinbaseOAuthService';
 import { isAuthenticated } from '../replitAuth';
 
 const router = Router();
@@ -45,30 +44,25 @@ router.post('/wallet/create', isAuthenticated, async (req, res) => {
   }
 });
 
-// Get wallet balances
-router.get('/wallet/:walletId/balances', isAuthenticated, async (req, res) => {
+// Get wallet balance
+router.get('/wallet/:walletId/balance', isAuthenticated, async (req, res) => {
   try {
     const { walletId } = req.params;
+    const userId = (req.user as any)?.claims?.sub;
     
-    if (!walletId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Wallet ID required'
-      });
-    }
-
-    const balances = await coinbaseCDPService.getWalletBalances(walletId);
+    const balance = await coinbaseCDPService.getWalletBalance(walletId, userId);
     
     res.json({
       success: true,
-      balances,
+      wallet_id: walletId,
+      balance,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('CDP balance retrieval error:', error);
+    console.error('CDP wallet balance error:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to retrieve wallet balances'
+      error: 'Failed to retrieve wallet balance'
     });
   }
 });
@@ -77,31 +71,34 @@ router.get('/wallet/:walletId/balances', isAuthenticated, async (req, res) => {
 router.post('/wallet/:walletId/send', isAuthenticated, async (req, res) => {
   try {
     const { walletId } = req.params;
-    const { toAddress, amount, currency = 'ETH' } = req.body;
-    
-    if (!walletId || !toAddress || !amount) {
+    const { to_address, amount, currency } = req.body;
+    const userId = (req.user as any)?.claims?.sub;
+
+    if (!to_address || !amount || !currency) {
       return res.status(400).json({
         success: false,
-        error: 'Wallet ID, recipient address, and amount required'
+        error: 'Missing required fields: to_address, amount, currency'
       });
     }
 
     const transaction = await coinbaseCDPService.sendTransaction(
       walletId,
-      toAddress,
+      to_address,
       amount,
-      currency
+      currency,
+      userId
     );
     
     res.json({
       success: true,
       transaction: {
         id: transaction.id,
-        type: transaction.type,
-        amount: transaction.amount,
-        currency: transaction.currency,
-        to_address: transaction.to_address,
         status: transaction.status,
+        transaction_hash: transaction.transaction_hash,
+        amount,
+        currency,
+        to_address,
+        fee: transaction.fee,
         created_at: transaction.created_at
       },
       message: 'Transaction initiated successfully'
@@ -119,20 +116,25 @@ router.post('/wallet/:walletId/send', isAuthenticated, async (req, res) => {
 router.get('/wallet/:walletId/transactions', isAuthenticated, async (req, res) => {
   try {
     const { walletId } = req.params;
+    const userId = (req.user as any)?.claims?.sub;
+    const { limit = 10, offset = 0 } = req.query;
     
-    if (!walletId) {
-      return res.status(400).json({
-        success: false,
-        error: 'Wallet ID required'
-      });
-    }
-
-    const transactions = await coinbaseCDPService.getTransactionHistory(walletId);
+    const transactions = await coinbaseCDPService.getTransactionHistory(
+      walletId,
+      userId,
+      parseInt(limit as string),
+      parseInt(offset as string)
+    );
     
     res.json({
       success: true,
+      wallet_id: walletId,
       transactions,
-      count: transactions.length
+      pagination: {
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string)
+      },
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     console.error('CDP transaction history error:', error);
@@ -181,113 +183,19 @@ router.get('/networks/:network/assets', async (req, res) => {
   }
 });
 
-// OAuth Routes
-// Start OAuth flow
-router.get('/oauth/authorize', isAuthenticated, (req, res) => {
-  try {
-    const userId = (req.user as any)?.claims?.sub;
-    const state = `${userId}_${Date.now()}`;
-    const authUrl = coinbaseOAuthService.getAuthorizationUrl(state);
-    
-    res.json({
-      success: true,
-      authorization_url: authUrl,
-      state
-    });
-  } catch (error) {
-    console.error('CDP OAuth authorization error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to generate authorization URL'
-    });
-  }
-});
-
-// OAuth callback handler
-router.get('/oauth/callback', async (req, res) => {
-  try {
-    const { code, state } = req.query;
-    
-    if (!code || typeof code !== 'string') {
-      return res.status(400).json({
-        success: false,
-        error: 'Authorization code required'
-      });
-    }
-
-    const tokens = await coinbaseOAuthService.exchangeCodeForToken(code);
-    const userProfile = await coinbaseOAuthService.getUserProfile(tokens.access_token);
-    
-    // Here you would typically store the tokens in the database
-    // For now, return the success response
-    res.json({
-      success: true,
-      message: 'OAuth authorization successful',
-      user: {
-        id: userProfile.id,
-        name: userProfile.name,
-        email: userProfile.email
-      },
-      expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString()
-    });
-  } catch (error) {
-    console.error('CDP OAuth callback error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'OAuth authorization failed'
-    });
-  }
-});
-
-// Get user's Coinbase accounts
-router.get('/oauth/accounts', isAuthenticated, async (req, res) => {
-  try {
-    // In a real implementation, you would fetch the stored access token from the database
-    // For now, return a mock response to demonstrate the structure
-    res.json({
-      success: true,
-      accounts: [
-        {
-          id: "primary",
-          name: "ETH Wallet",
-          type: "wallet",
-          currency: "ETH",
-          balance: "0.5234",
-          primary: true
-        },
-        {
-          id: "usdc_wallet", 
-          name: "USD Coin",
-          type: "wallet",
-          currency: "USDC",
-          balance: "1250.00",
-          primary: false
-        }
-      ],
-      message: 'Access token required for live data'
-    });
-  } catch (error) {
-    console.error('CDP OAuth accounts error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to retrieve Coinbase accounts'
-    });
-  }
-});
-
 // CDP service health check
 router.get('/health', (req, res) => {
   try {
     res.json({
       success: true,
-      service: 'Coinbase CDP Integration',
+      service: 'Coinbase CDP Server Wallet v2',
       status: 'operational',
       features: [
         'Wallet Creation',
         'Balance Monitoring', 
         'Transaction Management',
-        'OAuth Integration',
-        'Multi-Network Support'
+        'Multi-Network Support',
+        'Fee Collection'
       ],
       supported_networks: [
         'base-mainnet',

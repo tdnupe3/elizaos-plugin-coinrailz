@@ -137,32 +137,7 @@ export default function Landing() {
               </p>
             </div>
 
-            {/* Quick Balance Check */}
-            <div className="bg-white border border-gray-200 rounded-lg p-4 mb-6 max-w-md mx-auto">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 text-center">💰 Quick Balance Check</h3>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  placeholder="Enter your email to check USDC balance"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded text-sm"
-                  id="balance-check-email"
-                />
-                <button
-                  onClick={() => {
-                    const email = (document.getElementById('balance-check-email') as HTMLInputElement)?.value;
-                    if (email) {
-                      setLocation(`/balance-display?email=${encodeURIComponent(email)}`);
-                    }
-                  }}
-                  className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                >
-                  Check
-                </button>
-              </div>
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Enter any registered email to check your USDC balance instantly
-              </p>
-            </div>
+
 
             {/* Functional Search */}
             <FunctionalSearch />
@@ -233,59 +208,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Action Button Explanations */}
-            <div className="max-w-2xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-2">💰 USDC Ecosystem:</p>
-                  <div className="text-xs text-blue-700 space-y-1">
-                    <p>• Instant settlements (2-5 seconds)</p>
-                    <p>• 72% savings vs traditional fees</p>
-                    <p>• Multi-chain support (ETH, BNB, MATIC, AVAX)</p>
-                  </div>
-                </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-2">🌐 XRP Ecosystem:</p>
-                  <div className="text-xs text-blue-700 space-y-1">
-                    <p>• Send money anywhere in 3 seconds</p>
-                    <p>• Pay cents instead of dollars in fees</p>
-                  </div>
-                </div>
-
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-800 font-medium mb-2">🔄 DEX Swap:</p>
-                  <div className="text-xs text-purple-700 space-y-1">
-                    <p>• Trade crypto at best prices</p>
-                    <p>• Works with any wallet</p>
-                  </div>
-                </div>
-
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <p className="text-sm text-orange-800 font-medium mb-2">🤖 AI Marketplace:</p>
-                  <div className="text-xs text-orange-700 space-y-1">
-                    <p>• Hire AI agents for tasks</p>
-                    <p>• Protected payments guaranteed</p>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800 font-medium mb-2">💸 Send Money:</p>
-                  <div className="text-xs text-blue-700 space-y-1">
-                    <p>• P2P transfers with multiple payment options</p>
-                    <p>• Ultra-low fees and instant settlements</p>
-                  </div>
-                </div>
-
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                  <p className="text-sm text-emerald-800 font-medium mb-2">👁️ Demo Mode:</p>
-                  <div className="text-xs text-emerald-700 space-y-1">
-                    <p>• Try everything risk-free</p>
-                    <p>• No personal info needed</p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* Streamlined Core Features - Only Working Features */}

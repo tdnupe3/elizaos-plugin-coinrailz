@@ -28,6 +28,7 @@ import { registerAuthRoutes } from "./authRoutes";
 import p2pRoutes from "./routes/p2pRoutes";
 
 import defiWalletRoutes from "./routes/defiWalletRoutes";
+import { coinbaseCDPService } from './services/coinbaseCDPService';
 
 // Initialize services
 let stripe: any;
@@ -1710,6 +1711,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false,
         service: 'Coinbase CDP Wallet Integration',
         status: 'error',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Coinbase wallet balance endpoint
+  app.get('/api/coinbase/wallet/balance', async (req, res) => {
+    try {
+      const { address } = req.query;
+      if (!address) {
+        return res.status(400).json({
+          success: false,
+          error: 'Wallet address is required'
+        });
+      }
+
+      const balances = await coinbaseCDPService.getWalletBalances(address as string);
+      res.json({
+        success: true,
+        address,
+        balances,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Create new Coinbase wallet endpoint
+  app.post('/api/coinbase/create-wallet', async (req, res) => {
+    try {
+      const { userId, network = 'base-mainnet' } = req.body;
+      
+      const wallet = await coinbaseCDPService.createWallet(userId, network);
+      res.json({
+        success: true,
+        wallet,
+        message: 'Coinbase CDP wallet created successfully',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Get all Coinbase wallets for user
+  app.get('/api/coinbase/wallets', async (req, res) => {
+    try {
+      const networks = await coinbaseCDPService.getSupportedNetworks();
+      res.json({
+        success: true,
+        supportedNetworks: networks,
+        service: 'Coinbase CDP Server Wallet v2',
+        capabilities: [
+          'Multi-chain wallet creation',
+          'Transaction sending',
+          'Balance checking',
+          'Cross-chain asset support'
+        ],
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
         error: error.message,
         timestamp: new Date().toISOString()
       });

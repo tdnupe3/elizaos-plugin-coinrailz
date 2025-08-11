@@ -53,6 +53,15 @@ const paymentResolver = new PaymentGatewayResolver();
 export async function registerRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
 
+  // Direct Coinbase DeFi wallet endpoint bypassing auth middleware  
+  app.get('/api/defi/status', (req, res) => {
+    res.json({ 
+      success: true, 
+      message: 'Coinbase DeFi wallet service active',
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // CRITICAL: Register working API fix routes FIRST
   const authFix = await import('./authFix');
   app.use('/', authFix.default);

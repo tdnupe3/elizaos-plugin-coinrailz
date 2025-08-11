@@ -7,7 +7,7 @@
 import { UnifiedBusinessLogic, type TransactionRequest, type CommissionBreakdown } from './unifiedBusinessLogic';
 import { db } from '../db';
 import { transactions, users, globalAIAgents, aiMarketplaceCommissions } from '../../shared/schema';
-import { eq, and, sum, gte } from 'drizzle-orm';
+import { eq, and, sum, gte, lte } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
 
 export interface RevenueDistribution {
@@ -135,10 +135,16 @@ export class UnifiedRevenueManager {
       // Record each agent commission using correct schema fields
       for (const commission of distribution.agentCommissions) {
         await db.insert(aiMarketplaceCommissions).values({
-          id: `commission_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          orderId: distribution.transactionId,
+          agentId: commission.agentId,
+          commissionRate: commission.type === 'primary' ? '0.85' : '0.003',
           commissionAmount: commission.amount,
-          commissionRate: '0.85', // Default rate
+          agentTier: 'basic',
+          serviceAmount: commission.amount,
+          platformFeeRate: commission.type === 'primary' ? '0.15' : '0.997',
+          platformFeeAmount: commission.type === 'primary' ? (parseFloat(commission.amount) * 0.15).toString() : '0',
+          transactionType: 'marketplace',
+          transactionId: distribution.transactionId,
+          status: 'pending',
           calculatedAt: new Date()
         });
       }
@@ -233,8 +239,8 @@ export class UnifiedRevenueManager {
         })
         .from(aiMarketplaceCommissions)
         .where(and(
-          gte(aiMarketplaceCommissions.calculatedAt, dateFrom),
-          gte(dateTo, aiMarketplaceCommissions.calculatedAt)
+          gte(aiMarketplaceCommissions.calculatedAt, dateFrom.toISOString()),
+          lte(aiMarketplaceCommissions.calculatedAt, dateTo.toISOString())
         ));
 
       const agentCommissions = commissionSummary[0]?.totalCommissions || '0';

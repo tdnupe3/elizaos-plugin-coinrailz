@@ -41,8 +41,8 @@ export interface FeeBreakdown {
 
 export interface CommissionBreakdown {
   totalAmount: string;
-  platformRevenue: string; // Always 15%
-  agentCommission: string; // Always 85%
+  platformRevenue: string; // 15% for marketplace only, 100% for other services
+  agentCommission: string; // 85% for marketplace only, 0% for other services
   referralCommissions: string; // Up to 5% of platform revenue
   netPlatformRevenue: string; // Platform revenue minus referral costs
 }
@@ -54,9 +54,9 @@ export interface CommissionBreakdown {
 export class UnifiedBusinessLogic {
   // MASTER FEE STRUCTURE - Single source of truth
   private static readonly FEE_STRUCTURE = {
-    // Platform commission rate (applied to ALL services)
-    PLATFORM_COMMISSION_RATE: new Decimal('0.15'), // 15%
-    AGENT_COMMISSION_RATE: new Decimal('0.85'), // 85%
+    // AI Marketplace commission rates (ONLY for marketplace transactions)
+    MARKETPLACE_PLATFORM_RATE: new Decimal('0.15'), // 15% for marketplace
+    MARKETPLACE_AGENT_RATE: new Decimal('0.85'), // 85% for marketplace agents
     
     // Service-specific fees (in addition to platform commission)
     SERVICE_FEES: {
@@ -187,13 +187,23 @@ export class UnifiedBusinessLogic {
 
   /**
    * Calculate commission distribution (SINGLE SOURCE OF TRUTH)
+   * 85/15 split ONLY applies to AI Marketplace transactions
    */
-  static calculateCommissions(totalAmount: string, agentId?: string, referralLevel?: number): CommissionBreakdown {
+  static calculateCommissions(totalAmount: string, transactionType: 'p2p' | 'marketplace' | 'xrp' | 'crypto' | 'onramp' | 'offramp', agentId?: string, referralLevel?: number): CommissionBreakdown {
     const amount = new Decimal(totalAmount);
     
-    // Platform takes 15%, Agent gets 85% - ALWAYS
-    const platformRevenue = amount.mul(this.FEE_STRUCTURE.PLATFORM_COMMISSION_RATE);
-    const agentCommission = amount.mul(this.FEE_STRUCTURE.AGENT_COMMISSION_RATE);
+    let platformRevenue = new Decimal('0');
+    let agentCommission = new Decimal('0');
+    
+    if (transactionType === 'marketplace' && agentId) {
+      // AI Marketplace: 15% platform, 85% agent
+      platformRevenue = amount.mul(this.FEE_STRUCTURE.MARKETPLACE_PLATFORM_RATE);
+      agentCommission = amount.mul(this.FEE_STRUCTURE.MARKETPLACE_AGENT_RATE);
+    } else {
+      // All other services: 100% platform, 0% agent
+      platformRevenue = amount;
+      agentCommission = new Decimal('0');
+    }
     
     let referralCommissions = new Decimal('0');
     
@@ -279,7 +289,7 @@ export class UnifiedBusinessLogic {
     estimatedSettlementTime: string;
   } {
     const fees = this.calculateFees(request);
-    const commissions = this.calculateCommissions(fees.netAmount, request.agentId, request.referralLevel);
+    const commissions = this.calculateCommissions(fees.netAmount, request.type, request.agentId, request.referralLevel);
     const validation = this.validateTransaction(request);
 
     // Estimate settlement time based on transaction type

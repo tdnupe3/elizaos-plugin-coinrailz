@@ -133,19 +133,33 @@ class CircleBalanceSyncer {
       try {
         // Get live balance from Circle
         const circleService = new CircleService();
-        const balances = await circleService.getWalletBalance(walletId);
+        const balanceResponse = await circleService.getWalletBalance(walletId);
+        
+        // Handle different response formats from Circle API
+        let balances = [];
+        if (Array.isArray(balanceResponse)) {
+          balances = balanceResponse;
+        } else if (balanceResponse && balanceResponse.balances && Array.isArray(balanceResponse.balances)) {
+          balances = balanceResponse.balances;
+        } else if (balanceResponse && typeof balanceResponse === 'object') {
+          // Single balance object
+          balances = [balanceResponse];
+        }
         
         // Find USDC balance - handle both "USDC" and token ID formats
         let usdcBalance = '0.00000000';
         
-        // First try to find by symbol "USDC"
-        const usdcBySymbol = balances.find(b => b.tokenId === 'USDC');
-        if (usdcBySymbol) {
-          usdcBalance = usdcBySymbol.amount || '0.00000000';
-        } else {
-          // If no "USDC" symbol found, use the first balance (likely USDC with different token ID)
-          if (balances.length > 0 && balances[0].amount) {
-            usdcBalance = balances[0].amount;
+        if (balances.length > 0) {
+          // First try to find by symbol "USDC"
+          const usdcBySymbol = balances.find(b => b.tokenId === 'USDC' || b.currency === 'USD' || b.symbol === 'USDC');
+          if (usdcBySymbol) {
+            usdcBalance = usdcBySymbol.amount || usdcBySymbol.balance || '0.00000000';
+          } else {
+            // If no "USDC" symbol found, use the first balance
+            const firstBalance = balances[0];
+            if (firstBalance && (firstBalance.amount || firstBalance.balance)) {
+              usdcBalance = firstBalance.amount || firstBalance.balance || '0.00000000';
+            }
           }
         }
 

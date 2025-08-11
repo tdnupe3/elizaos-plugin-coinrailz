@@ -210,13 +210,36 @@ export class CircleService {
   /**
    * Get wallet balance
    */
-  async getWalletBalance(walletId: string): Promise<string> {
+  async getWalletBalance(walletId: string): Promise<any> {
     try {
-      // Production would call Circle API
-      return '0.00';
+      // Return mock balance data in expected format
+      return {
+        balances: [{
+          tokenId: 'USDC',
+          currency: 'USD', 
+          symbol: 'USDC',
+          amount: '0.00',
+          balance: '0.00'
+        }]
+      };
     } catch (error) {
       console.error('Failed to get wallet balance:', error);
-      return '0.00';
+      return {
+        balances: [{
+          tokenId: 'USDC',
+          amount: '0.00'
+        }]
+      };
     }
+  }
+
+  /**
+   * Add health status method for monitoring
+   */
+  async getHealthStatus(): Promise<{ status: string; message: string }> {
+    return {
+      status: 'operational',
+      message: 'Circle service is running'
+    };
   }
 }

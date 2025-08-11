@@ -665,7 +665,17 @@ export const aiMarketplaceServices = pgTable("ai_marketplace_services", {
 
 // Types
 export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
+export type User = typeof users.$inferSelect & {
+  claims?: {
+    sub: string;
+    email?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_image_url?: string;
+    iat?: number;
+    exp?: number;
+  };
+};
 
 export type AIMarketplaceOrder = typeof aiMarketplaceOrders.$inferSelect;
 export type InsertAIMarketplaceOrder = typeof aiMarketplaceOrders.$inferInsert;

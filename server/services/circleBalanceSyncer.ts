@@ -63,7 +63,7 @@ class CircleBalanceSyncer {
       const usersWithWallets = await db
         .select()
         .from(users)
-        .where(sql`${users.circleWalletId} IS NOT NULL AND ${users.circleWalletAddress} IS NOT NULL`);
+        .where(sql`circle_wallet_id IS NOT NULL AND circle_wallet_address IS NOT NULL`);
 
       if (usersWithWallets.length === 0) {
         return { updated: 0, errors: 0, total: 0 };

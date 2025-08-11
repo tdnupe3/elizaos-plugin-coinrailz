@@ -32,6 +32,7 @@ import { coinbaseCDPService } from './services/coinbaseCDPService';
 import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupReferralRoutes } from "./routes/referrals";
 import { setupEnterpriseRoutes } from "./routes/enterprise";
+import coinbaseAuthRoutes from "./routes/coinbaseAuth";
 
 // Initialize services
 let stripe: any;
@@ -70,6 +71,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup auth first
   await setupAuth(app);
+
+  // Coinbase OAuth authentication routes
+  app.use('/auth', coinbaseAuthRoutes);
 
   // CRITICAL: Register working routes for audit compliance
   

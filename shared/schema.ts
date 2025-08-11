@@ -74,12 +74,21 @@ export const users = pgTable("users", {
   circleWalletSetId: varchar("circle_wallet_set_id"), // Circle wallet set ID
   circleEntitySecret: varchar("circle_entity_secret"), // Encrypted entity secret
   
-  // Coinbase CDP Integration fields
+  // Coinbase Integration fields
   coinbaseCDPWalletId: varchar("coinbase_cdp_wallet_id"), // CDP wallet ID
   coinbaseOAuthToken: text("coinbase_oauth_token"), // Encrypted OAuth access token
   coinbaseOAuthRefreshToken: text("coinbase_oauth_refresh_token"), // Encrypted refresh token
   coinbaseOAuthExpiresAt: timestamp("coinbase_oauth_expires_at"), // Token expiration
   coinbaseUserId: varchar("coinbase_user_id"), // Coinbase user ID from OAuth
+  coinbaseId: varchar("coinbase_id"), // Coinbase API user ID
+  coinbaseAccessToken: text("coinbase_access_token"), // Main Coinbase API access token
+  coinbaseProfile: text("coinbase_profile"), // JSON string of Coinbase user profile
+  isKycVerified: boolean("is_kyc_verified").default(false), // KYC status from Coinbase
+  kycLevel: varchar("kyc_level").default("none"), // none, basic, complete
+  kycProvider: varchar("kyc_provider"), // coinbase, circle, internal
+  coinbaseNativeCurrency: varchar("coinbase_native_currency").default("USD"),
+  coinbaseCountry: varchar("coinbase_country"),
+  coinbaseRegionSupportsTransfers: boolean("coinbase_region_supports_transfers").default(false),
   usdcBalance: decimal("usdc_balance", { precision: 20, scale: 8 }).default("0.00000000"), // USDC balance
   circleWalletAddress: varchar("circle_wallet_address"), // Circle wallet address
   circleAccountType: varchar("circle_account_type").default("SCA"), // SCA or EOA

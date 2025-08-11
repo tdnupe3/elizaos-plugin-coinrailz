@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail, USDCLogo, XRPLogo } from "@/lib/icons";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
-import { FunctionalSearch } from "@/components/functional-search";
+import { CoinbaseWalletIntegration } from "@/components/CoinbaseWalletIntegration";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { useTranslation } from "react-i18next";
 
@@ -138,9 +138,6 @@ export default function Landing() {
             </div>
 
 
-
-            {/* Functional Search */}
-            <FunctionalSearch />
 
             {/* Secondary Actions - All Functional */}
             <div className="space-y-4 mb-8 max-w-2xl mx-auto">
@@ -551,6 +548,20 @@ export default function Landing() {
                 </CardContent>
               </Card>
             )}
+          </div>
+
+          {/* Coinbase Integration Section */}
+          <div className="mb-12">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">Connect with Coinbase</h2>
+              <p className="text-lg text-gray-600 mb-2">
+                Seamless integration with your Coinbase account and wallets
+              </p>
+              <p className="text-sm text-gray-500">
+                Auto-detect existing wallets • One-click creation • Skip KYC with Coinbase login
+              </p>
+            </div>
+            <CoinbaseWalletIntegration />
           </div>
 
           {/* Simple Call to Action */}

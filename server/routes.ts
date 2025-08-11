@@ -8,7 +8,7 @@ import { FeeCalculator } from "./services/feeCalculator";
 import { z } from "zod";
 import { db } from "./db";
 import { sql, eq } from "drizzle-orm";
-import { aiMarketplaceOrders, globalAIAgents, users } from "../shared/schema";
+import { aiMarketplaceOrders, globalAIAgents, users, platformTransactions } from "../shared/schema";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
 import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
@@ -73,6 +73,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup auth first
   await setupAuth(app);
+
+  // Enhanced dashboard endpoints for real-time data
+  app.get('/api/user/balance', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      if (!user.length) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const userData = user[0];
+      
+      // Return real-time balance information
+      res.json({
+        total: userData.usdcBalance || 0,
+        available: userData.usdcBalance || 0,
+        pending: 0,
+        currency: 'USDC',
+        walletAddress: userData.circleWalletAddress,
+        lastUpdated: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Balance fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch balance' });
+    }
+  });
+
+  app.get('/api/user/dashboard-stats', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      // Get transaction count and volume from unified platform transactions
+      const txCount = await db.select({ count: sql<number>`count(*)` })
+        .from(platformTransactions)
+        .where(eq(platformTransactions.userId, userId));
+
+      const monthlyVolume = await db.select({ 
+        volume: sql<number>`COALESCE(SUM(${platformTransactions.amount}), 0)` 
+      })
+        .from(platformTransactions)
+        .where(sql`${platformTransactions.userId} = ${userId} AND ${platformTransactions.createdAt} >= NOW() - INTERVAL '30 days'`);
+
+      res.json({
+        totalTransactions: txCount[0]?.count || 0,
+        monthlyVolume: Number(monthlyVolume[0]?.volume || 0),
+        activeAgents: 0, // Will be enhanced with agent interaction tracking
+        referralEarnings: 0, // Will be enhanced with referral system
+        balance: 0 // Will be fetched separately for real-time updates
+      });
+    } catch (error) {
+      console.error('Dashboard stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch dashboard stats' });
+    }
+  });
+
+  app.get('/api/user/transactions', isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      // Fetch user's transaction history from unified platform transactions
+      const transactions = await db.select({
+        id: platformTransactions.id,
+        type: platformTransactions.type,
+        amount: platformTransactions.amount,
+        currency: platformTransactions.currency,
+        status: platformTransactions.status,
+        timestamp: platformTransactions.createdAt,
+        description: platformTransactions.description
+      })
+      .from(platformTransactions)
+      .where(eq(platformTransactions.userId, userId))
+      .orderBy(sql`${platformTransactions.createdAt} DESC`)
+      .limit(50);
+
+      res.json({
+        transactions: transactions.map(tx => ({
+          ...tx,
+          timestamp: tx.timestamp?.toISOString() || new Date().toISOString()
+        }))
+      });
+    } catch (error) {
+      console.error('Transaction history error:', error);
+      res.status(500).json({ error: 'Failed to fetch transactions' });
+    }
+  });
 
   // Coinbase OAuth authentication routes
   app.use('/auth', coinbaseAuthRoutes);

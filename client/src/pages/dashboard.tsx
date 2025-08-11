@@ -52,25 +52,42 @@ export default function Dashboard() {
   const { user } = useAuth();
   const [selectedTab, setSelectedTab] = useState("overview");
 
-  // Fetch user dashboard data with real balance integration
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ["/api/balance/dashboard-data"],
+  // Fetch real-time user dashboard data
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+    queryKey: ["/api/user/dashboard-stats"],
     enabled: !!user,
     retry: false,
     throwOnError: false
   });
 
-  // Fetch user's USDC balance
-  const { data: usdcBalance, isLoading: usdcBalanceLoading } = useQuery({
-    queryKey: ['/api/user-circle/balance'],
+  // Fetch user's real-time USDC balance
+  const { data: usdcBalance, isLoading: usdcBalanceLoading, refetch: refetchBalance } = useQuery({
+    queryKey: ['/api/user/balance'],
+    enabled: !!user,
+    retry: false,
+    throwOnError: false,
+    refetchInterval: 30000 // Refresh every 30 seconds
+  });
+
+  // Fetch transaction history
+  const { data: transactionHistory, isLoading: transactionsLoading } = useQuery({
+    queryKey: ['/api/user/transactions'],
     enabled: !!user,
     retry: false,
     throwOnError: false
   });
 
-  // Transaction data is now included in the dashboard stats
-  const transactions = stats?.transactions || [];
-  const transactionsLoading = statsLoading;
+  // Use real transaction data
+  const transactions = transactionHistory?.transactions || [];
+  
+  // Calculate real-time stats
+  const realTimeStats = {
+    balance: usdcBalance?.total || stats?.balance || 0,
+    totalTransactions: transactions.length,
+    monthlyVolume: stats?.monthlyVolume || 0,
+    activeAgents: stats?.activeAgents || 0,
+    referralEarnings: stats?.referralEarnings || 0
+  };
 
   const { data: portfolioData } = useQuery({
     queryKey: ["/api/dashboard/portfolio"],
@@ -167,6 +184,18 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex space-x-4">
+              <Button 
+                onClick={() => {
+                  refetchBalance();
+                  refetchStats();
+                }} 
+                variant="outline" 
+                size="sm"
+                disabled={usdcBalanceLoading || statsLoading}
+              >
+                <ArrowUpRight className="h-4 w-4 mr-2" />
+                {usdcBalanceLoading || statsLoading ? 'Refreshing...' : 'Refresh Data'}
+              </Button>
               <UserGuidanceModal />
               <Button className="bg-blue-600 hover:bg-blue-700" asChild>
                 <Link href="/">
@@ -255,9 +284,12 @@ export default function Dashboard() {
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(userStats.balance)}</div>
+              <div className="text-2xl font-bold">
+                ${realTimeStats.balance.toFixed(2)}
+                {usdcBalanceLoading && <span className="text-sm ml-2 text-muted-foreground">updating...</span>}
+              </div>
               <p className="text-xs text-muted-foreground">
-                +12.5% from last month
+                {usdcBalance?.currency || 'USDC'} • Last updated: {usdcBalance?.lastUpdated ? new Date(usdcBalance.lastUpdated).toLocaleTimeString() : 'Never'}
               </p>
             </CardContent>
           </Card>
@@ -268,9 +300,9 @@ export default function Dashboard() {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userStats.totalTransactions}</div>
+              <div className="text-2xl font-bold">{realTimeStats.totalTransactions}</div>
               <p className="text-xs text-muted-foreground">
-                +3 this week
+                {transactionsLoading ? 'Loading...' : `${transactions.length} recorded`}
               </p>
             </CardContent>
           </Card>
@@ -281,9 +313,9 @@ export default function Dashboard() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(userStats.monthlyVolume)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(realTimeStats.monthlyVolume)}</div>
               <p className="text-xs text-muted-foreground">
-                +18.2% from last month
+                {statsLoading ? 'Loading...' : 'Last 30 days activity'}
               </p>
             </CardContent>
           </Card>
@@ -294,9 +326,9 @@ export default function Dashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{userStats.activeAgents}</div>
+              <div className="text-2xl font-bold">{realTimeStats.activeAgents}</div>
               <p className="text-xs text-muted-foreground">
-                2 new this month
+                {statsLoading ? 'Loading...' : 'AI agents interacted with'}
               </p>
             </CardContent>
           </Card>
@@ -307,9 +339,9 @@ export default function Dashboard() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(userStats.referralEarnings)}</div>
+              <div className="text-2xl font-bold">{formatCurrency(realTimeStats.referralEarnings)}</div>
               <p className="text-xs text-muted-foreground">
-                +$23.40 this week
+                {statsLoading ? 'Loading...' : 'From referral program'}
               </p>
             </CardContent>
           </Card>

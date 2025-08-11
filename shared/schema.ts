@@ -607,6 +607,25 @@ export const aiMarketplaceCommissions = pgTable("ai_marketplace_commissions", {
   paidAt: timestamp("paid_at"),
 });
 
+// Platform Transactions - Universal transaction tracking across all services
+export const platformTransactions = pgTable("platform_transactions", {
+  id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type", { length: 50 }).notNull(), // 'p2p', 'dex', 'marketplace', 'onramp', 'offramp', 'xrp'
+  amount: decimal("amount", { precision: 18, scale: 6 }).notNull(),
+  currency: varchar("currency", { length: 10 }).notNull().default("USDC"),
+  fee: decimal("fee", { precision: 18, scale: 6 }).default("0"),
+  status: varchar("status", { length: 20 }).notNull().default("pending"),
+  fromAddress: varchar("from_address", { length: 255 }),
+  toAddress: varchar("to_address", { length: 255 }),
+  txHash: varchar("tx_hash", { length: 255 }),
+  description: text("description"),
+  metadata: jsonb("metadata"), // Store additional transaction details
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+  networkConfirmations: integer("network_confirmations").default(0)
+});
+
 export const aiMarketplacePerformance = pgTable("ai_marketplace_performance", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
   agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id).unique(),
@@ -711,6 +730,9 @@ export type InsertAIMarketplaceCategory = typeof aiMarketplaceCategories.$inferI
 
 export type AIMarketplaceService = typeof aiMarketplaceServices.$inferSelect;
 export type InsertAIMarketplaceService = typeof aiMarketplaceServices.$inferInsert;
+
+export type PlatformTransaction = typeof platformTransactions.$inferSelect;
+export type InsertPlatformTransaction = typeof platformTransactions.$inferInsert;
 
 // Notification system for institutional features
 export const notifications = pgTable("notifications", {

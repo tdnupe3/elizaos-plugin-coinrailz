@@ -111,7 +111,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CRITICAL: Register working routes for audit compliance
   
   // === AUTH ROUTES ===
+  // Enhanced auth endpoint with session persistence
   app.get('/api/auth/user', async (req: any, res) => {
+    try {
+      // Check session-based authentication (both Replit and Coinbase)
+      if (req.session?.user) {
+        const sessionUser = req.session.user;
+        
+        // For Coinbase OAuth users
+        if (sessionUser.coinbase?.isVerified) {
+          const userId = sessionUser.claims.sub;
+          const user = await storage.getUser(userId);
+          
+          return res.json({
+            success: true,
+            user: user || sessionUser.claims,
+            authProvider: 'coinbase',
+            kycVerified: true,
+            kycLevel: 'complete',
+            features: {
+              highLimitTransactions: true,
+              internationalTransfers: true,
+              advancedTrading: true,
+              institutionalFeatures: true
+            }
+          });
+        }
+        
+        // For Replit OAuth users - check traditional auth
+        if (req.isAuthenticated && req.isAuthenticated()) {
+          const userId = req.user?.claims?.sub || sessionUser.claims.sub;
+          const user = await storage.getUser(userId);
+          
+          return res.json({
+            success: true,
+            user: user || sessionUser.claims,
+            authProvider: 'replit',
+            kycVerified: false,
+            kycLevel: 'none',
+            features: {
+              highLimitTransactions: false,
+              internationalTransfers: false,
+              advancedTrading: false,
+              institutionalFeatures: false
+            }
+          });
+        }
+      }
+
+      // No valid session found
+      return res.status(401).json({ 
+        success: false,
+        message: "Not authenticated",
+        authProvider: 'none'
+      });
+      
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ 
+        success: false,
+        message: "Failed to fetch user" 
+      });
+    }
+  });
+
+  // Session health check - simple endpoint to verify session persistence
+  app.get('/api/auth/session-check', (req, res) => {
+    const hasSession = !!req.session;
+    const hasUser = !!(req.session?.user);
+    const hasCoinbaseAuth = !!(req.session?.user?.coinbase?.accessToken);
+    const hasReplitAuth = !!(req.user?.claims?.sub);
+    
+    res.json({
+      success: true,
+      sessionExists: hasSession,
+      userInSession: hasUser,
+      coinbaseAuth: hasCoinbaseAuth,
+      replitAuth: hasReplitAuth,
+      sessionId: req.sessionID,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // Original auth route for backwards compatibility
+  app.get('/api/auth/user-old', isAuthenticated, async (req: any, res) => {
     try {
       const sessionUser = req.session?.user;
       const replitUser = req.user;

@@ -27,17 +27,27 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
+  const pgStore = connectPg(session);
+  
+  // Use PostgreSQL session store for persistence
+  const sessionStore = new pgStore({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true, // Auto-create sessions table
+    ttl: sessionTtl / 1000, // Convert to seconds
+    tableName: 'sessions',
+  });
 
   return session({
+    store: sessionStore,
     secret: process.env.SESSION_SECRET || 'default-dev-secret-2024',
     resave: false,
     saveUninitialized: false,
     rolling: true, // Extend session on activity
     cookie: {
       httpOnly: true,
-      secure: false, // Set to false for development to prevent session loss
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
       maxAge: sessionTtl,
-      sameSite: 'lax' // Allow cross-site requests in development
+      sameSite: 'lax' // Allow cross-site requests
     },
     name: 'coinrailz.session' // Custom session name
   });

@@ -175,16 +175,16 @@ export default function Dashboard() {
       {/* Welcome Header */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center py-4 sm:py-6 space-y-4 sm:space-y-0">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white truncate">
                 Welcome back, {(user as any)?.firstName || (user as any)?.email || 'User'}!
               </h1>
-              <p className="text-gray-600 dark:text-gray-300">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Your financial gateway dashboard
               </p>
             </div>
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap gap-2 sm:space-x-2 sm:gap-0 w-full sm:w-auto">
               <Button 
                 onClick={() => {
                   refetchBalance();
@@ -193,15 +193,16 @@ export default function Dashboard() {
                 variant="outline" 
                 size="sm"
                 disabled={usdcBalanceLoading || statsLoading}
+                className="flex-1 sm:flex-none text-xs sm:text-sm"
               >
-                <ArrowUpRight className="h-4 w-4 mr-2" />
-                {usdcBalanceLoading || statsLoading ? 'Refreshing...' : 'Refresh Data'}
+                <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                {usdcBalanceLoading || statsLoading ? 'Refreshing...' : 'Refresh'}
               </Button>
               <UserGuidanceModal />
-              <Button className="bg-blue-600 hover:bg-blue-700" asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none text-xs sm:text-sm" asChild>
                 <Link href="/">
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  All Services
+                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  Services
                 </Link>
               </Button>
             </div>
@@ -209,7 +210,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
 
         {/* User Session Manager - Security Fix for User Isolation */}
         <UserSessionManager />
@@ -235,7 +236,7 @@ export default function Dashboard() {
         </div>
 
         {/* Quick Actions for Funded Users - Show alongside onboarding */}
-        <div className="mb-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="mb-6 sm:mb-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <QuickFunding />
           <InstantSwap />
         </div>

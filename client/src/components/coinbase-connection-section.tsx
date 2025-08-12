@@ -30,20 +30,20 @@ export default function CoinbaseConnectionSection() {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Key Benefits */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-white/50 rounded-lg">
-            <Shield className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-            <h3 className="font-semibold text-sm text-gray-900">Auto-detect Wallets</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="text-center p-3 sm:p-4 bg-white/50 rounded-lg">
+            <Shield className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-blue-600" />
+            <h3 className="font-semibold text-xs sm:text-sm text-gray-900">Auto-detect Wallets</h3>
             <p className="text-xs text-gray-600">Find existing wallets instantly</p>
           </div>
-          <div className="text-center p-4 bg-white/50 rounded-lg">
-            <Zap className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-            <h3 className="font-semibold text-sm text-gray-900">One-click Creation</h3>
+          <div className="text-center p-3 sm:p-4 bg-white/50 rounded-lg">
+            <Zap className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-blue-600" />
+            <h3 className="font-semibold text-xs sm:text-sm text-gray-900">One-click Creation</h3>
             <p className="text-xs text-gray-600">Create new wallets in seconds</p>
           </div>
-          <div className="text-center p-4 bg-white/50 rounded-lg">
-            <ArrowUpRight className="w-8 h-8 mx-auto mb-2 text-blue-600" />
-            <h3 className="font-semibold text-sm text-gray-900">Skip KYC</h3>
+          <div className="text-center p-3 sm:p-4 bg-white/50 rounded-lg">
+            <ArrowUpRight className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2 text-blue-600" />
+            <h3 className="font-semibold text-xs sm:text-sm text-gray-900">Skip KYC</h3>
             <p className="text-xs text-gray-600">Use Coinbase login credentials</p>
           </div>
         </div>
@@ -54,14 +54,14 @@ export default function CoinbaseConnectionSection() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <Button className="flex-1 bg-blue-600 hover:bg-blue-700" asChild>
+        <div className="flex flex-col gap-3">
+          <Button className="w-full bg-blue-600 hover:bg-blue-700 py-3" asChild>
             <Link href="/cdp-wallet">
               <Wallet className="w-4 h-4 mr-2" />
               Manage Coinbase Wallets
             </Link>
           </Button>
-          <Button variant="outline" className="flex-1 border-blue-600 text-blue-600 hover:bg-blue-50" asChild>
+          <Button variant="outline" className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-3" asChild>
             <Link href="/coinbase-defi">
               <ExternalLink className="w-4 h-4 mr-2" />
               DeFi Integration

@@ -92,7 +92,6 @@ export function CoinbaseWalletIntegration() {
         });
       }
     } catch (error) {
-      console.error('Wallet connection failed:', error);
       toast({
         title: "Connection Failed",
         description: "Unable to connect to wallet. Please try again.",

@@ -66,11 +66,11 @@ export default function Landing() {
               <img 
                 src={coinRailzLogo} 
                 alt="Coin Railz Logo" 
-                className="w-8 h-8"
+                className="w-6 h-6 sm:w-8 sm:h-8"
               />
-              <span className="text-xl font-bold text-gray-900">Coin Railz</span>
+              <span className="text-lg sm:text-xl font-bold text-gray-900">Coin Railz</span>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <LanguageSwitcher />
               {isAuthenticated ? (
                 <UserAuthMenu />
@@ -79,14 +79,14 @@ export default function Landing() {
                   <Button 
                     onClick={handleSignIn}
                     variant="outline"
-                    className="border-blue-600 text-blue-600 hover:bg-blue-50"
+                    className="border-blue-600 text-blue-600 hover:bg-blue-50 text-xs sm:text-sm px-2 sm:px-4"
                     size="sm"
                   >
                     {t('auth.signIn')}
                   </Button>
                   <Button 
                     onClick={handleSignUp}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm px-2 sm:px-4"
                     size="sm"
                   >
                     {t('auth.signUp')}
@@ -98,37 +98,37 @@ export default function Landing() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-12">
-            <div className="flex justify-center mb-6">
+          <div className="text-center mb-8 sm:mb-12">
+            <div className="flex justify-center mb-4 sm:mb-6">
               <img 
                 src={coinRailzLogo} 
                 alt="Coin Railz Logo" 
-                className="w-24 h-24"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24"
               />
             </div>
-            <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Coin Railz</h1>
-            <p className="text-xl text-gray-600 mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">Coin Railz</h1>
+            <p className="text-lg sm:text-xl text-gray-600 mb-4 sm:mb-6 px-2">
               AI-Powered Cross-Border Payments & Multi-Chain Trading Platform
             </p>
             
             {/* Move Most Important Info to Top */}
-            <div className="bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-200 rounded-lg p-6 mb-8 max-w-2xl mx-auto">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🚀 What You Can Do Right Now</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+            <div className="bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-200 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 max-w-2xl mx-auto">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">🚀 What You Can Do Right Now</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-left">
                 <div>
-                  <h3 className="font-semibold text-blue-800 mb-2">✅ Instant Access</h3>
-                  <ul className="text-sm text-gray-700 space-y-1">
+                  <h3 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">✅ Instant Access</h3>
+                  <ul className="text-xs sm:text-sm text-gray-700 space-y-1">
                     <li>• Send money globally in seconds</li>
                     <li>• Trade digital assets across 15+ networks</li>
                     <li>• Access AI agent marketplace</li>
                   </ul>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-purple-800 mb-2">💰 Ultra-Low Fees</h3>
-                  <ul className="text-sm text-gray-700 space-y-1">
+                  <h3 className="font-semibold text-purple-800 mb-2 text-sm sm:text-base">💰 Ultra-Low Fees</h3>
+                  <ul className="text-xs sm:text-sm text-gray-700 space-y-1">
                     <li>• USDC payments: Instant settlements</li>
                     <li>• XRP transfers: Ultra-low cost</li>
                     <li>• P2P transfers: Competitive rates</li>
@@ -139,10 +139,10 @@ export default function Landing() {
             </div>
 
             {/* Primary Action: Sign Up Options */}
-            <div className="mb-8 max-w-md mx-auto">
+            <div className="mb-6 sm:mb-8 max-w-md mx-auto px-4 sm:px-0">
               <Button 
                 onClick={handleSignUp}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 mb-3"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-4 sm:py-6 text-lg sm:text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 mb-3"
                 size="lg"
               >
                 🚀 Get Started Now - It's Free!
@@ -152,10 +152,10 @@ export default function Landing() {
               <Button 
                 onClick={handleCoinbaseSignIn}
                 variant="outline"
-                className="w-full border-orange-500 text-orange-600 hover:bg-orange-50 py-4 text-lg font-medium mb-3"
+                className="w-full border-orange-500 text-orange-600 hover:bg-orange-50 py-3 sm:py-4 text-base sm:text-lg font-medium mb-3"
                 size="lg"
               >
-                <img src="https://cdn.worldvectorlogo.com/logos/coinbase-1.svg" alt="Coinbase" className="w-5 h-5 mr-2" />
+                <img src="https://cdn.worldvectorlogo.com/logos/coinbase-1.svg" alt="Coinbase" className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Sign In with Coinbase
               </Button>
               
@@ -167,58 +167,58 @@ export default function Landing() {
 
 
             {/* Secondary Actions - All Functional */}
-            <div className="space-y-4 mb-8 max-w-2xl mx-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 max-w-2xl mx-auto px-4 sm:px-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Button 
                   onClick={() => setLocation("/usdc-ecosystem-dashboard")}
                   variant="outline"
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
                   size="lg"
                 >
-                  <USDCLogo className="w-5 h-5 mr-2" />
+                  <USDCLogo className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   USDC Ecosystem
                 </Button>
 
                 <Button 
                   onClick={() => setLocation("/xrp-ecosystem")}
                   variant="outline"
-                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-4 text-lg font-medium"
+                  className="w-full border-blue-600 text-blue-600 hover:bg-blue-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
                   size="lg"
                 >
-                  <XRPLogo className="w-5 h-5 mr-2" />
+                  <XRPLogo className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   XRP Ecosystem
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Button 
                   onClick={() => setLocation("/swap")}
                   variant="outline"
-                  className="w-full border-purple-600 text-purple-600 hover:bg-purple-50 py-4 text-lg font-medium"
+                  className="w-full border-purple-600 text-purple-600 hover:bg-purple-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
                   size="lg"
                 >
-                  <Repeat className="w-5 h-5 mr-2" />
+                  <Repeat className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   DEX Swap
                 </Button>
 
                 <Button 
                   onClick={() => setLocation("/ai-marketplace")}
                   variant="outline"
-                  className="w-full border-orange-600 text-orange-600 hover:bg-orange-50 py-4 text-lg font-medium"
+                  className="w-full border-orange-600 text-orange-600 hover:bg-orange-50 py-3 sm:py-4 text-base sm:text-lg font-medium"
                   size="lg"
                 >
-                  <Bot className="w-5 h-5 mr-2" />
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   AI Marketplace
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-4">
                 <Button 
                   onClick={handleSendMoney}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 text-lg font-medium"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 sm:py-4 text-base sm:text-lg font-medium"
                   size="lg"
                 >
-                  <Send className="w-5 h-5 mr-2" />
+                  <Send className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Send Money
                 </Button>
                 <Button 

@@ -116,7 +116,6 @@ class PerformanceMonitor {
       });
     } catch (error) {
       // Silently fail - don't break the app for analytics
-      console.warn('Failed to send performance data:', error);
       // Re-add entries back if send failed
       this.entries.unshift(...entriesToSend);
     }

@@ -15,27 +15,33 @@ export class CircleClient {
       throw new Error('CIRCLE_API_KEY environment variable is required');
     }
 
-    // Check if the API key is already in the correct format (contains colons)
-    if (rawApiKey.includes(':')) {
+    if (!entitySecret) {
+      throw new Error('CIRCLE_ENTITY_SECRET environment variable is required');
+    }
+
+    // Circle requires format: ENVIRONMENT:KEY_ID:SECRET (post-May 2023)
+    // We need to construct this from our existing credentials
+    
+    const keyParts = rawApiKey.split(':');
+    
+    if (keyParts.length === 3) {
+      // Already in correct format
       this.apiKey = rawApiKey;
+      console.log(`✅ Circle API key already in correct format`);
     } else {
-      // For older format keys, construct the proper format
-      if (!entitySecret) {
-        throw new Error('CIRCLE_ENTITY_SECRET is required for older API keys');
-      }
+      // Single key format - construct proper format
+      // Determine environment (sandbox vs production)
+      const environment = 'TEST_API_KEY'; // Default to test environment
       
-      // Determine environment based on key prefix
-      const environment = rawApiKey.startsWith('TEST_') ? 'TEST' : 'LIVE';
-      
-      // Extract key ID
-      const keyId = rawApiKey.replace(/^(TEST_|LIVE_)/, '');
+      // Use the raw key as the key ID
+      const keyId = rawApiKey;
       
       // Construct proper format: ENVIRONMENT:KEY_ID:SECRET
       this.apiKey = `${environment}:${keyId}:${entitySecret}`;
+      console.log(`✅ Circle API key constructed: ${environment}:${keyId.substring(0, 8)}...:${entitySecret.substring(0, 8)}...`);
     }
 
     this.baseURL = 'https://api.circle.com/v1';
-    console.log(`✅ Circle API client initialized with format: ${this.apiKey.substring(0, 15)}...`);
   }
 
   /**

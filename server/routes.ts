@@ -34,6 +34,7 @@ import { setupReferralRoutes } from "./routes/referrals";
 import { setupEnterpriseRoutes } from "./routes/enterprise";
 import coinbaseAuthRoutes from "./routes/coinbaseAuth";
 import { registerEmergencyRoutes } from "./routes/emergencyRoutes";
+import dashboardRoutesV2 from "./routes/dashboardRoutes";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
@@ -74,6 +75,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup auth first
   await setupAuth(app);
+
+  // Dashboard routes V2 - Real user data 
+  app.use('/api/dashboard', dashboardRoutesV2);
 
   // Enhanced dashboard endpoints for real-time data - Total Balance Across All Wallets
   app.get('/api/user/balance', isAuthenticated, async (req, res) => {
@@ -794,6 +798,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Peer-to-peer transfer system - core revenue generator
   app.use('/api/p2p', p2pRoutes);
   
+  // Trading fees recording endpoint with database persistence
+  app.post("/api/balance/record-trading-fee", async (req, res) => {
+    try {
+      const { userAddress, fromToken, toToken, amount, platformFee, transactionHash } = req.body;
+      
+      if (!userAddress || !amount || !platformFee) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing required fields: userAddress, amount, platformFee"
+        });
+      }
+
+      // Store trading fee in platformTransactions table
+      const transactionId = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const [transaction] = await db.insert(platformTransactions).values({
+        id: transactionId,
+        userId: userAddress,
+        type: 'dex',
+        amount: parseFloat(amount.toString()),
+        fee: parseFloat(platformFee.toString()),
+        currency: 'USDC',
+        status: 'completed',
+        fromAddress: userAddress,
+        txHash: transactionHash,
+        description: `DEX swap: ${fromToken} → ${toToken}`,
+        metadata: JSON.stringify({
+          fromToken,
+          toToken,
+          platformRevenue: platformFee,
+          transactionDate: new Date().toISOString(),
+          source: 'dex_trading'
+        })
+      }).returning();
+      
+      console.log(`💰 Trading fee recorded: $${platformFee} from $${amount} swap (${fromToken} → ${toToken})`);
+      
+      res.json({
+        success: true,
+        message: "Trading fee recorded successfully",
+        transactionId: transaction.id,
+        platformFee,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Trading fee recording error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  });
+
   // === CIRCLE USDC INTEGRATION ROUTES ===
   // Circle Developer-Controlled Wallets for USDC ecosystem
   app.use('/api/circle', circleRoutes);

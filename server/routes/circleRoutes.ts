@@ -150,8 +150,7 @@ router.post('/wallet-set/create', async (req, res) => {
  */
 router.post('/wallet/create', async (req, res) => {
   try {
-    // Make walletSetId optional for testing
-    const { walletSetId, blockchain, accountType } = req.body;
+    const { walletSetId, blockchain, accountType } = createWalletSchema.parse(req.body);
     
     const wallet = await circleService.createWallet({
       walletSetId: walletSetId || undefined,

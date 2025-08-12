@@ -218,66 +218,65 @@ export class CircleService {
       if (!this.circleClient) {
         throw new Error('Circle client not initialized');
       }
-      return await this.circleClient.getWallet(params);
-    } catch (error) {
+      
+      const response = await this.circleClient.getWallet({ id: params.walletId });
+      console.log('✅ Retrieved wallet details successfully');
+      
+      return {
+        data: response.data || response,
+        success: true,
+        message: 'Wallet retrieved successfully'
+      };
+    } catch (error: any) {
       console.error('Failed to get wallet:', error);
-      throw error;
+      throw new Error(`Failed to get wallet: ${error.message || error}`);
     }
   }
 
   /**
-   * Create wallet - SDK wrapper method
+   * Create wallet - SDK wrapper method (uses Circle's createWallets API)
    */
   async createWallet(params: { walletSetId?: string; blockchain?: string; accountType?: string }): Promise<any> {
     try {
       if (!this.circleClient) {
-        // Return mock wallet for development
-        return {
-          data: {
-            walletId: 'mock-wallet-' + Date.now(),
-            address: '0x' + Math.random().toString(16).substring(2, 42),
-            blockchain: params.blockchain || 'ETH',
-            accountType: params.accountType || 'SCA',
-            walletSetId: params.walletSetId
-          },
-          success: true,
-          message: 'Wallet created successfully (development mode)'
-        };
+        throw new Error('Circle client not initialized');
+      }
+
+      // Validate required walletSetId
+      if (!params.walletSetId) {
+        throw new Error('walletSetId is required for wallet creation');
       }
       
-      const createParams: any = {};
-      if (params.blockchain) {
-        createParams.blockchains = [params.blockchain];
-      }
-      if (params.accountType) {
-        createParams.accountType = params.accountType;
-      }
-      if (params.walletSetId) {
-        createParams.walletSetId = params.walletSetId;
-      }
+      // Circle SDK uses createWallets (plural) method
+      const createParams: any = {
+        walletSetId: params.walletSetId,
+        accountType: params.accountType || 'SCA',
+        blockchains: [params.blockchain || 'ETH'],
+        count: 1 // Create single wallet
+      };
       
-      const response = await this.circleClient.createWallet(createParams);
-      console.log('✅ Circle wallet created successfully');
+      const response = await this.circleClient.createWallets(createParams);
+      console.log('✅ Circle wallet created successfully using createWallets API');
+      
+      // Extract first wallet from response
+      const wallet = response.data?.wallets?.[0];
       
       // Return only serializable data to prevent circular JSON errors
       return {
-        data: response.data || response,
+        data: {
+          wallet: wallet,
+          walletId: wallet?.id,
+          address: wallet?.address,
+          blockchain: wallet?.blockchain,
+          accountType: wallet?.accountType,
+          state: wallet?.state
+        },
         success: true,
         message: 'Wallet created successfully'
       };
     } catch (error: any) {
       console.error('Failed to create wallet:', error);
-      // Return development fallback
-      return {
-        data: {
-          walletId: 'fallback-wallet-' + Date.now(),
-          address: '0x' + Math.random().toString(16).substring(2, 42),
-          blockchain: params.blockchain || 'ETH',
-          error: error.message
-        },
-        success: false,
-        message: `Wallet creation failed: ${error.message || error}`
-      };
+      throw new Error(`Failed to create wallet: ${error.message || error}`);
     }
   }
 
@@ -453,26 +452,41 @@ export class CircleService {
   }
 
   /**
-   * Get wallet balance - Stub implementation 
+   * Get wallet balance - Uses Circle SDK getWalletTokenBalance method
    */
-  async getWalletBalance(walletId: string): Promise<any[]> {
+  async getWalletBalance(walletId: string): Promise<any> {
     try {
       if (!this.circleClient) {
-        return [];
+        throw new Error('Circle client not initialized');
       }
       
-      // Try to get wallet details which may include balance info
-      const wallet = await this.circleClient.getWallet({ walletId });
-      return [
-        {
+      // Validate walletId parameter
+      if (!walletId || walletId.trim() === '') {
+        throw new Error('walletId is required and cannot be empty');
+      }
+      
+      // Get wallet token balances using Circle SDK
+      const response = await this.circleClient.getWalletTokenBalance({ id: walletId });
+      console.log('✅ Retrieved wallet balance successfully');
+      
+      return {
+        data: response.data || response,
+        balances: response.data?.tokenBalances || [],
+        success: true,
+        message: 'Wallet balance retrieved successfully'
+      };
+    } catch (error: any) {
+      console.error('Failed to get wallet balance:', error);
+      // Return fallback structure with error info
+      return {
+        balances: [{
           tokenId: 'USDC',
           amount: '0.000000',
-          blockchain: wallet?.data?.blockchain || 'ETH'
-        }
-      ];
-    } catch (error) {
-      console.error('Failed to get wallet balance:', error);
-      return [{ tokenId: 'USDC', amount: '0.000000', blockchain: 'ETH' }];
+          blockchain: 'ETH'
+        }],
+        success: false,
+        message: `Failed to get balance: ${error.message || error}`
+      };
     }
   }
 

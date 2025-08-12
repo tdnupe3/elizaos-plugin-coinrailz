@@ -129,6 +129,12 @@ class CircleBalanceSyncer {
   async syncUserBalance(userId: string, walletId: string, currentBalance?: string): Promise<boolean> {
     let retries = 0;
     
+    // Skip if walletId is missing or invalid
+    if (!walletId || walletId.trim() === '') {
+      console.log(`⚠️ Skipping balance sync for user ${userId}: no valid walletId`);
+      return false;
+    }
+    
     while (retries < this.MAX_RETRIES) {
       try {
         // Get live balance from Circle

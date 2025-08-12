@@ -499,4 +499,76 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/circle/test-connection
+ * Test Circle API connection with simplified client
+ */
+router.get('/test-connection', async (req, res) => {
+  try {
+    const { circleClient } = await import('../services/circleClient');
+    
+    const isConnected = await circleClient.testConnection();
+    
+    if (isConnected) {
+      const wallets = await circleClient.listWallets();
+      res.json({
+        success: true,
+        connected: true,
+        message: 'Circle API connection successful',
+        walletsCount: wallets.data?.wallets?.length || 0,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        connected: false,
+        message: 'Circle API connection failed',
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error: any) {
+    console.error('Circle connection test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * GET /api/circle/simple-balance/:walletId
+ * Check Circle balance with simplified client for debugging
+ */
+router.get('/simple-balance/:walletId', async (req, res) => {
+  try {
+    const { walletId } = req.params;
+    console.log(`🔍 Checking Circle balance for wallet: ${walletId}`);
+    
+    const { circleClient } = await import('../services/circleClient');
+    
+    const data = await circleClient.getWalletBalance(walletId);
+    const balances = data.data?.balances || [];
+    const usdcBalance = balances.find((b: any) => b.currency === 'USD')?.amount || '0';
+
+    res.json({
+      success: true,
+      walletId,
+      usdcBalance,
+      allBalances: balances,
+      raw: data,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error: any) {
+    console.error('Circle API check failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      walletId: req.params.walletId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 export default router;

@@ -3471,46 +3471,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register emergency fund recovery routes
   registerEmergencyRoutes(app);
 
-  // Real Circle balance check using production API - FIXED
+  // Fixed Circle API integration with proper authentication
   app.get('/api/check-circle-balance/:walletId', async (req, res) => {
     try {
       const { walletId } = req.params;
-      const apiKey = process.env.CIRCLE_API_KEY;
+      console.log(`🔍 Checking Circle balance for wallet: ${walletId}`);
       
-      console.log(`🔍 Checking real Circle balance for wallet: ${walletId}`);
+      const { circleClient } = await import('./services/circleClient');
       
-      if (!apiKey) {
-        return res.status(500).json({ error: 'Circle API key not configured' });
-      }
-
-      // Check real Circle balance using production API
-      const response = await fetch(`https://api.circle.com/v1/wallets/${walletId}/balances`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-
-      const data = await response.json();
-      
-      console.log(`Circle API Response Status: ${response.status}`);
-      console.log(`Circle API Response:`, JSON.stringify(data, null, 2));
-      
-      if (!response.ok) {
-        return res.status(response.status).json({
-          error: 'Circle API error',
-          details: data,
-          apiKeyStart: apiKey.substring(0, 15),
-          status: response.status,
-          walletId,
-          timestamp: new Date().toISOString()
-        });
-      }
-
+      const data = await circleClient.getWalletBalance(walletId);
       const balances = data.data?.balances || [];
-      const usdcBalance = balances.find(b => b.currency === 'USD')?.amount || '0';
+      const usdcBalance = balances.find((b: any) => b.currency === 'USD')?.amount || '0';
 
       res.json({
         success: true,
@@ -3532,6 +3503,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test Circle API connection
+  app.get('/api/circle/test-connection', async (req, res) => {
+    try {
+      const { circleClient } = await import('./services/circleClient');
+      
+      const isConnected = await circleClient.testConnection();
+      
+      if (isConnected) {
+        const wallets = await circleClient.listWallets();
+        res.json({
+          success: true,
+          connected: true,
+          message: 'Circle API connection successful',
+          walletsCount: wallets.data?.wallets?.length || 0,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          connected: false,
+          message: 'Circle API connection failed',
+          timestamp: new Date().toISOString()
+        });
+      }
+    } catch (error: any) {
+      console.error('Circle connection test failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Blockchain balance checker for missing funds
   app.get('/api/check-blockchain-balance/:address', async (req, res) => {
     try {
@@ -3545,7 +3550,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         success: true,
-        address,
+        walletAddress: address,
         ...result,
         timestamp: new Date().toISOString()
       });

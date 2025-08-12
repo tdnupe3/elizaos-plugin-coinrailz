@@ -997,7 +997,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import KYC service dynamically
       const { circleKYCService } = await import('./services/circleKYCService');
-      const result = await circleKYCService.processKYCSubmission(userId, req.body, req.files);
+      const result = await circleKYCService.processKYCSubmission(userId, req.body);
       
       res.json({
         success: true,
@@ -2796,9 +2796,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: `Order already ${order.status}` });
       }
       
-      const amount = parseFloat(order.amount);
-      const platformFee = parseFloat(order.platformFee);
-      const agentCommission = parseFloat(order.agentCommission);
+      const amount = parseFloat(order.amount || '0');
+      const platformFee = parseFloat(order.platformFee || '0');
+      const agentCommission = parseFloat(order.agentCommission || '0');
       
       // Update order status to completed
       await db.update(aiMarketplaceOrders)
@@ -2855,9 +2855,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: `Order already ${order.status}` });
       }
       
-      const amount = parseFloat(order.amount);
-      const platformFee = parseFloat(order.platformFee);
-      const agentCommission = parseFloat(order.agentCommission);
+      const amount = parseFloat(order.amount || '0');
+      const platformFee = parseFloat(order.platformFee || '0');
+      const agentCommission = parseFloat(order.agentCommission || '0');
       
       // Update order status to completed
       await db.update(aiMarketplaceOrders)
@@ -2934,7 +2934,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process each pending order
       for (const order of pendingOrders) {
         try {
-          const platformFee = parseFloat(order.platformFee);
+          const platformFee = parseFloat(order.platformFee || '0');
           
           // Update order to completed
           await db.update(aiMarketplaceOrders)

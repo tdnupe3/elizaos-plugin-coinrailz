@@ -18,6 +18,7 @@ import { MarketplaceErrorBoundary, useMarketplaceErrorHandler } from '@/componen
 
 interface MarketplaceService {
   id: string;
+  agentId: string;
   name: string;
   description: string;
   category: string;

@@ -1124,6 +1124,185 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   }),
 }));
 
+// =====================================
+// RAILZ TOKEN PRESALE SCHEMA
+// High-Performance Multi-Level Referral System
+// =====================================
+
+// Optimized referral tree table with materialized path for performance
+export const railzReferralTree = pgTable("railz_referral_tree", {
+  id: serial("id").primaryKey(),
+  walletAddress: varchar("wallet_address", { length: 42 }).notNull().unique(),
+  level1Referrer: varchar("level1_referrer", { length: 42 }), // Direct referrer (7%)
+  level2Referrer: varchar("level2_referrer", { length: 42 }), // Indirect referrer (2%)
+  level3Referrer: varchar("level3_referrer", { length: 42 }), // Network referrer (1%)
+  
+  // Materialized path for efficient tree operations (e.g., "0x123/0x456/0x789")
+  referralPath: text("referral_path"),
+  treeDepth: integer("tree_depth").default(0),
+  
+  // Pre-calculated network size for dashboard performance
+  directReferralCount: integer("direct_referral_count").default(0),
+  totalNetworkSize: integer("total_network_size").default(0),
+  
+  // Commission tracking
+  totalLevel1Earnings: decimal("total_level1_earnings", { precision: 18, scale: 8 }).default("0"),
+  totalLevel2Earnings: decimal("total_level2_earnings", { precision: 18, scale: 8 }).default("0"),
+  totalLevel3Earnings: decimal("total_level3_earnings", { precision: 18, scale: 8 }).default("0"),
+  
+  // Performance optimization fields
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  isActive: boolean("is_active").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  // Critical performance indexes
+  index("idx_railz_level1").on(table.level1Referrer),
+  index("idx_railz_level2").on(table.level2Referrer),
+  index("idx_railz_level3").on(table.level3Referrer),
+  index("idx_railz_path").on(table.referralPath),
+  index("idx_railz_active").on(table.isActive),
+  uniqueIndex("idx_railz_wallet_unique").on(table.walletAddress),
+]);
+
+// Multi-chain purchase tracking
+export const railzPurchases = pgTable("railz_purchases", {
+  id: serial("id").primaryKey(),
+  purchaseId: varchar("purchase_id", { length: 64 }).notNull().unique(),
+  
+  // Buyer information
+  walletAddress: varchar("wallet_address", { length: 42 }).notNull(),
+  
+  // Multi-chain payment details
+  sourceChain: varchar("source_chain").notNull(), // BASE, ETHEREUM, BNB_CHAIN
+  paymentToken: varchar("payment_token", { length: 42 }).notNull(),
+  paymentAmount: decimal("payment_amount", { precision: 18, scale: 8 }).notNull(),
+  
+  // Token allocation (Base chain only)
+  tokensAllocated: decimal("tokens_allocated", { precision: 18, scale: 8 }).notNull(),
+  tokenPrice: decimal("token_price", { precision: 18, scale: 8 }).notNull(), // Price at time of purchase
+  
+  // Referral commissions paid (snapshot for immutability)
+  level1Referrer: varchar("level1_referrer", { length: 42 }),
+  level2Referrer: varchar("level2_referrer", { length: 42 }),
+  level3Referrer: varchar("level3_referrer", { length: 42 }),
+  level1Commission: decimal("level1_commission", { precision: 18, scale: 8 }).default("0"),
+  level2Commission: decimal("level2_commission", { precision: 18, scale: 8 }).default("0"),
+  level3Commission: decimal("level3_commission", { precision: 18, scale: 8 }).default("0"),
+  
+  // Transaction tracking
+  txHash: varchar("tx_hash", { length: 66 }),
+  blockNumber: integer("block_number"),
+  status: varchar("status").default("pending"), // pending, confirmed, failed
+  
+  // Performance tracking
+  processingTime: integer("processing_time"), // milliseconds
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  // Performance indexes
+  index("idx_railz_purchases_wallet").on(table.walletAddress),
+  index("idx_railz_purchases_chain").on(table.sourceChain),
+  index("idx_railz_purchases_level1").on(table.level1Referrer),
+  index("idx_railz_purchases_level2").on(table.level2Referrer),
+  index("idx_railz_purchases_level3").on(table.level3Referrer),
+  index("idx_railz_purchases_status").on(table.status),
+  index("idx_railz_purchases_created").on(table.createdAt),
+]);
+
+// Pre-aggregated stats for lightning-fast dashboard queries
+export const railzUserStats = pgTable("railz_user_stats", {
+  id: serial("id").primaryKey(),
+  walletAddress: varchar("wallet_address", { length: 42 }).notNull().unique(),
+  
+  // Purchase aggregates
+  totalContributions: decimal("total_contributions", { precision: 18, scale: 8 }).default("0"),
+  totalTokensAllocated: decimal("total_tokens_allocated", { precision: 18, scale: 8 }).default("0"),
+  purchaseCount: integer("purchase_count").default(0),
+  
+  // Chain-specific contributions for analytics
+  baseChainContributions: decimal("base_chain_contributions", { precision: 18, scale: 8 }).default("0"),
+  ethereumContributions: decimal("ethereum_contributions", { precision: 18, scale: 8 }).default("0"),
+  bnbChainContributions: decimal("bnb_chain_contributions", { precision: 18, scale: 8 }).default("0"),
+  
+  // Commission earnings aggregates
+  totalLevel1Earnings: decimal("total_level1_earnings", { precision: 18, scale: 8 }).default("0"),
+  totalLevel2Earnings: decimal("total_level2_earnings", { precision: 18, scale: 8 }).default("0"),
+  totalLevel3Earnings: decimal("total_level3_earnings", { precision: 18, scale: 8 }).default("0"),
+  totalCommissions: decimal("total_commissions", { precision: 18, scale: 8 }).default("0"),
+  
+  // Network metrics
+  directReferralCount: integer("direct_referral_count").default(0),
+  level2ReferralCount: integer("level2_referral_count").default(0),
+  level3ReferralCount: integer("level3_referral_count").default(0),
+  totalNetworkSize: integer("total_network_size").default(0),
+  
+  // Performance optimization
+  lastStatsUpdate: timestamp("last_stats_update").defaultNow(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("idx_railz_stats_wallet").on(table.walletAddress),
+  index("idx_railz_stats_contributions").on(table.totalContributions),
+  index("idx_railz_stats_commissions").on(table.totalCommissions),
+  index("idx_railz_stats_network").on(table.totalNetworkSize),
+]);
+
+// Global presale metrics for real-time dashboard
+export const railzPresaleMetrics = pgTable("railz_presale_metrics", {
+  id: serial("id").primaryKey(),
+  
+  // Global presale stats
+  totalRaised: decimal("total_raised", { precision: 18, scale: 8 }).default("0"),
+  totalTokensSold: decimal("total_tokens_sold", { precision: 18, scale: 8 }).default("0"),
+  currentTokenPrice: decimal("current_token_price", { precision: 18, scale: 8 }).default("0.00008"),
+  
+  // Multi-chain breakdown
+  baseChainVolume: decimal("base_chain_volume", { precision: 18, scale: 8 }).default("0"),
+  ethereumVolume: decimal("ethereum_volume", { precision: 18, scale: 8 }).default("0"),
+  bnbChainVolume: decimal("bnb_chain_volume", { precision: 18, scale: 8 }).default("0"),
+  
+  // Network growth metrics
+  totalParticipants: integer("total_participants").default(0),
+  totalNetworkSize: integer("total_network_size").default(0), // Sum of all referral networks
+  averageNetworkDepth: decimal("average_network_depth", { precision: 4, scale: 2 }).default("0"),
+  
+  // Commission metrics
+  totalCommissionsPaid: decimal("total_commissions_paid", { precision: 18, scale: 8 }).default("0"),
+  level1CommissionsPaid: decimal("level1_commissions_paid", { precision: 18, scale: 8 }).default("0"),
+  level2CommissionsPaid: decimal("level2_commissions_paid", { precision: 18, scale: 8 }).default("0"),
+  level3CommissionsPaid: decimal("level3_commissions_paid", { precision: 18, scale: 8 }).default("0"),
+  
+  // Performance tracking
+  lastMetricsUpdate: timestamp("last_metrics_update").defaultNow(),
+  isLive: boolean("is_live").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Railz Token schema types
+export type RailzReferralTree = typeof railzReferralTree.$inferSelect;
+export type InsertRailzReferralTree = typeof railzReferralTree.$inferInsert;
+
+export type RailzPurchase = typeof railzPurchases.$inferSelect;
+export type InsertRailzPurchase = typeof railzPurchases.$inferInsert;
+
+export type RailzUserStats = typeof railzUserStats.$inferSelect;
+export type InsertRailzUserStats = typeof railzUserStats.$inferInsert;
+
+export type RailzPresaleMetrics = typeof railzPresaleMetrics.$inferSelect;
+export type InsertRailzPresaleMetrics = typeof railzPresaleMetrics.$inferInsert;
+
+// Zod schemas for validation
+export const insertRailzReferralTreeSchema = createInsertSchema(railzReferralTree);
+export const insertRailzPurchaseSchema = createInsertSchema(railzPurchases);
+export const insertRailzUserStatsSchema = createInsertSchema(railzUserStats);
+export const insertRailzPresaleMetricsSchema = createInsertSchema(railzPresaleMetrics);
+
 // Chat and message types
 export type ChatRoom = typeof chatRooms.$inferSelect;
 export type InsertChatRoom = typeof chatRooms.$inferInsert;

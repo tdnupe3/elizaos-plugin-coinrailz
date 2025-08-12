@@ -856,70 +856,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Circle Developer-Controlled Wallets for USDC ecosystem
   app.use('/api/circle', circleRoutes);
   
-  // Circle API status check
-  app.get('/api/circle/status', async (req, res) => {
+  // Circle SDK operational test
+  app.get('/api/circle/test', async (req, res) => {
     try {
-      const apiKey = process.env.CIRCLE_API_KEY;
-      const entitySecret = process.env.CIRCLE_ENTITY_SECRET;
-
-      if (!apiKey || !entitySecret) {
-        return res.json({
-          success: false,
-          error: "Circle API credentials not configured",
-          hasApiKey: !!apiKey,
-          hasEntitySecret: !!entitySecret
-        });
-      }
-
-      // Test Circle API endpoints
-      const testEndpoints = [
-        'https://api.circle.com/v1/configuration',
-        'https://api.circle.com/v1/wallets',
-      ];
-
-      const testResults = [];
-
-      for (const endpoint of testEndpoints) {
-        try {
-          const response = await fetch(endpoint, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          const data = await response.text();
-          
-          testResults.push({
-            endpoint: endpoint,
-            status: response.status,
-            success: response.ok,
-            message: response.ok ? 'Success' : data.slice(0, 200)
-          });
-        } catch (error) {
-          testResults.push({
-            endpoint: endpoint,
-            status: 'ERROR',
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error'
-          });
-        }
-      }
-
+      const { CircleService } = await import('./services/circleService');
+      const circleService = new CircleService();
+      
+      const testResult = await circleService.testCircleConnection();
+      const wallets = await circleService.getCircleWallets();
+      
       res.json({
-        success: testResults.some(r => r.success),
-        apiKeyFormat: apiKey.startsWith('LIVE_') ? 'Production' : 
-                     apiKey.startsWith('SAND_') ? 'Sandbox' : 'Unknown',
-        apiKeyPrefix: apiKey.substring(0, 20) + '...',
-        entitySecretConfigured: !!entitySecret,
-        testResults
+        ...testResult,
+        walletDetails: wallets.slice(0, 3).map(w => ({
+          id: w.walletId,
+          state: w.state,
+          blockchain: w.blockchain,
+          address: w.address
+        })),
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV,
+        integration: 'Circle Developer Controlled Wallets SDK'
       });
 
     } catch (error) {
       res.status(500).json({
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        message: `Circle test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date().toISOString()
       });
     }
   });

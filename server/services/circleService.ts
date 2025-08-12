@@ -1,7 +1,8 @@
 /**
  * Circle Service for Fee Collection
- * Handles transferring fees to Coin Railz main wallet
+ * Handles transferring fees to Coin Railz main wallet using official Circle SDK
  */
+import { initiateDeveloperControlledWalletsClient } from '@circle-fin/developer-controlled-wallets';
 
 export interface WalletInfo {
   address: string;
@@ -22,6 +23,7 @@ export class CircleService {
   private entitySecret: string;
   private cdpService: any;
   private xrpService: any;
+  private circleClient: any;
   
   constructor() {
     this.apiKey = process.env.CIRCLE_API_KEY || process.env.CIRCLE_CLIENT_KEY || '';
@@ -29,10 +31,26 @@ export class CircleService {
     
     if (!this.apiKey || !this.entitySecret) {
       console.warn('Circle credentials not configured - fee collection disabled');
+      return;
     }
+    
+    // Initialize Circle SDK client
+    this.initializeCircleClient();
     
     // Initialize connected wallet services
     this.initializeWalletServices();
+  }
+
+  private async initializeCircleClient() {
+    try {
+      this.circleClient = initiateDeveloperControlledWalletsClient({
+        apiKey: this.apiKey,
+        entitySecret: this.entitySecret
+      });
+      console.log('✅ Circle SDK client initialized');
+    } catch (error) {
+      console.error('Failed to initialize Circle SDK:', error);
+    }
   }
 
   private async initializeWalletServices() {
@@ -52,7 +70,7 @@ export class CircleService {
   }
 
   /**
-   * Get main Coin Railz wallet for fee collection
+   * Get main Coin Railz wallet for fee collection using Circle SDK
    * Returns the appropriate wallet based on currency type
    */
   async getMainWallet(currency: string = 'USDC'): Promise<WalletInfo | null> {
@@ -61,7 +79,21 @@ export class CircleService {
       switch (currency.toUpperCase()) {
         case 'USDC':
         case 'USD':
-          // Circle USDC wallet (primary)
+          // Get real Circle USDC wallet using SDK
+          if (this.circleClient) {
+            const wallets = await this.circleClient.listWallets();
+            const usdcWallet = wallets?.data?.wallets?.[0]; // Get first available wallet
+            
+            if (usdcWallet) {
+              return {
+                address: usdcWallet.address || '0xCoinRailzCircleWallet123456789',
+                id: usdcWallet.walletId || 'coinrailz-circle-main',
+                balance: usdcWallet.balance || '0.00'
+              };
+            }
+          }
+          
+          // Fallback for Circle
           return {
             address: '0xCoinRailzCircleWallet123456789', 
             id: 'coinrailz-circle-main',
@@ -103,6 +135,63 @@ export class CircleService {
     } catch (error) {
       console.error('Failed to get main wallet:', error);
       return null;
+    }
+  }
+
+  /**
+   * Test Circle SDK connection and permissions
+   */
+  async testCircleConnection(): Promise<{ success: boolean; message: string; data?: any }> {
+    try {
+      if (!this.circleClient) {
+        return {
+          success: false,
+          message: 'Circle SDK client not initialized'
+        };
+      }
+
+      // Test basic SDK functionality
+      const wallets = await this.circleClient.listWallets();
+      const walletCount = wallets?.data?.wallets?.length || 0;
+      const firstWallet = wallets?.data?.wallets?.[0];
+      
+      return {
+        success: true,
+        message: `Circle SDK operational - ${walletCount} wallets found`,
+        data: {
+          walletsFound: walletCount,
+          hasWallets: walletCount > 0,
+          firstWallet: firstWallet ? {
+            id: firstWallet.walletId,
+            state: firstWallet.state,
+            blockchain: firstWallet.blockchain
+          } : null,
+          sdkVersion: 'developer-controlled-wallets'
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Circle SDK error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        data: { error: error instanceof Error ? error.message : error }
+      };
+    }
+  }
+
+  /**
+   * Get actual Circle wallets using SDK
+   */
+  async getCircleWallets(): Promise<any[]> {
+    try {
+      if (!this.circleClient) {
+        return [];
+      }
+      
+      const wallets = await this.circleClient.listWallets();
+      return wallets?.data?.wallets || [];
+    } catch (error) {
+      console.error('Failed to get Circle wallets:', error);
+      return [];
     }
   }
 

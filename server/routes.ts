@@ -815,7 +815,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionId = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const [transaction] = await db.insert(platformTransactions).values({
-        id: transactionId,
         userId: userAddress,
         type: 'dex',
         amount: parseFloat(amount.toString()),
@@ -830,7 +829,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           toToken,
           platformRevenue: platformFee,
           transactionDate: new Date().toISOString(),
-          source: 'dex_trading'
+          source: 'dex_trading',
+          transactionId
         })
       }).returning();
       
@@ -1087,7 +1087,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Import KYC service dynamically
       const { circleKYCService } = await import('./services/circleKYCService');
-      const result = await circleKYCService.processKYCSubmission(userId, req.body);
+      const result = await circleKYCService.processKYCSubmission({
+        userId,
+        ...req.body
+      });
       
       res.json({
         success: true,

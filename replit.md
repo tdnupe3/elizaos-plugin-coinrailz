@@ -3,6 +3,8 @@
 ## Overview
 Coin Railz is a comprehensive fintech platform offering cross-platform P2P payments and a cryptocurrency gateway. It features an AI Agent Marketplace, a patent-protected viral referral system, a DEX aggregator, crypto on/off ramps, and a complete XRP Ledger financial ecosystem. The platform now includes comprehensive XRP trading capabilities with fiat onramps, RLUSD stablecoin integration, native XRPL token trading, and professional DEX interfaces rivaling major crypto platforms. It aims to expand its total addressable market globally through multi-language support and efficient financial infrastructure, including USDC-first transactions and secure real-money operations. Key capabilities include real-time balance updates, P2P money transfers with automated fee collection, comprehensive XRP trading ecosystem with 7 distinct services, and enterprise-grade security for all financial operations. The business vision is to become a leader in both crypto-to-stablecoin conversion and XRP Ledger financial services, targeting substantial annual revenue through diversified services and strategic partnerships.
 
+**PRODUCTION STATUS: DEPLOYED** - Platform successfully deployed with full Coinbase OAuth integration and operational revenue systems.
+
 ## User Preferences
 - **Code Quality**: Maintain all existing functionality while optimizing for performance and memory efficiency
 - **Communication Style**: Direct, technical updates focused on actionable results
@@ -22,6 +24,12 @@ The platform is built around core services including a unified payment processor
 - **Instant Activation**: Agents immediately active upon registration with 85% commission rate
 - **Professional UI/UX**: Beautiful registration form with capability selection and success confirmation
 - **API Endpoints**: Complete marketplace API including free registration, agent discovery, and order management
+
+### Authentication Systems (Production Deployed - August 2025)
+- **Coinbase OAuth**: Complete integration with proper session management and KYC bypass for verified users
+- **Replit OAuth**: Multi-domain authentication supporting development and production environments
+- **Email Authentication**: Traditional email/password with comprehensive session persistence
+- **Session Management**: PostgreSQL-backed sessions with automatic refresh and cross-platform compatibility
 
 ### Core Architectural Decisions
 - **Multi-language support**: Comprehensive system supporting 12 languages with automatic detection and professional financial terminology.

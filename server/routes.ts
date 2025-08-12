@@ -2341,6 +2341,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Coinbase health endpoint
+  app.get('/api/coinbase/health', async (req, res) => {
+    try {
+      const status = await coinbaseCDPService.getServiceStatus();
+      res.json({
+        success: true,
+        service: 'Coinbase CDP Integration',
+        status: status,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        service: 'Coinbase CDP Integration',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Coinbase wallet balance endpoint
+  app.get('/api/coinbase/wallet-balance', async (req, res) => {
+    try {
+      const { walletId, network = 'base-mainnet' } = req.query;
+      
+      if (!walletId) {
+        return res.status(400).json({
+          success: false,
+          error: 'walletId parameter is required',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      const balance = await coinbaseCDPService.getWalletBalance(walletId as string, network as string);
+      res.json({
+        success: true,
+        walletId,
+        network,
+        balance,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        walletId: req.query.walletId || 'unknown',
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Root endpoint removed to allow frontend serving
 
   // Payment Intent Creation with Gateway Resolution

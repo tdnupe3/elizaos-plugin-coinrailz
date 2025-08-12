@@ -123,138 +123,43 @@ export class CoinbaseCDPService {
       };
 
       console.log(`✅ Created CDP Server Wallet account for user ${userId}: ${account.address}`);
+
       return cdpWallet;
-    } catch (error) {
-      console.error('❌ Failed to create CDP account:', error);
-      throw new Error('Failed to create CDP account');
+    } catch (error: any) {
+      console.error('❌ Failed to create CDP wallet:', error);
+      throw new Error(`Failed to create CDP wallet: ${error.message}`);
     }
   }
 
   /**
-   * Get account balance for multiple assets - Server Wallet v2
+   * Get wallet balance for a specific wallet
    */
-  async getWalletBalances(accountAddress: string): Promise<{ [currency: string]: number }> {
+  async getWalletBalance(walletId: string, network: string = 'base-mainnet'): Promise<any> {
     this.ensureInitialized();
 
-    if (!this.cdpClient) {
-      throw new Error('CDP Client not initialized');
-    }
-
-    try {
-      // Server Wallet v2 doesn't have direct balance fetching from address
-      // This would typically require additional account management or balance API calls
-      // For now, return empty balance map as this method needs CDP account context
-      console.warn('⚠️ Balance fetching for Server Wallet v2 requires account context');
-      return {};
-    } catch (error) {
-      console.error(`❌ Failed to get balances for account ${accountAddress}:`, error);
-      return {};
-    }
+    // For now, return mock balance data
+    // In production, this would query the actual CDP wallet balance
+    return {
+      walletId,
+      network,
+      balance: '0.00',
+      currency: 'ETH',
+      lastUpdated: new Date().toISOString()
+    };
   }
 
   /**
-   * Send cryptocurrency using Server Wallet v2
-   */
-  async sendTransaction(
-    accountAddress: string, 
-    toAddress: string, 
-    amount: string, 
-    currency: string = 'ETH'
-  ): Promise<CDPTransaction> {
-    this.ensureInitialized();
-
-    if (!this.cdpClient) {
-      throw new Error('CDP Client not initialized');
-    }
-
-    try {
-      // Server Wallet v2 transaction pattern from documentation
-      const transactionResult = await this.cdpClient.evm.sendTransaction({
-        address: accountAddress as `0x${string}`,
-        transaction: {
-          to: toAddress as `0x${string}`,
-          value: BigInt(Math.floor(parseFloat(amount) * 1e18)), // Convert to wei
-        },
-        network: "base-sepolia", // Default to testnet for now
-      });
-
-      const transaction: CDPTransaction = {
-        id: transactionResult.transactionHash,
-        wallet_id: accountAddress,
-        type: 'send',
-        amount: amount,
-        currency: currency,
-        to_address: toAddress,
-        status: 'pending',
-        created_at: new Date().toISOString()
-      };
-
-      console.log(`✅ Initiated CDP Server Wallet transaction: ${transactionResult.transactionHash}`);
-      return transaction;
-    } catch (error) {
-      console.error('❌ Failed to send CDP transaction:', error);
-      throw new Error('Failed to send transaction');
-    }
-  }
-
-  /**
-   * Get transaction history for an account - Server Wallet v2
-   */
-  async getTransactionHistory(accountAddress: string): Promise<CDPTransaction[]> {
-    this.ensureInitialized();
-
-    try {
-      // Server Wallet v2 doesn't have built-in transaction history
-      // This would typically require blockchain explorer API integration
-      console.warn('⚠️ Transaction history for Server Wallet v2 requires blockchain explorer integration');
-      return [];
-    } catch (error) {
-      console.error(`❌ Failed to get transaction history for account ${accountAddress}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Get supported networks
+   * Get supported networks for CDP wallets
    */
   async getSupportedNetworks(): Promise<string[]> {
     return [
       'base-mainnet',
-      'base-sepolia',
-      'ethereum-mainnet', 
+      'base-sepolia',  
+      'ethereum-mainnet',
       'ethereum-sepolia',
       'polygon-mainnet',
       'arbitrum-mainnet'
     ];
-  }
-
-  /**
-   * Get supported assets for a network
-   */
-  async getSupportedAssets(network: string): Promise<string[]> {
-    const assetsByNetwork: { [key: string]: string[] } = {
-      'base-mainnet': ['ETH', 'USDC', 'CBETH'],
-      'base-sepolia': ['ETH', 'USDC'],
-      'ethereum-mainnet': ['ETH', 'USDC', 'USDT', 'WBTC'],
-      'ethereum-sepolia': ['ETH', 'USDC'],
-      'polygon-mainnet': ['MATIC', 'USDC', 'USDT'],
-      'arbitrum-mainnet': ['ETH', 'USDC', 'ARB']
-    };
-
-    return assetsByNetwork[network] || ['ETH'];
-  }
-
-  private mapTransferStatus(status: string): 'pending' | 'completed' | 'failed' {
-    switch (status?.toLowerCase()) {
-      case 'complete':
-      case 'confirmed':
-        return 'completed';
-      case 'failed':
-      case 'error':
-        return 'failed';
-      default:
-        return 'pending';
-    }
   }
 }
 

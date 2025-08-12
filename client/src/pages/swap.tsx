@@ -63,11 +63,8 @@ export default function SwapPage() {
               </CardHeader>
               <CardContent>
                 <FeeCalculator
-                  defaultAmount={swapAmount}
-                  transactionType="crypto"
-                  defaultPaymentMethod="crypto"
-                  onCalculationComplete={handleFeeCalculation}
-                  showCalculateButton={false}
+                  calculation={tradingFees?.calculation}
+                  amount={swapAmount}
                 />
                 {tradingFees && (
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg">
@@ -87,8 +84,8 @@ export default function SwapPage() {
           <div className="xl:col-span-3">
             <TokenLogoSwapInterface 
               onAmountChange={handleSwapAmountChange}
-              tradingFees={tradingFees}
-              onSwapComplete={async (swapData) => {
+              externalTradingFees={tradingFees}
+              onSwapComplete={async (swapData: any) => {
                 // Record trading fees in database for revenue tracking
                 try {
                   await apiRequest('POST', '/api/balance/record-trading-fee', {

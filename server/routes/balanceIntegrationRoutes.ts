@@ -71,17 +71,43 @@ router.get('/dashboard-data', async (req, res) => {
   try {
     const userId = (req as any).user?.claims?.sub || 'guest';
 
-    // For guest users, return sample data
+    // For guest users, return actual platform data for testing
     if (userId === 'guest') {
+      // Get all platform transactions for guest testing
+      const allTransactions = await db.select({
+        id: tradingFees.id,
+        fromToken: tradingFees.fromToken,
+        toToken: tradingFees.toToken,
+        amount: tradingFees.amount,
+        platformFee: tradingFees.platformFee,
+        status: tradingFees.status,
+        createdAt: tradingFees.createdAt,
+        transactionHash: tradingFees.transactionHash
+      }).from(tradingFees)
+        .orderBy(sql`${tradingFees.createdAt} DESC`)
+        .limit(20);
+
+      const totalTransactions = allTransactions.length;
+      const monthlyVolume = allTransactions.reduce((sum, tx) => sum + parseFloat(tx.amount || '0'), 0);
+      const totalRevenue = allTransactions.reduce((sum, tx) => sum + parseFloat(tx.platformFee || '0'), 0);
+
       return res.json({
         success: true,
-        balance: 0,
-        totalTransactions: 0,
-        monthlyVolume: 0,
-        totalRevenue: 0,
+        balance: totalRevenue,
+        totalTransactions,
+        monthlyVolume,
+        totalRevenue,
         activeAgents: 0,
         referralEarnings: 0,
-        transactions: []
+        transactions: allTransactions.map(tx => ({
+          id: tx.transactionHash,
+          type: tx.fromToken === 'USD' ? 'onramp' : 'dex',
+          amount: parseFloat(tx.amount || '0'),
+          fee: parseFloat(tx.platformFee || '0'),
+          status: tx.status,
+          timestamp: tx.createdAt,
+          description: `${tx.fromToken} → ${tx.toToken}`
+        }))
       });
     }
 
@@ -103,7 +129,7 @@ router.get('/dashboard-data', async (req, res) => {
       createdAt: tradingFees.createdAt,
       transactionHash: tradingFees.transactionHash
     }).from(tradingFees)
-      .where(eq(tradingFees.userId, userId))
+      .where(sql`${tradingFees.userAddress} LIKE '%' || ${userId} || '%' OR ${tradingFees.userAddress} = 'onramp-' || ${userId}`)
       .orderBy(sql`${tradingFees.createdAt} DESC`)
       .limit(20);
 
@@ -232,6 +258,52 @@ router.post('/record-trading-fee', async (req, res) => {
 
   } catch (error) {
     console.error('Trading fee record error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to record trading fee'
+    });
+  }
+});
+
+// Record trading fees from DEX swaps (for revenue tracking)
+router.post('/record-trading-fee', async (req, res) => {
+  try {
+    const { userAddress, fromToken, toToken, amount, platformFee, transactionHash } = req.body;
+    const userId = (req as any).user?.claims?.sub || null;
+
+    if (!userAddress || !fromToken || !toToken || !amount || !platformFee) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required trading fee data'
+      });
+    }
+
+    // Record the trading fee transaction
+    const tradingFeeData = {
+      userAddress: userAddress,
+      fromToken: fromToken,
+      toToken: toToken,
+      amount: amount.toString(),
+      platformFee: platformFee.toString(),
+      transactionHash: transactionHash || `swap-${Date.now()}`,
+      revenue: platformFee.toString(),
+      status: 'completed' as const,
+      chainId: 1
+    };
+
+    await db.insert(tradingFees).values(tradingFeeData);
+
+    console.log(`💰 Trading Fee Recorded: $${platformFee} from ${fromToken}→${toToken} swap`);
+    console.log(`📊 Revenue generated and persisted to database`);
+
+    res.json({
+      success: true,
+      feeRecorded: parseFloat(platformFee.toString()),
+      transactionHash: tradingFeeData.transactionHash
+    });
+
+  } catch (error) {
+    console.error('Trading fee recording error:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to record trading fee'

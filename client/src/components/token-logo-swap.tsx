@@ -64,9 +64,10 @@ const supportedTokens: TokenInfo[] = [
 interface TokenLogoSwapInterfaceProps {
   onAmountChange?: (amount: number) => void;
   externalTradingFees?: any;
+  onSwapComplete?: (swapData: any) => Promise<void>;
 }
 
-export function TokenLogoSwapInterface({ onAmountChange, externalTradingFees }: TokenLogoSwapInterfaceProps = {}) {
+export function TokenLogoSwapInterface({ onAmountChange, externalTradingFees, onSwapComplete }: TokenLogoSwapInterfaceProps = {}) {
   const { t } = useTranslation();
   const { toast } = useToast();
   const { wallet, connectWallet, signTransaction } = useWallet();

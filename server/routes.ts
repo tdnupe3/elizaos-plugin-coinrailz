@@ -2316,6 +2316,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user's Coinbase wallets
+  app.get('/api/coinbase/user-wallets/:userId', async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const wallets = await coinbaseCDPService.listUserWallets(userId);
+      res.json({
+        success: true,
+        userId,
+        wallets,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        userId: req.params.userId,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Get all Coinbase wallets for user
   app.get('/api/coinbase/wallets', async (req, res) => {
     try {

@@ -3,6 +3,26 @@ import { P2PTransferService } from '../services/p2pTransferService';
 
 const router = Router();
 
+// P2P service status endpoint
+router.get('/status', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      status: 'active',
+      service: 'p2p-transfers',
+      minimumAmount: 10,
+      supportedMethods: ['usdc', 'credit-card', 'paypal', 'crypto'],
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('P2P status check error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check P2P status'
+    });
+  }
+});
+
 // BUSINESS LOGIC CONSTANTS - Unified across all endpoints
 const BUSINESS_LOGIC = {
   minimumAmounts: {

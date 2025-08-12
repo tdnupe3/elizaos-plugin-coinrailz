@@ -77,6 +77,28 @@ export class CoinbaseCDPService {
   }
 
   /**
+   * Get service status for health checks
+   */
+  async getServiceStatus() {
+    return {
+      initialized: this.initialized,
+      clientActive: !!this.cdpClient,
+      hasCredentials: !!(process.env.CDP_API_KEY_ID && process.env.CDP_PRIVATE_KEY),
+      network: 'base-mainnet'
+    };
+  }
+
+  /**
+   * List user wallets (placeholder for database integration)
+   */
+  async listUserWallets(userId: string): Promise<CDPWallet[]> {
+    // In production, this would query the database for user's CDP wallets
+    // For now, return empty array as we don't have wallet persistence yet
+    console.log(`📋 Listing CDP wallets for user: ${userId}`);
+    return [];
+  }
+
+  /**
    * Create a new EVM account for a user using Server Wallet v2
    */
   async createWallet(userId: string, network: string = 'base-sepolia'): Promise<CDPWallet> {

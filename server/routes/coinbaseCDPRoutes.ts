@@ -9,6 +9,53 @@ import { isAuthenticated } from '../replitAuth';
 
 const router = Router();
 
+// CDP service status endpoint
+router.get('/status', async (req, res) => {
+  try {
+    const status = await coinbaseCDPService.getServiceStatus();
+    res.json({
+      success: true,
+      status: 'active',
+      service: 'coinbase-cdp',
+      ...status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('CDP status check error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check CDP status'
+    });
+  }
+});
+
+// List available wallets
+router.get('/wallets', isAuthenticated, async (req, res) => {
+  try {
+    const userId = (req.user as any)?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not authenticated'
+      });
+    }
+
+    const wallets = await coinbaseCDPService.listUserWallets(userId);
+    res.json({
+      success: true,
+      wallets,
+      count: wallets.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('CDP wallets list error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list CDP wallets'
+    });
+  }
+});
+
 // Create CDP wallet for authenticated user
 router.post('/wallet/create', isAuthenticated, async (req, res) => {
   try {

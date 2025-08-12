@@ -35,6 +35,7 @@ import { setupEnterpriseRoutes } from "./routes/enterprise";
 import coinbaseAuthRoutes from "./routes/coinbaseAuth";
 import { registerEmergencyRoutes } from "./routes/emergencyRoutes";
 import dashboardRoutesV2 from "./routes/dashboardRoutes";
+import { registerCircleStatusRoutes } from "./routes/circleStatus";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
@@ -854,6 +855,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === CIRCLE USDC INTEGRATION ROUTES ===
   // Circle Developer-Controlled Wallets for USDC ecosystem
   app.use('/api/circle', circleRoutes);
+  
+  // Circle API status check
+  app.get('/api/circle/status', async (req, res) => {
+    try {
+      const apiKey = process.env.CIRCLE_API_KEY;
+      const entitySecret = process.env.CIRCLE_ENTITY_SECRET;
+
+      if (!apiKey || !entitySecret) {
+        return res.json({
+          success: false,
+          error: "Circle API credentials not configured",
+          hasApiKey: !!apiKey,
+          hasEntitySecret: !!entitySecret
+        });
+      }
+
+      // Test Circle API endpoints
+      const testEndpoints = [
+        'https://api.circle.com/v1/configuration',
+        'https://api.circle.com/v1/wallets',
+      ];
+
+      const testResults = [];
+
+      for (const endpoint of testEndpoints) {
+        try {
+          const response = await fetch(endpoint, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const data = await response.text();
+          
+          testResults.push({
+            endpoint: endpoint,
+            status: response.status,
+            success: response.ok,
+            message: response.ok ? 'Success' : data.slice(0, 200)
+          });
+        } catch (error) {
+          testResults.push({
+            endpoint: endpoint,
+            status: 'ERROR',
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+        }
+      }
+
+      res.json({
+        success: testResults.some(r => r.success),
+        apiKeyFormat: apiKey.startsWith('LIVE_') ? 'Production' : 
+                     apiKey.startsWith('SAND_') ? 'Sandbox' : 'Unknown',
+        apiKeyPrefix: apiKey.substring(0, 20) + '...',
+        entitySecretConfigured: !!entitySecret,
+        testResults
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
   
   // === USER CIRCLE WALLET ROUTES ===
   // Individual user Circle wallet management

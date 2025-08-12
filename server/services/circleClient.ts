@@ -8,40 +8,51 @@ export class CircleClient {
   private baseURL: string;
 
   constructor() {
-    const rawApiKey = process.env.CIRCLE_API_KEY;
+    const rawApiKey = process.env.CIRCLE_API_KEY || process.env.CIRCLE_CLIENT_KEY;
     const entitySecret = process.env.CIRCLE_ENTITY_SECRET;
 
     if (!rawApiKey) {
-      throw new Error('CIRCLE_API_KEY environment variable is required');
+      throw new Error('CIRCLE_API_KEY or CIRCLE_CLIENT_KEY environment variable is required');
     }
 
     if (!entitySecret) {
       throw new Error('CIRCLE_ENTITY_SECRET environment variable is required');
     }
 
-    // Circle requires format: ENVIRONMENT:KEY_ID:SECRET (post-May 2023)
-    // We need to construct this from our existing credentials
+    // Circle API key format: ENVIRONMENT:KEY_ID:SECRET (post-May 2023)
+    console.log(`🔍 Raw API key format: ${rawApiKey.substring(0, 20)}...`);
+    console.log(`🔍 Entity secret format: ${entitySecret.substring(0, 8)}...`);
     
     const keyParts = rawApiKey.split(':');
     
-    if (keyParts.length === 3) {
-      // Already in correct format
+    // Check if already in proper 3-part format
+    if (keyParts.length === 3 && 
+        (keyParts[0] === 'TEST_API_KEY' || keyParts[0] === 'LIVE_API_KEY')) {
       this.apiKey = rawApiKey;
-      console.log(`✅ Circle API key already in correct format`);
-    } else {
-      // Single key format - construct proper format
-      // Determine environment (sandbox vs production)
-      const environment = 'TEST_API_KEY'; // Default to test environment
+      console.log(`✅ Using properly formatted Circle API key`);
+    }
+    // If key has wrong format, construct it properly  
+    else {
+      // Extract the actual key ID (remove environment prefix if present)
+      let keyId = rawApiKey;
+      if (keyId.includes(':')) {
+        keyId = keyId.split(':').pop() || keyId; // Take last part
+      }
       
-      // Use the raw key as the key ID
-      const keyId = rawApiKey;
+      // Determine environment (default to TEST for development)
+      const environment = 'TEST_API_KEY';
       
       // Construct proper format: ENVIRONMENT:KEY_ID:SECRET
       this.apiKey = `${environment}:${keyId}:${entitySecret}`;
-      console.log(`✅ Circle API key constructed: ${environment}:${keyId.substring(0, 8)}...:${entitySecret.substring(0, 8)}...`);
+      console.log(`✅ Constructed Circle API key: ${environment}:${keyId.substring(0, 8)}...:${entitySecret.substring(0, 8)}...`);
     }
 
-    this.baseURL = 'https://api.circle.com/v1';
+    // Use sandbox for TEST keys, production for LIVE keys
+    this.baseURL = this.apiKey.includes('SAND_') || this.apiKey.includes('TEST_') 
+      ? 'https://api-sandbox.circle.com/v1' 
+      : 'https://api.circle.com/v1';
+    
+    console.log(`🌐 Using Circle API endpoint: ${this.baseURL}`);
   }
 
   /**

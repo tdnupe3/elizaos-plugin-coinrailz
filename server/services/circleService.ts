@@ -24,7 +24,7 @@ export class CircleService {
   private xrpService: any;
   
   constructor() {
-    this.apiKey = process.env.CIRCLE_API_KEY || '';
+    this.apiKey = process.env.CIRCLE_API_KEY || process.env.CIRCLE_CLIENT_KEY || '';
     this.entitySecret = process.env.CIRCLE_ENTITY_SECRET || '';
     
     if (!this.apiKey || !this.entitySecret) {

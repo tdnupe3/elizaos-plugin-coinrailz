@@ -31,7 +31,7 @@ export default function Landing() {
 
   const handleCoinbaseSignIn = () => {
     // Use Coinbase OAuth login
-    window.location.href = "/auth/coinbase";
+    window.location.href = "/auth/coinbase/login";
   };
 
   const handleGuestAccess = () => {

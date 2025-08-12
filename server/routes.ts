@@ -3471,5 +3471,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register emergency fund recovery routes
   registerEmergencyRoutes(app);
 
+  // Real Circle balance check using production API
+  app.get('/api/emergency/check-real-circle-balance/:walletId', async (req, res) => {
+    try {
+      const { walletId } = req.params;
+      const apiKey = process.env.CIRCLE_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({ error: 'Circle API key not configured' });
+      }
+
+      // Check real Circle balance
+      const response = await fetch(`https://api.circle.com/v1/wallets/${walletId}/balances`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return res.status(response.status).json({
+          error: 'Circle API error',
+          details: data,
+          apiKeyFormat: `${apiKey.substring(0, 20)}...`,
+          status: response.status,
+          walletId
+        });
+      }
+
+      res.json({
+        success: true,
+        walletId,
+        realBalance: data.data?.balances || [],
+        raw: data
+      });
+
+    } catch (error: any) {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        walletId: req.params.walletId
+      });
+    }
+  });
+
   return server;
 }

@@ -3471,17 +3471,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register emergency fund recovery routes
   registerEmergencyRoutes(app);
 
-  // Real Circle balance check using production API
-  app.get('/api/emergency/check-real-circle-balance/:walletId', async (req, res) => {
+  // Real Circle balance check using production API - FIXED
+  app.get('/api/check-circle-balance/:walletId', async (req, res) => {
     try {
       const { walletId } = req.params;
       const apiKey = process.env.CIRCLE_API_KEY;
+      
+      console.log(`🔍 Checking real Circle balance for wallet: ${walletId}`);
       
       if (!apiKey) {
         return res.status(500).json({ error: 'Circle API key not configured' });
       }
 
-      // Check real Circle balance
+      // Check real Circle balance using production API
       const response = await fetch(`https://api.circle.com/v1/wallets/${walletId}/balances`, {
         method: 'GET',
         headers: {
@@ -3493,28 +3495,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = await response.json();
       
+      console.log(`Circle API Response Status: ${response.status}`);
+      console.log(`Circle API Response:`, JSON.stringify(data, null, 2));
+      
       if (!response.ok) {
         return res.status(response.status).json({
           error: 'Circle API error',
           details: data,
-          apiKeyFormat: `${apiKey.substring(0, 20)}...`,
+          apiKeyStart: apiKey.substring(0, 15),
           status: response.status,
-          walletId
+          walletId,
+          timestamp: new Date().toISOString()
         });
       }
+
+      const balances = data.data?.balances || [];
+      const usdcBalance = balances.find(b => b.currency === 'USD')?.amount || '0';
 
       res.json({
         success: true,
         walletId,
-        realBalance: data.data?.balances || [],
-        raw: data
+        usdcBalance,
+        allBalances: balances,
+        raw: data,
+        timestamp: new Date().toISOString()
       });
 
     } catch (error: any) {
+      console.error('Circle API check failed:', error);
       res.status(500).json({
         success: false,
         error: error.message,
-        walletId: req.params.walletId
+        walletId: req.params.walletId,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Blockchain balance checker for missing funds
+  app.get('/api/check-blockchain-balance/:address', async (req, res) => {
+    try {
+      const { address } = req.params;
+      console.log(`🔍 Checking blockchain USDC balance for address: ${address}`);
+      
+      // Import the blockchain checker
+      const { blockchainChecker } = await import('./services/blockchainChecker');
+      
+      const result = await blockchainChecker.locateFiftyUSDC(address);
+      
+      res.json({
+        success: true,
+        address,
+        ...result,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error: any) {
+      console.error('Blockchain check failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        address: req.params.address,
+        timestamp: new Date().toISOString()
       });
     }
   });

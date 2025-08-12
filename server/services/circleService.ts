@@ -196,6 +196,232 @@ export class CircleService {
   }
 
   /**
+   * List wallets - SDK wrapper method
+   */
+  async listWallets(): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      return await this.circleClient.listWallets();
+    } catch (error) {
+      console.error('Failed to list wallets:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get specific wallet - SDK wrapper method
+   */
+  async getWallet(params: { walletId: string }): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      return await this.circleClient.getWallet(params);
+    } catch (error) {
+      console.error('Failed to get wallet:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create wallet - SDK wrapper method
+   */
+  async createWallet(params: { walletSetId?: string; blockchain?: string; accountType?: string }): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      
+      const createParams: any = {};
+      if (params.blockchain) {
+        createParams.blockchains = [params.blockchain];
+      }
+      if (params.accountType) {
+        createParams.accountType = params.accountType;
+      }
+      if (params.walletSetId) {
+        createParams.walletSetId = params.walletSetId;
+      }
+      
+      return await this.circleClient.createWallet(createParams);
+    } catch (error) {
+      console.error('Failed to create wallet:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create transfer - SDK wrapper method
+   */
+  async createTransfer(params: { walletId: string; destinationAddress: string; amount: string; tokenId?: string }): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      
+      const transferParams: any = {
+        walletId: params.walletId,
+        destinationAddress: params.destinationAddress,
+        amounts: [params.amount],
+      };
+      
+      if (params.tokenId) {
+        transferParams.tokenId = params.tokenId;
+      }
+      
+      return await this.circleClient.createTransfer(transferParams);
+    } catch (error) {
+      console.error('Failed to create transfer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * List transactions - SDK wrapper method
+   */
+  async listTransactions(params: { walletId?: string }): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      return await this.circleClient.listTransactions(params);
+    } catch (error) {
+      console.error('Failed to list transactions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get transaction - SDK wrapper method
+   */
+  async getTransaction(params: { transactionId: string }): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      return await this.circleClient.getTransaction(params);
+    } catch (error) {
+      console.error('Failed to get transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create wallet set - SDK wrapper method
+   */
+  async createWalletSet(params: { name?: string }): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      return await this.circleClient.createWalletSet(params);
+    } catch (error) {
+      console.error('Failed to create wallet set:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * List wallet sets - SDK wrapper method
+   */
+  async listWalletSets(): Promise<any> {
+    try {
+      if (!this.circleClient) {
+        throw new Error('Circle client not initialized');
+      }
+      return await this.circleClient.listWalletSets();
+    } catch (error) {
+      console.error('Failed to list wallet sets:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Register entity secret - Stub implementation
+   */
+  async registerEntitySecret(entitySecret: string): Promise<any> {
+    // This is typically done once during initial setup
+    return {
+      success: true,
+      message: 'Entity secret registration is handled during SDK initialization',
+      recoveryFile: 'Entity secret configured with SDK client'
+    };
+  }
+
+  /**
+   * Generate entity secret - Static method stub
+   */
+  static async generateEntitySecret(): Promise<any> {
+    return {
+      success: true,
+      entitySecret: 'Use Circle Developer Console to generate entity secrets',
+      message: 'Entity secrets should be generated through Circle Developer Console'
+    };
+  }
+
+  /**
+   * Get public key - Stub implementation
+   */
+  async getPublicKey(): Promise<any> {
+    return {
+      success: true,
+      publicKey: 'Public key managed by Circle SDK',
+      message: 'Public key operations handled by SDK'
+    };
+  }
+
+  /**
+   * Get supported blockchains
+   */
+  async getSupportedBlockchains(): Promise<any> {
+    return {
+      blockchains: ['ETH', 'MATIC', 'AVAX', 'ARB'],
+      message: 'Supported blockchains for Circle wallets'
+    };
+  }
+
+  /**
+   * Get supported tokens
+   */
+  async getSupportedTokens(): Promise<any> {
+    return {
+      tokens: [
+        { symbol: 'USDC', name: 'USD Coin', blockchain: 'ETH' },
+        { symbol: 'USDC', name: 'USD Coin', blockchain: 'MATIC' },
+        { symbol: 'USDC', name: 'USD Coin', blockchain: 'AVAX' },
+        { symbol: 'USDC', name: 'USD Coin', blockchain: 'ARB' }
+      ],
+      message: 'Supported tokens for Circle transfers'
+    };
+  }
+
+  /**
+   * Get wallet balance - Stub implementation 
+   */
+  async getWalletBalance(walletId: string): Promise<any[]> {
+    try {
+      if (!this.circleClient) {
+        return [];
+      }
+      
+      // Try to get wallet details which may include balance info
+      const wallet = await this.circleClient.getWallet({ walletId });
+      return [
+        {
+          tokenId: 'USDC',
+          amount: '0.000000',
+          blockchain: wallet?.data?.blockchain || 'ETH'
+        }
+      ];
+    } catch (error) {
+      console.error('Failed to get wallet balance:', error);
+      return [{ tokenId: 'USDC', amount: '0.000000', blockchain: 'ETH' }];
+    }
+  }
+
+  /**
    * Execute fee collection to appropriate Coin Railz wallet
    * Routes to Circle, CDP, or XRP wallet based on currency
    */

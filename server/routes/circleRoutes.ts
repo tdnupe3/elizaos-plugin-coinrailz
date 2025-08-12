@@ -82,13 +82,13 @@ router.post('/entity-secret/register', async (req, res) => {
  * GET /api/circle/entity-secret/generate
  * Generate a new entity secret
  */
-router.get('/entity-secret/generate', (req, res) => {
+router.get('/entity-secret/generate', async (req, res) => {
   try {
-    const entitySecret = CircleService.generateEntitySecret();
+    const result = await CircleService.generateEntitySecret();
     
     res.json({
       success: true,
-      entitySecret: entitySecret,
+      entitySecret: result.entitySecret || 'Generated via Circle Console',
       note: 'Store this secret securely - it cannot be recovered if lost'
     });
   } catch (error: any) {
@@ -129,7 +129,7 @@ router.post('/wallet-set/create', async (req, res) => {
   try {
     const { name } = createWalletSetSchema.parse(req.body);
     
-    const walletSet = await circleService.createWalletSet(name);
+    const walletSet = await circleService.createWalletSet({ name });
     
     res.json({
       success: true,
@@ -152,11 +152,11 @@ router.post('/wallet/create', async (req, res) => {
   try {
     const { walletSetId, blockchain, accountType } = createWalletSchema.parse(req.body);
     
-    const wallet = await circleService.createWallet(
+    const wallet = await circleService.createWallet({
       walletSetId,
-      blockchain || 'ETH',
-      accountType || 'SCA'
-    );
+      blockchain: blockchain || 'ETH',
+      accountType: accountType || 'SCA'
+    });
     
     res.json({
       success: true,
@@ -179,7 +179,7 @@ router.get('/wallet/:walletId', async (req, res) => {
   try {
     const { walletId } = req.params;
     
-    const wallet = await circleService.getWallet(walletId);
+    const wallet = await circleService.getWallet({ walletId });
     
     res.json({
       success: true,
@@ -225,7 +225,7 @@ router.get('/wallet-set/:walletSetId/wallets', async (req, res) => {
   try {
     const { walletSetId } = req.params;
     
-    const wallets = await circleService.listWallets(walletSetId);
+    const wallets = await circleService.listWallets();
     
     res.json({
       success: true,
@@ -248,12 +248,12 @@ router.post('/transfer', async (req, res) => {
   try {
     const { walletId, destinationAddress, amount, tokenId } = createTransferSchema.parse(req.body);
     
-    const transaction = await circleService.createTransfer(
+    const transaction = await circleService.createTransfer({
       walletId,
       destinationAddress,
       amount,
-      tokenId || 'USDC'
-    );
+      tokenId: tokenId || 'USDC'
+    });
     
     res.json({
       success: true,
@@ -276,7 +276,7 @@ router.get('/transaction/:transactionId', async (req, res) => {
   try {
     const { transactionId } = req.params;
     
-    const transaction = await circleService.getTransaction(transactionId);
+    const transaction = await circleService.getTransaction({ transactionId });
     
     res.json({
       success: true,
@@ -299,7 +299,7 @@ router.get('/wallet/:walletId/transactions', async (req, res) => {
   try {
     const { walletId } = req.params;
     
-    const transactions = await circleService.listTransactions(walletId);
+    const transactions = await circleService.listTransactions({ walletId });
     
     res.json({
       success: true,
@@ -373,12 +373,12 @@ router.post('/usdc/payment', async (req, res) => {
     }
     
     // Create USDC transfer
-    const transaction = await circleService.createTransfer(
+    const transaction = await circleService.createTransfer({
       walletId,
       destinationAddress,
       amount,
-      'USDC'
-    );
+      tokenId: 'USDC'
+    });
     
     res.json({
       success: true,
@@ -423,8 +423,8 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
       };
       
       // Get wallets in this set
-      const wallets = await circleService.listWallets(walletSet.id);
-      console.log(`Wallet set ${walletSet.name} has ${wallets.length} wallets`);
+      const wallets = await circleService.listWallets();
+      console.log(`Wallet set ${walletSet.name} has ${wallets?.data?.wallets?.length || 0} wallets`);
       
       for (const wallet of wallets) {
         const walletInfo = {
@@ -444,8 +444,9 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
           walletInfo.usdcBalance = usdcBalance;
           
           // Get recent transactions
-          const transactions = await circleService.listTransactions(wallet.id, 20);
-          walletInfo.transactions = transactions.map(tx => ({
+          const transactionResponse = await circleService.listTransactions({ walletId: wallet.id });
+          const transactions = transactionResponse?.data?.transactions || [];
+          walletInfo.transactions = transactions.map((tx: any) => ({
             id: tx.id,
             type: tx.transactionType,
             amount: tx.amount,
@@ -456,10 +457,10 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
           }));
           
           // Check for matching transaction
-          const matchingTx = transactions.find(tx => tx.txHash === txHash);
+          const matchingTx = transactions.find((tx: any) => tx.txHash === txHash);
           if (matchingTx) {
             walletInfo.matchingTransaction = matchingTx;
-            investigation.findings.push({
+            (investigation.findings as any[]).push({
               type: 'TRANSACTION_FOUND',
               walletId: wallet.id,
               address: wallet.address,
@@ -470,7 +471,7 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
           }
           
         } catch (error: any) {
-          investigation.findings.push({
+          (investigation.findings as any[]).push({
             type: 'ERROR',
             walletId: wallet.id,
             address: wallet.address,
@@ -479,10 +480,10 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
           });
         }
         
-        walletSetInfo.wallets.push(walletInfo);
+        (walletSetInfo.wallets as any[]).push(walletInfo);
       }
       
-      investigation.walletSets.push(walletSetInfo);
+      (investigation.walletSets as any[]).push(walletSetInfo);
     }
     
     res.json({

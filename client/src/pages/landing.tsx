@@ -11,6 +11,7 @@ import { CoinbaseWalletIntegration } from "@/components/CoinbaseWalletIntegratio
 import { SessionTestComponent } from "@/components/SessionTestComponent";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { UserAuthMenu } from "@/components/UserAuthMenu";
+import CoinbaseConnectionSection from "@/components/coinbase-connection-section";
 import { useTranslation } from "react-i18next";
 
 export default function Landing() {
@@ -26,6 +27,11 @@ export default function Landing() {
   const handleSignUp = () => {
     // Use Replit OAuth signup (same endpoint)
     window.location.href = "/api/login";
+  };
+
+  const handleCoinbaseSignIn = () => {
+    // Use Coinbase OAuth login
+    window.location.href = "/auth/coinbase";
   };
 
   const handleGuestAccess = () => {
@@ -132,17 +138,29 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Primary Action: Single Sign Up Button */}
+            {/* Primary Action: Sign Up Options */}
             <div className="mb-8 max-w-md mx-auto">
               <Button 
                 onClick={handleSignUp}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-6 text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200 mb-3"
                 size="lg"
               >
                 🚀 Get Started Now - It's Free!
               </Button>
+              
+              {/* Coinbase Sign In Option */}
+              <Button 
+                onClick={handleCoinbaseSignIn}
+                variant="outline"
+                className="w-full border-orange-500 text-orange-600 hover:bg-orange-50 py-4 text-lg font-medium mb-3"
+                size="lg"
+              >
+                <img src="https://cdn.worldvectorlogo.com/logos/coinbase-1.svg" alt="Coinbase" className="w-5 h-5 mr-2" />
+                Sign In with Coinbase
+              </Button>
+              
               <p className="text-center text-sm text-gray-500 mt-3">
-                Already have an account? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In</button>
+                Already have an account? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In with Replit</button>
               </p>
             </div>
 
@@ -213,8 +231,11 @@ export default function Landing() {
                 </Button>
               </div>
             </div>
+          </div>
 
-
+          {/* Coinbase Integration Section - Positioned right after demo mode */}
+          <div className="mb-12">
+            <CoinbaseConnectionSection />
           </div>
 
           {/* Streamlined Core Features - Only Working Features */}

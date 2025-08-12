@@ -33,6 +33,7 @@ import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupReferralRoutes } from "./routes/referrals";
 import { setupEnterpriseRoutes } from "./routes/enterprise";
 import coinbaseAuthRoutes from "./routes/coinbaseAuth";
+import { registerEmergencyRoutes } from "./routes/emergencyRoutes";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
@@ -3466,6 +3467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupEnterpriseRoutes(app);
   
   console.log('✅ All enhancement routes registered successfully');
+
+  // Register emergency fund recovery routes
+  registerEmergencyRoutes(app);
 
   return server;
 }

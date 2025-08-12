@@ -34,7 +34,6 @@ router.post('/update-balance', async (req, res) => {
 
     // Record the funding transaction
     const transactionData = {
-      userId: userId === 'guest' ? null : userId,
       userAddress: `onramp-${userId}`,
       fromToken: method === 'card' ? 'USD' : 'USD',
       toToken: 'USDC',
@@ -71,7 +70,7 @@ router.get('/dashboard-data', async (req, res) => {
   try {
     const userId = (req as any).user?.claims?.sub || 'guest';
 
-    // For guest users, return actual platform data for testing
+    // For authenticated demo users, show their actual data
     if (userId === 'guest') {
       // Get all platform transactions for guest testing
       const allTransactions = await db.select({
@@ -118,7 +117,7 @@ router.get('/dashboard-data', async (req, res) => {
       referralBonus: users.referralBonus
     }).from(users).where(eq(users.id, userId));
 
-    // Get transaction history
+    // Get transaction history for this specific user
     const transactions = await db.select({
       id: tradingFees.id,
       fromToken: tradingFees.fromToken,
@@ -129,7 +128,7 @@ router.get('/dashboard-data', async (req, res) => {
       createdAt: tradingFees.createdAt,
       transactionHash: tradingFees.transactionHash
     }).from(tradingFees)
-      .where(sql`${tradingFees.userAddress} LIKE '%' || ${userId} || '%' OR ${tradingFees.userAddress} = 'onramp-' || ${userId}`)
+      .where(eq(tradingFees.userAddress, userId))
       .orderBy(sql`${tradingFees.createdAt} DESC`)
       .limit(20);
 

@@ -815,7 +815,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionId = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const [transaction] = await db.insert(platformTransactions).values({
-        userId: userAddress,
+        id: transactionId,
         type: 'dex',
         amount: parseFloat(amount.toString()),
         fee: parseFloat(platformFee.toString()),

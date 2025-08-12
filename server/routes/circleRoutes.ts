@@ -440,7 +440,7 @@ router.get('/investigate-transaction/:txHash', async (req, res) => {
         try {
           // Get balance
           const balances = await circleService.getWalletBalance(wallet.id);
-          const usdcBalance = balances.find(b => b.tokenId === 'USDC')?.amount || '0.00000000';
+          const usdcBalance = balances.find((b: any) => b.tokenId === 'USDC')?.amount || '0.00000000';
           walletInfo.usdcBalance = usdcBalance;
           
           // Get recent transactions
@@ -568,6 +568,58 @@ router.get('/simple-balance/:walletId', async (req, res) => {
       error: error.message,
       walletId: req.params.walletId,
       timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * GET /api/circle/wallet-sets
+ * List all wallet sets
+ */
+router.get('/wallet-sets', async (req, res) => {
+  try {
+    const walletSets = await circleService.listWalletSets();
+    
+    // Ensure the response is serializable
+    const serializedWalletSets = JSON.parse(JSON.stringify(walletSets || []));
+    
+    res.json({
+      success: true,
+      walletSets: serializedWalletSets,
+      count: serializedWalletSets.length,
+      message: 'Wallet sets retrieved successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list wallet sets',
+      message: error.message || 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/circle/wallets
+ * List all wallets
+ */
+router.get('/wallets', async (req, res) => {
+  try {
+    const wallets = await circleService.listWallets();
+    
+    // Ensure the response is serializable
+    const serializedWallets = JSON.parse(JSON.stringify(wallets || []));
+    
+    res.json({
+      success: true,
+      wallets: serializedWallets,
+      count: serializedWallets.length,
+      message: 'Wallets retrieved successfully'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to list wallets',
+      message: error.message || 'Unknown error'
     });
   }
 });

@@ -178,10 +178,10 @@ router.get('/coinbase/callback', async (req, res) => {
     req.session.user = {
       claims: {
         sub: user.id,
-        email: user.email,
-        first_name: user.firstName,
-        last_name: user.lastName,
-        profile_image_url: user.profileImageUrl,
+        email: user.email || '',
+        first_name: user.firstName || '',
+        last_name: user.lastName || '',
+        profile_image_url: user.profileImageUrl || '',
       },
       coinbase: {
         accessToken: accessToken,

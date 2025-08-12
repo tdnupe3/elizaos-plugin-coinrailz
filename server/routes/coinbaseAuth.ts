@@ -79,6 +79,11 @@ const CoinbaseUserSchema = z.object({
   }).optional()
 });
 
+// Redirect /coinbase to /coinbase/login for convenience
+router.get('/coinbase', (req, res) => {
+  res.redirect('/auth/coinbase/login');
+});
+
 // Initiate Coinbase OAuth flow
 router.get('/coinbase/login', (req, res) => {
   if (!COINBASE_CLIENT_ID) {

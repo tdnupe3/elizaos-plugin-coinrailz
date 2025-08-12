@@ -183,7 +183,7 @@ export default function P2PTransfer() {
     // USDC balance validation
     if (step === 2 && transferData.senderMethod === 'usdc') {
       const requiredAmount = totalAmount;
-      const availableBalance = (usdcBalance as any)?.balance || 0;
+      const availableBalance = (cashBalance as any)?.balance || 0;
       
       if (requiredAmount > availableBalance) {
         toast({
@@ -413,10 +413,10 @@ export default function P2PTransfer() {
                                   </span>
                                 </FeatureTooltip>
                                 <div className="text-gray-600 dark:text-gray-400 mt-1">
-                                  {usdcBalanceLoading ? (
+                                  {cashBalanceLoading ? (
                                     <span>Loading balance...</span>
-                                  ) : usdcBalance ? (
-                                    <span>Balance: ${(usdcBalance as any)?.balance || '0.00'} USDC</span>
+                                  ) : cashBalance ? (
+                                    <span>Balance: ${(cashBalance as any)?.balance || '0.00'} USDC</span>
                                   ) : (
                                     <span>Balance: $0.00 USDC</span>
                                   )}

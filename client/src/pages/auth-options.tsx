@@ -104,7 +104,7 @@ export default function AuthOptions() {
 
               {/* Coinbase OAuth Option */}
               <Button
-                onClick={() => window.location.href = '/api/coinbase/login'}
+                onClick={() => window.location.href = '/auth/coinbase/login'}
                 variant="outline"
                 className="w-full h-14 text-left justify-start space-x-3"
               >

@@ -92,6 +92,7 @@ import {
 import WalletManagement from "@/pages/wallet-management";
 import SignUp from "@/pages/signup";
 import SignIn from "@/pages/signin";
+import AuthOptions from "@/pages/auth-options";
 import KYCIncentivesDashboard from "@/components/kyc-incentives-dashboard";
 import { lazy } from "react";
 
@@ -146,10 +147,11 @@ function Router() {
     <>
       <Switch>
         {/* Authentication routes - always accessible */}
-        <Route path="/auth" component={AuthPage} />
-        <Route path="/login" component={AuthPage} />
-        <Route path="/signup" component={AuthPage} />
-        <Route path="/sign-in" component={SignIn} />
+        <Route path="/auth" component={AuthOptions} />
+        <Route path="/login" component={AuthOptions} />
+        <Route path="/sign-in" component={AuthOptions} />
+        <Route path="/signin" component={SignIn} />
+        <Route path="/signup" component={SignUp} />
         <Route path="/sign-up" component={SignUp} />
 
         {/* Public routes - accessible without authentication */}

@@ -20,13 +20,13 @@ export default function Landing() {
   const { isAuthenticated } = useAuth();
 
   const handleSignIn = () => {
-    // Use Replit OAuth login
-    window.location.href = "/api/login";
+    // Show all sign-in options including email, Replit, and Coinbase
+    setLocation("/login");
   };
 
   const handleSignUp = () => {
-    // Use Replit OAuth signup (same endpoint)
-    window.location.href = "/api/login";
+    // Go to signup page with email/password option
+    setLocation("/signup");
   };
 
   const handleCoinbaseSignIn = () => {

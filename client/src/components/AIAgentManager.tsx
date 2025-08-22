@@ -123,10 +123,16 @@ export function AIAgentManager() {
       
       if (response.ok) {
         const data = await response.json();
-        setAgents(data);
+        // Ensure data is always an array to prevent .map errors
+        setAgents(Array.isArray(data) ? data : []);
+      } else {
+        // Set empty array if request fails
+        setAgents([]);
       }
     } catch (error) {
       console.error('Error loading agents:', error);
+      // Set empty array on error to prevent .map errors
+      setAgents([]);
       toast({
         title: "Error",
         description: "Failed to load AI agents",
@@ -417,7 +423,7 @@ export function AIAgentManager() {
   };
 
   const sendAgentToAgentMessage = async (targetAgentId: string) => {
-    const sourceAgent = agents.find(agent => agent.permissions.includes('transfer_funds'));
+    const sourceAgent = agents.find(agent => (agent.permissions || []).includes('transfer_funds'));
     if (!sourceAgent) {
       toast({
         title: "Error",
@@ -550,14 +556,14 @@ export function AIAgentManager() {
                       <CardContent>
                         <div className="space-y-2">
                           <div className="flex flex-wrap gap-1">
-                            {agent.permissions.slice(0, 3).map(permission => (
+                            {(agent.permissions || []).slice(0, 3).map(permission => (
                               <Badge key={permission} variant="secondary" className="text-xs">
                                 {permission}
                               </Badge>
                             ))}
-                            {agent.permissions.length > 3 && (
+                            {(agent.permissions || []).length > 3 && (
                               <Badge variant="outline" className="text-xs">
-                                +{agent.permissions.length - 3} more
+                                +{(agent.permissions || []).length - 3} more
                               </Badge>
                             )}
                           </div>
@@ -811,7 +817,7 @@ export function AIAgentManager() {
                               <SelectValue placeholder="Select your agent" />
                             </SelectTrigger>
                             <SelectContent>
-                              {agents.filter(agent => agent.permissions.includes('transfer_funds')).map(agent => (
+                              {agents.filter(agent => (agent.permissions || []).includes('transfer_funds')).map(agent => (
                                 <SelectItem key={agent.id} value={agent.id}>
                                   {agent.name} ({getTypeLabel(agent.type)})
                                 </SelectItem>
@@ -907,7 +913,7 @@ export function AIAgentManager() {
                       <input
                         type="checkbox"
                         id={permission}
-                        checked={newAgent.permissions.includes(permission)}
+                        checked={(newAgent.permissions || []).includes(permission)}
                         onChange={(e) => {
                           if (e.target.checked) {
                             setNewAgent({
@@ -917,7 +923,7 @@ export function AIAgentManager() {
                           } else {
                             setNewAgent({
                               ...newAgent,
-                              permissions: newAgent.permissions.filter(p => p !== permission)
+                              permissions: (newAgent.permissions || []).filter(p => p !== permission)
                             });
                           }
                         }}
@@ -950,7 +956,7 @@ export function AIAgentManager() {
                       <SelectValue placeholder="Select source agent" />
                     </SelectTrigger>
                     <SelectContent>
-                      {agents.filter(agent => agent.permissions.includes('transfer_funds')).map(agent => (
+                      {agents.filter(agent => (agent.permissions || []).includes('transfer_funds')).map(agent => (
                         <SelectItem key={agent.id} value={agent.id}>
                           {agent.name} ({getTypeLabel(agent.type)})
                         </SelectItem>

@@ -210,6 +210,17 @@ export function setupSimpleRoutes(app: Express) {
     next();
   });
 
+  // AI Agents list endpoint - returns registered agents
+  app.get('/api/ai-agents', async (req, res) => {
+    try {
+      const agents = await db.select().from(globalAIAgents).limit(50);
+      res.json(agents || []);
+    } catch (error) {
+      console.error('Error fetching AI agents:', error);
+      res.json([]); // Always return array to prevent frontend errors
+    }
+  });
+
   // Security metrics endpoint for improved score tracking
   app.get('/api/security/metrics', async (req, res) => {
     try {

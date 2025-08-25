@@ -323,36 +323,34 @@ router.get('/history', async (req: Request, res: Response) => {
  */
 router.get('/stats', async (req: Request, res: Response) => {
   try {
-    // Get today's stats
+    // Get today's stats - Use direct SQL to avoid schema mismatch
     const today = new Date().toISOString().split('T')[0];
     
-    const [dailyStats] = await db
-      .select()
-      .from(dexRevenue)
-      .where(eq(dexRevenue.date, today))
-      .limit(1);
+    const dailyStatsResult = await db.execute(sql`
+      SELECT * FROM dex_revenue WHERE date = ${today} LIMIT 1
+    `);
 
-    // Get total platform stats
-    const totalStats = await db
-      .select({
-        totalVolume: sql<number>`SUM(${dexRevenue.totalTradingVolume})`,
-        totalFees: sql<number>`SUM(${dexRevenue.totalTradingFees})`,
-        totalTrades: sql<number>`SUM(${dexRevenue.guestTradeCount} + ${dexRevenue.userTradeCount})`
-      })
-      .from(dexRevenue);
+    // Get total platform stats - Use direct SQL to avoid schema mismatch
+    const totalStatsResult = await db.execute(sql`
+      SELECT 
+        COALESCE(SUM(total_volume), 0) as totalVolume,
+        COALESCE(SUM(trading_revenue + cross_chain_revenue), 0) as totalFees,
+        COALESCE(SUM(trade_count), 0) as totalTrades
+      FROM dex_revenue
+    `);
 
     res.json({
       success: true,
-      today: dailyStats || {
-        totalTradingVolume: '0.00',
-        totalTradingFees: '0.000000',
-        guestTradeCount: 0,
-        userTradeCount: 0
+      today: (dailyStatsResult.rows[0] as any) || {
+        total_volume: '0.00',
+        trading_revenue: '0.000000',
+        trade_count: 0,
+        unique_users: 0
       },
-      allTime: totalStats[0] || {
-        totalVolume: 0,
-        totalFees: 0,
-        totalTrades: 0
+      allTime: totalStatsResult.rows[0] || {
+        totalvolume: 0,
+        totalfees: 0,
+        totaltrades: 0
       }
     });
 
@@ -391,7 +389,7 @@ async function updateDailyRevenue(type: 'trading' | 'cross-chain', feeAmount: nu
       };
 
       if (type === 'trading') {
-        updateData.totalTradingFees = sql`${dexRevenue.totalTradingFees} + ${feeAmount}`;
+        updateData.tradingRevenue = sql`${dexRevenue.tradingRevenue} + ${feeAmount}`;
         if (isGuestTrade) {
           updateData.guestTradeCount = sql`${dexRevenue.guestTradeCount} + 1`;
         } else {
@@ -409,7 +407,7 @@ async function updateDailyRevenue(type: 'trading' | 'cross-chain', feeAmount: nu
       // Create new record
       const newRecord: any = {
         date: today,
-        totalTradingVolume: '0.00',
+        total_volume: '0.00',
         totalTradingFees: type === 'trading' ? feeAmount.toString() : '0.000000',
         totalCrossChainVolume: '0.00',
         totalCrossChainFees: type === 'cross-chain' ? feeAmount.toString() : '0.000000',

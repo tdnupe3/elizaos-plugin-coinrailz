@@ -103,6 +103,11 @@ export const users = pgTable("users", {
   totalReferrals: integer("total_referrals").default(0),
   accountStatus: varchar("account_status").default("active"), // active, suspended, terminated
   suspensionEndDate: timestamp("suspension_end_date"),
+  
+  // DEX Subscription Status
+  dexSubscriptionTier: varchar("dex_subscription_tier").default("basic"), // basic, pro, enterprise
+  dexSubscriptionActive: boolean("dex_subscription_active").default(false),
+  dexSubscriptionExpiresAt: timestamp("dex_subscription_expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

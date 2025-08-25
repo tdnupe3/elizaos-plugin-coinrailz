@@ -66,6 +66,17 @@ export class RevenueTracker {
         WHERE status = 'completed' 
           AND created_at >= ${timeFilter}
           AND transaction_type IN ('deposit', 'withdraw', 'fiat_conversion')
+        
+        UNION ALL
+        
+        -- DEX Trading Fees (0.25% of trading volume)
+        SELECT 
+          'dex_trading' as stream,
+          COALESCE(SUM(CAST(fee AS DECIMAL)), 0) as revenue
+        FROM platform_transactions 
+        WHERE status = 'completed' 
+          AND created_at >= ${timeFilter}
+          AND type = 'dex'
       )
       SELECT 
         stream,
@@ -79,6 +90,7 @@ export class RevenueTracker {
       p2pTransferFees: '0',
       cryptoSwapFees: '0',
       onOffRampFees: '0',
+      dexTradingFees: '0',
     };
 
     let totalRevenue = 0;
@@ -99,6 +111,9 @@ export class RevenueTracker {
           break;
         case 'on_off_ramp':
           streams.onOffRampFees = revenue.toFixed(2);
+          break;
+        case 'dex_trading':
+          streams.dexTradingFees = revenue.toFixed(2);
           break;
       }
     }

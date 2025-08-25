@@ -26,6 +26,7 @@ import { circleBalanceSyncer } from './services/circleBalanceSyncer';
 import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
 import p2pRoutes from "./routes/p2pRoutes";
+import dexRoutes from "./routes/dexRoutes";
 
 import defiWalletRoutes from "./routes/defiWalletRoutes";
 import { coinbaseCDPService } from './services/coinbaseCDPService';
@@ -79,6 +80,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Dashboard routes V2 - Real user data 
   app.use('/api/dashboard', dashboardRoutesV2);
+
+  // DEX Trading routes - Guest & User Support (No Auth Required)
+  app.use('/api/dex', dexRoutes);
 
   // Enhanced dashboard endpoints for real-time data - Total Balance Across All Wallets
   app.get('/api/user/balance', isAuthenticated, async (req, res) => {
@@ -815,7 +819,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionId = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const [transaction] = await db.insert(platformTransactions).values({
-        userId: 'anonymous', // For non-authenticated trading
         type: 'dex',
         amount: parseFloat(amount.toString()),
         fee: parseFloat(platformFee.toString()),

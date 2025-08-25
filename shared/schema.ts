@@ -1834,3 +1834,126 @@ export const insertXrpCrossBorderPaymentSchema = createInsertSchema(xrpCrossBord
   id: true,
   createdAt: true,
 });
+
+// ========================================
+// DEX Trading System - Guest & User Support
+// ========================================
+
+// DEX Trading Tables - Support guest users + registered users
+export const dexTrades = pgTable("dex_trades", {
+  id: serial("id").primaryKey(),
+  tradeId: varchar("trade_id").notNull().unique(), // Unique trade identifier
+  userId: varchar("user_id"), // NULL for guest users
+  walletAddress: varchar("wallet_address").notNull(), // Guest or user wallet
+  fromAsset: varchar("from_asset").notNull(), // ETH, USDC, etc.
+  toAsset: varchar("to_asset").notNull(), // Asset being swapped to
+  fromAmount: decimal("from_amount", { precision: 20, scale: 8 }).notNull(),
+  toAmount: decimal("to_amount", { precision: 20, scale: 8 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 10, scale: 6 }).notNull(), // Our 0.25% fee
+  networkFee: decimal("network_fee", { precision: 18, scale: 8 }), // Gas fees
+  slippagePercent: decimal("slippage_percent", { precision: 5, scale: 2 }).default("2.0"), // 2% default
+  chain: varchar("chain").notNull(), // base-mainnet, ethereum-mainnet, etc.
+  dexProtocol: varchar("dex_protocol"), // uniswap, sushiswap, etc.
+  transactionHash: varchar("transaction_hash"), // Blockchain tx hash
+  status: varchar("status").default("pending"), // pending, completed, failed, cancelled
+  isGuestTrade: boolean("is_guest_trade").default(false), // Track guest vs user trades
+  metadata: jsonb("metadata"), // Additional trade data
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  walletAddressIndex: index("dex_trades_wallet_idx").on(table.walletAddress),
+  chainIndex: index("dex_trades_chain_idx").on(table.chain),
+  statusIndex: index("dex_trades_status_idx").on(table.status),
+  createdAtIndex: index("dex_trades_created_idx").on(table.createdAt),
+}));
+
+// Cross-chain bridging transactions (0.5% fee)
+export const crossChainTrades = pgTable("cross_chain_trades", {
+  id: serial("id").primaryKey(),
+  tradeId: varchar("trade_id").notNull().unique(),
+  userId: varchar("user_id"), // NULL for guest users
+  walletAddress: varchar("wallet_address").notNull(),
+  sourceChain: varchar("source_chain").notNull(), // ethereum-mainnet, base-mainnet
+  targetChain: varchar("target_chain").notNull(), // base-mainnet, etc.
+  asset: varchar("asset").notNull(), // USDC, ETH, etc.
+  sourceAmount: decimal("source_amount", { precision: 20, scale: 8 }).notNull(),
+  targetAmount: decimal("target_amount", { precision: 20, scale: 8 }).notNull(),
+  bridgeFee: decimal("bridge_fee", { precision: 10, scale: 6 }).notNull(), // 0.5% fee
+  sourceTxHash: varchar("source_tx_hash"),
+  targetTxHash: varchar("target_tx_hash"),
+  status: varchar("status").default("pending"), // pending, bridging, completed, failed
+  bridgeProvider: varchar("bridge_provider"), // coinbase, layerzero, etc.
+  isGuestTrade: boolean("is_guest_trade").default(false),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (table) => ({
+  walletAddressIndex: index("cross_chain_wallet_idx").on(table.walletAddress),
+  sourceChainIndex: index("cross_chain_source_idx").on(table.sourceChain),
+  statusIndex: index("cross_chain_status_idx").on(table.status),
+}));
+
+// Premium subscriptions for reduced fees (registered users only)
+export const dexSubscriptions = pgTable("dex_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(), // Only registered users can subscribe
+  tier: varchar("tier").notNull(), // 'pro', 'enterprise'
+  feeDiscount: decimal("fee_discount", { precision: 5, scale: 4 }).notNull(), // 0.10% discount
+  monthlyPrice: decimal("monthly_price", { precision: 8, scale: 2 }).notNull(), // $19.99, $99.99
+  isActive: boolean("is_active").default(true),
+  autoRenew: boolean("auto_renew").default(true),
+  currentPeriodStart: timestamp("current_period_start").defaultNow(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  cancelledAt: timestamp("cancelled_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIndex: index("dex_subs_user_idx").on(table.userId),
+  tierIndex: index("dex_subs_tier_idx").on(table.tier),
+  activeIndex: index("dex_subs_active_idx").on(table.isActive),
+}));
+
+// DEX revenue tracking (separate from main platform revenue)
+export const dexRevenue = pgTable("dex_revenue", {
+  id: serial("id").primaryKey(),
+  date: date("date").notNull(), // Daily revenue tracking
+  totalTradingVolume: decimal("total_trading_volume", { precision: 20, scale: 2 }).default("0.00"),
+  totalTradingFees: decimal("total_trading_fees", { precision: 20, scale: 6 }).default("0.000000"),
+  totalCrossChainVolume: decimal("total_cross_chain_volume", { precision: 20, scale: 2 }).default("0.00"),
+  totalCrossChainFees: decimal("total_cross_chain_fees", { precision: 20, scale: 6 }).default("0.000000"),
+  totalSubscriptionRevenue: decimal("total_subscription_revenue", { precision: 10, scale: 2 }).default("0.00"),
+  guestTradeCount: integer("guest_trade_count").default(0),
+  userTradeCount: integer("user_trade_count").default(0),
+  activeSubscriptions: integer("active_subscriptions").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  dateIndex: index("dex_revenue_date_idx").on(table.date),
+}));
+
+// DEX Trading Types
+export type DexTrade = typeof dexTrades.$inferSelect;
+export type InsertDexTrade = typeof dexTrades.$inferInsert;
+export type CrossChainTrade = typeof crossChainTrades.$inferSelect;
+export type InsertCrossChainTrade = typeof crossChainTrades.$inferInsert;
+export type DexSubscription = typeof dexSubscriptions.$inferSelect;
+export type InsertDexSubscription = typeof dexSubscriptions.$inferInsert;
+
+// DEX Insert schemas for validation
+export const insertDexTradeSchema = createInsertSchema(dexTrades).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertCrossChainTradeSchema = createInsertSchema(crossChainTrades).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertDexSubscriptionSchema = createInsertSchema(dexSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});

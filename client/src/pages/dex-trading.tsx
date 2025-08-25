@@ -187,19 +187,19 @@ export default function DEXTrading() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-4">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
-            Coin Railz <span className="text-blue-600">DEX</span>
+            Coin Railz <span className="text-blue-600">Advanced Trading</span>
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mb-4">
-            Professional trading experience with competitive fees
+            Professional trading with smart order routing
           </p>
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
             <span>Powered by</span>
             <Badge variant="outline" className="bg-blue-50 border-blue-200 text-blue-700">
-              Coinbase Advanced Trading
+              Coinbase DEX Trading
             </Badge>
           </div>
         </div>
@@ -393,7 +393,7 @@ export default function DEXTrading() {
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span>Real-time pricing from Coinbase</span>
+                  <span>Smart order routing technology</span>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>

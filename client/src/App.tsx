@@ -493,8 +493,8 @@ function Router() {
       <Route path="/dex">
         {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
-      <Route path="/dex-aggregator">
-        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+      <Route path="/advanced-trading">
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
       <Route path="/dex-trading">
         {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}

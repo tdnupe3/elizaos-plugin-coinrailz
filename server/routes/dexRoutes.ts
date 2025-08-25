@@ -375,49 +375,35 @@ async function updateDailyRevenue(type: 'trading' | 'cross-chain', feeAmount: nu
   const today = new Date().toISOString().split('T')[0];
   
   try {
-    // Check if today's record exists
-    const [existingRecord] = await db
-      .select()
-      .from(dexRevenue)
-      .where(eq(dexRevenue.date, today))
-      .limit(1);
+    // Check if today's record exists using raw SQL
+    const existingRecordResult = await db.execute(sql`
+      SELECT * FROM dex_revenue WHERE date = ${today} LIMIT 1
+    `);
 
-    if (existingRecord) {
-      // Update existing record
-      const updateData: any = {
-        updatedAt: new Date()
-      };
-
+    if (existingRecordResult.rows.length > 0) {
+      // Update existing record using raw SQL to avoid schema conflicts
       if (type === 'trading') {
-        updateData.tradingRevenue = sql`${dexRevenue.tradingRevenue} + ${feeAmount}`;
-        if (isGuestTrade) {
-          updateData.guestTradeCount = sql`${dexRevenue.guestTradeCount} + 1`;
-        } else {
-          updateData.userTradeCount = sql`${dexRevenue.userTradeCount} + 1`;
-        }
+        await db.execute(sql`
+          UPDATE dex_revenue 
+          SET trading_revenue = trading_revenue + ${feeAmount}, 
+              trade_count = trade_count + 1,
+              total_volume = total_volume + ${feeAmount * 40} 
+          WHERE date = ${today}
+        `);
       } else {
-        updateData.totalCrossChainFees = sql`${dexRevenue.totalCrossChainFees} + ${feeAmount}`;
+        await db.execute(sql`
+          UPDATE dex_revenue 
+          SET cross_chain_revenue = cross_chain_revenue + ${feeAmount}, 
+              trade_count = trade_count + 1 
+          WHERE date = ${today}
+        `);
       }
-
-      await db
-        .update(dexRevenue)
-        .set(updateData)
-        .where(eq(dexRevenue.date, today));
     } else {
-      // Create new record
-      const newRecord: any = {
-        date: today,
-        total_volume: '0.00',
-        totalTradingFees: type === 'trading' ? feeAmount.toString() : '0.000000',
-        totalCrossChainVolume: '0.00',
-        totalCrossChainFees: type === 'cross-chain' ? feeAmount.toString() : '0.000000',
-        totalSubscriptionRevenue: '0.00',
-        guestTradeCount: (type === 'trading' && isGuestTrade) ? 1 : 0,
-        userTradeCount: (type === 'trading' && !isGuestTrade) ? 1 : 0,
-        activeSubscriptions: 0
-      };
-
-      await db.insert(dexRevenue).values(newRecord);
+      // Create new record using direct SQL to avoid schema mismatch
+      await db.execute(sql`
+        INSERT INTO dex_revenue (date, trading_revenue, cross_chain_revenue, trade_count)
+        VALUES (${today}, ${type === 'trading' ? feeAmount : 0}, ${type === 'cross-chain' ? feeAmount : 0}, 1)
+      `);
     }
 
     console.log(`💰 Revenue updated: ${type} fee $${feeAmount.toFixed(6)} | Guest: ${isGuestTrade}`);

@@ -218,10 +218,10 @@ export function TokenLogoSwapInterface({ onAmountChange, externalTradingFees, on
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
         <CardTitle className="text-center">
-          DEX Aggregator
+          Advanced Trading
         </CardTitle>
         <p className="text-sm text-gray-600 text-center">
-          Professional DEX aggregator with trading fees
+          Professional trading with smart order routing
         </p>
       </CardHeader>
       <CardContent className="space-y-4">

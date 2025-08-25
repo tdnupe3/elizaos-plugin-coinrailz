@@ -82,38 +82,85 @@ export default function DEXTrading() {
 
   const connectWallet = async () => {
     try {
-      // Simulate wallet connection for demo purposes
-      // In production, this would use actual Web3 wallet connection
+      // Check if MetaMask is installed
       if (typeof window !== 'undefined' && (window as any).ethereum) {
-        const accounts = await (window as any).ethereum.request({
-          method: 'eth_requestAccounts'
-        });
+        const provider = (window as any).ethereum;
         
-        if (accounts.length > 0) {
-          setWalletAddress(accounts[0]);
-          setIsConnected(true);
-          toast({
-            title: "Wallet Connected",
-            description: `Connected to ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)}`,
+        try {
+          // Request account access
+          const accounts = await provider.request({
+            method: 'eth_requestAccounts'
           });
+          
+          if (accounts.length > 0) {
+            setWalletAddress(accounts[0]);
+            setIsConnected(true);
+            
+            // Get network information
+            const chainId = await provider.request({ method: 'eth_chainId' });
+            const networkName = getNetworkName(chainId);
+            
+            toast({
+              title: "Wallet Connected Successfully!",
+              description: `Connected to ${accounts[0].slice(0, 6)}...${accounts[0].slice(-4)} on ${networkName}`,
+            });
+
+            // Listen for account changes
+            provider.on('accountsChanged', (accounts: string[]) => {
+              if (accounts.length === 0) {
+                disconnectWallet();
+              } else {
+                setWalletAddress(accounts[0]);
+              }
+            });
+
+            // Listen for network changes
+            provider.on('chainChanged', () => {
+              window.location.reload();
+            });
+          }
+        } catch (error: any) {
+          if (error.code === 4001) {
+            toast({
+              title: "Connection Rejected",
+              description: "Please accept the wallet connection to continue.",
+              variant: "destructive",
+            });
+          } else {
+            throw error;
+          }
         }
       } else {
-        // Fallback for demo - generate mock address
-        const mockAddress = '0x' + Math.random().toString(16).substr(2, 40);
-        setWalletAddress(mockAddress);
-        setIsConnected(true);
+        // No Web3 wallet detected
         toast({
-          title: "Demo Mode",
-          description: `Connected to demo wallet ${mockAddress.slice(0, 6)}...${mockAddress.slice(-4)}`,
+          title: "No Wallet Detected",
+          description: "Please install MetaMask or another Web3 wallet to continue.",
+          variant: "destructive",
         });
+        
+        // Open MetaMask installation page
+        window.open('https://metamask.io/download/', '_blank');
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Wallet connection error:', error);
       toast({
         title: "Connection Failed",
-        description: "Failed to connect wallet. Please try again.",
+        description: error.message || "Failed to connect wallet. Please try again.",
         variant: "destructive",
       });
     }
+  };
+
+  const getNetworkName = (chainId: string) => {
+    const networks: { [key: string]: string } = {
+      '0x1': 'Ethereum Mainnet',
+      '0x89': 'Polygon',
+      '0x38': 'BNB Chain',
+      '0xa4b1': 'Arbitrum',
+      '0xa': 'Optimism',
+      '0x2105': 'Base',
+    };
+    return networks[chainId] || 'Unknown Network';
   };
 
   const disconnectWallet = () => {

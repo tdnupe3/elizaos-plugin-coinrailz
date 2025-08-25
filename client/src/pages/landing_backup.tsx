@@ -138,7 +138,7 @@ export default function Landing() {
                 </div>
 
                 <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                  <p className="text-sm text-purple-800 font-medium mb-2">DEX Aggregator:</p>
+                  <p className="text-sm text-purple-800 font-medium mb-2">Advanced Trading:</p>
                   <div className="text-xs text-purple-700 space-y-1">
                     <p>• Access instantly, no registration</p>
                     <p>• Compare rates across exchanges</p>
@@ -191,7 +191,7 @@ export default function Landing() {
             <Card className="text-center">
               <CardHeader className="pb-3">
                 <Repeat className="w-8 h-8 mx-auto text-purple-600 mb-2" />
-                <CardTitle className="text-lg">DEX Aggregator</CardTitle>
+                <CardTitle className="text-lg">Advanced Trading</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600">Best swap rates across multiple exchanges</p>
@@ -344,7 +344,7 @@ export default function Landing() {
               </div>
 
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <p className="text-sm text-purple-800 font-medium mb-2">DEX Aggregator:</p>
+                <p className="text-sm text-purple-800 font-medium mb-2">Advanced Trading:</p>
                 <div className="text-xs text-purple-700 space-y-1">
                   <p>• Access instantly, no registration</p>
                   <p>• Compare rates across exchanges</p>

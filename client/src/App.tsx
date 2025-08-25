@@ -123,6 +123,7 @@ const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 const Documentation = lazy(() => import("@/pages/Documentation"));
 const CryptoPrices = lazy(() => import("@/pages/crypto-prices"));
 const BalanceCheck = lazy(() => import("@/pages/balance-check"));
+const DEXTrading = lazy(() => import("@/pages/dex-trading"));
 const BetaBalanceDemo = lazy(() => import("@/pages/beta-balance-demo"));
 const BalanceDisplay = lazy(() => import("@/pages/balance-display"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
@@ -490,10 +491,13 @@ function Router() {
         {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/dex">
-        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
       <Route path="/dex-aggregator">
         {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/dex-trading">
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
 
       {/* Main route - conditional based on auth */}

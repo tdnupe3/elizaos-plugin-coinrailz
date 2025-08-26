@@ -6,9 +6,13 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowUpDown, Wallet, TrendingUp, Info } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { ArrowUpDown, Wallet, TrendingUp, Info, Shield, LineChart, Target, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/useAuth';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface TradingPair {
   from: string;
@@ -32,6 +36,10 @@ const SUPPORTED_NETWORKS: NetworkOption[] = [
 
 export default function DEXTrading() {
   const { toast } = useToast();
+  const { user, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
+  
+  // Basic trading state
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
   const [selectedNetwork, setSelectedNetwork] = useState('base-mainnet');
@@ -42,6 +50,80 @@ export default function DEXTrading() {
   const [quote, setQuote] = useState<number | null>(null);
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
   const [isSwapping, setIsSwapping] = useState(false);
+  
+  // Advanced trading state
+  const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
+  const [limitPrice, setLimitPrice] = useState('');
+  const [mevProtectionEnabled, setMevProtectionEnabled] = useState(true);
+  const [priorityRouting, setPriorityRouting] = useState(false);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('1h');
+  
+  // Fetch user's MEV protection settings
+  const { data: mevSettings } = useQuery({
+    queryKey: ['/api/trading/mev-settings'],
+    enabled: isAuthenticated,
+  });
+  
+  // Fetch user's chart settings
+  const { data: chartSettings } = useQuery({
+    queryKey: ['/api/trading/chart-settings'],
+    enabled: isAuthenticated,
+  });
+  
+  // Fetch portfolio holdings
+  const { data: portfolioHoldings } = useQuery({
+    queryKey: ['/api/trading/portfolio'],
+    enabled: isAuthenticated && isConnected,
+  });
+  
+  // Fetch active limit orders
+  const { data: limitOrders } = useQuery({
+    queryKey: ['/api/trading/limit-orders'],
+    enabled: isAuthenticated && isConnected,
+  });
+
+  // Mutations for advanced trading features
+  const createLimitOrderMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      return apiRequest('POST', '/api/trading/limit-orders', orderData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trading/limit-orders'] });
+      toast({
+        title: "Limit Order Created",
+        description: "Your limit order has been placed successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Order Failed",
+        description: error.message || "Failed to create limit order.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateMevSettingsMutation = useMutation({
+    mutationFn: async (settings: any) => {
+      return apiRequest('PUT', '/api/trading/mev-settings', settings);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trading/mev-settings'] });
+      toast({
+        title: "MEV Protection Updated",
+        description: "Your MEV protection settings have been saved.",
+      });
+    }
+  });
+
+  const updateChartSettingsMutation = useMutation({
+    mutationFn: async (settings: any) => {
+      return apiRequest('PUT', '/api/trading/chart-settings', settings);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trading/chart-settings'] });
+    }
+  });
 
   // Load trading pairs when network changes
   useEffect(() => {
@@ -205,7 +287,7 @@ export default function DEXTrading() {
         amount: fromAmount,
         quote,
         walletAddress,
-        userId: null // Guest trading
+        userId: user?.id || null // Use authenticated user ID if available
       });
 
       console.log(`✅ REAL trade completed:`, tradeResult);
@@ -224,6 +306,34 @@ export default function DEXTrading() {
         description: error.message || "Transaction failed. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  const createLimitOrder = async () => {
+    if (!fromAmount || !limitPrice || !isConnected || !isAuthenticated) return;
+
+    setIsSwapping(true);
+    try {
+      console.log(`🎯 Creating limit order: ${fromAmount} ${fromAsset} → ${toAsset} at $${limitPrice}`);
+      
+      const orderData = {
+        fromAsset,
+        toAsset,
+        amount: parseFloat(fromAmount),
+        limitPrice: parseFloat(limitPrice),
+        orderType: 'limit',
+        network: selectedNetwork
+      };
+
+      await createLimitOrderMutation.mutateAsync(orderData);
+      
+      setFromAmount('');
+      setLimitPrice('');
+    } catch (error: any) {
+      console.error('❌ Limit order creation failed:', error);
+      // Error handling is done in the mutation
     } finally {
       setIsSwapping(false);
     }
@@ -311,75 +421,148 @@ export default function DEXTrading() {
             </Card>
           )}
 
-          {/* Trading Interface - Always Visible */}
+          {/* Advanced Trading Interface */}
           <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-xl">Swap Tokens</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* From Token */}
-              <div className="space-y-2">
-                <Label htmlFor="from-amount">From</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="from-amount"
-                    type="number"
-                    placeholder="0.0"
-                    value={fromAmount}
-                    onChange={(e) => setFromAmount(e.target.value)}
-                    disabled={!isConnected}
-                    className="flex-1"
-                  />
-                  <Select value={fromAsset} onValueChange={setFromAsset} disabled={!isConnected}>
-                    <SelectTrigger className="w-[100px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
-                        <SelectItem key={asset} value={asset}>{asset}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+            <Tabs defaultValue="trade" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="trade">Trade</TabsTrigger>
+                <TabsTrigger value="orders">Orders</TabsTrigger>
+                <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
+              </TabsList>
+              
+              {/* Main Trading Tab */}
+              <TabsContent value="trade" className="space-y-4">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5" />
+                    Advanced Trading
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Order Type Selector */}
+                  <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                    <Button
+                      variant={orderType === 'market' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setOrderType('market')}
+                      className="flex-1"
+                    >
+                      Market Order
+                    </Button>
+                    <Button
+                      variant={orderType === 'limit' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setOrderType('limit')}
+                      className="flex-1"
+                    >
+                      <Target className="h-4 w-4 mr-1" />
+                      Limit Order
+                    </Button>
+                  </div>
 
-              {/* Swap Button */}
-              <div className="flex justify-center">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={swapAssets}
-                  disabled={!isConnected}
-                  className="rounded-full w-10 h-10 p-0"
-                >
-                  <ArrowUpDown className="h-4 w-4" />
-                </Button>
-              </div>
+                  {/* MEV Protection Status */}
+                  {isAuthenticated && (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <Shield className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                          MEV Protection
+                        </span>
+                        <Badge variant={mevProtectionEnabled ? 'default' : 'secondary'}>
+                          {mevProtectionEnabled ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                      {priorityRouting && (
+                        <Badge variant="outline" className="bg-yellow-50 border-yellow-200 text-yellow-700">
+                          <Layers className="h-3 w-3 mr-1" />
+                          Priority Routing
+                        </Badge>
+                      )}
+                    </div>
+                  )}
 
-              {/* To Token */}
-              <div className="space-y-2">
-                <Label htmlFor="to-amount">To</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="to-amount"
-                    type="number"
-                    placeholder="0.0"
-                    value={quote ? quote.toString() : ''}
-                    readOnly
-                    className="flex-1 bg-gray-50 dark:bg-gray-800"
-                  />
-                  <Select value={toAsset} onValueChange={setToAsset} disabled={!isConnected}>
-                    <SelectTrigger className="w-[100px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
-                        <SelectItem key={asset} value={asset}>{asset}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  {/* From Token */}
+                  <div className="space-y-2">
+                    <Label htmlFor="from-amount">From</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="from-amount"
+                        type="number"
+                        placeholder="0.0"
+                        value={fromAmount}
+                        onChange={(e) => setFromAmount(e.target.value)}
+                        disabled={!isConnected}
+                        className="flex-1"
+                      />
+                      <Select value={fromAsset} onValueChange={setFromAsset} disabled={!isConnected}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
+                            <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Swap Button */}
+                  <div className="flex justify-center">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={swapAssets}
+                      disabled={!isConnected}
+                      className="rounded-full w-10 h-10 p-0"
+                    >
+                      <ArrowUpDown className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* To Token */}
+                  <div className="space-y-2">
+                    <Label htmlFor="to-amount">To</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="to-amount"
+                        type="number"
+                        placeholder="0.0"
+                        value={quote ? quote.toString() : ''}
+                        readOnly
+                        className="flex-1 bg-gray-50 dark:bg-gray-800"
+                      />
+                      <Select value={toAsset} onValueChange={setToAsset} disabled={!isConnected}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
+                            <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Limit Order Price Input (only for limit orders) */}
+                  {orderType === 'limit' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="limit-price">Limit Price</Label>
+                      <Input
+                        id="limit-price"
+                        type="number"
+                        placeholder="Enter limit price"
+                        value={limitPrice}
+                        onChange={(e) => setLimitPrice(e.target.value)}
+                        disabled={!isConnected}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Order will execute when {toAsset} reaches this price
+                      </p>
+                    </div>
+                  )}
 
               {/* Quote Loading */}
               {isLoadingQuote && fromAmount && isConnected && (
@@ -426,21 +609,219 @@ export default function DEXTrading() {
                 </div>
               )}
 
-              {/* Swap Button */}
-              <Button 
-                onClick={isConnected ? executeSwap : connectWallet}
-                disabled={isConnected && (!quote || !fromAmount || isSwapping)}
-                className="w-full"
-                size="lg"
-              >
-                {!isConnected 
-                  ? 'Connect Wallet to Trade' 
-                  : isSwapping 
-                    ? 'Swapping...' 
-                    : `Swap ${fromAsset} for ${toAsset}`
-                }
-              </Button>
-            </CardContent>
+                  {/* Execute Button */}
+                  <Button 
+                    onClick={orderType === 'market' ? executeSwap : createLimitOrder}
+                    disabled={isConnected && (!quote || !fromAmount || isSwapping || (orderType === 'limit' && !limitPrice))}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {!isConnected 
+                      ? 'Connect Wallet to Trade' 
+                      : isSwapping 
+                        ? orderType === 'market' ? 'Swapping...' : 'Creating Order...'
+                        : orderType === 'market' 
+                          ? `Swap ${fromAsset} for ${toAsset}`
+                          : `Create Limit Order`
+                    }
+                  </Button>
+                </CardContent>
+              </TabsContent>
+
+              {/* Active Orders Tab */}
+              <TabsContent value="orders" className="space-y-4">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Active Orders
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!isAuthenticated ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 mb-4">Sign in to view your active orders</p>
+                      <Button variant="outline">Sign In</Button>
+                    </div>
+                  ) : !limitOrders?.length ? (
+                    <div className="text-center py-8">
+                      <Target className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No active limit orders</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {limitOrders.map((order: any) => (
+                        <div key={order.id} className="p-3 border rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium">{order.fromAsset} → {order.toAsset}</p>
+                              <p className="text-sm text-gray-500">
+                                {order.amount} at ${order.limitPrice}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <Badge variant={order.status === 'active' ? 'default' : 'secondary'}>
+                                {order.status}
+                              </Badge>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {new Date(order.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </TabsContent>
+
+              {/* Portfolio Tab */}
+              <TabsContent value="portfolio" className="space-y-4">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Wallet className="h-5 w-5" />
+                    Portfolio Tracking
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {!isAuthenticated ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 mb-4">Sign in to track your portfolio</p>
+                      <Button variant="outline">Sign In</Button>
+                    </div>
+                  ) : !portfolioHoldings?.length ? (
+                    <div className="text-center py-8">
+                      <Wallet className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No holdings tracked yet</p>
+                      <p className="text-xs text-gray-400 mt-2">Make a trade to start tracking</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {portfolioHoldings.map((holding: any) => (
+                        <div key={holding.id} className="p-3 border rounded-lg">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="font-medium">{holding.asset}</p>
+                              <p className="text-sm text-gray-500">
+                                {holding.balance} tokens
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">${holding.usdValue}</p>
+                              <p className={`text-xs ${holding.pnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {holding.pnl >= 0 ? '+' : ''}{holding.pnl.toFixed(2)}%
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </TabsContent>
+
+              {/* Settings Tab */}
+              <TabsContent value="settings" className="space-y-4">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Shield className="h-5 w-5" />
+                    Trading Settings
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {!isAuthenticated ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 mb-4">Sign in to customize your trading settings</p>
+                      <Button variant="outline">Sign In</Button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* MEV Protection Settings */}
+                      <div className="space-y-4">
+                        <h3 className="font-medium flex items-center gap-2">
+                          <Shield className="h-4 w-4" />
+                          MEV Protection
+                        </h3>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">Enable MEV Protection</p>
+                              <p className="text-sm text-gray-500">
+                                Protect against front-running and sandwich attacks
+                              </p>
+                            </div>
+                            <Switch
+                              checked={mevProtectionEnabled}
+                              onCheckedChange={(checked) => {
+                                setMevProtectionEnabled(checked);
+                                updateMevSettingsMutation.mutate({
+                                  mevProtectionEnabled: checked,
+                                  priorityRouting: priorityRouting
+                                });
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">Priority Routing</p>
+                              <p className="text-sm text-gray-500">
+                                Get priority access to liquidity pools
+                              </p>
+                            </div>
+                            <Switch
+                              checked={priorityRouting}
+                              onCheckedChange={(checked) => {
+                                setPriorityRouting(checked);
+                                updateMevSettingsMutation.mutate({
+                                  mevProtectionEnabled: mevProtectionEnabled,
+                                  priorityRouting: checked
+                                });
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <Separator />
+
+                      {/* Chart Settings */}
+                      <div className="space-y-4">
+                        <h3 className="font-medium flex items-center gap-2">
+                          <LineChart className="h-4 w-4" />
+                          Chart Preferences
+                        </h3>
+                        <div className="space-y-3">
+                          <div>
+                            <Label>Default Timeframe</Label>
+                            <Select 
+                              value={selectedTimeframe} 
+                              onValueChange={(value) => {
+                                setSelectedTimeframe(value);
+                                updateChartSettingsMutation.mutate({
+                                  defaultTimeframe: value,
+                                  chartType: 'candlestick'
+                                });
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1m">1 Minute</SelectItem>
+                                <SelectItem value="5m">5 Minutes</SelectItem>
+                                <SelectItem value="15m">15 Minutes</SelectItem>
+                                <SelectItem value="1h">1 Hour</SelectItem>
+                                <SelectItem value="4h">4 Hours</SelectItem>
+                                <SelectItem value="1d">1 Day</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </TabsContent>
+            </Tabs>
           </Card>
 
           {/* Features */}

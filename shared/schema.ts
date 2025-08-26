@@ -521,6 +521,70 @@ export const buyCryptoSchema = z.object({
   pricePerCoin: z.string().refine((val) => parseFloat(val) > 0, "Price must be greater than 0"),
 });
 
+// Advanced DEX Trading Tables for Phase 3
+
+// Limit Orders Table (3.6)
+export const limitOrders = pgTable("limit_orders", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  fromAsset: varchar("from_asset").notNull(),
+  toAsset: varchar("to_asset").notNull(),
+  fromAmount: decimal("from_amount", { precision: 18, scale: 8 }).notNull(),
+  limitPrice: decimal("limit_price", { precision: 18, scale: 8 }).notNull(),
+  orderType: varchar("order_type").notNull(), // 'buy', 'sell'
+  status: varchar("status").default("pending"), // 'pending', 'partial', 'filled', 'cancelled'
+  filledAmount: decimal("filled_amount", { precision: 18, scale: 8 }).default("0"),
+  network: varchar("network").notNull(),
+  walletAddress: varchar("wallet_address").notNull(),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  filledAt: timestamp("filled_at"),
+  cancelledAt: timestamp("cancelled_at"),
+});
+
+// Portfolio Holdings Table (3.9)
+export const portfolioHoldings = pgTable("portfolio_holdings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  asset: varchar("asset").notNull(),
+  network: varchar("network").notNull(),
+  balance: decimal("balance", { precision: 18, scale: 8 }).notNull(),
+  avgBuyPrice: decimal("avg_buy_price", { precision: 18, scale: 8 }),
+  totalInvested: decimal("total_invested", { precision: 18, scale: 2 }),
+  currentValue: decimal("current_value", { precision: 18, scale: 2 }),
+  profitLoss: decimal("profit_loss", { precision: 18, scale: 2 }),
+  profitLossPercentage: decimal("profit_loss_percentage", { precision: 5, scale: 2 }),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// MEV Protection Settings Table (3.7)
+export const mevProtectionSettings = pgTable("mev_protection_settings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  enabled: boolean("enabled").default(true),
+  maxSlippage: decimal("max_slippage", { precision: 5, scale: 2 }).default("0.5"), // 0.5%
+  priorityRouting: boolean("priority_routing").default(false), // Enterprise feature
+  frontRunProtection: boolean("front_run_protection").default(true),
+  sandwichProtection: boolean("sandwich_protection").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Advanced Chart Settings Table (3.8)
+export const chartSettings = pgTable("chart_settings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  defaultTimeframe: varchar("default_timeframe").default("1h"), // 1m, 5m, 15m, 1h, 4h, 1d
+  indicators: jsonb("indicators").default("[]"), // Array of enabled indicators
+  chartType: varchar("chart_type").default("candlestick"), // candlestick, line, area
+  theme: varchar("theme").default("dark"), // dark, light
+  autoRefresh: boolean("auto_refresh").default(true),
+  refreshInterval: integer("refresh_interval").default(5), // seconds
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const sellCryptoSchema = z.object({
   coinSymbol: z.string().min(1, "Coin symbol is required"),
   amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),
@@ -1337,6 +1401,71 @@ export type AgentContract = typeof agentContracts.$inferSelect;
 export type InsertAgentContract = typeof agentContracts.$inferInsert;
 export type NetworkStats = typeof networkStats.$inferSelect;
 export type InsertNetworkStats = typeof networkStats.$inferInsert;
+
+// Advanced Trading Relations for Phase 3
+export const limitOrdersRelations = relations(limitOrders, ({ one }) => ({
+  user: one(users, {
+    fields: [limitOrders.userId],
+    references: [users.id],
+  }),
+}));
+
+export const portfolioHoldingsRelations = relations(portfolioHoldings, ({ one }) => ({
+  user: one(users, {
+    fields: [portfolioHoldings.userId],
+    references: [users.id],
+  }),
+}));
+
+export const mevProtectionSettingsRelations = relations(mevProtectionSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [mevProtectionSettings.userId],
+    references: [users.id],
+  }),
+}));
+
+export const chartSettingsRelations = relations(chartSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [chartSettings.userId],
+    references: [users.id],
+  }),
+}));
+
+// Advanced Trading Types
+export type LimitOrder = typeof limitOrders.$inferSelect;
+export type InsertLimitOrder = typeof limitOrders.$inferInsert;
+export type PortfolioHolding = typeof portfolioHoldings.$inferSelect;
+export type InsertPortfolioHolding = typeof portfolioHoldings.$inferInsert;
+export type MEVProtectionSettings = typeof mevProtectionSettings.$inferSelect;
+export type InsertMEVProtectionSettings = typeof mevProtectionSettings.$inferInsert;
+export type ChartSettings = typeof chartSettings.$inferSelect;
+export type InsertChartSettings = typeof chartSettings.$inferInsert;
+
+// Advanced Trading Insert Schemas
+export const insertLimitOrderSchema = createInsertSchema(limitOrders).omit({
+  id: true,
+  createdAt: true,
+  filledAt: true,
+  cancelledAt: true,
+});
+
+export const insertPortfolioHoldingSchema = createInsertSchema(portfolioHoldings).omit({
+  id: true,
+  createdAt: true,
+  lastUpdated: true,
+});
+
+export const insertMEVProtectionSettingsSchema = createInsertSchema(mevProtectionSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertChartSettingsSchema = createInsertSchema(chartSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 
 

@@ -28,6 +28,7 @@ import { registerAuthRoutes } from "./authRoutes";
 // import { addSecurityConstraints } from "./utils/databaseConstraints";
 import p2pRoutes from "./routes/p2pRoutes";
 import dexRoutes from "./routes/dexRoutes";
+import tradingRoutes from "./routes/tradingRoutes";
 
 import defiWalletRoutes from "./routes/defiWalletRoutes";
 import { coinbaseCDPService } from './services/coinbaseCDPService';
@@ -912,6 +913,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === P2P TRANSFER ROUTES ===
   // Peer-to-peer transfer system - core revenue generator
   app.use('/api/p2p', p2pRoutes);
+  
+  // === ADVANCED TRADING ROUTES ===
+  // Phase 3 advanced trading features: limit orders, portfolio tracking, MEV protection
+  app.use('/api/trading', tradingRoutes);
   
   // Get DEX trading transactions with revenue tracking
   app.get("/api/trading/transactions", async (req, res) => {

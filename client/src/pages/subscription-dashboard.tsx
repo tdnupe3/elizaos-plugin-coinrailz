@@ -25,6 +25,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Link } from 'wouter';
 import { SubscriptionChangeFlow } from '@/components/SubscriptionChangeFlow';
+import { SubscriptionUpgradeModal } from '@/components/SubscriptionUpgradeModal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PremiumUserBadge, PremiumFeatureGate } from '@/components/PremiumUserBadge';
 
@@ -62,6 +63,7 @@ interface BillingHistory {
 export default function SubscriptionDashboard() {
   const { toast } = useToast();
   const [showChangeFlow, setShowChangeFlow] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Fetch subscription details
   const { data: subscription, isLoading: subscriptionLoading } = useQuery<SubscriptionDetails>({
@@ -378,6 +380,15 @@ export default function SubscriptionDashboard() {
                 </Button>
               </Link>
               
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setShowUpgradeModal(true)}
+              >
+                <TrendingDown className="w-4 h-4 mr-2" />
+                Upgrade Plan
+              </Button>
+              
               <Link href="/subscription">
                 <Button variant="outline" className="w-full justify-start">
                   <Settings className="w-4 h-4 mr-2" />
@@ -445,6 +456,17 @@ export default function SubscriptionDashboard() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Subscription Upgrade Modal */}
+      <SubscriptionUpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        currentPlan={subscription?.planId || 'free'}
+        onUpgradeSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['/api/my-subscription'] });
+          setShowUpgradeModal(false);
+        }}
+      />
     </div>
   );
 }

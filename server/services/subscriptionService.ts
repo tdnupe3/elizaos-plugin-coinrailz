@@ -2,6 +2,8 @@ import { db } from "../db";
 import { subscriptions, subscriptionPlans, paymentMethods, type Subscription, type SubscriptionPlan } from "@shared/schema";
 import { eq, and } from "drizzle-orm";
 import Stripe from "stripe";
+import { nowPaymentsService } from "./nowPaymentsService";
+import { XRPPaymentService } from "./xrpPaymentService";
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -341,6 +343,173 @@ export class SubscriptionService {
     const tier = await this.getUserEffectiveTier(userId);
     // This would track actual credit usage - for now return tier amount
     return tier.aiMarketplaceCredits;
+  }
+
+  /**
+   * Create NOWPayments subscription
+   */
+  async createNOWPaymentsSubscription(
+    userId: string,
+    planId: string,
+    isYearly: boolean,
+    email: string,
+    preferredCurrency: string = "USDT"
+  ): Promise<{ paymentId: string; paymentUrl: string; amount: number }> {
+    const tier = this.getSubscriptionTier(planId);
+    if (!tier) throw new Error('Invalid subscription plan');
+
+    const amount = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
+    
+    try {
+      // Create NOWPayments payment
+      const payment = await nowPaymentsService.createPayment({
+        price_amount: amount,
+        price_currency: "USD",
+        pay_currency: preferredCurrency,
+        order_id: `sub_${userId}_${planId}_${Date.now()}`,
+        order_description: `${tier.name} Plan - ${isYearly ? 'Annual' : 'Monthly'} Subscription`,
+        ipn_callback_url: `${process.env.BACKEND_URL}/api/nowpayments/subscription-webhook`
+      });
+
+      return {
+        paymentId: payment.payment_id,
+        paymentUrl: payment.payment_url,
+        amount: amount
+      };
+    } catch (error: any) {
+      console.error('NOWPayments subscription creation failed:', error);
+      throw new Error(`NOWPayments error: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create XRP subscription
+   */
+  async createXRPSubscription(
+    userId: string,
+    planId: string,
+    isYearly: boolean,
+    xrpAddress: string,
+    xrpTxHash?: string
+  ): Promise<{ subscription?: Subscription; paymentAddress?: string; amount?: number; amountXRP?: number }> {
+    const tier = this.getSubscriptionTier(planId);
+    if (!tier) throw new Error('Invalid subscription plan');
+
+    const usdAmount = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
+    
+    // If transaction hash provided, verify and create subscription
+    if (xrpTxHash) {
+      // In a real implementation, you'd verify the XRP transaction here
+      const endDate = new Date();
+      if (isYearly) {
+        endDate.setFullYear(endDate.getFullYear() + 1);
+      } else {
+        endDate.setMonth(endDate.getMonth() + 1);
+      }
+
+      const [subscription] = await db
+        .insert(subscriptions)
+        .values({
+          userId,
+          planId,
+          status: 'active',
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: endDate,
+          cancelAtPeriodEnd: false,
+          stripeSubscriptionId: null,
+          paypalSubscriptionId: null,
+          usdcPaymentTxHash: xrpTxHash,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      return { subscription };
+    } else {
+      // Return payment details for user to send XRP
+      try {
+        const xrpAmount = await XRPPaymentService.getCorridorOptimization("USD", "XRP", usdAmount);
+        
+        return {
+          paymentAddress: process.env.PLATFORM_XRP_ADDRESS || 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
+          amount: usdAmount,
+          amountXRP: usdAmount / (xrpAmount.exchangeRate || 0.5), // Fallback exchange rate
+        };
+      } catch (error) {
+        throw new Error('Failed to calculate XRP payment amount');
+      }
+    }
+  }
+
+  /**
+   * Process treasury transfer subscription
+   */
+  async processTreasuryTransferSubscription(
+    userId: string,
+    planId: string,
+    isYearly: boolean,
+    confirmationReference: string
+  ): Promise<Subscription> {
+    const tier = this.getSubscriptionTier(planId);
+    if (!tier) throw new Error('Invalid subscription plan');
+
+    const amount = isYearly ? tier.yearlyPrice : tier.monthlyPrice;
+    const endDate = new Date();
+    if (isYearly) {
+      endDate.setFullYear(endDate.getFullYear() + 1);
+    } else {
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+
+    // Create subscription record with treasury reference
+    const [subscription] = await db
+      .insert(subscriptions)
+      .values({
+        userId,
+        planId,
+        status: 'pending', // Treasury transfers need manual verification
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: endDate,
+        cancelAtPeriodEnd: false,
+        stripeSubscriptionId: null,
+        paypalSubscriptionId: null,
+        usdcPaymentTxHash: `treasury_${confirmationReference}`,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+
+    return subscription;
+  }
+
+  /**
+   * Get treasury wallet information for direct transfers
+   */
+  getTreasuryWalletInfo(): {
+    usdcAddress: string;
+    ethAddress: string;
+    xrpAddress: string;
+    btcAddress: string;
+    achDetails: { routingNumber: string; accountNumber: string; accountName: string };
+    wireDetails: { bankName: string; swiftCode: string; accountNumber: string; accountName: string };
+  } {
+    return {
+      usdcAddress: process.env.TREASURY_USDC_ADDRESS || '0x742d35Cc6934C0532925a3b8D162aE0661b13E3E',
+      ethAddress: process.env.TREASURY_ETH_ADDRESS || '0x742d35Cc6934C0532925a3b8D162aE0661b13E3E',
+      xrpAddress: process.env.PLATFORM_XRP_ADDRESS || 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW',
+      btcAddress: process.env.TREASURY_BTC_ADDRESS || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+      achDetails: {
+        routingNumber: process.env.TREASURY_ACH_ROUTING || '121000248',
+        accountNumber: process.env.TREASURY_ACH_ACCOUNT || '****1234',
+        accountName: 'Coin Railz Treasury'
+      },
+      wireDetails: {
+        bankName: process.env.TREASURY_BANK_NAME || 'Wells Fargo Bank',
+        swiftCode: process.env.TREASURY_SWIFT || 'WFBIUS6S',
+        accountNumber: process.env.TREASURY_WIRE_ACCOUNT || '****5678',
+        accountName: 'Coin Railz Treasury'
+      }
+    };
   }
 }
 

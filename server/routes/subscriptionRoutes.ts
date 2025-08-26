@@ -8,21 +8,37 @@ import { eq } from "drizzle-orm";
 
 const createSubscriptionSchema = z.object({
   planId: z.string(),
-  paymentMethod: z.enum(["stripe", "paypal", "usdc", "crypto"]),
+  paymentMethod: z.enum(["stripe", "paypal", "usdc", "crypto", "nowpayments", "xrp", "treasury_transfer"]),
   isYearly: z.boolean().default(false),
   stripePaymentMethodId: z.string().optional(),
   paypalEmail: z.string().optional(),
   usdcTxHash: z.string().optional(),
   cryptoWalletAddress: z.string().optional(),
+  // NOWPayments fields
+  nowpaymentsEmail: z.string().optional(),
+  nowpaymentsPreferredCurrency: z.string().optional(),
+  // XRP fields
+  xrpAddress: z.string().optional(),
+  xrpTxHash: z.string().optional(),
+  // Treasury transfer fields
+  treasuryTxHash: z.string().optional(),
+  treasuryConfirmationCode: z.string().optional(),
 });
 
 const addPaymentMethodSchema = z.object({
-  type: z.enum(["stripe_card", "paypal", "usdc", "crypto"]),
+  type: z.enum(["stripe_card", "paypal", "usdc", "crypto", "nowpayments", "xrp", "treasury"]),
   isDefault: z.boolean().default(false),
   stripePaymentMethodId: z.string().optional(),
   paypalEmail: z.string().optional(),
   walletAddress: z.string().optional(),
   blockchain: z.string().optional(),
+  // NOWPayments fields
+  nowpaymentsEmail: z.string().optional(),
+  preferredCurrency: z.string().optional(),
+  // XRP fields
+  xrpAddress: z.string().optional(),
+  // Treasury fields
+  treasuryAccountNumber: z.string().optional(),
 });
 
 export function registerSubscriptionRoutes(app: Express) {
@@ -144,6 +160,50 @@ export function registerSubscriptionRoutes(app: Express) {
             validatedData.planId,
             validatedData.isYearly,
             `crypto_${validatedData.cryptoWalletAddress}_${Date.now()}`
+          );
+          res.json({ subscription: subscriptionResult });
+          break;
+
+        case "nowpayments":
+          if (!validatedData.nowpaymentsEmail) {
+            return res.status(400).json({ error: "NOWPayments email required" });
+          }
+          
+          subscriptionResult = await subscriptionService.createNOWPaymentsSubscription(
+            userId,
+            validatedData.planId,
+            validatedData.isYearly,
+            validatedData.nowpaymentsEmail,
+            validatedData.nowpaymentsPreferredCurrency || "USDT"
+          );
+          res.json(subscriptionResult);
+          break;
+
+        case "xrp":
+          if (!validatedData.xrpAddress) {
+            return res.status(400).json({ error: "XRP address required" });
+          }
+          
+          subscriptionResult = await subscriptionService.createXRPSubscription(
+            userId,
+            validatedData.planId,
+            validatedData.isYearly,
+            validatedData.xrpAddress,
+            validatedData.xrpTxHash
+          );
+          res.json(subscriptionResult);
+          break;
+
+        case "treasury_transfer":
+          if (!validatedData.treasuryTxHash && !validatedData.treasuryConfirmationCode) {
+            return res.status(400).json({ error: "Treasury transfer confirmation required" });
+          }
+          
+          subscriptionResult = await subscriptionService.processTreasuryTransferSubscription(
+            userId,
+            validatedData.planId,
+            validatedData.isYearly,
+            validatedData.treasuryTxHash || validatedData.treasuryConfirmationCode!
           );
           res.json({ subscription: subscriptionResult });
           break;
@@ -621,6 +681,69 @@ export function registerSubscriptionRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching subscription analytics:", error);
       res.status(500).json({ error: "Failed to fetch subscription analytics" });
+    }
+  });
+
+  // Get treasury wallet information for direct transfers
+  app.get("/api/treasury/wallet-info", async (req, res) => {
+    try {
+      const walletInfo = subscriptionService.getTreasuryWalletInfo();
+      res.json(walletInfo);
+    } catch (error) {
+      console.error("Error fetching treasury wallet info:", error);
+      res.status(500).json({ error: "Failed to fetch treasury wallet information" });
+    }
+  });
+
+  // NOWPayments subscription webhook
+  app.post("/api/nowpayments/subscription-webhook", async (req, res) => {
+    try {
+      const { nowPaymentsService } = await import("../services/nowPaymentsService");
+      const signature = req.headers['x-nowpayments-sig'] as string;
+      const payload = JSON.stringify(req.body);
+      
+      const isValid = await nowPaymentsService.verifyWebhook(payload, signature);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid webhook signature" });
+      }
+
+      const { payment_status, order_id, payment_id } = req.body;
+      
+      if (payment_status === 'finished') {
+        // Extract user ID and plan from order_id
+        const orderParts = order_id.split('_');
+        if (orderParts.length >= 3 && orderParts[0] === 'sub') {
+          const userId = orderParts[1];
+          const planId = orderParts[2];
+          
+          // Create the subscription
+          const subscription = await subscriptionService.processUSDCSubscription(
+            userId,
+            planId,
+            order_id.includes('yearly'),
+            `nowpayments_${payment_id}`
+          );
+          
+          console.log(`NOWPayments subscription activated for user ${userId}:`, subscription.id);
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("NOWPayments webhook error:", error);
+      res.status(500).json({ error: "Webhook processing failed" });
+    }
+  });
+
+  // Get available NOWPayments currencies for subscription
+  app.get("/api/nowpayments/currencies", async (req, res) => {
+    try {
+      const { nowPaymentsService } = await import("../services/nowPaymentsService");
+      const currencies = await nowPaymentsService.getSelectedCurrencies();
+      res.json(currencies);
+    } catch (error) {
+      console.error("Error fetching NOWPayments currencies:", error);
+      res.status(500).json({ error: "Failed to fetch available currencies" });
     }
   });
 

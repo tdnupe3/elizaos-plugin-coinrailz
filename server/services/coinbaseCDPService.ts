@@ -413,6 +413,48 @@ export class CoinbaseCDPService {
   }
 
   /**
+   * Get simulated market rate for custom tokens or fallback pricing
+   */
+  private getSimulatedMarketRate(fromAsset: string, toAsset: string): number {
+    // Define custom token exchange rates for common pairs
+    const customRates: { [key: string]: number } = {
+      // ETH-based pairs
+      'ETH-PEEZY': 500000,     // 1 ETH = 500,000 PEEZY (realistic for micro-cap)
+      'ETH-PEPE': 40000000,    // 1 ETH = 40M PEPE
+      'ETH-SHIB': 150000000,   // 1 ETH = 150M SHIB
+      
+      // USDC-based pairs (reverse calculation from ETH pairs)
+      'USDC-PEEZY': 115,       // 1 USDC = 115 PEEZY (assuming ETH ~4500 USDC)
+      'USDC-PEPE': 9000,       // 1 USDC = 9K PEPE
+      'USDC-SHIB': 35000,      // 1 USDC = 35K SHIB
+      
+      // Standard crypto rates (fallback for missing Coinbase data)
+      'ETH-USDC': 4500,        // 1 ETH = ~4500 USDC
+      'ETH-BTC': 0.065,        // 1 ETH = ~0.065 BTC
+      'BTC-USDC': 70000,       // 1 BTC = ~70K USDC
+    };
+
+    // Check direct pair
+    const directPair = `${fromAsset}-${toAsset}`;
+    if (customRates[directPair]) {
+      console.log(`📊 Using custom rate: ${fromAsset}/${toAsset} = ${customRates[directPair]}`);
+      return customRates[directPair];
+    }
+
+    // Check reverse pair and calculate inverse
+    const reversePair = `${toAsset}-${fromAsset}`;
+    if (customRates[reversePair]) {
+      const reverseRate = 1 / customRates[reversePair];
+      console.log(`📊 Using reverse custom rate: ${fromAsset}/${toAsset} = ${reverseRate}`);
+      return reverseRate;
+    }
+
+    // Default fallback rate (very conservative for unknown pairs)
+    console.log(`⚠️ No rate found for ${fromAsset}-${toAsset}, using default 1:1`);
+    return 1.0;
+  }
+
+  /**
    * Get real network fee estimate for blockchain
    */
   private async getNetworkFeeEstimate(network: string): Promise<number> {

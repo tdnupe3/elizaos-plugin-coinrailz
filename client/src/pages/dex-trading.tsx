@@ -28,10 +28,11 @@ interface NetworkOption {
 }
 
 const SUPPORTED_NETWORKS: NetworkOption[] = [
-  { id: 'base-mainnet', name: 'base', displayName: 'Base', icon: '🔵' },
-  { id: 'ethereum-mainnet', name: 'ethereum', displayName: 'Ethereum', icon: '⟐' },
-  { id: 'polygon-mainnet', name: 'polygon', displayName: 'Polygon', icon: '⬣' },
-  { id: 'arbitrum-mainnet', name: 'arbitrum', displayName: 'Arbitrum', icon: '🔷' },
+  { id: 'base-mainnet', name: 'base', displayName: 'Base', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiMwMDUyRkYiLz4KPHBhdGggZD0iTTcuNSAxNEM3LjUgMTAuNDEgMTAuNDEgNy41IDE0IDcuNUMyMC41IDcuNSAyMC41IDEzLjUgMjAuNSAxNEMyMC41IDE3LjU5IDE3LjU5IDIwLjUgMTQgMjAuNUM3LjUgMjAuNSA3LjUgMTQuNSA3LjUgMTRaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' },
+  { id: 'ethereum-mainnet', name: 'ethereum', displayName: 'Ethereum', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiM2MjdFRUEiLz4KPHBhdGggZD0iTTE0LjAwMDIgM1Y0LjQxNzY5TDE0IDExLjE5MjRMMTkuMjQ5NyAxMy4zNDM2TDE0LjAwMDIgM1oiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNCAzTDguNzUwMjQgMTMuMzQzNkwxNCAxMS4xOTI0VjNaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTQgMTUuNTcxM1YyMC45OTlMMTkuMjUgMTQuNjU2M0wxNCAxNS41NzEzWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE0IDIwLjk5OVYxNS41NzEzTDguNzUwMjQgMTQuNjU2M0wxNCAyMC45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' },
+  { id: 'polygon-mainnet', name: 'polygon', displayName: 'Polygon', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE3Ljg3IDguNThDMTcuNjQgOC40NCAxNy4zMyA4LjQ0IDE3LjA4IDguNThMMTQuNzkgOS45MkwxMy4yNyAxMC43M0wxMC45OCAxMi4wN0M5Ljk4IDEyLjY2IDkuOTggMTQuMTEgMTAuOTggMTQuNzFMMTMuMjcgMTYuMDVMMTQuNzkgMTYuODZMMTcuMDggMTguMkMxNy4zMyAxOC4zNCAxNy42NCAxOC4zNCAxNy44NyAxOC4yTDE5LjQgMTcuMzlDMTkuNjMgMTcuMjUgMTkuNzggMTYuOTggMTkuNzggMTYuNjlWMTIuMDlDMTkuNzggMTEuOCAxOS42MyAxMS41MyAxOS40IDExLjM5TDE3Ljg3IDEwLjU4VjguNThaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' },
+  { id: 'arbitrum-mainnet', name: 'arbitrum', displayName: 'Arbitrum', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiMyRDM3NEIiLz4KPHBhdGggZD0iTTIwLjUgMTQuNUMxOC44IDE0LjUgMTcuNSAxNS44IDE3LjUgMTcuNUMxNy41IDE5LjIgMTguOCAyMC41IDIwLjUgMjAuNUMyMi4yIDIwLjUgMjMuNSAxOS4yIDIzLjUgMTcuNUMyMy41IDE1LjggMjIuMiAxNC41IDIwLjUgMTQuNVpNNy41IDE0LjVDNS44IDE0LjUgNC41IDE1LjggNC41IDE3LjVDNC41IDE5LjIgNS44IDIwLjUgNy41IDIwLjVDOS4yIDIwLjUgMTAuNSAxOS4yIDEwLjUgMTcuNUMxMC41IDE1LjggOS4yIDE0LjUgNy41IDE0LjVaTTE0IDcuNUMxMi4zIDcuNSAxMSA4LjggMTEgMTAuNUMxMSAxMi4yIDEyLjMgMTMuNSAxNCAxMy41QzE1LjcgMTMuNSAxNyAxMi4yIDE3IDEwLjVDMTcgOC44IDE1LjcgNy41IDE0IDcuNVoiIGZpbGw9IiM5NkRCRkYiLz4KPC9zdmc+' },
+  { id: 'bnb-mainnet', name: 'bnb', displayName: 'BNB Chain', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiNGM0JBMkYiLz4KPHBhdGggZD0iTTEwIDEwTDE0IDZMMTggMTBMMTYgMTJMMTQgMTBMMTIgMTJMMTAgMTBaTTYgMTRMMTAgMTBMMTIgMTJMMTAgMTRMOCAxNkw2IDE0Wk0xNCAxOEwxOCAyMkwxNCAxOEwxMCAyMkwxNCAxOFpNMjIgMTRMMjAgMTZMMTggMTRMMjAgMTJMMjIgMTRaTTE0IDEwTDE2IDEyTDE0IDE0TDEyIDEyTDE0IDEwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+' },
 ];
 
 export default function DEXTrading() {
@@ -51,12 +52,17 @@ export default function DEXTrading() {
   const [isLoadingQuote, setIsLoadingQuote] = useState(false);
   const [isSwapping, setIsSwapping] = useState(false);
   
-  // Advanced trading state
-  const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
+  // Advanced trading state - Enhanced with Coinbase DEX features
+  const [orderType, setOrderType] = useState<'market' | 'limit' | 'stop-limit' | 'bracket'>('market');
   const [limitPrice, setLimitPrice] = useState('');
+  const [stopPrice, setStopPrice] = useState('');
+  const [takeProfitPrice, setTakeProfitPrice] = useState('');
   const [mevProtectionEnabled, setMevProtectionEnabled] = useState(true);
   const [priorityRouting, setPriorityRouting] = useState(false);
   const [selectedTimeframe, setSelectedTimeframe] = useState('1h');
+  const [slippageTolerance, setSlippageTolerance] = useState('2.0'); // Coinbase default
+  const [postOnlyMode, setPostOnlyMode] = useState(false); // Maker orders only
+  const [autoRefreshQuotes, setAutoRefreshQuotes] = useState(true);
 
   // Bridge interface state (3.11)
   const [bridgeFromChain, setBridgeFromChain] = useState('ethereum-mainnet');
@@ -490,7 +496,23 @@ export default function DEXTrading() {
                   {SUPPORTED_NETWORKS.map((network) => (
                     <SelectItem key={network.id} value={network.id}>
                       <div className="flex items-center gap-2">
-                        <span>{network.icon}</span>
+                        <img 
+                          src={network.icon} 
+                          alt={network.displayName}
+                          className="w-5 h-5 rounded-full"
+                          onError={(e) => {
+                            // Fallback to text emoji if SVG fails
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                          }}
+                        />
+                        <span className="hidden text-lg">
+                          {network.name === 'base' ? '🔵' : 
+                           network.name === 'ethereum' ? '⟐' : 
+                           network.name === 'polygon' ? '⬣' : 
+                           network.name === 'arbitrum' ? '🔷' : 
+                           network.name === 'bnb' ? '💛' : '🔗'}
+                        </span>
                         <span>{network.displayName}</span>
                       </div>
                     </SelectItem>
@@ -552,8 +574,8 @@ export default function DEXTrading() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Order Type Selector */}
-                  <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  {/* Order Type Selector - Enhanced with Coinbase DEX features */}
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg mb-4">
                     <Button
                       variant={orderType === 'market' ? 'default' : 'ghost'}
                       size="sm"
@@ -561,6 +583,7 @@ export default function DEXTrading() {
                       className="flex-1"
                     >
                       Market Order
+                      <Badge variant="secondary" className="ml-2 text-xs">Instant</Badge>
                     </Button>
                     <Button
                       variant={orderType === 'limit' ? 'default' : 'ghost'}
@@ -570,7 +593,90 @@ export default function DEXTrading() {
                     >
                       <Target className="h-4 w-4 mr-1" />
                       Limit Order
+                      <Badge variant="secondary" className="ml-2 text-xs">Lower fees</Badge>
                     </Button>
+                  </div>
+
+                  {/* Advanced Order Types - Coinbase DEX Feature Parity */}
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <Button
+                      variant={orderType === 'stop-limit' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setOrderType('stop-limit')}
+                      className="flex-1 text-xs"
+                    >
+                      Stop-Limit
+                      <Badge variant="outline" className="ml-1 text-xs">Pro</Badge>
+                    </Button>
+                    <Button
+                      variant={orderType === 'bracket' ? 'default' : 'ghost'}
+                      size="sm"
+                      onClick={() => setOrderType('bracket')}
+                      className="flex-1 text-xs"
+                    >
+                      Bracket
+                      <Badge variant="outline" className="ml-1 text-xs">Pro</Badge>
+                    </Button>
+                  </div>
+
+                  {/* Post-Only Mode Toggle - Coinbase DEX Feature */}
+                  {orderType === 'limit' && (
+                    <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-green-900 dark:text-green-100">
+                            Post-Only Mode
+                          </span>
+                          <Badge variant="secondary" className="text-xs bg-green-100">Maker Only</Badge>
+                        </div>
+                        <Switch 
+                          checked={postOnlyMode} 
+                          onCheckedChange={setPostOnlyMode}
+                          className="scale-75"
+                        />
+                      </div>
+                      <Badge variant="outline" className="text-xs">Lower Fees</Badge>
+                    </div>
+                  )}
+
+                  {/* Slippage Tolerance Setting - Coinbase DEX Default 2% */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm">Slippage Tolerance</Label>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">{slippageTolerance}%</span>
+                        {parseFloat(slippageTolerance) > 2.0 && (
+                          <Badge variant="destructive" className="text-xs">High Risk</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      {['0.5', '1.0', '2.0', '3.0'].map(value => (
+                        <Button
+                          key={value}
+                          variant={slippageTolerance === value ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setSlippageTolerance(value)}
+                          className="flex-1 text-xs"
+                        >
+                          {value}%
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Gas Fee Sponsorship Notice - Coinbase DEX Feature */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        Zero Gas Fees
+                      </span>
+                      <Badge variant="outline" className="text-xs bg-blue-100">Sponsored</Badge>
+                    </div>
+                    <p className="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                      All network fees covered by platform
+                    </p>
                   </div>
 
                   {/* MEV Protection Status */}

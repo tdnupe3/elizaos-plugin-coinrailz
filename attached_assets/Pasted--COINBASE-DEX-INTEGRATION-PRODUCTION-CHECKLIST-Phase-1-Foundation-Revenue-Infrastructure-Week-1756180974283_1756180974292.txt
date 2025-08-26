@@ -1,0 +1,75 @@
+🎯 COINBASE DEX INTEGRATION PRODUCTION CHECKLIST
+Phase 1: Foundation & Revenue Infrastructure (Week 1)
+✅ Day 1-2: Database & Schema Updates
+ 1.1 Add DEX transaction tracking table
+ 1.2 Add premium subscription table
+ 1.3 Add cross-chain fee tracking table
+ 1.4 Update user schema for subscription status
+ 1.5 Run database migration safely
+✅ Day 3-4: Enhanced CDP Service
+ 1.6 Extend coinbaseCDPService.ts with DEX trading methods
+ 1.7 Add 0.25% trading fee collection logic
+ 1.8 Add 0.5% cross-chain fee collection logic
+ 1.9 Create platform fee wallet management
+ 1.10 Add DEX quote generation with fees included
+✅ Day 5-7: Core API Endpoints
+ 1.11 Create /api/dex/quote endpoint (with fees)
+ 1.12 Create /api/dex/trade endpoint (revenue generating)
+ 1.13 Create /api/dex/cross-chain endpoint (0.5% fee)
+ 1.14 Create /api/dex/history endpoint
+ 1.15 Integrate with existing revenue tracking system
+Phase 2: Professional UI & User Experience (Week 2)
+✅ Day 8-10: New DEX Trading Page
+ 2.1 Create new dex-trading.tsx page (Coinbase style)
+ 2.2 Build CoinbaseDEXWidget.tsx component
+ 2.3 Add Coin Railz branding elements
+ 2.4 Add "Powered by Coinbase" attribution
+ 2.5 Implement responsive design for mobile
+✅ Day 11-12: Core Trading Features
+ 2.6 Token selection interface (Base network focus)
+ 2.7 Real-time quote display with fee breakdown
+ 2.8 Slippage control settings
+ 2.9 Transaction confirmation modal
+ 2.10 Success/error state handling
+✅ Day 13-14: Revenue Features
+ 2.11 Fee calculator widget (0.25%/0.5% display)
+ 2.12 Premium upgrade prompts
+ 2.13 Cross-chain bridge interface
+ 2.14 Transaction history with revenue tracking
+Phase 3: Premium Features & Monetization (Week 3)
+✅ Day 15-17: Subscription System
+ 3.1 Create subscription management service
+ 3.2 Build premium upgrade modal
+ 3.3 Implement tier-based fee discounts
+ 3.4 Add premium user indicators
+ 3.5 Payment integration for subscriptions
+✅ Day 18-19: Advanced Trading Features
+ 3.6 Limit order functionality (premium)
+ 3.7 MEV protection (premium)
+ 3.8 Advanced chart integration
+ 3.9 Portfolio tracking features
+ 3.10 Priority routing (enterprise)
+✅ Day 20-21: Cross-Chain Revenue
+ 3.11 Multi-chain bridge interface
+ 3.12 Railz Token integration (Base only)
+ 3.13 Cross-chain fee optimization
+ 3.14 Chain selection with fee display
+Phase 4: Integration & Production Deployment (Week 4)
+✅ Day 22-24: Platform Integration
+ 4.1 Update main navigation menu
+ 4.2 Replace old swap page routing
+ 4.3 Update user dashboard with DEX access
+ 4.4 Integrate with wallet management
+ 4.5 Update revenue dashboard
+✅ Day 25-26: Testing & Security
+ 4.6 End-to-end trading flow testing
+ 4.7 Fee calculation verification
+ 4.8 Cross-chain transaction testing
+ 4.9 Security audit of fee collection
+ 4.10 Load testing with CDP API limits
+✅ Day 27-28: Production Deployment
+ 4.11 Production environment configuration
+ 4.12 CDP API key verification
+ 4.13 Revenue tracking validation
+ 4.14 User acceptance testing
+ 4.15 Go-live deployment

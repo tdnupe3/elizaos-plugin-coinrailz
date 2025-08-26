@@ -717,8 +717,152 @@ export const riskManagementSettings = pgTable("risk_management_settings", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// === ADVANCED COINBASE DEX FEATURE PARITY ===
+
+// Stop-Limit Orders (Advanced Order Types)
+export const stopLimitOrders = pgTable("stop_limit_orders", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  fromAsset: varchar("from_asset").notNull(),
+  toAsset: varchar("to_asset").notNull(),
+  fromAmount: decimal("from_amount", { precision: 18, scale: 8 }).notNull(),
+  stopPrice: decimal("stop_price", { precision: 18, scale: 8 }).notNull(), // Trigger price
+  limitPrice: decimal("limit_price", { precision: 18, scale: 8 }).notNull(), // Execution price
+  triggerCondition: varchar("trigger_condition").notNull().default("above"), // "above" or "below"
+  timeInForce: varchar("time_in_force").notNull().default("GTC"), // GTC, IOC, FOK, GTD
+  expiresAt: timestamp("expires_at"), // For GTD orders
+  status: varchar("status").notNull().default("pending"), // pending, triggered, filled, cancelled, expired
+  triggeredAt: timestamp("triggered_at"),
+  filledAt: timestamp("filled_at"),
+  cancelledAt: timestamp("cancelled_at"),
+  filledAmount: decimal("filled_amount", { precision: 18, scale: 8 }),
+  executionPrice: decimal("execution_price", { precision: 18, scale: 8 }),
+  txHash: varchar("tx_hash"),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+// Bracket Orders (OCO - One-Cancels-Other)
+export const bracketOrders = pgTable("bracket_orders", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  parentOrderId: varchar("parent_order_id").notNull(), // Main position order
+  fromAsset: varchar("from_asset").notNull(),
+  toAsset: varchar("to_asset").notNull(),
+  fromAmount: decimal("from_amount", { precision: 18, scale: 8 }).notNull(),
+  
+  // Profit Target (Take Profit)
+  takeProfitPrice: decimal("take_profit_price", { precision: 18, scale: 8 }).notNull(),
+  takeProfitOrderId: varchar("take_profit_order_id"),
+  
+  // Stop Loss
+  stopLossPrice: decimal("stop_loss_price", { precision: 18, scale: 8 }).notNull(),
+  stopLossOrderId: varchar("stop_loss_order_id"),
+  
+  // Trailing Stop (Optional)
+  trailingStopEnabled: boolean("trailing_stop_enabled").default(false),
+  trailingAmount: decimal("trailing_amount", { precision: 18, scale: 8 }),
+  trailingPercent: decimal("trailing_percent", { precision: 5, scale: 2 }),
+  
+  status: varchar("status").notNull().default("active"), // active, partially_filled, completed, cancelled
+  completedLeg: varchar("completed_leg"), // "take_profit" or "stop_loss"
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Portfolio Analytics (Advanced Performance Tracking)
+export const portfolioAnalytics = pgTable("portfolio_analytics", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  analysisDate: date("analysis_date").notNull(),
+  
+  // Portfolio Composition
+  totalValue: decimal("total_value", { precision: 20, scale: 8 }).notNull(),
+  totalInvested: decimal("total_invested", { precision: 20, scale: 8 }).notNull(),
+  unrealizedPnL: decimal("unrealized_pnl", { precision: 20, scale: 8 }).notNull(),
+  realizedPnL: decimal("realized_pnl", { precision: 20, scale: 8 }).notNull(),
+  
+  // Performance Metrics
+  totalReturn: decimal("total_return", { precision: 10, scale: 4 }).notNull(), // %
+  dayChange: decimal("day_change", { precision: 10, scale: 4 }).notNull(), // %
+  weekChange: decimal("week_change", { precision: 10, scale: 4 }).notNull(), // %
+  monthChange: decimal("month_change", { precision: 10, scale: 4 }).notNull(), // %
+  yearToDateChange: decimal("year_to_date_change", { precision: 10, scale: 4 }).notNull(), // %
+  
+  // Risk Metrics
+  volatility: decimal("volatility", { precision: 10, scale: 6 }), // Standard deviation
+  sharpeRatio: decimal("sharpe_ratio", { precision: 10, scale: 6 }), // Risk-adjusted returns
+  maxDrawdown: decimal("max_drawdown", { precision: 10, scale: 4 }), // Maximum loss from peak
+  beta: decimal("beta", { precision: 10, scale: 6 }), // Market correlation
+  
+  // Asset Allocation
+  assetAllocation: jsonb("asset_allocation").notNull(), // {"ETH": 40.5, "BTC": 35.2, "USDC": 24.3}
+  sectorAllocation: jsonb("sector_allocation"), // {"DeFi": 45.0, "Layer1": 30.0, "Stablecoins": 25.0}
+  
+  // Trading Activity
+  dayTrades: integer("day_trades").default(0),
+  weekTrades: integer("week_trades").default(0),
+  monthTrades: integer("month_trades").default(0),
+  totalTradingFees: decimal("total_trading_fees", { precision: 20, scale: 8 }).default("0"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => ({
+  userDateIndex: index("portfolio_analytics_user_date_idx").on(table.userId, table.analysisDate),
+}));
+
+// Enhanced Watchlists with Advanced Features
+export const advancedWatchlists = pgTable("advanced_watchlists", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(),
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  isPublic: boolean("is_public").default(false),
+  
+  // Alert Settings
+  priceAlertsEnabled: boolean("price_alerts_enabled").default(true),
+  volumeAlertsEnabled: boolean("volume_alerts_enabled").default(false),
+  newsAlertsEnabled: boolean("news_alerts_enabled").default(false),
+  
+  // Sort & Display Options
+  sortBy: varchar("sort_by").default("market_cap"), // market_cap, price, volume, change_24h
+  sortOrder: varchar("sort_order").default("desc"), // asc, desc
+  displayColumns: jsonb("display_columns").default('["symbol", "price", "change_24h", "volume", "market_cap"]'),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Watchlist Assets with Advanced Data
+export const advancedWatchlistAssets = pgTable("advanced_watchlist_assets", {
+  id: serial("id").primaryKey(),
+  watchlistId: integer("watchlist_id").references(() => advancedWatchlists.id).notNull(),
+  symbol: varchar("symbol").notNull(),
+  name: varchar("name").notNull(),
+  network: varchar("network").notNull(),
+  contractAddress: varchar("contract_address"),
+  
+  // Price Alerts
+  priceAlertHigh: decimal("price_alert_high", { precision: 18, scale: 8 }),
+  priceAlertLow: decimal("price_alert_low", { precision: 18, scale: 8 }),
+  volumeAlertThreshold: decimal("volume_alert_threshold", { precision: 20, scale: 8 }),
+  
+  // Display Preferences
+  notes: text("notes"),
+  color: varchar("color").default("#3B82F6"), // Hex color for UI
+  sortOrder: integer("sort_order").default(0),
+  
+  // Cache Data (Updated Periodically)
+  lastPrice: decimal("last_price", { precision: 18, scale: 8 }),
+  change24h: decimal("change_24h", { precision: 10, scale: 4 }),
+  volume24h: decimal("volume_24h", { precision: 20, scale: 8 }),
+  marketCap: decimal("market_cap", { precision: 20, scale: 2 }),
+  lastUpdated: timestamp("last_updated"),
+  
+  addedAt: timestamp("added_at").defaultNow(),
+}, (table) => ({
+  watchlistSymbolIndex: index("watchlist_symbol_idx").on(table.watchlistId, table.symbol),
+}));
 
 // Chain Selection with Fee Display Table (3.14)
 export const chainSelectionPreferences = pgTable("chain_selection_preferences", {
@@ -2222,6 +2366,18 @@ export type InsertCrossChainTrade = typeof crossChainTrades.$inferInsert;
 export type DexSubscription = typeof dexSubscriptions.$inferSelect;
 export type InsertDexSubscription = typeof dexSubscriptions.$inferInsert;
 
+// Advanced Trading Feature Types
+export type StopLimitOrder = typeof stopLimitOrders.$inferSelect;
+export type InsertStopLimitOrder = typeof stopLimitOrders.$inferInsert;
+export type BracketOrder = typeof bracketOrders.$inferSelect;
+export type InsertBracketOrder = typeof bracketOrders.$inferInsert;
+export type PortfolioAnalytics = typeof portfolioAnalytics.$inferSelect;
+export type InsertPortfolioAnalytics = typeof portfolioAnalytics.$inferInsert;
+export type AdvancedWatchlist = typeof advancedWatchlists.$inferSelect;
+export type InsertAdvancedWatchlist = typeof advancedWatchlists.$inferInsert;
+export type AdvancedWatchlistAsset = typeof advancedWatchlistAssets.$inferSelect;
+export type InsertAdvancedWatchlistAsset = typeof advancedWatchlistAssets.$inferInsert;
+
 // DEX Insert schemas for validation
 export const insertDexTradeSchema = createInsertSchema(dexTrades).omit({
   id: true,
@@ -2239,6 +2395,38 @@ export const insertDexSubscriptionSchema = createInsertSchema(dexSubscriptions).
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+// Advanced Trading Insert Schemas
+export const insertStopLimitOrderSchema = createInsertSchema(stopLimitOrders).omit({
+  id: true,
+  createdAt: true,
+  triggeredAt: true,
+  filledAt: true,
+  cancelledAt: true,
+});
+
+export const insertBracketOrderSchema = createInsertSchema(bracketOrders).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertPortfolioAnalyticsSchema = createInsertSchema(portfolioAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAdvancedWatchlistSchema = createInsertSchema(advancedWatchlists).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAdvancedWatchlistAssetSchema = createInsertSchema(advancedWatchlistAssets).omit({
+  id: true,
+  addedAt: true,
+  lastUpdated: true,
 });
 
 // Enhanced Subscription Management System

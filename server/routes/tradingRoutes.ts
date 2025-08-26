@@ -11,10 +11,20 @@ import {
   userWatchlists,
   watchlistAssets,
   tradingPerformance,
-  riskManagementSettings
+  riskManagementSettings,
+  stopLimitOrders,
+  bracketOrders,
+  portfolioAnalytics,
+  advancedWatchlists,
+  advancedWatchlistAssets,
+  insertStopLimitOrderSchema,
+  insertBracketOrderSchema,
+  insertPortfolioAnalyticsSchema,
+  insertAdvancedWatchlistSchema,
+  insertAdvancedWatchlistAssetSchema
 } from '@shared/schema';
 import { createInsertSchema } from 'drizzle-zod';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { isAuthenticated } from '../replitAuth';
 
 // Create insert schemas
@@ -618,6 +628,450 @@ router.put('/chain-preferences', isAuthenticated, async (req: any, res) => {
   } catch (error) {
     console.error('Error updating chain preferences:', error);
     res.status(500).json({ message: 'Failed to update chain preferences' });
+  }
+});
+
+// === ADVANCED COINBASE DEX FEATURE PARITY ===
+
+// Stop-Limit Orders Management
+router.get('/stop-limit-orders', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const orders = await db
+      .select()
+      .from(stopLimitOrders)
+      .where(eq(stopLimitOrders.userId, userId))
+      .orderBy(desc(stopLimitOrders.createdAt));
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching stop-limit orders:', error);
+    res.status(500).json({ message: 'Failed to fetch stop-limit orders' });
+  }
+});
+
+router.post('/stop-limit-orders', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const validatedData = insertStopLimitOrderSchema.parse(req.body);
+    
+    const [order] = await db
+      .insert(stopLimitOrders)
+      .values({
+        ...validatedData,
+        userId
+      })
+      .returning();
+
+    res.status(201).json(order);
+  } catch (error) {
+    console.error('Error creating stop-limit order:', error);
+    res.status(500).json({ message: 'Failed to create stop-limit order' });
+  }
+});
+
+router.patch('/stop-limit-orders/:orderId/cancel', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { orderId } = req.params;
+    
+    const [updatedOrder] = await db
+      .update(stopLimitOrders)
+      .set({ 
+        status: 'cancelled',
+        cancelledAt: new Date()
+      })
+      .where(and(
+        eq(stopLimitOrders.id, parseInt(orderId)),
+        eq(stopLimitOrders.userId, userId)
+      ))
+      .returning();
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: 'Stop-limit order not found' });
+    }
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Error cancelling stop-limit order:', error);
+    res.status(500).json({ message: 'Failed to cancel stop-limit order' });
+  }
+});
+
+// Bracket Orders (OCO) Management
+router.get('/bracket-orders', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const orders = await db
+      .select()
+      .from(bracketOrders)
+      .where(eq(bracketOrders.userId, userId))
+      .orderBy(desc(bracketOrders.createdAt));
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching bracket orders:', error);
+    res.status(500).json({ message: 'Failed to fetch bracket orders' });
+  }
+});
+
+router.post('/bracket-orders', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const validatedData = insertBracketOrderSchema.parse(req.body);
+    
+    const [order] = await db
+      .insert(bracketOrders)
+      .values({
+        ...validatedData,
+        userId
+      })
+      .returning();
+
+    res.status(201).json(order);
+  } catch (error) {
+    console.error('Error creating bracket order:', error);
+    res.status(500).json({ message: 'Failed to create bracket order' });
+  }
+});
+
+router.patch('/bracket-orders/:orderId/cancel', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { orderId } = req.params;
+    
+    const [updatedOrder] = await db
+      .update(bracketOrders)
+      .set({ 
+        status: 'cancelled',
+        completedAt: new Date()
+      })
+      .where(and(
+        eq(bracketOrders.id, parseInt(orderId)),
+        eq(bracketOrders.userId, userId)
+      ))
+      .returning();
+
+    if (!updatedOrder) {
+      return res.status(404).json({ message: 'Bracket order not found' });
+    }
+
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Error cancelling bracket order:', error);
+    res.status(500).json({ message: 'Failed to cancel bracket order' });
+  }
+});
+
+// Portfolio Analytics
+router.get('/portfolio/analytics', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { days = 30 } = req.query;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - parseInt(days as string));
+
+    const analytics = await db
+      .select()
+      .from(portfolioAnalytics)
+      .where(and(
+        eq(portfolioAnalytics.userId, userId),
+        // Add date filter when needed
+      ))
+      .orderBy(desc(portfolioAnalytics.analysisDate))
+      .limit(parseInt(days as string));
+
+    // Calculate current portfolio summary
+    const latestAnalytics = analytics[0];
+    const portfolioSummary = {
+      totalValue: latestAnalytics?.totalValue || '0',
+      totalReturn: latestAnalytics?.totalReturn || '0',
+      dayChange: latestAnalytics?.dayChange || '0',
+      weekChange: latestAnalytics?.weekChange || '0',
+      monthChange: latestAnalytics?.monthChange || '0',
+      sharpeRatio: latestAnalytics?.sharpeRatio || '0',
+      maxDrawdown: latestAnalytics?.maxDrawdown || '0',
+      assetAllocation: latestAnalytics?.assetAllocation || {},
+      historicalData: analytics
+    };
+
+    res.json(portfolioSummary);
+  } catch (error) {
+    console.error('Error fetching portfolio analytics:', error);
+    res.status(500).json({ message: 'Failed to fetch portfolio analytics' });
+  }
+});
+
+router.post('/portfolio/analytics', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const validatedData = insertPortfolioAnalyticsSchema.parse(req.body);
+    
+    const [analytics] = await db
+      .insert(portfolioAnalytics)
+      .values({
+        ...validatedData,
+        userId
+      })
+      .returning();
+
+    res.status(201).json(analytics);
+  } catch (error) {
+    console.error('Error creating portfolio analytics:', error);
+    res.status(500).json({ message: 'Failed to create portfolio analytics' });
+  }
+});
+
+// Advanced Watchlists Management
+router.get('/watchlists', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const watchlists = await db
+      .select()
+      .from(advancedWatchlists)
+      .where(eq(advancedWatchlists.userId, userId))
+      .orderBy(desc(advancedWatchlists.createdAt));
+
+    // Get asset counts for each watchlist
+    const watchlistsWithCounts = await Promise.all(
+      watchlists.map(async (watchlist) => {
+        const assetCount = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(advancedWatchlistAssets)
+          .where(eq(advancedWatchlistAssets.watchlistId, watchlist.id));
+        
+        return {
+          ...watchlist,
+          assetCount: assetCount[0]?.count || 0
+        };
+      })
+    );
+
+    res.json(watchlistsWithCounts);
+  } catch (error) {
+    console.error('Error fetching watchlists:', error);
+    res.status(500).json({ message: 'Failed to fetch watchlists' });
+  }
+});
+
+router.post('/watchlists', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const validatedData = insertAdvancedWatchlistSchema.parse(req.body);
+    
+    const [watchlist] = await db
+      .insert(advancedWatchlists)
+      .values({
+        ...validatedData,
+        userId
+      })
+      .returning();
+
+    res.status(201).json(watchlist);
+  } catch (error) {
+    console.error('Error creating watchlist:', error);
+    res.status(500).json({ message: 'Failed to create watchlist' });
+  }
+});
+
+router.get('/watchlists/:watchlistId/assets', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { watchlistId } = req.params;
+
+    // Verify watchlist belongs to user
+    const [watchlist] = await db
+      .select()
+      .from(advancedWatchlists)
+      .where(and(
+        eq(advancedWatchlists.id, parseInt(watchlistId)),
+        eq(advancedWatchlists.userId, userId)
+      ))
+      .limit(1);
+
+    if (!watchlist) {
+      return res.status(404).json({ message: 'Watchlist not found' });
+    }
+
+    const assets = await db
+      .select()
+      .from(advancedWatchlistAssets)
+      .where(eq(advancedWatchlistAssets.watchlistId, parseInt(watchlistId)))
+      .orderBy(advancedWatchlistAssets.sortOrder);
+
+    res.json(assets);
+  } catch (error) {
+    console.error('Error fetching watchlist assets:', error);
+    res.status(500).json({ message: 'Failed to fetch watchlist assets' });
+  }
+});
+
+router.post('/watchlists/:watchlistId/assets', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { watchlistId } = req.params;
+
+    // Verify watchlist belongs to user
+    const [watchlist] = await db
+      .select()
+      .from(advancedWatchlists)
+      .where(and(
+        eq(advancedWatchlists.id, parseInt(watchlistId)),
+        eq(advancedWatchlists.userId, userId)
+      ))
+      .limit(1);
+
+    if (!watchlist) {
+      return res.status(404).json({ message: 'Watchlist not found' });
+    }
+
+    const validatedData = insertAdvancedWatchlistAssetSchema.parse(req.body);
+    
+    const [asset] = await db
+      .insert(advancedWatchlistAssets)
+      .values({
+        ...validatedData,
+        watchlistId: parseInt(watchlistId)
+      })
+      .returning();
+
+    res.status(201).json(asset);
+  } catch (error) {
+    console.error('Error adding asset to watchlist:', error);
+    res.status(500).json({ message: 'Failed to add asset to watchlist' });
+  }
+});
+
+router.delete('/watchlists/:watchlistId/assets/:assetId', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { watchlistId, assetId } = req.params;
+
+    // Verify watchlist belongs to user
+    const [watchlist] = await db
+      .select()
+      .from(advancedWatchlists)
+      .where(and(
+        eq(advancedWatchlists.id, parseInt(watchlistId)),
+        eq(advancedWatchlists.userId, userId)
+      ))
+      .limit(1);
+
+    if (!watchlist) {
+      return res.status(404).json({ message: 'Watchlist not found' });
+    }
+
+    const [deletedAsset] = await db
+      .delete(advancedWatchlistAssets)
+      .where(and(
+        eq(advancedWatchlistAssets.id, parseInt(assetId)),
+        eq(advancedWatchlistAssets.watchlistId, parseInt(watchlistId))
+      ))
+      .returning();
+
+    if (!deletedAsset) {
+      return res.status(404).json({ message: 'Asset not found in watchlist' });
+    }
+
+    res.json({ message: 'Asset removed from watchlist successfully' });
+  } catch (error) {
+    console.error('Error removing asset from watchlist:', error);
+    res.status(500).json({ message: 'Failed to remove asset from watchlist' });
+  }
+});
+
+// Price Alerts for Watchlist Assets
+router.post('/watchlists/assets/:assetId/alerts', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { assetId } = req.params;
+    const { priceAlertHigh, priceAlertLow, volumeAlertThreshold } = req.body;
+
+    // Verify asset belongs to user's watchlist
+    const [asset] = await db
+      .select()
+      .from(advancedWatchlistAssets)
+      .innerJoin(advancedWatchlists, eq(advancedWatchlistAssets.watchlistId, advancedWatchlists.id))
+      .where(and(
+        eq(advancedWatchlistAssets.id, parseInt(assetId)),
+        eq(advancedWatchlists.userId, userId)
+      ))
+      .limit(1);
+
+    if (!asset) {
+      return res.status(404).json({ message: 'Watchlist asset not found' });
+    }
+
+    const [updatedAsset] = await db
+      .update(advancedWatchlistAssets)
+      .set({
+        priceAlertHigh: priceAlertHigh || null,
+        priceAlertLow: priceAlertLow || null,
+        volumeAlertThreshold: volumeAlertThreshold || null
+      })
+      .where(eq(advancedWatchlistAssets.id, parseInt(assetId)))
+      .returning();
+
+    res.json(updatedAsset);
+  } catch (error) {
+    console.error('Error setting price alerts:', error);
+    res.status(500).json({ message: 'Failed to set price alerts' });
   }
 });
 

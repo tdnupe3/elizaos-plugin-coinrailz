@@ -516,44 +516,121 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Get simulated market rate for custom tokens or fallback pricing
+   * Get real-time token price using contract address via DEX Screener API
    */
-  private getSimulatedMarketRate(fromAsset: string, toAsset: string): number {
-    // Define custom token exchange rates for common pairs
-    const customRates: { [key: string]: number } = {
-      // ETH-based pairs
-      'ETH-PEEZY': 500000,     // 1 ETH = 500,000 PEEZY (realistic for micro-cap)
-      'ETH-PEPE': 40000000,    // 1 ETH = 40M PEPE
-      'ETH-SHIB': 150000000,   // 1 ETH = 150M SHIB
-      
-      // USDC-based pairs (reverse calculation from ETH pairs)
-      'USDC-PEEZY': 115,       // 1 USDC = 115 PEEZY (assuming ETH ~4500 USDC)
-      'USDC-PEPE': 9000,       // 1 USDC = 9K PEPE
-      'USDC-SHIB': 35000,      // 1 USDC = 35K SHIB
-      
-      // Standard crypto rates (fallback for missing Coinbase data)
-      'ETH-USDC': 4500,        // 1 ETH = ~4500 USDC
-      'ETH-BTC': 0.065,        // 1 ETH = ~0.065 BTC
-      'BTC-USDC': 70000,       // 1 BTC = ~70K USDC
-    };
-
-    // Check direct pair
-    const directPair = `${fromAsset}-${toAsset}`;
-    if (customRates[directPair]) {
-      console.log(`📊 Using custom rate: ${fromAsset}/${toAsset} = ${customRates[directPair]}`);
-      return customRates[directPair];
+  private async getRealTokenPrice(tokenSymbol: string, contractAddress?: string): Promise<number | null> {
+    if (!contractAddress) {
+      console.log(`⚠️ No contract address provided for ${tokenSymbol}`);
+      return null;
     }
 
-    // Check reverse pair and calculate inverse
+    try {
+      // Use DEX Screener API for real token pricing data
+      const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${contractAddress}`);
+      
+      if (!response.ok) {
+        throw new Error(`DEX Screener API error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.pairs && data.pairs.length > 0) {
+        // Get the most liquid pair (highest volume)
+        const mostLiquidPair = data.pairs.reduce((prev: any, current: any) => 
+          (current.volume?.h24 || 0) > (prev.volume?.h24 || 0) ? current : prev
+        );
+        
+        const priceUSD = parseFloat(mostLiquidPair.priceUsd);
+        console.log(`💰 Real ${tokenSymbol} price: $${priceUSD} (from ${mostLiquidPair.dexId})`);
+        return priceUSD;
+      }
+      
+      throw new Error('No trading pairs found');
+    } catch (error) {
+      console.warn(`⚠️ Failed to fetch real price for ${tokenSymbol}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get market rate using real pricing data or fallback
+   */
+  private async getSimulatedMarketRate(fromAsset: string, toAsset: string): Promise<number> {
+    // Known token contract addresses for real pricing
+    const tokenContracts: { [key: string]: string } = {
+      'PEEZY': '0x698b1d54E936b9F772b8F58447194bBc82EC1933',
+      'PEPE': '0x6982508145454Ce325dDbE47a25d4ec3d2311933',
+      'SHIB': '0x95aD61b0a150d79219dCF64E1E6Cc01f0B64C4cE',
+      // Add more contract addresses as needed
+    };
+
+    try {
+      // Try to get real prices for both tokens
+      const fromPrice = await this.getRealTokenPrice(fromAsset, tokenContracts[fromAsset]);
+      const toPrice = await this.getRealTokenPrice(toAsset, tokenContracts[toAsset]);
+      
+      // If we have real prices for both tokens
+      if (fromPrice && toPrice) {
+        const rate = fromPrice / toPrice;
+        console.log(`📊 Real market rate: ${fromAsset}/${toAsset} = ${rate} (${fromPrice}/${toPrice})`);
+        return rate;
+      }
+      
+      // If we have real price for one token, calculate against USD
+      if (fromPrice && toAsset === 'USDC') {
+        console.log(`📊 Real ${fromAsset}/USDC rate: ${fromPrice}`);
+        return fromPrice;
+      }
+      
+      if (toPrice && fromAsset === 'USDC') {
+        const rate = 1 / toPrice;
+        console.log(`📊 Real USDC/${toAsset} rate: ${rate}`);
+        return rate;
+      }
+      
+      // Try ETH conversion if we have real price for one token
+      if (fromPrice && (toAsset === 'ETH' || fromAsset === 'ETH')) {
+        // Get ETH price
+        const ethPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+        const ethData = await ethPriceResponse.json();
+        const ethPrice = ethData.ethereum?.usd || 4500;
+        
+        if (fromAsset === 'ETH') {
+          const rate = ethPrice / toPrice!;
+          console.log(`📊 Real ETH/${toAsset} rate: ${rate}`);
+          return rate;
+        } else {
+          const rate = fromPrice / ethPrice;
+          console.log(`📊 Real ${fromAsset}/ETH rate: ${rate}`);
+          return rate;
+        }
+      }
+      
+    } catch (error) {
+      console.warn(`⚠️ Error fetching real prices:`, error);
+    }
+    
+    // Fallback to conservative estimates only if real pricing fails
+    const fallbackRates: { [key: string]: number } = {
+      'ETH-USDC': 4500,
+      'ETH-BTC': 0.065,
+      'BTC-USDC': 70000,
+    };
+
+    const directPair = `${fromAsset}-${toAsset}`;
+    if (fallbackRates[directPair]) {
+      console.log(`📊 Using fallback rate: ${fromAsset}/${toAsset} = ${fallbackRates[directPair]}`);
+      return fallbackRates[directPair];
+    }
+
     const reversePair = `${toAsset}-${fromAsset}`;
-    if (customRates[reversePair]) {
-      const reverseRate = 1 / customRates[reversePair];
-      console.log(`📊 Using reverse custom rate: ${fromAsset}/${toAsset} = ${reverseRate}`);
+    if (fallbackRates[reversePair]) {
+      const reverseRate = 1 / fallbackRates[reversePair];
+      console.log(`📊 Using reverse fallback rate: ${fromAsset}/${toAsset} = ${reverseRate}`);
       return reverseRate;
     }
 
-    // Default fallback rate (very conservative for unknown pairs)
-    console.log(`⚠️ No rate found for ${fromAsset}-${toAsset}, using default 1:1`);
+    console.log(`⚠️ No real or fallback rate found for ${fromAsset}-${toAsset}, using 1:1`);
     return 1.0;
   }
 

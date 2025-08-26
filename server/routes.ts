@@ -7,8 +7,8 @@ import { FeeCalculator } from "./services/feeCalculator";
 // Legacy auth and route imports removed - functionality consolidated
 import { z } from "zod";
 import { db } from "./db";
-import { sql, eq } from "drizzle-orm";
-import { aiMarketplaceOrders, globalAIAgents, users, platformTransactions } from "../shared/schema";
+import { sql, eq, desc } from "drizzle-orm";
+import { aiMarketplaceOrders, globalAIAgents, users, platformTransactions, tradingFees } from "../shared/schema";
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
 import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
@@ -802,6 +802,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === P2P TRANSFER ROUTES ===
   // Peer-to-peer transfer system - core revenue generator
   app.use('/api/p2p', p2pRoutes);
+  
+  // Get DEX trading transactions with revenue tracking
+  app.get("/api/trading/transactions", async (req, res) => {
+    try {
+      const userAddress = req.query.userAddress as string;
+      
+      if (!userAddress) {
+        return res.status(400).json({ error: "User address is required" });
+      }
+
+      // Fetch trading transactions from both platformTransactions and tradingFees
+      const platformTxs = await db.select().from(platformTransactions)
+        .where(eq(platformTransactions.fromAddress, userAddress))
+        .orderBy(desc(platformTransactions.createdAt))
+        .limit(25);
+
+      // Also check tradingFees table for direct DEX fees
+      const tradingTxs = await db.select().from(tradingFees)
+        .where(eq(tradingFees.userAddress, userAddress))
+        .orderBy(desc(tradingFees.createdAt))
+        .limit(25);
+
+      // Combine and format transactions
+      const allTransactions = [
+        ...platformTxs.filter(tx => tx.type === 'dex').map(tx => ({
+          id: tx.id,
+          type: 'platform_dex',
+          fromToken: JSON.parse(tx.metadata || '{}').fromToken || 'Unknown',
+          toToken: JSON.parse(tx.metadata || '{}').toToken || 'Unknown',
+          amount: tx.amount.toString(),
+          platformFee: tx.fee.toString(),
+          transactionHash: tx.txHash,
+          status: tx.status,
+          createdAt: tx.createdAt,
+          source: 'DEX Trading'
+        })),
+        ...tradingTxs.map(tx => ({
+          id: tx.id,
+          type: 'direct_dex',
+          fromToken: tx.fromToken,
+          toToken: tx.toToken,
+          amount: tx.amount,
+          platformFee: tx.platformFee,
+          transactionHash: tx.transactionHash,
+          status: tx.status,
+          createdAt: tx.createdAt,
+          source: 'DEX Trading'
+        }))
+      ];
+
+      // Sort by date and calculate metrics
+      allTransactions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      const totalVolume = allTransactions.reduce((sum, tx) => 
+        sum + parseFloat(tx.amount.toString()), 0);
+      const totalFees = allTransactions.reduce((sum, tx) => 
+        sum + parseFloat(tx.platformFee.toString()), 0);
+
+      res.json({
+        transactions: allTransactions.slice(0, 50),
+        metrics: {
+          totalTransactions: allTransactions.length,
+          totalVolume: totalVolume.toFixed(8),
+          totalFees: totalFees.toFixed(8),
+          totalRevenue: totalFees.toFixed(8) // Platform keeps all DEX fees
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching trading transactions:', error);
+      res.status(500).json({ error: 'Failed to fetch trading transactions' });
+    }
+  });
   
   // Trading fees recording endpoint with database persistence
   app.post("/api/balance/record-trading-fee", async (req, res) => {

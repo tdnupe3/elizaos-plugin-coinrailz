@@ -36,6 +36,11 @@ export default function TransactionHistory() {
     queryKey: ["/api/crypto/transactions"],
   });
 
+  const { data: dexTradingData, isLoading: dexLoading } = useQuery({
+    queryKey: ["/api/trading/transactions"],
+    retry: false,
+  });
+
   const formatCurrency = (amount: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -85,9 +90,10 @@ export default function TransactionHistory() {
         </div>
 
         <Tabs defaultValue="payments" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="payments">Payments</TabsTrigger>
             <TabsTrigger value="crypto">Crypto</TabsTrigger>
+            <TabsTrigger value="dex">DEX Trading</TabsTrigger>
           </TabsList>
 
           <TabsContent value="payments">
@@ -191,6 +197,106 @@ export default function TransactionHistory() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="dex">
+            <div className="space-y-6">
+              {/* Revenue Analytics Summary */}
+              {dexTradingData?.metrics && (
+                <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="text-blue-900">DEX Trading Analytics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-blue-600">{dexTradingData.metrics.totalTransactions}</p>
+                        <p className="text-sm text-blue-800">Total Trades</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-green-600">${parseFloat(dexTradingData.metrics.totalVolume).toFixed(2)}</p>
+                        <p className="text-sm text-green-800">Total Volume</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-purple-600">${parseFloat(dexTradingData.metrics.totalFees).toFixed(6)}</p>
+                        <p className="text-sm text-purple-800">Platform Fees</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-orange-600">${parseFloat(dexTradingData.metrics.totalRevenue).toFixed(6)}</p>
+                        <p className="text-sm text-orange-800">Revenue Generated</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* DEX Trading Transactions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>DEX Trading History</CardTitle>
+                  <p className="text-sm text-gray-600">Your DEX swaps with revenue tracking</p>
+                </CardHeader>
+                <CardContent>
+                  {dexLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="text-neutral-500">Loading DEX transactions...</div>
+                    </div>
+                  ) : !dexTradingData?.transactions || dexTradingData.transactions.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="mb-4">
+                        <Bitcoin className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                        <p className="text-neutral-500">No DEX trading history found</p>
+                        <p className="text-sm text-neutral-400 mt-1">Your trading transactions will appear here after making swaps</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {dexTradingData.transactions.map((transaction: any) => (
+                        <div key={transaction.id} className="flex items-center space-x-4 p-4 border rounded-lg hover:bg-neutral-50 transition-colors">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                            <Bitcoin className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium text-neutral-800">
+                                  Swap: {transaction.fromToken} → {transaction.toToken}
+                                </p>
+                                <p className="text-sm text-neutral-500">
+                                  {formatDateTime(new Date(transaction.createdAt), "MMM dd, yyyy 'at' h:mm a")}
+                                </p>
+                                <div className="flex space-x-4 mt-1">
+                                  <p className="text-sm text-blue-600">
+                                    Amount: ${parseFloat(transaction.amount).toFixed(6)}
+                                  </p>
+                                  <p className="text-sm text-green-600">
+                                    Platform Fee: ${parseFloat(transaction.platformFee).toFixed(6)}
+                                  </p>
+                                  {transaction.transactionHash && (
+                                    <p className="text-xs text-purple-600">
+                                      Hash: {transaction.transactionHash.slice(0, 12)}...
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-blue-600">
+                                  DEX Trade
+                                </p>
+                                <p className="text-sm text-neutral-500 capitalize">{transaction.status}</p>
+                                <div className="text-xs text-green-600 mt-1">
+                                  Revenue: ${parseFloat(transaction.platformFee).toFixed(6)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </main>

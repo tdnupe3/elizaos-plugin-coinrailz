@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { LanguageSwitcher } from "./language-switcher";
+import { PremiumUserBadge } from "./PremiumUserBadge";
 
 interface NavigationHeaderProps {
   isDemo?: boolean;
@@ -64,6 +65,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
           </div>
 
           <div className="flex items-center space-x-4">
+            <PremiumUserBadge variant="compact" />
             <Button
               variant="outline"
               size="sm"

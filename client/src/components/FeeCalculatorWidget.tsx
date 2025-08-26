@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TrendingDown, Clock, Shield, Zap } from '@/lib/icons';
+import { PremiumUserBadge, PremiumSavingsIndicator } from './PremiumUserBadge';
 
 interface FeeCalculation {
   originalAmount: number;
@@ -87,10 +88,13 @@ export default function FeeCalculatorWidget() {
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Zap className="h-5 w-5 text-blue-500" />
-          XRP Fee Calculator
-          <Badge variant="outline" className="ml-2">Enhanced Tiered Pricing</Badge>
+        <CardTitle className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="h-5 w-5 text-blue-500" />
+            XRP Fee Calculator
+            <Badge variant="outline" className="ml-2">Enhanced Tiered Pricing</Badge>
+          </div>
+          <PremiumUserBadge variant="icon-only" />
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -104,6 +108,12 @@ export default function FeeCalculatorWidget() {
             placeholder="Enter amount..."
             className="text-lg"
           />
+          {amount && parseFloat(amount) > 0 && (
+            <PremiumSavingsIndicator 
+              amount={parseFloat(amount)} 
+              className="text-xs" 
+            />
+          )}
         </div>
 
         {fees && (

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowUpDown, TrendingUp, Zap, Shield, RefreshCw } from "@/lib/icons";
 import { SubscriptionFeeDisplay } from "@/components/SubscriptionFeeDisplay";
+import { PremiumSavingsIndicator, PremiumUserBadge } from "@/components/PremiumUserBadge";
 
 interface SwapRate {
   provider: string;
@@ -113,9 +114,12 @@ export default function EnhancedSwapInterface() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ArrowUpDown className="w-5 h-5" />
-            Enhanced Cross-Chain Swap
+          <CardTitle className="flex items-center gap-2 justify-between">
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-5 h-5" />
+              Enhanced Cross-Chain Swap
+            </div>
+            <PremiumUserBadge variant="icon-only" />
           </CardTitle>
           <CardDescription>
             Compare rates from multiple providers including ChangeNOW (900+ currencies) and 1inch DEX aggregation
@@ -191,6 +195,12 @@ export default function EnhancedSwapInterface() {
               value={swapForm.amount}
               onChange={(e) => handleAmountChange(e.target.value)}
             />
+            {swapForm.amount && parseFloat(swapForm.amount) > 0 && (
+              <PremiumSavingsIndicator 
+                amount={parseFloat(swapForm.amount)} 
+                className="mt-1" 
+              />
+            )}
           </div>
 
           <div>

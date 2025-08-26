@@ -26,6 +26,7 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { Link } from 'wouter';
 import { SubscriptionChangeFlow } from '@/components/SubscriptionChangeFlow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PremiumUserBadge, PremiumFeatureGate } from '@/components/PremiumUserBadge';
 
 interface SubscriptionDetails {
   id: string;
@@ -181,11 +182,14 @@ export default function SubscriptionDashboard() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Subscription Dashboard</h1>
-        <p className="text-muted-foreground">
-          Manage your subscription, view usage, and track savings
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Subscription Dashboard</h1>
+          <p className="text-muted-foreground">
+            Manage your subscription, view usage, and track savings
+          </p>
+        </div>
+        <PremiumUserBadge variant="full" showSavings showCredits />
       </div>
 
       {/* Subscription Status Alert */}

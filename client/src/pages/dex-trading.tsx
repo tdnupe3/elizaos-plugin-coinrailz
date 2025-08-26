@@ -529,7 +529,7 @@ export default function DEXTrading() {
   const [mevProtectionEnabled, setMevProtectionEnabled] = useState(true);
   const [priorityRouting, setPriorityRouting] = useState(false);
   const [selectedTimeframe, setSelectedTimeframe] = useState('1h');
-  const [slippageTolerance, setSlippageTolerance] = useState('2.0'); // Coinbase default
+  const [slippageTolerance, setSlippageTolerance] = useState('3.0'); // Higher default for volatile markets
   const [postOnlyMode, setPostOnlyMode] = useState(false); // Maker orders only
   const [autoRefreshQuotes, setAutoRefreshQuotes] = useState(true);
 
@@ -903,6 +903,7 @@ export default function DEXTrading() {
         amount: fromAmount,
         quote,
         walletAddress,
+        slippage: parseFloat(slippageTolerance),
         selectedNetwork,
         userId: user?.id || null
       });
@@ -1243,13 +1244,13 @@ export default function DEXTrading() {
                     </div>
                   )}
 
-                  {/* Slippage Tolerance Setting - Coinbase DEX Default 2% */}
+                  {/* Slippage Tolerance Setting - Default 3% for volatile markets */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-sm">Slippage Tolerance</Label>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-gray-500">{slippageTolerance}%</span>
-                        {parseFloat(slippageTolerance) > 2.0 && (
+                        {parseFloat(slippageTolerance) > 3.0 && (
                           <Badge variant="destructive" className="text-xs">High Risk</Badge>
                         )}
                       </div>

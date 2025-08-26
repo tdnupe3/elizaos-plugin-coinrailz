@@ -957,7 +957,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           realQuote = await quoteResponse.json();
           
           // Get swap transaction data from 1inch (using correct chainId)
-          const swapUrl = `https://api.1inch.dev/swap/v5.2/${chainId}/swap?src=${fromTokenData.address}&dst=${toTokenData.address}&amount=${amountInWei}&from=${walletAddress}&slippage=1`;
+          const swapUrl = `https://api.1inch.dev/swap/v5.2/${chainId}/swap?src=${fromTokenData.address}&dst=${toTokenData.address}&amount=${amountInWei}&from=${walletAddress}&slippage=3`;
           
           const swapResponse = await fetch(swapUrl, {
             headers: {
@@ -1061,7 +1061,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     validateBusinessRules.walletAddress,
     async (req, res) => {
     try {
-      const { fromAsset, toAsset, amount, quote, walletAddress, userId } = req.body;
+      const { fromAsset, toAsset, amount, quote, walletAddress, userId, slippage = 3 } = req.body;
       
       // Enhanced validation with business rules
       if (!fromAsset || !toAsset || !amount || !walletAddress) {

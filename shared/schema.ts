@@ -1962,3 +1962,120 @@ export const insertDexSubscriptionSchema = createInsertSchema(dexSubscriptions).
   createdAt: true,
   updatedAt: true,
 });
+
+// Enhanced Subscription Management System
+export const subscriptionPlans = pgTable("subscription_plans", {
+  id: varchar("id").primaryKey(), // starter, pro, enterprise
+  name: varchar("name").notNull(),
+  monthlyPrice: decimal("monthly_price", { precision: 8, scale: 2 }).notNull(),
+  yearlyPrice: decimal("yearly_price", { precision: 8, scale: 2 }).notNull(),
+  yearlyDiscount: integer("yearly_discount").notNull(), // percentage
+  tradingFeeReduction: integer("trading_fee_reduction").notNull(), // percentage
+  crossChainFeeReduction: integer("cross_chain_fee_reduction").notNull(), // percentage
+  aiMarketplaceCredits: decimal("ai_marketplace_credits", { precision: 8, scale: 2 }).notNull(),
+  features: jsonb("features"), // Array of feature strings
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  planId: varchar("plan_id").notNull().references(() => subscriptionPlans.id),
+  status: varchar("status").notNull().default("active"), // active, cancelled, expired, pending
+  currentPeriodStart: timestamp("current_period_start").notNull(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  
+  // Payment method tracking
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  paypalSubscriptionId: varchar("paypal_subscription_id"),
+  usdcPaymentTxHash: varchar("usdc_payment_tx_hash"),
+  
+  // Billing details
+  isYearly: boolean("is_yearly").default(false),
+  lastPaymentAmount: decimal("last_payment_amount", { precision: 8, scale: 2 }),
+  lastPaymentDate: timestamp("last_payment_date"),
+  nextBillingDate: timestamp("next_billing_date"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIndex: index("subscriptions_user_idx").on(table.userId),
+  planIdIndex: index("subscriptions_plan_idx").on(table.planId),
+  statusIndex: index("subscriptions_status_idx").on(table.status),
+  stripeIdIndex: index("subscriptions_stripe_idx").on(table.stripeSubscriptionId),
+}));
+
+export const paymentMethods = pgTable("payment_methods", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull(), // stripe_card, paypal, usdc, crypto
+  isDefault: boolean("is_default").default(false),
+  
+  // Stripe details
+  stripePaymentMethodId: varchar("stripe_payment_method_id"),
+  cardLast4: varchar("card_last4"),
+  cardBrand: varchar("card_brand"),
+  cardExpMonth: integer("card_exp_month"),
+  cardExpYear: integer("card_exp_year"),
+  
+  // PayPal details
+  paypalEmail: varchar("paypal_email"),
+  
+  // Crypto details
+  walletAddress: varchar("wallet_address"),
+  blockchain: varchar("blockchain"),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => ({
+  userIdIndex: index("payment_methods_user_idx").on(table.userId),
+  typeIndex: index("payment_methods_type_idx").on(table.type),
+}));
+
+// Subscription Relations
+export const subscriptionPlansRelations = relations(subscriptionPlans, ({ many }) => ({
+  subscriptions: many(subscriptions),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  user: one(users, {
+    fields: [subscriptions.userId],
+    references: [users.id],
+  }),
+  plan: one(subscriptionPlans, {
+    fields: [subscriptions.planId],
+    references: [subscriptionPlans.id],
+  }),
+}));
+
+export const paymentMethodsRelations = relations(paymentMethods, ({ one }) => ({
+  user: one(users, {
+    fields: [paymentMethods.userId],
+    references: [users.id],
+  }),
+}));
+
+// Subscription Types
+export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
+export type InsertSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = typeof subscriptions.$inferInsert;
+export type PaymentMethod = typeof paymentMethods.$inferSelect;
+export type InsertPaymentMethod = typeof paymentMethods.$inferInsert;
+
+// Subscription Insert Schemas
+export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans);
+export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});

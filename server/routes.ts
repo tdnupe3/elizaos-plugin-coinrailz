@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { registerSubscriptionRoutes } from "./routes/subscriptionRoutes";
 import { globalAgentNetwork } from "./services/globalAgentNetworkService";
 import { FeeCalculator } from "./services/feeCalculator";
 // Legacy auth and route imports removed - functionality consolidated

@@ -70,18 +70,16 @@ export function useMobileOptimization() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
-          setIsPWAEnabled(true);
+          console.log('Service Worker registered successfully');
 
-          // Enable background sync for offline transactions
-          if ('sync' in window.ServiceWorkerRegistration.prototype) {
-            registration.sync.register('background-transaction-sync');
-          }
+          // Enable background sync for offline transactions (if available)
+          // Note: Background sync API requires additional setup
 
           // Enable push notifications for transaction alerts
           if ('PushManager' in window) {
             registration.pushManager.subscribe({
               userVisibleOnly: true,
-              applicationServerKey: process.env.VITE_VAPID_PUBLIC_KEY
+              applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY
             });
           }
         })

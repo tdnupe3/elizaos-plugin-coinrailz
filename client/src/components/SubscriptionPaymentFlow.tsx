@@ -154,7 +154,7 @@ function USDCPaymentForm({ plan, billingPeriod, onSuccess }: {
   const [paymentStep, setPaymentStep] = useState<'instructions' | 'confirmation'>('instructions');
 
   const amount = billingPeriod === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice;
-  const platformWallet = process.env.PLATFORM_USDC_WALLET || '0x742d35Cc6634C0532925a3b8D186dCE24aA7B0d0';
+  // Platform wallet address should be fetched from backend API, not exposed in frontend
 
   const confirmPaymentMutation = useMutation({
     mutationFn: async (txHash: string) => {
@@ -207,7 +207,7 @@ function USDCPaymentForm({ plan, billingPeriod, onSuccess }: {
         <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
           <div className="text-sm font-medium mb-2">Payment Address:</div>
           <div className="font-mono text-sm break-all bg-white dark:bg-gray-800 p-3 rounded border">
-            {platformWallet}
+            Contact support for payment address
           </div>
           <div className="mt-2 text-sm text-muted-foreground">
             Network: Ethereum (ERC-20) or Polygon

@@ -127,11 +127,23 @@ export function ProductionDeploymentChecker() {
       updatedChecks[1].details = 'Stripe integration failed';
     }
 
-    // Email service check
-    updatedChecks[2].status = process.env.SENDGRID_API_KEY ? 'passed' : 'warning';
-    updatedChecks[2].details = process.env.SENDGRID_API_KEY 
-      ? 'SendGrid API key configured'
-      : 'SendGrid API key not set (emails will be simulated)';
+    // Email service check - Make API call to backend to check status
+    try {
+      const response = await fetch('/api/health/email');
+      if (response.ok) {
+        const data = await response.json();
+        updatedChecks[2].status = data.configured ? 'passed' : 'warning';
+        updatedChecks[2].details = data.configured 
+          ? 'SendGrid API key configured'
+          : 'SendGrid API key not set (emails will be simulated)';
+      } else {
+        updatedChecks[2].status = 'warning';
+        updatedChecks[2].details = 'Cannot verify email configuration';
+      }
+    } catch (error) {
+      updatedChecks[2].status = 'warning';
+      updatedChecks[2].details = 'Cannot verify email configuration';
+    }
 
     // Auth system check
     try {

@@ -1643,6 +1643,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Email service health check
+  app.get('/api/health/email', async (req, res) => {
+    res.json({
+      configured: !!process.env.SENDGRID_API_KEY,
+      status: process.env.SENDGRID_API_KEY ? 'ready' : 'not_configured'
+    });
+  });
   
   app.get('/api/platform/revenue', async (req, res) => {
     try {

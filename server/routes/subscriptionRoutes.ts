@@ -375,7 +375,6 @@ export function registerSubscriptionRoutes(app: Express) {
         .update(subscriptions)
         .set({
           planId: newPlanId,
-          amount: newAmount.toString(),
           currentPeriodStart: changeType === 'upgrade' ? new Date() : effectiveDate,
           currentPeriodEnd: nextBillingDate,
           status: 'active',
@@ -826,6 +825,117 @@ export function registerSubscriptionRoutes(app: Express) {
     } catch (error) {
       console.error("Error fetching renewal statistics:", error);
       res.status(500).json({ error: "Failed to fetch renewal statistics" });
+    }
+  });
+
+  // Calculate trading fee with subscription discount
+  app.post("/api/user/calculate-trading-fee", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { amount } = req.body;
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Valid amount is required" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      
+      // Get user's subscription status
+      const subscriptionStatus = await subscriptionStatusService.getUserSubscriptionStatus(userId);
+      
+      // Base trading fee rate: 1.5%
+      const baseFeeRate = 0.015;
+      const baseFee = amount * baseFeeRate;
+      
+      // Apply subscription discount (max 30%)
+      const discountRate = Math.min(subscriptionStatus.tradingFeeReduction / 100, 0.30);
+      const discountAmount = baseFee * discountRate;
+      const finalFee = baseFee - discountAmount;
+      
+      res.json({
+        baseFee: parseFloat(baseFee.toFixed(6)),
+        discountAmount: parseFloat(discountAmount.toFixed(6)),
+        finalFee: parseFloat(finalFee.toFixed(6)),
+        feeReduction: subscriptionStatus.tradingFeeReduction
+      });
+
+    } catch (error) {
+      console.error("Error calculating trading fee:", error);
+      res.status(500).json({ error: "Failed to calculate trading fee" });
+    }
+  });
+
+  // Calculate cross-chain fee with subscription discount
+  app.post("/api/user/calculate-crosschain-fee", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { amount } = req.body;
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: "Valid amount is required" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      
+      // Get user's subscription status
+      const subscriptionStatus = await subscriptionStatusService.getUserSubscriptionStatus(userId);
+      
+      // Base cross-chain fee rate: 2.5%
+      const baseFeeRate = 0.025;
+      const baseFee = amount * baseFeeRate;
+      
+      // Apply subscription discount (max 30%)
+      const discountRate = Math.min(subscriptionStatus.crossChainFeeReduction / 100, 0.30);
+      const discountAmount = baseFee * discountRate;
+      const finalFee = baseFee - discountAmount;
+      
+      res.json({
+        baseFee: parseFloat(baseFee.toFixed(6)),
+        discountAmount: parseFloat(discountAmount.toFixed(6)),
+        finalFee: parseFloat(finalFee.toFixed(6)),
+        feeReduction: subscriptionStatus.crossChainFeeReduction
+      });
+
+    } catch (error) {
+      console.error("Error calculating cross-chain fee:", error);
+      res.status(500).json({ error: "Failed to calculate cross-chain fee" });
+    }
+  });
+
+  // Get user subscription benefits (for UI display)
+  app.get("/api/user/subscription-benefits", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      const subscriptionStatus = await subscriptionStatusService.getUserSubscriptionStatus(userId);
+      
+      // Format benefits for frontend display
+      const benefits = {
+        tradingFeeReduction: subscriptionStatus.tradingFeeReduction > 0 ? 
+          `${subscriptionStatus.tradingFeeReduction}%` : 'None',
+        crossChainFeeReduction: subscriptionStatus.crossChainFeeReduction > 0 ? 
+          `${subscriptionStatus.crossChainFeeReduction}%` : 'None',
+        aiCredits: subscriptionStatus.aiMarketplaceCredits > 0 ? 
+          `$${subscriptionStatus.aiMarketplaceCredits}` : 'None',
+        planName: subscriptionStatus.planName,
+        isActive: subscriptionStatus.isActive && subscriptionStatus.planId !== 'free'
+      };
+      
+      res.json(benefits);
+
+    } catch (error) {
+      console.error("Error fetching subscription benefits:", error);
+      res.status(500).json({ error: "Failed to fetch subscription benefits" });
     }
   });
 

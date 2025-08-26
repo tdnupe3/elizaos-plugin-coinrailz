@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowUpDown, TrendingUp, Zap, Shield, RefreshCw } from "@/lib/icons";
+import { SubscriptionFeeDisplay } from "@/components/SubscriptionFeeDisplay";
 
 interface SwapRate {
   provider: string;
@@ -106,7 +107,7 @@ export default function EnhancedSwapInterface() {
   };
 
   const popularTokens = ['BTC', 'ETH', 'USDT', 'USDC', 'SOL', 'DOGE', 'LTC', 'XRP'];
-  const availableCurrencies = currenciesData?.currencies || popularTokens;
+  const availableCurrencies = (currenciesData as any)?.currencies || popularTokens;
 
   return (
     <div className="space-y-6">
@@ -265,6 +266,16 @@ export default function EnhancedSwapInterface() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Fee Display with Subscription Discounts */}
+      {swapForm.amount && parseFloat(swapForm.amount) > 0 && (
+        <SubscriptionFeeDisplay 
+          amount={parseFloat(swapForm.amount)}
+          feeType="trading"
+          showUpgradePrompt={true}
+          compact={false}
+        />
       )}
 
       <div className="flex gap-3">

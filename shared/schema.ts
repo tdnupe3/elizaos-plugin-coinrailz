@@ -1970,8 +1970,8 @@ export const subscriptionPlans = pgTable("subscription_plans", {
   monthlyPrice: decimal("monthly_price", { precision: 8, scale: 2 }).notNull(),
   yearlyPrice: decimal("yearly_price", { precision: 8, scale: 2 }).notNull(),
   yearlyDiscount: integer("yearly_discount").notNull(), // percentage
-  tradingFeeReduction: integer("trading_fee_reduction").notNull(), // percentage
-  crossChainFeeReduction: integer("cross_chain_fee_reduction").notNull(), // percentage
+  tradingFeeReduction: integer("trading_fee_reduction").notNull(), // percentage (max 30%)
+  crossChainFeeReduction: integer("cross_chain_fee_reduction").notNull(), // percentage (max 30%)
   aiMarketplaceCredits: decimal("ai_marketplace_credits", { precision: 8, scale: 2 }).notNull(),
   features: jsonb("features"), // Array of feature strings
   isActive: boolean("is_active").default(true),

@@ -48,12 +48,12 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     monthlyPrice: 9.99,
     yearlyPrice: 95.90, // 20% off
     yearlyDiscount: 20,
-    tradingFeeReduction: 40, // 0.15% (40% savings)
-    crossChainFeeReduction: 40, // 0.3% (40% savings)
+    tradingFeeReduction: 10, // 0.225% (10% savings)
+    crossChainFeeReduction: 10, // 0.45% (10% savings)
     aiMarketplaceCredits: 10,
     features: [
-      'Reduced trading fees (0.15%)',
-      'Reduced cross-chain fees (0.3%)',
+      'Reduced trading fees (0.225%)',
+      'Reduced cross-chain fees (0.45%)',
       '$10/month AI Marketplace credits',
       'Priority email support (24h)',
       'Extended history (6 months)',
@@ -66,12 +66,12 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     monthlyPrice: 29.99,
     yearlyPrice: 287.90, // 20% off
     yearlyDiscount: 20,
-    tradingFeeReduction: 60, // 0.1% (60% savings)
-    crossChainFeeReduction: 60, // 0.2% (60% savings)
+    tradingFeeReduction: 20, // 0.2% (20% savings)
+    crossChainFeeReduction: 20, // 0.4% (20% savings)
     aiMarketplaceCredits: 50,
     features: [
-      'Ultra-low trading fees (0.1%)',
-      'Ultra-low cross-chain fees (0.2%)',
+      'Discounted trading fees (0.2%)',
+      'Discounted cross-chain fees (0.4%)',
       '$50/month AI Marketplace credits',
       'Advanced trading tools',
       'Portfolio analytics',
@@ -86,12 +86,12 @@ export const SUBSCRIPTION_TIERS: SubscriptionTier[] = [
     monthlyPrice: 99.99,
     yearlyPrice: 959.90, // 20% off
     yearlyDiscount: 20,
-    tradingFeeReduction: 100, // 0% (100% savings)
-    crossChainFeeReduction: 100, // 0% (100% savings)
+    tradingFeeReduction: 30, // 0.175% (30% savings)
+    crossChainFeeReduction: 30, // 0.35% (30% savings)
     aiMarketplaceCredits: 200,
     features: [
-      'Zero trading fees (0%)',
-      'Zero cross-chain fees (0%)',
+      'Premium trading fees (0.175%)',
+      'Premium cross-chain fees (0.35%)',
       '$200/month AI Marketplace credits',
       'White-label solutions',
       'Dedicated account manager',

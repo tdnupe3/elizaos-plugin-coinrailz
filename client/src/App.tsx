@@ -177,6 +177,20 @@ function Router() {
       <Route path="/balance-check">
         {() => <LazyLoadWrapper><BalanceCheck /></LazyLoadWrapper>}
       </Route>
+
+      {/* DEX Trading - Available to all users (guest and authenticated) */}
+      <Route path="/dex-trading">
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/dex">
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/trading">
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/swap">
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
+      </Route>
       <Route path="/beta-balance">
         {() => <LazyLoadWrapper><BetaBalanceDemo /></LazyLoadWrapper>}
       </Route>

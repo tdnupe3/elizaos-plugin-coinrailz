@@ -972,7 +972,7 @@ export const aiMarketplaceCommissions = pgTable("ai_marketplace_commissions", {
 // Platform Transactions - Universal transaction tracking across all services
 export const platformTransactions = pgTable("platform_transactions", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: varchar("user_id").references(() => users.id), // Allow null for guest transactions
   type: varchar("type", { length: 50 }).notNull(), // 'p2p', 'dex', 'marketplace', 'onramp', 'offramp', 'xrp'
   amount: decimal("amount", { precision: 18, scale: 6 }).notNull(),
   currency: varchar("currency", { length: 10 }).notNull().default("USDC"),

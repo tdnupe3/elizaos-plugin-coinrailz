@@ -858,18 +858,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Minimum trade amount validation (business rule)
+      // Calculate USD value of the trade for validation
       const tradeAmount = parseFloat(amount);
-      if (tradeAmount < 10) {
+      let tradeValueUSD = tradeAmount;
+      
+      // Convert crypto amounts to USD for validation
+      if (fromAsset === 'ETH') {
+        // Get current ETH price
+        try {
+          const ethPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+          const ethData = await ethPriceResponse.json();
+          const ethPrice = ethData.ethereum?.usd || 4500; // Fallback price
+          tradeValueUSD = tradeAmount * ethPrice;
+        } catch (error) {
+          // Fallback ETH price for validation
+          tradeValueUSD = tradeAmount * 4500;
+        }
+      } else if (fromAsset === 'BTC') {
+        try {
+          const btcPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+          const btcData = await btcPriceResponse.json();
+          const btcPrice = btcData.bitcoin?.usd || 65000;
+          tradeValueUSD = tradeAmount * btcPrice;
+        } catch (error) {
+          tradeValueUSD = tradeAmount * 65000;
+        }
+      }
+      // USDC, USDT are already in USD
+      
+      // Minimum trade amount validation (business rule)
+      if (tradeValueUSD < 10) {
         return res.status(400).json({
-          error: 'Minimum trade amount is $10 to ensure profitable operations'
+          error: 'Minimum transaction amount is $10 to ensure profitable operations',
+          minimumAmount: 10,
+          providedAmount: tradeValueUSD
         });
       }
 
       // Maximum trade amount validation (risk management)
-      if (tradeAmount > 50000) {
+      if (tradeValueUSD > 50000) {
         return res.status(400).json({
-          error: 'Maximum trade amount is $50,000 per transaction for security'
+          error: 'Maximum trade amount is $50,000 per transaction for security',
+          maximumAmount: 50000,
+          providedAmount: tradeValueUSD
         });
       }
 
@@ -912,7 +943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Record the successful trade for revenue tracking
       const [transaction] = await db.insert(platformTransactions).values({
-        userId: userId || 'system',
+        userId: userId || null, // Allow null for guest transactions
         type: 'dex',
         amount: parseFloat(amount),
         fee: parseFloat(tradeResult.platformFee || '0'),

@@ -115,15 +115,41 @@ export const isRateLimited = (req: Request): boolean => {
 // Business logic validation middleware
 export const validateBusinessRules = {
   // Minimum transaction amounts for profitability
-  minimumAmounts: (req: Request, res: Response, next: Function) => {
-    const { amount } = req.body;
+  minimumAmounts: async (req: Request, res: Response, next: Function) => {
+    const { amount, fromAsset } = req.body;
     
-    if (amount && parseFloat(amount) < 10) {
-      return res.status(400).json({
-        error: 'Minimum transaction amount is $10 to ensure profitable operations',
-        minimumAmount: 10,
-        providedAmount: parseFloat(amount)
-      });
+    if (amount) {
+      let tradeValueUSD = parseFloat(amount);
+      
+      // Convert crypto amounts to USD for validation
+      if (fromAsset === 'ETH') {
+        try {
+          const ethPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+          const ethData = await ethPriceResponse.json();
+          const ethPrice = ethData.ethereum?.usd || 4500;
+          tradeValueUSD = parseFloat(amount) * ethPrice;
+        } catch (error) {
+          tradeValueUSD = parseFloat(amount) * 4500; // Fallback price
+        }
+      } else if (fromAsset === 'BTC') {
+        try {
+          const btcPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd');
+          const btcData = await btcPriceResponse.json();
+          const btcPrice = btcData.bitcoin?.usd || 65000;
+          tradeValueUSD = parseFloat(amount) * btcPrice;
+        } catch (error) {
+          tradeValueUSD = parseFloat(amount) * 65000; // Fallback price
+        }
+      }
+      // USDC, USDT are already in USD
+      
+      if (tradeValueUSD < 10) {
+        return res.status(400).json({
+          error: 'Minimum transaction amount is $10 to ensure profitable operations',
+          minimumAmount: 10,
+          providedAmount: tradeValueUSD
+        });
+      }
     }
     
     next();

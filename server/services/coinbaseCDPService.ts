@@ -510,8 +510,8 @@ export class CoinbaseCDPService {
       console.log(`📈 Live price: ${fromAsset}/${toAsset} = ${rate}`);
       return parseFloat(rate);
     } catch (error) {
-      console.warn(`⚠️ Failed to get live price for ${fromAsset}-${toAsset}, using fallback`);
-      return this.getSimulatedMarketRate(fromAsset, toAsset);
+      console.warn(`⚠️ Failed to get live price for ${fromAsset}-${toAsset}, fetching real market data`);
+      return await this.getRealMarketRate(fromAsset, toAsset);
     }
   }
 
@@ -553,9 +553,9 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Get market rate using real pricing data or fallback
+   * Get market rate using real pricing data from DEX Screener and CoinGecko APIs
    */
-  private async getSimulatedMarketRate(fromAsset: string, toAsset: string): Promise<number> {
+  private async getRealMarketRate(fromAsset: string, toAsset: string): Promise<number> {
     // Known token contract addresses for real pricing
     const tokenContracts: { [key: string]: string } = {
       'PEEZY': '0x698b1d54E936b9F772b8F58447194bBc82EC1933',
@@ -565,14 +565,31 @@ export class CoinbaseCDPService {
     };
 
     try {
-      // Try to get real prices for both tokens
-      const fromPrice = await this.getRealTokenPrice(fromAsset, tokenContracts[fromAsset]);
-      const toPrice = await this.getRealTokenPrice(toAsset, tokenContracts[toAsset]);
+      // For ETH pairs, get ETH price from CoinGecko first
+      let ethPrice: number | null = null;
+      if (fromAsset === 'ETH' || toAsset === 'ETH') {
+        try {
+          const ethPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+          const ethData = await ethPriceResponse.json();
+          ethPrice = ethData.ethereum?.usd;
+          if (ethPrice) {
+            console.log(`💰 Real ETH price: $${ethPrice}`);
+          }
+        } catch (error) {
+          console.warn(`⚠️ Failed to get ETH price from CoinGecko:`, error);
+        }
+      }
+      
+      // Try to get real prices for tokens (not ETH)
+      const fromPrice = fromAsset === 'ETH' ? ethPrice : await this.getRealTokenPrice(fromAsset, tokenContracts[fromAsset]);
+      const toPrice = toAsset === 'ETH' ? ethPrice : await this.getRealTokenPrice(toAsset, tokenContracts[toAsset]);
+      
+      console.log(`🔍 Price lookup: ${fromAsset}=$${fromPrice}, ${toAsset}=$${toPrice}`);
       
       // If we have real prices for both tokens
       if (fromPrice && toPrice) {
         const rate = fromPrice / toPrice;
-        console.log(`📊 Real market rate: ${fromAsset}/${toAsset} = ${rate} (${fromPrice}/${toPrice})`);
+        console.log(`📊 Real market rate: ${fromAsset}/${toAsset} = ${rate} ($${fromPrice}/$${toPrice})`);
         return rate;
       }
       
@@ -586,24 +603,6 @@ export class CoinbaseCDPService {
         const rate = 1 / toPrice;
         console.log(`📊 Real USDC/${toAsset} rate: ${rate}`);
         return rate;
-      }
-      
-      // Try ETH conversion if we have real price for one token
-      if (fromPrice && (toAsset === 'ETH' || fromAsset === 'ETH')) {
-        // Get ETH price
-        const ethPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
-        const ethData = await ethPriceResponse.json();
-        const ethPrice = ethData.ethereum?.usd || 4500;
-        
-        if (fromAsset === 'ETH') {
-          const rate = ethPrice / toPrice!;
-          console.log(`📊 Real ETH/${toAsset} rate: ${rate}`);
-          return rate;
-        } else {
-          const rate = fromPrice / ethPrice;
-          console.log(`📊 Real ${fromAsset}/ETH rate: ${rate}`);
-          return rate;
-        }
       }
       
     } catch (error) {

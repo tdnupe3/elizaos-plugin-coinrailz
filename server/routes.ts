@@ -10,6 +10,10 @@ import { z } from "zod";
 import { db } from "./db";
 import { sql, eq, desc } from "drizzle-orm";
 import { aiMarketplaceOrders, globalAIAgents, users, platformTransactions, tradingFees } from "../shared/schema";
+import { 
+  applyRateLimit, 
+  validateBusinessRules 
+} from './middleware/rateLimiting';
 import { PaymentGatewayResolver } from "./services/paymentGatewayResolver";
 import { connectionManager } from "./services/connectionManager";
 import { paymentCircuitBreaker, xrpCircuitBreaker, aiAgentCircuitBreaker } from "./services/circuitBreaker";
@@ -597,7 +601,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // === GUEST DEX ACCESS - NO AUTHENTICATION REQUIRED ===
   // Production-ready DEX endpoints with trading fee collection
-  app.post('/api/dex/quote', async (req, res) => {
+  app.post('/api/dex/quote', 
+    applyRateLimit('dexQuotes'),
+    async (req, res) => {
     try {
       const { fromToken, toToken, amount, chainId } = req.body;
       
@@ -803,7 +809,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // === COINBASE DEX PRODUCTION ROUTES ===
   // Real-time quote endpoint with live Coinbase pricing
-  app.get('/api/dex/quote', async (req, res) => {
+  app.get('/api/dex/quote', 
+    applyRateLimit('dexQuotes'),
+    async (req, res) => {
     try {
       const { fromAsset, toAsset, amount, network, userId, walletAddress } = req.query;
       
@@ -833,38 +841,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Real blockchain trade execution endpoint
-  app.post('/api/dex/execute-trade', async (req, res) => {
+  // Real blockchain trade execution endpoint with business logic
+  app.post('/api/dex/execute-trade', 
+    applyRateLimit('dexTrading'),
+    validateBusinessRules.minimumAmounts,
+    validateBusinessRules.maximumAmounts,
+    validateBusinessRules.walletAddress,
+    async (req, res) => {
     try {
       const { fromAsset, toAsset, amount, quote, walletAddress, userId } = req.body;
       
+      // Enhanced validation with business rules
       if (!fromAsset || !toAsset || !amount || !walletAddress) {
         return res.status(400).json({
           error: 'Missing required fields for trade execution'
         });
       }
 
-      // Execute REAL trade with CDP
-      const tradeResult = await coinbaseCDPService.executeRealDEXTrade({
-        fromAsset,
-        toAsset, 
-        amount,
-        quote,
-        walletAddress,
-        userId
-      });
+      // Minimum trade amount validation (business rule)
+      const tradeAmount = parseFloat(amount);
+      if (tradeAmount < 10) {
+        return res.status(400).json({
+          error: 'Minimum trade amount is $10 to ensure profitable operations'
+        });
+      }
+
+      // Maximum trade amount validation (risk management)
+      if (tradeAmount > 50000) {
+        return res.status(400).json({
+          error: 'Maximum trade amount is $50,000 per transaction for security'
+        });
+      }
+
+      // Calculate platform fee (0.25% standard rate)
+      const platformFeeRate = 0.0025; // 0.25%
+      const calculatedFee = tradeAmount * platformFeeRate;
+      const minimumFee = 0.50; // Minimum $0.50 fee
+      const platformFee = Math.max(calculatedFee, minimumFee);
+
+      // Execute REAL trade with CDP and enhanced error handling
+      let tradeResult;
+      try {
+        tradeResult = await coinbaseCDPService.executeRealDEXTrade({
+          fromAsset,
+          toAsset, 
+          amount,
+          quote,
+          walletAddress,
+          userId
+        });
+
+        // Validate trade result
+        if (!tradeResult || !tradeResult.transactionHash) {
+          throw new Error('Trade execution failed - no transaction hash received');
+        }
+
+        // Ensure platform fee is collected
+        tradeResult.platformFee = tradeResult.platformFee || platformFee.toString();
+        
+      } catch (tradeError: any) {
+        console.error('❌ CDP Trade execution failed:', tradeError);
+        
+        // Return user-friendly error
+        return res.status(500).json({
+          error: 'Trade execution failed',
+          message: 'Please try again in a few moments',
+          details: process.env.NODE_ENV === 'development' ? tradeError.message : undefined
+        });
+      }
 
       // Record the successful trade for revenue tracking
       const [transaction] = await db.insert(platformTransactions).values({
+        userId: userId || 'system', // Required field
         type: 'dex',
         amount: parseFloat(amount),
-        fee: parseFloat(tradeResult.platformFee),
+        fee: parseFloat(tradeResult.platformFee || '0'),
         currency: 'USDC',
         status: 'completed',
         fromAddress: walletAddress,
         txHash: tradeResult.transactionHash,
         description: `DEX trade: ${fromAsset} → ${toAsset}`,
-        metadata: JSON.stringify({
+        metadata: {
           fromToken: fromAsset,
           toToken: toAsset,
           inputAmount: amount,
@@ -876,7 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           transactionHash: tradeResult.transactionHash,
           executionTimestamp: tradeResult.timestamp,
           source: 'coinbase_dex_production'
-        })
+        }
       }).returning();
 
       console.log(`💰 REAL trade completed: ${tradeResult.transactionHash} | Revenue: $${tradeResult.platformFee}`);
@@ -919,7 +976,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/trading', tradingRoutes);
   
   // Get DEX trading transactions with revenue tracking
-  app.get("/api/trading/transactions", async (req, res) => {
+  app.get("/api/trading/transactions", 
+    applyRateLimit('general'),
+    async (req, res) => {
     try {
       const userAddress = req.query.userAddress as string;
       
@@ -944,10 +1003,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...platformTxs.filter(tx => tx.type === 'dex').map(tx => ({
           id: tx.id,
           type: 'platform_dex',
-          fromToken: JSON.parse(tx.metadata || '{}').fromToken || 'Unknown',
-          toToken: JSON.parse(tx.metadata || '{}').toToken || 'Unknown',
+          fromToken: (tx.metadata as any)?.fromToken || 'Unknown',
+          toToken: (tx.metadata as any)?.toToken || 'Unknown',
           amount: tx.amount.toString(),
-          platformFee: tx.fee.toString(),
+          platformFee: (tx.fee || 0).toString(),
           transactionHash: tx.txHash,
           status: tx.status,
           createdAt: tx.createdAt,
@@ -990,11 +1049,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Trading fees recording endpoint with database persistence
-  app.post("/api/balance/record-trading-fee", async (req, res) => {
+  // Trading fees recording endpoint with enhanced validation
+  app.post("/api/balance/record-trading-fee", 
+    applyRateLimit('feeRecording'),
+    validateBusinessRules.userIdentification,
+    async (req, res) => {
     try {
       const { userAddress, fromToken, toToken, amount, platformFee, transactionHash } = req.body;
       
+      // Enhanced validation
       if (!userAddress || !amount || !platformFee) {
         return res.status(400).json({
           success: false,
@@ -1002,10 +1065,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Validate amounts are positive numbers
+      const tradeAmount = parseFloat(amount.toString());
+      const feeAmount = parseFloat(platformFee.toString());
+      
+      if (tradeAmount <= 0 || feeAmount < 0) {
+        return res.status(400).json({
+          success: false,
+          error: "Invalid amount or fee values"
+        });
+      }
+
+      // Validate fee is reasonable (should be 0.25% of trade amount)
+      const expectedFee = Math.max(tradeAmount * 0.0025, 0.50);
+      if (feeAmount > expectedFee * 2) { // Allow 2x tolerance for edge cases
+        return res.status(400).json({
+          success: false,
+          error: "Platform fee exceeds expected range"
+        });
+      }
+
       // Store trading fee in platformTransactions table
       const transactionId = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const [transaction] = await db.insert(platformTransactions).values({
+        userId: userAddress, // Use userAddress as fallback userId
         type: 'dex',
         amount: parseFloat(amount.toString()),
         fee: parseFloat(platformFee.toString()),
@@ -1014,14 +1098,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fromAddress: userAddress,
         txHash: transactionHash,
         description: `DEX swap: ${fromToken} → ${toToken}`,
-        metadata: JSON.stringify({
+        metadata: {
           fromToken,
           toToken,
           platformRevenue: platformFee,
           transactionDate: new Date().toISOString(),
           source: 'dex_trading',
           transactionId
-        })
+        }
       }).returning();
       
       console.log(`💰 Trading fee recorded: $${platformFee} from $${amount} swap (${fromToken} → ${toToken})`);

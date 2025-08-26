@@ -375,7 +375,6 @@ export function registerSubscriptionRoutes(app: Express) {
         .update(subscriptions)
         .set({
           planId: newPlanId,
-          billingPeriod: newBillingPeriod,
           amount: newAmount.toString(),
           currentPeriodStart: changeType === 'upgrade' ? new Date() : effectiveDate,
           currentPeriodEnd: nextBillingDate,
@@ -386,12 +385,12 @@ export function registerSubscriptionRoutes(app: Express) {
 
       // Handle payment processing based on type
       let paymentResult = null;
-      if (changeType === 'upgrade' && currentSubscription.paymentMethod === 'stripe') {
+      if (changeType === 'upgrade' && currentSubscription.stripeSubscriptionId) {
         // For Stripe upgrades, process prorated payment immediately
         try {
           // This would integrate with Stripe to process prorated payment
           // For now, we'll just log it
-          console.log(`Processed Stripe upgrade for user ${userId}: ${currentSubscription.amount} -> ${newAmount}`);
+          console.log(`Processed Stripe upgrade for user ${userId}: -> ${newAmount}`);
         } catch (error) {
           console.error('Stripe upgrade processing failed:', error);
         }
@@ -483,6 +482,350 @@ export function registerSubscriptionRoutes(app: Express) {
     } catch (error) {
       console.error("Error triggering billing cycle:", error);
       res.status(500).json({ error: "Failed to trigger billing cycle" });
+    }
+  });
+
+  // Get user subscription status (for DEX integration)
+  app.get("/api/user/subscription-status", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      const status = await subscriptionStatusService.getUserSubscriptionStatus(userId);
+      
+      res.json(status);
+    } catch (error) {
+      console.error("Error fetching subscription status:", error);
+      res.status(500).json({ error: "Failed to fetch subscription status" });
+    }
+  });
+
+  // Get subscription benefits summary
+  app.get("/api/user/subscription-benefits", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      const benefits = await subscriptionStatusService.getSubscriptionBenefits(userId);
+      
+      res.json(benefits);
+    } catch (error) {
+      console.error("Error fetching subscription benefits:", error);
+      res.status(500).json({ error: "Failed to fetch subscription benefits" });
+    }
+  });
+
+  // Calculate cross-chain fee for user (for DEX fee display)
+  app.post("/api/user/calculate-crosschain-fee", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { amount } = req.body;
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ error: "Valid amount required" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      const feeCalculation = await subscriptionStatusService.calculateCrossChainFee(userId, amount);
+      
+      res.json(feeCalculation);
+    } catch (error) {
+      console.error("Error calculating cross-chain fee:", error);
+      res.status(500).json({ error: "Failed to calculate cross-chain fee" });
+    }
+  });
+
+  // Calculate trading fee for user (for DEX fee display)
+  app.post("/api/user/calculate-trading-fee", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { amount } = req.body;
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ error: "Valid amount required" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      const feeCalculation = await subscriptionStatusService.calculateTradingFee(userId, amount);
+      
+      res.json(feeCalculation);
+    } catch (error) {
+      console.error("Error calculating trading fee:", error);
+      res.status(500).json({ error: "Failed to calculate trading fee" });
+    }
+  });
+
+  // Track subscription usage
+  app.post("/api/user/track-subscription-usage", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { type, volume, feesSaved, creditsUsed } = req.body;
+      if (!type) {
+        return res.status(400).json({ error: "Usage type required" });
+      }
+
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      await subscriptionStatusService.trackSubscriptionUsage(userId, type, {
+        volume,
+        feesSaved,
+        creditsUsed
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error tracking subscription usage:", error);
+      res.status(500).json({ error: "Failed to track subscription usage" });
+    }
+  });
+
+  // Get subscription metrics (admin only)
+  app.get("/api/admin/subscription-metrics", async (req, res) => {
+    try {
+      const { subscriptionStatusService } = await import("../services/subscriptionStatusService");
+      const metrics = await subscriptionStatusService.getSubscriptionMetrics();
+      
+      res.json(metrics);
+    } catch (error) {
+      console.error("Error fetching subscription metrics:", error);
+      res.status(500).json({ error: "Failed to fetch subscription metrics" });
+    }
+  });
+
+  // Get comprehensive subscription analytics (admin only)
+  app.get("/api/admin/subscription-analytics", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const { subscriptionAnalyticsService } = await import("../services/subscriptionAnalyticsService");
+      
+      const analytics = await subscriptionAnalyticsService.getSubscriptionAnalytics(
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching subscription analytics:", error);
+      res.status(500).json({ error: "Failed to fetch subscription analytics" });
+    }
+  });
+
+  // Get user subscription journey (admin only)
+  app.get("/api/admin/user-journey/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const { subscriptionAnalyticsService } = await import("../services/subscriptionAnalyticsService");
+      
+      const journey = await subscriptionAnalyticsService.getUserSubscriptionJourney(userId);
+      
+      if (!journey) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json(journey);
+    } catch (error) {
+      console.error("Error fetching user journey:", error);
+      res.status(500).json({ error: "Failed to fetch user journey" });
+    }
+  });
+
+  // Get revenue breakdown (admin only)
+  app.get("/api/admin/revenue-breakdown", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const { subscriptionAnalyticsService } = await import("../services/subscriptionAnalyticsService");
+      
+      const breakdown = await subscriptionAnalyticsService.getRevenueBreakdown(
+        startDate ? new Date(startDate as string) : undefined,
+        endDate ? new Date(endDate as string) : undefined
+      );
+      
+      res.json(breakdown);
+    } catch (error) {
+      console.error("Error fetching revenue breakdown:", error);
+      res.status(500).json({ error: "Failed to fetch revenue breakdown" });
+    }
+  });
+
+  // Get cohort analysis (admin only)
+  app.get("/api/admin/cohort-analysis", async (req, res) => {
+    try {
+      const { subscriptionAnalyticsService } = await import("../services/subscriptionAnalyticsService");
+      const cohortData = await subscriptionAnalyticsService.getCohortAnalysis();
+      
+      res.json(cohortData);
+    } catch (error) {
+      console.error("Error fetching cohort analysis:", error);
+      res.status(500).json({ error: "Failed to fetch cohort analysis" });
+    }
+  });
+
+  // Get top subscribers by LTV (admin only)
+  app.get("/api/admin/top-subscribers", async (req, res) => {
+    try {
+      const { limit = 10 } = req.query;
+      const { subscriptionAnalyticsService } = await import("../services/subscriptionAnalyticsService");
+      
+      const topSubscribers = await subscriptionAnalyticsService.getTopSubscribersByLTV(
+        parseInt(limit as string)
+      );
+      
+      res.json(topSubscribers);
+    } catch (error) {
+      console.error("Error fetching top subscribers:", error);
+      res.status(500).json({ error: "Failed to fetch top subscribers" });
+    }
+  });
+
+  // Send notification to user
+  app.post("/api/admin/send-notification", async (req, res) => {
+    try {
+      const { userId, email, type, data } = req.body;
+      
+      if (!userId || !email || !type) {
+        return res.status(400).json({ error: "Missing required fields: userId, email, type" });
+      }
+
+      const { subscriptionNotificationService } = await import("../services/subscriptionNotificationService");
+      
+      const success = await subscriptionNotificationService.sendNotification({
+        type,
+        userId,
+        email,
+        data: data || {}
+      });
+      
+      res.json({ success, message: success ? "Notification sent successfully" : "Failed to send notification" });
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      res.status(500).json({ error: "Failed to send notification" });
+    }
+  });
+
+  // Send bulk notification (admin only)
+  app.post("/api/admin/send-bulk-notification", async (req, res) => {
+    try {
+      const { userIds, subject, content, htmlContent } = req.body;
+      
+      if (!userIds || !Array.isArray(userIds) || !subject || !content) {
+        return res.status(400).json({ error: "Missing required fields: userIds, subject, content" });
+      }
+
+      const { subscriptionNotificationService } = await import("../services/subscriptionNotificationService");
+      
+      const result = await subscriptionNotificationService.sendBulkNotification(
+        userIds,
+        subject,
+        content,
+        htmlContent
+      );
+      
+      res.json(result);
+    } catch (error) {
+      console.error("Error sending bulk notification:", error);
+      res.status(500).json({ error: "Failed to send bulk notification" });
+    }
+  });
+
+  // Get user notification preferences
+  app.get("/api/user/notification-preferences", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { subscriptionNotificationService } = await import("../services/subscriptionNotificationService");
+      const preferences = await subscriptionNotificationService.getNotificationPreferences(userId);
+      
+      res.json(preferences);
+    } catch (error) {
+      console.error("Error fetching notification preferences:", error);
+      res.status(500).json({ error: "Failed to fetch notification preferences" });
+    }
+  });
+
+  // Update user notification preferences
+  app.put("/api/user/notification-preferences", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub;
+      if (!userId) {
+        return res.status(401).json({ error: "User ID not found" });
+      }
+
+      const { subscriptionNotificationService } = await import("../services/subscriptionNotificationService");
+      const success = await subscriptionNotificationService.updateNotificationPreferences(userId, req.body);
+      
+      res.json({ success, message: success ? "Preferences updated successfully" : "Failed to update preferences" });
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+      res.status(500).json({ error: "Failed to update notification preferences" });
+    }
+  });
+
+  // Process renewals manually (admin only)
+  app.post("/api/admin/process-renewals", async (req, res) => {
+    try {
+      const { subscriptionRenewalService } = await import("../services/subscriptionRenewalService");
+      const result = await subscriptionRenewalService.processRenewals();
+      
+      res.json({
+        success: true,
+        message: `Processed ${result.processed} renewals: ${result.successful} successful, ${result.failed} failed`,
+        details: result
+      });
+    } catch (error) {
+      console.error("Error processing renewals:", error);
+      res.status(500).json({ error: "Failed to process renewals" });
+    }
+  });
+
+  // Send renewal reminders manually (admin only)
+  app.post("/api/admin/send-renewal-reminders", async (req, res) => {
+    try {
+      const { subscriptionRenewalService } = await import("../services/subscriptionRenewalService");
+      const result = await subscriptionRenewalService.sendRenewalReminders();
+      
+      res.json({
+        success: true,
+        message: `Sent ${result.sent} reminders, ${result.failed} failed`,
+        details: result
+      });
+    } catch (error) {
+      console.error("Error sending renewal reminders:", error);
+      res.status(500).json({ error: "Failed to send renewal reminders" });
+    }
+  });
+
+  // Get renewal statistics (admin only)
+  app.get("/api/admin/renewal-statistics", async (req, res) => {
+    try {
+      const { days = 30 } = req.query;
+      const { subscriptionRenewalService } = await import("../services/subscriptionRenewalService");
+      
+      const statistics = await subscriptionRenewalService.getRenewalStatistics(
+        parseInt(days as string)
+      );
+      
+      res.json(statistics);
+    } catch (error) {
+      console.error("Error fetching renewal statistics:", error);
+      res.status(500).json({ error: "Failed to fetch renewal statistics" });
     }
   });
 

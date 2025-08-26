@@ -889,7 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Minimum trade amount validation (business rule)
       if (tradeValueUSD < 10) {
         return res.status(400).json({
-          error: 'Minimum transaction amount is $10 to ensure profitable operations',
+          error: 'Minimum purchase is $10',
           minimumAmount: 10,
           providedAmount: tradeValueUSD
         });

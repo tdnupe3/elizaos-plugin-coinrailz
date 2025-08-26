@@ -505,7 +505,7 @@ export default function DEXTrading() {
   // Basic trading state
   const [isConnected, setIsConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState('');
-  const [selectedNetwork, setSelectedNetwork] = useState('base-mainnet');
+  const [selectedNetwork, setSelectedNetwork] = useState('ethereum-mainnet');
   const [tradingPairs, setTradingPairs] = useState<TradingPair[]>([]);
   const [fromAsset, setFromAsset] = useState('ETH');
   const [toAsset, setToAsset] = useState('USDC');
@@ -895,6 +895,7 @@ export default function DEXTrading() {
         amount: fromAmount,
         quote,
         walletAddress,
+        selectedNetwork,
         userId: user?.id || null
       });
 

@@ -890,13 +890,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     validateBusinessRules.minimumAmounts,
     async (req, res) => {
     try {
-      const { fromAsset, toAsset, amount, walletAddress } = req.body;
+      const { fromAsset, toAsset, amount, walletAddress, selectedNetwork } = req.body;
 
       if (!fromAsset || !toAsset || !amount || !walletAddress) {
         return res.status(400).json({
           error: 'Missing required fields: fromAsset, toAsset, amount, walletAddress'
         });
       }
+
+      // Map selectedNetwork to chainId for proper transaction generation
+      const getChainId = (network: string): number => {
+        switch (network) {
+          case 'ethereum-mainnet': return 1;
+          case 'base-mainnet': return 8453;
+          case 'polygon-mainnet': return 137;
+          case 'arbitrum-mainnet': return 42161;
+          case 'bnb-mainnet': return 56;
+          case 'optimism-mainnet': return 10;
+          default: return 1; // Default to Ethereum mainnet
+        }
+      };
+
+      const chainId = getChainId(selectedNetwork || 'ethereum-mainnet');
 
       // Get real-time pricing using CoinGecko API
       let tradeValueUSD = parseFloat(amount);
@@ -928,8 +943,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Calculate amount in correct decimals
         const amountInWei = BigInt(parseFloat(amount) * Math.pow(10, fromTokenData.decimals)).toString();
         
-        // Get real quote from 1inch API v5 - PRODUCTION
-        const quoteUrl = `https://api.1inch.dev/swap/v5.2/1/quote?src=${fromTokenData.address}&dst=${toTokenData.address}&amount=${amountInWei}`;
+        // Get real quote from 1inch API v5 - PRODUCTION (using correct chainId)
+        const quoteUrl = `https://api.1inch.dev/swap/v5.2/${chainId}/quote?src=${fromTokenData.address}&dst=${toTokenData.address}&amount=${amountInWei}`;
         
         const quoteResponse = await fetch(quoteUrl, {
           headers: {
@@ -941,8 +956,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (quoteResponse.ok) {
           realQuote = await quoteResponse.json();
           
-          // Get swap transaction data from 1inch
-          const swapUrl = `https://api.1inch.dev/swap/v5.2/1/swap?src=${fromTokenData.address}&dst=${toTokenData.address}&amount=${amountInWei}&from=${walletAddress}&slippage=1`;
+          // Get swap transaction data from 1inch (using correct chainId)
+          const swapUrl = `https://api.1inch.dev/swap/v5.2/${chainId}/swap?src=${fromTokenData.address}&dst=${toTokenData.address}&amount=${amountInWei}&from=${walletAddress}&slippage=1`;
           
           const swapResponse = await fetch(swapUrl, {
             headers: {
@@ -959,14 +974,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('1inch API unavailable, using production fallback');
       }
 
-      // Create production transaction data
-      const transactionData = swapCalldata?.tx || {
+      // Create production transaction data with correct chainId
+      const transactionData = swapCalldata?.tx ? {
+        ...swapCalldata.tx,
+        chainId: `0x${chainId.toString(16)}` // Ensure correct network execution
+      } : {
         from: walletAddress,
         to: '0x1111111254EEB25477B68fb85Ed929f73A960582', // 1inch router v5
         value: `0x${(parseFloat(amount) * Math.pow(10, 18)).toString(16)}`,
         data: '0x', // Real swap calldata from 1inch
         gas: '0x493E0', // 300,000 gas limit
-        gasPrice: '0x9184e72a000' // 10 gwei
+        gasPrice: '0x9184e72a000', // 10 gwei
+        chainId: `0x${chainId.toString(16)}` // Critical: ensures correct network
       };
 
       const estimatedOutput = realQuote?.toAmount ? 

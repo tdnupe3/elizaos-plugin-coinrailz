@@ -3057,6 +3057,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   } catch (error) {
     console.error('❌ Failed to integrate unified business logic:', error);
   }
+
+  // Initialize subscription billing automation
+  try {
+    console.log('⚙️ Initializing subscription billing automation...');
+    const { initializeBillingCronJobs } = await import('./jobs/subscriptionBillingCron');
+    initializeBillingCronJobs();
+  } catch (error) {
+    console.error('❌ Failed to initialize billing automation:', error);
+  }
   
   // Setup enhanced business logic routes with all safety mechanisms
   setupEnhancedBusinessLogicRoutes(app);

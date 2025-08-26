@@ -873,6 +873,14 @@ export default function DEXTrading() {
     return { platformFee, networkFee };
   };
 
+  // Format fee display with appropriate precision
+  const formatFeeDisplay = (fee: number) => {
+    if (fee === 0) return '$0.00';
+    if (fee < 0.0001) return `$${fee.toFixed(8)}`; // Show more decimals for tiny fees
+    if (fee < 0.01) return `$${fee.toFixed(6)}`;
+    return `$${fee.toFixed(4)}`;
+  };
+
   const executeSwap = async () => {
     if (!fromAmount || !quote || !isConnected || !walletAddress) return;
 
@@ -1573,16 +1581,16 @@ export default function DEXTrading() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Platform fee (0.25%)</span>
-                      <span>${fees.platformFee.toFixed(4)}</span>
+                      <span>{formatFeeDisplay(fees.platformFee)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Network fee</span>
-                      <span>~${fees.networkFee.toFixed(4)}</span>
+                      <span>~{formatFeeDisplay(fees.networkFee)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-medium">
                       <span>Total fees</span>
-                      <span>${(fees.platformFee + fees.networkFee).toFixed(4)}</span>
+                      <span>{formatFeeDisplay(fees.platformFee + fees.networkFee)}</span>
                     </div>
                   </div>
                 </div>

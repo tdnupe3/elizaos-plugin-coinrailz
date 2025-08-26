@@ -79,6 +79,14 @@ export const PRODUCTION_TOKENS = {
     name: 'Coinbase Wrapped Staked ETH',
     decimals: 18,
     coingeckoId: 'coinbase-wrapped-staked-eth'
+  },
+  // PEEZY Token - High-demand trading pair
+  PEEZY: {
+    address: '0xA0b86a33E6441E983BF0A96a1a5E86C3c1b8c2Fb',
+    symbol: 'PEEZY',
+    name: 'PEEZY Token',
+    decimals: 18,
+    coingeckoId: 'peezy'
   }
 };
 

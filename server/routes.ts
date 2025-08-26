@@ -912,7 +912,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Record the successful trade for revenue tracking
       const [transaction] = await db.insert(platformTransactions).values({
-        userId: userId || 'system', // Required field
         type: 'dex',
         amount: parseFloat(amount),
         fee: parseFloat(tradeResult.platformFee || '0'),
@@ -922,6 +921,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         txHash: tradeResult.transactionHash,
         description: `DEX trade: ${fromAsset} → ${toAsset}`,
         metadata: {
+          userId: userId || 'system', // Store in metadata instead
           fromToken: fromAsset,
           toToken: toAsset,
           inputAmount: amount,
@@ -1089,7 +1089,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionId = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const [transaction] = await db.insert(platformTransactions).values({
-        userId: userAddress, // Use userAddress as fallback userId
         type: 'dex',
         amount: parseFloat(amount.toString()),
         fee: parseFloat(platformFee.toString()),
@@ -1099,6 +1098,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         txHash: transactionHash,
         description: `DEX swap: ${fromToken} → ${toToken}`,
         metadata: {
+          userId: userAddress, // Store in metadata instead
           fromToken,
           toToken,
           platformRevenue: platformFee,
@@ -3066,35 +3066,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // DEX aggregator quote
-  app.get('/api/dex/quote', (req, res) => {
-    const { from = 'ETH', to = 'USDC', amount = '1' } = req.query;
-    
-    // Real market-based quotes
-    const quotes: Record<string, { rate: number; amount: number }> = {
-      'ETH-USDC': { rate: 2432.50, amount: parseFloat(amount as string) * 2432.50 },
-      'USDC-ETH': { rate: 0.000411, amount: parseFloat(amount as string) * 0.000411 },
-      'BTC-USDC': { rate: 42150.00, amount: parseFloat(amount as string) * 42150.00 },
-      'USDC-BTC': { rate: 0.0000237, amount: parseFloat(amount as string) * 0.0000237 }
-    };
-    
-    const key = `${from}-${to}`;
-    const quote = quotes[key] || { rate: 1, amount: parseFloat(amount as string) };
-    
-    res.json({
-      success: true,
-      quote: quote.amount.toFixed(6),
-      fromToken: from,
-      toToken: to,
-      fromAmount: amount,
-      toAmount: quote.amount.toFixed(6),
-      exchangeRate: quote.rate.toString(),
-      sources: ['1inch', 'Uniswap V3', 'Curve Finance'],
-      estimatedGas: '0.0021 ETH',
-      priceImpact: '0.12%',
-      timestamp: new Date().toISOString()
-    });
-  });
+  // DUPLICATE REMOVED - Using production DEX endpoint above
 
   // === CRITICAL MISSING ENDPOINTS - REVENUE BLOCKERS ===
   

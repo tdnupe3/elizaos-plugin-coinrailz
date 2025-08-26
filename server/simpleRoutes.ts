@@ -1793,13 +1793,7 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
-  // DEX quote
-  app.get('/api/dex/quote', (req, res) => {
-    res.json({
-      price: 43250.00,
-      source: 'aggregated'
-    });
-  });
+  // DUPLICATE REMOVED - Using production DEX endpoint in routes.ts
 
   // Commission calculation endpoint - critical for referral system
   app.post('/api/calculate-commission', (req, res) => {
@@ -2019,94 +2013,7 @@ export function setupSimpleRoutes(app: Express) {
     }
   });
 
-  // Enhanced DEX quote endpoint with 1inch integration
-  app.get('/api/dex/quote', async (req, res) => {
-    try {
-      const { fromToken = 'ETH', toToken = 'USDC', amount = '1', chainId = '1' } = req.query;
-      
-      // Input validation
-      const numericAmount = parseFloat(String(amount));
-      const numericChainId = parseInt(String(chainId));
-      
-      if (isNaN(numericAmount) || numericAmount <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid positive amount required'
-        });
-      }
-
-      const apiKey = process.env.ONEINCH_API_KEY;
-      
-      // Try to get real 1inch quote if API key is available
-      if (apiKey) {
-        try {
-          // Convert amount to wei for ETH (18 decimals)
-          const amountInWei = (numericAmount * Math.pow(10, 18)).toString();
-          
-          const oneInchUrl = `https://api.1inch.dev/swap/v6.0/${chainId}/quote`;
-          const params = new URLSearchParams({
-            src: String(fromToken === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : 
-                 fromToken === 'PEEZY' ? '0x698b1d54E936b9F772b8F58447194bBc82EC1933' : fromToken),
-            dst: String(toToken === 'USDC' ? '0xA0b86a33E6441546a8d8BF9b28A8E1bD8E4aFF86' : 
-                 toToken === 'PEEZY' ? '0x698b1d54E936b9F772b8F58447194bBc82EC1933' : toToken),
-            amount: String(amountInWei)
-          });
-
-          const response = await fetch(`${oneInchUrl}?${params}`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'accept': 'application/json'
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            
-            // Return in expected format for audit
-            return res.json({
-              success: true,
-              fromToken: String(fromToken),
-              toToken: String(toToken),
-              fromTokenAmount: amountInWei,
-              toTokenAmount: data.toAmount || data.toTokenAmount,
-              estimatedGas: data.estimatedGas || '150000',
-              protocols: data.protocols || [],
-              dex: '1inch',
-              chainId: numericChainId,
-              timestamp: new Date().toISOString()
-            });
-          }
-        } catch (apiError) {
-          console.log('1inch API error, using fallback:', apiError instanceof Error ? apiError.message : 'Unknown error');
-        }
-      }
-
-      // Fallback quote with expected format for audit validation
-      const fallbackAmount = numericAmount === 1 ? '2400000000' : (numericAmount * 2400).toString(); // 2400 USDC per ETH
-      
-      const quote = {
-        success: true,
-        fromToken: String(fromToken),
-        toToken: String(toToken),
-        fromTokenAmount: (numericAmount * Math.pow(10, 18)).toString(),
-        toTokenAmount: fallbackAmount, // This is what audit expects
-        estimatedGas: '150000',
-        protocols: [['1inch']],
-        dex: '1inch',
-        chainId: numericChainId,
-        timestamp: new Date().toISOString()
-      };
-
-      res.json(quote);
-    } catch (error) {
-      console.error('DEX quote error:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Quote service temporarily unavailable'
-      });
-    }
-  });
+  // DUPLICATE REMOVED - Using production DEX endpoint in routes.ts with rate limiting
 
   // DEX supported wallets endpoint
   app.get('/api/dex/supported-wallets', (req, res) => {

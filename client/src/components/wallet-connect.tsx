@@ -55,14 +55,25 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
     return (
       <Card className={`bg-white shadow-sm border border-gray-200 ${className}`}>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Wallet className="w-5 h-5" />
-            <span>Connect Wallet</span>
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            Connect any Web3 wallet for professional DEX trading
-          </p>
-          <Alert className="mt-3 bg-green-50 border-green-200">
+          {/* Make the heading clickable */}
+          <Button 
+            onClick={() => connectWallet('MetaMask')}
+            disabled={wallet.isConnecting}
+            className="w-full p-4 h-auto bg-blue-600 hover:bg-blue-700 text-white text-left justify-start mb-4"
+            size="lg"
+          >
+            <div className="flex flex-col w-full">
+              <div className="flex items-center space-x-2 mb-2">
+                <Wallet className="w-6 h-6" />
+                <span className="text-xl font-bold">Connect Wallet</span>
+              </div>
+              <p className="text-blue-100 text-sm">
+                Connect any Web3 wallet for professional DEX trading
+              </p>
+            </div>
+          </Button>
+          
+          <Alert className="bg-green-50 border-green-200">
             <Info className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-sm text-green-800">
               <strong>Guest Access:</strong> No Coin Railz account required. Connect any wallet and start trading immediately.

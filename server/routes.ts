@@ -2421,6 +2421,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register AI agent routes with quality control
   app.use('/api/ai-agents', agentRoutes);
 
+  // === SUBSCRIPTION MANAGEMENT ROUTES ===
+  // Complete subscription system with multi-payment support
+  registerSubscriptionRoutes(app);
+  console.log('✅ Subscription management routes registered successfully');
+
   // Health check endpoints
   app.get('/health', (req, res) => {
     res.json({

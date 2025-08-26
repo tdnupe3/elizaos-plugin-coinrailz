@@ -16,7 +16,7 @@ interface EmailTemplate {
 
 export class EmailService {
   private static instance: EmailService;
-  private readonly fromEmail = 'noreply@coinrailz.com';
+  private readonly fromEmail = 'support@coinrailz.com'; // Use verified sender from SendGrid
 
   static getInstance(): EmailService {
     if (!EmailService.instance) {

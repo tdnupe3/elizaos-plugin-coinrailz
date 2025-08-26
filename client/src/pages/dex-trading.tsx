@@ -930,14 +930,14 @@ export default function DEXTrading() {
                       <p className="text-gray-500 mb-4">Sign in to view your active orders</p>
                       <Button variant="outline">Sign In</Button>
                     </div>
-                  ) : !limitOrders?.length ? (
+                  ) : !Array.isArray(limitOrders) || limitOrders.length === 0 ? (
                     <div className="text-center py-8">
                       <Target className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500">No active limit orders</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {limitOrders.map((order: any) => (
+                      {Array.isArray(limitOrders) && limitOrders.map((order: any) => (
                         <div key={order.id} className="p-3 border rounded-lg">
                           <div className="flex justify-between items-center">
                             <div>
@@ -976,7 +976,7 @@ export default function DEXTrading() {
                       <p className="text-gray-500 mb-4">Sign in to track your portfolio</p>
                       <Button variant="outline">Sign In</Button>
                     </div>
-                  ) : !portfolioHoldings?.length ? (
+                  ) : !Array.isArray(portfolioHoldings) || portfolioHoldings.length === 0 ? (
                     <div className="text-center py-8">
                       <Wallet className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                       <p className="text-gray-500">No holdings tracked yet</p>
@@ -984,7 +984,7 @@ export default function DEXTrading() {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {portfolioHoldings.map((holding: any) => (
+                      {Array.isArray(portfolioHoldings) && portfolioHoldings.map((holding: any) => (
                         <div key={holding.id} className="p-3 border rounded-lg">
                           <div className="flex justify-between items-center">
                             <div>

@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { ArrowUpDown, Wallet, TrendingUp, Info, Shield, LineChart, Target, Layers, ArrowLeftRight, Zap, Settings, Search, Plus } from 'lucide-react';
+import { ArrowUpDown, Wallet, TrendingUp, Info, Shield, LineChart, Target, Layers, ArrowLeftRight, Zap, Settings, Search, Plus, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -719,17 +719,31 @@ export default function DEXTrading() {
     loadTradingPairs();
   }, [selectedNetwork]);
 
-  // Get quote when amount or assets change
+  // Get quote when amount or assets change - FIXED FOR GUEST USERS
   useEffect(() => {
     const getQuote = async () => {
-      if (!fromAmount || !fromAsset || !toAsset || !isConnected) return;
+      // Allow quotes for guest users (remove isConnected requirement)
+      if (!fromAmount || !fromAsset || !toAsset) return;
       
       setIsLoadingQuote(true);
       try {
+        // Use guest wallet address if not connected
+        const guestWalletAddress = walletAddress || '0x1234567890123456789012345678901234567890';
+        
         const response = await apiRequest('GET', 
-          `/api/dex/quote?fromAsset=${fromAsset}&toAsset=${toAsset}&amount=${fromAmount}&walletAddress=${walletAddress}&chain=${selectedNetwork}`
+          `/api/dex/quote?fromAsset=${fromAsset}&toAsset=${toAsset}&amount=${fromAmount}&walletAddress=${guestWalletAddress}&chain=${selectedNetwork}`
         );
-        setQuote(parseFloat(response.quote.outputAmount));
+        
+        console.log('Quote response:', response); // Debug log
+        
+        if (response.success && response.quote && response.quote.outputAmount) {
+          const outputAmount = parseFloat(response.quote.outputAmount);
+          console.log(`Setting quote: ${fromAmount} ${fromAsset} = ${outputAmount} ${toAsset}`);
+          setQuote(outputAmount);
+        } else {
+          console.warn('Invalid quote response:', response);
+          setQuote(null);
+        }
       } catch (error) {
         console.error('Failed to get quote:', error);
         setQuote(null);
@@ -740,7 +754,7 @@ export default function DEXTrading() {
 
     const debounceTimer = setTimeout(getQuote, 500);
     return () => clearTimeout(debounceTimer);
-  }, [fromAmount, fromAsset, toAsset, walletAddress, isConnected]);
+  }, [fromAmount, fromAsset, toAsset, walletAddress, selectedNetwork]); // Removed isConnected dependency
 
   // Get bridge quote when bridge parameters change
   useEffect(() => {
@@ -1539,35 +1553,34 @@ export default function DEXTrading() {
                 </div>
               )}
 
-              {/* Wallet Connection Required Message */}
-              {!isConnected && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
-                  <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300 mb-2">
-                    <Wallet className="h-4 w-4" />
-                    <span className="font-medium">Connect wallet to enable trading</span>
+              {/* Execute Button - FIXED FOR GUEST QUOTES */}
+              <Button 
+                onClick={!isConnected ? connectWallet : (orderType === 'market' ? executeSwap : createLimitOrder)}
+                disabled={!quote || !fromAmount || quote === 0 || isSwapping || (orderType === 'limit' && !limitPrice) || isLoadingQuote}
+                className="w-full"
+                size="lg"
+              >
+                {isLoadingQuote
+                  ? 'Getting Quote...'
+                  : !isConnected 
+                    ? `Connect Wallet to Swap ${fromAsset} for ${toAsset}`
+                    : isSwapping 
+                      ? orderType === 'market' ? 'Swapping...' : 'Creating Order...'
+                      : orderType === 'market' 
+                        ? `Swap ${fromAsset} for ${toAsset}`
+                        : `Create Limit Order`
+                }
+              </Button>
+
+              {/* Guest Quote Info - Show quotes work without wallet */}
+              {!isConnected && quote && quote > 0 && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 text-center">
+                  <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300 text-sm">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Quote ready! You'll get ~{quote.toFixed(6)} {toAsset}</span>
                   </div>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">
-                    Click "Connect Wallet" above to start making swaps
-                  </p>
                 </div>
               )}
-
-                  {/* Execute Button */}
-                  <Button 
-                    onClick={orderType === 'market' ? executeSwap : createLimitOrder}
-                    disabled={!isConnected || !quote || !fromAmount || quote === 0 || isSwapping || (orderType === 'limit' && !limitPrice)}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {!isConnected 
-                      ? 'Connect Wallet to Trade' 
-                      : isSwapping 
-                        ? orderType === 'market' ? 'Swapping...' : 'Creating Order...'
-                        : orderType === 'market' 
-                          ? `Swap ${fromAsset} for ${toAsset}`
-                          : `Create Limit Order`
-                    }
-                  </Button>
                 </CardContent>
               </TabsContent>
 

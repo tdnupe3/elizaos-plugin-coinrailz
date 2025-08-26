@@ -204,8 +204,8 @@ export class CoinbaseCDPService {
         realTime: true
       };
 
-      // Calculate platform fees (0.25% for basic, less for premium)
-      const platformFeeRate = 0.0025; // 0.25%
+      // Calculate platform fees (1.5% unified rate)
+      const platformFeeRate = 0.015; // 1.5%
       const platformFee = parseFloat(params.amount) * platformFeeRate;
       const netOutput = parseFloat(baseQuote.outputAmount) - platformFee;
 
@@ -214,7 +214,7 @@ export class CoinbaseCDPService {
           ...baseQuote,
           outputAmount: netOutput.toString(),
           platformFee: platformFee.toString(),
-          platformFeeRate: '0.25%',
+          platformFeeRate: '1.5%',
           chain: params.chain || 'base-mainnet',
           timestamp: new Date().toISOString()
         },
@@ -263,7 +263,7 @@ export class CoinbaseCDPService {
           console.log(`✅ Successfully routed through ${dexProtocol}`);
           
           // Calculate platform fees
-          const platformFeeRate = 0.0025; // 0.25%
+          const platformFeeRate = 0.015; // 1.5%
           const platformFee = parseFloat(params.amount) * platformFeeRate;
           const netOutput = parseFloat(fallbackQuote.outputAmount) - platformFee;
 
@@ -272,7 +272,7 @@ export class CoinbaseCDPService {
               ...fallbackQuote,
               outputAmount: netOutput.toString(),
               platformFee: platformFee.toString(),
-              platformFeeRate: '0.25%',
+              platformFeeRate: '1.5%',
               dexProtocol: dexProtocol,
               chain: params.chain || 'base-mainnet',
               timestamp: new Date().toISOString(),
@@ -354,7 +354,7 @@ export class CoinbaseCDPService {
       const tradeId = `trade_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       // Calculate fees
-      const platformFeeRate = 0.0025; // 0.25%
+      const platformFeeRate = 0.015; // 1.5%
       const platformFee = parseFloat(params.amount) * platformFeeRate;
       const tradeAmount = parseFloat(params.amount) - platformFee;
 

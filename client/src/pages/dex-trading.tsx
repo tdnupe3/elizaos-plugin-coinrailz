@@ -867,16 +867,24 @@ export default function DEXTrading() {
     if (!quote || !fromAmount) return { platformFee: 0, networkFee: 0.002 };
     
     const amount = parseFloat(fromAmount);
-    const platformFee = amount * 0.0025; // 0.25% platform fee
+    const platformFee = amount * 0.0025; // 0.25% platform fee in fromAsset
     const networkFee = 0.002; // Real network fee will come from quote
     
     return { platformFee, networkFee };
   };
 
-  // Format fee display with appropriate precision
-  const formatFeeDisplay = (fee: number) => {
+  // Format fee display for crypto amounts (ETH, WBTC, etc.)
+  const formatCryptoFeeDisplay = (fee: number, asset: string) => {
+    if (fee === 0) return `0 ${asset}`;
+    if (fee < 0.0001) return `${fee.toFixed(8)} ${asset}`;
+    if (fee < 0.01) return `${fee.toFixed(6)} ${asset}`;
+    return `${fee.toFixed(4)} ${asset}`;
+  };
+
+  // Format fee display for USD values  
+  const formatUSDFeeDisplay = (fee: number) => {
     if (fee === 0) return '$0.00';
-    if (fee < 0.0001) return `$${fee.toFixed(8)}`; // Show more decimals for tiny fees
+    if (fee < 0.0001) return `$${fee.toFixed(8)}`;
     if (fee < 0.01) return `$${fee.toFixed(6)}`;
     return `$${fee.toFixed(4)}`;
   };
@@ -1582,16 +1590,16 @@ export default function DEXTrading() {
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Platform fee (0.25%)</span>
-                      <span>{formatFeeDisplay(fees.platformFee)}</span>
+                      <span>{formatCryptoFeeDisplay(fees.platformFee, fromAsset)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">Network fee</span>
-                      <span>~{formatFeeDisplay(fees.networkFee)}</span>
+                      <span>~{formatCryptoFeeDisplay(fees.networkFee, fromAsset)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between font-medium">
                       <span>Total fees</span>
-                      <span>{formatFeeDisplay(fees.platformFee + fees.networkFee)}</span>
+                      <span>{formatCryptoFeeDisplay(fees.platformFee + fees.networkFee, fromAsset)}</span>
                     </div>
                   </div>
                 </div>

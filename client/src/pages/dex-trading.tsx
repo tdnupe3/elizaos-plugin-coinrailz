@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { ArrowUpDown, Wallet, TrendingUp, Info, Shield, LineChart, Target, Layers } from 'lucide-react';
+import { ArrowUpDown, Wallet, TrendingUp, Info, Shield, LineChart, Target, Layers, ArrowLeftRight, Zap, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { useAuth } from '@/hooks/useAuth';
@@ -57,6 +57,20 @@ export default function DEXTrading() {
   const [mevProtectionEnabled, setMevProtectionEnabled] = useState(true);
   const [priorityRouting, setPriorityRouting] = useState(false);
   const [selectedTimeframe, setSelectedTimeframe] = useState('1h');
+
+  // Bridge interface state (3.11)
+  const [bridgeFromChain, setBridgeFromChain] = useState('ethereum-mainnet');
+  const [bridgeToChain, setBridgeToChain] = useState('base-mainnet');
+  const [bridgeAsset, setBridgeAsset] = useState('USDC');
+  const [bridgeAmount, setBridgeAmount] = useState('');
+  const [bridgeQuotes, setBridgeQuotes] = useState<any[]>([]);
+  const [selectedBridgeProvider, setSelectedBridgeProvider] = useState('');
+  const [isBridging, setIsBridging] = useState(false);
+
+  // Chain preferences (3.14)
+  const [autoSelectCheapest, setAutoSelectCheapest] = useState(true);
+  const [maxAcceptableFee, setMaxAcceptableFee] = useState('10.00');
+  const [showAdvancedFees, setShowAdvancedFees] = useState(false);
   
   // Fetch user's MEV protection settings
   const { data: mevSettings } = useQuery({
@@ -80,6 +94,18 @@ export default function DEXTrading() {
   const { data: limitOrders } = useQuery({
     queryKey: ['/api/trading/limit-orders'],
     enabled: isAuthenticated && isConnected,
+  });
+
+  // Fetch chain preferences (3.14)
+  const { data: chainPreferences } = useQuery({
+    queryKey: ['/api/trading/chain-preferences'],
+    enabled: isAuthenticated,
+  });
+
+  // Fetch fee optimization data (3.13)
+  const { data: feeOptimization } = useQuery({
+    queryKey: ['/api/trading/fees/optimization', bridgeAsset],
+    enabled: !!bridgeAsset,
   });
 
   // Mutations for advanced trading features
@@ -125,6 +151,85 @@ export default function DEXTrading() {
     }
   });
 
+  // Bridge mutations (3.11)
+  const executeBridgeMutation = useMutation({
+    mutationFn: async (bridgeData: any) => {
+      return apiRequest('POST', '/api/trading/bridge/execute', bridgeData);
+    },
+    onSuccess: () => {
+      setIsBridging(false);
+      setBridgeAmount('');
+      toast({
+        title: "Bridge Transaction Initiated",
+        description: "Your cross-chain transfer has been started successfully.",
+      });
+    },
+    onError: (error: any) => {
+      setIsBridging(false);
+      toast({
+        title: "Bridge Failed",
+        description: error.message || "Failed to execute bridge transaction.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Chain preferences mutation (3.14)
+  const updateChainPreferencesMutation = useMutation({
+    mutationFn: async (preferences: any) => {
+      return apiRequest('PUT', '/api/trading/chain-preferences', preferences);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/trading/chain-preferences'] });
+      toast({
+        title: "Chain Preferences Updated",
+        description: "Your chain selection preferences have been saved.",
+      });
+    }
+  });
+
+  // Bridge quote function (3.11)
+  const getBridgeQuote = async () => {
+    if (!bridgeAmount || !bridgeFromChain || !bridgeToChain || !bridgeAsset) return;
+    
+    try {
+      const response = await apiRequest('GET', 
+        `/api/trading/bridge/quote?fromChain=${bridgeFromChain}&toChain=${bridgeToChain}&asset=${bridgeAsset}&amount=${bridgeAmount}`
+      );
+      setBridgeQuotes(response.quotes || []);
+      
+      // Auto-select recommended or cheapest provider
+      if (response.quotes && response.quotes.length > 0) {
+        const recommended = response.quotes.find((q: any) => q.isRecommended);
+        const cheapest = response.quotes.reduce((prev: any, current: any) => 
+          prev.totalFee < current.totalFee ? prev : current
+        );
+        setSelectedBridgeProvider(autoSelectCheapest ? cheapest.provider : (recommended?.provider || cheapest.provider));
+      }
+    } catch (error) {
+      console.error('Failed to get bridge quote:', error);
+      setBridgeQuotes([]);
+    }
+  };
+
+  const executeBridge = async () => {
+    if (!selectedBridgeProvider || !bridgeQuotes.length) return;
+    
+    const selectedQuote = bridgeQuotes.find(q => q.provider === selectedBridgeProvider);
+    if (!selectedQuote) return;
+
+    setIsBridging(true);
+    executeBridgeMutation.mutate({
+      fromChain: bridgeFromChain,
+      toChain: bridgeToChain,
+      fromAsset: bridgeAsset,
+      toAsset: bridgeAsset,
+      fromAmount: parseFloat(bridgeAmount),
+      bridgeProvider: selectedBridgeProvider,
+      quote: selectedQuote
+    });
+  };
+
   // Load trading pairs when network changes
   useEffect(() => {
     const loadTradingPairs = async () => {
@@ -161,6 +266,12 @@ export default function DEXTrading() {
     const debounceTimer = setTimeout(getQuote, 500);
     return () => clearTimeout(debounceTimer);
   }, [fromAmount, fromAsset, toAsset, walletAddress, isConnected]);
+
+  // Get bridge quote when bridge parameters change
+  useEffect(() => {
+    const debounceTimer = setTimeout(getBridgeQuote, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [bridgeAmount, bridgeFromChain, bridgeToChain, bridgeAsset]);
 
   const connectWallet = async () => {
     try {
@@ -424,8 +535,9 @@ export default function DEXTrading() {
           {/* Advanced Trading Interface */}
           <Card className="mb-6">
             <Tabs defaultValue="trade" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="trade">Trade</TabsTrigger>
+                <TabsTrigger value="bridge">Bridge</TabsTrigger>
                 <TabsTrigger value="orders">Orders</TabsTrigger>
                 <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
                 <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -625,6 +737,182 @@ export default function DEXTrading() {
                           : `Create Limit Order`
                     }
                   </Button>
+                </CardContent>
+              </TabsContent>
+
+              {/* Multi-chain Bridge Tab (3.11) */}
+              <TabsContent value="bridge" className="space-y-4">
+                <CardHeader>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <ArrowLeftRight className="h-5 w-5" />
+                    Multi-Chain Bridge
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Chain Selection */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>From Chain</Label>
+                      <Select value={bridgeFromChain} onValueChange={setBridgeFromChain}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SUPPORTED_NETWORKS.map((network) => (
+                            <SelectItem key={network.id} value={network.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{network.icon}</span>
+                                <span>{network.displayName}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>To Chain</Label>
+                      <Select value={bridgeToChain} onValueChange={setBridgeToChain}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SUPPORTED_NETWORKS.filter(n => n.id !== bridgeFromChain).map((network) => (
+                            <SelectItem key={network.id} value={network.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{network.icon}</span>
+                                <span>{network.displayName}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Asset and Amount */}
+                  <div className="space-y-2">
+                    <Label>Asset to Bridge</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="0.0"
+                        value={bridgeAmount}
+                        onChange={(e) => setBridgeAmount(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Select value={bridgeAsset} onValueChange={setBridgeAsset}>
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USDC">USDC</SelectItem>
+                          <SelectItem value="ETH">ETH</SelectItem>
+                          <SelectItem value="WBTC">WBTC</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Get Quote Button */}
+                  <Button onClick={getBridgeQuote} variant="outline" className="w-full">
+                    <Zap className="h-4 w-4 mr-2" />
+                    Get Bridge Quote
+                  </Button>
+
+                  {/* Bridge Options with Fee Display (3.13 & 3.14) */}
+                  {bridgeQuotes.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label>Bridge Options</Label>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={autoSelectCheapest}
+                            onCheckedChange={setAutoSelectCheapest}
+                          />
+                          <span className="text-sm">Auto-select cheapest</span>
+                        </div>
+                      </div>
+                      
+                      {bridgeQuotes.map((quote) => (
+                        <div
+                          key={quote.provider}
+                          className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                            selectedBridgeProvider === quote.provider
+                              ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          onClick={() => setSelectedBridgeProvider(quote.provider)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium capitalize">{quote.provider}</span>
+                                {quote.isRecommended && (
+                                  <Badge variant="outline" className="text-xs">Recommended</Badge>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                <div>Bridge Fee: ${quote.bridgeFee.toFixed(4)}</div>
+                                <div>Network Fee: ${quote.networkFee.toFixed(4)}</div>
+                                <div>Success Rate: {quote.successRate}%</div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium">${quote.totalFee.toFixed(4)}</div>
+                              <div className="text-sm text-gray-500">~{quote.estimatedTime}m</div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* Advanced Fee Settings */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={showAdvancedFees}
+                            onCheckedChange={setShowAdvancedFees}
+                          />
+                          <Label>Show advanced fee settings</Label>
+                        </div>
+                        
+                        {showAdvancedFees && (
+                          <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="space-y-1">
+                              <Label className="text-sm">Max acceptable fee ($)</Label>
+                              <Input
+                                type="number"
+                                value={maxAcceptableFee}
+                                onChange={(e) => setMaxAcceptableFee(e.target.value)}
+                                placeholder="10.00"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Execute Bridge Button */}
+                      <Button
+                        onClick={executeBridge}
+                        disabled={!selectedBridgeProvider || isBridging || !isConnected}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {!isConnected
+                          ? 'Connect Wallet to Bridge'
+                          : isBridging
+                            ? 'Bridging...'
+                            : `Bridge ${bridgeAsset}`
+                        }
+                      </Button>
+                    </div>
+                  )}
+
+                  {!bridgeQuotes.length && bridgeAmount && (
+                    <div className="text-center py-4 text-gray-500">
+                      Click "Get Bridge Quote" to see available bridge options
+                    </div>
+                  )}
                 </CardContent>
               </TabsContent>
 

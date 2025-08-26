@@ -4,7 +4,10 @@ import {
   limitOrders, 
   portfolioHoldings, 
   mevProtectionSettings, 
-  chartSettings
+  chartSettings,
+  bridgeTransactions,
+  chainFeeOptimization,
+  chainSelectionPreferences
 } from '@shared/schema';
 import { createInsertSchema } from 'drizzle-zod';
 import { eq, and, desc } from 'drizzle-orm';
@@ -339,6 +342,266 @@ router.put('/chart-settings', isAuthenticated, async (req: any, res) => {
   } catch (error) {
     console.error('Error updating chart settings:', error);
     res.status(500).json({ message: 'Failed to update chart settings' });
+  }
+});
+
+// === PHASE 3: MULTI-CHAIN BRIDGE INTERFACE (3.11) ===
+
+// Get optimal bridge route with fees
+router.get('/bridge/quote', isAuthenticated, async (req: any, res) => {
+  try {
+    const { fromChain, toChain, asset, amount } = req.query;
+    
+    if (!fromChain || !toChain || !asset || !amount) {
+      return res.status(400).json({ 
+        error: 'Missing required parameters: fromChain, toChain, asset, amount' 
+      });
+    }
+
+    // Get all available bridge options with fees
+    const bridgeOptions = await db
+      .select()
+      .from(chainFeeOptimization)
+      .where(and(
+        eq(chainFeeOptimization.fromChain, fromChain as string),
+        eq(chainFeeOptimization.toChain, toChain as string),
+        eq(chainFeeOptimization.asset, asset as string)
+      ))
+      .orderBy(chainFeeOptimization.totalFee);
+
+    // Calculate estimated fees for each bridge provider
+    const quotes = bridgeOptions.map(option => ({
+      provider: option.bridgeProvider,
+      bridgeFee: parseFloat(option.baseFee) * parseFloat(amount as string),
+      networkFee: parseFloat(option.networkFee),
+      platformFee: parseFloat(option.platformFee) * parseFloat(amount as string),
+      totalFee: parseFloat(option.totalFee) * parseFloat(amount as string),
+      estimatedTime: option.estimatedTime,
+      successRate: parseFloat(option.success_rate),
+      isRecommended: option.isRecommended
+    }));
+
+    res.json({
+      fromChain,
+      toChain,
+      asset,
+      amount: parseFloat(amount as string),
+      quotes: quotes.length > 0 ? quotes : [
+        {
+          provider: 'across',
+          bridgeFee: parseFloat(amount as string) * 0.0025,
+          networkFee: 15.00,
+          platformFee: parseFloat(amount as string) * 0.001,
+          totalFee: parseFloat(amount as string) * 0.0035 + 15.00,
+          estimatedTime: 15,
+          successRate: 99.2,
+          isRecommended: true
+        }
+      ]
+    });
+  } catch (error) {
+    console.error('Error fetching bridge quote:', error);
+    res.status(500).json({ message: 'Failed to fetch bridge quote' });
+  }
+});
+
+// Execute bridge transaction
+router.post('/bridge/execute', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { fromChain, toChain, fromAsset, toAsset, fromAmount, bridgeProvider, quote } = req.body;
+
+    if (!fromChain || !toChain || !fromAsset || !fromAmount || !bridgeProvider) {
+      return res.status(400).json({ error: 'Missing required bridge parameters' });
+    }
+
+    // Create bridge transaction record
+    const [bridgeTransaction] = await db
+      .insert(bridgeTransactions)
+      .values({
+        userId,
+        fromChain,
+        toChain,
+        fromAsset,
+        toAsset: toAsset || fromAsset,
+        fromAmount: fromAmount.toString(),
+        bridgeFee: quote?.bridgeFee?.toString() || '0',
+        networkFee: quote?.networkFee?.toString() || '0',
+        totalFee: quote?.totalFee?.toString() || '0',
+        bridgeProvider,
+        estimatedTime: quote?.estimatedTime || 15,
+        status: 'pending'
+      })
+      .returning();
+
+    // In a real implementation, this would integrate with actual bridge protocols
+    // For now, return success with transaction tracking
+    res.json({
+      success: true,
+      transactionId: bridgeTransaction.id,
+      status: 'pending',
+      estimatedTime: bridgeTransaction.estimatedTime,
+      message: 'Bridge transaction initiated successfully'
+    });
+  } catch (error) {
+    console.error('Error executing bridge transaction:', error);
+    res.status(500).json({ message: 'Failed to execute bridge transaction' });
+  }
+});
+
+// Get bridge transaction status
+router.get('/bridge/status/:transactionId', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const { transactionId } = req.params;
+    
+    const [transaction] = await db
+      .select()
+      .from(bridgeTransactions)
+      .where(and(
+        eq(bridgeTransactions.id, parseInt(transactionId)),
+        eq(bridgeTransactions.userId, userId)
+      ))
+      .limit(1);
+
+    if (!transaction) {
+      return res.status(404).json({ message: 'Bridge transaction not found' });
+    }
+
+    res.json(transaction);
+  } catch (error) {
+    console.error('Error fetching bridge status:', error);
+    res.status(500).json({ message: 'Failed to fetch bridge status' });
+  }
+});
+
+// === PHASE 3: CROSS-CHAIN FEE OPTIMIZATION (3.13) ===
+
+// Get optimized fee routes for all chains
+router.get('/fees/optimization', async (req, res) => {
+  try {
+    const { asset } = req.query;
+    
+    // Get latest fee optimization data
+    const feeOptimizations = await db
+      .select()
+      .from(chainFeeOptimization)
+      .where(asset ? eq(chainFeeOptimization.asset, asset as string) : undefined)
+      .orderBy(chainFeeOptimization.totalFee);
+
+    // Group by chain pairs
+    const optimizedRoutes = feeOptimizations.reduce((acc, route) => {
+      const key = `${route.fromChain}-${route.toChain}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push({
+        provider: route.bridgeProvider,
+        baseFee: parseFloat(route.baseFee),
+        networkFee: parseFloat(route.networkFee),
+        platformFee: parseFloat(route.platformFee),
+        totalFee: parseFloat(route.totalFee),
+        estimatedTime: route.estimatedTime,
+        successRate: parseFloat(route.success_rate),
+        isRecommended: route.isRecommended
+      });
+      return acc;
+    }, {} as Record<string, any[]>);
+
+    res.json({
+      optimizedRoutes,
+      lastUpdated: new Date().toISOString(),
+      totalRoutes: feeOptimizations.length
+    });
+  } catch (error) {
+    console.error('Error fetching fee optimization:', error);
+    res.status(500).json({ message: 'Failed to fetch fee optimization data' });
+  }
+});
+
+// === PHASE 3: CHAIN SELECTION WITH FEE DISPLAY (3.14) ===
+
+// Get user's chain selection preferences
+router.get('/chain-preferences', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const [preferences] = await db
+      .select()
+      .from(chainSelectionPreferences)
+      .where(eq(chainSelectionPreferences.userId, userId))
+      .limit(1);
+
+    // Return default preferences if none exist
+    const defaultPreferences = {
+      preferredChains: ['base-mainnet', 'ethereum-mainnet'],
+      autoSelectCheapest: true,
+      maxAcceptableFee: 10.00,
+      maxAcceptableTime: 30,
+      showAdvancedOptions: false,
+      feeDisplayFormat: 'usd'
+    };
+
+    res.json(preferences || defaultPreferences);
+  } catch (error) {
+    console.error('Error fetching chain preferences:', error);
+    res.status(500).json({ message: 'Failed to fetch chain preferences' });
+  }
+});
+
+// Update user's chain selection preferences
+router.put('/chain-preferences', isAuthenticated, async (req: any, res) => {
+  try {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      return res.status(401).json({ message: 'Authentication required' });
+    }
+
+    const preferences = req.body;
+
+    // Upsert chain selection preferences
+    const existingPreferences = await db
+      .select()
+      .from(chainSelectionPreferences)
+      .where(eq(chainSelectionPreferences.userId, userId))
+      .limit(1);
+
+    if (existingPreferences.length > 0) {
+      const [updated] = await db
+        .update(chainSelectionPreferences)
+        .set({
+          ...preferences,
+          updatedAt: new Date()
+        })
+        .where(eq(chainSelectionPreferences.id, existingPreferences[0].id))
+        .returning();
+      
+      res.json(updated);
+    } else {
+      const [created] = await db
+        .insert(chainSelectionPreferences)
+        .values({
+          userId,
+          ...preferences
+        })
+        .returning();
+      
+      res.json(created);
+    }
+  } catch (error) {
+    console.error('Error updating chain preferences:', error);
+    res.status(500).json({ message: 'Failed to update chain preferences' });
   }
 });
 

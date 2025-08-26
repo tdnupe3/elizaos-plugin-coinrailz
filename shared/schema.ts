@@ -585,6 +585,61 @@ export const chartSettings = pgTable("chart_settings", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Multi-chain Bridge Interface Table (3.11)
+export const bridgeTransactions = pgTable("bridge_transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  fromChain: varchar("from_chain").notNull(), // ethereum, polygon, base, arbitrum
+  toChain: varchar("to_chain").notNull(),
+  fromAsset: varchar("from_asset").notNull(),
+  toAsset: varchar("to_asset").notNull(),
+  fromAmount: decimal("from_amount", { precision: 18, scale: 8 }).notNull(),
+  toAmount: decimal("to_amount", { precision: 18, scale: 8 }),
+  bridgeFee: decimal("bridge_fee", { precision: 18, scale: 8 }),
+  networkFee: decimal("network_fee", { precision: 18, scale: 8 }),
+  totalFee: decimal("total_fee", { precision: 18, scale: 8 }),
+  fromTxHash: varchar("from_tx_hash"),
+  toTxHash: varchar("to_tx_hash"),
+  bridgeProvider: varchar("bridge_provider").notNull(), // across, hop, cbridge, stargate
+  status: varchar("status").default("pending"), // pending, confirmed, completed, failed
+  estimatedTime: integer("estimated_time"), // minutes
+  actualTime: integer("actual_time"), // minutes
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// Cross-chain Fee Optimization Table (3.13)
+export const chainFeeOptimization = pgTable("chain_fee_optimization", {
+  id: serial("id").primaryKey(),
+  fromChain: varchar("from_chain").notNull(),
+  toChain: varchar("to_chain").notNull(),
+  asset: varchar("asset").notNull(),
+  bridgeProvider: varchar("bridge_provider").notNull(),
+  baseFee: decimal("base_fee", { precision: 18, scale: 8 }).notNull(),
+  networkFee: decimal("network_fee", { precision: 18, scale: 8 }).notNull(),
+  platformFee: decimal("platform_fee", { precision: 18, scale: 8 }).notNull(),
+  totalFee: decimal("total_fee", { precision: 18, scale: 8 }).notNull(),
+  estimatedTime: integer("estimated_time").notNull(), // minutes
+  success_rate: decimal("success_rate", { precision: 5, scale: 2 }).notNull(), // 99.50%
+  isRecommended: boolean("is_recommended").default(false),
+  lastUpdated: timestamp("last_updated").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Chain Selection with Fee Display Table (3.14)
+export const chainSelectionPreferences = pgTable("chain_selection_preferences", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  preferredChains: jsonb("preferred_chains").default("[]"), // User's preferred chains
+  autoSelectCheapest: boolean("auto_select_cheapest").default(true),
+  maxAcceptableFee: decimal("max_acceptable_fee", { precision: 18, scale: 8 }).default("10.00"),
+  maxAcceptableTime: integer("max_acceptable_time").default(30), // minutes
+  showAdvancedOptions: boolean("show_advanced_options").default(false),
+  feeDisplayFormat: varchar("fee_display_format").default("usd"), // usd, native, both
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const sellCryptoSchema = z.object({
   coinSymbol: z.string().min(1, "Coin symbol is required"),
   amount: z.string().refine((val) => parseFloat(val) > 0, "Amount must be greater than 0"),

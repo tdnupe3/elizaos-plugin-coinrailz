@@ -499,6 +499,79 @@ export class CoinbaseCDPService {
     
     return hash;
   }
+
+  /**
+   * Get token details from contract address
+   */
+  async getTokenDetails(contractAddress: string, network: string = 'base-mainnet') {
+    try {
+      console.log('🔍 Getting token details for:', { contractAddress, network, type: typeof contractAddress });
+      
+      // For ERC-20 tokens, we can query the contract for basic info
+      // This is a simplified implementation - in production would use CDP or web3 calls
+      
+      // Ensure contractAddress is a string
+      const addressStr = String(contractAddress);
+      
+      // Validate the contract address format
+      if (!addressStr.match(/^0x[a-fA-F0-9]{40}$/)) {
+        throw new Error('Invalid contract address format');
+      }
+
+      // For demonstration, fetch from CoinGecko API using contract address
+      try {
+        const platformId = this.getCoingeckoPlatformId(network);
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/${platformId}/contract/${addressStr.toLowerCase()}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          return {
+            symbol: data.symbol?.toUpperCase() || 'UNKNOWN',
+            name: data.name || 'Unknown Token',
+            decimals: data.detail_platforms?.[platformId]?.decimal_place || 18,
+            logoURI: data.image?.small || `https://via.placeholder.com/32x32/666/fff?text=${data.symbol?.charAt(0).toUpperCase() || 'T'}`,
+            priceUSD: data.market_data?.current_price?.usd?.toString() || '0.00',
+            verified: true
+          };
+        }
+      } catch (coingeckoError) {
+        console.warn('CoinGecko lookup failed, using fallback method');
+      }
+
+      // Fallback: Generate basic token info based on contract
+      const shortAddress = addressStr.slice(2, 8).toUpperCase();
+      return {
+        symbol: `T${shortAddress}`,
+        name: `Token ${shortAddress}`,
+        decimals: 18,
+        logoURI: `https://via.placeholder.com/32x32/666/fff?text=T`,
+        priceUSD: '0.00',
+        verified: false
+      };
+
+    } catch (error: any) {
+      console.error('Error fetching token details:', error);
+      throw new Error(`Failed to fetch token details: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get CoinGecko platform ID for network
+   */
+  private getCoingeckoPlatformId(network: string): string {
+    const platformMap: { [key: string]: string } = {
+      'ethereum-mainnet': 'ethereum',
+      'base-mainnet': 'base',
+      'polygon-mainnet': 'polygon-pos',
+      'arbitrum-mainnet': 'arbitrum-one',
+      'bnb-mainnet': 'binance-smart-chain',
+      'optimism-mainnet': 'optimistic-ethereum'
+    };
+    
+    return platformMap[network] || 'ethereum';
+  }
 }
 
 export const coinbaseCDPService = CoinbaseCDPService.getInstance();

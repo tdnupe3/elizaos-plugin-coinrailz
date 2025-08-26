@@ -272,9 +272,12 @@ router.get('/trading-pairs', async (req: Request, res: Response) => {
  */
 router.post('/add-custom-token', async (req: Request, res: Response) => {
   try {
+    console.log('🔍 Custom token request received:', req.body);
+    
     const validation = CustomTokenRequestSchema.safeParse(req.body);
     
     if (!validation.success) {
+      console.log('❌ Validation failed:', validation.error.errors);
       return res.status(400).json({
         success: false,
         error: 'Invalid token parameters',
@@ -283,12 +286,15 @@ router.post('/add-custom-token', async (req: Request, res: Response) => {
     }
 
     const { contractAddress, network } = validation.data;
+    console.log('✅ Validation passed:', { contractAddress, network });
 
     // Fetch token details using Coinbase CDP service
-    const tokenDetails = await coinbaseCDPService.getTokenDetails({
+    console.log('📞 Calling getTokenDetails...');
+    const tokenDetails = await coinbaseCDPService.getTokenDetails(
       contractAddress,
       network
-    });
+    );
+    console.log('📝 Token details received:', tokenDetails);
 
     if (!tokenDetails) {
       return res.status(404).json({
@@ -299,23 +305,23 @@ router.post('/add-custom-token', async (req: Request, res: Response) => {
     }
 
     // Return token metadata for frontend usage
-    res.json({
+    const response = {
       success: true,
-      token: {
-        symbol: tokenDetails.symbol,
-        name: tokenDetails.name,
-        decimals: tokenDetails.decimals,
-        logoURI: tokenDetails.logoURI || `https://via.placeholder.com/32x32/666/fff?text=${tokenDetails.symbol.charAt(0)}`,
-        priceUSD: tokenDetails.priceUSD || '0.00',
-        contractAddress,
-        network,
-        verified: tokenDetails.verified || false
-      },
+      symbol: tokenDetails.symbol,
+      name: tokenDetails.name,
+      decimals: tokenDetails.decimals,
+      logoURI: tokenDetails.logoURI || `https://via.placeholder.com/32x32/666/fff?text=${tokenDetails.symbol.charAt(0)}`,
+      priceUSD: tokenDetails.priceUSD || '0.00',
+      verified: tokenDetails.verified || false,
       message: 'Token details fetched successfully'
-    });
+    };
+
+    console.log('✅ Sending response:', response);
+    res.json(response);
 
   } catch (error: any) {
     console.error('❌ Custom Token Error:', error);
+    console.error('❌ Stack trace:', error.stack);
     res.status(500).json({
       success: false,
       error: 'Failed to add custom token',

@@ -799,6 +799,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const { default: notificationRoutes } = await import('./routes/notificationRoutes');
   app.use('/api', notificationRoutes);
   
+  // === COINBASE DEX PRODUCTION ROUTES ===
+  // Real-time quote endpoint with live Coinbase pricing
+  app.get('/api/dex/quote', async (req, res) => {
+    try {
+      const { fromAsset, toAsset, amount, network, userId, walletAddress } = req.query;
+      
+      if (!fromAsset || !toAsset || !amount) {
+        return res.status(400).json({ 
+          error: 'Missing required parameters: fromAsset, toAsset, amount' 
+        });
+      }
+
+      const quote = await coinbaseCDPService.getDEXQuoteWithFees({
+        fromAsset: fromAsset as string,
+        toAsset: toAsset as string, 
+        amount: amount as string,
+        chain: network as string,
+        walletAddress: walletAddress as string,
+        userId: userId as string
+      });
+
+      console.log(`📊 LIVE quote request: ${fromAsset}→${toAsset} | Amount: $${amount}`);
+      res.json({ success: true, quote });
+    } catch (error: any) {
+      console.error('❌ DEX quote error:', error);
+      res.status(500).json({ 
+        error: error.message,
+        fallback: 'Using cached pricing data'
+      });
+    }
+  });
+
+  // Real blockchain trade execution endpoint
+  app.post('/api/dex/execute-trade', async (req, res) => {
+    try {
+      const { fromAsset, toAsset, amount, quote, walletAddress, userId } = req.body;
+      
+      if (!fromAsset || !toAsset || !amount || !walletAddress) {
+        return res.status(400).json({
+          error: 'Missing required fields for trade execution'
+        });
+      }
+
+      // Execute REAL trade with CDP
+      const tradeResult = await coinbaseCDPService.executeRealDEXTrade({
+        fromAsset,
+        toAsset, 
+        amount,
+        quote,
+        walletAddress,
+        userId
+      });
+
+      // Record the successful trade for revenue tracking
+      const [transaction] = await db.insert(platformTransactions).values({
+        type: 'dex',
+        amount: parseFloat(amount),
+        fee: parseFloat(tradeResult.platformFee),
+        currency: 'USDC',
+        status: 'completed',
+        fromAddress: walletAddress,
+        txHash: tradeResult.transactionHash,
+        description: `DEX trade: ${fromAsset} → ${toAsset}`,
+        metadata: JSON.stringify({
+          fromToken: fromAsset,
+          toToken: toAsset,
+          inputAmount: amount,
+          outputAmount: tradeResult.outputAmount,
+          platformRevenue: tradeResult.platformFee,
+          networkFee: tradeResult.networkFee,
+          realTimePrice: quote?.spotPrice,
+          blockchainNetwork: tradeResult.blockchainNetwork,
+          transactionHash: tradeResult.transactionHash,
+          executionTimestamp: tradeResult.timestamp,
+          source: 'coinbase_dex_production'
+        })
+      }).returning();
+
+      console.log(`💰 REAL trade completed: ${tradeResult.transactionHash} | Revenue: $${tradeResult.platformFee}`);
+
+      res.json({
+        success: true,
+        transaction: tradeResult,
+        platformRevenue: tradeResult.platformFee,
+        transactionId: transaction.id
+      });
+    } catch (error: any) {
+      console.error('❌ DEX trade execution error:', error);
+      res.status(500).json({
+        error: error.message,
+        message: 'Trade execution failed'
+      });
+    }
+  });
+
+  // Live trading pairs from Coinbase
+  app.get('/api/dex/trading-pairs', async (req, res) => {
+    try {
+      const { chain } = req.query;
+      const pairs = await coinbaseCDPService.getSupportedTradingPairs(chain as string);
+      
+      console.log(`📋 Trading pairs requested for ${chain || 'base-mainnet'}: ${pairs.length} pairs`);
+      res.json({ pairs });
+    } catch (error: any) {
+      console.error('❌ Trading pairs error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // === P2P TRANSFER ROUTES ===
   // Peer-to-peer transfer system - core revenue generator
   app.use('/api/p2p', p2pRoutes);

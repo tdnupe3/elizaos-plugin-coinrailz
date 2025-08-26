@@ -46,6 +46,11 @@ const CrossChainRequestSchema = z.object({
   userId: z.string().optional()
 });
 
+const CustomTokenRequestSchema = z.object({
+  contractAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  network: z.string().min(1)
+});
+
 // ========================================
 // DEX Trading Endpoints - Guest & User Support
 // ========================================
@@ -257,6 +262,64 @@ router.get('/trading-pairs', async (req: Request, res: Response) => {
       success: false,
       error: 'Failed to get trading pairs',
       message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/dex/add-custom-token - Add custom token by contract address
+ * Validates token contract and fetches metadata
+ */
+router.post('/add-custom-token', async (req: Request, res: Response) => {
+  try {
+    const validation = CustomTokenRequestSchema.safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid token parameters',
+        details: validation.error.errors
+      });
+    }
+
+    const { contractAddress, network } = validation.data;
+
+    // Fetch token details using Coinbase CDP service
+    const tokenDetails = await coinbaseCDPService.getTokenDetails({
+      contractAddress,
+      network
+    });
+
+    if (!tokenDetails) {
+      return res.status(404).json({
+        success: false,
+        error: 'Token not found',
+        message: 'Could not fetch token details from the provided contract address'
+      });
+    }
+
+    // Return token metadata for frontend usage
+    res.json({
+      success: true,
+      token: {
+        symbol: tokenDetails.symbol,
+        name: tokenDetails.name,
+        decimals: tokenDetails.decimals,
+        logoURI: tokenDetails.logoURI || `https://via.placeholder.com/32x32/666/fff?text=${tokenDetails.symbol.charAt(0)}`,
+        priceUSD: tokenDetails.priceUSD || '0.00',
+        contractAddress,
+        network,
+        verified: tokenDetails.verified || false
+      },
+      message: 'Token details fetched successfully'
+    });
+
+  } catch (error: any) {
+    console.error('❌ Custom Token Error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add custom token',
+      message: error.message || 'Could not validate or fetch token details'
     });
   }
 });

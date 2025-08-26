@@ -867,7 +867,7 @@ export default function DEXTrading() {
     if (!quote || !fromAmount) return { platformFee: 0, networkFee: 0.002 };
     
     const amount = parseFloat(fromAmount);
-    const platformFee = amount * 0.0025; // 0.25% platform fee in fromAsset
+    const platformFee = amount * 0.015; // 1.5% platform fee in fromAsset
     const networkFee = 0.002; // Real network fee will come from quote
     
     return { platformFee, networkFee };
@@ -1589,7 +1589,7 @@ export default function DEXTrading() {
                   </div>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">Platform fee (0.25%)</span>
+                      <span className="text-gray-600 dark:text-gray-400">Platform fee (1.5%)</span>
                       <span>{formatCryptoFeeDisplay(fees.platformFee, fromAsset)}</span>
                     </div>
                     <div className="flex justify-between">

@@ -279,9 +279,9 @@ export default function DEXTrading() {
             </CardContent>
           </Card>
 
-          {/* Wallet Connection */}
+          {/* Wallet Connection Status */}
           {!isConnected ? (
-            <Card className="mb-6">
+            <Card className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
               <CardContent className="pt-6">
                 <Button onClick={connectWallet} className="w-full" size="lg">
                   <Wallet className="mr-2 h-4 w-4" />
@@ -293,138 +293,155 @@ export default function DEXTrading() {
               </CardContent>
             </Card>
           ) : (
-            <>
-              {/* Connected Wallet Display */}
-              <Card className="mb-6 border-green-200 bg-green-50 dark:bg-green-900/20">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-sm font-medium">
-                        {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-                      </span>
-                      <Badge variant="secondary">{selectedNetworkInfo?.displayName}</Badge>
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={disconnectWallet}>
-                      Disconnect
-                    </Button>
+            <Card className="mb-6 border-green-200 bg-green-50 dark:bg-green-900/20">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium">
+                      {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                    </span>
+                    <Badge variant="secondary">{selectedNetworkInfo?.displayName}</Badge>
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Trading Interface */}
-              <Card className="mb-6">
-                <CardHeader>
-                  <CardTitle className="text-xl">Swap Tokens</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* From Token */}
-                  <div className="space-y-2">
-                    <Label htmlFor="from-amount">From</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="from-amount"
-                        type="number"
-                        placeholder="0.0"
-                        value={fromAmount}
-                        onChange={(e) => setFromAmount(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Select value={fromAsset} onValueChange={setFromAsset}>
-                        <SelectTrigger className="w-[100px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
-                            <SelectItem key={asset} value={asset}>{asset}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Swap Button */}
-                  <div className="flex justify-center">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={swapAssets}
-                      className="rounded-full w-10 h-10 p-0"
-                    >
-                      <ArrowUpDown className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  {/* To Token */}
-                  <div className="space-y-2">
-                    <Label htmlFor="to-amount">To</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="to-amount"
-                        type="number"
-                        placeholder="0.0"
-                        value={quote ? quote.toString() : ''}
-                        readOnly
-                        className="flex-1 bg-gray-50 dark:bg-gray-800"
-                      />
-                      <Select value={toAsset} onValueChange={setToAsset}>
-                        <SelectTrigger className="w-[100px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
-                            <SelectItem key={asset} value={asset}>{asset}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Quote Loading */}
-                  {isLoadingQuote && fromAmount && (
-                    <div className="text-center text-sm text-gray-500">
-                      Getting best price...
-                    </div>
-                  )}
-
-                  {/* Fee Breakdown */}
-                  {quote && fromAmount && (
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
-                      <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                        <Info className="h-4 w-4" />
-                        Fee Breakdown
-                      </div>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Platform fee (0.25%)</span>
-                          <span>${fees.platformFee.toFixed(4)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600 dark:text-gray-400">Network fee</span>
-                          <span>~${fees.networkFee.toFixed(4)}</span>
-                        </div>
-                        <Separator />
-                        <div className="flex justify-between font-medium">
-                          <span>Total fees</span>
-                          <span>${(fees.platformFee + fees.networkFee).toFixed(4)}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Swap Button */}
-                  <Button 
-                    onClick={executeSwap}
-                    disabled={!quote || !fromAmount || isSwapping}
-                    className="w-full"
-                    size="lg"
-                  >
-                    {isSwapping ? 'Swapping...' : `Swap ${fromAsset} for ${toAsset}`}
+                  <Button variant="ghost" size="sm" onClick={disconnectWallet}>
+                    Disconnect
                   </Button>
-                </CardContent>
-              </Card>
-            </>
+                </div>
+              </CardContent>
+            </Card>
           )}
+
+          {/* Trading Interface - Always Visible */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-xl">Swap Tokens</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* From Token */}
+              <div className="space-y-2">
+                <Label htmlFor="from-amount">From</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="from-amount"
+                    type="number"
+                    placeholder="0.0"
+                    value={fromAmount}
+                    onChange={(e) => setFromAmount(e.target.value)}
+                    disabled={!isConnected}
+                    className="flex-1"
+                  />
+                  <Select value={fromAsset} onValueChange={setFromAsset} disabled={!isConnected}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
+                        <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Swap Button */}
+              <div className="flex justify-center">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={swapAssets}
+                  disabled={!isConnected}
+                  className="rounded-full w-10 h-10 p-0"
+                >
+                  <ArrowUpDown className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* To Token */}
+              <div className="space-y-2">
+                <Label htmlFor="to-amount">To</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="to-amount"
+                    type="number"
+                    placeholder="0.0"
+                    value={quote ? quote.toString() : ''}
+                    readOnly
+                    className="flex-1 bg-gray-50 dark:bg-gray-800"
+                  />
+                  <Select value={toAsset} onValueChange={setToAsset} disabled={!isConnected}>
+                    <SelectTrigger className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from(new Set(tradingPairs.flatMap(p => [p.from, p.to]))).map(asset => (
+                        <SelectItem key={asset} value={asset}>{asset}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Quote Loading */}
+              {isLoadingQuote && fromAmount && isConnected && (
+                <div className="text-center text-sm text-gray-500">
+                  Getting best price...
+                </div>
+              )}
+
+              {/* Fee Breakdown */}
+              {quote && fromAmount && isConnected && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <Info className="h-4 w-4" />
+                    Fee Breakdown
+                  </div>
+                  <div className="space-y-1 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Platform fee (0.25%)</span>
+                      <span>${fees.platformFee.toFixed(4)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Network fee</span>
+                      <span>~${fees.networkFee.toFixed(4)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-medium">
+                      <span>Total fees</span>
+                      <span>${(fees.platformFee + fees.networkFee).toFixed(4)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Wallet Connection Required Message */}
+              {!isConnected && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 text-center">
+                  <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300 mb-2">
+                    <Wallet className="h-4 w-4" />
+                    <span className="font-medium">Connect wallet to enable trading</span>
+                  </div>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                    Click "Connect Wallet" above to start making swaps
+                  </p>
+                </div>
+              )}
+
+              {/* Swap Button */}
+              <Button 
+                onClick={isConnected ? executeSwap : connectWallet}
+                disabled={isConnected && (!quote || !fromAmount || isSwapping)}
+                className="w-full"
+                size="lg"
+              >
+                {!isConnected 
+                  ? 'Connect Wallet to Trade' 
+                  : isSwapping 
+                    ? 'Swapping...' 
+                    : `Swap ${fromAsset} for ${toAsset}`
+                }
+              </Button>
+            </CardContent>
+          </Card>
 
           {/* Features */}
           <Card>

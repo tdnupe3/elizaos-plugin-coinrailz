@@ -211,15 +211,15 @@ function Router() {
       <Route path="/demo-crypto-transfer">
         {() => <LazyLoadWrapper><DemoCryptoTransfer /></LazyLoadWrapper>}
       </Route>
-      {/* Guest-accessible DEX routes - no authentication required */}
+      {/* Redirect old swap routes to new DEX trading page (4.2) */}
       <Route path="/swap">
-        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
       <Route path="/dex-aggregator">
-        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
       <Route path="/dex">
-        {() => <LazyLoadWrapper><SwapPage /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
       <Route path="/ai-agents">
         {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}

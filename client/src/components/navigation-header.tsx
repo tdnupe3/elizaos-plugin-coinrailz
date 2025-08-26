@@ -27,7 +27,7 @@ export function NavigationHeader({ isDemo = false }: NavigationHeaderProps) {
   const navItems = [
     { path: "/", label: "Dashboard" },
     { path: "/onramp", label: "Add Money" },
-    { path: "/swap", label: "Trade" },
+    { path: "/dex-trading", label: "DEX Trading" },
     { path: "/wallet", label: "Wallet" },
     { path: "/ai-agents", label: "AI Services" },
   ];

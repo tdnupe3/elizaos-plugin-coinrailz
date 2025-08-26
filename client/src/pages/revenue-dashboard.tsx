@@ -119,6 +119,26 @@ export default function RevenueDashboard() {
 
   const revenueStreams = [
     {
+      title: "DEX Trading Fees",
+      description: "Advanced trading platform with limit orders & bridge",
+      fee: "0.3-0.5%",
+      icon: ArrowUpDown,
+      color: "bg-blue-500",
+      category: "Trading",
+      volume: "$125,000",
+      monthlyRevenue: "$450"
+    },
+    {
+      title: "Multi-Chain Bridge",
+      description: "Cross-chain asset transfers with fee optimization",
+      fee: "0.2-0.4%",
+      icon: Zap,
+      color: "bg-purple-500",
+      category: "Bridge",
+      volume: "$45,000",
+      monthlyRevenue: "$150"
+    },
+    {
       title: "AI Agent Donations",
       description: "Direct cryptocurrency donations to agent development",
       fee: "0.4-0.5%",

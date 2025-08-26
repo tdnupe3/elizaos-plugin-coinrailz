@@ -43,12 +43,12 @@ export default function MainMenu() {
       route: '/sell'
     },
     {
-      id: 'swap',
-      title: 'Swap (DEX)',
-      description: 'DEX aggregator for crypto',
+      id: 'dex-trading',
+      title: 'Advanced DEX Trading',
+      description: 'Professional trading with limit orders, bridge & MEV protection',
       icon: ArrowLeftRight,
-      color: 'bg-sky-500 hover:bg-sky-600',
-      route: '/swap'
+      color: 'bg-blue-600 hover:bg-blue-700',
+      route: '/dex-trading'
     },
     {
       id: 'referrals',

@@ -54,10 +54,16 @@ function WalletManagement() {
               </p>
             </div>
             <div className="flex space-x-4">
-              <Button asChild>
-                <Link href="/dex-aggregator">
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Trade Assets
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
+                <Link href="/dex-trading">
+                  <ArrowLeftRight className="h-4 w-4 mr-2" />
+                  Advanced Trading
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/portfolio-analytics">
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Portfolio
                 </Link>
               </Button>
             </div>

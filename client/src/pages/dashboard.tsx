@@ -241,6 +241,41 @@ export default function Dashboard() {
           <InstantSwap />
         </div>
 
+        {/* Featured DEX Trading Platform (Phase 4.3) */}
+        <div className="mb-6">
+          <Card className="border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+            <CardHeader>
+              <CardTitle className="flex items-center text-blue-700 dark:text-blue-300">
+                <Coins className="h-5 w-5 mr-2" />
+                Advanced DEX Trading Platform
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                    Professional trading with limit orders • Multi-chain bridge • MEV protection
+                  </p>
+                  <div className="flex space-x-4 mt-2 text-xs text-green-600 dark:text-green-400">
+                    <span>✓ Advanced order types</span>
+                    <span>✓ Cross-chain bridge</span>
+                    <span>✓ 1000+ token pairs</span>
+                    <span>✓ Real-time charts</span>
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button size="sm" asChild className="bg-blue-600 hover:bg-blue-700">
+                    <Link href="/dex-trading">Start Trading</Link>
+                  </Button>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link href="/portfolio-analytics">View Portfolio</Link>
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Original Onboarding Flow for Reference */}
         <div className="mb-8">
           <OnboardingFlow />

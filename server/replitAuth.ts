@@ -66,13 +66,29 @@ function updateUserSession(
 async function upsertUser(
   claims: any,
 ) {
-  await storage.upsertUser({
+  // Check if user already exists to determine if this is a new registration
+  const existingUser = await storage.getUser(claims["sub"]);
+  const isNewUser = !existingUser;
+  
+  const user = await storage.upsertUser({
     id: claims["sub"],
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+
+  // Send welcome email for new users
+  if (isNewUser && claims["email"]) {
+    try {
+      const { EmailService } = await import('./services/emailService');
+      const emailService = EmailService.getInstance();
+      await emailService.sendUserWelcomeEmail(user);
+      console.log(`📧 Welcome email sent to new user: ${claims["email"]}`);
+    } catch (error) {
+      console.error('Failed to send welcome email:', error);
+    }
+  }
 }
 
 export async function setupAuth(app: Express) {
@@ -245,6 +261,16 @@ function setupFallbackAuth(app: Express) {
         lastName: lastName || null,
         profileImageUrl: null,
       });
+
+      // Send welcome email for new user registration
+      try {
+        const { EmailService } = await import('./services/emailService');
+        const emailService = EmailService.getInstance();
+        await emailService.sendUserWelcomeEmail(newUser);
+        console.log(`📧 Welcome email sent to new user: ${email}`);
+      } catch (error) {
+        console.error('Failed to send welcome email:', error);
+      }
       
       // Set session
       (req.session as any).user = {

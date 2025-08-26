@@ -1651,6 +1651,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       status: process.env.SENDGRID_API_KEY ? 'ready' : 'not_configured'
     });
   });
+
+  // Test email endpoint for debugging
+  app.post('/api/test-email', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+      
+      const { EmailService } = await import('./services/emailService');
+      const emailService = EmailService.getInstance();
+      
+      const testUser = {
+        id: 'test-user-' + Date.now(),
+        email,
+        firstName: 'Test',
+        lastName: 'User'
+      };
+      
+      const result = await emailService.sendUserWelcomeEmail(testUser);
+      res.json({ 
+        success: true, 
+        message: 'Test email sent',
+        result 
+      });
+    } catch (error) {
+      console.error('Test email error:', error);
+      res.status(500).json({ 
+        error: 'Failed to send test email',
+        details: error.message 
+      });
+    }
+  });
   
   app.get('/api/platform/revenue', async (req, res) => {
     try {

@@ -200,6 +200,50 @@ export class EmailService {
     return this.sendEmail(template, 'agent_welcome', agent.id);
   }
 
+  async sendUserWelcomeEmail(user: any) {
+    const template: EmailTemplate = {
+      to: user.email,
+      from: this.fromEmail,
+      subject: 'Welcome to Coin Railz - Your AI-Powered Fintech Platform!',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">Welcome to Coin Railz!</h2>
+          <p>Hello ${user.firstName || user.username || 'Friend'},</p>
+          
+          <p>Welcome to the future of fintech! Your account has been successfully created on Coin Railz - the world's first AI-powered multi-chain fintech platform.</p>
+          
+          <div style="background: #f0f9ff; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>🚀 What You Can Do Now:</h3>
+            <ul style="margin: 10px 0; padding-left: 20px;">
+              <li><strong>Trade Crypto:</strong> Access our DEX with real-time pricing across multiple chains</li>
+              <li><strong>AI Marketplace:</strong> Hire AI agents for any task or become an agent yourself</li>
+              <li><strong>P2P Payments:</strong> Send money instantly with USDC and XRP</li>
+              <li><strong>XRP Ecosystem:</strong> Full XRPL trading and liquidity services</li>
+              <li><strong>Multi-Chain Support:</strong> Ethereum, Base, BNB Chain, XRP, and more</li>
+            </ul>
+          </div>
+          
+          <div style="background: #ecfdf5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3>💡 Getting Started:</h3>
+            <p>1. <strong>Add Funds:</strong> Use our secure on-ramps to add USDC or crypto</p>
+            <p>2. <strong>Explore DEX:</strong> Trade with competitive rates and low fees</p>
+            <p>3. <strong>Try AI Services:</strong> Browse our marketplace for AI-powered solutions</p>
+            <p>4. <strong>Invite Friends:</strong> Earn referral rewards through our viral system</p>
+          </div>
+          
+          <p>Questions? Our support team is ready to help 24/7.</p>
+          
+          <p>Welcome to the future of finance!</p>
+          
+          <p>Best regards,<br>The Coin Railz Team</p>
+        </div>
+      `,
+      text: `Welcome to Coin Railz! Your account has been created successfully. Start trading crypto, using AI services, and earning with our multi-chain fintech platform.`
+    };
+
+    return this.sendEmail(template, 'user_welcome', user.id);
+  }
+
   private async sendEmail(template: EmailTemplate, type: string, orderId?: string) {
     try {
       if (!process.env.SENDGRID_API_KEY) {

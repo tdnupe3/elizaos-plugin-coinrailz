@@ -7,7 +7,11 @@ import {
   chartSettings,
   bridgeTransactions,
   chainFeeOptimization,
-  chainSelectionPreferences
+  chainSelectionPreferences,
+  userWatchlists,
+  watchlistAssets,
+  tradingPerformance,
+  riskManagementSettings
 } from '@shared/schema';
 import { createInsertSchema } from 'drizzle-zod';
 import { eq, and, desc } from 'drizzle-orm';
@@ -28,6 +32,18 @@ const insertMEVProtectionSettingsSchema = createInsertSchema(mevProtectionSettin
 });
 
 const insertChartSettingsSchema = createInsertSchema(chartSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+const insertWatchlistSchema = createInsertSchema(userWatchlists).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+const insertRiskManagementSchema = createInsertSchema(riskManagementSettings).omit({
   id: true,
   createdAt: true,
   updatedAt: true
@@ -76,7 +92,7 @@ router.post('/limit-orders', isAuthenticated, async (req: any, res) => {
       .values(validatedData)
       .returning();
 
-    console.log(`✅ Limit order created: ${order.amount} ${order.fromAsset} → ${order.toAsset} at $${order.limitPrice}`);
+    console.log(`✅ Limit order created: ${order.fromAmount} ${order.fromAsset} → ${order.toAsset} at $${order.limitPrice}`);
 
     res.status(201).json(order);
   } catch (error) {
@@ -132,7 +148,7 @@ router.get('/portfolio', isAuthenticated, async (req: any, res) => {
       .select()
       .from(portfolioHoldings)
       .where(eq(portfolioHoldings.userId, userId))
-      .orderBy(desc(portfolioHoldings.usdValue));
+      .orderBy(desc(portfolioHoldings.currentValue));
 
     res.json(holdings);
   } catch (error) {

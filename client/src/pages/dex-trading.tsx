@@ -28,11 +28,42 @@ interface NetworkOption {
 }
 
 const SUPPORTED_NETWORKS: NetworkOption[] = [
-  { id: 'base-mainnet', name: 'base', displayName: 'Base', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiMwMDUyRkYiLz4KPHBhdGggZD0iTTcuNSAxNEM3LjUgMTAuNDEgMTAuNDEgNy41IDE0IDcuNUMyMC41IDcuNSAyMC41IDEzLjUgMjAuNSAxNEMyMC41IDE3LjU5IDE3LjU5IDIwLjUgMTQgMjAuNUM3LjUgMjAuNSA3LjUgMTQuNSA3LjUgMTRaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' },
-  { id: 'ethereum-mainnet', name: 'ethereum', displayName: 'Ethereum', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiM2MjdFRUEiLz4KPHBhdGggZD0iTTE0LjAwMDIgM1Y0LjQxNzY5TDE0IDExLjE5MjRMMTkuMjQ5NyAxMy4zNDM2TDE0LjAwMDIgM1oiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNCAzTDguNzUwMjQgMTMuMzQzNkwxNCAxMS4xOTI0VjNaIiBmaWxsPSJ3aGl0ZSIvPgo8cGF0aCBkPSJNMTQgMTUuNTcxM1YyMC45OTlMMTkuMjUgMTQuNjU2M0wxNCAxNS41NzEzWiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTE0IDIwLjk5OVYxNS41NzEzTDguNzUwMjQgMTQuNjU2M0wxNCAyMC45OTlaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' },
-  { id: 'polygon-mainnet', name: 'polygon', displayName: 'Polygon', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE3Ljg3IDguNThDMTcuNjQgOC40NCAxNy4zMyA4LjQ0IDE3LjA4IDguNThMMTQuNzkgOS45MkwxMy4yNyAxMC43M0wxMC45OCAxMi4wN0M5Ljk4IDEyLjY2IDkuOTggMTQuMTEgMTAuOTggMTQuNzFMMTMuMjcgMTYuMDVMMTQuNzkgMTYuODZMMTcuMDggMTguMkMxNy4zMyAxOC4zNCAxNy42NCAxOC4zNCAxNy44NyAxOC4yTDE5LjQgMTcuMzlDMTkuNjMgMTcuMjUgMTkuNzggMTYuOTggMTkuNzggMTYuNjlWMTIuMDlDMTkuNzggMTEuOCAxOS42MyAxMS41MyAxOS40IDExLjM5TDE3Ljg3IDEwLjU4VjguNThaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' },
-  { id: 'arbitrum-mainnet', name: 'arbitrum', displayName: 'Arbitrum', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiMyRDM3NEIiLz4KPHBhdGggZD0iTTIwLjUgMTQuNUMxOC44IDE0LjUgMTcuNSAxNS44IDE3LjUgMTcuNUMxNy41IDE5LjIgMTguOCAyMC41IDIwLjUgMjAuNUMyMi4yIDIwLjUgMjMuNSAxOS4yIDIzLjUgMTcuNUMyMy41IDE1LjggMjIuMiAxNC41IDIwLjUgMTQuNVpNNy41IDE0LjVDNS44IDE0LjUgNC41IDE1LjggNC41IDE3LjVDNC41IDE5LjIgNS44IDIwLjUgNy41IDIwLjVDOS4yIDIwLjUgMTAuNSAxOS4yIDEwLjUgMTcuNUMxMC41IDE1LjggOS4yIDE0LjUgNy41IDE0LjVaTTE0IDcuNUMxMi4zIDcuNSAxMSA4LjggMTEgMTAuNUMxMSAxMi4yIDEyLjMgMTMuNSAxNCAxMy41QzE1LjcgMTMuNSAxNyAxMi4yIDE3IDEwLjVDMTcgOC44IDE1LjcgNy41IDE0IDcuNVoiIGZpbGw9IiM5NkRCRkYiLz4KPC9zdmc+' },
-  { id: 'bnb-mainnet', name: 'bnb', displayName: 'BNB Chain', icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiNGM0JBMkYiLz4KPHBhdGggZD0iTTEwIDEwTDE0IDZMMTggMTBMMTYgMTJMMTQgMTBMMTIgMTJMMTAgMTBaTTYgMTRMMTAgMTBMMTIgMTJMMTAgMTRMOCAxNkw2IDE0Wk0xNCAxOEwxOCAyMkwxNCAxOEwxMCAyMkwxNCAxOFpNMjIgMTRMMjAgMTZMMTggMTRMMjAgMTJMMjIgMTRaTTE0IDEwTDE2IDEyTDE0IDE0TDEyIDEyTDE0IDEwWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+' },
+  { 
+    id: 'base-mainnet', 
+    name: 'base', 
+    displayName: 'Base', 
+    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiMwMDUyRkYiLz4KPHBhdGggZD0iTTcuNSAxNEM3LjUgMTAuNDEgMTAuNDEgNy41IDE0IDcuNUMyMC41IDcuNSAyMC41IDEzLjUgMjAuNSAxNEMyMC41IDE3LjU5IDE3LjU5IDIwLjUgMTQgMjAuNUM3LjUgMjAuNSA3LjUgMTQuNSA3LjUgMTRaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' 
+  },
+  { 
+    id: 'ethereum-mainnet', 
+    name: 'ethereum', 
+    displayName: 'Ethereum', 
+    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiM2MjdFRUEiLz4KPHBhdGggZD0iTTE0IDUuNVYxMC43NEwxOSAxMi44M0wxNCA1LjVaIiBmaWxsPSJ3aGl0ZSIgZmlsbC1vcGFjaXR5PSIwLjYiLz4KPHBhdGggZD0iTTE0IDUuNUw5IDEyLjgzTDE0IDEwLjc0VjUuNVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNCAxOC41MVYyMi41TDE5IDE0LjE2TDE0IDE4LjUxWiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC42Ii8+CjxwYXRoIGQ9Ik0xNCAyMi41VjE4LjUxTDkgMTQuMTZMMTQgMjIuNVoiIGZpbGw9IndoaXRlIi8+CjxwYXRoIGQ9Ik0xNCAxNy4xN0wxOSAxMi44M0wxNCAxNS4yN1YxNy4xN1oiIGZpbGw9IndoaXRlIiBmaWxsLW9wYWNpdHk9IjAuMiIvPgo8cGF0aCBkPSJNOSAxMi44M0wxNCAxNy4xN1YxNS4yN0w5IDEyLjgzWiIgZmlsbD0id2hpdGUiIGZpbGwtb3BhY2l0eT0iMC42Ii8+Cjwvc3ZnPgo=' 
+  },
+  { 
+    id: 'polygon-mainnet', 
+    name: 'polygon', 
+    displayName: 'Polygon', 
+    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiM4MjQ3RTUiLz4KPHBhdGggZD0iTTE4LjI1IDkuNDdDMTguMDEgOS4zMiAxNy43MSA5LjMyIDE3LjQ3IDkuNDdMMTUuMTggMTAuODJMMTMuNjYgMTEuNjNMMTEuMzcgMTIuOThDMTAuMzggMTMuNTcgMTAuMzggMTUuMDIgMTEuMzcgMTUuNjJMMTMuNjYgMTYuOTZMMTUuMTggMTcuNzdMMTcuNDcgMTkuMTJDMTcuNzEgMTkuMjcgMTguMDEgMTkuMjcgMTguMjUgMTkuMTJMMTkuNzggMTguMzFDMjAuMDIgMTguMTcgMjAuMTcgMTcuODkgMjAuMTcgMTcuNlYxMy4wQzIwLjE3IDEyLjcxIDIwLjAyIDEyLjQzIDE5Ljc4IDEyLjI5TDE4LjI1IDExLjQ4VjkuNDdaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K' 
+  },
+  { 
+    id: 'arbitrum-mainnet', 
+    name: 'arbitrum', 
+    displayName: 'Arbitrum', 
+    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiMyRDM3NEIiLz4KPHBhdGggZD0iTTEwIDguNUgxOEwxNi41IDExSDE0TDEyLjUgMTMuNUgxNS41TDE0IDIwSDE0TDEyLjUgMTMuNUgxMEw4IDExSDEwVjguNVoiIGZpbGw9IiM5NkRCRkYiLz4KPHBhdGggZD0iTTE4IDguNUwxOS41IDExSDE4TDE2LjUgMTNIMTkuNUwyMSAxNUgxOUwxNy41IDE3SDE5LjVMMTggMjBIMTYuNUwxOCAxN0gxNS41TDE3IDEzSDEzTDE0LjUgMTBIMTdMMTguNSA3LjVIMTZMMTcuNSA1SDE5LjVMMTggOFoiIGZpbGw9IiM2Q0I3RjAiLz4KPC9zdmc+' 
+  },
+  { 
+    id: 'bnb-mainnet', 
+    name: 'bnb', 
+    displayName: 'BNB Chain', 
+    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiNGM0JBMkYiLz4KPHBhdGggZD0iTTExIDlMMTQgNkwxNyA5TDE1LjUgMTAuNUwxNCA5TDEyLjUgMTAuNUwxMSA5Wk03LjUgMTNMMTAgMTBMMTEuNSAxMS41TDEwIDEzTDggMTVMNy41IDEzWk0xNCAyMkwxNyAxOUwxNCAyMkwxMSAxOUwxNCAyMlpNMjAuNSAxM0wxOSAxNUwxNy41IDEzTDE5IDExLjVMMjAuNSAxM1pNMTQgMTEuNUwxNS41IDEzTDE0IDE0LjVMMTIuNSAxM0wxNCAxMS41WiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+' 
+  },
+  { 
+    id: 'optimism-mainnet', 
+    name: 'optimism', 
+    displayName: 'Optimism', 
+    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjgiIGhlaWdodD0iMjgiIHZpZXdCb3g9IjAgMCAyOCAyOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTQiIGN5PSIxNCIgcj0iMTQiIGZpbGw9IiNGRjA0MjAiLz4KPHBhdGggZD0iTTEwIDEwQzEwIDkgMTAuNSA4IDEyIDhDMTMuNSA4IDE0IDkgMTQgMTBWMThDMTQgMTkgMTMuNSAyMCAxMiAyMEMxMC41IDIwIDEwIDE5IDEwIDE4VjEwWk0xNiAxMkMxNiAxMSAxNi41IDEwIDE4IDEwQzE5LjUgMTAgMjAgMTEgMjAgMTJWMTZDMjAgMTcgMTkuNSAxOCAxOCAxOEMxNi41IDE4IDE2IDE3IDE2IDE2VjEyWiIgZmlsbD0id2hpdGUiLz4KPC9zdmc+' 
+  },
 ];
 
 export default function DEXTrading() {
@@ -511,7 +542,8 @@ export default function DEXTrading() {
                            network.name === 'ethereum' ? '⟐' : 
                            network.name === 'polygon' ? '⬣' : 
                            network.name === 'arbitrum' ? '🔷' : 
-                           network.name === 'bnb' ? '💛' : '🔗'}
+                           network.name === 'bnb' ? '🟡' : 
+                           network.name === 'optimism' ? '🔴' : '🔗'}
                         </span>
                         <span>{network.displayName}</span>
                       </div>

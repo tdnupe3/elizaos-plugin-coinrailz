@@ -523,7 +523,7 @@ export const buyCryptoSchema = z.object({
 
 // Advanced DEX Trading Tables for Phase 3
 
-// Limit Orders Table (3.6)
+// Advanced Order Types Table (Complete Coinbase DEX Parity)
 export const limitOrders = pgTable("limit_orders", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
@@ -531,18 +531,30 @@ export const limitOrders = pgTable("limit_orders", {
   toAsset: varchar("to_asset").notNull(),
   fromAmount: decimal("from_amount", { precision: 18, scale: 8 }).notNull(),
   limitPrice: decimal("limit_price", { precision: 18, scale: 8 }).notNull(),
-  orderType: varchar("order_type").notNull(), // 'buy', 'sell'
-  status: varchar("status").default("pending"), // 'pending', 'partial', 'filled', 'cancelled'
+  orderType: varchar("order_type").notNull(), // 'buy', 'sell', 'stop-limit', 'bracket'
+  
+  // Stop-Limit Order Fields
+  stopPrice: decimal("stop_price", { precision: 18, scale: 8 }), // Trigger price for stop orders
+  stopCondition: varchar("stop_condition"), // 'above', 'below'
+  
+  // Bracket Order Fields (Coinbase Advanced Trading)
+  takeProfitPrice: decimal("take_profit_price", { precision: 18, scale: 8 }),
+  stopLossPrice: decimal("stop_loss_price", { precision: 18, scale: 8 }),
+  bracketType: varchar("bracket_type"), // 'one-cancels-other', 'one-triggers-other'
+  parentOrderId: integer("parent_order_id"), // For linked bracket orders
+  
+  status: varchar("status").default("pending"), // 'pending', 'partial', 'filled', 'cancelled', 'triggered'
   filledAmount: decimal("filled_amount", { precision: 18, scale: 8 }).default("0"),
   network: varchar("network").notNull(),
   walletAddress: varchar("wallet_address").notNull(),
   expiresAt: timestamp("expires_at"),
+  triggeredAt: timestamp("triggered_at"), // When stop condition was met
   createdAt: timestamp("created_at").defaultNow(),
   filledAt: timestamp("filled_at"),
   cancelledAt: timestamp("cancelled_at"),
 });
 
-// Portfolio Holdings Table (3.9)
+// Enhanced Portfolio Holdings Table (Coinbase Advanced Portfolio Features)
 export const portfolioHoldings = pgTable("portfolio_holdings", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id),
@@ -554,6 +566,20 @@ export const portfolioHoldings = pgTable("portfolio_holdings", {
   currentValue: decimal("current_value", { precision: 18, scale: 2 }),
   profitLoss: decimal("profit_loss", { precision: 18, scale: 2 }),
   profitLossPercentage: decimal("profit_loss_percentage", { precision: 5, scale: 2 }),
+  
+  // Advanced Portfolio Analytics (Coinbase Pro Features)
+  dayChange: decimal("day_change", { precision: 18, scale: 2 }),
+  dayChangePercentage: decimal("day_change_percentage", { precision: 5, scale: 2 }),
+  weekChange: decimal("week_change", { precision: 18, scale: 2 }),
+  monthChange: decimal("month_change", { precision: 18, scale: 2 }),
+  allTimeHigh: decimal("all_time_high", { precision: 18, scale: 8 }),
+  allTimeLow: decimal("all_time_low", { precision: 18, scale: 8 }),
+  
+  // Risk Metrics
+  volatilityScore: decimal("volatility_score", { precision: 5, scale: 2 }), // 0-100
+  riskLevel: varchar("risk_level"), // 'low', 'medium', 'high', 'extreme'
+  betaCoefficient: decimal("beta_coefficient", { precision: 10, scale: 6 }), // Market correlation
+  
   lastUpdated: timestamp("last_updated").defaultNow(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -623,6 +649,74 @@ export const chainFeeOptimization = pgTable("chain_fee_optimization", {
   success_rate: decimal("success_rate", { precision: 5, scale: 2 }).notNull(), // 99.50%
   isRecommended: boolean("is_recommended").default(false),
   lastUpdated: timestamp("last_updated").defaultNow(),
+});
+
+// Watchlists & Asset Screening (Coinbase Advanced Features)
+export const userWatchlists = pgTable("user_watchlists", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  name: varchar("name").notNull(), // "DeFi Tokens", "Top Gainers", etc.
+  description: text("description"),
+  isDefault: boolean("is_default").default(false),
+  isPublic: boolean("is_public").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const watchlistAssets = pgTable("watchlist_assets", {
+  id: serial("id").primaryKey(),
+  watchlistId: integer("watchlist_id").references(() => userWatchlists.id).notNull(),
+  asset: varchar("asset").notNull(),
+  network: varchar("network").notNull(),
+  addedAt: timestamp("added_at").defaultNow(),
+  alertPrice: decimal("alert_price", { precision: 18, scale: 8 }), // Price alert threshold
+  alertCondition: varchar("alert_condition"), // 'above', 'below', 'change_percent'
+  alertPercentage: decimal("alert_percentage", { precision: 5, scale: 2 }), // +/- % change
+});
+
+// Advanced Trading Analytics (Coinbase Pro Features)
+export const tradingPerformance = pgTable("trading_performance", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  timeframe: varchar("timeframe").notNull(), // 'daily', 'weekly', 'monthly', 'yearly'
+  totalVolume: decimal("total_volume", { precision: 20, scale: 8 }).notNull(),
+  totalTrades: integer("total_trades").notNull(),
+  profitableTrades: integer("profitable_trades").notNull(),
+  totalPnL: decimal("total_pnl", { precision: 18, scale: 2 }).notNull(),
+  winRate: decimal("win_rate", { precision: 5, scale: 2 }).notNull(), // 65.5%
+  averageWin: decimal("average_win", { precision: 18, scale: 2 }).notNull(),
+  averageLoss: decimal("average_loss", { precision: 18, scale: 2 }).notNull(),
+  profitFactor: decimal("profit_factor", { precision: 10, scale: 4 }).notNull(), // Gross profit / gross loss
+  sharpeRatio: decimal("sharpe_ratio", { precision: 10, scale: 6 }), // Risk-adjusted returns
+  maxDrawdown: decimal("max_drawdown", { precision: 5, scale: 2 }), // Maximum loss from peak
+  recordDate: date("record_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Risk Management & Position Sizing (Coinbase Advanced)
+export const riskManagementSettings = pgTable("risk_management_settings", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  
+  // Position Sizing Rules
+  maxPositionSize: decimal("max_position_size", { precision: 18, scale: 2 }).default("1000"), // Max $ per position
+  maxPortfolioRisk: decimal("max_portfolio_risk", { precision: 5, scale: 2 }).default("2.5"), // 2.5% max risk per trade
+  maxDailyLoss: decimal("max_daily_loss", { precision: 18, scale: 2 }).default("500"), // Daily loss limit
+  
+  // Auto-Stop Rules
+  autoStopLoss: boolean("auto_stop_loss").default(true),
+  defaultStopLossPercent: decimal("default_stop_loss_percent", { precision: 5, scale: 2 }).default("5.0"), // 5%
+  autoTakeProfit: boolean("auto_take_profit").default(false),
+  defaultTakeProfitPercent: decimal("default_take_profit_percent", { precision: 5, scale: 2 }).default("10.0"), // 10%
+  
+  // Risk Alerts
+  enableRiskAlerts: boolean("enable_risk_alerts").default(true),
+  riskToleranceLevel: varchar("risk_tolerance_level").default("moderate"), // 'conservative', 'moderate', 'aggressive'
+  marginCallAlert: boolean("margin_call_alert").default(true),
+  
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
   createdAt: timestamp("created_at").defaultNow(),
 });
 

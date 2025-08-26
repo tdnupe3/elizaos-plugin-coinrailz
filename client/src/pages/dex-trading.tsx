@@ -186,7 +186,7 @@ export default function DEXTrading() {
     
     const amount = parseFloat(fromAmount);
     const platformFee = amount * 0.0025; // 0.25% platform fee
-    const networkFee = 0.002; // Estimated network fee
+    const networkFee = 0.002; // Real network fee will come from quote
     
     return { platformFee, networkFee };
   };
@@ -196,32 +196,32 @@ export default function DEXTrading() {
 
     setIsSwapping(true);
     try {
-      // In production, this would execute the actual swap transaction
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate transaction time
+      console.log(`🔄 Executing REAL trade: ${fromAmount} ${fromAsset} → ${toAsset}`);
       
-      const { platformFee } = calculateFees();
-      
-      // Record the trading fee
-      await apiRequest('POST', '/api/balance/record-trading-fee', {
-        userAddress: walletAddress,
-        fromToken: fromAsset,
-        toToken: toAsset,
+      // PRODUCTION: Execute real blockchain transaction via Coinbase CDP
+      const tradeResult = await apiRequest('POST', '/api/dex/execute-trade', {
+        fromAsset,
+        toAsset,
         amount: fromAmount,
-        platformFee: platformFee.toString(),
-        transactionHash: `0x${Math.random().toString(16).substr(2, 64)}`
+        quote,
+        walletAddress,
+        userId: null // Guest trading
       });
+
+      console.log(`✅ REAL trade completed:`, tradeResult);
 
       toast({
         title: "Swap Successful!",
-        description: `Swapped ${fromAmount} ${fromAsset} for ${quote} ${toAsset}`,
+        description: `Swapped ${fromAmount} ${fromAsset} for ${tradeResult.transaction.outputAmount} ${toAsset}`,
       });
       
       setFromAmount('');
       setQuote(null);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('❌ Trade execution failed:', error);
       toast({
         title: "Swap Failed",
-        description: "Transaction failed. Please try again.",
+        description: error.message || "Transaction failed. Please try again.",
         variant: "destructive",
       });
     } finally {

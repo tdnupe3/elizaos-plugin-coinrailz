@@ -727,9 +727,9 @@ export default function DEXTrading() {
       setIsLoadingQuote(true);
       try {
         const response = await apiRequest('GET', 
-          `/api/dex/quote?fromAsset=${fromAsset}&toAsset=${toAsset}&amount=${fromAmount}&walletAddress=${walletAddress}`
+          `/api/dex/quote?fromAsset=${fromAsset}&toAsset=${toAsset}&amount=${fromAmount}&walletAddress=${walletAddress}&chain=${selectedNetwork}`
         );
-        setQuote(response.price);
+        setQuote(parseFloat(response.quote.outputAmount));
       } catch (error) {
         console.error('Failed to get quote:', error);
         setQuote(null);
@@ -1555,7 +1555,7 @@ export default function DEXTrading() {
                   {/* Execute Button */}
                   <Button 
                     onClick={orderType === 'market' ? executeSwap : createLimitOrder}
-                    disabled={isConnected && (!quote || !fromAmount || isSwapping || (orderType === 'limit' && !limitPrice))}
+                    disabled={!isConnected || !quote || !fromAmount || quote === 0 || isSwapping || (orderType === 'limit' && !limitPrice)}
                     className="w-full"
                     size="lg"
                   >

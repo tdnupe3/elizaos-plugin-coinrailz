@@ -912,6 +912,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Record the successful trade for revenue tracking
       const [transaction] = await db.insert(platformTransactions).values({
+        userId: userId || 'system',
         type: 'dex',
         amount: parseFloat(amount),
         fee: parseFloat(tradeResult.platformFee || '0'),
@@ -921,7 +922,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         txHash: tradeResult.transactionHash,
         description: `DEX trade: ${fromAsset} → ${toAsset}`,
         metadata: {
-          userId: userId || 'system', // Store in metadata instead
           fromToken: fromAsset,
           toToken: toAsset,
           inputAmount: amount,
@@ -1089,6 +1089,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transactionId = `swap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const [transaction] = await db.insert(platformTransactions).values({
+        userId: userAddress,
         type: 'dex',
         amount: parseFloat(amount.toString()),
         fee: parseFloat(platformFee.toString()),
@@ -1098,7 +1099,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         txHash: transactionHash,
         description: `DEX swap: ${fromToken} → ${toToken}`,
         metadata: {
-          userId: userAddress, // Store in metadata instead
           fromToken,
           toToken,
           platformRevenue: platformFee,

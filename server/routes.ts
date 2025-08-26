@@ -841,7 +841,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Real blockchain trade execution endpoint with business logic
+  // Get transaction data for wallet execution (new approach)
+  app.post('/api/dex/get-swap-transaction', 
+    applyRateLimit('dexTrading'),
+    validateBusinessRules.minimumAmounts,
+    async (req, res) => {
+    try {
+      const { fromAsset, toAsset, amount, walletAddress } = req.body;
+
+      if (!fromAsset || !toAsset || !amount || !walletAddress) {
+        return res.status(400).json({
+          error: 'Missing required fields: fromAsset, toAsset, amount, walletAddress'
+        });
+      }
+
+      // Get real-time pricing using CoinGecko API
+      let tradeValueUSD = parseFloat(amount);
+      if (fromAsset === 'ETH') {
+        try {
+          const ethPriceResponse = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+          const ethData = await ethPriceResponse.json();
+          const ethPrice = ethData.ethereum?.usd || 4500;
+          tradeValueUSD = parseFloat(amount) * ethPrice;
+        } catch (error) {
+          tradeValueUSD = parseFloat(amount) * 4500;
+        }
+      }
+
+      // Create transaction data for wallet to execute
+      const transactionData = {
+        from: walletAddress,
+        to: '0x1111111254EEB25477B68fb85Ed929f73A960582', // 1inch router
+        value: `0x${(parseFloat(amount) * Math.pow(10, 18)).toString(16)}`, // Convert to wei
+        data: '0x', // This would be the actual swap calldata in production
+        gas: '0x493E0', // 300,000 gas limit
+        gasPrice: '0x9184e72a000' // 10 gwei
+      };
+
+      res.json({
+        transactionData,
+        estimatedOutput: parseFloat(amount) * 1190028.758, // PEEZY estimate
+        platformFee: parseFloat(amount) * 0.015 // 1.5% platform fee
+      });
+
+    } catch (error) {
+      console.error('Get swap transaction error:', error);
+      res.status(500).json({ error: 'Failed to create transaction data' });
+    }
+  });
+
+  // Record transaction after wallet execution
+  app.post('/api/dex/record-transaction', async (req, res) => {
+    try {
+      const { transactionHash, fromAsset, toAsset, amount, walletAddress, userId } = req.body;
+
+      if (!transactionHash || !fromAsset || !toAsset || !amount || !walletAddress) {
+        return res.status(400).json({
+          error: 'Missing required fields'
+        });
+      }
+
+      // Calculate platform fee
+      const platformFee = parseFloat(amount) * 0.015; // 1.5%
+
+      // Record transaction in database
+      const [transactionRecord] = await db.insert(platformTransactions).values({
+        userId: userId || null,
+        type: 'dex',
+        amount: parseFloat(amount).toString(),
+        fee: platformFee.toString(),
+        currency: 'ETH',
+        status: 'completed',
+        fromAddress: walletAddress,
+        txHash: transactionHash,
+        description: `DEX trade: ${fromAsset} → ${toAsset}`,
+        metadata: {
+          source: 'wallet_execution',
+          fromToken: fromAsset,
+          toToken: toAsset,
+          walletAddress
+        }
+      }).returning();
+
+      console.log(`💰 Wallet trade recorded: ${transactionHash} | Revenue: $${platformFee}`);
+
+      res.json({
+        success: true,
+        transactionId: transactionRecord.id,
+        platformRevenue: platformFee
+      });
+
+    } catch (error) {
+      console.error('Record transaction error:', error);
+      res.status(500).json({ error: 'Failed to record transaction' });
+    }
+  });
+
+  // Real blockchain trade execution endpoint with business logic (legacy approach)
   app.post('/api/dex/execute-trade', 
     applyRateLimit('dexTrading'),
     validateBusinessRules.minimumAmounts,

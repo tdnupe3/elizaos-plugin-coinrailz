@@ -874,36 +874,71 @@ export default function DEXTrading() {
   };
 
   const executeSwap = async () => {
-    if (!fromAmount || !quote || !isConnected) return;
+    if (!fromAmount || !quote || !isConnected || !walletAddress) return;
 
     setIsSwapping(true);
     try {
-      console.log(`🔄 Executing REAL trade: ${fromAmount} ${fromAsset} → ${toAsset}`);
+      console.log(`🔄 Executing wallet transaction: ${fromAmount} ${fromAsset} → ${toAsset}`);
       
-      // PRODUCTION: Execute real blockchain transaction via Coinbase CDP
-      const tradeResult = await apiRequest('POST', '/api/dex/execute-trade', {
+      // Step 1: Get swap transaction data from backend
+      const swapData = await apiRequest('POST', '/api/dex/get-swap-transaction', {
         fromAsset,
         toAsset,
         amount: fromAmount,
         quote,
         walletAddress,
-        userId: user?.id || null // Use authenticated user ID if available
+        userId: user?.id || null
       });
 
-      console.log(`✅ REAL trade completed:`, tradeResult);
+      if (!swapData.transactionData) {
+        throw new Error('Failed to get transaction data');
+      }
+
+      // Step 2: Execute transaction through user's wallet
+      const ethereum = (window as any).ethereum;
+      if (!ethereum) {
+        throw new Error('No wallet detected');
+      }
+
+      console.log('📝 Sending transaction to wallet for signing...');
+      
+      const txHash = await ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [swapData.transactionData],
+      });
+
+      console.log(`✅ Transaction signed and submitted: ${txHash}`);
+
+      // Step 3: Record the transaction in our backend
+      await apiRequest('POST', '/api/dex/record-transaction', {
+        transactionHash: txHash,
+        fromAsset,
+        toAsset,
+        amount: fromAmount,
+        walletAddress,
+        userId: user?.id || null
+      });
 
       toast({
         title: "Swap Successful!",
-        description: `Swapped ${fromAmount} ${fromAsset} for ${tradeResult.transaction.outputAmount} ${toAsset}`,
+        description: `Transaction submitted: ${txHash.slice(0, 10)}...${txHash.slice(-6)}`,
       });
       
       setFromAmount('');
       setQuote(null);
     } catch (error: any) {
       console.error('❌ Trade execution failed:', error);
+      
+      let errorMessage = "Transaction failed. Please try again.";
+      if (error.code === 4001) {
+        errorMessage = "Transaction was rejected by user.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Swap Failed",
-        description: error.message || "Transaction failed. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

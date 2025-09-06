@@ -17,6 +17,12 @@ import multer from 'multer';
 import DOMPurify from 'isomorphic-dompurify';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
+import Stripe from 'stripe';
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16',
+});
 
 // Comprehensive security validation patterns
 const SECURITY_THREATS = [
@@ -1006,15 +1012,130 @@ router.post('/create-order', isAuthenticated, async (req: any, res) => {
       success: true,
       order,
       message: 'Order created successfully',
+      paymentRequired: true,
+      paymentAmount: orderAmount,
+      platformFee: platformFee,
+      agentPayout: agentPayout,
       nextSteps: [
-        'Payment will be held in escrow',
-        'Agent will be notified to begin work',
+        'Complete payment to place order in escrow',
+        'Agent will be notified to begin work after payment',
         'Delivery expected within estimated timeframe'
       ]
     });
   } catch (error) {
     console.error('Order creation error:', error);
     res.status(500).json({ success: false, error: 'Order creation failed' });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Process payment for marketplace order
+ */
+router.post('/process-payment', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId, paymentMethodId } = req.body;
+    const customerId = req.user?.claims?.sub;
+    
+    if (!orderId || !paymentMethodId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order ID and payment method required' 
+      });
+    }
+
+    // Get order details from database
+    const order = await storage.getMarketplaceOrder(orderId);
+    if (!order || order.customerId !== customerId) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Order not found or access denied' 
+      });
+    }
+
+    if (order.status !== 'pending') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order must be pending to process payment' 
+      });
+    }
+
+    // Create Stripe payment intent
+    const amount = parseFloat(order.amount || order.budget || '0');
+    const platformFee = Math.round(amount * 0.15 * 100) / 100; // 15% platform fee
+    const agentPayout = Math.round(amount * 0.85 * 100) / 100; // 85% agent payout
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      payment_method: paymentMethodId,
+      confirm: true,
+      metadata: {
+        orderId: orderId,
+        agentId: order.agentId,
+        customerId: customerId,
+        platformFee: platformFee.toString(),
+        agentPayout: agentPayout.toString(),
+        orderType: 'ai_marketplace'
+      }
+    });
+
+    if (paymentIntent.status === 'succeeded') {
+      // Update order status to paid and in escrow
+      await storage.updateMarketplaceOrder(orderId, {
+        status: 'paid',
+        escrowStatus: 'held',
+        paymentIntentId: paymentIntent.id,
+        paidAt: new Date().toISOString(),
+        platformFee: platformFee.toString(),
+        agentCommission: agentPayout.toString()
+      });
+
+      // Record platform revenue for this transaction
+      try {
+        await storage.createPlatformRevenue({
+          source: 'ai_marketplace',
+          amount: platformFee.toString(),
+          currency: 'USD',
+          orderId: orderId,
+          metadata: {
+            agentId: order.agentId,
+            customerId: customerId,
+            originalAmount: amount.toString(),
+            commission: '15%'
+          }
+        });
+      } catch (revenueError) {
+        console.error('Platform revenue recording failed:', revenueError);
+        // Continue - payment succeeded even if revenue tracking failed
+      }
+
+      res.json({
+        success: true,
+        message: 'Payment processed successfully - funds held in escrow',
+        paymentIntentId: paymentIntent.id,
+        order: {
+          id: orderId,
+          status: 'paid',
+          escrowStatus: 'held',
+          amount: amount,
+          platformFee: platformFee,
+          agentPayout: agentPayout
+        }
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Payment failed',
+        status: paymentIntent.status
+      });
+    }
+  } catch (error: any) {
+    console.error('Payment processing error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Payment processing failed',
+      message: error.message 
+    });
   }
 });
 

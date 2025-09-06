@@ -13,7 +13,7 @@ async function checkTokenMapping() {
     const circleService = new CircleService();
     const tokens = await circleService.getSupportedTokens();
     console.log('\n📋 Circle Supported Tokens:');
-    tokens.forEach((token, i) => {
+    tokens.forEach((token: any, i: number) => {
       console.log(`   ${i+1}. ID: ${token.id} | Symbol: ${token.symbol} | Name: ${token.name}`);
       if (token.id === 'b037d751-fb22-5f0d-bae6-47373e7ae3e3') {
         console.log(`       🎯 THIS IS THE MYSTERY TOKEN!`);
@@ -21,7 +21,7 @@ async function checkTokenMapping() {
     });
     
     // Check if b037d751-fb22-5f0d-bae6-47373e7ae3e3 is actually USDC
-    const usdcToken = tokens.find(t => t.symbol === 'USDC');
+    const usdcToken = tokens.find((t: any) => t.symbol === 'USDC');
     if (usdcToken) {
       console.log(`\n💰 USDC Token Details:`);
       console.log(`   Token ID: ${usdcToken.id}`);
@@ -41,7 +41,7 @@ async function checkTokenMapping() {
     
     const balances = await circleService.getWalletBalance(walletId);
     console.log(`\n📊 All balances for wallet ${walletId}:`);
-    balances.forEach((balance, i) => {
+    balances.forEach((balance: any, i: number) => {
       console.log(`   ${i+1}. Token: ${balance.tokenId} | Amount: ${balance.amount}`);
       if (balance.tokenId === 'b037d751-fb22-5f0d-bae6-47373e7ae3e3') {
         console.log(`       🎯 MYSTERY TOKEN BALANCE: ${balance.amount}`);

@@ -432,9 +432,9 @@ router.post('/commission/calculate', async (req, res) => {
     }
 
     const tiers = {
-      basic: { rate: 0.25, agentKeeps: 0.75 },
-      premium: { rate: 0.20, agentKeeps: 0.80 },
-      enterprise: { rate: 0.15, agentKeeps: 0.85 }
+      basic: { rate: 0.15, agentKeeps: 0.85 },
+      premium: { rate: 0.12, agentKeeps: 0.88 },
+      enterprise: { rate: 0.10, agentKeeps: 0.90 }
     };
 
     const tier = tiers[agentTier as keyof typeof tiers] || tiers.basic;

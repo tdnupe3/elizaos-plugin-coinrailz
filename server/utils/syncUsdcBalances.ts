@@ -3,7 +3,7 @@
  * Manually sync all Circle wallet balances with database
  */
 
-import { CircleService } from '../services/const circleService = new CircleService(); circleService.js';
+import { CircleService } from '../services/circleService.js';
 import { db } from '../db.js';
 import { users } from '../../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
@@ -30,7 +30,8 @@ export async function syncAllUsdcBalances() {
       
       try {
         // Get live balance from Circle API
-        const balances = await const circleService = new CircleService(); circleService.getWalletBalance(user.circleWalletId!);
+        const circleService = new CircleService();
+        const balances = await circleService.getWalletBalance(user.circleWalletId!);
         const liveUsdcBalance = balances.find(b => b.tokenId === 'USDC')?.amount || '0.00000000';
         
         console.log(`   Live USDC Balance: ${liveUsdcBalance}`);
@@ -74,7 +75,7 @@ export async function syncAllUsdcBalances() {
         }
         
         // Also check recent transactions for this wallet
-        const transactions = await const circleService = new CircleService(); circleService.listTransactions(user.circleWalletId!, 5);
+        const transactions = await circleService.listTransactions(user.circleWalletId!, 5);
         if (transactions.length > 0) {
           console.log(`   Recent transactions (${transactions.length}):`);
           transactions.forEach((tx, i) => {

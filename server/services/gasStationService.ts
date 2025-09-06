@@ -100,7 +100,8 @@ class GasStationService {
       const gasEstimate = await this.estimateGasFees(blockchain, to, data, value);
 
       // Check user's USDC balance
-      const userBalance = await const circleService = new CircleService(); circleService.getWalletBalance(userWalletId);
+      const circleService = new CircleService();
+      const userBalance = await circleService.getWalletBalance(userWalletId);
       const usdcBalance = userBalance.find(b => b.tokenId === 'USDC');
 
       if (!usdcBalance || parseFloat(usdcBalance.amount) < parseFloat(gasEstimate.totalUSDC)) {
@@ -186,7 +187,8 @@ class GasStationService {
       }
 
       // Create transfer transaction
-      const transferResult = await const circleService = new CircleService(); circleService.createTransfer(
+      const circleService = new CircleService();
+      const transferResult = await circleService.createTransfer(
         userWalletId,
         platformTreasuryAddress,
         amount,

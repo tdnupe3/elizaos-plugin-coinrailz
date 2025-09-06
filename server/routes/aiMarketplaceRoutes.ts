@@ -18,6 +18,7 @@ import DOMPurify from 'isomorphic-dompurify';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import Stripe from 'stripe';
+import { conversations, messages, insertConversationSchema, insertMessageSchema } from '../../shared/messagingSchema';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -1134,6 +1135,223 @@ router.post('/process-payment', isAuthenticated, async (req: any, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'Payment processing failed',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Start conversation for order
+ */
+router.post('/orders/:orderId/start-chat', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user?.claims?.sub;
+    
+    if (!orderId || !userId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order ID and authentication required' 
+      });
+    }
+
+    // Get order details to verify access and get agent/customer info
+    const order = await storage.getMarketplaceOrder(orderId);
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Order not found' 
+      });
+    }
+
+    // Verify user is either customer or agent for this order
+    if (order.customerId !== userId && order.agentId !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Access denied - not your order' 
+      });
+    }
+
+    // Check if conversation already exists
+    const existingConversation = await db.select()
+      .from(conversations)
+      .where(sql`${conversations.orderId} = ${orderId}`)
+      .limit(1);
+
+    if (existingConversation.length > 0) {
+      return res.json({
+        success: true,
+        conversation: existingConversation[0],
+        message: 'Conversation already exists'
+      });
+    }
+
+    // Create new conversation
+    const [newConversation] = await db.insert(conversations).values({
+      orderId: orderId,
+      customerId: order.customerId,
+      agentId: order.agentId,
+      status: 'active'
+    }).returning();
+
+    // Create welcome system message
+    await db.insert(messages).values({
+      conversationId: newConversation.id,
+      fromId: 'system',
+      fromType: 'system',
+      toId: order.customerId,
+      toType: 'customer',
+      content: `Welcome! You can now communicate with your agent about order ${orderId}. Your agent will be notified.`,
+      messageType: 'system'
+    });
+
+    res.json({
+      success: true,
+      conversation: newConversation,
+      message: 'Chat started successfully'
+    });
+  } catch (error: any) {
+    console.error('Start chat error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to start chat',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Send message in order chat
+ */
+router.post('/conversations/:conversationId/messages', isAuthenticated, async (req: any, res) => {
+  try {
+    const { conversationId } = req.params;
+    const { content, messageType = 'text' } = req.body;
+    const fromId = req.user?.claims?.sub;
+    
+    if (!conversationId || !content || !fromId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Conversation ID, content, and authentication required' 
+      });
+    }
+
+    // Sanitize message content
+    const sanitizedContent = DOMPurify.sanitize(content);
+
+    // Get conversation to verify access
+    const [conversation] = await db.select()
+      .from(conversations)
+      .where(sql`${conversations.id} = ${conversationId}`)
+      .limit(1);
+
+    if (!conversation) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Conversation not found' 
+      });
+    }
+
+    // Verify user is part of this conversation
+    if (conversation.customerId !== fromId && conversation.agentId !== fromId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Access denied - not part of this conversation' 
+      });
+    }
+
+    // Determine recipient
+    const toId = fromId === conversation.customerId ? conversation.agentId : conversation.customerId;
+    const fromType = fromId === conversation.customerId ? 'customer' : 'agent';
+    const toType = fromId === conversation.customerId ? 'agent' : 'customer';
+
+    // Create message
+    const [newMessage] = await db.insert(messages).values({
+      conversationId: conversationId,
+      fromId: fromId,
+      fromType: fromType,
+      toId: toId,
+      toType: toType,
+      content: sanitizedContent,
+      messageType: messageType
+    }).returning();
+
+    // Update conversation last message time
+    await db.update(conversations)
+      .set({ 
+        lastMessageAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(sql`${conversations.id} = ${conversationId}`);
+
+    res.json({
+      success: true,
+      message: newMessage,
+      notification: `Message sent to ${toType}`
+    });
+  } catch (error: any) {
+    console.error('Send message error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send message',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Get messages for order conversation
+ */
+router.get('/orders/:orderId/messages', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user?.claims?.sub;
+    
+    if (!orderId || !userId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order ID and authentication required' 
+      });
+    }
+
+    // Get conversation for this order
+    const [conversation] = await db.select()
+      .from(conversations)
+      .where(sql`${conversations.orderId} = ${orderId}`)
+      .limit(1);
+
+    if (!conversation) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'No conversation found for this order' 
+      });
+    }
+
+    // Verify user access
+    if (conversation.customerId !== userId && conversation.agentId !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Access denied - not your conversation' 
+      });
+    }
+
+    // Get all messages for this conversation
+    const conversationMessages = await db.select()
+      .from(messages)
+      .where(sql`${messages.conversationId} = ${conversation.id}`)
+      .orderBy(sql`${messages.createdAt} ASC`);
+
+    res.json({
+      success: true,
+      conversation: conversation,
+      messages: conversationMessages,
+      messageCount: conversationMessages.length
+    });
+  } catch (error: any) {
+    console.error('Get messages error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to get messages',
       message: error.message 
     });
   }

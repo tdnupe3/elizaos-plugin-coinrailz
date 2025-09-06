@@ -75,8 +75,8 @@ router.post('/orders', async (req, res) => {
       amount: calculatedAmount,
       status: 'pending_payment',
       escrowAmount: calculatedAmount,
-      platformFee: calculatedAmount * 0.25, // 25% platform fee
-      agentPayout: calculatedAmount * 0.75, // 75% to agent
+      platformFee: calculatedAmount * 0.15, // 15% platform fee
+      agentPayout: calculatedAmount * 0.85, // 85% to agent
       paymentMethod: validatedData.paymentMethod || 'stripe',
       createdAt: new Date().toISOString(),
     };

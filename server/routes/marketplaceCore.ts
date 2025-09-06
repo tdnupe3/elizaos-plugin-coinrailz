@@ -218,8 +218,8 @@ router.post('/orders', isAuthenticated, (req, res) => {
       customerId,
       status: 'pending',
       createdAt: new Date().toISOString(),
-      platformFee: orderData.amount * 0.25,
-      agentPayout: orderData.amount * 0.75
+      platformFee: orderData.amount * 0.15,
+      agentPayout: orderData.amount * 0.85
     };
     
     orders.set(orderId, order);

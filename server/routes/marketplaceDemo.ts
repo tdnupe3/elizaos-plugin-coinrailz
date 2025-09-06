@@ -34,8 +34,8 @@ router.post('/demo/create-order', (req, res) => {
       requirements: requirements || 'Demo order requirements',
       status: 'pending',
       createdAt: new Date().toISOString(),
-      platformFee: Number(amount) * 0.25,
-      agentPayout: Number(amount) * 0.75
+      platformFee: Number(amount) * 0.15,
+      agentPayout: Number(amount) * 0.85
     };
     
     demoOrders.set(orderId, order);

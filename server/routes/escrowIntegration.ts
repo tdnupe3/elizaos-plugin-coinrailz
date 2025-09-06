@@ -36,8 +36,8 @@ router.post('/create', async (req, res) => {
       status: 'pending_payment',
       createdAt: new Date().toISOString(),
       fees: {
-        platformFee: amount * 0.25,
-        agentPayout: amount * 0.75
+        platformFee: amount * 0.15,
+        agentPayout: amount * 0.85
       }
     };
 

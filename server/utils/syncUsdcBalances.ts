@@ -79,7 +79,7 @@ export async function syncAllUsdcBalances() {
         }
         
         // Also check recent transactions for this wallet
-        const transactions = await circleService.listTransactions(user.circleWalletId!);
+        const transactions = await circleService.listTransactions({ walletId: user.circleWalletId! });
         if (transactions.length > 0) {
           console.log(`   Recent transactions (${transactions.length}):`);
           transactions.forEach((tx: any, i: number) => {

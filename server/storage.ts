@@ -19,6 +19,7 @@ import {
   aiMarketplaceServices,
   aiMarketplaceCategories, 
   aiMarketplaceOrders,
+  aiMarketplaceCommissions,
   xrpWallets,
   xrpTransactions,
   xrpOrders,

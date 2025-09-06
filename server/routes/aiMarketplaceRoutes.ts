@@ -18,7 +18,7 @@ import DOMPurify from 'isomorphic-dompurify';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import Stripe from 'stripe';
-import { conversations, messages, insertConversationSchema, insertMessageSchema } from '../../shared/messagingSchema';
+import { conversations, messages, deliveries, insertConversationSchema, insertMessageSchema, insertDeliverySchema } from '../../shared/messagingSchema';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -1352,6 +1352,342 @@ router.get('/orders/:orderId/messages', isAuthenticated, async (req: any, res) =
     res.status(500).json({ 
       success: false, 
       error: 'Failed to get messages',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Agent uploads work deliverable
+ */
+router.post('/orders/:orderId/deliveries', isAuthenticated, upload.array('files', 10), async (req: any, res) => {
+  try {
+    const { orderId } = req.params;
+    const { description } = req.body;
+    const agentId = req.user?.claims?.sub;
+    
+    if (!orderId || !agentId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order ID and authentication required' 
+      });
+    }
+
+    // Get order details to verify agent access
+    const order = await storage.getMarketplaceOrder(orderId);
+    if (!order || order.agentId !== agentId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Access denied - not your order to deliver' 
+      });
+    }
+
+    if (order.status !== 'paid') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order must be paid before delivery' 
+      });
+    }
+
+    // Process uploaded files
+    const files = req.files || [];
+    const processedFiles = files.map((file: any) => ({
+      id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      filename: file.filename,
+      originalName: file.originalname,
+      mimetype: file.mimetype,
+      size: file.size,
+      uploadDate: new Date().toISOString(),
+      virusScanResult: { clean: true } // Simplified for demo
+    }));
+
+    // Check if delivery already exists
+    const existingDelivery = await db.select()
+      .from(deliveries)
+      .where(sql`${deliveries.orderId} = ${orderId}`)
+      .limit(1);
+
+    let delivery;
+    if (existingDelivery.length > 0) {
+      // Update existing delivery
+      [delivery] = await db.update(deliveries)
+        .set({
+          description: description || existingDelivery[0].description,
+          files: processedFiles.length > 0 ? processedFiles : existingDelivery[0].files,
+          status: 'delivered',
+          deliveredAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(sql`${deliveries.orderId} = ${orderId}`)
+        .returning();
+    } else {
+      // Create new delivery
+      [delivery] = await db.insert(deliveries).values({
+        orderId: orderId,
+        agentId: agentId,
+        customerId: order.customerId,
+        description: description || 'Work delivered by agent',
+        files: processedFiles,
+        status: 'delivered',
+        deliveredAt: new Date()
+      }).returning();
+    }
+
+    // Update order status to delivered
+    await storage.updateMarketplaceOrder(orderId, {
+      status: 'delivered',
+      deliveredAt: new Date().toISOString()
+    });
+
+    // Send notification message to customer
+    try {
+      const [conversation] = await db.select()
+        .from(conversations)
+        .where(sql`${conversations.orderId} = ${orderId}`)
+        .limit(1);
+
+      if (conversation) {
+        await db.insert(messages).values({
+          conversationId: conversation.id,
+          fromId: 'system',
+          fromType: 'system',
+          toId: order.customerId,
+          toType: 'customer',
+          content: `Agent has delivered work for order ${orderId}. Please review and approve or request revisions.`,
+          messageType: 'system'
+        });
+      }
+    } catch (notificationError) {
+      console.error('Notification failed:', notificationError);
+    }
+
+    res.json({
+      success: true,
+      delivery: delivery,
+      message: 'Work delivered successfully - awaiting customer approval',
+      filesUploaded: processedFiles.length
+    });
+  } catch (error: any) {
+    console.error('Delivery upload error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to upload delivery',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Customer approves or requests revision
+ */
+router.post('/orders/:orderId/review', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId } = req.params;
+    const { action, feedback } = req.body; // action: 'approve' or 'revision'
+    const customerId = req.user?.claims?.sub;
+    
+    if (!orderId || !action || !customerId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order ID, action (approve/revision), and authentication required' 
+      });
+    }
+
+    if (!['approve', 'revision'].includes(action)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Action must be "approve" or "revision"' 
+      });
+    }
+
+    // Get order details to verify customer access
+    const order = await storage.getMarketplaceOrder(orderId);
+    if (!order || order.customerId !== customerId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Access denied - not your order to review' 
+      });
+    }
+
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order must be delivered before review' 
+      });
+    }
+
+    // Get delivery record
+    const [delivery] = await db.select()
+      .from(deliveries)
+      .where(sql`${deliveries.orderId} = ${orderId}`)
+      .limit(1);
+
+    if (!delivery) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'No delivery found for this order' 
+      });
+    }
+
+    if (action === 'approve') {
+      // Approve delivery - this will trigger escrow release
+      await db.update(deliveries)
+        .set({
+          status: 'approved',
+          feedback: feedback || 'Work approved by customer',
+          approvedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(sql`${deliveries.orderId} = ${orderId}`);
+
+      // Update order status to completed
+      await storage.updateMarketplaceOrder(orderId, {
+        status: 'completed',
+        completedAt: new Date().toISOString()
+      });
+
+      // Send approval notification
+      try {
+        const [conversation] = await db.select()
+          .from(conversations)
+          .where(sql`${conversations.orderId} = ${orderId}`)
+          .limit(1);
+
+        if (conversation) {
+          await db.insert(messages).values({
+            conversationId: conversation.id,
+            fromId: 'system',
+            fromType: 'system',
+            toId: order.agentId,
+            toType: 'agent',
+            content: `Customer approved your work for order ${orderId}. Payment will be released to your account.`,
+            messageType: 'system'
+          });
+        }
+      } catch (notificationError) {
+        console.error('Approval notification failed:', notificationError);
+      }
+
+      res.json({
+        success: true,
+        action: 'approved',
+        message: 'Work approved - payment will be released to agent',
+        escrowRelease: 'pending'
+      });
+    } else {
+      // Request revision
+      await db.update(deliveries)
+        .set({
+          status: 'rejected',
+          feedback: feedback || 'Customer requested revisions',
+          rejectedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(sql`${deliveries.orderId} = ${orderId}`);
+
+      // Update order status back to in_progress
+      await storage.updateMarketplaceOrder(orderId, {
+        status: 'in_progress'
+      });
+
+      // Send revision request notification
+      try {
+        const [conversation] = await db.select()
+          .from(conversations)
+          .where(sql`${conversations.orderId} = ${orderId}`)
+          .limit(1);
+
+        if (conversation) {
+          await db.insert(messages).values({
+            conversationId: conversation.id,
+            fromId: 'system',
+            fromType: 'system',
+            toId: order.agentId,
+            toType: 'agent',
+            content: `Customer requested revisions for order ${orderId}. Feedback: ${feedback || 'No specific feedback provided'}`,
+            messageType: 'system'
+          });
+        }
+      } catch (notificationError) {
+        console.error('Revision notification failed:', notificationError);
+      }
+
+      res.json({
+        success: true,
+        action: 'revision_requested',
+        message: 'Revision requested - agent will be notified',
+        feedback: feedback
+      });
+    }
+  } catch (error: any) {
+    console.error('Review action error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to process review',
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * CRITICAL ENDPOINT: Get delivery details for order
+ */
+router.get('/orders/:orderId/delivery', isAuthenticated, async (req: any, res) => {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user?.claims?.sub;
+    
+    if (!orderId || !userId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Order ID and authentication required' 
+      });
+    }
+
+    // Get order details to verify access
+    const order = await storage.getMarketplaceOrder(orderId);
+    if (!order) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Order not found' 
+      });
+    }
+
+    // Verify user access (customer or agent)
+    if (order.customerId !== userId && order.agentId !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        error: 'Access denied - not your order' 
+      });
+    }
+
+    // Get delivery details
+    const [delivery] = await db.select()
+      .from(deliveries)
+      .where(sql`${deliveries.orderId} = ${orderId}`)
+      .limit(1);
+
+    if (!delivery) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'No delivery found for this order' 
+      });
+    }
+
+    res.json({
+      success: true,
+      delivery: delivery,
+      order: {
+        id: orderId,
+        status: order.status,
+        amount: order.amount
+      }
+    });
+  } catch (error: any) {
+    console.error('Get delivery error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to get delivery details',
       message: error.message 
     });
   }

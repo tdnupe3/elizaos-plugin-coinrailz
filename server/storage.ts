@@ -1935,6 +1935,85 @@ export class DatabaseStorage implements IStorage {
       .set(updateData)
       .where(eq(xrpOrders.id, orderId));
   }
+
+  // AI Marketplace Agent Payout Methods
+  async createAgentPayout(payoutData: any): Promise<any> {
+    try {
+      const [payout] = await db
+        .insert(aiMarketplaceCommissions)
+        .values({
+          orderId: payoutData.orderId,
+          agentId: payoutData.agentId,
+          agentTier: payoutData.agentTier || 'basic',
+          serviceAmount: payoutData.serviceAmount.toString(),
+          commissionRate: payoutData.commissionRate,
+          commissionAmount: payoutData.commissionAmount.toString(),
+          platformFeeRate: payoutData.platformFeeRate,
+          platformFeeAmount: payoutData.platformFeeAmount.toString(),
+          payoutStatus: 'pending',
+          payoutMethod: payoutData.payoutMethod || 'crypto'
+        })
+        .returning();
+      
+      return payout;
+    } catch (error) {
+      console.error('Error creating agent payout:', error);
+      throw new Error('Failed to create agent payout');
+    }
+  }
+
+  async getAgentPayoutByOrderId(orderId: string): Promise<any> {
+    try {
+      const [payout] = await db
+        .select()
+        .from(aiMarketplaceCommissions)
+        .where(eq(aiMarketplaceCommissions.orderId, orderId))
+        .limit(1);
+      
+      return payout;
+    } catch (error) {
+      console.error('Error fetching agent payout by order ID:', error);
+      return null;
+    }
+  }
+
+  async getAgentPayouts(agentId: string, limit: number = 50): Promise<any[]> {
+    try {
+      return await db
+        .select()
+        .from(aiMarketplaceCommissions)
+        .where(eq(aiMarketplaceCommissions.agentId, agentId))
+        .orderBy(desc(aiMarketplaceCommissions.calculatedAt))
+        .limit(limit);
+    } catch (error) {
+      console.error('Error fetching agent payouts:', error);
+      return [];
+    }
+  }
+
+  async updateAgentPayoutStatus(payoutId: string, status: string, transactionId?: string): Promise<void> {
+    try {
+      const updateData: any = {
+        payoutStatus: status
+      };
+
+      if (transactionId) {
+        updateData.payoutTransactionId = transactionId;
+      }
+
+      if (status === 'completed') {
+        updateData.paidAt = new Date();
+      }
+
+      await db
+        .update(aiMarketplaceCommissions)
+        .set(updateData)
+        .where(eq(aiMarketplaceCommissions.id, payoutId));
+    } catch (error) {
+      console.error('Error updating agent payout status:', error);
+      throw new Error('Failed to update agent payout status');
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

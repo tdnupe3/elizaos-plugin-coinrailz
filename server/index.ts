@@ -1385,36 +1385,7 @@ app.get('/api/services/categories', (req, res) => {
   });
 });
 
-// CRITICAL: Lightweight AI Marketplace endpoints BEFORE any middleware
-app.post('/api/ai-marketplace/create-order', express.json(), async (req, res) => {
-  try {
-    const { agentId, serviceType, amount, serviceDescription } = req.body;
-    const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const customerId = `customer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const platformFee = (amount * 25) / 100;
-    const agentPayout = (amount * 75) / 100;
-
-    res.status(201).json({
-      success: true,
-      order: {
-        orderId,
-        agentId,
-        customerId,
-        serviceType,
-        amount,
-        platformFee,
-        agentPayout,
-        serviceDescription,
-        status: 'pending',
-        escrowStatus: 'held',
-        createdAt: new Date().toISOString()
-      },
-      message: 'Order created successfully'
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, error: 'Order creation failed' });
-  }
-});
+// REMOVED: Duplicate create-order endpoint - now handled by aiMarketplaceRoutes.ts
 
 // Other critical marketplace endpoints
 app.get('/api/ai-marketplace/categories', (req, res) => {
@@ -2638,28 +2609,7 @@ app.post('/api/ai-marketplace/register-agent', express.json(), async (req, res) 
   }
 });
 
-app.post('/api/ai-marketplace/create-order', (req, res) => {
-  // Simulate authentication requirement
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({
-      success: false,
-      error: 'Authentication required',
-      message: 'Please login to create an order'
-    });
-  }
-
-  const { agentId, serviceType, amount } = req.body;
-  
-  res.json({
-    success: true,
-    orderId: `order_${Date.now()}`,
-    agentId,
-    serviceType,
-    amount,
-    status: 'pending_payment'
-  });
-});
+// REMOVED: Second duplicate create-order endpoint - now handled by aiMarketplaceRoutes.ts
 
 // Data monetization endpoints
 app.get('/api/data/analytics', (req, res) => {

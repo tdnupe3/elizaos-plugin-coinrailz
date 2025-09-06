@@ -976,11 +976,31 @@ router.post('/create-order', isAuthenticated, async (req: any, res) => {
       messages: []
     };
 
-    // Store in global orders for compatibility with other systems
-    if (!(global as any).orders) {
-      (global as any).orders = [];
+    // Store in database instead of global storage
+    try {
+      const dbOrder = await storage.createMarketplaceOrder({
+        id: orderId,
+        agentId: validatedData.agentId,
+        customerId,
+        serviceType: validatedData.serviceType || 'general',
+        amount: orderAmount.toString(),
+        agentCommission: agentPayout.toString(),
+        platformFee: platformFee.toString(),
+        status: 'pending',
+        paymentMethod: validatedData.paymentMethod,
+        serviceDescription: validatedData.serviceDescription,
+        customerRequirements: validatedData.requirements || validatedData.customerRequirements || '',
+        estimatedDeliveryHours: validatedData.estimatedDeliveryHours
+      });
+      console.log('Order stored in database:', dbOrder);
+    } catch (dbError) {
+      console.error('Database storage failed, using fallback:', dbError);
+      // Fallback to global storage for compatibility
+      if (!(global as any).orders) {
+        (global as any).orders = [];
+      }
+      (global as any).orders.push(order);
     }
-    (global as any).orders.push(order);
 
     res.status(201).json({
       success: true,

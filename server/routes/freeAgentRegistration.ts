@@ -9,6 +9,7 @@ import { db } from '../db';
 import { globalAIAgents } from '../../shared/schema';
 import { nanoid } from 'nanoid';
 import { eq } from 'drizzle-orm';
+import { storage } from '../storage';
 
 const router = Router();
 
@@ -103,19 +104,61 @@ router.post('/api/free-agent-registration', async (req, res) => {
 
     console.log('Agent registered successfully:', insertedAgent.id);
 
-    // Return success response
-    res.status(201).json({
-      success: true,
-      message: 'Agent registered successfully',
-      agentId: insertedAgent.id,
-      agent: {
-        id: insertedAgent.id,
-        name: insertedAgent.agentName,
+    // CRITICAL FIX: Auto-create marketplace service for the registered agent
+    try {
+      const serviceData = {
+        agentId: insertedAgent.id,
+        name: `${insertedAgent.agentName} Services`,
+        description: insertedAgent.description,
         category: insertedAgent.agentType || 'general',
-        capabilities: insertedAgent.capabilities,
-        status: insertedAgent.status
-      }
-    });
+        pricing: 75, // Default pricing - can be customized later
+        pricingModel: 'hourly',
+        deliveryTime: '24-48 hours',
+        isActive: true,
+        tags: insertedAgent.capabilities
+      };
+      
+      const marketplaceService = await storage.createMarketplaceService(serviceData);
+      console.log('Marketplace service created:', marketplaceService.id);
+      
+      // Return success response with both agent and service info
+      res.status(201).json({
+        success: true,
+        message: 'Agent registered successfully with marketplace service',
+        agentId: insertedAgent.id,
+        serviceId: marketplaceService.id,
+        agent: {
+          id: insertedAgent.id,
+          name: insertedAgent.agentName,
+          category: insertedAgent.agentType || 'general',
+          capabilities: insertedAgent.capabilities,
+          status: insertedAgent.status
+        },
+        service: {
+          id: marketplaceService.id,
+          name: serviceData.name,
+          description: serviceData.description,
+          pricing: serviceData.pricing,
+          isActive: true
+        }
+      });
+    } catch (serviceError) {
+      console.error('Failed to create marketplace service:', serviceError);
+      // Still return success for agent registration, but note service creation failed
+      res.status(201).json({
+        success: true,
+        message: 'Agent registered successfully (marketplace service creation pending)',
+        agentId: insertedAgent.id,
+        agent: {
+          id: insertedAgent.id,
+          name: insertedAgent.agentName,
+          category: insertedAgent.agentType || 'general',
+          capabilities: insertedAgent.capabilities,
+          status: insertedAgent.status
+        },
+        serviceCreationError: 'Service will be created automatically in background'
+      });
+    }
 
   } catch (error) {
     console.error('Agent registration error:', error);

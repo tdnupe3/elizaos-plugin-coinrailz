@@ -102,7 +102,7 @@ class GasStationService {
       // Check user's USDC balance
       const circleService = new CircleService();
       const userBalance = await circleService.getWalletBalance(userWalletId);
-      const usdcBalance = userBalance.find(b => b.tokenId === 'USDC');
+      const usdcBalance = userBalance.find((b: any) => b.tokenId === 'USDC');
 
       if (!usdcBalance || parseFloat(usdcBalance.amount) < parseFloat(gasEstimate.totalUSDC)) {
         throw new Error('Insufficient USDC balance to cover gas fees');
@@ -188,12 +188,12 @@ class GasStationService {
 
       // Create transfer transaction
       const circleService = new CircleService();
-      const transferResult = await circleService.createTransfer(
-        userWalletId,
-        platformTreasuryAddress,
-        amount,
-        'USDC'
-      );
+      const transferResult = await circleService.createTransfer({
+        walletId: userWalletId,
+        destinationAddress: platformTreasuryAddress,
+        amount: amount,
+        tokenId: 'USDC'
+      });
 
       return {
         success: true,

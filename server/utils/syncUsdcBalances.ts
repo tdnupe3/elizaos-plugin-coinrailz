@@ -32,7 +32,7 @@ export async function syncAllUsdcBalances() {
         // Get live balance from Circle API
         const circleService = new CircleService();
         const balances = await circleService.getWalletBalance(user.circleWalletId!);
-        const liveUsdcBalance = balances.find(b => b.tokenId === 'USDC')?.amount || '0.00000000';
+        const liveUsdcBalance = balances.find((b: any) => b.tokenId === 'USDC')?.amount || '0.00000000';
         
         console.log(`   Live USDC Balance: ${liveUsdcBalance}`);
         
@@ -48,7 +48,7 @@ export async function syncAllUsdcBalances() {
             .update(users)
             .set({ 
               usdcBalance: liveUsdcBalance,
-              lastBalanceUpdate: new Date().toISOString()
+              lastBalanceUpdate: new Date()
             })
             .where(eq(users.id, user.id));
           
@@ -60,7 +60,9 @@ export async function syncAllUsdcBalances() {
             walletAddress: user.circleWalletAddress,
             oldBalance: dbBalance.toString(),
             newBalance: liveUsdcBalance,
-            updated: true
+            updated: true,
+            foundTargetTransaction: false,
+            targetTransactionDetails: null
           });
         } else {
           console.log(`✅ Balance matches - no update needed`);
@@ -70,15 +72,17 @@ export async function syncAllUsdcBalances() {
             walletAddress: user.circleWalletAddress,
             oldBalance: dbBalance.toString(),
             newBalance: liveUsdcBalance,
-            updated: false
+            updated: false,
+            foundTargetTransaction: false,
+            targetTransactionDetails: null
           });
         }
         
         // Also check recent transactions for this wallet
-        const transactions = await circleService.listTransactions(user.circleWalletId!, 5);
+        const transactions = await circleService.listTransactions(user.circleWalletId!);
         if (transactions.length > 0) {
           console.log(`   Recent transactions (${transactions.length}):`);
-          transactions.forEach((tx, i) => {
+          transactions.forEach((tx: any, i: number) => {
             console.log(`     ${i+1}. ${tx.transactionType} ${tx.amount} ${tx.tokenId} - ${tx.state}`);
             if (tx.txHash) {
               console.log(`        TX Hash: ${tx.txHash.substring(0, 20)}...`);
@@ -86,7 +90,7 @@ export async function syncAllUsdcBalances() {
           });
           
           // Check for the specific $50 USDC transaction
-          const matchingTx = transactions.find(tx => 
+          const matchingTx = transactions.find((tx: any) => 
             tx.txHash === '0xa6abae32b136871795e3760357c91584892e6f344660c3c843bba24d70938d1f'
           );
           
@@ -109,7 +113,9 @@ export async function syncAllUsdcBalances() {
           email: user.email,
           walletAddress: user.circleWalletAddress,
           error: error.message,
-          updated: false
+          updated: false,
+          foundTargetTransaction: false,
+          targetTransactionDetails: null
         });
       }
     }

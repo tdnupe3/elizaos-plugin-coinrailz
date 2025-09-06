@@ -754,7 +754,7 @@ app.get('/api/platform/revenue', (req, res) => {
         monthlyProjection: totalRevenue * 30,
         annualProjection: totalRevenue * 365,
         feeStructures: {
-          aiMarketplace: "25% platform commission",
+          aiMarketplace: "15% platform commission",
           p2pTransfers: "2.5-4.4% transaction fees",
           dexTrading: "0.75% platform fees",
           referralCommissions: "0.5% referral commissions"
@@ -907,7 +907,7 @@ app.post('/api/agents/calculate-commission', (req, res) => {
   const { orderAmount, agentTier = 'basic' } = req.body;
   
   const commissionRates = {
-    basic: 0.25,    // 25% platform fee, 75% to agent
+    basic: 0.15,    // 15% platform fee, 85% to agent
     premium: 0.20,  // 20% platform fee, 80% to agent  
     enterprise: 0.15 // 15% platform fee, 85% to agent
   };
@@ -1403,8 +1403,8 @@ app.get('/api/ai-marketplace/categories', (req, res) => {
 app.post('/api/ai-marketplace/commission/calculate', express.json(), (req, res) => {
   try {
     const { orderAmount, agentTier = 'basic' } = req.body;
-    const platformFeePercentage = 25;
-    const agentPayoutPercentage = 75;
+    const platformFeePercentage = 15;
+    const agentPayoutPercentage = 85;
     const platformFee = (orderAmount * platformFeePercentage) / 100;
     const agentPayout = (orderAmount * agentPayoutPercentage) / 100;
 
@@ -1526,7 +1526,7 @@ app.get('/api/services/commission-status/:orderId', async (req, res) => {
       orderId,
       orderStatus: 'pending',
       escrowStatus: 'held',
-      platformFee: '25.00',
+      platformFee: '15.00',
       agentPayout: '75.00', 
       commissionStatus: 'pending',
       paidAt: null,

@@ -70,14 +70,14 @@ router.post('/api/free-agent-registration', async (req, res) => {
       totalRevenue: '0',
       premiumExpiresAt: null,
       // Additional required fields based on schema
-      reputation: 0.0,
+      reputation: '0.0',
       transactionCount: 0,
       totalVolume: '0',
       referralCode: `ref_${agentId.slice(-8)}`,
       referralRewards: '0',
       referralCount: 0,
       hasCompletedFirstTransaction: false,
-      annualRevenue: 0.0,
+      annualRevenue: '0.0',
       hasAutoUpgraded: false,
       isHumanRegistered: true
     };
@@ -110,7 +110,7 @@ router.post('/api/free-agent-registration', async (req, res) => {
         agentId: insertedAgent.id,
         name: `${insertedAgent.agentName} Services`,
         description: insertedAgent.description,
-        category: insertedAgent.agentType || 'general',
+        category: agentData.category || 'general',
         pricing: 75, // Default pricing - can be customized later
         pricingModel: 'hourly',
         deliveryTime: '24-48 hours',
@@ -130,7 +130,7 @@ router.post('/api/free-agent-registration', async (req, res) => {
         agent: {
           id: insertedAgent.id,
           name: insertedAgent.agentName,
-          category: insertedAgent.agentType || 'general',
+          category: agentData.category || 'general',
           capabilities: insertedAgent.capabilities,
           status: insertedAgent.status
         },
@@ -152,7 +152,7 @@ router.post('/api/free-agent-registration', async (req, res) => {
         agent: {
           id: insertedAgent.id,
           name: insertedAgent.agentName,
-          category: insertedAgent.agentType || 'general',
+          category: agentData.category || 'general',
           capabilities: insertedAgent.capabilities,
           status: insertedAgent.status
         },

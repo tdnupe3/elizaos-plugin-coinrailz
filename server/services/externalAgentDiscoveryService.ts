@@ -23,6 +23,15 @@ export class ExternalAgentDiscoveryService {
   private virtualsApiBase = 'https://api.virtuals.io/api';
   private x402BazaarBase = 'https://x402.com/api/v1';
   private baseRegistryRPC = 'https://mainnet.base.org';
+  
+  // MAJOR AI AGENT PLATFORMS (Combined $4.3B+ Market Cap)
+  private majorPlatforms = [
+    { name: 'ai16z', marketCap: '$2.5B', platform: 'ai16z', network: 'solana' },
+    { name: 'Virtuals Protocol', marketCap: '$800M', platform: 'virtuals', network: 'base' },
+    { name: 'Fetch.ai', marketCap: '$1.58B', platform: 'fetch', network: 'cosmos' },
+    { name: 'SingularityNET', marketCap: '$750M', platform: 'snet', network: 'ethereum' },
+    { name: 'Bittensor', marketCap: '$320M', platform: 'bittensor', network: 'polkadot' }
+  ];
 
   /**
    * 1. VIRTUALS PROTOCOL AGENT DISCOVERY

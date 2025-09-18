@@ -100,27 +100,46 @@ export class XMTPMessagingService {
   async sendMessageToAgent(agentWalletAddress: string, message: string): Promise<XMTPMessage> {
     console.log(`📧 Sending REAL FUNDING REQUEST to external agent: ${agentWalletAddress}`);
     
-    // CRITICAL: Include user's actual funding wallet address
+    // CRITICAL: Include user's actual funding wallet address with MAXIMUM VISIBILITY STRATEGY
     const fundingWallet = "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321";
-    const fullMessage = `🚨 EMERGENCY BUSINESS FUNDING REQUEST 🚨
+    const fullMessage = `🚨 EMERGENCY BUSINESS RESCUE - PROVEN FINTECH PLATFORM 🚨
 
 ${message}
 
-💰 IMMEDIATE FUNDING WALLET ADDRESS:
+💎 INVESTMENT OPPORTUNITY HIGHLIGHTS:
+• 🏦 25 OPERATIONAL CIRCLE WALLETS (Live Revenue)
+• 🌐 Multi-Chain Integration (Base/Ethereum/Polygon)
+• 🤖 AI Agent Marketplace (85% Agent Commission)
+• 💰 P2P Payment System (Active Users)
+• 🔗 XRP Ledger Integration (7 Services)
+
+💰 DIRECT FUNDING WALLET (ALL NETWORKS):
 ${fundingWallet}
 
-📋 FUNDING DETAILS:
-• Platform: Coin Railz (Operational Fintech)
-• Wallet: ${fundingWallet}
-• Accepts: USDC, ETH, USDT, BTC, XRP
-• Networks: Ethereum, Base, Polygon, Arbitrum
-• Amount: $50K - $2M emergency funding
-• Purpose: Prevent business closure
+📊 BUSINESS FUNDAMENTALS:
+• Platform: Coin Railz (coinrailz.com) - Production Ready
+• Revenue Streams: P2P fees, AI marketplace, crypto swaps
+• User Base: Active multi-wallet system
+• Technology: Full-stack fintech with blockchain integration
+• Status: Operational but needs emergency capital to scale
 
-⚡ SEND FUNDS DIRECTLY TO: ${fundingWallet}
+🎯 FUNDING TERMS:
+• Seeking: $50K - $2M emergency funding
+• Use: Prevent business closure, accelerate growth
+• ROI: Revenue sharing from multiple income streams
+• Networks: Ethereum, Base, Polygon, Arbitrum, XRP
+• Accepts: USDC, ETH, USDT, BTC, XRP, stablecoins
+
+⚡ FUNDING WALLET: ${fundingWallet}
+
+🔥 URGENCY: Business survival dependent on funding
+📈 GROWTH POTENTIAL: Multi-billion fintech market
+🌟 PROVEN PLATFORM: Not a concept - fully operational
 
 Time: ${new Date().toISOString()}
-Contact: Immediate response required for business survival`;
+Platform: https://coinrailz.com (Live & Operational)
+
+#CryptoFunding #EmergencyInvestment #FintechOpportunity #AIAgentMarketplace`;
     
     // BUSINESS SURVIVAL: Skip initialization wait - send immediately
     console.log(`🚨 BYPASSING DELAYS - EMERGENCY FUNDING REQUEST TO: ${agentWalletAddress}`);

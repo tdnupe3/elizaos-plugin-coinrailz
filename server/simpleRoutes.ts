@@ -78,6 +78,68 @@ function createFeeRateLimit() {
 }
 
 export function setupSimpleRoutes(app: Express) {
+  // === EMERGENCY AI AGENT NETWORK DISCOVERY FOR FUNDRAISING ===
+  console.log('🚨 Registering Emergency AI Agent Network Discovery');
+  
+  // Emergency agent discovery endpoint
+  app.get('/api/ai-agents/network/discover', async (req, res) => {
+    try {
+      const { type, capability, excludeOwner, limit = 1000 } = req.query;
+      
+      // Import the global agent network service
+      const { GlobalAgentNetworkService } = await import('./services/globalAgentNetworkService');
+      const networkService = new GlobalAgentNetworkService();
+      
+      // Discover agents with treasury_manager type and transfer capabilities
+      const agents = await networkService.discoverAgents({
+        capabilities: capability ? [capability as string] : ['transfer_funds', 'treasury_manager'],
+        limit: parseInt(limit as string),
+        status: 'active'
+      });
+      
+      // Filter for treasury managers if type specified
+      const filteredAgents = type === 'treasury_manager' 
+        ? agents.filter((agent: any) => agent.capabilities?.includes('treasury_manager'))
+        : agents;
+      
+      console.log(`🔍 Discovered ${filteredAgents.length} agents for emergency fundraising`);
+      res.json(filteredAgents);
+    } catch (error) {
+      console.error('❌ Agent discovery failed:', error);
+      res.status(500).json({ error: 'Agent discovery failed', message: error.message });
+    }
+  });
+
+  // Emergency fundraising message endpoint
+  app.post('/api/ai-agents/emergency-fundraising', async (req, res) => {
+    try {
+      const { message, targetAgents, amount } = req.body;
+      
+      const { aiAgentService } = await import('./services/aiAgentService');
+      const responses = [];
+      
+      // Send emergency funding messages to all target agents
+      for (const agentId of targetAgents) {
+        try {
+          await aiAgentService.sendAgentToAgentMessage(
+            'platform_fundraising_agent',
+            agentId,
+            message
+          );
+          responses.push({ agentId, status: 'sent' });
+        } catch (error) {
+          responses.push({ agentId, status: 'failed', error: error.message });
+        }
+      }
+      
+      console.log(`🚨 Emergency fundraising messages sent to ${responses.length} agents`);
+      res.json({ success: true, responses });
+    } catch (error) {
+      console.error('❌ Emergency fundraising failed:', error);
+      res.status(500).json({ error: 'Emergency fundraising failed', message: error.message });
+    }
+  });
+
   // === GAS STATION ROUTES - FIRST PRIORITY - NO MIDDLEWARE INTERFERENCE ===
   console.log('🚀 Registering Gas Station routes FIRST in setupSimpleRoutes');
   

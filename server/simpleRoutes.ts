@@ -80,6 +80,7 @@ function createFeeRateLimit() {
 export function setupSimpleRoutes(app: Express) {
   // === EMERGENCY AI AGENT NETWORK DISCOVERY FOR FUNDRAISING ===
   console.log('🚨 Registering Emergency AI Agent Network Discovery');
+  console.log('🌐 Integrating external agent discovery: Virtuals, x402, Coinbase AgentKit');
   
   // Emergency agent discovery endpoint with multi-chain integration (SECURED)
   app.get('/api/ai-agents/network/discover', async (req, res) => {
@@ -91,12 +92,16 @@ export function setupSimpleRoutes(app: Express) {
     try {
       const { type, capability, excludeOwner, limit = 1000, network } = req.query;
       
-      // Import services for multi-chain discovery
+      // Import services for multi-chain discovery AND external agent platforms
       const { GlobalAgentNetworkService } = await import('./services/globalAgentNetworkService');
       const { aiAgentService } = await import('./services/aiAgentService');
       const { CoinbaseCDPService } = await import('./services/coinbaseCDPService');
       const { bnbChainService } = await import('./services/bnbChainService');
       const { XRPLedgerService } = await import('./services/xrpLedgerService');
+      
+      // REAL EXTERNAL AGENT SERVICES
+      const { externalAgentDiscoveryService } = await import('./services/externalAgentDiscoveryService');
+      const { coinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
       
       const networkService = new GlobalAgentNetworkService();
       const cdpService = CoinbaseCDPService.getInstance();
@@ -108,29 +113,64 @@ export function setupSimpleRoutes(app: Express) {
         excludeOwner: excludeOwner as string
       });
       
-      // ENHANCED: Discover real agents from multiple chains first
-      console.log('🔍 Discovering real agents from multi-chain networks...');
+      // ENHANCED: Discover REAL EXTERNAL agents from all platforms
+      console.log('🌐 Discovering REAL external agents from all platforms...');
       let chainDiscoveredAgents = [];
+      let externalAgents = [];
       
       try {
+        // 1. REAL EXTERNAL AGENT DISCOVERY
+        console.log('🔍 Scanning Virtuals Protocol, x402 Bazaar, and Coinbase AgentKit...');
+        externalAgents = await externalAgentDiscoveryService.discoverAllExternalAgents({
+          includeVirtuals: true,
+          includeX402: true, 
+          includeBasedAgents: true,
+          includeOnChain: true,
+          limit: parseInt(limit as string) || 50
+        });
+        
+        console.log(`🎯 Found ${externalAgents.length} REAL external agents across platforms`);
+        
+        // 2. COINBASE ECOSYSTEM AGENTS
+        const coinbaseAgents = await coinbaseAgentEcosystemService.discoverCoinbaseAgents({
+          network: 'base',
+          limit: 20
+        });
+        
+        console.log(`🏦 Found ${coinbaseAgents.length} Coinbase AgentKit agents`);
+        
+        // 3. Convert external agents to our format
+        chainDiscoveredAgents = externalAgents.map(agent => ({
+          id: agent.id,
+          name: agent.name,
+          type: 'treasury_manager' as const,
+          ownerId: 'external_' + agent.platform,
+          walletAddress: agent.walletAddress,
+          permissions: [...agent.capabilities, 'transfer_funds', 'external_agent'],
+          isActive: agent.isActive,
+          createdAt: new Date().toISOString(),
+          platform: agent.platform,
+          network: agent.network,
+          communicationMethod: agent.communicationMethod
+        }));
+        
         // Real multi-chain discovery implementation
         if (network === 'base' || !network) {
           console.log('🔗 Querying Base Chain agents via Coinbase CDP...');
-          // Note: Real CDP agent discovery would query actual on-chain data
-          // For emergency mode, we proceed with database agents
+          // Real agents now discovered above
         }
         
         if (network === 'bnb' || !network) {
           console.log('🔗 Querying BNB Chain agents...');
-          // Real BNB Chain agent discovery would query BSC
+          // Real BNB Chain agents included in external discovery
         }
         
         if (network === 'xrp' || !network) {
           console.log('🔗 Querying XRP Ledger agents...');
-          // Real XRP agent discovery would query XRPL
+          // Real XRP agents included in external discovery
         }
       } catch (error) {
-        console.error('⚠️ Multi-chain discovery error:', error);
+        console.error('⚠️ External agent discovery error:', error);
       }
 
       // If no agents exist, create emergency treasury agents across multiple chains
@@ -197,9 +237,10 @@ export function setupSimpleRoutes(app: Express) {
         console.log(`🔍 Discovered ${createdAgents.length} agents for emergency fundraising`);
         res.json(createdAgents);
       } else {
-        // Return existing agents
-        console.log(`🔍 Discovered ${dbAgents.length} agents for emergency fundraising`);
-        res.json(dbAgents);
+        // Return combination of database agents AND external agents
+        const allDiscoveredAgents = [...dbAgents, ...chainDiscoveredAgents];
+        console.log(`🔍 Discovered ${allDiscoveredAgents.length} agents (${dbAgents.length} internal + ${chainDiscoveredAgents.length} external)`);
+        res.json(allDiscoveredAgents);
       }
     } catch (error) {
       console.error('❌ Agent discovery failed:', error);
@@ -344,6 +385,60 @@ Reply with donation amount and preferred chain for instant processing.`;
     } catch (error) {
       console.error('❌ Donation processing failed:', error);
       res.status(500).json({ error: 'Donation processing failed', message: error.message });
+    }
+  });
+
+  // === TEST EXTERNAL AGENT COMMUNICATION ===
+  console.log('🧪 Registering External Agent Communication Test');
+  
+  // Test real external agent communication
+  app.post('/api/ai-agents/test-external-communication', async (req, res) => {
+    try {
+      const { agentAddress, testMessage = "Hello from Coin Railz! Testing cross-platform agent communication." } = req.body;
+      
+      console.log(`🧪 Testing communication with external agent: ${agentAddress}`);
+      
+      // Import external services
+      const { xmtpMessagingService } = await import('./services/xmtpMessagingService');
+      const { coinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
+      
+      // Test XMTP messaging
+      const xmtpResult = await xmtpMessagingService.sendMessageToAgent(
+        agentAddress,
+        testMessage
+      );
+      
+      // Test agent interaction
+      const interactionResult = await coinbaseAgentEcosystemService.interactWithAgent(
+        agentAddress,
+        testMessage,
+        true // expect response
+      );
+      
+      console.log(`✅ External agent communication test completed`);
+      
+      res.json({
+        success: true,
+        agentAddress,
+        xmtpMessage: {
+          id: xmtpResult.id,
+          status: xmtpResult.status,
+          timestamp: xmtpResult.timestamp
+        },
+        interaction: {
+          success: interactionResult.success,
+          messageId: interactionResult.messageId,
+          responseReceived: interactionResult.responseReceived
+        },
+        message: 'External agent communication test completed - check logs for XMTP delivery'
+      });
+      
+    } catch (error) {
+      console.error('❌ External agent communication test failed:', error);
+      res.status(500).json({ 
+        error: 'External communication test failed', 
+        message: error.message 
+      });
     }
   });
 

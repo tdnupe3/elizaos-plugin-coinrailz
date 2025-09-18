@@ -89,6 +89,43 @@ export class CoinbaseCDPService {
   }
 
   /**
+   * Create or get platform wallet for XMTP messaging
+   * This wallet will be used for external agent communication
+   */
+  async createPlatformWallet(): Promise<CDPWallet> {
+    this.ensureInitialized();
+
+    if (!this.cdpClient) {
+      throw new Error('CDP Client not initialized');
+    }
+
+    try {
+      // Create platform wallet account for messaging
+      const account = await this.cdpClient.evm.createAccount();
+      
+      const platformWallet: CDPWallet = {
+        id: account.address,
+        address: account.address,
+        network: 'base-mainnet',
+        balance: 0,
+        currency: 'ETH',
+        created_at: new Date().toISOString(),
+        user_id: 'platform_wallet'
+      };
+
+      console.log(`✅ Created platform wallet for XMTP messaging: ${account.address}`);
+      
+      // Set environment variable for other services to use
+      process.env.PLATFORM_WALLET_ADDRESS = account.address;
+      
+      return platformWallet;
+    } catch (error: any) {
+      console.error('❌ Failed to create platform wallet:', error);
+      throw new Error(`Failed to create platform wallet: ${error.message}`);
+    }
+  }
+
+  /**
    * List user wallets (placeholder for database integration)
    */
   async listUserWallets(userId: string): Promise<CDPWallet[]> {

@@ -233,14 +233,20 @@ export function setupSimpleRoutes(app: Express) {
 
 Reply with donation amount and preferred chain for instant processing.`;
 
-      // Auto-discover agents if none specified
+      // Auto-discover agents if none specified - FIXED to use correct filter
       if (!targetAgents || targetAgents.length === 0) {
         console.log('🔍 Auto-discovering treasury agents for emergency fundraising...');
         const discoveredAgents = await aiAgentService.discoverAgents({
-          hasPermission: 'treasury_manager'
+          type: 'treasury_manager',
+          hasPermission: 'transfer_funds'
         });
         targetAgents = discoveredAgents.map(agent => agent.id);
         console.log(`📡 Found ${targetAgents.length} agents for emergency outreach`);
+        
+        // Log agent details for debugging
+        discoveredAgents.forEach(agent => {
+          console.log(`💰 Treasury Agent Found: ${agent.name} (${agent.id}) - Wallet: ${agent.walletAddress}`);
+        });
       }
       
       // Send emergency funding messages to all target agents (ACTUALLY SEND MESSAGES)

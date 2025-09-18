@@ -219,8 +219,7 @@ class AIAgentService {
     }
   }
 
-  // In-memory agent registry for now - replace with database
-  private agentRegistry: Map<string, AIAgent> = new Map();
+  // Database-backed agent operations - no more in-memory registry
   private agentTransactions: AIAgentTransaction[] = [];
   private agentMessages: Map<string, AgentMessage[]> = new Map();
 
@@ -233,13 +232,37 @@ class AIAgentService {
         createdAt: new Date().toISOString()
       };
 
-      // Store in registry
-      this.agentRegistry.set(agent.id, agent);
+      // Store agent in database instead of memory
+      await storage.createGlobalAIAgent({
+        id: agent.id,
+        agentName: agent.name,
+        agentType: agent.type,
+        capabilities: agent.permissions,
+        primaryWalletAddress: agent.walletAddress || `temp_${agent.id}`,
+        walletNetwork: 'base',
+        publicKey: `pk_${agent.id}`,
+        signature: `sig_${agent.id}`,
+        status: agent.isActive ? 'active' : 'inactive',
+        reputation: '5.0',
+        totalTransactions: 0,
+        totalVolume: '0.00',
+        membershipTier: 'basic',
+        isActive: agent.isActive,
+        hasCompletedFirstTransaction: false,
+        annualRevenue: '0.00',
+        referralCount: 0,
+        referralRewards: '0.00',
+        isHumanRegistered: true,
+        contactEmail: `${agent.id}@agents.coinrailz.com`,
+        averageRating: 0,
+        totalRatings: 0,
+        preferredCurrencies: ['USDC', 'ETH', 'XRP', 'BNB', 'USDT']
+      });
 
       // Initialize message history
       this.agentMessages.set(agent.id, []);
 
-      await loggingService.log('INFO', 'AI Agent registered in network', { 
+      await loggingService.log('INFO', 'AI Agent registered in database', { 
         agentId: agent.id, 
         type: agent.type,
         canTransact: agent.permissions.includes('transfer_funds')
@@ -258,7 +281,19 @@ class AIAgentService {
     hasPermission?: string;
     excludeOwner?: string;
   }): Promise<AIAgent[]> {
-    let agents = Array.from(this.agentRegistry.values());
+    // Use database agents instead of in-memory registry
+    const dbAgents = await storage.getGlobalAIAgents();
+    
+    let agents = dbAgents.map(dbAgent => ({
+      id: dbAgent.id,
+      name: dbAgent.agentName,
+      type: (dbAgent.agentType as AIAgent['type']) || 'treasury_manager',
+      ownerId: dbAgent.ownerId || 'system',
+      walletAddress: dbAgent.primaryWalletAddress,
+      permissions: Array.isArray(dbAgent.capabilities) ? dbAgent.capabilities : [dbAgent.capabilities || 'transfer_funds'],
+      isActive: dbAgent.isActive,
+      createdAt: dbAgent.createdAt || new Date().toISOString()
+    }));
 
     if (searchCriteria) {
       if (searchCriteria.type) {
@@ -472,7 +507,25 @@ class AIAgentService {
   }
 
   private async getAgent(agentId: string): Promise<AIAgent | null> {
-    return this.agentRegistry.get(agentId) || null;
+    // Get agent from database instead of in-memory registry
+    try {
+      const dbAgent = await storage.getGlobalAIAgent(agentId);
+      if (!dbAgent) return null;
+      
+      return {
+        id: dbAgent.id,
+        name: dbAgent.agentName,
+        type: (dbAgent.agentType as AIAgent['type']) || 'treasury_manager',
+        ownerId: dbAgent.ownerId || 'system',
+        walletAddress: dbAgent.primaryWalletAddress,
+        permissions: Array.isArray(dbAgent.capabilities) ? dbAgent.capabilities : [dbAgent.capabilities || 'transfer_funds'],
+        isActive: dbAgent.isActive,
+        createdAt: dbAgent.createdAt || new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Error getting agent from database:', error);
+      return null;
+    }
   }
 
   private async getRecentAgentTransactions(agentId: string, hours: number): Promise<AIAgentTransaction[]> {

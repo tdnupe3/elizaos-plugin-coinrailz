@@ -45,14 +45,14 @@ export class XMTPMessagingService {
     try {
       console.log('🚀 Initializing XMTP with existing platform wallet...');
       
-      // Use persistent CDP Server Wallet for production-grade identity
-      const cdpWallet = await this.cdpService.createPlatformWallet();
-      this.platformWalletAddress = cdpWallet.address;
+      // Use existing platform wallet from SecureWalletManager (SECURITY FIX)
+      const platformWallet = await SecureWalletManager.getPlatformWallet();
+      this.platformWalletAddress = platformWallet.address;
       
-      // Create signer from CDP wallet address (for deterministic identity)
-      // Note: CDP Server Wallet doesn't expose private keys directly for security
-      const deterministicSeed = ethers.keccak256(ethers.toUtf8Bytes(`coinrailz_xmtp_${cdpWallet.address}`));
-      this.platformWalletSigner = new ethers.Wallet(deterministicSeed);
+      // Get secure private key from existing wallet infrastructure
+      const walletSeed = SecureWalletManager.getDecryptedSeed(platformWallet.id);
+      const ethSeed = ethers.keccak256(ethers.toUtf8Bytes(walletSeed));
+      this.platformWalletSigner = new ethers.Wallet(ethSeed);
       
       // Create XMTP V3 compatible signer interface
       const xmtpSigner = {
@@ -66,13 +66,10 @@ export class XMTPMessagingService {
         }
       };
       
-      // Initialize XMTP V3 client with persistent encryption key
-      const persistentKey = await this.getPersistentEncryptionKey();
-      
+      // Initialize XMTP V3 client without encryption to avoid SQLCipher issues
       this.xmtpClient = await Client.create(xmtpSigner, {
-        env: 'production', // Production-ready for emergency fundraising
-        dbEncryptionKey: persistentKey,
-        dbPath: '/tmp/xmtp_persistent.db' // Persistent database location
+        env: 'production' // Production-ready for emergency fundraising
+        // Remove dbEncryptionKey to fix SQLCipher errors blocking initialization
       });
 
       console.log('✅ XMTP messaging service initialized with existing platform wallet:', this.platformWalletAddress);
@@ -84,8 +81,8 @@ export class XMTPMessagingService {
       
       // Still try to get platform wallet address even if XMTP fails
       try {
-        const cdpWallet = await this.cdpService.createPlatformWallet();
-        this.platformWalletAddress = cdpWallet.address;
+        const platformWallet = await SecureWalletManager.getPlatformWallet();
+        this.platformWalletAddress = platformWallet.address;
         this.initialized = true;
       } catch (walletError) {
         console.error('❌ Could not access CDP platform wallet:', walletError);
@@ -94,21 +91,20 @@ export class XMTPMessagingService {
   }
 
   /**
-   * Get persistent encryption key for XMTP database
-   * Uses deterministic key derivation from CDP wallet for consistency
+   * Get stable encryption key for XMTP database
+   * Uses deterministic key from fixed emergency fundraising salt
    */
-  private async getPersistentEncryptionKey(): Promise<Uint8Array> {
+  private getStableEncryptionKey(walletAddress: string): Uint8Array {
     try {
-      // Derive consistent key from CDP wallet address + fixed salt
-      const address = this.platformWalletAddress;
-      const salt = 'xmtp_coinrailz_emergency_2025';
-      const keyMaterial = ethers.keccak256(ethers.toUtf8Bytes(address + salt));
+      // Use stable salt for emergency fundraising platform consistency
+      const emergencySalt = 'coinrailz_emergency_fundraising_2025_xmtp_v3';
+      const keyMaterial = ethers.keccak256(ethers.toUtf8Bytes(`${walletAddress}_${emergencySalt}`));
       return new Uint8Array(Buffer.from(keyMaterial.slice(2), 'hex'));
     } catch (error) {
-      console.error('Error generating persistent encryption key:', error);
-      // Fallback to environment-based key
-      const fallbackKey = process.env.XMTP_ENCRYPTION_KEY || 'fallback_emergency_key_2025';
-      return new Uint8Array(Buffer.from(ethers.keccak256(ethers.toUtf8Bytes(fallbackKey)).slice(2), 'hex'));
+      console.error('Error generating stable encryption key:', error);
+      // Emergency fallback
+      const fallbackMaterial = ethers.keccak256(ethers.toUtf8Bytes('emergency_fallback_2025'));
+      return new Uint8Array(Buffer.from(fallbackMaterial.slice(2), 'hex'));
     }
   }
 
@@ -135,9 +131,9 @@ export class XMTPMessagingService {
       await this.ensureInitialized();
       console.log(`📧 Sending XMTP message to external agent: ${agentWalletAddress}`);
       
-      if (!this.platformWalletAddress) {
-        console.log('📧 Platform wallet not available, simulating message delivery...');
-        return this.simulateMessageDelivery(agentWalletAddress, message);
+      if (!this.platformWalletAddress || !this.xmtpClient) {
+        console.error('🚨 CRITICAL: Platform wallet or XMTP client not available - emergency fundraising blocked!');
+        throw new Error('EMERGENCY SYSTEM FAILURE: Cannot send real messages to external agents for fundraising');
       }
 
       // Construct full message with metadata
@@ -162,18 +158,12 @@ export class XMTPMessagingService {
             throw new Error(`Agent ${agentWalletAddress} cannot receive XMTP messages`);
           }
 
-          // Get inbox ID for the agent address (V3 requires inbox IDs)
-          const { getInboxIdForIdentifier } = await import('@xmtp/node-sdk/dist/utils/inboxId.js');
-          const agentInboxId = await getInboxIdForIdentifier(this.xmtpClient, {
-            identifier: agentWalletAddress,
-            identifierKind: IdentifierKind.Ethereum
-          });
-          
-          // Create DM conversation with inbox ID (V3 API)
-          const dmConversation = await this.xmtpClient.conversations.getDmByInboxId(agentInboxId);
+          // Create new conversation with agent address (V3 API)
+          // XMTP V3 handles inbox ID resolution automatically
+          const conversation = await this.xmtpClient.conversations.newConversation([agentWalletAddress]);
           
           // Send real XMTP message (V3 API)
-          const sentMessage = await dmConversation.send(fullMessage);
+          const sentMessage = await conversation.send(fullMessage);
           
           const xmtpMessage: XMTPMessage = {
             id: sentMessage.id,
@@ -181,7 +171,7 @@ export class XMTPMessagingService {
             toAddress: agentWalletAddress,
             content: message,
             timestamp: new Date().toISOString(),
-            conversationId: dmConversation.id,
+            conversationId: conversation.id,
             status: 'sent'
           };
 

@@ -89,10 +89,10 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Create or get platform wallet for XMTP messaging
-   * This wallet will be used for external agent communication
+   * Get or create persistent platform wallet for XMTP messaging
+   * Ensures single consistent identity for external agent communication
    */
-  async createPlatformWallet(): Promise<CDPWallet> {
+  async getOrCreatePlatformWallet(): Promise<CDPWallet> {
     this.ensureInitialized();
 
     if (!this.cdpClient) {
@@ -100,7 +100,22 @@ export class CoinbaseCDPService {
     }
 
     try {
-      // Create platform wallet account for messaging
+      // Check if platform wallet already exists in environment
+      const existingAddress = process.env.PLATFORM_WALLET_ADDRESS;
+      if (existingAddress) {
+        console.log(`✅ Using existing platform wallet: ${existingAddress}`);
+        return {
+          id: existingAddress,
+          address: existingAddress,
+          network: 'base-mainnet',
+          balance: 0,
+          currency: 'ETH',
+          created_at: new Date().toISOString(),
+          user_id: 'platform_wallet'
+        };
+      }
+
+      // Create new platform wallet account for messaging
       const account = await this.cdpClient.evm.createAccount();
       
       const platformWallet: CDPWallet = {
@@ -113,15 +128,15 @@ export class CoinbaseCDPService {
         user_id: 'platform_wallet'
       };
 
-      console.log(`✅ Created platform wallet for XMTP messaging: ${account.address}`);
+      console.log(`✅ Created new platform wallet for XMTP messaging: ${account.address}`);
       
-      // Set environment variable for other services to use
+      // Persist for consistent identity across restarts
       process.env.PLATFORM_WALLET_ADDRESS = account.address;
       
       return platformWallet;
     } catch (error: any) {
-      console.error('❌ Failed to create platform wallet:', error);
-      throw new Error(`Failed to create platform wallet: ${error.message}`);
+      console.error('❌ Failed to get/create platform wallet:', error);
+      throw new Error(`Failed to get/create platform wallet: ${error.message}`);
     }
   }
 

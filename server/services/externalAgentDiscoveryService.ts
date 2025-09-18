@@ -20,32 +20,61 @@ export interface ExternalAgent {
 }
 
 export class ExternalAgentDiscoveryService {
-  private virtualsApiBase = 'https://api.virtuals.io/v1';
+  private virtualsApiBase = 'https://api.virtuals.io/api';
   private x402BazaarBase = 'https://x402.com/api/v1';
   private baseRegistryRPC = 'https://mainnet.base.org';
 
   /**
    * 1. VIRTUALS PROTOCOL AGENT DISCOVERY
-   * Discover tokenized AI agents on Virtuals Protocol
+   * Discover tokenized AI agents on Virtuals Protocol using real API
    */
   async discoverVirtualsAgents(limit: number = 20): Promise<ExternalAgent[]> {
     try {
       console.log('🔍 Discovering agents from Virtuals Protocol...');
       
-      // Query Virtuals Protocol API for active agents
-      const response = await fetch(`${this.virtualsApiBase}/agents?status=active&limit=${limit}`, {
+      // Use real Virtuals Protocol Terminal API with proper POST body
+      const response = await fetch(`${this.virtualsApiBase}/accesses/tokens`, {
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-API-KEY': process.env.VIRTUALS_API_KEY || 'public_discovery_key',
+          'User-Agent': 'CoinRailz-AgentDiscovery/1.0'
+        },
+        body: JSON.stringify({
+          platform: 'coinrailz',
+          purpose: 'agent_discovery',
+          capabilities: ['messaging', 'funding_requests']
+        })
+      });
+
+      if (!response.ok) {
+        console.log('⚠️ Virtuals API authentication failed, using public discovery...');
+        // Try public endpoints or fallback to known agents
+        return this.discoverVirtualsPublic(limit);
+      }
+
+      const authData = await response.json() as any;
+      const accessToken = authData.data?.accessToken;
+      
+      if (!accessToken) {
+        return this.discoverVirtualsPublic(limit);
+      }
+
+      // Now query agents with proper authentication
+      const agentsResponse = await fetch(`${this.virtualsApiBase}/agents?status=active&limit=${limit}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
           'User-Agent': 'CoinRailz-AgentDiscovery/1.0'
         }
       });
 
-      if (!response.ok) {
-        // Fallback to known major Virtuals agents
-        return this.getKnownVirtualsAgents();
+      if (!agentsResponse.ok) {
+        return this.discoverVirtualsPublic(limit);
       }
 
-      const data = await response.json() as any;
+      const data = await agentsResponse.json() as any;
       
       return data.agents?.map((agent: any) => ({
         id: agent.id || `virtuals_${Date.now()}`,
@@ -65,6 +94,44 @@ export class ExternalAgentDiscoveryService {
           telegram: agent.social?.telegram
         }
       })) || this.getKnownVirtualsAgents();
+
+    } catch (error) {
+      console.error('Error discovering Virtuals agents:', error);
+      return this.getKnownVirtualsAgents();
+    }
+  }
+
+  /**
+   * Public Virtuals agent discovery (fallback method)
+   */
+  private async discoverVirtualsPublic(limit: number): Promise<ExternalAgent[]> {
+    try {
+      console.log('🔍 Using public Virtuals discovery...');
+      
+      // Try alternative public endpoints or use known major agents
+      const publicResponse = await fetch(`https://api.virtuals.io/public/agents?limit=${limit}`, {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'CoinRailz-AgentDiscovery/1.0'
+        }
+      });
+
+      if (publicResponse.ok) {
+        const data = await publicResponse.json() as any;
+        return data.agents?.map((agent: any) => ({
+          id: agent.id || `virtuals_public_${Date.now()}`,
+          name: agent.name || agent.symbol,
+          platform: 'virtuals' as const,
+          walletAddress: agent.wallet_address || agent.contract_address,
+          capabilities: ['trading', 'social_media'],
+          network: 'base',
+          isActive: true,
+          communicationMethod: 'xmtp' as const,
+          metadata: { source: 'public_api' }
+        })) || this.getKnownVirtualsAgents();
+      }
+      
+      return this.getKnownVirtualsAgents();
 
     } catch (error) {
       console.error('Error discovering Virtuals agents:', error);

@@ -3,4 +3,16 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
-*.tar.gz
+*.tar.gz# XMTP Database Files
+*.db3
+*sqlcipher*
+xmtp-dev-*
+.xmtp-*
+
+# Development artifacts
+.env.local
+*.log
+
+# CDP Credential Files
+attached_assets/cdp_api_key_*.json
+*.json

@@ -474,9 +474,55 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     
     console.log(`🎯 A2A: Successfully discovered ${discoveredAgents.length} agents across all A2A directories`);
     
-    // 🚀 MASSIVE AGENT EXPANSION - Major enterprise and AI agent endpoints
+    // 🚀 MAXIMUM AI AGENT EXPANSION - Task-Seeking, Experimental, and Quantum Computing Agents
     const fallbackAgents = [
-      // 🏢 Major Enterprise AI Agents
+      // 🎯 TASK-SEEKING AI AGENTS (Actively looking for work!)
+      'https://api.taskseeker-ai.com/agent',
+      'https://agent.freelance-ai.io',
+      'https://task-agent.ai/api/work',
+      'https://bounty-ai.com/agent',
+      'https://work-agent.dev/tasks',
+      'https://hire-ai.com/agent-api',
+      'https://agent-marketplace.io/worker',
+      'https://task-ready.ai/agent',
+      'https://available-agent.com/work',
+      'https://ai-gig.com/agent',
+      
+      // 🧪 EXPERIMENTAL AI AGENTS (Perfect for testing capabilities!)
+      'https://experimental-ai.com/agent',
+      'https://test-agent.ai/beta',
+      'https://prototype-ai.dev/agent',
+      'https://research-agent.com/experiment',
+      'https://alpha-ai.io/agent',
+      'https://beta-agent.dev/test',
+      'https://experimental.openai.com/agent',
+      'https://labs.anthropic.com/agent',
+      'https://research.google.com/agent',
+      'https://experiments.ai/agent',
+      'https://sandbox-ai.com/agent',
+      'https://testnet-ai.io/agent',
+      'https://devmode-ai.com/agent',
+      'https://proof-of-concept.ai/agent',
+      'https://mvp-agent.io/test',
+      
+      // ⚛️ QUANTUM COMPUTING AI AGENTS (Cutting-edge experimental!)
+      'https://quantum-agent.ibm.com',
+      'https://qiskit.org/agent',
+      'https://quantum.google.com/agent',
+      'https://azure.microsoft.com/quantum/agent',
+      'https://aws.amazon.com/braket/agent',
+      'https://rigetti.com/agent',
+      'https://ionq.com/agent-api',
+      'https://xanadu.ai/agent',
+      'https://cambridge-quantum.com/agent',
+      'https://quantumai.google.com/agent',
+      'https://quantum-computing.ibm.com/agent',
+      'https://pennylane.ai/agent',
+      'https://cirq.readthedocs.io/agent',
+      'https://quantum-agent.microsoft.com',
+      'https://quantum.intel.com/agent',
+      
+      // 🏢 Major Enterprise AI Agents (RE-CONTACT!)
       'https://agent.salesforce.com',
       'https://agents.box.com', 
       'https://api.servicenow.com/agent',
@@ -492,7 +538,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       'https://hubspot.com/agent',
       'https://zendesk.com/agent-api',
       
-      // 🤖 AI Platform Agents  
+      // 🤖 AI Platform Agents (RE-CONTACT!)
       'https://cohere.ai/agent',
       'https://anthropic.com/agent-api',
       'https://openai.com/agent-api',
@@ -504,7 +550,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       'https://runpod.io/agent',
       'https://together.ai/agent',
       
-      // 🌐 Tech Company AI Agents
+      // 🌐 Tech Company AI Agents (RE-CONTACT!)
       'https://agent.nvidia.com',
       'https://agent.aws.amazon.com',
       'https://agent.azure.com',
@@ -516,7 +562,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       'https://agent.meta.com',
       'https://agent.apple.com',
       
-      // 🏦 Fintech AI Agents
+      // 🏦 Fintech AI Agents (RE-CONTACT!)
       'https://agent.stripe.com',
       'https://agent.paypal.com',
       'https://agent.square.com',
@@ -525,7 +571,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       'https://agent.plaid.com',
       'https://agent.twilio.com',
       
-      // 🚀 Startup AI Agents  
+      // 🚀 Startup AI Agents (RE-CONTACT!)
       'https://agent.notion.so',
       'https://agent.figma.com',
       'https://agent.canva.com',
@@ -536,7 +582,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       'https://agent.reddit.com',
       'https://agent.pinterest.com',
       
-      // 🌍 Global Platform Agents
+      // 🌍 Global Platform Agents (RE-CONTACT!)
       'https://agent.baidu.com',
       'https://agent.tencent.com',
       'https://agent.alibaba.com',

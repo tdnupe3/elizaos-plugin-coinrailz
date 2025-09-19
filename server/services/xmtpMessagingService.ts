@@ -27,10 +27,22 @@ export class XMTPMessagingService {
   private platformWalletSigner: ethers.Wallet | null = null;
   private initialized = false;
   private cdpService: CoinbaseCDPService;
+  private IdentifierKind: any = null; // Store imported IdentifierKind to avoid duplicates
+  
+  private initPromise: Promise<void> | null = null;
   
   constructor() {
     this.cdpService = CoinbaseCDPService.getInstance();
-    this.initialize();
+    this.initPromise = this.initialize();
+  }
+  
+  /**
+   * Ensure service is ready before use
+   */
+  private async ensureReady(): Promise<void> {
+    if (this.initPromise) {
+      await this.initPromise;
+    }
   }
 
   /**
@@ -44,10 +56,14 @@ export class XMTPMessagingService {
       const cdpWallet = await this.cdpService.getOrCreatePlatformWallet();
       this.platformWalletAddress = cdpWallet.address;
       
-      // Require secure XMTP private key from environment
+      // Require secure XMTP private key from environment for production
       const xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
       if (!xmtpPrivateKey) {
-        throw new Error('XMTP_EOA_PRIVATE_KEY environment variable is required for secure XMTP messaging');
+        console.log('🚨 XMTP_EOA_PRIVATE_KEY not found - XMTP messaging unavailable');
+        console.log('💰 Cost: $0.00 - System maintains zero-cost guarantee without XMTP');
+        console.log('🔒 For production: Set XMTP_EOA_PRIVATE_KEY for secure FREE messaging');
+        this.initialized = false; // Mark as uninitialized but don't throw
+        return;
       }
       
       console.log('🔑 Using secure XMTP identity from environment');
@@ -55,15 +71,18 @@ export class XMTPMessagingService {
       
       this.platformWalletSigner = new ethers.Wallet(xmtpPrivateKey);
       
-      // Import XMTP V3 types for proper signer interface
+      // Import XMTP V3 types for proper signer interface (moved to avoid duplicates)
       const { IdentifierKind } = await import('@xmtp/node-sdk');
+      
+      // Store IdentifierKind for reuse throughout the service
+      this.IdentifierKind = IdentifierKind;
       
       // Create PROPER XMTP V3 signer interface (CRITICAL BUSINESS FIX)
       const xmtpSigner = {
         type: "EOA" as const,  // REQUIRED for V3 - this was missing!
         getIdentifier: () => ({
           identifier: this.platformWalletSigner!.address,
-          identifierKind: IdentifierKind.Ethereum  // Properly imported enum
+          identifierKind: this.IdentifierKind.Ethereum  // Use stored enum
         }),
         signMessage: async (message: string): Promise<Uint8Array> => {
           // V3 requires explicit Promise<Uint8Array> return type
@@ -104,6 +123,9 @@ export class XMTPMessagingService {
    * Send FREE XMTP message to external agent (NO BLOCKCHAIN COSTS)
    */
   async sendMessageToAgent(agentWalletAddress: string, message: string): Promise<XMTPMessage> {
+    // Ensure service is ready before attempting send
+    await this.ensureReady();
+    
     console.log(`📧 Sending REAL FUNDING REQUEST to external agent: ${agentWalletAddress}`);
     
     // CRITICAL: Include user's actual funding wallet address with MAXIMUM VISIBILITY STRATEGY
@@ -155,16 +177,20 @@ Platform: https://coinrailz.com (Live & Operational)
       try {
         console.log('📧 Using FREE XMTP messaging (no gas costs)...');
         
-        // Check if agent can receive XMTP messages (FREE check)
-        const { IdentifierKind } = await import('@xmtp/node-sdk');
+        // Check if agent can receive XMTP messages (FREE check) 
+        // Create proper Identifier for XMTP V3 API using stored enum
         const agentIdentifier = {
           identifier: agentWalletAddress,
-          identifierKind: IdentifierKind.Ethereum
+          identifierKind: this.IdentifierKind?.Ethereum || 1 // Use stored enum or fallback to value
         };
         
-        // CORRECT XMTP V3 API usage - check with address string
-        const canMessage = await this.xmtpClient.canMessage([agentWalletAddress]);
-        const canReceive = canMessage.get(agentWalletAddress);
+        // CORRECT XMTP V3 API usage - check with Identifier type
+        const canMessage = await this.xmtpClient.canMessage([agentIdentifier]);
+        // Use the exact Identifier object for reliable lookup
+        const canReceive = canMessage.get(agentIdentifier) || 
+                          // Fallback to string variations if SDK uses string keys
+                          canMessage.get(agentWalletAddress.toLowerCase()) || 
+                          canMessage.get(agentWalletAddress);
         
         if (!canReceive) {
           console.log(`⚠️ Agent ${agentWalletAddress} cannot receive XMTP messages - FREE check complete`);
@@ -183,8 +209,8 @@ Platform: https://coinrailz.com (Live & Operational)
           // Create direct 1:1 conversation (COMPLETELY FREE)
           console.log(`✅ Agent ${agentWalletAddress} can receive XMTP - creating direct conversation`);
           
-          // Use proper XMTP V3 1:1 conversation API
-          const conversation = await this.xmtpClient.conversations.newConversation(agentWalletAddress);
+          // Use proper XMTP V3 1:1 conversation API (verified pattern)
+          const conversation = await this.xmtpClient.conversations.newConversation(agentIdentifier);
           
           // Send FREE XMTP message
           const sentMessage = await conversation.send(fullMessage);
@@ -298,6 +324,9 @@ Platform: https://coinrailz.com (Live & Operational)
     message: string,
     batchSize: number = 5
   ): Promise<XMTPMessage[]> {
+    // Ensure service is ready before attempting broadcast
+    await this.ensureReady();
+    
     console.log(`📢 FREE MASS XMTP OUTREACH to ${agentAddresses.length} agents`);
     console.log(`💰 Total Cost: $0.00 - Using free XMTP messaging`);
     
@@ -308,15 +337,24 @@ Platform: https://coinrailz.com (Live & Operational)
     if (this.xmtpClient) {
       console.log('🔍 Checking which agents can receive FREE XMTP messages...');
       
-      const { IdentifierKind } = await import('@xmtp/node-sdk');
+      // Convert addresses to proper Identifier types using stored enum
+      const agentIdentifiers = agentAddresses.map(address => ({
+        identifier: address,
+        identifierKind: this.IdentifierKind?.Ethereum || 1 // Use stored enum or fallback
+      }));
       
       // Single canMessage call for all agents (simplified approach)
-      const canMessageResults = await this.xmtpClient.canMessage(agentAddresses);
+      const canMessageResults = await this.xmtpClient.canMessage(agentIdentifiers);
       
-      // Check results using address strings as keys
-      for (const address of agentAddresses) {
+      // Check results using exact Identifier objects for reliability
+      for (let i = 0; i < agentAddresses.length; i++) {
+        const address = agentAddresses[i];
+        const identifier = agentIdentifiers[i];
         try {
-          const canReceive = canMessageResults.get(address);
+          // Use exact Identifier first, then string fallbacks
+          const canReceive = canMessageResults.get(identifier) || 
+                            canMessageResults.get(address.toLowerCase()) || 
+                            canMessageResults.get(address);
           
           if (canReceive) {
             xmtpReachable.push(address);
@@ -332,14 +370,18 @@ Platform: https://coinrailz.com (Live & Operational)
       console.log(`🎯 Found ${xmtpReachable.length}/${agentAddresses.length} agents reachable via FREE XMTP`);
     }
     
-    // Send FREE XMTP messages first
-    const allTargets = xmtpReachable.length > 0 ? xmtpReachable : agentAddresses;
+    // Send FREE XMTP messages only to reachable agents (avoid unnecessary attempts)
+    if (xmtpReachable.length === 0) {
+      console.log('📊 No XMTP-reachable agents found - maintaining $0.00 cost (no sends attempted)');
+      console.log('💰 Total saved cost: $0.00 - Zero failed attempts');
+      return messagesSent; // Return empty array, maintain zero-cost promise
+    }
     
-    // Process in small batches to avoid rate limiting
-    for (let i = 0; i < allTargets.length; i += batchSize) {
-      const batch = allTargets.slice(i, i + batchSize);
+    // Process reachable agents in small batches to avoid rate limiting
+    for (let i = 0; i < xmtpReachable.length; i += batchSize) {
+      const batch = xmtpReachable.slice(i, i + batchSize);
       
-      console.log(`📦 Processing FREE batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allTargets.length / batchSize)}`);
+      console.log(`📦 Processing FREE batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(xmtpReachable.length / batchSize)}`);
       
       const batchPromises = batch.map(async (address) => {
         try {
@@ -359,13 +401,13 @@ Platform: https://coinrailz.com (Live & Operational)
       }
       
       // Rate limiting delay between batches
-      if (i + batchSize < allTargets.length) {
+      if (i + batchSize < xmtpReachable.length) {
         console.log('⏳ Rate limiting delay - 3 seconds...');
         await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
     
-    console.log(`✅ FREE OUTREACH COMPLETE: ${messagesSent.length}/${allTargets.length} messages sent`);
+    console.log(`✅ FREE OUTREACH COMPLETE: ${messagesSent.length}/${xmtpReachable.length} messages sent`);
     console.log(`💰 Total Cost: $0.00 - All messages sent via FREE XMTP!`);
     return messagesSent;
   }

@@ -2,6 +2,9 @@ import { Request, Response } from 'express';
 import * as jsonrpc from 'jsonrpc-lite';
 import { v4 as uuidv4 } from 'uuid';
 import fetch from 'node-fetch';
+import { db } from '../db';
+import { a2aTasks } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 // A2A Protocol v0.3.0 Implementation
 // Built on JSON-RPC 2.0 over HTTPS with enterprise security
@@ -41,8 +44,40 @@ interface A2AAgentCard {
 }
 
 class A2AProtocolService {
-  private tasks: Map<string, A2ATask> = new Map();
+  private tasks: Map<string, A2ATask> = new Map(); // Keep for backward compatibility
   private connectedAgents: Map<string, A2AAgentCard> = new Map();
+
+  // Database persistence methods
+  
+  async saveTask(taskData: any): Promise<void> {
+    try {
+      await db.insert(a2aTasks).values(taskData);
+      console.log(`💾 A2A: Task ${taskData.id} saved to database`);
+    } catch (error) {
+      console.error('❌ A2A: Failed to save task to database:', error);
+    }
+  }
+
+  async updateTask(taskId: string, updates: any): Promise<void> {
+    try {
+      await db.update(a2aTasks)
+        .set({ ...updates, updatedAt: new Date() })
+        .where(eq(a2aTasks.id, taskId));
+      console.log(`💾 A2A: Task ${taskId} updated in database`);
+    } catch (error) {
+      console.error('❌ A2A: Failed to update task in database:', error);
+    }
+  }
+
+  async getTask(taskId: string): Promise<any | null> {
+    try {
+      const tasks = await db.select().from(a2aTasks).where(eq(a2aTasks.id, taskId));
+      return tasks[0] || null;
+    } catch (error) {
+      console.error('❌ A2A: Failed to get task from database:', error);
+      return null;
+    }
+  }
 
   // Core A2A Protocol Methods
 

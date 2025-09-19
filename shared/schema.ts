@@ -969,6 +969,25 @@ export const aiMarketplaceCommissions = pgTable("ai_marketplace_commissions", {
   paidAt: timestamp("paid_at"),
 });
 
+// A2A Protocol Tasks table for enterprise agent interoperability
+export const a2aTasks = pgTable("a2a_tasks", {
+  id: varchar("id").primaryKey().notNull(), // UUID task IDs from A2A protocol
+  status: varchar("status").notNull().default("pending"), // pending, in_progress, completed, failed
+  taskType: varchar("task_type").notNull(), // emergency_fundraising, data_analysis, etc
+  description: text("description"),
+  parameters: jsonb("parameters"), // Task parameters as JSON
+  result: jsonb("result"), // Task result when completed
+  callbackUrl: varchar("callback_url"),
+  agentUrl: varchar("agent_url"), // The external agent URL we contacted
+  urgencyLevel: varchar("urgency_level"), // low, medium, high, critical
+  contactedAgents: integer("contacted_agents").default(0), // Number of agents contacted
+  completedTasks: integer("completed_tasks").default(0), // Number of successful completions
+  totalValue: decimal("total_value", { precision: 20, scale: 8 }).default("0.00000000"), // Total value processed
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  completedAt: timestamp("completed_at")
+});
+
 // Platform Transactions - Universal transaction tracking across all services
 export const platformTransactions = pgTable("platform_transactions", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
@@ -1080,6 +1099,9 @@ export type InsertAIMarketplaceDispute = typeof aiMarketplaceDisputes.$inferInse
 
 export type AIMarketplaceCommission = typeof aiMarketplaceCommissions.$inferSelect;
 export type InsertAIMarketplaceCommission = typeof aiMarketplaceCommissions.$inferInsert;
+
+export type A2ATask = typeof a2aTasks.$inferSelect;
+export type InsertA2ATask = typeof a2aTasks.$inferInsert;
 
 export type AIMarketplacePerformance = typeof aiMarketplacePerformance.$inferSelect;
 export type InsertAIMarketplacePerformance = typeof aiMarketplacePerformance.$inferInsert;

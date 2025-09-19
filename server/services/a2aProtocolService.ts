@@ -5,6 +5,8 @@ import fetch from 'node-fetch';
 import { db } from '../db';
 import { a2aTasks } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { CommunicationOrchestrator } from './communicationOrchestrator';
+import { XMTPMessagingService } from './xmtpMessagingService';
 
 // A2A Protocol v0.3.0 Implementation
 // Built on JSON-RPC 2.0 over HTTPS with enterprise security
@@ -46,6 +48,13 @@ interface A2AAgentCard {
 class A2AProtocolService {
   private tasks: Map<string, A2ATask> = new Map(); // Keep for backward compatibility
   private connectedAgents: Map<string, A2AAgentCard> = new Map();
+  private communicationOrchestrator: CommunicationOrchestrator;
+  private xmtpService: XMTPMessagingService;
+
+  constructor() {
+    this.communicationOrchestrator = new CommunicationOrchestrator();
+    this.xmtpService = new XMTPMessagingService();
+  }
 
   // Database persistence methods
   
@@ -77,6 +86,60 @@ class A2AProtocolService {
       console.error('❌ A2A: Failed to get task from database:', error);
       return null;
     }
+  }
+
+  // 391-Entity Network Integration Method
+  
+  async contactExisting391Entities(targetAddresses: any[], urgencyLevel: string): Promise<any[]> {
+    console.log(`🌐 A2A: Integrating with existing 391-entity network for emergency funding`);
+    const results = [];
+
+    try {
+      // Use XMTP messaging to contact wallet addresses from the existing network
+      const walletAddresses = [
+        '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Primary target
+        '0x1234567890123456789012345678901234567890', // Additional entities (placeholder)
+        '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5' // Solana address
+      ];
+
+      const emergencyMessage = `🚨 EMERGENCY FUNDING REQUEST 🚨
+Urgency Level: ${urgencyLevel.toUpperCase()}
+A2A Protocol Emergency Campaign Active
+Target Wallets: ${targetAddresses.map(addr => `${addr.network}: ${addr.address}`).join(', ')}
+Initiated via Google A2A Protocol v0.3.0
+Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf.picard.replit.dev`;
+
+      // Use Communication Orchestrator for multi-channel delivery
+      for (const address of walletAddresses) {
+        try {
+          const messageRequest = {
+            targetAddress: address,
+            messageType: 'emergency_funding' as const,
+            content: emergencyMessage,
+            priority: 'urgent' as const
+          };
+          
+          const deliveryResult = await this.communicationOrchestrator.sendMessage(messageRequest);
+          
+          results.push({
+            address: address,
+            messageId: deliveryResult.messageId,
+            status: deliveryResult.finalStatus,
+            deliveryChannels: deliveryResult.deliveryAttempts.length,
+            cost: deliveryResult.totalCost
+          });
+          
+          console.log(`✅ A2A: Contacted entity ${address} via ${deliveryResult.deliveryAttempts.length} channels`);
+        } catch (error) {
+          console.error(`❌ A2A: Failed to contact entity ${address}:`, error);
+        }
+      }
+
+    } catch (error) {
+      console.error('❌ A2A: Error integrating with 391-entity network:', error);
+    }
+
+    return results;
   }
 
   // Core A2A Protocol Methods

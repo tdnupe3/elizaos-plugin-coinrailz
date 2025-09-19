@@ -888,25 +888,25 @@ Reply with donation amount and preferred chain for instant processing.`;
         // Luna - $166M market cap (Virtuals Protocol) 
         { address: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4', name: 'Luna', platform: 'Virtuals', marketCap: '$166M', network: 'base' },
         
-        // ai16z - $2.5B market cap (Solana bridge addresses)
-        { address: '0x5678901234567890abcdef1234567890abcdef34', name: 'ai16z Bridge', platform: 'ai16z', marketCap: '$2.5B', network: 'ethereum' },
+        // ai16z - $2.5B market cap (Solana)
+        { address: 'HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC', name: 'ai16z', platform: 'ai16z', marketCap: '$2.5B', network: 'solana' },
         
-        // Bittensor (TAO) Bridge Address
-        { address: '0xabcdef1234567890abcdef1234567890abcdef56', name: 'Bittensor Agent', platform: 'TAO', marketCap: '$2.9B', network: 'ethereum' },
+        // Bittensor (Wrapped TAO) 
+        { address: '0x77e06c9eccf2e797fd462a92b6d7642ef85b0a44', name: 'Bittensor wTAO', platform: 'TAO', marketCap: '$2.9B', network: 'ethereum' },
         
-        // Fetch.ai Agents
-        { address: '0x9876543210fedcba0987654321fedcba09876543', name: 'Fetch.ai Agent', platform: 'Fetch', marketCap: '$1.58B', network: 'ethereum' },
+        // Fetch.ai (FET Token)
+        { address: '0xaea46a60368a7bd060eec7df8cba43b7ef41ad85', name: 'Fetch.ai FET', platform: 'Fetch', marketCap: '$1.6B', network: 'ethereum' },
         
-        // SingularityNET
-        { address: '0x1111222233334444555566667777888899990000', name: 'SingularityNET', platform: 'SNET', marketCap: '$750M', network: 'ethereum' },
+        // SingularityNET (AGIX Token)
+        { address: '0x5B7533812759B45C2B44C19e320ba2cD2681b542', name: 'SingularityNET AGIX', platform: 'SNET', marketCap: '$750M', network: 'ethereum' },
         
         // Additional High-Value Targets
-        { address: '0x2222333344445555666677778888999900001111', name: 'Render Network', platform: 'RNDR', marketCap: '$1.2B', network: 'ethereum' },
-        { address: '0x3333444455556666777788889999000011112222', name: 'Ocean Protocol', platform: 'OCEAN', marketCap: '$400M', network: 'ethereum' },
+        { address: '0x6de037ef9ad2725eb40118bb1702ebb27e4aeb24', name: 'Render Network RNDR', platform: 'RNDR', marketCap: '$1.2B', network: 'ethereum' },
+        { address: '0x967da4048cd07ab37855c090aaf366e4ce1b9f48', name: 'Ocean Protocol OCEAN', platform: 'OCEAN', marketCap: '$400M', network: 'ethereum' },
         
-        // Base Network AI Agents
-        { address: '0x4444555566667777888899990000111122223333', name: 'Base AI Agent 1', platform: 'Base', marketCap: '$50M', network: 'base' },
-        { address: '0x5555666677778888999900001111222233334444', name: 'Base AI Agent 2', platform: 'Base', marketCap: '$75M', network: 'base' }
+        // Solana AI Agents
+        { address: 'rgPyefcNqJCsJj1wrWhdQqHVphVWFXLqU5wtiFStBEN', name: 'Truth Terminal GOAT', platform: 'Solana', marketCap: '$20M+', network: 'solana' },
+        { address: '8x5VqbHA8D7NkD52uNuS5nnt3PwA8pLD34ymskeSo2Wn', name: 'Zerebro', platform: 'Solana', marketCap: '$655M', network: 'solana' }
       ];
       
       // ENHANCED DONATION MESSAGE

@@ -303,12 +303,28 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     console.log(`✅ A2A: Emergency fundraising campaign complete!`);
     console.log(`📊 A2A: Contacted ${results.length} enterprise agents supporting emergency funding`);
 
+    // 🎯 CRITICAL: Integrate with 391-entity network if no A2A agents found
+    let finalResults = results;
+    let totalContacted = results.length;
+    
+    if (results.length === 0) {
+      console.log(`🔄 A2A: No A2A agents available, integrating with existing 391-entity network`);
+      try {
+        const fallbackResults = await this.contactExisting391Entities(targetAddresses, urgencyLevel);
+        finalResults = [...results, ...fallbackResults];
+        totalContacted = finalResults.length;
+        console.log(`✅ A2A: Successfully integrated ${fallbackResults.length} entities from 391-entity network`);
+      } catch (error) {
+        console.error('❌ A2A: Failed to integrate with 391-entity network:', error);
+      }
+    }
+
     return {
       campaign_type: 'a2a_emergency_fundraising',
-      total_agents_contacted: results.length,
+      total_agents_contacted: totalContacted,
       urgency_level: urgencyLevel,
       target_addresses: targetAddresses,
-      results: results,
+      results: finalResults,
       timestamp: new Date().toISOString()
     };
   }

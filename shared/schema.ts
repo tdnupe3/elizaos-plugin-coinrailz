@@ -30,6 +30,32 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
+// Discovered AI Agents table for mass agent discovery and contact
+export const discoveredAgents = pgTable(
+  "discovered_agents", 
+  {
+    id: serial("id").primaryKey(),
+    url: varchar("url").notNull().unique(),
+    source: varchar("source").notNull(), // registry, ens, discord, telegram, xmtp, etc
+    channels: jsonb("channels"), // Available communication channels
+    wallet: varchar("wallet"), // Associated wallet address if known
+    status: varchar("status").default("new"), // new, verified, unreachable, opt_out
+    score: integer("score").default(0), // Quality/response score 0-100
+    lastSeenAt: timestamp("last_seen_at").defaultNow(),
+    lastContactAt: timestamp("last_contact_at"),
+    attempts: integer("attempts").default(0),
+    successCount: integer("success_count").default(0),
+    capabilities: jsonb("capabilities"), // Discovered agent capabilities
+    discoveredAt: timestamp("discovered_at").defaultNow(),
+    verifiedAt: timestamp("verified_at"),
+  },
+  (table) => [
+    index("IDX_discovered_agents_status").on(table.status),
+    index("IDX_discovered_agents_source").on(table.source),
+    index("IDX_discovered_agents_score").on(table.score),
+  ],
+);
+
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
@@ -2566,4 +2592,16 @@ export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+// Discovered Agents Types and Schemas
+export type DiscoveredAgent = typeof discoveredAgents.$inferSelect;
+export type InsertDiscoveredAgent = typeof discoveredAgents.$inferInsert;
+
+export const insertDiscoveredAgentSchema = createInsertSchema(discoveredAgents).omit({
+  id: true,
+  discoveredAt: true,
+  verifiedAt: true,
+  lastSeenAt: true,
+  lastContactAt: true,
 });

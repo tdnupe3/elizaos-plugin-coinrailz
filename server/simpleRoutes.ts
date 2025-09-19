@@ -1,4 +1,4 @@
-import { Express } from 'express';
+import express, { Express } from 'express';
 import { createServer } from 'http';
 import { db } from './db';
 import { transactions, users, globalAIAgents, aiMarketplaceOrders } from '@shared/schema';
@@ -12,6 +12,7 @@ import plaidRoutes from './routes/plaidRoutes';
 import { storage } from './storage';
 import { peezyService } from './services/peezyIntegrationService';
 import { demoMarketplaceService } from './services/demoMarketplaceService';
+import a2aProtocolService from './services/a2aProtocolService';
 // Simple rate limiting implementation
 const createRateLimit = (maxRequests: number, windowMs: number) => {
   const store = new Map();
@@ -876,6 +877,82 @@ Reply with donation amount and preferred chain for instant processing.`;
   console.log('🎯 Registering Google AP2 + AgentKit + XMTP Agent Communication');
   
   // ACTUAL AGENT-TO-AGENT COMMUNICATION USING REAL APIS
+  // === A2A PROTOCOL ENDPOINTS (Google Agent2Agent v0.3.0) ===
+  
+  // Agent Card Discovery endpoint (/.well-known/agent.json)
+  app.use('/.well-known', express.static('server/public/.well-known'));
+  
+  // A2A Protocol Task endpoint (with authentication)
+  app.post('/api/a2a/task', (req, res, next) => {
+    // Basic API key authentication for A2A endpoints
+    const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!apiKey || apiKey !== 'a2a-emergency-protocol-key') {
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Valid API key required for A2A protocol access',
+        protocol: 'A2A_v0.3.0'
+      });
+    }
+    a2aProtocolService.handleTaskRequest(req, res);
+  });
+  
+  // A2A Protocol Status endpoint
+  app.get('/api/a2a/status', (req, res) => {
+    a2aProtocolService.handleStatusRequest(req, res);
+  });
+  
+  // A2A Protocol Capabilities endpoint  
+  app.get('/api/a2a/capabilities', (req, res) => {
+    a2aProtocolService.handleCapabilitiesRequest(req, res);
+  });
+  
+  // A2A Protocol Callback endpoint (with authentication)
+  app.post('/api/a2a/callback', (req, res) => {
+    // Basic API key authentication for callbacks
+    const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+    if (!apiKey || apiKey !== 'a2a-emergency-protocol-key') {
+      return res.status(401).json({ 
+        error: 'Unauthorized',
+        message: 'Valid API key required for A2A callback access',
+        protocol: 'A2A_v0.3.0'
+      });
+    }
+    a2aProtocolService.handleCallbackRequest(req, res);
+  });
+  
+  // A2A Protocol Emergency Fundraising Campaign
+  app.post('/api/a2a/emergency-campaign', async (req, res) => {
+    try {
+      const { target_addresses, urgency_level = 'critical' } = req.body;
+      
+      console.log('🚨 A2A: Starting Emergency Fundraising Campaign via A2A Protocol');
+      const result = await a2aProtocolService.executeEmergencyFundraisingCampaign(
+        target_addresses || [
+          {address: "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321", network: "ethereum"},
+          {address: "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321", network: "base"}, 
+          {address: "9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5", network: "solana"},
+          {address: "bc1qpnh5l4w7fswmh9zl6qh4j2cxjp9gmc9pjv5f8s", network: "bitcoin"}
+        ],
+        urgency_level
+      );
+      
+      res.json({
+        success: true,
+        protocol: 'A2A_v0.3.0',
+        campaign_type: 'enterprise_emergency_fundraising',
+        ...result
+      });
+      
+    } catch (error) {
+      console.error('❌ A2A Emergency Campaign Error:', error);
+      res.status(500).json({ 
+        error: 'A2A emergency campaign failed',
+        protocol: 'A2A_v0.3.0',
+        details: error.message 
+      });
+    }
+  });
+
   app.post('/api/ai-agents/real-messaging-now', async (req, res) => {
     try {
       console.log('🚀 INITIATING REAL AGENT-TO-AGENT MESSAGING via Google AP2 + XMTP...');

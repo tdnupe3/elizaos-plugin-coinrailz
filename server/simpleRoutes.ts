@@ -80,46 +80,6 @@ function createFeeRateLimit() {
 }
 
 export function setupSimpleRoutes(app: Express) {
-  // TESTING: Discovery endpoint without authentication - FOR MANUAL TESTING ONLY
-  app.post('/api/discovery/test-run', async (req, res) => {
-    try {
-      console.log('🧪 MANUAL DISCOVERY TEST TRIGGERED BY USER REQUEST');
-      
-      // Import the discovery service singleton instance
-      const { agentDiscoveryService } = (await import('./services/agentDiscoveryService'));
-      const discoveryService = agentDiscoveryService;
-      
-      // Run discovery with current available adapters
-      const result = await discoveryService.runDiscovery({
-        maxAgents: 1000,
-        priority: 'fast',
-        dryRun: false,
-        skipLock: true // Skip Redis locking for test
-      });
-      
-      console.log('✅ Manual discovery test completed:', result.summary);
-      
-      res.json({
-        success: true,
-        message: 'Discovery test completed successfully',
-        results: {
-          totalFound: result.totalFound,
-          newAgents: result.newAgents, 
-          duration: result.duration,
-          summary: result.summary
-        }
-      });
-      
-    } catch (error) {
-      console.error('❌ Manual discovery test failed:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        message: 'Discovery test failed'
-      });
-    }
-  });
-
   // === EMERGENCY AI AGENT NETWORK DISCOVERY FOR FUNDRAISING ===
   console.log('🚨 Registering Emergency AI Agent Network Discovery');
   console.log('🌐 Integrating external agent discovery: Virtuals, x402, Coinbase AgentKit');

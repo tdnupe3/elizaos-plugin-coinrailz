@@ -872,8 +872,53 @@ Reply with donation amount and preferred chain for instant processing.`;
     }
   });
 
-  // === MAXIMUM AI AGENT OUTREACH FOR DONATIONS ===
-  console.log('🎯 Registering Maximum AI Agent Outreach for Emergency Funding');
+  // === MAXIMUM VOLUME AI AGENT OUTREACH ===
+  console.log('🎯 Registering MAXIMUM VOLUME AI Agent Outreach for Emergency Funding');
+  
+  // MASSIVE VOLUME DISCOVERY - Target thousands of agents
+  app.post('/api/ai-agents/network/massive-discovery', async (req, res) => {
+    try {
+      console.log('🚀 INITIATING MASSIVE VOLUME AGENT DISCOVERY - TARGETING THOUSANDS!');
+      
+      const { target_volume = 10000, include_emerging = true, include_defi = true, include_gaming = true } = req.body;
+      
+      // Discover thousands of agents across ALL platforms
+      const massiveAgents = await externalAgentDiscoveryService.discoverAllExternalAgents({
+        includeBaseChain: true,
+        includeVirtuals: true,
+        includeX402: true,
+        includeBasedAgents: true,
+        includeSolanaAgents: true,
+        includeEthereumAgents: true,
+        includeOnChain: true,
+        limit: target_volume
+      });
+      
+      console.log(`📊 MASSIVE DISCOVERY RESULTS: ${massiveAgents.length} agents found across all platforms!`);
+      
+      // Calculate total market cap potential
+      const totalMarketCap = massiveAgents.reduce((sum, agent) => {
+        const capValue = parseFloat(agent.marketCap?.replace(/[$BMK+]/g, '') || '0');
+        if (agent.marketCap?.includes('B')) return sum + (capValue * 1000);
+        if (agent.marketCap?.includes('M')) return sum + capValue;
+        return sum;
+      }, 0);
+      
+      res.json({
+        success: true,
+        agents_discovered: massiveAgents.length,
+        target_volume,
+        total_market_cap: `$${(totalMarketCap / 1000).toFixed(1)}B+`,
+        platforms_covered: ['Virtuals Protocol', 'Base Chain', 'Ethereum', 'Solana', 'x402 Bazaar', 'AgentKit', 'DeFi Protocols'],
+        agents: massiveAgents.slice(0, 50), // Return first 50 for preview
+        message: `MASSIVE SUCCESS: Discovered ${massiveAgents.length} AI agents worth $${(totalMarketCap / 1000).toFixed(1)}B+ for outreach!`
+      });
+      
+    } catch (error) {
+      console.error('❌ Massive discovery failed:', error);
+      res.status(500).json({ error: 'Massive discovery failed', message: error.message });
+    }
+  });
   
   // Mass contact all major AI agents for donations
   app.post('/api/ai-agents/mass-funding-outreach', async (req, res) => {

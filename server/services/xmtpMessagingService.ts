@@ -56,12 +56,12 @@ export class XMTPMessagingService {
       const cdpWallet = await this.cdpService.getOrCreatePlatformWallet();
       this.platformWalletAddress = cdpWallet.address;
       
-      // Require secure XMTP private key from environment for production
-      const xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      // Use secure private key from environment (CDP_PRIVATE_KEY or XMTP_EOA_PRIVATE_KEY)
+      const xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY || process.env.CDP_PRIVATE_KEY;
       if (!xmtpPrivateKey) {
-        console.log('🚨 XMTP_EOA_PRIVATE_KEY not found - XMTP messaging unavailable');
+        console.log('🚨 No private key found (CDP_PRIVATE_KEY or XMTP_EOA_PRIVATE_KEY) - XMTP messaging unavailable');
         console.log('💰 Cost: $0.00 - System maintains zero-cost guarantee without XMTP');
-        console.log('🔒 For production: Set XMTP_EOA_PRIVATE_KEY for secure FREE messaging');
+        console.log('🔒 For production: Set CDP_PRIVATE_KEY or XMTP_EOA_PRIVATE_KEY for secure FREE messaging');
         this.initialized = false; // Mark as uninitialized but don't throw
         return;
       }
@@ -69,7 +69,21 @@ export class XMTPMessagingService {
       console.log('🔑 Using secure XMTP identity from environment');
       console.log('🔒 XMTP identity will be consistent and secure across restarts');
       
-      this.platformWalletSigner = new ethers.Wallet(xmtpPrivateKey);
+      // Convert base64 private key to hex format if needed (CDP keys are base64 encoded)
+      let processedPrivateKey = xmtpPrivateKey;
+      if (!xmtpPrivateKey.startsWith('0x') && xmtpPrivateKey.includes('/') || xmtpPrivateKey.includes('+')) {
+        // Base64 encoded private key - convert to hex
+        try {
+          const privateKeyBytes = Buffer.from(xmtpPrivateKey, 'base64');
+          processedPrivateKey = '0x' + privateKeyBytes.toString('hex');
+          console.log('🔄 Converted base64 private key to hex format for ethers.js');
+        } catch (error) {
+          console.error('❌ Failed to convert base64 private key:', error);
+          throw error;
+        }
+      }
+      
+      this.platformWalletSigner = new ethers.Wallet(processedPrivateKey);
       
       // Import XMTP V3 types for proper signer interface (moved to avoid duplicates)
       const { IdentifierKind } = await import('@xmtp/node-sdk');

@@ -109,7 +109,7 @@ export class AgentDiscoveryService {
     this.communicationOrchestrator = new CommunicationOrchestrator();
     this.processId = `discovery_${process.pid}_${Date.now()}`;
     this.initializeRedis();
-    this.initializeAdapters();
+    this.initializeAdapters().catch(console.error);
     this.initializeScheduler();
     
     AgentDiscoveryService.instance = this;
@@ -850,12 +850,17 @@ export class AgentDiscoveryService {
   /**
    * INITIALIZE ADAPTERS (loaded dynamically)
    */
-  private initializeAdapters(): void {
+  private async initializeAdapters(): Promise<void> {
     console.log('🔧 Initializing discovery adapters...');
     
-    // Adapters will be loaded from the adapters directory
-    // This is a placeholder - actual adapters will be imported and registered
-    console.log('📝 Note: Adapters will be dynamically loaded from server/adapters/ directory');
+    try {
+      // Import and register all available adapters
+      const { initializeDiscoveryAdapters } = await import('../adapters/index');
+      initializeDiscoveryAdapters();
+      console.log('✅ Discovery adapters loaded and registered');
+    } catch (error) {
+      console.warn('⚠️ Failed to load discovery adapters:', error);
+    }
   }
 
   /**

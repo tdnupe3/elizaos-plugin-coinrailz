@@ -13,6 +13,8 @@ import {
   numeric,
   date,
   real,
+  sql,
+  json,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -203,6 +205,40 @@ export const walletBalances = pgTable("wallet_balances", {
 }, (table) => ({
   userCurrencyIndex: index("user_currency_idx").on(table.userId, table.currency),
 }));
+
+// AI Agent Product Catalog
+export const aiAgentProducts = pgTable('ai_agent_products', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description').notNull(),
+  category: varchar('category', { length: 100 }).notNull(),
+  priceUSD: decimal('price_usd', { precision: 10, scale: 2 }).notNull(),
+  billingCycle: varchar('billing_cycle', { length: 20 }).notNull().default('monthly'), // monthly, quarterly, yearly
+  features: text('features').array().notNull(),
+  apiEndpoints: text('api_endpoints').array().notNull(),
+  requestLimits: json('request_limits').notNull(), // {daily: 1000, monthly: 30000}
+  isActive: boolean('is_active').notNull().default(true),
+  targetAudience: varchar('target_audience', { length: 100 }).notNull().default('ai_agents'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
+
+// AI Agent Subscriptions
+export const aiAgentSubscriptions = pgTable('ai_agent_subscriptions', {
+  id: serial('id').primaryKey(),
+  agentId: varchar('agent_id', { length: 255 }).notNull(), // AI agent identifier
+  productId: integer('product_id').notNull().references(() => aiAgentProducts.id),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, paused, cancelled
+  startDate: timestamp('start_date').notNull().defaultNow(),
+  endDate: timestamp('end_date'),
+  paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // crypto, stripe, circle
+  paymentAddress: varchar('payment_address', { length: 255 }), // for crypto payments
+  monthlyRevenue: decimal('monthly_revenue', { precision: 10, scale: 2 }).notNull(),
+  apiKey: varchar('api_key', { length: 255 }).notNull(),
+  usageStats: json('usage_stats'), // {requests_today: 50, requests_month: 1500}
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull()
+});
 
 // Enhanced transaction records with wallet integration
 export const transactions = pgTable("transactions", {
@@ -2591,6 +2627,24 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions).omit({
   updatedAt: true,
 });
 export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// AI Agent Product Types and Schemas
+export type AIAgentProduct = typeof aiAgentProducts.$inferSelect;
+export type InsertAIAgentProduct = typeof aiAgentProducts.$inferInsert;
+export type AIAgentSubscription = typeof aiAgentSubscriptions.$inferSelect;
+export type InsertAIAgentSubscription = typeof aiAgentSubscriptions.$inferInsert;
+
+export const insertAIAgentProductSchema = createInsertSchema(aiAgentProducts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertAIAgentSubscriptionSchema = createInsertSchema(aiAgentSubscriptions).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

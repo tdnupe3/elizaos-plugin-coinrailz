@@ -11,16 +11,19 @@ export const aiAgentProductRoutes = Router();
 const API_PRODUCTS = [
   {
     id: 'starter',
-    name: 'Starter API Package',
-    description: 'Essential fintech APIs for AI agents getting started',
-    priceUSD: 29.00,
-    billingCycle: 'monthly',
+    name: 'Starter Credits Package',
+    description: 'Prepaid API credits - perfect for testing agents, no monthly commitment',
+    priceUSD: 9.99,
+    billingCycle: 'prepaid-credits',
     features: [
-      'Real-time crypto prices (Bitcoin, Ethereum, XRP, USDC)',
-      'Basic Circle USDC wallet creation',
-      'XMTP messaging (100 messages/month)',
-      'Market data API access',
-      'Email support'
+      '$9.99 prepaid credits (40 API calls)',
+      '$0.25 per API request',
+      'No monthly commitment',
+      'Credits never expire',
+      'Enterprise-grade APIs',
+      'Circle USDC wallet creation',
+      'Real-time crypto data',
+      'Crypto payments only'
     ],
     apiEndpoints: [
       '/api/crypto/prices',
@@ -37,17 +40,18 @@ const API_PRODUCTS = [
   },
   {
     id: 'professional',
-    name: 'Professional API Package',
-    description: 'Advanced fintech APIs with enhanced features for growing AI agents',
-    priceUSD: 99.00,
-    billingCycle: 'monthly',
+    name: 'Pro Credits Package',
+    description: 'High-value credit bundle with better unit economics for scaling agents',
+    priceUSD: 49.99,
+    billingCycle: 'prepaid-credits',
     features: [
-      'All Starter features',
-      'DEX aggregation across 5 chains',
-      'Circle USDC wallet management',
-      'XMTP messaging (1000 messages/month)',
-      'Real-time trading signals',
-      'P2P transfer capabilities',
+      '$49.99 prepaid credits (250+ API calls)',
+      '$0.20 per API request (better rate)',
+      'Credits never expire',
+      'Premium operations included',
+      'DEX aggregation',
+      'Circle wallet management',
+      'XMTP messaging',
       'Priority support'
     ],
     apiEndpoints: [
@@ -67,20 +71,20 @@ const API_PRODUCTS = [
   },
   {
     id: 'enterprise',
-    name: 'Enterprise API Package',
-    description: 'Complete fintech API suite with unlimited access for high-volume AI agents',
-    priceUSD: 199.00,
-    billingCycle: 'monthly',
+    name: 'Enterprise Credits Package',
+    description: 'Maximum value prepaid credits for high-volume institutional agents',
+    priceUSD: 199.99,
+    billingCycle: 'prepaid-credits',
     features: [
-      'All Professional features',
-      'Unlimited API requests',
-      'Multi-chain crypto operations',
-      'Advanced Circle wallet features',
-      'Unlimited XMTP messaging',
-      'XRP Ledger integration',
-      'Custom webhook support',
+      '$199.99 prepaid credits (1,300+ API calls)',
+      '$0.15 per API request (best rate)',
+      'Credits never expire',
+      'All premium features included',
+      'Unlimited daily usage',
+      'Trading signals',
+      'XRP operations',
       'Dedicated support',
-      'Revenue sharing opportunities'
+      'Custom integrations'
     ],
     apiEndpoints: [
       '/api/crypto/*',
@@ -109,7 +113,7 @@ aiAgentProductRoutes.get('/products', async (req, res) => {
       success: true,
       products: API_PRODUCTS,
       totalProducts: API_PRODUCTS.length,
-      priceRange: '$29-199/month',
+      priceRange: '$9.99-199.99 prepaid credits',
       targetAudience: 'AI agents and automated systems'
     });
   } catch (error) {

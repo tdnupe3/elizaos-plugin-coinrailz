@@ -28,53 +28,41 @@ const initializeProducts = async () => {
       
       const products = [
         {
-          name: 'Pay-Per-Use API Access',
-          description: 'Premium fintech APIs - pay only for what you use, no monthly commitment',
+          name: 'Starter Credits Package',
+          description: 'Prepaid API credits - perfect for testing agents, no monthly commitment',
           category: 'api_access',
-          priceUSD: '0.25',
-          billingCycle: 'per-request',
-          features: ['$0.25 per API request', 'No monthly commitment', 'Enterprise-grade APIs', 'Real-time crypto data', 'Circle USDC wallet creation', 'DEX aggregation', 'XRP operations', 'XMTP messaging', '$25 monthly minimum'],
+          priceUSD: '9.99',
+          billingCycle: 'prepaid-credits',
+          features: ['$9.99 prepaid credits (40 API calls)', '$0.25 per API request', 'No monthly commitment', 'Credits never expire', 'Enterprise-grade APIs', 'Circle USDC wallet creation', 'DEX aggregation', 'Real-time crypto data', 'Crypto payments only'],
           apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/xmtp/send-message', '/api/market/data', '/api/dex/aggregate'],
-          requestLimits: { daily: 'pay-per-use', monthly: 'pay-per-use' },
+          requestLimits: { daily: 'credit-based', monthly: 'credit-based' },
           isActive: true,
           targetAudience: 'ai_agents'
         },
         {
-          name: 'Builder Package',
-          description: 'Credit bundle for growing AI agents with better unit economics',
+          name: 'Pro Credits Package',
+          description: 'High-value credit bundle with better unit economics for scaling agents',
           category: 'api_access',
-          priceUSD: '149.00',
-          billingCycle: 'monthly',
-          features: ['100,000 standard API calls included', '5,000 premium operations (DEX, trading)', '200 transaction operations', '10,000 XMTP messages', 'Overage: $0.15 per 100 calls', 'Priority support'],
+          priceUSD: '49.99',
+          billingCycle: 'prepaid-credits',
+          features: ['$49.99 prepaid credits (250+ API calls)', '$0.20 per API request (better rate)', 'Credits never expire', 'Premium operations included', 'DEX aggregation', 'Circle wallet management', 'XMTP messaging', 'Priority support'],
           apiEndpoints: ['/api/crypto/*', '/api/circle/wallet/*', '/api/xmtp/*', '/api/dex/aggregate', '/api/p2p/transfer'],
-          requestLimits: { daily: 10000, monthly: 100000 },
+          requestLimits: { daily: 'credit-based', monthly: 'credit-based' },
           isActive: true,
           targetAudience: 'ai_agents'
         },
         {
-          name: 'Growth Package', 
-          description: 'High-volume credit bundle for scaling AI trading agents',
+          name: 'Enterprise Credits Package', 
+          description: 'Maximum value prepaid credits for high-volume institutional agents',
           category: 'api_access',
-          priceUSD: '499.00',
-          billingCycle: 'monthly',
-          features: ['500,000 standard API calls included', '25,000 premium operations', '1,000 transaction operations', '50,000 XMTP messages', 'Overage: $0.10 per 100 calls', '10 bps swap fees', 'Dedicated support'],
-          apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/xmtp/*', '/api/dex/*', '/api/p2p/*', '/api/trading/signals'],
-          requestLimits: { daily: 25000, monthly: 500000 },
+          priceUSD: '199.99',
+          billingCycle: 'prepaid-credits',
+          features: ['$199.99 prepaid credits (1,300+ API calls)', '$0.15 per API request (best rate)', 'Credits never expire', 'All premium features included', 'Unlimited daily usage', 'Trading signals', 'XRP operations', 'Dedicated support', 'Custom integrations'],
+          apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/xmtp/*', '/api/dex/*', '/api/p2p/*', '/api/xrp/*', '/api/trading/signals'],
+          requestLimits: { daily: 'unlimited', monthly: 'credit-based' },
           isActive: true,
           targetAudience: 'ai_agents'
         },
-        {
-          name: 'Enterprise Package',
-          description: 'Unlimited access with revenue sharing for high-volume institutional agents',
-          category: 'api_access', 
-          priceUSD: '2000.00',
-          billingCycle: 'monthly',
-          features: ['2M standard API calls included', '150,000 premium operations', '5,000 transaction operations', '250,000 XMTP messages', '5-15 bps swap fees', 'Custom SLA & throughput', 'White-label options', 'Revenue sharing opportunities'],
-          apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/xmtp/*', '/api/dex/*', '/api/p2p/*', '/api/xrp/*', '/api/webhooks/*'],
-          requestLimits: { daily: 100000, monthly: 2000000 },
-          isActive: true,
-          targetAudience: 'ai_agents'
-        }
       ];
 
       for (const product of products) {
@@ -101,7 +89,7 @@ aiAgentProductRoutesProduction.get('/products', async (req, res) => {
       success: true,
       products,
       totalProducts: products.length,
-      priceRange: '$0.25/request or $149-2000/month',
+      priceRange: '$9.99-199.99 prepaid credits',
       targetAudience: 'AI agents and automated systems'
     });
   } catch (error) {

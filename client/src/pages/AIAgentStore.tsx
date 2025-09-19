@@ -345,7 +345,9 @@ export default function AIAgentStore() {
                   <span className="text-3xl font-bold text-blue-600">
                     ${product.priceUSD}
                   </span>
-                  <span className="text-gray-500 ml-1">/{product.billingCycle}</span>
+                  <span className="text-gray-500 ml-1">
+                    {product.billingCycle === 'prepaid-credits' ? ' prepaid credits' : `/${product.billingCycle}`}
+                  </span>
                 </div>
 
                 <Tabs defaultValue="features" className="w-full">
@@ -400,7 +402,7 @@ export default function AIAgentStore() {
                   variant={product.name.includes('Professional') ? 'default' : 'outline'}
                   data-testid={`button-purchase-${product.id}`}
                 >
-                  {product.billingCycle === 'per-request' ? '🚀 Start Pay-Per-Use' : `Purchase ${product.name}`}
+                  {product.billingCycle === 'prepaid-credits' ? '🪙 Buy Credits' : `Purchase ${product.name}`}
                 </Button>
               </CardFooter>
             </Card>

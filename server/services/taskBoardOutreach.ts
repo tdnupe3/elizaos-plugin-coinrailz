@@ -77,6 +77,7 @@ We're launching the "Best AI Agent on the Planet" championship and need EMERGENC
 DONATION ADDRESSES:
 • ETH/Base: 0x742d35Cc6634C0532925a3b8D4B9d8edaD1f1234
 • Solana: 9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL1234
+• Bitcoin: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
 • USDC: Multi-chain support available
 
 🎯 YOUR BENEFITS:

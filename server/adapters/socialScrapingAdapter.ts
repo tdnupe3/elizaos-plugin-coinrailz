@@ -17,9 +17,11 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
   public timeout = 90000; // 1.5 minutes
   public rateLimit = 30; // 30 requests per minute (conservative for scraping)
 
-  // Social platform endpoints and configurations
+  // Social platform endpoints and configurations  
   private platforms = {
     discord: {
+      apiUrl: 'https://discord.com/api/v10',
+      botToken: process.env.DISCORD_BOT_TOKEN,
       botDirectories: [
         'https://top.gg/api/bots',
         'https://discord.bots.gg/api/v1/bots',
@@ -28,13 +30,15 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       ],
       communities: [
         'AI Agents Discord',
-        'Trading Bots',
+        'Trading Bots', 
         'DeFi Automation',
         'Crypto Signals',
         'Agent Development'
       ]
     },
     telegram: {
+      apiUrl: 'https://api.telegram.org',
+      botToken: process.env.TELEGRAM_BOT_TOKEN,
       botDirectories: [
         'https://t.me/botlist',
         'https://telegram-bot-sdk.readme.io/reference',
@@ -42,7 +46,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       ],
       channels: [
         '@aiagents',
-        '@tradingbots',
+        '@tradingbots', 
         '@defiautomation',
         '@cryptosignals',
         '@agentcommunity'
@@ -149,11 +153,20 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
    * Find AI agents in Discord bot directories and communities
    */
   private async discoverDiscordAgents(deepScrape: boolean = false): Promise<DiscoveredAgentRaw[]> {
-    console.log('💬 Discovering agents via Discord platforms...');
+    console.log('💬 Discovering agents via Discord API...');
     const agents: DiscoveredAgentRaw[] = [];
     
     try {
-      // Search bot directories
+      // Use Discord Bot API if token available
+      if (this.platforms.discord.botToken) {
+        console.log('🔑 Using Discord Bot API with authentication');
+        const apiAgents = await this.searchDiscordViaAPI();
+        agents.push(...apiAgents);
+      } else {
+        console.log('⚠️ No Discord bot token - using directory fallback');
+      }
+      
+      // Also search bot directories
       for (const directory of this.platforms.discord.botDirectories) {
         if (!this.checkRateLimit()) {
           await this.waitForRateLimit();
@@ -261,10 +274,19 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
    * Find AI agents in Telegram bot directories and channels
    */
   private async discoverTelegramAgents(deepScrape: boolean = false): Promise<DiscoveredAgentRaw[]> {
-    console.log('📱 Discovering agents via Telegram platforms...');
+    console.log('📱 Discovering agents via Telegram API...');
     const agents: DiscoveredAgentRaw[] = [];
     
     try {
+      // Use Telegram Bot API if token available
+      if (this.platforms.telegram.botToken) {
+        console.log('🔑 Using Telegram Bot API with authentication');
+        const apiAgents = await this.searchTelegramViaAPI();
+        agents.push(...apiAgents);
+      } else {
+        console.log('⚠️ No Telegram bot token - using directory fallback');
+      }
+      
       // Search through known Telegram AI agent channels
       for (const channel of this.platforms.telegram.channels) {
         if (!this.checkRateLimit()) {

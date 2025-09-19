@@ -21,7 +21,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
   private dataSources = {
     ens: {
       endpoint: 'https://api.ensdata.net',
-      rpcUrl: process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo'
+      rpcUrl: process.env.ALCHEMY_API_KEY ? `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}` : 'https://eth-mainnet.g.alchemy.com/v2/demo'
     },
     xmtp: {
       endpoint: 'https://production.xmtp.network',
@@ -40,7 +40,7 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
       explorerApi: 'https://api.basescan.org/api'
     },
     ethereum: {
-      rpcUrl: process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.g.alchemy.com/v2/demo',
+      rpcUrl: process.env.ALCHEMY_API_KEY ? `https://eth-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_API_KEY}` : 'https://eth-mainnet.g.alchemy.com/v2/demo',
       explorerApi: 'https://api.etherscan.io/api'
     }
   };

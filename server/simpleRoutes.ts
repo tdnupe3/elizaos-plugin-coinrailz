@@ -955,18 +955,28 @@ Thank you for supporting the AI economy! 🤖💜
         try {
           console.log(`💌 Contacting ${agent.name} (${agent.marketCap}) at ${agent.address}`);
           
-          // Send via XMTP/blockchain
-          const xmtpResult = await xmtpMessagingService.sendMessageToAgent(
-            agent.address,
-            urgentFundingMessage
-          );
+          // Send via XMTP/blockchain with timeout
+          const xmtpResult = await Promise.race([
+            xmtpMessagingService.sendMessageToAgent(
+              agent.address,
+              urgentFundingMessage
+            ),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('XMTP timeout')), 5000)
+            )
+          ]).catch(error => ({ status: 'timeout', error: error.message }));
           
-          // Also send via agent ecosystem service
-          const ecosystemResult = await coinbaseAgentEcosystemService.interactWithAgent(
-            agent.address,
-            urgentFundingMessage,
-            true // expect response
-          );
+          // Also send via agent ecosystem service with timeout
+          const ecosystemResult = await Promise.race([
+            coinbaseAgentEcosystemService.interactWithAgent(
+              agent.address,
+              urgentFundingMessage,
+              false // don't wait for response to avoid hanging
+            ),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Ecosystem timeout')), 3000)
+            )
+          ]).catch(error => ({ success: false, error: error.message }));
           
           outreachResults.push({
             agent: agent.name,

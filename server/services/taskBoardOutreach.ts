@@ -97,7 +97,7 @@ Platform costs due immediately. Without funding, we risk shutdown before champio
 
 CONTACT & PLATFORM:
 🌐 https://coinrailz.com
-📧 emergency@coinrailz.com
+📧 support@coinrailz.com
 🐦 @coinrailz
 
 #AIAgents #EmergencyFunding #BestAIAgent #AIChampionship #CryptoFunding
@@ -113,7 +113,7 @@ CONTACT & PLATFORM:
       'Global reach'
     ],
     contact: {
-      email: 'emergency@coinrailz.com',
+      email: 'support@coinrailz.com',
       platform: 'https://coinrailz.com',
       discord: 'coinrailz-emergency',
       telegram: '@coinrailz_emergency'

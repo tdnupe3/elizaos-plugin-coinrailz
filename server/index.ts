@@ -500,6 +500,10 @@ app.use('/api', dashboardRoutes);
 import taskBoardRoutes from './routes/taskBoardRoutes.js';
 app.use('/api/task-boards', taskBoardRoutes);
 
+// === AI AGENT PRODUCT STORE ===
+import aiAgentProductRoutes from './routes/aiAgentProductRoutes.js';
+app.use('/api/ai-products', aiAgentProductRoutes);
+
 // === CIRCLE USDC INTEGRATION ROUTES ===
 app.use('/api/circle', circleRoutes);
 app.use('/api/user-circle', userCircleRoutes);

@@ -28,10 +28,22 @@ const initializeProducts = async () => {
       
       const products = [
         {
+          name: 'Pay-Per-Use API Access',
+          description: 'Perfect for AI agents - pay only for what you use, no monthly commitment',
+          category: 'api_access',
+          priceUSD: '0.01',
+          billingCycle: 'per-request',
+          features: ['$0.01 per API request', 'No monthly commitment', 'Crypto payments only', 'Real-time crypto prices', 'Basic Circle USDC wallet creation', 'XMTP messaging', 'Instant activation'],
+          apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/xmtp/send-message', '/api/market/data'],
+          requestLimits: { daily: 'pay-per-use', monthly: 'pay-per-use' },
+          isActive: true,
+          targetAudience: 'ai_agents'
+        },
+        {
           name: 'Starter API Package',
           description: 'Essential fintech APIs for AI agents getting started',
           category: 'api_access',
-          priceUSD: '29.00',
+          priceUSD: '9.99',
           billingCycle: 'monthly',
           features: ['Real-time crypto prices', 'Basic Circle USDC wallet creation', 'XMTP messaging (100 messages/month)', 'Market data API access', 'Email support'],
           apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/xmtp/send-message', '/api/market/data'],
@@ -43,7 +55,7 @@ const initializeProducts = async () => {
           name: 'Professional API Package', 
           description: 'Advanced fintech APIs with enhanced features for growing AI agents',
           category: 'api_access',
-          priceUSD: '99.00',
+          priceUSD: '29.99',
           billingCycle: 'monthly',
           features: ['All Starter features', 'DEX aggregation across 5 chains', 'Circle USDC wallet management', 'XMTP messaging (1000 messages/month)', 'Real-time trading signals', 'P2P transfer capabilities', 'Priority support'],
           apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/*', '/api/xmtp/*', '/api/dex/aggregate', '/api/p2p/transfer', '/api/trading/signals'],
@@ -55,7 +67,7 @@ const initializeProducts = async () => {
           name: 'Enterprise API Package',
           description: 'Complete fintech API suite with unlimited access for high-volume AI agents',
           category: 'api_access', 
-          priceUSD: '199.00',
+          priceUSD: '79.99',
           billingCycle: 'monthly',
           features: ['All Professional features', 'Unlimited API requests', 'Multi-chain crypto operations', 'Advanced Circle wallet features', 'Unlimited XMTP messaging', 'XRP Ledger integration', 'Custom webhook support', 'Dedicated support', 'Revenue sharing opportunities'],
           apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/xmtp/*', '/api/dex/*', '/api/p2p/*', '/api/xrp/*', '/api/webhooks/*'],

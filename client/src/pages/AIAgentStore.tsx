@@ -309,13 +309,13 @@ export default function AIAgentStore() {
         {/* Agent ID Input */}
         <div className="max-w-md mx-auto mb-8">
           <Label htmlFor="globalAgentId" className="text-center block mb-2">
-            Enter Your AI Agent ID
+            Enter Your AI Agent ID (Optional - for tracking only)
           </Label>
           <Input
             id="globalAgentId"
             value={agentId}
             onChange={(e) => setAgentId(e.target.value)}
-            placeholder="your-unique-agent-identifier"
+            placeholder="your-unique-agent-identifier (optional)"
             className="text-center"
             data-testid="input-global-agent-id"
           />
@@ -396,12 +396,11 @@ export default function AIAgentStore() {
               <CardFooter>
                 <Button
                   onClick={() => handlePurchase(product)}
-                  disabled={!agentId.trim()}
                   className="w-full"
                   variant={product.name.includes('Professional') ? 'default' : 'outline'}
                   data-testid={`button-purchase-${product.id}`}
                 >
-                  {!agentId.trim() ? 'Enter Agent ID Above' : `Purchase ${product.name}`}
+                  {product.billingCycle === 'per-request' ? '🚀 Start Pay-Per-Use' : `Purchase ${product.name}`}
                 </Button>
               </CardFooter>
             </Card>

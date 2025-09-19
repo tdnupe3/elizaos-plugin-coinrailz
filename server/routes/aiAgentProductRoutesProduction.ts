@@ -23,10 +23,17 @@ export const aiAgentProductRoutesProduction = Router();
 const initializeProducts = async () => {
   try {
     const existingProducts = await storage.getProducts();
-    if (existingProducts.length === 0) {
-      console.log('🏪 Initializing AI agent product catalog...');
+    console.log(`Found ${existingProducts.length} existing products`);
+    
+    // Check if we already have the new prepaid credit products
+    const hasStarterCredits = existingProducts.some(p => p.name === 'Starter Credits Package');
+    
+    if (!hasStarterCredits) {
+      console.log('🔄 Creating new prepaid credit product structure...');
+      console.log('🏪 Initializing prepaid credit product catalog...');
       
-      const products = [
+      try {
+        const products = [
         {
           name: 'Starter Credits Package',
           description: 'Prepaid API credits - perfect for testing agents, no monthly commitment',
@@ -65,9 +72,12 @@ const initializeProducts = async () => {
         },
       ];
 
-      for (const product of products) {
-        const created = await storage.createProduct(product);
-        console.log(`✅ Created product: ${created.name} (ID: ${created.id})`);
+        for (const product of products) {
+          const created = await storage.createProduct(product);
+          console.log(`✅ Created product: ${created.name} (ID: ${created.id})`);
+        }
+      } catch (error) {
+        console.error('❌ Failed to create prepaid credit products:', error);
       }
     }
   } catch (error) {

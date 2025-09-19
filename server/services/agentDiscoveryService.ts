@@ -12,7 +12,7 @@
 
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
-import { eq, and, or, sql, desc, asc } from 'drizzle-orm';
+import { eq, and, or, sql, desc, asc, inArray } from 'drizzle-orm';
 import { CommunicationOrchestrator } from './communicationOrchestrator';
 import cron from 'node-cron';
 import Redis from 'ioredis';
@@ -559,7 +559,7 @@ export class AgentDiscoveryService {
     const existingAgents = await db
       .select({ url: discoveredAgents.url })
       .from(discoveredAgents)
-      .where(sql`${discoveredAgents.url} = ANY(${urls})`);  
+      .where(inArray(discoveredAgents.url, urls));
     
     const existingUrls = new Set(existingAgents.map(agent => agent.url));
     

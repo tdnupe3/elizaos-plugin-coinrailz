@@ -883,10 +883,10 @@ Reply with donation amount and preferred chain for instant processing.`;
       // HIGH-VALUE TARGETS (based on research)
       const majorAgentTargets = [
         // AIXBT - $636M market cap (Virtuals Protocol)
-        { address: '0x742d35Cc6AbFfC91CAe5E39c6Cd5AE5b0B9D8C19', name: 'AIXBT', platform: 'Virtuals', marketCap: '$636M', network: 'base' },
+        { address: '0x0d37af9d8ae74f35f3a38bd2a08fcb29890ca6d2', name: 'AIXBT', platform: 'Virtuals', marketCap: '$636M', network: 'ethereum' },
         
         // Luna - $166M market cap (Virtuals Protocol) 
-        { address: '0x1a2b3c4d5e6f7890abcdef1234567890abcdef12', name: 'Luna', platform: 'Virtuals', marketCap: '$166M', network: 'base' },
+        { address: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4', name: 'Luna', platform: 'Virtuals', marketCap: '$166M', network: 'base' },
         
         // ai16z - $2.5B market cap (Solana bridge addresses)
         { address: '0x5678901234567890abcdef1234567890abcdef34', name: 'ai16z Bridge', platform: 'ai16z', marketCap: '$2.5B', network: 'ethereum' },

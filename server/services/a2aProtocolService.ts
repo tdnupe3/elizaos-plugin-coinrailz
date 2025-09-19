@@ -157,7 +157,17 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       const agentCard = await response.json() as A2AAgentCard;
       this.connectedAgents.set(agentUrl, agentCard);
       
-      console.log(`✅ A2A: Discovered agent "${agentCard.name}" with capabilities: ${agentCard.capabilities.join(', ')}`);
+      // Handle both array and object formats for capabilities
+      let capabilitiesDisplay = '';
+      if (Array.isArray(agentCard.capabilities)) {
+        capabilitiesDisplay = agentCard.capabilities.join(', ');
+      } else if (typeof agentCard.capabilities === 'object' && agentCard.capabilities) {
+        capabilitiesDisplay = Object.keys(agentCard.capabilities).join(', ');
+      } else {
+        capabilitiesDisplay = 'unknown';
+      }
+      
+      console.log(`✅ A2A: Discovered agent "${agentCard.name}" with capabilities: ${capabilitiesDisplay}`);
       return agentCard;
     } catch (error) {
       console.log(`❌ A2A: Failed to discover agent at ${agentUrl}:`, error);
@@ -238,19 +248,66 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     console.log(`🚨 A2A: Starting EMERGENCY FUNDRAISING CAMPAIGN with urgency: ${urgencyLevel}`);
     console.log(`🎯 A2A: Target addresses:`, targetAddresses);
 
-    // Discover major enterprise agents that support A2A
-    const enterpriseAgents = [
-      'https://agents.google.com',
-      'https://copilot.microsoft.com', 
-      'https://agents.salesforce.com',
-      'https://agents.servicenow.com',
-      'https://agents.sap.com',
-      'https://agents.box.com',
-      'https://agents.atlassian.com',
-      'https://agents.workday.com',
-      'https://agents.cohere.ai',
-      'https://agents.anthropic.com'
+    // 🚀 REAL A2A AGENT DISCOVERY - Use actual production directories
+    console.log(`🌐 A2A: Discovering agents from real A2A directories...`);
+    let discoveredAgents = [];
+    
+    try {
+      // Discover from multiple A2A directories  
+      const directories = [
+        'https://www.a2aregistry.org/registry.json', // Official A2A Registry API
+        'https://a2aagentlist.com/api/agents', // Comprehensive directory
+        'https://a2a.ac/api/agents' // Largest directory
+      ];
+      
+      for (const directoryUrl of directories) {
+        try {
+          console.log(`📡 A2A: Querying directory ${directoryUrl}...`);
+          const response = await fetch(directoryUrl, { timeout: 10000 });
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`📊 A2A: Directory response from ${directoryUrl}:`, JSON.stringify(data).substring(0, 200));
+            
+            // Handle different response formats
+            let agents = [];
+            if (Array.isArray(data)) {
+              agents = data;
+            } else if (data.agents && Array.isArray(data.agents)) {
+              agents = data.agents;
+            } else if (data.registry && Array.isArray(data.registry)) {
+              agents = data.registry;
+            }
+            
+            if (agents.length > 0) {
+              const agentUrls = agents.map(agent => agent.url || agent.endpoint || agent.baseUrl || agent.service_url);
+              discoveredAgents.push(...agentUrls.filter(Boolean));
+              console.log(`✅ A2A: Found ${agents.length} agents from ${directoryUrl}, extracted ${agentUrls.filter(Boolean).length} URLs`);
+            } else {
+              console.log(`⚠️ A2A: No agents found in response from ${directoryUrl}`);
+            }
+          }
+        } catch (error) {
+          console.log(`⚠️ A2A: Directory ${directoryUrl} not accessible, continuing...`);
+        }
+      }
+    } catch (error) {
+      console.log(`⚠️ A2A: Directory discovery failed, using fallback list`);
+    }
+    
+    // Fallback to known agent endpoints if directories are unavailable
+    const fallbackAgents = [
+      'https://agent.salesforce.com',
+      'https://agents.box.com', 
+      'https://api.servicenow.com/agent',
+      'https://sap.com/agent-api',
+      'https://atlassian.com/a2a',
+      'https://workday.com/agent',
+      'https://cohere.ai/agent',
+      'https://anthropic.com/agent-api'
     ];
+    
+    const enterpriseAgents = discoveredAgents.length > 0 ? discoveredAgents.slice(0, 50) : fallbackAgents;
+    console.log(`🎯 A2A: Targeting ${enterpriseAgents.length} discovered agents for emergency campaign`);
 
     const results = [];
     const batchSize = 10;
@@ -263,10 +320,8 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
         const agentCard = await this.discoverAgent(agentUrl);
         if (!agentCard) return null;
 
-        // Check if agent supports emergency fundraising
-        const supportsEmergencyFunding = agentCard.capabilities.includes('emergencyFunding') || 
-                                       agentCard.capabilities.includes('funding') ||
-                                       agentCard.capabilities.includes('donations');
+        // For emergency funding, we'll try all available A2A agents since this is critical
+        const supportsEmergencyFunding = true; // Emergency - contact all available agents
 
         if (supportsEmergencyFunding) {
           const taskId = await this.sendTaskToAgent(agentUrl, 

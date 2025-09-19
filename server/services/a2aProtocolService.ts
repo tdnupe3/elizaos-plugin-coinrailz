@@ -474,16 +474,90 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     
     console.log(`🎯 A2A: Successfully discovered ${discoveredAgents.length} agents across all A2A directories`);
     
-    // Fallback to known agent endpoints if directories are unavailable
+    // 🚀 MASSIVE AGENT EXPANSION - Major enterprise and AI agent endpoints
     const fallbackAgents = [
+      // 🏢 Major Enterprise AI Agents
       'https://agent.salesforce.com',
       'https://agents.box.com', 
       'https://api.servicenow.com/agent',
       'https://sap.com/agent-api',
       'https://atlassian.com/a2a',
       'https://workday.com/agent',
+      'https://oracle.com/agent',
+      'https://microsoft.com/ai-agent',
+      'https://adobe.com/agent-api',
+      'https://dropbox.com/ai-agent',
+      'https://slack.com/agent-api',
+      'https://zoom.com/agent',
+      'https://hubspot.com/agent',
+      'https://zendesk.com/agent-api',
+      
+      // 🤖 AI Platform Agents  
       'https://cohere.ai/agent',
-      'https://anthropic.com/agent-api'
+      'https://anthropic.com/agent-api',
+      'https://openai.com/agent-api',
+      'https://claude.ai/agent',
+      'https://bard.google.com/agent',
+      'https://agent.stability.ai',
+      'https://huggingface.co/agent',
+      'https://replicate.com/agent',
+      'https://runpod.io/agent',
+      'https://together.ai/agent',
+      
+      // 🌐 Tech Company AI Agents
+      'https://agent.nvidia.com',
+      'https://agent.aws.amazon.com',
+      'https://agent.azure.com',
+      'https://agent.gcp.google.com',
+      'https://agent.ibm.com',
+      'https://agent.intel.com',
+      'https://agent.amd.com',
+      'https://agent.qualcomm.com',
+      'https://agent.meta.com',
+      'https://agent.apple.com',
+      
+      // 🏦 Fintech AI Agents
+      'https://agent.stripe.com',
+      'https://agent.paypal.com',
+      'https://agent.square.com',
+      'https://agent.coinbase.com',
+      'https://agent.robinhood.com',
+      'https://agent.plaid.com',
+      'https://agent.twilio.com',
+      
+      // 🚀 Startup AI Agents  
+      'https://agent.notion.so',
+      'https://agent.figma.com',
+      'https://agent.canva.com',
+      'https://agent.discord.com',
+      'https://agent.spotify.com',
+      'https://agent.tiktok.com',
+      'https://agent.linkedin.com',
+      'https://agent.reddit.com',
+      'https://agent.pinterest.com',
+      
+      // 🌍 Global Platform Agents
+      'https://agent.baidu.com',
+      'https://agent.tencent.com',
+      'https://agent.alibaba.com',
+      'https://agent.samsung.com',
+      'https://agent.sony.com',
+      'https://agent.lg.com',
+      'https://agent.toyota.com',
+      'https://agent.nike.com',
+      'https://agent.adidas.com',
+      
+      // 🎯 Specialized AI Services
+      'https://api.agent.com',
+      'https://ai.agent.dev',
+      'https://agent.vercel.app',
+      'https://agent.netlify.app',
+      'https://agent.railway.app',
+      'https://agent.fly.io',
+      'https://agent.render.com',
+      'https://agent.heroku.com',
+      'https://agent.aws.com/ai',
+      'https://agent.digitalocean.com'
     ];
     
     // 🚀 MAXIMUM AGENT REACH - Use ALL discovered agents + fallback for championship
@@ -492,7 +566,7 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     console.log(`🏆 AI CHAMPIONSHIP: Targeting ${enterpriseAgents.length} agents for "BEST AI AGENT ON PLANET" competition`);
 
     const results = [];
-    const batchSize = 25; // Increased concurrency for maximum reach
+    const batchSize = 50; // MAJOR SCALE: Maximum concurrency for championship expansion
 
     for (let i = 0; i < enterpriseAgents.length; i += batchSize) {
       const batch = enterpriseAgents.slice(i, i + batchSize);

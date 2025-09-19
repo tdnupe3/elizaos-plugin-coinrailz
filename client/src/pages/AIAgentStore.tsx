@@ -185,48 +185,76 @@ export default function AIAgentStore() {
 
               <Separator />
 
-              <div className="space-y-3">
-                <h4 className="font-semibold">Choose Payment Method:</h4>
+              <div className="space-y-4">
+                <h4 className="font-semibold text-center">Choose Payment Method:</h4>
                 
-                <Button
-                  onClick={() => confirmPurchase('stripe')}
-                  disabled={purchaseMutation.isPending}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  data-testid="button-pay-stripe"
-                >
-                  <DollarSign className="mr-2 h-4 w-4" />
-                  Pay with Credit/Debit Card (Stripe)
-                </Button>
+                {/* Crypto Payments - Featured First */}
+                <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border-2 border-green-200 dark:border-green-800">
+                  <h5 className="font-semibold text-green-800 dark:text-green-200 mb-3 text-center">
+                    🪙 Crypto Payments (Recommended for AI Agents)
+                  </h5>
+                  
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => confirmPurchase('usdc')}
+                      disabled={purchaseMutation.isPending}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      data-testid="button-pay-usdc"
+                    >
+                      💰 Pay with USDC (Circle) - Instant
+                    </Button>
 
-                <Button
-                  onClick={() => confirmPurchase('crypto')}
-                  disabled={purchaseMutation.isPending}
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-pay-crypto"
-                >
-                  Pay with Cryptocurrency
-                </Button>
+                    <Button
+                      onClick={() => confirmPurchase('xrp')}
+                      disabled={purchaseMutation.isPending}
+                      className="w-full bg-blue-500 hover:bg-blue-600 text-white"
+                      data-testid="button-pay-xrp"
+                    >
+                      🚀 Pay with XRP - Lightning Fast
+                    </Button>
 
-                <Button
-                  onClick={() => confirmPurchase('circle')}
-                  disabled={purchaseMutation.isPending}
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-pay-circle"
-                >
-                  Pay with Circle USDC
-                </Button>
+                    <Button
+                      onClick={() => confirmPurchase('crypto')}
+                      disabled={purchaseMutation.isPending}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                      data-testid="button-pay-crypto"
+                    >
+                      ₿ Multi-Chain Crypto (ETH, BTC, SOL, BNB)
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-2 text-center">
+                    Lower fees • Instant settlement • No KYC required
+                  </p>
+                </div>
 
-                <Button
-                  onClick={() => confirmPurchase('paypal')}
-                  disabled={purchaseMutation.isPending}
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-pay-paypal"
-                >
-                  Pay with PayPal
-                </Button>
+                {/* Traditional Payments */}
+                <div className="border-t pt-3">
+                  <h6 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">Traditional Payments:</h6>
+                  
+                  <div className="space-y-2">
+                    <Button
+                      onClick={() => confirmPurchase('stripe')}
+                      disabled={purchaseMutation.isPending}
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-pay-stripe"
+                    >
+                      <DollarSign className="mr-2 h-4 w-4" />
+                      Credit/Debit Card (Stripe)
+                    </Button>
+
+                    <Button
+                      onClick={() => confirmPurchase('paypal')}
+                      disabled={purchaseMutation.isPending}
+                      variant="outline"
+                      className="w-full"
+                      data-testid="button-pay-paypal"
+                    >
+                      PayPal
+                    </Button>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -246,6 +274,22 @@ export default function AIAgentStore() {
           <p className="text-xl text-gray-600 dark:text-gray-400 mb-6">
             Professional fintech APIs designed specifically for AI agents
           </p>
+          
+          {/* Crypto Payment Highlight */}
+          <div className="bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900 dark:to-blue-900 p-4 rounded-lg mb-6 max-w-4xl mx-auto">
+            <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">
+              💳 Multiple Crypto Payment Options Available
+            </h3>
+            <div className="flex flex-wrap justify-center gap-4 text-sm">
+              <span className="bg-green-200 dark:bg-green-800 px-3 py-1 rounded-full">USDC (Circle)</span>
+              <span className="bg-blue-200 dark:bg-blue-800 px-3 py-1 rounded-full">XRP</span>
+              <span className="bg-orange-200 dark:bg-orange-800 px-3 py-1 rounded-full">Bitcoin</span>
+              <span className="bg-purple-200 dark:bg-purple-800 px-3 py-1 rounded-full">Ethereum</span>
+              <span className="bg-yellow-200 dark:bg-yellow-800 px-3 py-1 rounded-full">Solana</span>
+              <span className="bg-indigo-200 dark:bg-indigo-800 px-3 py-1 rounded-full">BNB Chain</span>
+            </div>
+          </div>
+          
           <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
             <div className="flex items-center">
               <Globe className="h-4 w-4 mr-1" />

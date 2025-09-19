@@ -311,8 +311,21 @@ export class AgentDiscoveryService {
     }
 
     // Acquire distributed lock to prevent multi-process overlap
-    if (!skipLock && !await this.acquireDistributedLock()) {
-      throw new Error('Discovery is already running on another process. Distributed lock could not be acquired.');
+    if (!skipLock) {
+      try {
+        const lockAcquired = await this.acquireDistributedLock();
+        if (!lockAcquired && this.redis) {
+          // Only throw if Redis is available but lock failed
+          throw new Error('Discovery is already running on another process. Distributed lock could not be acquired.');
+        }
+      } catch (error) {
+        // In development without Redis, continue anyway
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 Redis unavailable in development - continuing with single-process discovery');
+        } else {
+          throw error;
+        }
+      }
     }
 
     this.isRunning = true;

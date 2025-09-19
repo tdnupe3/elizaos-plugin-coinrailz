@@ -43,6 +43,7 @@ import coinbaseAuthRoutes from "./routes/coinbaseAuth";
 import { registerEmergencyRoutes } from "./routes/emergencyRoutes";
 import dashboardRoutesV2 from "./routes/dashboardRoutes";
 import { registerCircleStatusRoutes } from "./routes/circleStatus";
+import agentDiscoveryRoutes from "./routes/agentDiscoveryRoutes";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
@@ -86,6 +87,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Dashboard routes V2 - Real user data 
   app.use('/api/dashboard', dashboardRoutesV2);
+
+  // Agent Discovery System Routes
+  app.use('/api/discovery', agentDiscoveryRoutes);
 
   // DEX Trading routes - Guest & User Support (No Auth Required)
   app.use('/api/dex', dexRoutes);

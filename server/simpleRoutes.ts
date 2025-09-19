@@ -13,6 +13,7 @@ import { storage } from './storage';
 import { peezyService } from './services/peezyIntegrationService';
 import { demoMarketplaceService } from './services/demoMarketplaceService';
 import a2aProtocolService from './services/a2aProtocolService';
+import { requireAuth } from './middleware/requireAuth';
 // Simple rate limiting implementation
 const createRateLimit = (maxRequests: number, windowMs: number) => {
   const store = new Map();
@@ -83,13 +84,43 @@ export function setupSimpleRoutes(app: Express) {
   console.log('🚨 Registering Emergency AI Agent Network Discovery');
   console.log('🌐 Integrating external agent discovery: Virtuals, x402, Coinbase AgentKit');
   
-  // Emergency agent discovery endpoint with multi-chain integration (SECURED)
-  app.get('/api/ai-agents/network/discover', async (req, res) => {
-    // Security: Basic authentication check for emergency operations
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authentication required for emergency operations' });
-    }
+  // Enhanced rate limiting for discovery endpoints
+  const discoveryRateLimit = createRateLimit(50, 300000); // 50 per 5 minutes per IP
+  const keyBasedRateLimit = new Map();
+  
+  const enhancedRateLimit = (req: any, res: any, next: any) => {
+    const ip = req.ip || 'unknown';
+    const apiKey = req.headers['x-api-key'];
+    
+    // Per-IP rate limiting
+    discoveryRateLimit(req, res, (err: any) => {
+      if (err) return;
+      
+      // Per-API-key rate limiting if key provided
+      if (apiKey) {
+        const now = Date.now();
+        const keyRecord = keyBasedRateLimit.get(apiKey) || { count: 0, resetTime: now + 300000 };
+        
+        if (now > keyRecord.resetTime) {
+          keyRecord.count = 1;
+          keyRecord.resetTime = now + 300000;
+        } else {
+          keyRecord.count++;
+        }
+        
+        keyBasedRateLimit.set(apiKey, keyRecord);
+        
+        if (keyRecord.count > 100) { // Higher limit for API keys
+          return res.status(429).json({ error: 'API key rate limit exceeded' });
+        }
+      }
+      
+      next();
+    });
+  };
+  
+  // Emergency agent discovery endpoint with proper authentication and rate limits
+  app.get('/api/ai-agents/network/discover', enhancedRateLimit, requireAuth, async (req, res) => {
     try {
       const { type, capability, excludeOwner, limit = 1000, network } = req.query;
       
@@ -250,12 +281,7 @@ export function setupSimpleRoutes(app: Express) {
   });
 
   // Emergency fundraising message endpoint with unlimited funding potential (SECURED)
-  app.post('/api/ai-agents/emergency-fundraising', async (req, res) => {
-    // Security: Authentication required for emergency fundraising
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Authentication required for emergency fundraising' });
-    }
+  app.post('/api/ai-agents/emergency-fundraising', enhancedRateLimit, requireAuth, async (req, res) => {
     try {
       const { message, amount = "unlimited" } = req.body;
       let { targetAgents } = req.body;
@@ -4221,8 +4247,8 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
   // === MAXIMUM VOLUME AI AGENT OUTREACH ===
   console.log('🎯 Registering MAXIMUM VOLUME AI Agent Outreach for Emergency Funding');
   
-  // MASSIVE VOLUME DISCOVERY - Target thousands of agents
-  app.post('/api/ai-agents/network/massive-discovery', async (req, res) => {
+  // MASSIVE VOLUME DISCOVERY - Target thousands of agents (SECURED)
+  app.post('/api/ai-agents/network/massive-discovery', enhancedRateLimit, requireAuth, async (req, res) => {
     try {
       console.log('🚀 INITIATING MASSIVE VOLUME AGENT DISCOVERY - TARGETING THOUSANDS!');
       

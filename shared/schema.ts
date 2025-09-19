@@ -35,7 +35,7 @@ export const discoveredAgents = pgTable(
   "discovered_agents", 
   {
     id: serial("id").primaryKey(),
-    url: varchar("url").notNull().unique(),
+    url: varchar("url").notNull(),
     source: varchar("source").notNull(), // registry, ens, discord, telegram, xmtp, etc
     channels: jsonb("channels"), // Available communication channels
     wallet: varchar("wallet"), // Associated wallet address if known
@@ -46,10 +46,12 @@ export const discoveredAgents = pgTable(
     attempts: integer("attempts").default(0),
     successCount: integer("success_count").default(0),
     capabilities: jsonb("capabilities"), // Discovered agent capabilities
+    metadata: jsonb("metadata"), // Additional agent metadata and platform info
     discoveredAt: timestamp("discovered_at").defaultNow(),
     verifiedAt: timestamp("verified_at"),
   },
   (table) => [
+    uniqueIndex("IDX_discovered_agents_url_unique").on(table.url),
     index("IDX_discovered_agents_status").on(table.status),
     index("IDX_discovered_agents_source").on(table.source),
     index("IDX_discovered_agents_score").on(table.score),

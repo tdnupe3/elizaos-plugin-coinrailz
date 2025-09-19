@@ -1,14 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-// Extend Express Request interface to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-      isAuthenticated?: () => boolean;
-    }
-  }
-}
+// This middleware is deprecated - use requireAuth.ts instead
+// Keeping for backward compatibility only
 
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   // Check for Bearer token in Authorization header

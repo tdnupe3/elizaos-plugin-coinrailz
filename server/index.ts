@@ -3018,6 +3018,9 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   } catch (error) {
     console.error('❌ Failed to initialize billing automation:', error);
   }
+
+  // Agent Discovery System initialization moved to service level to prevent duplicate scheduling
+  console.log('✅ Agent Discovery System will auto-initialize via service imports - preventing duplicate initialization');
   
   // Setup enhanced business logic routes with all safety mechanisms
   setupEnhancedBusinessLogicRoutes(app);

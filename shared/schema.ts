@@ -216,29 +216,48 @@ export const aiAgentProducts = pgTable('ai_agent_products', {
   billingCycle: varchar('billing_cycle', { length: 20 }).notNull().default('monthly'), // monthly, quarterly, yearly
   features: text('features').array().notNull(),
   apiEndpoints: text('api_endpoints').array().notNull(),
-  requestLimits: json('request_limits').notNull(), // {daily: 1000, monthly: 30000}
+  requestLimits: jsonb('request_limits').notNull(), // {daily: 1000, monthly: 30000}
   isActive: boolean('is_active').notNull().default(true),
   targetAudience: varchar('target_audience', { length: 100 }).notNull().default('ai_agents'),
+  stripeProductId: varchar('stripe_product_id', { length: 255 }), // Stripe product ID
+  stripePriceId: varchar('stripe_price_id', { length: 255 }), // Stripe price ID
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
-});
+}, (table) => ({
+  nameIndex: index('ai_agent_products_name_idx').on(table.name),
+  categoryIndex: index('ai_agent_products_category_idx').on(table.category),
+  isActiveIndex: index('ai_agent_products_active_idx').on(table.isActive)
+}));
 
 // AI Agent Subscriptions
 export const aiAgentSubscriptions = pgTable('ai_agent_subscriptions', {
   id: serial('id').primaryKey(),
   agentId: varchar('agent_id', { length: 255 }).notNull(), // AI agent identifier
   productId: integer('product_id').notNull().references(() => aiAgentProducts.id),
-  status: varchar('status', { length: 20 }).notNull().default('active'), // active, paused, cancelled
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, paused, cancelled, expired
   startDate: timestamp('start_date').notNull().defaultNow(),
   endDate: timestamp('end_date'),
-  paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // crypto, stripe, circle
+  paymentMethod: varchar('payment_method', { length: 20 }).notNull(), // crypto, stripe, circle, paypal
   paymentAddress: varchar('payment_address', { length: 255 }), // for crypto payments
   monthlyRevenue: decimal('monthly_revenue', { precision: 10, scale: 2 }).notNull(),
-  apiKey: varchar('api_key', { length: 255 }).notNull(),
-  usageStats: json('usage_stats'), // {requests_today: 50, requests_month: 1500}
+  apiKeyHash: varchar('api_key_hash', { length: 255 }).notNull(), // SHA-256 hashed API key
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }), // Stripe subscription ID
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }), // Stripe customer ID
+  lastPaymentDate: timestamp('last_payment_date'),
+  nextBillingDate: timestamp('next_billing_date'),
+  usageStats: jsonb('usage_stats'), // {requests_today: 50, requests_month: 1500, last_reset: timestamp}
+  email: varchar('email', { length: 255 }), // Contact email for the agent
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull()
-});
+}, (table) => ({
+  agentIdIndex: index('ai_agent_subscriptions_agent_idx').on(table.agentId),
+  productIdIndex: index('ai_agent_subscriptions_product_idx').on(table.productId),
+  statusIndex: index('ai_agent_subscriptions_status_idx').on(table.status),
+  apiKeyIndex: index('ai_agent_subscriptions_api_key_idx').on(table.apiKeyHash),
+  stripeSubIndex: index('ai_agent_subscriptions_stripe_sub_idx').on(table.stripeSubscriptionId)
+}));
+
+// AI Agent Product Types (Added for production)
 
 // Enhanced transaction records with wallet integration
 export const transactions = pgTable("transactions", {

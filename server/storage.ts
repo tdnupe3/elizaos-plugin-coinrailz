@@ -23,6 +23,8 @@ import {
   xrpWallets,
   xrpTransactions,
   xrpOrders,
+  aiAgentProducts,
+  aiAgentSubscriptions,
   type User,
   type UpsertUser,
   type Transaction,
@@ -50,6 +52,10 @@ import {
   type InsertXrpTransaction,
   type XrpOrder,
   type InsertXrpOrder,
+  type AIAgentProduct,
+  type InsertAIAgentProduct,
+  type AIAgentSubscription,
+  type InsertAIAgentSubscription,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -75,6 +81,20 @@ export interface IStorage {
   getChatRooms(userId: string): Promise<any[]>;
   createMessage(data: any): Promise<any>;
   getMessages(chatId: string): Promise<any[]>;
+  
+  // AI Agent Product methods
+  createProduct(product: InsertAIAgentProduct): Promise<AIAgentProduct>;
+  getProducts(filters?: { category?: string; active?: boolean }): Promise<AIAgentProduct[]>;
+  getProductById(id: number): Promise<AIAgentProduct | null>;
+  updateProduct(id: number, data: Partial<InsertAIAgentProduct>): Promise<AIAgentProduct | null>;
+  
+  // AI Agent Subscription methods
+  createSubscription(subscription: InsertAIAgentSubscription): Promise<AIAgentSubscription>;
+  getSubscription(agentId: string): Promise<AIAgentSubscription | null>;
+  getSubscriptionByApiKey(apiKeyHash: string): Promise<AIAgentSubscription | null>;
+  updateSubscription(id: number, data: Partial<InsertAIAgentSubscription>): Promise<AIAgentSubscription | null>;
+  updateSubscriptionUsage(id: number, usageStats: any): Promise<void>;
+  getActiveSubscriptions(): Promise<AIAgentSubscription[]>;
   
   // PHASE 1: Real Marketplace Database Methods
   getMarketplaceServices(filters?: { category?: string; limit?: number; offset?: number }): Promise<any[]>;
@@ -2014,6 +2034,82 @@ export class DatabaseStorage implements IStorage {
       console.error('Error updating agent payout status:', error);
       throw new Error('Failed to update agent payout status');
     }
+  }
+
+  // AI Agent Product methods implementation
+  async createProduct(product: InsertAIAgentProduct): Promise<AIAgentProduct> {
+    const [result] = await db.insert(aiAgentProducts).values(product).returning();
+    return result;
+  }
+
+  async getProducts(filters?: { category?: string; active?: boolean }): Promise<AIAgentProduct[]> {
+    let query = db.select().from(aiAgentProducts);
+    
+    if (filters?.category) {
+      query = query.where(eq(aiAgentProducts.category, filters.category));
+    }
+    
+    if (filters?.active !== undefined) {
+      query = query.where(eq(aiAgentProducts.isActive, filters.active));
+    }
+    
+    return await query;
+  }
+
+  async getProductById(id: number): Promise<AIAgentProduct | null> {
+    const [result] = await db.select().from(aiAgentProducts).where(eq(aiAgentProducts.id, id));
+    return result || null;
+  }
+
+  async updateProduct(id: number, data: Partial<InsertAIAgentProduct>): Promise<AIAgentProduct | null> {
+    const [result] = await db.update(aiAgentProducts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(aiAgentProducts.id, id))
+      .returning();
+    return result || null;
+  }
+
+  // AI Agent Subscription methods implementation
+  async createSubscription(subscription: InsertAIAgentSubscription): Promise<AIAgentSubscription> {
+    const [result] = await db.insert(aiAgentSubscriptions).values(subscription).returning();
+    return result;
+  }
+
+  async getSubscription(agentId: string): Promise<AIAgentSubscription | null> {
+    const [result] = await db.select().from(aiAgentSubscriptions)
+      .where(eq(aiAgentSubscriptions.agentId, agentId));
+    return result || null;
+  }
+
+  async getSubscriptionByApiKey(apiKeyHash: string): Promise<AIAgentSubscription | null> {
+    const [result] = await db.select().from(aiAgentSubscriptions)
+      .where(and(
+        eq(aiAgentSubscriptions.apiKeyHash, apiKeyHash),
+        eq(aiAgentSubscriptions.status, 'active')
+      ));
+    return result || null;
+  }
+
+  async updateSubscription(id: number, data: Partial<InsertAIAgentSubscription>): Promise<AIAgentSubscription | null> {
+    const [result] = await db.update(aiAgentSubscriptions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(aiAgentSubscriptions.id, id))
+      .returning();
+    return result || null;
+  }
+
+  async updateSubscriptionUsage(id: number, usageStats: any): Promise<void> {
+    await db.update(aiAgentSubscriptions)
+      .set({ 
+        usageStats,
+        updatedAt: new Date()
+      })
+      .where(eq(aiAgentSubscriptions.id, id));
+  }
+
+  async getActiveSubscriptions(): Promise<AIAgentSubscription[]> {
+    return await db.select().from(aiAgentSubscriptions)
+      .where(eq(aiAgentSubscriptions.status, 'active'));
   }
 }
 

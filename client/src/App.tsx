@@ -124,6 +124,7 @@ const Documentation = lazy(() => import("@/pages/Documentation"));
 const CryptoPrices = lazy(() => import("@/pages/crypto-prices"));
 const BalanceCheck = lazy(() => import("@/pages/balance-check"));
 const DEXTrading = lazy(() => import("@/pages/dex-trading"));
+const AIAgentStore = lazy(() => import("@/pages/AIAgentStore"));
 const BetaBalanceDemo = lazy(() => import("@/pages/beta-balance-demo"));
 const BalanceDisplay = lazy(() => import("@/pages/balance-display"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
@@ -223,6 +224,9 @@ function Router() {
       </Route>
       <Route path="/ai-agents">
         {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/ai-agent-store">
+        {() => <LazyLoadWrapper><AIAgentStore /></LazyLoadWrapper>}
       </Route>
 
       <Route path="/ai-marketplace">

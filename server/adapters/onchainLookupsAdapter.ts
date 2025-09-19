@@ -25,7 +25,17 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
     },
     xmtp: {
       endpoint: 'https://production.xmtp.network',
-      apiKey: process.env.XMTP_API_KEY
+      apiKey: process.env.XMTP_API_KEY,
+      privateKey: process.env.XMTP_EOA_PRIVATE_KEY
+    },
+    coinbaseCDP: {
+      apiKeyId: process.env.CDP_API_KEY_ID,
+      privateKey: process.env.CDP_PRIVATE_KEY,
+      baseUrl: 'https://api.developer.coinbase.com'
+    },
+    circle: {
+      apiKey: process.env.CIRCLE_API_KEY,
+      baseUrl: 'https://api.circle.com'
     },
     farcaster: {
       endpoint: 'https://api.neynar.com/v2/farcaster',
@@ -85,6 +95,18 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
     
     if (sources.includes('ethereum')) {
       discoveryPromises.push(this.discoverEthereumAgents(blockRange));
+    }
+    
+    if (this.dataSources.coinbaseCDP.apiKeyId) {
+      discoveryPromises.push(this.discoverCoinbaseCDPAgents(lookupLimit));
+    }
+    
+    if (this.dataSources.xmtp.privateKey) {
+      discoveryPromises.push(this.discoverXMTPAgentsEnhanced(lookupLimit));
+    }
+    
+    if (this.dataSources.circle.apiKey) {
+      discoveryPromises.push(this.discoverCircleAgents(lookupLimit));
     }
 
     try {

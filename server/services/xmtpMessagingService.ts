@@ -10,6 +10,7 @@ export interface XMTPMessage {
   senderAddress: string;
   conversationId: string;
   status: 'sent' | 'delivered' | 'read' | 'failed';
+  mode?: 'onchain' | 'simulated';
 }
 
 export interface XMTPConversation {
@@ -426,20 +427,28 @@ Platform: https://coinrailz.com (Live & Operational)
    */
   private async sendViaBlockchainMessage(agentAddress: string, message: string): Promise<XMTPMessage | null> {
     try {
-      console.log(`📡 Sending real blockchain message to agent: ${agentAddress}`);
+      console.log(`📡 Sending blockchain message to agent: ${agentAddress}`);
       
-      // Use CDP service for real blockchain interaction - send actual transaction
+      // Use CDP service for blockchain interaction
       const transaction = await this.cdpService.sendTransaction(agentAddress, "0.001", "Emergency funding request from Coin Railz platform");
       
       if (transaction) {
-        console.log('✅ REAL BLOCKCHAIN TRANSACTION SENT');
+        if (transaction.mode === 'onchain' && transaction.hash) {
+          console.log('🔥 REAL BLOCKCHAIN TRANSACTION SENT ON-CHAIN');
+          console.log(`⛓️ Transaction Hash: ${transaction.hash}`);
+        } else {
+          console.log('⚠️ SIMULATED BLOCKCHAIN MESSAGE (no real funds sent)');
+          console.log(`📝 Reason: ${transaction.reason || 'Platform wallet needs funding'}`);
+        }
+        
         return {
-          id: transaction.hash || `blockchain_${Date.now()}`,
+          id: transaction.hash || `simulated_${Date.now()}`,
           content: message,
           timestamp: new Date().toISOString(),
           senderAddress: this.platformWalletAddress!,
           conversationId: `blockchain_${agentAddress}`,
-          status: 'sent'
+          status: 'sent',
+          mode: transaction.mode
         };
       }
     } catch (error) {

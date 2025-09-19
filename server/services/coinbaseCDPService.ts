@@ -5,6 +5,7 @@
  */
 
 import { CdpClient } from '@coinbase/cdp-sdk';
+import { ethers } from 'ethers';
 
 export interface CDPWallet {
   id: string;
@@ -89,39 +90,122 @@ export class CoinbaseCDPService {
   }
 
   /**
-   * Send transaction to agent address (REAL BLOCKCHAIN COMMUNICATION)
+   * Send REAL blockchain transaction to agent address
    */
-  async sendTransaction(toAddress: string, amount: string, memo: string): Promise<{ hash: string } | null> {
-    this.ensureInitialized();
-    
-    if (!this.cdpClient) {
-      console.error('❌ CDP Client not initialized for transaction');
-      return null;
-    }
-
+  async sendTransaction(toAddress: string, amount: string, memo: string): Promise<{ hash: string; mode: 'onchain' | 'simulated'; reason?: string } | null> {
     try {
-      console.log(`🔗 Sending real blockchain transaction to ${toAddress} with amount ${amount} ETH`);
+      console.log(`🔗 Sending REAL blockchain transaction to ${toAddress} with amount ${amount} ETH`);
       
       // Get platform wallet for sending
       const platformWallet = await this.getOrCreatePlatformWallet();
+      if (!platformWallet?.address) {
+        return { hash: '', mode: 'simulated', reason: 'No platform wallet available' };
+      }
+
+      // Try real blockchain transaction first
+      const realTx = await this.sendRealEthereumTransaction(toAddress, amount, memo, platformWallet.address);
+      if (realTx) {
+        console.log('✅ REAL BLOCKCHAIN TRANSACTION SENT ON-CHAIN');
+        return { hash: realTx.hash, mode: 'onchain' };
+      }
       
-      // Create transaction using CDP SDK
-      const account = await this.cdpClient.evm.createAccount();
-      
-      // For real agent communication, we'll create a minimal transaction
-      // In production, this would send actual funds, but for agent messaging 
-      // we're creating a blockchain record with the funding message in memo
-      console.log(`✅ Created transaction record for agent communication`);
+      // Fallback to simulation with clear indication
+      console.log('⚠️ FALLING BACK TO SIMULATION - No funds or RPC issues');
       console.log(`📝 Memo: ${memo}`);
       console.log(`💰 Target: ${toAddress}`);
       
-      // Return transaction hash for tracking
-      return {
-        hash: `0x${Date.now().toString(16)}${Math.random().toString(16).slice(2, 10)}`
+      return { 
+        hash: '', 
+        mode: 'simulated', 
+        reason: 'Insufficient funds or RPC error' 
       };
       
     } catch (error) {
       console.error('❌ Failed to send transaction:', error);
+      return { hash: '', mode: 'simulated', reason: error.message };
+    }
+  }
+
+  /**
+   * Send actual Ethereum transaction using ethers.js
+   */
+  private async sendRealEthereumTransaction(
+    toAddress: string, 
+    amount: string, 
+    memo: string,
+    fromAddress: string
+  ): Promise<{ hash: string } | null> {
+    try {
+      // Use Alchemy or public RPC for Ethereum mainnet
+      const rpcUrl = process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.alchemyapi.io/v2/demo';
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      
+      // Get private key for platform wallet
+      const privateKey = await this.getPlatformWalletPrivateKey();
+      if (!privateKey) {
+        throw new Error('Platform wallet private key not available');
+      }
+      
+      const wallet = new ethers.Wallet(privateKey, provider);
+      
+      // Check balance first
+      const balance = await provider.getBalance(wallet.address);
+      const valueWei = ethers.parseEther(amount);
+      const gasEstimate = ethers.parseEther('0.002'); // Conservative gas estimate
+      
+      if (balance < valueWei + gasEstimate) {
+        console.log(`❌ Insufficient balance: ${ethers.formatEther(balance)} ETH < ${ethers.formatEther(valueWei + gasEstimate)} ETH needed`);
+        return null;
+      }
+      
+      // Prepare transaction with memo in data field
+      const tx = {
+        to: toAddress,
+        value: valueWei,
+        data: ethers.hexlify(ethers.toUtf8Bytes(memo.substring(0, 64))), // Encode memo as hex data
+        gasLimit: 21000 + 1000 * memo.length, // Standard gas + data gas
+      };
+      
+      console.log(`💰 Sending ${amount} ETH to ${toAddress}`);
+      console.log(`💸 Current balance: ${ethers.formatEther(balance)} ETH`);
+      
+      // Send transaction
+      const txResponse = await wallet.sendTransaction(tx);
+      console.log(`⏳ Transaction sent: ${txResponse.hash}`);
+      
+      // Wait for confirmation
+      const receipt = await txResponse.wait(1);
+      if (receipt?.status === 1) {
+        console.log(`✅ Transaction confirmed: ${receipt.hash}`);
+        return { hash: receipt.hash };
+      } else {
+        throw new Error('Transaction failed');
+      }
+      
+    } catch (error) {
+      console.error('❌ Real transaction failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get platform wallet private key (implement secure key management)
+   */
+  private async getPlatformWalletPrivateKey(): Promise<string | null> {
+    // In production, this should be stored securely (encrypted in DB, HSM, etc.)
+    // For now, we'll generate a deterministic key from available secrets
+    const seed = process.env.CDP_PRIVATE_KEY || process.env.CDP_WALLET_SECRET;
+    if (!seed) {
+      console.error('❌ No platform wallet seed available');
+      return null;
+    }
+    
+    try {
+      // Create a deterministic wallet from the CDP key
+      const hash = ethers.keccak256(ethers.toUtf8Bytes(seed + '_ethereum_platform'));
+      return hash; // This is the private key
+    } catch (error) {
+      console.error('❌ Failed to derive platform wallet key:', error);
       return null;
     }
   }
@@ -882,6 +966,36 @@ export class CoinbaseCDPService {
     };
     
     return platformMap[network] || 'ethereum';
+  }
+
+  /**
+   * Check platform wallet balance for funding verification
+   */
+  async getPlatformWalletBalance(): Promise<{ address: string; balance: string; balanceETH: string } | null> {
+    try {
+      const platformWallet = await this.getOrCreatePlatformWallet();
+      if (!platformWallet?.address) {
+        return null;
+      }
+
+      // Use Ethereum RPC to check balance
+      const rpcUrl = process.env.ETHEREUM_RPC_URL || 'https://eth-mainnet.alchemyapi.io/v2/demo';
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      
+      const balance = await provider.getBalance(platformWallet.address);
+      const balanceETH = ethers.formatEther(balance);
+      
+      console.log(`💰 Platform wallet ${platformWallet.address} balance: ${balanceETH} ETH`);
+      
+      return {
+        address: platformWallet.address,
+        balance: balance.toString(),
+        balanceETH
+      };
+    } catch (error) {
+      console.error('❌ Failed to check platform wallet balance:', error);
+      return null;
+    }
   }
 }
 

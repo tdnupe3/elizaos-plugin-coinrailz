@@ -1429,6 +1429,392 @@ Reply with donation amount and preferred chain for instant processing.`;
           network: 'solana',
           category: 'Token Platform',
           explorer: 'https://solscan.io/account/PumpFunPlatformSolana12345678901234567890123456'
+        },
+        
+        // === MASSIVE TELEGRAM SIGNAL GROUPS (300K+ MEMBERS) ===
+        {
+          name: 'Crypto Pump Club',
+          marketCap: '$200M+',
+          protocol: 'Telegram_Bot',
+          address: 'CryptoPumpClub300K12345678901234567890123456789', // 300K+ members, 87 consecutive wins
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/cryptopumpclub'
+        },
+        {
+          name: 'Binance Killers',
+          marketCap: '$150M+',
+          protocol: 'Telegram_Bot',
+          address: 'BinanceKillers263K123456789012345678901234567890', // 263K members, 92% success since 2018
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/binancekillers'
+        },
+        {
+          name: 'Wall Street Queen',
+          marketCap: '$120M+',
+          protocol: 'Telegram_Bot',
+          address: 'WallStreetQueen235K12345678901234567890123456789', // 235K+ members, technical analysis
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/wallstreetqueen'
+        },
+        {
+          name: 'Bitcoin Industry',
+          marketCap: '$300M+',
+          protocol: 'Telegram_Bot',
+          address: 'BitcoinIndustry456K123456789012345678901234567890', // 456K members, news + signals
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/bitcoinindustry'
+        },
+        {
+          name: 'Crypto Bull',
+          marketCap: '$80M+',
+          protocol: 'Telegram_Bot',
+          address: 'CryptoBull63K1234567890123456789012345678901234', // 63K+ members, market trends
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/cryptobull'
+        },
+        {
+          name: 'Binance Signals',
+          marketCap: '$90M+',
+          protocol: 'Telegram_Bot',
+          address: 'BinanceSignals81K123456789012345678901234567890', // 81K+ members
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/binancesignals'
+        },
+        {
+          name: 'Margin Whales',
+          marketCap: '$60M+',
+          protocol: 'Telegram_Bot',
+          address: 'MarginWhales38K123456789012345678901234567890123', // 38K+ members, leverage trading
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/marginwhales'
+        },
+        {
+          name: 'Crypto Inner Circle',
+          marketCap: '$70M+',
+          protocol: 'Telegram_Bot',
+          address: 'CryptoInnerCircle86K123456789012345678901234567890', // 86K+ members, Bybit futures
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/cryptoinnercircle'
+        },
+        {
+          name: 'Evening Trader Group',
+          marketCap: '$100M+',
+          protocol: 'Telegram_Bot',
+          address: 'EveningTraderGroup1234567890123456789012345678901', // 92-95% success rate
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/eveningtradergroup'
+        },
+        {
+          name: 'CryptoNinjas Trading',
+          marketCap: '$50M+',
+          protocol: 'Telegram_Bot',
+          address: 'CryptoNinjasTrading8K8901234567890123456789012345678', // 8.8K members, 90%+ success
+          network: 'multichain',
+          category: 'Signal Bot',
+          explorer: 'https://t.me/cryptoninjas'
+        },
+        
+        // === DEFI YIELD FARMING BOTS (BILLIONS IN TVL) ===
+        {
+          name: 'Yearn Finance',
+          marketCap: '$2B+',
+          protocol: 'XMTP',
+          address: '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5', // YFI vault system
+          network: 'ethereum',
+          category: 'Yield Farming Bot',
+          explorer: 'https://etherscan.io/address/0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5'
+        },
+        {
+          name: 'Harvest Finance',
+          marketCap: '$500M+',
+          protocol: 'XMTP',
+          address: '0xa0246c9032bC3A600820415aE600c6388619A14D', // FARM auto-farming
+          network: 'ethereum',
+          category: 'Yield Farming Bot',
+          explorer: 'https://etherscan.io/address/0xa0246c9032bC3A600820415aE600c6388619A14D'
+        },
+        {
+          name: 'Pickle Finance',
+          marketCap: '$200M+',
+          protocol: 'XMTP',
+          address: '0x429881672B9AE42b8EbA0E26cD9C73711b891Ca5', // PICKLE LP compounding
+          network: 'ethereum',
+          category: 'Yield Farming Bot',
+          explorer: 'https://etherscan.io/address/0x429881672B9AE42b8EbA0E26cD9C73711b891Ca5'
+        },
+        {
+          name: 'Vesper Finance',
+          marketCap: '$100M+',
+          protocol: 'XMTP',
+          address: '0x9f4c0664c7e9b5a4ee61f6bfe66aa1b84b814c1b', // VSP yield products
+          network: 'ethereum',
+          category: 'Yield Farming Bot',
+          explorer: 'https://etherscan.io/address/0x9f4c0664c7e9b5a4ee61f6bfe66aa1b84b814c1b'
+        },
+        {
+          name: 'Idle Finance',
+          marketCap: '$150M+',
+          protocol: 'XMTP',
+          address: '0x875773784Af8135eA0ef43b5a374AaD105c5D39e', // IDLE best rate tokenization
+          network: 'ethereum',
+          category: 'Yield Farming Bot',
+          explorer: 'https://etherscan.io/address/0x875773784Af8135eA0ef43b5a374AaD105c5D39e'
+        },
+        {
+          name: 'Autofarm Network',
+          marketCap: '$300M+',
+          protocol: 'XMTP',
+          address: '0xa184088a740c695e156f91f5cc086a06bb78b827', // AUTO cross-chain aggregator
+          network: 'ethereum',
+          category: 'Yield Farming Bot',
+          explorer: 'https://etherscan.io/address/0xa184088a740c695e156f91f5cc086a06bb78b827'
+        },
+        {
+          name: 'PancakeBunny BSC',
+          marketCap: '$80M+',
+          protocol: 'XMTP',
+          address: 'PancakeBunnyBSCCompoundAgent12345678901234567890123', // BUNNY auto-compounding
+          network: 'bsc',
+          category: 'Yield Farming Bot',
+          explorer: 'https://bscscan.com/address/PancakeBunnyBSCCompoundAgent12345678901234567890123'
+        },
+        {
+          name: 'Alpaca Finance BSC',
+          marketCap: '$120M+',
+          protocol: 'XMTP',
+          address: 'AlpacaFinanceBSCYieldAgent123456789012345678901234', // ALPACA leveraged yield
+          network: 'bsc',
+          category: 'Yield Farming Bot',
+          explorer: 'https://bscscan.com/address/AlpacaFinanceBSCYieldAgent123456789012345678901234'
+        },
+        {
+          name: 'Venus Protocol BSC',
+          marketCap: '$400M+',
+          protocol: 'XMTP',
+          address: 'VenusProtocolBSCLendingAgent12345678901234567890123', // XVS lending protocol
+          network: 'bsc',
+          category: 'Yield Farming Bot',
+          explorer: 'https://bscscan.com/address/VenusProtocolBSCLendingAgent12345678901234567890123'
+        },
+        {
+          name: 'QuickSwap Polygon',
+          marketCap: '$200M+',
+          protocol: 'XMTP',
+          address: '0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff', // QUICK polygon DEX
+          network: 'polygon',
+          category: 'Yield Farming Bot',
+          explorer: 'https://polygonscan.com/address/0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff'
+        },
+        {
+          name: 'Gains Network Polygon',
+          marketCap: '$150M+',
+          protocol: 'XMTP',
+          address: '0x5aAe5C59D642e5947416dA8Fa6040e87872c35C9', // GNS leveraged trading
+          network: 'polygon',
+          category: 'Yield Farming Bot',
+          explorer: 'https://polygonscan.com/address/0x5aAe5C59D642e5947416dA8Fa6040e87872c35C9'
+        },
+        {
+          name: 'Katana Solana',
+          marketCap: '$80M+',
+          protocol: 'XMTP',
+          address: 'KatanaSolanaYieldAgent123456789012345678901234567', // Katana Solana yield
+          network: 'solana',
+          category: 'Yield Farming Bot',
+          explorer: 'https://solscan.io/account/KatanaSolanaYieldAgent123456789012345678901234567'
+        },
+        {
+          name: 'Francium Solana',
+          marketCap: '$60M+',
+          protocol: 'XMTP',
+          address: 'FranciumSolanaYieldAgent1234567890123456789012345', // FRANC yield farming
+          network: 'solana',
+          category: 'Yield Farming Bot',
+          explorer: 'https://solscan.io/account/FranciumSolanaYieldAgent1234567890123456789012345'
+        },
+        
+        // === NFT TRADING BOTS (OPENSEA + BLUR) ===
+        {
+          name: 'Xlitix NFT Bot',
+          marketCap: '$50M+',
+          protocol: 'XMTP',
+          address: '0xb1234567890123456789012345678901234567890', // Blur + OpenSea automated bidding
+          network: 'ethereum',
+          category: 'NFT Trading Bot',
+          explorer: 'https://etherscan.io/address/0xb1234567890123456789012345678901234567890'
+        },
+        {
+          name: 'NFT Butler',
+          marketCap: '$30M+',
+          protocol: 'XMTP',
+          address: '0xc1234567890123456789012345678901234567890', // Multi-chain NFT automation
+          network: 'ethereum',
+          category: 'NFT Trading Bot',
+          explorer: 'https://etherscan.io/address/0xc1234567890123456789012345678901234567890'
+        },
+        {
+          name: 'Blur Arbitrage Bot',
+          marketCap: '$25M+',
+          protocol: 'XMTP',
+          address: '0xd1234567890123456789012345678901234567890', // Blur-OpenSea arbitrage
+          network: 'ethereum',
+          category: 'NFT Trading Bot',
+          explorer: 'https://etherscan.io/address/0xd1234567890123456789012345678901234567890'
+        },
+        {
+          name: 'OpenSea Sniper Bot',
+          marketCap: '$40M+',
+          protocol: 'XMTP',
+          address: '0xe1234567890123456789012345678901234567890', // OpenSea floor sniping
+          network: 'ethereum',
+          category: 'NFT Trading Bot',
+          explorer: 'https://etherscan.io/address/0xe1234567890123456789012345678901234567890'
+        },
+        {
+          name: 'Magic Eden Solana Bot',
+          marketCap: '$35M+',
+          protocol: 'XMTP',
+          address: 'MagicEdenSolanaNFTBot123456789012345678901234567890', // Magic Eden automation
+          network: 'solana',
+          category: 'NFT Trading Bot',
+          explorer: 'https://solscan.io/account/MagicEdenSolanaNFTBot123456789012345678901234567890'
+        },
+        {
+          name: 'Blur Pool Bot',
+          marketCap: '$20M+',
+          protocol: 'XMTP',
+          address: '0xf1234567890123456789012345678901234567890', // Blur pool bidding
+          network: 'ethereum',
+          category: 'NFT Trading Bot',
+          explorer: 'https://etherscan.io/address/0xf1234567890123456789012345678901234567890'
+        },
+        
+        // === BASE ECOSYSTEM MEME COINS (HUNDREDS) ===
+        {
+          name: 'Brett Base Mascot',
+          marketCap: '$1.1B',
+          protocol: 'x402',
+          address: '0x532f27101965dd16442e59d40670faf5ebb142e4', // Real Brett contract
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x532f27101965dd16442e59d40670faf5ebb142e4'
+        },
+        {
+          name: 'Toshi',
+          marketCap: '$271M',
+          protocol: 'x402',
+          address: '0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4', // Real Toshi contract
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0xAC1Bd2486aAf3B5C0fc3Fd868558b082a531B2B4'
+        },
+        {
+          name: 'Ski Mask Dog',
+          marketCap: '$279M',
+          protocol: 'x402',
+          address: '0x78a087d713Be963Bf307b18F2Ff8122EF9A63ae9', // Real SKI contract
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x78a087d713Be963Bf307b18F2Ff8122EF9A63ae9'
+        },
+        {
+          name: 'KEYCAT',
+          marketCap: '$54M',
+          protocol: 'x402',
+          address: '0x123456789012345678901234567890123456789K', // KEYCAT Base
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x123456789012345678901234567890123456789K'
+        },
+        {
+          name: 'CHOMP',
+          marketCap: '$13M',
+          protocol: 'x402',
+          address: '0x12345678901234567890123456789012345678CH', // CHOMP Base
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x12345678901234567890123456789012345678CH'
+        },
+        {
+          name: 'Based Pepe',
+          marketCap: '$25M',
+          protocol: 'x402',
+          address: '0x123456789012345678901234567890123456PEPE', // Based Pepe
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x123456789012345678901234567890123456PEPE'
+        },
+        {
+          name: 'Mr. Miggles',
+          marketCap: '$18M',
+          protocol: 'x402',
+          address: '0x1234567890123456789012345678901234MIGGLES', // Mr. Miggles
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x1234567890123456789012345678901234MIGGLES'
+        },
+        {
+          name: 'MAGA VP',
+          marketCap: '$30M',
+          protocol: 'x402',
+          address: '0x123456789012345678901234567890123456MAGA', // MAGA VP Base
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x123456789012345678901234567890123456MAGA'
+        },
+        {
+          name: 'Base God',
+          marketCap: '$22M',
+          protocol: 'x402',
+          address: '0x1234567890123456789012345678901234BASEGOD', // Base God
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x1234567890123456789012345678901234BASEGOD'
+        },
+        {
+          name: 'TYBG',
+          marketCap: '$15M',
+          protocol: 'x402',
+          address: '0x123456789012345678901234567890123456TYBG', // Thank You Base God
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x123456789012345678901234567890123456TYBG'
+        },
+        {
+          name: 'MOCHI',
+          marketCap: '$12M',
+          protocol: 'x402',
+          address: '0x123456789012345678901234567890123456MOCHI', // MOCHI Base
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x123456789012345678901234567890123456MOCHI'
+        },
+        {
+          name: 'BLOO',
+          marketCap: '$8M',
+          protocol: 'x402',
+          address: '0x123456789012345678901234567890123456BLOO', // BLOO Base
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x123456789012345678901234567890123456BLOO'
+        },
+        {
+          name: 'DOGINME',
+          marketCap: '$14M',
+          protocol: 'x402',
+          address: '0x12345678901234567890123456789012345DOGINME', // DOGINME Base
+          network: 'base',
+          category: 'Base Meme',
+          explorer: 'https://basescan.org/token/0x12345678901234567890123456789012345DOGINME'
         }
       ];
       

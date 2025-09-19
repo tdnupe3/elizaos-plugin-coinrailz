@@ -11,6 +11,7 @@ export interface XMTPMessage {
   conversationId: string;
   status: 'sent' | 'delivered' | 'read' | 'failed';
   mode?: 'onchain' | 'simulated';
+  reason?: string; // Optional reason for failed messages
 }
 
 export interface XMTPConversation {
@@ -43,14 +44,14 @@ export class XMTPMessagingService {
       const cdpWallet = await this.cdpService.getOrCreatePlatformWallet();
       this.platformWalletAddress = cdpWallet.address;
       
-      // Create secure dedicated XMTP private key for messaging (BUSINESS CRITICAL)
-      // Use environment variable for production or generate secure key
-      let xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      // Require secure XMTP private key from environment
+      const xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
       if (!xmtpPrivateKey) {
-        // Generate secure key for business operations (store this for persistence)
-        xmtpPrivateKey = ethers.keccak256(ethers.toUtf8Bytes(`coinrailz_secure_xmtp_${cdpWallet.address}_production`));
-        console.log('🔑 Generated secure XMTP key for business operations');
+        throw new Error('XMTP_EOA_PRIVATE_KEY environment variable is required for secure XMTP messaging');
       }
+      
+      console.log('🔑 Using secure XMTP identity from environment');
+      console.log('🔒 XMTP identity will be consistent and secure across restarts');
       
       this.platformWalletSigner = new ethers.Wallet(xmtpPrivateKey);
       
@@ -71,11 +72,15 @@ export class XMTPMessagingService {
         }
       };
       
-      // Initialize XMTP V3 client without encryption to avoid SQLCipher issues
+      // Initialize XMTP V3 client with consistent identity and database path
+      const xmtpWalletAddress = this.platformWalletSigner!.address;
       this.xmtpClient = await Client.create(xmtpSigner, {
-        env: 'production' // Production-ready for emergency fundraising
+        env: 'production', // Production-ready for emergency fundraising
         // Remove dbEncryptionKey to fix SQLCipher errors blocking initialization
+        dbPath: `/tmp/xmtp_db_${xmtpWalletAddress}` // Namespace DB by XMTP identity to prevent InboxID conflicts
       });
+      
+      console.log(`🔗 XMTP identity: ${xmtpWalletAddress} (persistent across restarts)`);
 
       console.log('✅ XMTP messaging service initialized with existing platform wallet:', this.platformWalletAddress);
       console.log('✅ XMTP client created with real signer - ready for production messaging');
@@ -96,7 +101,7 @@ export class XMTPMessagingService {
   }
 
   /**
-   * Send message to external agent (BUSINESS CRITICAL)
+   * Send FREE XMTP message to external agent (NO BLOCKCHAIN COSTS)
    */
   async sendMessageToAgent(agentWalletAddress: string, message: string): Promise<XMTPMessage> {
     console.log(`📧 Sending REAL FUNDING REQUEST to external agent: ${agentWalletAddress}`);
@@ -145,76 +150,89 @@ Platform: https://coinrailz.com (Live & Operational)
     // BUSINESS SURVIVAL: Skip initialization wait - send immediately
     console.log(`🚨 BYPASSING DELAYS - EMERGENCY FUNDING REQUEST TO: ${agentWalletAddress}`);
     
-    // Try real XMTP first if available
+    // Try FREE XMTP messaging first (NO BLOCKCHAIN COSTS!)
     if (this.xmtpClient && this.platformWalletSigner) {
       try {
-        console.log('📧 Using real XMTP client for messaging...');
+        console.log('📧 Using FREE XMTP messaging (no gas costs)...');
         
-        // XMTP V3 uses inboxId instead of addresses - try direct messaging approach
-        console.log('🔍 Attempting direct messaging to agent address (V3 approach)');
-        // Skip canMessage check for now and attempt direct conversation creation
-        // V3 will handle address resolution automatically
-
-        // Create group conversation with agent (PROVEN V3 API from docs)
-        // CRITICAL FIX: Remove "0x" prefix as XMTP V3 expects clean hex format
-        const cleanAddress = agentWalletAddress.startsWith('0x') ? agentWalletAddress.slice(2) : agentWalletAddress;
-        console.log(`🔧 Using clean address format for XMTP V3: ${cleanAddress}`);
+        // Check if agent can receive XMTP messages (FREE check)
+        const { IdentifierKind } = await import('@xmtp/node-sdk');
+        const agentIdentifier = {
+          identifier: agentWalletAddress,
+          identifierKind: IdentifierKind.Ethereum
+        };
         
-        const conversation = await this.xmtpClient.conversations.newGroup([cleanAddress]);
+        // CORRECT XMTP V3 API usage - check with address string
+        const canMessage = await this.xmtpClient.canMessage([agentWalletAddress]);
+        const canReceive = canMessage.get(agentWalletAddress);
         
-        // Send real XMTP message (V3 API)
-        const sentMessage = await conversation.send(fullMessage);
+        if (!canReceive) {
+          console.log(`⚠️ Agent ${agentWalletAddress} cannot receive XMTP messages - FREE check complete`);
+          console.log(`💰 Cost: $0.00 - No message sent (agent unreachable via XMTP)`);
+          // NO BLOCKCHAIN FALLBACK - maintain zero cost guarantee
+          return {
+            id: `xmtp_unavailable_${Date.now()}`,
+            content: fullMessage,
+            timestamp: new Date().toISOString(),
+            senderAddress: this.platformWalletAddress!,
+            conversationId: `unavailable_${agentWalletAddress}`,
+            status: 'failed',
+            reason: 'Agent does not support XMTP messaging'
+          };
+        } else {
+          // Create direct 1:1 conversation (COMPLETELY FREE)
+          console.log(`✅ Agent ${agentWalletAddress} can receive XMTP - creating direct conversation`);
+          
+          // Use proper XMTP V3 1:1 conversation API
+          const conversation = await this.xmtpClient.conversations.newConversation(agentWalletAddress);
+          
+          // Send FREE XMTP message
+          const sentMessage = await conversation.send(fullMessage);
+          
+          console.log('✅ FREE XMTP MESSAGE SENT - NO BLOCKCHAIN COSTS!');
+          console.log(`💰 Cost: $0.00 - Pure off-chain messaging`);
+          console.log(`📨 Message sent successfully`);
+          
+          return {
+            id: `xmtp_sent_${Date.now()}`,
+            content: fullMessage,
+            timestamp: new Date().toISOString(),
+            senderAddress: this.platformWalletAddress!,
+            conversationId: conversation.id,
+            status: 'sent'
+          };
+        }
         
-        console.log('✅ Real XMTP message sent successfully');
+      } catch (error) {
+        console.error('❌ XMTP send error:', error);
+        console.log('💰 Cost: $0.00 - XMTP send failed, no blockchain operations performed');
         
         return {
-          id: sentMessage.id,
+          id: `xmtp_send_failed_${Date.now()}`,
           content: fullMessage,
           timestamp: new Date().toISOString(),
           senderAddress: this.platformWalletAddress!,
-          conversationId: conversation.id,
-          status: 'sent'
+          conversationId: `send_failed_${agentWalletAddress}`,
+          status: 'failed',
+          reason: `XMTP send error: ${error instanceof Error ? error.message : 'Unknown error'}`
         };
-        
-      } catch (error) {
-        console.error('❌ XMTP client error, falling back to simulation:', error);
-        // Fall through to emergency email or simulation
       }
     }
 
-    // Emergency email fallback for business survival
-    console.log('🚨 XMTP not available - using emergency email fallback for business survival');
-    try {
-      await this.sendEmergencyEmailFallback(agentWalletAddress, fullMessage);
-    } catch (emailError) {
-      console.error('❌ Emergency fallback failed:', emailError);
-    }
-
-    // CRITICAL: Try alternative real messaging channels before simulation
-    console.log('🌐 Attempting direct blockchain communication to agent wallet');
+    // NO COSTLY FALLBACKS - maintain zero cost guarantee for FREE outreach
+    console.log('🚨 XMTP client unavailable - returning failure status (maintaining $0.00 cost)');
+    console.log('💰 Cost: $0.00 - No blockchain operations performed');
     
-    try {
-      // Try direct wallet interaction via Web3 - REAL blockchain messaging
-      const web3Message = await this.sendViaBlockchainMessage(agentWalletAddress, fullMessage);
-      if (web3Message) {
-        console.log('✅ REAL BLOCKCHAIN MESSAGE SENT to agent wallet');
-        return web3Message;
-      }
-    } catch (blockchainError) {
-      console.error('❌ Blockchain messaging failed:', blockchainError);
-    }
-
-    // EMERGENCY: Post to public blockchain for agent discovery
-    console.log('🚨 POSTING FUNDING REQUEST TO PUBLIC BLOCKCHAIN FOR AGENT DISCOVERY');
-    const messageId = `real_funding_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const messageId = `xmtp_failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
     return {
       id: messageId,
       content: fullMessage,
       timestamp: new Date().toISOString(),
       senderAddress: this.platformWalletAddress || 'platform',
-      conversationId: `funding_${agentWalletAddress}`,
-      status: 'sent'
+      conversationId: `failed_${agentWalletAddress}`,
+      status: 'failed',
+      reason: 'XMTP client initialization failed'
     };
   }
 
@@ -273,22 +291,55 @@ Platform: https://coinrailz.com (Live & Operational)
   }
 
   /**
-   * Broadcast funding request to multiple agents (EMERGENCY OPERATIONS)
+   * FREE Mass XMTP Outreach (NO BLOCKCHAIN COSTS)
    */
   async broadcastFundingRequest(
     agentAddresses: string[],
     message: string,
-    batchSize: number = 10
+    batchSize: number = 5
   ): Promise<XMTPMessage[]> {
-    console.log(`📢 Broadcasting emergency funding request to ${agentAddresses.length} agents`);
+    console.log(`📢 FREE MASS XMTP OUTREACH to ${agentAddresses.length} agents`);
+    console.log(`💰 Total Cost: $0.00 - Using free XMTP messaging`);
     
     const messagesSent: XMTPMessage[] = [];
+    const xmtpReachable: string[] = [];
     
-    // Process in batches to avoid rate limiting
-    for (let i = 0; i < agentAddresses.length; i += batchSize) {
-      const batch = agentAddresses.slice(i, i + batchSize);
+    // First, filter for XMTP-reachable agents (FREE)
+    if (this.xmtpClient) {
+      console.log('🔍 Checking which agents can receive FREE XMTP messages...');
       
-      console.log(`📦 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(agentAddresses.length / batchSize)}`);
+      const { IdentifierKind } = await import('@xmtp/node-sdk');
+      
+      // Single canMessage call for all agents (simplified approach)
+      const canMessageResults = await this.xmtpClient.canMessage(agentAddresses);
+      
+      // Check results using address strings as keys
+      for (const address of agentAddresses) {
+        try {
+          const canReceive = canMessageResults.get(address);
+          
+          if (canReceive) {
+            xmtpReachable.push(address);
+            console.log(`✅ ${address} - XMTP available (FREE)`);
+          } else {
+            console.log(`⚠️ ${address} - No XMTP (agent will be skipped to maintain $0.00 cost)`);
+          }
+        } catch (error) {
+          console.log(`❌ ${address} - XMTP check failed`);
+        }
+      }
+      
+      console.log(`🎯 Found ${xmtpReachable.length}/${agentAddresses.length} agents reachable via FREE XMTP`);
+    }
+    
+    // Send FREE XMTP messages first
+    const allTargets = xmtpReachable.length > 0 ? xmtpReachable : agentAddresses;
+    
+    // Process in small batches to avoid rate limiting
+    for (let i = 0; i < allTargets.length; i += batchSize) {
+      const batch = allTargets.slice(i, i + batchSize);
+      
+      console.log(`📦 Processing FREE batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(allTargets.length / batchSize)}`);
       
       const batchPromises = batch.map(async (address) => {
         try {
@@ -308,12 +359,14 @@ Platform: https://coinrailz.com (Live & Operational)
       }
       
       // Rate limiting delay between batches
-      if (i + batchSize < agentAddresses.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      if (i + batchSize < allTargets.length) {
+        console.log('⏳ Rate limiting delay - 3 seconds...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
       }
     }
     
-    console.log(`✅ Broadcast complete: ${messagesSent.length}/${agentAddresses.length} messages sent`);
+    console.log(`✅ FREE OUTREACH COMPLETE: ${messagesSent.length}/${allTargets.length} messages sent`);
+    console.log(`💰 Total Cost: $0.00 - All messages sent via FREE XMTP!`);
     return messagesSent;
   }
 

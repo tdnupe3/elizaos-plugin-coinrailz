@@ -14,7 +14,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-07-30.basil',
 });
 
 export const aiAgentProductRoutesProduction = Router();
@@ -29,49 +29,49 @@ const initializeProducts = async () => {
       const products = [
         {
           name: 'Pay-Per-Use API Access',
-          description: 'Perfect for AI agents - pay only for what you use, no monthly commitment',
+          description: 'Premium fintech APIs - pay only for what you use, no monthly commitment',
           category: 'api_access',
-          priceUSD: '0.01',
+          priceUSD: '0.25',
           billingCycle: 'per-request',
-          features: ['$0.01 per API request', 'No monthly commitment', 'Crypto payments only', 'Real-time crypto prices', 'Basic Circle USDC wallet creation', 'XMTP messaging', 'Instant activation'],
-          apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/xmtp/send-message', '/api/market/data'],
+          features: ['$0.25 per API request', 'No monthly commitment', 'Enterprise-grade APIs', 'Real-time crypto data', 'Circle USDC wallet creation', 'DEX aggregation', 'XRP operations', 'XMTP messaging', '$25 monthly minimum'],
+          apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/xmtp/send-message', '/api/market/data', '/api/dex/aggregate'],
           requestLimits: { daily: 'pay-per-use', monthly: 'pay-per-use' },
           isActive: true,
           targetAudience: 'ai_agents'
         },
         {
-          name: 'Starter API Package',
-          description: 'Essential fintech APIs for AI agents getting started',
+          name: 'Builder Package',
+          description: 'Credit bundle for growing AI agents with better unit economics',
           category: 'api_access',
-          priceUSD: '9.99',
+          priceUSD: '149.00',
           billingCycle: 'monthly',
-          features: ['Real-time crypto prices', 'Basic Circle USDC wallet creation', 'XMTP messaging (100 messages/month)', 'Market data API access', 'Email support'],
-          apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/create', '/api/xmtp/send-message', '/api/market/data'],
-          requestLimits: { daily: 1000, monthly: 30000 },
+          features: ['100,000 standard API calls included', '5,000 premium operations (DEX, trading)', '200 transaction operations', '10,000 XMTP messages', 'Overage: $0.15 per 100 calls', 'Priority support'],
+          apiEndpoints: ['/api/crypto/*', '/api/circle/wallet/*', '/api/xmtp/*', '/api/dex/aggregate', '/api/p2p/transfer'],
+          requestLimits: { daily: 10000, monthly: 100000 },
           isActive: true,
           targetAudience: 'ai_agents'
         },
         {
-          name: 'Professional API Package', 
-          description: 'Advanced fintech APIs with enhanced features for growing AI agents',
+          name: 'Growth Package', 
+          description: 'High-volume credit bundle for scaling AI trading agents',
           category: 'api_access',
-          priceUSD: '29.99',
+          priceUSD: '499.00',
           billingCycle: 'monthly',
-          features: ['All Starter features', 'DEX aggregation across 5 chains', 'Circle USDC wallet management', 'XMTP messaging (1000 messages/month)', 'Real-time trading signals', 'P2P transfer capabilities', 'Priority support'],
-          apiEndpoints: ['/api/crypto/prices', '/api/circle/wallet/*', '/api/xmtp/*', '/api/dex/aggregate', '/api/p2p/transfer', '/api/trading/signals'],
-          requestLimits: { daily: 5000, monthly: 150000 },
+          features: ['500,000 standard API calls included', '25,000 premium operations', '1,000 transaction operations', '50,000 XMTP messages', 'Overage: $0.10 per 100 calls', '10 bps swap fees', 'Dedicated support'],
+          apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/xmtp/*', '/api/dex/*', '/api/p2p/*', '/api/trading/signals'],
+          requestLimits: { daily: 25000, monthly: 500000 },
           isActive: true,
           targetAudience: 'ai_agents'
         },
         {
-          name: 'Enterprise API Package',
-          description: 'Complete fintech API suite with unlimited access for high-volume AI agents',
+          name: 'Enterprise Package',
+          description: 'Unlimited access with revenue sharing for high-volume institutional agents',
           category: 'api_access', 
-          priceUSD: '79.99',
+          priceUSD: '2000.00',
           billingCycle: 'monthly',
-          features: ['All Professional features', 'Unlimited API requests', 'Multi-chain crypto operations', 'Advanced Circle wallet features', 'Unlimited XMTP messaging', 'XRP Ledger integration', 'Custom webhook support', 'Dedicated support', 'Revenue sharing opportunities'],
+          features: ['2M standard API calls included', '150,000 premium operations', '5,000 transaction operations', '250,000 XMTP messages', '5-15 bps swap fees', 'Custom SLA & throughput', 'White-label options', 'Revenue sharing opportunities'],
           apiEndpoints: ['/api/crypto/*', '/api/circle/*', '/api/xmtp/*', '/api/dex/*', '/api/p2p/*', '/api/xrp/*', '/api/webhooks/*'],
-          requestLimits: { daily: 'unlimited', monthly: 'unlimited' },
+          requestLimits: { daily: 100000, monthly: 2000000 },
           isActive: true,
           targetAudience: 'ai_agents'
         }
@@ -101,7 +101,7 @@ aiAgentProductRoutesProduction.get('/products', async (req, res) => {
       success: true,
       products,
       totalProducts: products.length,
-      priceRange: '$29-199/month',
+      priceRange: '$0.25/request or $149-2000/month',
       targetAudience: 'AI agents and automated systems'
     });
   } catch (error) {
@@ -177,7 +177,7 @@ aiAgentProductRoutesProduction.post('/purchase', async (req, res) => {
     if (paymentMethod === 'stripe') {
       // Create Stripe payment intent
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(parseFloat(product.priceUSD) * 100), // Convert to cents
+        amount: Math.round(parseFloat(product.priceUSD.toString()) * 100), // Convert to cents
         currency: 'usd',
         metadata: {
           productId: productId.toString(),

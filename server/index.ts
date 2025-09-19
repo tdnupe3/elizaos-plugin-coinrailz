@@ -496,6 +496,10 @@ app.get('/api/crypto/prices', async (req, res) => {
 app.use('/api', marketplaceRoutes);
 app.use('/api', dashboardRoutes);
 
+// === AI AGENT TASK BOARD OUTREACH ===
+import taskBoardRoutes from './routes/taskBoardRoutes.js';
+app.use('/api/task-boards', taskBoardRoutes);
+
 // === CIRCLE USDC INTEGRATION ROUTES ===
 app.use('/api/circle', circleRoutes);
 app.use('/api/user-circle', userCircleRoutes);

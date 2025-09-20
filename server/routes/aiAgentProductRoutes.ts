@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import Stripe from 'stripe';
+import express from 'express';
 import { db } from '../db';
 import { aiAgentSubscriptions, aiMarketplaceOrders } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -402,16 +403,17 @@ async function activateSubscription(orderId: string, agentId: string, productId:
   return apiKey;
 }
 
-// Stripe webhook for payment confirmation
-aiAgentProductRoutes.post('/stripe-webhook', async (req, res) => {
+// Stripe webhook for payment confirmation (RAW BODY REQUIRED)
+aiAgentProductRoutes.post('/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 
   try {
-    // Verify webhook signature
+    // Verify webhook signature with raw body
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test');
+    console.log('✅ Stripe webhook signature verified:', event.type);
   } catch (err) {
-    console.error('Webhook signature verification failed:', err.message);
+    console.error('❌ Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 

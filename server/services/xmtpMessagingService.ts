@@ -86,29 +86,11 @@ export class XMTPMessagingService {
       
       this.platformWalletSigner = new ethers.Wallet(processedPrivateKey);
       
-      // Import XMTP V3 types for proper signer interface (moved to avoid duplicates)
-      const { IdentifierKind } = await import('@xmtp/node-sdk');
-      
-      // Create PROPER XMTP V3 signer interface (CRITICAL BUSINESS FIX)
-      const xmtpSigner = {
-        type: "EOA" as const,  // REQUIRED for V3 - this was missing!
-        getIdentifier: () => ({
-          identifier: this.platformWalletSigner!.address,
-          identifierKind: IdentifierKind.Ethereum  // Use imported enum directly
-        }),
-        signMessage: async (message: string): Promise<Uint8Array> => {
-          // V3 requires explicit Promise<Uint8Array> return type
-          const signature = await this.platformWalletSigner!.signMessage(message);
-          return new Uint8Array(Buffer.from(signature.slice(2), 'hex'));
-        }
-      };
-      
-      // Initialize XMTP V3 client with consistent identity and database path
-      const xmtpWalletAddress = this.platformWalletSigner!.address;
-      this.xmtpClient = await Client.create(xmtpSigner, {
-        env: 'production', // Production-ready for emergency fundraising
-        // Remove dbEncryptionKey to fix SQLCipher errors blocking initialization
-        dbPath: `/tmp/xmtp_db_${xmtpWalletAddress}` // Namespace DB by XMTP identity to prevent InboxID conflicts
+      // Use standard ethers.Wallet directly with XMTP (architect recommendation)
+      const xmtpWalletAddress = this.platformWalletSigner.address;
+      this.xmtpClient = await Client.create(this.platformWalletSigner, {
+        env: 'production',
+        dbPath: `/tmp/xmtp_db_${xmtpWalletAddress}`
       });
       
       console.log(`🔗 XMTP identity: ${xmtpWalletAddress} (persistent across restarts)`);
@@ -167,13 +149,22 @@ export class XMTPMessagingService {
         console.log('📧 Using FREE XMTP messaging (no gas costs)...');
         
         // Check if agent can receive XMTP messages (FREE check)
-        const { IdentifierKind } = await import('@xmtp/node-sdk');
-        const agentIdentifier = {
-          identifier: agentWalletAddress,
-          identifierKind: IdentifierKind.Ethereum
-        };
-        const canMessage = await this.xmtpClient.canMessage([agentIdentifier]);
-        const canReceive = canMessage.get(agentWalletAddress) || false;
+        // XMTP only supports EVM addresses - skip Solana addresses
+        if (!/^0x[a-fA-F0-9]{40}$/.test(agentWalletAddress)) {
+          console.log(`⚠️ Skipping non-EVM address ${agentWalletAddress} - XMTP only supports Ethereum addresses`);
+          return {
+            id: `xmtp_non_evm_${Date.now()}`,
+            content: fullMessage,
+            timestamp: new Date().toISOString(),
+            senderAddress: this.platformWalletAddress!,
+            conversationId: `non_evm_${agentWalletAddress}`,
+            status: 'failed',
+            reason: 'Non-EVM address not supported by XMTP'
+          };
+        }
+        
+        const canMessage = await this.xmtpClient.canMessage([agentWalletAddress]);
+        const canReceive = canMessage.get(agentWalletAddress) === true;
         
         if (!canReceive) {
           console.log(`⚠️ Agent ${agentWalletAddress} cannot receive XMTP messages - FREE check complete`);
@@ -321,12 +312,11 @@ export class XMTPMessagingService {
       console.log('🔍 Checking which agents can receive FREE XMTP messages...');
       
       // Single canMessage call for all agents (simplified approach)
-      const { IdentifierKind } = await import('@xmtp/node-sdk');
-      const agentIdentifiers = agentAddresses.map(address => ({
-        identifier: address,
-        identifierKind: IdentifierKind.Ethereum
-      }));
-      const canMessageResults = await this.xmtpClient.canMessage(agentIdentifiers);
+      // Filter to only EVM addresses - XMTP doesn't support Solana
+      const evmAddresses = agentAddresses.filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
+      console.log(`🔍 Filtering ${agentAddresses.length} agents → ${evmAddresses.length} EVM addresses for XMTP`);
+      
+      const canMessageResults = await this.xmtpClient.canMessage(evmAddresses);
       
       // Check results using string addresses
       for (const address of agentAddresses) {

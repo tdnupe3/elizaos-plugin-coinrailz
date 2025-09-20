@@ -3,6 +3,9 @@ import path from "path";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
+// Initialize automated revenue generation systems
+import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
+import { initializeAffiliateSystem } from './services/automatedAffiliate';
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
@@ -3064,11 +3067,49 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.log('Frontend serving ready');
     httpServer.listen(port, '0.0.0.0', () => {
       console.log(`Development server running on 0.0.0.0:${port}`);
+      
+      // Initialize automated revenue generation systems
+      console.log('🤖 Initializing automated revenue generation systems...');
+      try {
+        initializeAutomatedOutreach();
+        console.log('✅ Automated outreach orchestrator started');
+        
+        initializeAffiliateSystem();
+        console.log('✅ Automated affiliate system started');
+        
+        console.log('🎯 FULLY AUTOMATED REVENUE GENERATION SYSTEMS ARE NOW RUNNING');
+        console.log('📅 Daily GitHub Issues: 8 AM EST');
+        console.log('🐦 Daily Twitter Posts: 12 PM EST');
+        console.log('📱 Daily Reddit Posts: 6 PM EST');
+        console.log('📧 Email Campaigns: Every 3 days at 10 AM EST');
+        console.log('💰 Monthly Affiliate Payouts: 1st of each month at 9 AM EST');
+      } catch (error) {
+        console.error('❌ Failed to initialize automated systems:', error);
+      }
     });
   }).catch(error => {
     console.error('Vite setup failed:', error);
     httpServer.listen(port, '0.0.0.0', () => {
       console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
+      
+      // Initialize automated revenue generation systems
+      console.log('🤖 Initializing automated revenue generation systems...');
+      try {
+        initializeAutomatedOutreach();
+        console.log('✅ Automated outreach orchestrator started');
+        
+        initializeAffiliateSystem();
+        console.log('✅ Automated affiliate system started');
+        
+        console.log('🎯 FULLY AUTOMATED REVENUE GENERATION SYSTEMS ARE NOW RUNNING');
+        console.log('📅 Daily GitHub Issues: 8 AM EST');
+        console.log('🐦 Daily Twitter Posts: 12 PM EST');
+        console.log('📱 Daily Reddit Posts: 6 PM EST');
+        console.log('📧 Email Campaigns: Every 3 days at 10 AM EST');
+        console.log('💰 Monthly Affiliate Payouts: 1st of each month at 9 AM EST');
+      } catch (error) {
+        console.error('❌ Failed to initialize automated systems:', error);
+      }
     });
   });
 }

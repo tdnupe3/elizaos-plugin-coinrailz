@@ -983,6 +983,45 @@ export const depositFundsSchema = walletDepositSchema;
 export const withdrawFundsSchema = walletWithdrawSchema;
 
 // AI Marketplace Core Tables
+// Automated outreach logging system
+export const outreachLogs = pgTable('outreach_logs', {
+  id: serial('id').primaryKey(),
+  platform: varchar('platform', { length: 50 }).notNull(),
+  target: varchar('target', { length: 255 }).notNull(),
+  url: varchar('url', { length: 500 }),
+  status: varchar('status', { length: 20 }).notNull(),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+// Automated affiliate system tables
+export const affiliates = pgTable('affiliates', {
+  id: serial('id').primaryKey(),
+  affiliateCode: varchar('affiliate_code', { length: 50 }).unique().notNull(),
+  email: varchar('email', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  website: varchar('website', { length: 255 }),
+  audience: text('audience').notNull(),
+  paypalEmail: varchar('paypal_email', { length: 255 }).notNull(),
+  commissionRate: numeric('commission_rate', { precision: 3, scale: 2 }).default('0.50'),
+  totalSales: numeric('total_sales', { precision: 10, scale: 2 }).default('0.00'),
+  totalCommission: numeric('total_commission', { precision: 10, scale: 2 }).default('0.00'),
+  conversionCount: integer('conversion_count').default(0),
+  status: varchar('status', { length: 20 }).default('active'),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+export const affiliateConversions = pgTable('affiliate_conversions', {
+  id: serial('id').primaryKey(),
+  affiliateCode: varchar('affiliate_code', { length: 50 }).notNull(),
+  orderId: varchar('order_id', { length: 255 }).notNull(),
+  saleAmount: numeric('sale_amount', { precision: 10, scale: 2 }).notNull(),
+  commissionAmount: numeric('commission_amount', { precision: 10, scale: 2 }).notNull(),
+  status: varchar('status', { length: 20 }).default('pending'),
+  payoutId: varchar('payout_id', { length: 255 }),
+  paidAt: timestamp('paid_at'),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
 export const aiMarketplaceOrders = pgTable("ai_marketplace_orders", {
   id: varchar("id").primaryKey().notNull().$defaultFn(() => crypto.randomUUID()),
   agentId: varchar("agent_id").notNull().references(() => globalAIAgents.id),

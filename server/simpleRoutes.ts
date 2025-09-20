@@ -165,6 +165,60 @@ Would love your thoughts on the implementation patterns!
     }
   });
 
+  // AUTOMATED AFFILIATE SYSTEM ENDPOINTS
+  app.post('/api/affiliate/register', async (req, res) => {
+    try {
+      const { getAffiliateSystem } = await import('./services/automatedAffiliate');
+      const affiliateSystem = getAffiliateSystem();
+      
+      const result = await affiliateSystem.registerAffiliate(req.body);
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error('Affiliate registration failed:', error);
+      res.status(500).json({ error: 'Affiliate registration failed' });
+    }
+  });
+
+  app.get('/api/affiliate/dashboard/:affiliateCode', async (req, res) => {
+    try {
+      const { getAffiliateSystem } = await import('./services/automatedAffiliate');
+      const affiliateSystem = getAffiliateSystem();
+      
+      const dashboard = await affiliateSystem.getAffiliateDashboard(req.params.affiliateCode);
+      res.json(dashboard);
+    } catch (error) {
+      console.error('Dashboard fetch failed:', error);
+      res.status(500).json({ error: 'Dashboard fetch failed' });
+    }
+  });
+
+  app.get('/api/affiliate/stats', async (req, res) => {
+    try {
+      const { getAffiliateSystem } = await import('./services/automatedAffiliate');
+      const affiliateSystem = getAffiliateSystem();
+      
+      const stats = await affiliateSystem.getSystemStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Stats fetch failed:', error);
+      res.status(500).json({ error: 'Stats fetch failed' });
+    }
+  });
+
+  // AUTOMATED OUTREACH ORCHESTRATOR ENDPOINTS
+  app.get('/api/automation/status', async (req, res) => {
+    try {
+      const { getOutreachOrchestrator } = await import('./services/automatedOutreachOrchestrator');
+      const orchestrator = getOutreachOrchestrator();
+      
+      const status = await orchestrator.getAutomationStatus();
+      res.json(status);
+    } catch (error) {
+      console.error('Automation status failed:', error);
+      res.status(500).json({ error: 'Automation status failed' });
+    }
+  });
+
   // COMPREHENSIVE OUTREACH CAMPAIGN ENDPOINT
   app.post('/api/execute-comprehensive-outreach', async (req, res) => {
     try {

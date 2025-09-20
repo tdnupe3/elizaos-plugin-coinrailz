@@ -21,6 +21,7 @@ import { registerAuthRoutes } from "./authRoutes";
 import { registerRoutes as registerMainRoutes } from "./routes";
 import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
+import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import coinflipRoutes from './routes/coinflipRoutes';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";

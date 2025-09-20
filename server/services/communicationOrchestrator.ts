@@ -41,9 +41,12 @@ export interface DeliveryResult {
 export interface MessageRequest {
   targetAddress: string;
   messageType: 'emergency_funding' | 'token_promotion' | 'partnership';
+  campaignType: 'donation' | 'competition' | 'product_sale';
   content: string;
   priority: 'urgent' | 'normal' | 'low';
   channels?: string[]; // specific channels to try
+  productId?: string; // for product sales campaigns
+  donationAmounts?: number[]; // suggested donation amounts
 }
 
 export class CommunicationOrchestrator {

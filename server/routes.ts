@@ -1952,6 +1952,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // === CORE MARKETPLACE ENDPOINTS (Public Access) ===
   app.get('/api/agents', async (req, res) => {
     try {
+      const { storage } = await import('./storage');
+      const agents = await storage.getMarketplaceAgents({ active: true });
+      
+      // Agents are already filtered for active status
+      const activeAgents = agents;
+      
+      res.json({
+        success: true,
+        agents: activeAgents,
+        count: activeAgents.length,
+        totalAgents: agents.length
+      });
+    } catch (error) {
+      console.error('❌ Failed to fetch agents:', error);
+      res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch agents',
+        details: error.message 
+      });
+    }
+  });
+
+  // FIXED API ENDPOINT - Now let's implement x402 protocol integration
+  app.get('/api/agents-working', async (req, res) => {
+    try {
       // Query actual database table that exists
       const agents = await db.execute(`
         SELECT id, agent_name, description, category, capabilities, 

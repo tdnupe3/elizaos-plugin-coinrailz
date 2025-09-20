@@ -130,42 +130,52 @@ export class UnifiedBusinessLogic {
 
     // Calculate service-specific fees
     switch (request.type) {
-      case 'p2p':
+      case 'p2p': {
+        const p2pFees = this.FEE_STRUCTURE.SERVICE_FEES.p2p;
         // Tiered P2P fees
         if (amount.lt(1000)) {
-          platformFee = amount.mul(feeStructure.tier1);
+          platformFee = amount.mul(p2pFees.tier1);
         } else if (amount.lt(10000)) {
-          platformFee = amount.mul(feeStructure.tier2);
+          platformFee = amount.mul(p2pFees.tier2);
         } else {
-          platformFee = amount.mul(feeStructure.tier3);
+          platformFee = amount.mul(p2pFees.tier3);
         }
-        platformFee = platformFee.add(feeStructure.fixed);
+        platformFee = platformFee.add(p2pFees.fixed);
         break;
+      }
 
-      case 'marketplace':
+      case 'marketplace': {
+        const marketplaceFees = this.FEE_STRUCTURE.SERVICE_FEES.marketplace;
         // Marketplace uses platform commission only
-        platformFee = amount.mul(feeStructure.base);
+        platformFee = amount.mul(marketplaceFees.base);
         if (request.expedited) {
-          expeditedFee = feeStructure.expedited;
+          expeditedFee = marketplaceFees.expedited;
         }
         break;
+      }
 
-      case 'xrp':
-        platformFee = amount.mul(feeStructure.platform);
-        networkFee = feeStructure.network;
+      case 'xrp': {
+        const xrpFees = this.FEE_STRUCTURE.SERVICE_FEES.xrp;
+        platformFee = amount.mul(xrpFees.platform);
+        networkFee = xrpFees.network;
         break;
+      }
 
-      case 'crypto':
+      case 'crypto': {
+        const cryptoFees = this.FEE_STRUCTURE.SERVICE_FEES.crypto;
         // Consistent 1.5% crypto swap fee across all chains
-        platformFee = amount.mul(feeStructure.base);
-        networkFee = amount.mul(feeStructure.network_fee);
+        platformFee = amount.mul(cryptoFees.base);
+        networkFee = amount.mul(cryptoFees.network_fee);
         break;
+      }
 
       case 'onramp':
-      case 'offramp':
+      case 'offramp': {
+        const fiatFees = this.FEE_STRUCTURE.SERVICE_FEES.onramp;
         // Different rates based on funding source
-        platformFee = amount.mul(feeStructure.stripe); // Default to Stripe
+        platformFee = amount.mul(fiatFees.stripe); // Default to Stripe
         break;
+      }
     }
 
     const totalFees = platformFee.add(networkFee).add(expeditedFee);

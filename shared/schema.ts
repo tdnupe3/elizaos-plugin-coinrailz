@@ -13,7 +13,6 @@ import {
   numeric,
   date,
   real,
-  sql,
   json,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";

@@ -17,6 +17,7 @@ export interface PaymentRequest {
   agentId: string;
   serviceDescription: string;
   customerWalletAddress?: string;
+  pricingTier?: 'early_adopter' | 'standard' | 'volume' | 'enterprise'; // NEW: Pricing tier selection
 }
 
 export interface PaymentResponse {
@@ -24,6 +25,9 @@ export interface PaymentResponse {
   paymentId: string;
   walletAddress: string;
   amount: number;
+  platformFee: number; // NEW: Show actual fee charged
+  feeRate: string; // NEW: Show fee percentage (e.g., "1.75% + $0.10")
+  netAmount: number; // NEW: Amount after fees
   status: 'pending' | 'completed' | 'failed';
   transactionHash?: string;
 }

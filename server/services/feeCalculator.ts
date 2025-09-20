@@ -161,6 +161,9 @@ export class FeeCalculator {
       totalAmount,
       netAmount,
       paymentMethod: 'p2p_transfer',
+      fee: totalFee,
+      total: totalAmount,
+      feePercentage: (totalFee / amount) * 100,
       feeBreakdown: {
         networkFee: processingFee,
         serviceFee: 0,

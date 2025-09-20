@@ -10,11 +10,26 @@ import { nanoid } from 'nanoid';
 const router = express.Router();
 
 /**
- * Create payment for AI agent service
+ * COMPETITIVE SDK PRICING STRUCTURE
+ * Early Adopter: 0.99% for first $500k TPV
+ * Standard: 1.75% + $0.10 per transaction  
+ * Volume: 1.25% at $1M+ TPV, 0.85% at $10M+ TPV
+ * Enterprise: 0.4%-0.9% + monthly fees
+ */
+const PRICING_TIERS = {
+  early_adopter: { rate: 0.0099, fixedFee: 0.05, maxTPV: 500000 }, // 0.99% + 5¢
+  standard: { rate: 0.0175, fixedFee: 0.10 }, // 1.75% + 10¢
+  volume_1m: { rate: 0.0125, fixedFee: 0.10, minTPV: 1000000 }, // 1.25% at $1M+
+  volume_10m: { rate: 0.0085, fixedFee: 0.10, minTPV: 10000000 }, // 0.85% at $10M+
+  enterprise: { rate: 0.006, fixedFee: 0.10, monthlyFee: 2000 } // 0.6% + $2k/mo
+};
+
+/**
+ * Create payment for AI agent service - COMPETITIVE PRICING
  */
 router.post('/agent-payments/create', async (req, res) => {
   try {
-    const { amount, agentId, serviceDescription, customerWalletAddress, webhookUrl } = req.body;
+    const { amount, agentId, serviceDescription, customerWalletAddress, webhookUrl, pricingTier = 'standard' } = req.body;
 
     if (!amount || !agentId || !serviceDescription) {
       return res.status(400).json({
@@ -31,9 +46,11 @@ router.post('/agent-payments/create', async (req, res) => {
       });
     }
 
-    // Calculate fees
-    const platformFee = orderAmount * 0.15; // 15% platform fee
-    const agentCommission = orderAmount - platformFee; // 85% to agent
+    // Calculate competitive SDK fees
+    const tier = PRICING_TIERS[pricingTier] || PRICING_TIERS.standard;
+    const platformFee = (orderAmount * tier.rate) + tier.fixedFee;
+    const netAmount = orderAmount - platformFee;
+    const agentCommission = netAmount; // Agent keeps almost everything after competitive fees
 
     // Create order in database
     const orderId = nanoid();
@@ -64,9 +81,11 @@ router.post('/agent-payments/create', async (req, res) => {
       paymentId: orderId,
       walletAddress,
       amount: orderAmount,
+      platformFee: parseFloat(platformFee.toFixed(2)),
+      feeRate: `${(tier.rate * 100).toFixed(2)}% + $${tier.fixedFee.toFixed(2)}`,
+      netAmount: parseFloat(netAmount.toFixed(2)),
       status: 'pending',
-      agentCommission: parseFloat(agentCommission.toFixed(2)),
-      platformFee: parseFloat(platformFee.toFixed(2))
+      agentCommission: parseFloat(agentCommission.toFixed(2))
     });
 
   } catch (error) {

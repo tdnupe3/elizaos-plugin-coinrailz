@@ -82,12 +82,13 @@ export class AutomatedOutreachOrchestrator {
       timezone: "America/New_York"
     });
 
-    // Email drip campaign - Every 3 days at 10 AM
-    cron.schedule('0 10 */3 * *', () => {
-      this.executeAutomatedEmailCampaign();
-    }, {
-      timezone: "America/New_York"
-    });
+    // Email drip campaign - DISABLED (out of SendGrid credits)
+    // cron.schedule('0 10 */3 * *', () => {
+    //   this.executeAutomatedEmailCampaign();
+    // }, {
+    //   timezone: "America/New_York"
+    // });
+    console.log('⚠️ Email campaigns disabled (SendGrid credits exhausted)');
 
     console.log('✅ All automated campaigns scheduled and running');
   }
@@ -404,7 +405,7 @@ AMA about the technical implementation patterns!
         github: this.githubClient ? 'enabled' : 'needs GITHUB_TOKEN',
         twitter: this.twitterHeaders ? 'enabled' : 'needs TWITTER_BEARER_TOKEN', 
         reddit: this.redditAuth ? 'enabled' : 'needs REDDIT credentials',
-        email: 'enabled',
+        email: 'disabled (SendGrid credits exhausted)',
         recentActivity: stats.rows || []
       };
     } catch (error) {

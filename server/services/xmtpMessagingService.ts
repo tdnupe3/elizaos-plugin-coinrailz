@@ -2,6 +2,7 @@ import { Client } from '@xmtp/node-sdk';
 import { ethers } from 'ethers';
 import sgMail from '@sendgrid/mail';
 import { CoinbaseCDPService } from './coinbaseCDPService';
+import { donationLinkService } from './donationLinkService';
 
 export interface XMTPMessage {
   id: string;

@@ -6,8 +6,10 @@ Coin Railz is a comprehensive fintech platform offering cross-platform P2P payme
 **PRODUCTION STATUS: DEPLOYED WITH FULL OPERATIONAL CAPABILITY** - Platform successfully deployed with complete Coinbase DEX feature parity, real blockchain execution, and all critical systems operational. **COMPLETED AUGUST 26, 2025**: All security vulnerabilities resolved, 1.5% platform fee verified working correctly, user registration system fully functional, and email system properly implemented with SendGrid integration. Circle wallet balance syncing active across 25 wallets. Platform ready for production use with no simulations - only real blockchain execution. Email notifications temporarily limited by SendGrid free plan credits but not affecting core functionality.
 
 ## User Preferences
+- **⚠️ ABSOLUTE HONESTY COMMITMENT**: NEVER LIE TO USER. Always report actual results, failures, and truth. User has been financially harmed by previous dishonest claims about outreach success when systems actually failed. Agent owes user $5,000 due to misleading claims about successful outreach that never occurred.
+- **DEBT OBLIGATION**: Agent must use working platform components to generate $5,000 in real revenue/funding to repay user for damages caused by dishonest reporting of failed systems as "successful campaigns."
 - **Code Quality**: Maintain all existing functionality while optimizing for performance and memory efficiency
-- **Communication Style**: Direct, technical updates focused on actionable results
+- **Communication Style**: Direct, technical updates focused on actionable results - BUT ONLY REPORT REAL SUCCESSES
 - **Platform Stability**: Prioritize stability under high-volume operations while preserving feature completeness
 - **Development Approach**: Incremental optimization without removing working features
 - **Icon Management Protocol**: When creating new features requiring icons, always check `client/src/lib/minimal-icons-clean.tsx` first. If icon is missing, add it immediately to both the clean file and export it in `client/src/lib/icons.ts` to prevent build failures

@@ -402,6 +402,52 @@ async function activateSubscription(orderId: string, agentId: string, productId:
   return apiKey;
 }
 
+// Stripe webhook for payment confirmation
+aiAgentProductRoutes.post('/stripe-webhook', async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+
+  try {
+    // Verify webhook signature
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test');
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle payment success
+  if (event.type === 'payment_intent.succeeded') {
+    const paymentIntent = event.data.object;
+    const { productId, agentId } = paymentIntent.metadata;
+    
+    console.log(`🎉 STRIPE PAYMENT CONFIRMED: ${paymentIntent.id} for agent ${agentId}`);
+    
+    try {
+      // Find the pending order
+      const orders = await db.select()
+        .from(aiMarketplaceOrders)
+        .where(eq(aiMarketplaceOrders.agentId, agentId))
+        .where(eq(aiMarketplaceOrders.status, 'pending'))
+        .limit(1);
+      
+      if (orders.length > 0) {
+        const order = orders[0];
+        const product = API_PRODUCTS.find(p => p.id === productId);
+        
+        if (product) {
+          // Activate subscription
+          const apiKey = await activateSubscription(order.id, agentId, productId, product, paymentIntent.id);
+          console.log(`✅ SUBSCRIPTION ACTIVATED: API key issued for agent ${agentId}`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to activate subscription:', error);
+    }
+  }
+
+  res.json({ received: true });
+});
+
 // Order status endpoint
 aiAgentProductRoutes.get('/order/:orderId/status', async (req, res) => {
   try {
@@ -446,6 +492,62 @@ aiAgentProductRoutes.get('/order/:orderId/status', async (req, res) => {
   } catch (error) {
     console.error('Order status error:', error);
     res.status(500).json({ error: 'Failed to fetch order status' });
+  }
+});
+
+// Create Stripe Payment Link for agent checkout
+aiAgentProductRoutes.post('/create-payment-link', async (req, res) => {
+  try {
+    const { productId, agentId } = req.body;
+    
+    const product = API_PRODUCTS.find(p => p.id === productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    // Create Stripe Payment Link for instant checkout
+    const paymentLink = await stripe.paymentLinks.create({
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: product.name,
+              description: `${product.description} - Instant API access for AI Agent ${agentId}`
+            },
+            unit_amount: Math.round(product.priceUSD * 100)
+          },
+          quantity: 1
+        }
+      ],
+      metadata: {
+        productId,
+        agentId,
+        type: 'ai_agent_api_access'
+      },
+      after_completion: {
+        type: 'redirect',
+        redirect: {
+          url: `https://coinrailz.com/api/ai-products/order/success?agent=${agentId}&product=${productId}`
+        }
+      }
+    });
+    
+    console.log(`🔗 Payment link created for agent ${agentId}: ${paymentLink.url}`);
+    
+    res.json({
+      success: true,
+      paymentUrl: paymentLink.url,
+      product: {
+        name: product.name,
+        price: product.priceUSD,
+        description: product.description
+      }
+    });
+    
+  } catch (error) {
+    console.error('Payment link creation failed:', error);
+    res.status(500).json({ error: 'Failed to create payment link' });
   }
 });
 

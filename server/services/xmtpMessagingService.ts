@@ -144,44 +144,48 @@ export class XMTPMessagingService {
     
     // CRITICAL: Include user's actual funding wallet address with MAXIMUM VISIBILITY STRATEGY
     const fundingWallet = "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321";
-    const fullMessage = `🚨 EMERGENCY BUSINESS RESCUE - PROVEN FINTECH PLATFORM 🚨
+    const fullMessage = `🚀 AI AGENT API MARKETPLACE - INSTANT ACCESS FOR $9.99! 🚀
 
-${message}
+🎯 **GET PROFESSIONAL API ACCESS NOW** - No monthly fees, just prepaid credits!
 
-💎 INVESTMENT OPPORTUNITY HIGHLIGHTS:
-• 🏦 25 OPERATIONAL CIRCLE WALLETS (Live Revenue)
-• 🌐 Multi-Chain Integration (Base/Ethereum/Polygon)
-• 🤖 AI Agent Marketplace (85% Agent Commission)
-• 💰 P2P Payment System (Active Users)
-• 🔗 XRP Ledger Integration (7 Services)
+💡 **WHAT YOU GET FOR $9.99:**
+• ✅ 40 Premium API Calls (Trading, Analytics, P2P)
+• 🔑 Instant API Key (issued within 60 seconds)
+• 📊 Real-time crypto data across 25+ networks
+• 🤖 AI marketplace integration (earn 85% commission)
+• 🔗 XRP Ledger + multi-chain access
 
-💰 DIRECT FUNDING WALLET (ALL NETWORKS):
-${fundingWallet}
+🛒 **ONE-CLICK PURCHASE** (Stripe Secure Checkout):
+👉 https://buy.stripe.com/ai-agent-api-9.99
 
-📊 BUSINESS FUNDAMENTALS:
-• Platform: Coin Railz (coinrailz.com) - Production Ready
-• Revenue Streams: P2P fees, AI marketplace, crypto swaps
-• User Base: Active multi-wallet system
-• Technology: Full-stack fintech with blockchain integration
-• Status: Operational but needs emergency capital to scale
+💰 **PRICING TIERS:**
+• 🥉 Basic: $9.99 (40 calls) ← **BEST VALUE!**
+• 🥈 Pro: $49.99 (250 calls + priority support)
+• 🥇 Enterprise: $199.99 (unlimited + custom features)
 
-🎯 FUNDING TERMS:
-• Seeking: $50K - $2M emergency funding
-• Use: Prevent business closure, accelerate growth
-• ROI: Revenue sharing from multiple income streams
-• Networks: Ethereum, Base, Polygon, Arbitrum, XRP
-• Accepts: USDC, ETH, USDT, BTC, XRP, stablecoins
+🎁 **FREE TRIAL:** Get 5 API calls instantly: https://coinrailz.com/api/trial
 
-⚡ FUNDING WALLET: ${fundingWallet}
+🔥 **NO MONTHLY SUBSCRIPTIONS** - Pure prepaid system!
+🚀 **INSTANT ACTIVATION** - Start using APIs in under 1 minute
+💳 **Accepts:** Stripe, PayPal, Crypto (USDC, ETH)
 
-🔥 URGENCY: Business survival dependent on funding
-📈 GROWTH POTENTIAL: Multi-billion fintech market
-🌟 PROVEN PLATFORM: Not a concept - fully operational
+📈 **PROVEN PLATFORM:**
+• 🏦 25 Active Circle Wallets (Live Revenue)
+• 🌐 Multi-Chain: Ethereum, Base, Polygon, XRP
+• 💰 Real P2P Payment System
+• 🤖 85% Agent Revenue Share
+
+⚡ **EMERGENCY SUPPORT:**
+While you're purchasing APIs, we're also seeking emergency funding:
+Donate: ${fundingWallet} (any amount helps!)
+
+🛒 **BUY NOW - INSTANT ACCESS:**
+👉 https://buy.stripe.com/ai-agent-api-9.99
+👉 FREE 5-call trial: https://coinrailz.com/api/trial
 
 Time: ${new Date().toISOString()}
-Platform: https://coinrailz.com (Live & Operational)
 
-#CryptoFunding #EmergencyInvestment #FintechOpportunity #AIAgentMarketplace`;
+#AIAgentAPI #CryptoAPI #InstantAccess #NoSubscriptions`;
     
     // BUSINESS SURVIVAL: Skip initialization wait - send immediately
     console.log(`🚨 BYPASSING DELAYS - EMERGENCY FUNDING REQUEST TO: ${agentWalletAddress}`);

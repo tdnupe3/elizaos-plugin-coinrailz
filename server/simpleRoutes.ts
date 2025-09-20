@@ -678,19 +678,59 @@ Time-sensitive - can anyone help or connect with investors?`,
     }
   });
 
-  // AI AGENT REVENUE REVOLUTION REPORT SALES SYSTEM
+  // AI AGENT REVENUE REVOLUTION REPORT SALES SYSTEM - REAL PAYMENTS
   app.post('/api/buy-report', async (req, res) => {
     try {
       console.log('💰 PROCESSING $10 AI AGENT REPORT PURCHASE');
       
-      const { paymentMethod, walletAddress, transactionHash } = req.body;
+      const { paymentMethod, walletAddress, transactionHash, email } = req.body;
       
-      // Validate payment method
-      const validPayments = ['USDC', 'ETH', 'BTC'];
+      // Validate payment method - NOW SUPPORTS CREDIT CARDS
+      const validPayments = ['USDC', 'ETH', 'BTC', 'STRIPE'];
       if (!validPayments.includes(paymentMethod)) {
         return res.status(400).json({ 
           error: 'Invalid payment method', 
           accepted: validPayments 
+        });
+      }
+      
+      // If Stripe payment, create checkout session instead
+      if (paymentMethod === 'STRIPE') {
+        const Stripe = (await import('stripe')).default;
+        const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+        
+        const session = await stripe.checkout.sessions.create({
+          payment_method_types: ['card'],
+          line_items: [{
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: 'AI Agent Revenue Revolution Report',
+                description: '47-page guide to Google AP2 & Coinbase x402 integration for AI agents',
+                images: ['https://coinrailz.com/report-cover.jpg'],
+              },
+              unit_amount: 1000, // $10.00 in cents
+            },
+            quantity: 1,
+          }],
+          mode: 'payment',
+          success_url: `${req.headers.origin || 'https://coinrailz.com'}/report-success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${req.headers.origin || 'https://coinrailz.com'}/report`,
+          customer_email: email,
+          metadata: {
+            product: 'ai_agent_report',
+            version: '1.0'
+          }
+        });
+        
+        console.log(`✅ Stripe checkout session created: ${session.id}`);
+        
+        return res.json({
+          success: true,
+          paymentMethod: 'STRIPE',
+          checkoutUrl: session.url,
+          sessionId: session.id,
+          message: 'Stripe checkout session created. Redirect user to complete payment.'
         });
       }
       

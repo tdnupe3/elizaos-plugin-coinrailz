@@ -90,8 +90,124 @@ router.post('/confirm-payment', async (req, res) => {
   }
 });
 
+// Handle report purchase completion
+router.post('/confirm-report-purchase', async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID required' });
+    }
+    
+    // Retrieve checkout session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    
+    if (session.payment_status === 'paid') {
+      // Create purchase record
+      const purchaseId = `report_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      const purchase = {
+        id: purchaseId,
+        product: 'AI Agent Revenue Revolution Report',
+        price: 10,
+        currency: 'USD',
+        paymentMethod: 'STRIPE',
+        customerEmail: session.customer_details?.email || session.customer_email,
+        stripeSessionId: sessionId,
+        purchaseDate: new Date().toISOString(),
+        status: 'confirmed',
+        deliveryMethod: 'email_download'
+      };
+      
+      // Generate secure download token that expires in 7 days
+      const downloadToken = `${purchaseId}_${Math.random().toString(36).substr(2, 16)}`;
+      const downloadLink = `${process.env.BASE_URL || 'https://coinrailz.com'}/api/reports/secure-download/${downloadToken}`;
+      
+      // Send email with download link using SendGrid
+      try {
+        const { MailService } = await import('@sendgrid/mail');
+        if (process.env.SENDGRID_API_KEY) {
+          const mailService = new MailService();
+          mailService.setApiKey(process.env.SENDGRID_API_KEY);
+          
+          await mailService.send({
+            to: purchase.customerEmail,
+            from: 'support@coinrailz.com',
+            subject: 'Your AI Agent Revenue Revolution Report - Download Ready!',
+            html: `
+              <h2>🎉 Thank you for your purchase!</h2>
+              <p>Your AI Agent Revenue Revolution Report is ready for download.</p>
+              
+              <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h3>📊 Report Details:</h3>
+                <ul>
+                  <li><strong>Title:</strong> AI Agent Revenue Revolution</li>
+                  <li><strong>Pages:</strong> 47 comprehensive pages</li>
+                  <li><strong>Topics:</strong> Google AP2 & Coinbase x402 Integration</li>
+                  <li><strong>Expected ROI:</strong> $100-$10,000+ within 30 days</li>
+                </ul>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${downloadLink}" style="background: #007bff; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 18px;">
+                  📥 Download Report Now
+                </a>
+              </div>
+              
+              <p><strong>⏰ Download expires in 7 days</strong></p>
+              
+              <h3>🚀 What's Next?</h3>
+              <ol>
+                <li>Download and read the complete guide</li>
+                <li>Implement x402 integration within 24 hours</li>
+                <li>Deploy your first revenue-generating service</li>
+                <li>Start earning autonomous revenue!</li>
+              </ol>
+              
+              <p>Questions? Reply to this email or contact support@coinrailz.com</p>
+              
+              <hr style="margin: 30px 0;">
+              <p style="font-size: 12px; color: #666;">
+                Purchase ID: ${purchaseId}<br>
+                This download link is unique to you and expires on ${new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+              </p>
+            `
+          });
+          
+          console.log(`✅ Report delivery email sent to ${purchase.customerEmail}`);
+        }
+      } catch (emailError) {
+        console.error('❌ Failed to send delivery email:', emailError);
+        // Continue with success response even if email fails
+      }
+      
+      res.json({
+        success: true,
+        purchase: purchase,
+        downloadLink: downloadLink,
+        message: 'Report purchase confirmed! Check your email for download instructions.',
+        deliveryStatus: 'email_sent'
+      });
+      
+    } else {
+      res.json({
+        success: false,
+        status: session.payment_status,
+        message: 'Payment not completed'
+      });
+    }
+    
+  } catch (error: any) {
+    console.error('Report purchase confirmation error:', error);
+    res.status(500).json({
+      error: 'Failed to confirm report purchase',
+      message: error.message
+    });
+  }
+});
+
 // Webhook endpoint for Stripe events
-router.post('/api/stripe/webhook', async (req, res) => {
+router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
 

@@ -167,15 +167,8 @@ export class XMTPMessagingService {
         console.log('📧 Using FREE XMTP messaging (no gas costs)...');
         
         // Check if agent can receive XMTP messages (FREE check) 
-        // Create proper Identifier for XMTP V3 API
-        const { IdentifierKind } = await import('@xmtp/node-sdk');
-        const agentIdentifier = {
-          identifier: agentWalletAddress,
-          identifierKind: IdentifierKind.Ethereum
-        };
-        
         const canMessage = await this.xmtpClient.canMessage([agentWalletAddress]);
-        const canReceive = canMessage.get(agentIdentifier.identifier) || false;
+        const canReceive = canMessage.get(agentWalletAddress) || false;
         
         if (!canReceive) {
           console.log(`⚠️ Agent ${agentWalletAddress} cannot receive XMTP messages - FREE check complete`);

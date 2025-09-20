@@ -82,6 +82,96 @@ function createFeeRateLimit() {
 
 export function setupSimpleRoutes(app: Express) {
   
+  // COMPREHENSIVE OUTREACH CAMPAIGN ENDPOINT
+  app.post('/api/execute-comprehensive-outreach', async (req, res) => {
+    try {
+      console.log('🚀 EXECUTING COMPREHENSIVE OUTREACH CAMPAIGN');
+      
+      // Execute multiple outreach strategies
+      const [telegramResults, redditResults, githubResults] = await Promise.all([
+        (async () => {
+          const { AutomatedOutreachService } = await import('./services/automatedOutreach');
+          const service = new AutomatedOutreachService();
+          return await service.executeAllCampaigns();
+        })(),
+        (async () => {
+          const { RedditOutreachService } = await import('./services/redditOutreach');
+          const service = new RedditOutreachService();
+          return await service.executeRedditCampaign();
+        })(),
+        (async () => {
+          const { GitHubOutreachService } = await import('./services/githubOutreach');
+          const service = new GitHubOutreachService();
+          return await service.executeGitHubCampaign();
+        })()
+      ]);
+      
+      res.json({
+        success: true,
+        message: 'Comprehensive outreach campaign executed',
+        results: {
+          telegram: {
+            totalReach: telegramResults.totalReach,
+            sent: telegramResults.telegram.sent,
+            wallets: telegramResults.xmtp.wallets.length
+          },
+          reddit: {
+            postsGenerated: redditResults.postsGenerated,
+            subreddits: redditResults.subreddits
+          },
+          github: {
+            repositoriesFound: githubResults.repositoriesFound,
+            targetRepos: githubResults.targetRepos.length
+          },
+          summary: {
+            telegramReach: telegramResults.totalReach,
+            redditCommunities: redditResults.subreddets,
+            githubTargets: githubResults.targetRepos.length,
+            totalPotentialReach: telegramResults.totalReach + redditResults.subreddits.length * 1000000 + githubResults.targetRepos.length * 1000
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Comprehensive outreach campaign failed:', error);
+      res.status(500).json({ error: 'Campaign failed', details: error.message });
+    }
+  });
+
+  // LEGACY TELEGRAM-ONLY OUTREACH
+  app.post('/api/execute-automated-outreach', async (req, res) => {
+    try {
+      const { AutomatedOutreachService } = await import('./services/automatedOutreach');
+      const outreachService = new AutomatedOutreachService();
+      
+      console.log('🚀 EXECUTING TELEGRAM OUTREACH CAMPAIGN');
+      
+      const results = await outreachService.executeAllCampaigns();
+      
+      res.json({
+        success: true,
+        message: 'Telegram outreach campaign executed',
+        results: {
+          totalReach: results.totalReach,
+          telegram: {
+            sent: results.telegram.sent,
+            groups: results.telegram.groups
+          },
+          xmtp: {
+            sent: results.xmtp.sent,
+            wallets: results.xmtp.wallets
+          }
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error) {
+      console.error('❌ Automated outreach campaign failed:', error);
+      res.status(500).json({ error: 'Outreach campaign failed', details: error.message });
+    }
+  });
+
   // REAL EMAIL OUTREACH ENDPOINT
   app.post('/api/send-outreach-email', async (req, res) => {
     try {

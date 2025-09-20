@@ -6,6 +6,7 @@
 
 import axios from 'axios';
 import { nanoid } from 'nanoid';
+import { createRedditPost } from '../routes/redditAuth';
 
 export interface RedditPost {
   subreddit: string;
@@ -228,21 +229,24 @@ Happy to answer questions about building in fintech or the technical details!`,
     console.log(`📝 Planned posts: ${posts.length}`);
 
     try {
-      // For now, simulate the campaign (Reddit API requires OAuth setup)
-      // TODO: Implement actual Reddit API calls with OAuth
-      
+      // Execute real Reddit posts via OAuth
       for (const post of posts.slice(0, Math.min(posts.length, maxRequests / 100))) {
         console.log(`📱 Posting to r/${post.subreddit}: "${post.title}"`);
         
-        // Simulate API call cost
-        const requestCost = (100 / 1000) * 0.24; // ~100 requests per post
+        // Real Reddit API call
+        const success = await createRedditPost(post.subreddit, post.title, post.text);
         
-        results.postsCreated++;
-        results.totalReach += post.estimatedReach;
-        results.cost += requestCost;
+        if (success) {
+          const requestCost = (100 / 1000) * 0.24; // ~100 requests per post
+          results.postsCreated++;
+          results.totalReach += post.estimatedReach;
+          results.cost += requestCost;
+        } else {
+          results.errors.push(`Failed to post to r/${post.subreddit}`);
+        }
         
-        // Add small delay to simulate real posting
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Rate limiting: 1 post per 10 minutes to avoid spam detection
+        await new Promise(resolve => setTimeout(resolve, 600000));
       }
       
       console.log(`✅ Campaign Complete:`);

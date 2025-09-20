@@ -22,6 +22,8 @@ import { registerRoutes as registerMainRoutes } from "./routes";
 import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
+import { redditAuthRouter } from './routes/redditAuth';
+import automatedOutreachRouter from './routes/automatedOutreachRoutes';
 import coinflipRoutes from './routes/coinflipRoutes';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
@@ -2832,6 +2834,10 @@ app.get('/api/circle/investigate-transaction/:txHash', async (req, res) => {
 
 // Register data monetization routes BEFORE simpleRoutes to prevent 404 interception
 app.use('/api/data', dataMonetizationRoutes);
+
+// AUTOMATED OUTREACH ROUTES - EMERGENCY REVENUE GENERATION
+app.use('/api', redditAuthRouter);
+app.use('/api', automatedOutreachRouter);
 
 // Register P2P routes with profitable fee structure BEFORE catch-all handler
 app.use('/api/p2p', p2pRoutes);

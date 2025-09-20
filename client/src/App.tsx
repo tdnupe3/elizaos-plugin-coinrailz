@@ -96,6 +96,9 @@ import AuthOptions from "@/pages/auth-options";
 import KYCIncentivesDashboard from "@/components/kyc-incentives-dashboard";
 import { lazy } from "react";
 
+// Import report landing page directly for critical path
+import ReportLandingPage from "@/pages/ReportLandingPage";
+
 // Lazy load remaining components
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
 const PrivacyPolicyPage = lazy(() => import("@/pages/privacy-policy"));
@@ -450,6 +453,9 @@ function Router() {
       <Route path="/contact-us">
         {() => <LazyLoadWrapper><ContactUs /></LazyLoadWrapper>}
       </Route>
+
+      {/* Report Landing Page - Public Access */}
+      <Route path="/report" component={ReportLandingPage} />
 
       {/* Legal pages - accessible to all users */}
       <Route path="/terms-of-service">

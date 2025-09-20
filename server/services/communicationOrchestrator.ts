@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { CampaignType } from './campaignTemplateService';
 
 export interface AgentContact {
   walletAddress: string;
@@ -41,7 +42,7 @@ export interface DeliveryResult {
 export interface MessageRequest {
   targetAddress: string;
   messageType: 'emergency_funding' | 'token_promotion' | 'partnership';
-  campaignType: 'donation' | 'competition' | 'product_sale';
+  campaignType: CampaignType;
   content: string;
   priority: 'urgent' | 'normal' | 'low';
   channels?: string[]; // specific channels to try

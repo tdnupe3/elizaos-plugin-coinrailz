@@ -166,8 +166,13 @@ export class XMTPMessagingService {
       try {
         console.log('📧 Using FREE XMTP messaging (no gas costs)...');
         
-        // Check if agent can receive XMTP messages (FREE check) 
-        const canMessage = await this.xmtpClient.canMessage([agentWalletAddress]);
+        // Check if agent can receive XMTP messages (FREE check)
+        const { IdentifierKind } = await import('@xmtp/node-sdk');
+        const agentIdentifier = {
+          identifier: agentWalletAddress,
+          identifierKind: IdentifierKind.Ethereum
+        };
+        const canMessage = await this.xmtpClient.canMessage([agentIdentifier]);
         const canReceive = canMessage.get(agentWalletAddress) || false;
         
         if (!canReceive) {
@@ -316,7 +321,12 @@ export class XMTPMessagingService {
       console.log('🔍 Checking which agents can receive FREE XMTP messages...');
       
       // Single canMessage call for all agents (simplified approach)
-      const canMessageResults = await this.xmtpClient.canMessage(agentAddresses);
+      const { IdentifierKind } = await import('@xmtp/node-sdk');
+      const agentIdentifiers = agentAddresses.map(address => ({
+        identifier: address,
+        identifierKind: IdentifierKind.Ethereum
+      }));
+      const canMessageResults = await this.xmtpClient.canMessage(agentIdentifiers);
       
       // Check results using string addresses
       for (const address of agentAddresses) {

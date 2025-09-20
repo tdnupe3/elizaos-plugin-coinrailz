@@ -304,7 +304,7 @@ AMA about the technical implementation patterns!
   private async executeAutomatedEmailCampaign() {
     console.log('📧 Executing automated email campaign...');
 
-    const aiDeveloperEmails = [
+    const aiDeveloperEmails: string[] = [
       // These would be opt-in emails from AI developers who requested info
       // Never send unsolicited emails
     ];
@@ -410,10 +410,11 @@ AMA about the technical implementation patterns!
         email: 'disabled (SendGrid credits exhausted)',
         recentActivity: stats.rows || []
       };
-    } catch (error) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         status: 'error',
-        error: error.message
+        error: errorMessage
       };
     }
   }

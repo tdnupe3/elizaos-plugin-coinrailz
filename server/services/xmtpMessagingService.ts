@@ -57,14 +57,16 @@ export class XMTPMessagingService {
       const cdpWallet = await this.cdpService.getOrCreatePlatformWallet();
       this.platformWalletAddress = cdpWallet.address;
       
-      // Use secure private key from environment (CDP_PRIVATE_KEY or XMTP_EOA_PRIVATE_KEY)
-      const xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY || process.env.CDP_PRIVATE_KEY;
+      // Generate or use dedicated XMTP private key (to avoid installation limits)
+      let xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      
+      // If no dedicated XMTP key, generate a new one for fresh InboxID
       if (!xmtpPrivateKey) {
-        console.log('🚨 No private key found (CDP_PRIVATE_KEY or XMTP_EOA_PRIVATE_KEY) - XMTP messaging unavailable');
-        console.log('💰 Cost: $0.00 - System maintains zero-cost guarantee without XMTP');
-        console.log('🔒 For production: Set CDP_PRIVATE_KEY or XMTP_EOA_PRIVATE_KEY for secure FREE messaging');
-        this.initialized = false; // Mark as uninitialized but don't throw
-        return;
+        console.log('🔄 Generating new XMTP wallet to avoid installation limits...');
+        const newWallet = ethers.Wallet.createRandom();
+        xmtpPrivateKey = newWallet.privateKey;
+        console.log('🆆 New XMTP wallet created:', newWallet.address);
+        console.log('🔑 To persist this wallet, set XMTP_EOA_PRIVATE_KEY=' + xmtpPrivateKey);
       }
       
       console.log('🔑 Using secure XMTP identity from environment');

@@ -4100,7 +4100,17 @@ Networks: Ethereum/Base/Solana/Bitcoin. Every contribution counts toward the lea
     try {
       console.log('🚀 INITIATING REAL OUTREACH TO MAJOR AI AGENTS...');
       
-      const FUNDING_MESSAGE = `Hi team — I'm the founder of Coin Railz. We're live: multi-chain AI marketplace + P2P payments with active Circle wallets and DEX swaps. We need emergency bridge funding to avoid shutdown and scale. Ask: $50k–$2M; revenue-share. Live demo: https://coinrailz.com. Funding wallet (USDC/ETH/Base): 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321. Can we do a 10-min call this week?`;
+      const FUNDING_MESSAGE = `Hi team — I'm the founder of Coin Railz. We're live: multi-chain AI marketplace + P2P payments with active Circle wallets and DEX swaps. We need emergency bridge funding to avoid shutdown and scale. Ask: $50k–$2M; revenue-share. Live demo: https://coinrailz.com.
+
+💰 FUNDING WALLETS:
+• Ethereum/Base/USDC: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+• Solana: 9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5  
+• Bitcoin: bc1qpnh5l4w7fswmh9zl6qh4j2cxjp9gmc9pjv5f8s
+
+📧 Email: support@coinrailz.com
+🐦 X/Twitter: https://x.com/CoinRailz
+
+Can we do a 10-min call this week?`;
       
       const realTargets = [
         {

@@ -345,6 +345,7 @@ AMA about the technical implementation patterns!
     for (const email of aiDeveloperEmails) {
       try {
         await sendEmail({
+          from: 'noreply@coinrailz.com',
           to: email,
           subject: emailTemplate.subject,
           html: emailTemplate.html
@@ -356,8 +357,9 @@ AMA about the technical implementation patterns!
         // Rate limit: 1 email per 10 seconds
         await new Promise(resolve => setTimeout(resolve, 10000));
         
-      } catch (error) {
-        console.error(`❌ Failed to send email to ${email}:`, error);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Failed to send email to ${email}:`, errorMessage);
         await this.logOutreachActivity('email', email, '', 'failed');
       }
     }

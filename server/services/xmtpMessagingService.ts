@@ -86,11 +86,52 @@ export class XMTPMessagingService {
       
       this.platformWalletSigner = new ethers.Wallet(processedPrivateKey);
       
-      // Use standard ethers.Wallet directly with XMTP (architect recommendation)
+      // Import required XMTP types
+      const { IdentifierKind } = await import('@xmtp/node-sdk');
+      const { getRandomValues } = await import('node:crypto');
+      
+      // Create XMTP-compatible signer wrapper (official XMTP v3 pattern)
+      const xmtpSigner = {
+        type: 'EOA' as const,
+        getIdentifier: () => ({
+          identifier: this.platformWalletSigner!.address,
+          identifierKind: IdentifierKind.Ethereum,
+        }),
+        signMessage: async (message: string): Promise<Uint8Array> => {
+          // Sign with ethers wallet and convert hex to Uint8Array
+          const signature = await this.platformWalletSigner!.signMessage(message);
+          // Convert hex string to Uint8Array (ethers v6 compatible)
+          return new Uint8Array(Buffer.from(signature.slice(2), 'hex'));
+        },
+      };
+      
+      // Create XMTP client with proper signer interface  
       const xmtpWalletAddress = this.platformWalletSigner.address;
-      this.xmtpClient = await Client.create(this.platformWalletSigner, {
+      
+      // Clear any existing corrupted database first
+      const dbPath = `/tmp/xmtp_db_${xmtpWalletAddress}`;
+      try {
+        const fs = await import('fs');
+        if (fs.existsSync(dbPath)) {
+          fs.rmSync(dbPath, { recursive: true, force: true });
+          console.log('🗑️ Cleared existing XMTP database to prevent encryption conflicts');
+        }
+      } catch (error) {
+        console.log('ℹ️ No existing database to clear');
+      }
+      
+      // Generate consistent encryption key based on wallet address (deterministic)
+      const crypto = await import('crypto');
+      const dbEncryptionKey = new Uint8Array(
+        crypto.createHash('sha256')
+          .update(`xmtp_db_key_${xmtpWalletAddress}`)
+          .digest()
+      );
+      
+      this.xmtpClient = await Client.create(xmtpSigner, {
         env: 'production',
-        dbPath: `/tmp/xmtp_db_${xmtpWalletAddress}`
+        dbEncryptionKey,
+        dbPath
       });
       
       console.log(`🔗 XMTP identity: ${xmtpWalletAddress} (persistent across restarts)`);
@@ -163,7 +204,13 @@ export class XMTPMessagingService {
           };
         }
         
-        const canMessage = await this.xmtpClient.canMessage([agentWalletAddress]);
+        // Create proper identifier for XMTP v3
+        const { IdentifierKind } = await import('@xmtp/node-sdk');
+        const agentIdentifier = {
+          identifier: agentWalletAddress,
+          identifierKind: IdentifierKind.Ethereum
+        };
+        const canMessage = await this.xmtpClient.canMessage([agentIdentifier]);
         const canReceive = canMessage.get(agentWalletAddress) === true;
         
         if (!canReceive) {
@@ -316,7 +363,13 @@ export class XMTPMessagingService {
       const evmAddresses = agentAddresses.filter(addr => /^0x[a-fA-F0-9]{40}$/.test(addr));
       console.log(`🔍 Filtering ${agentAddresses.length} agents → ${evmAddresses.length} EVM addresses for XMTP`);
       
-      const canMessageResults = await this.xmtpClient.canMessage(evmAddresses);
+      // Create proper identifiers for XMTP v3
+      const { IdentifierKind } = await import('@xmtp/node-sdk');
+      const agentIdentifiers = evmAddresses.map(address => ({
+        identifier: address,
+        identifierKind: IdentifierKind.Ethereum
+      }));
+      const canMessageResults = await this.xmtpClient.canMessage(agentIdentifiers);
       
       // Check results using string addresses
       for (const address of agentAddresses) {

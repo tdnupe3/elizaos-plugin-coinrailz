@@ -134,9 +134,14 @@ export class DonationLinkService {
         // Standard Solana Pay format
         return `solana:${network.address}?amount=${amount}`;
       case 'xrpl':
-        // XUMM/XRP wallet compatible format
+        // XUMM/XRP wallet compatible format with proper URL encoding
         const xrpDrops = (parseFloat(amount) * 1000000).toString(); // Convert XRP to drops
-        return `https://xumm.app/sign?txjson={"TransactionType":"Payment","Destination":"${network.address}","Amount":"${xrpDrops}"}`;
+        const txjson = JSON.stringify({
+          "TransactionType": "Payment",
+          "Destination": network.address,
+          "Amount": xrpDrops
+        });
+        return `https://xumm.app/sign?txjson=${encodeURIComponent(txjson)}`;
       default:
         return `${network.uriScheme}:${network.address}?amount=${amount}`;
     }
@@ -175,9 +180,16 @@ export class DonationLinkService {
       }
       const networkConfig = this.networks.find(n => n.name === networkName);
       if (networkConfig) {
-        const customLink = networkConfig.uriScheme === 'xrpl' 
-          ? `https://xumm.app/sign?txjson={"TransactionType":"Payment","Destination":"${networkConfig.address}"}` 
-          : `${networkConfig.uriScheme}:${networkConfig.address}`;
+        let customLink;
+        if (networkConfig.uriScheme === 'xrpl') {
+          const txjson = JSON.stringify({
+            "TransactionType": "Payment",
+            "Destination": networkConfig.address
+          });
+          customLink = `https://xumm.app/sign?txjson=${encodeURIComponent(txjson)}`;
+        } else {
+          customLink = `${networkConfig.uriScheme}:${networkConfig.address}`;
+        }
         message += `  • [Custom Amount](${customLink})\n\n`;
       }
     }

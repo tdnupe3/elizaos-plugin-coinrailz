@@ -157,14 +157,14 @@ Agent Registration: Include "${agentId || 'AGENT_ID'}" with all donations for pr
 • 🔗 XRP Ledger + multi-chain access
 
 🛒 **ONE-CLICK PURCHASE** (Stripe Secure Checkout):
-👉 https://coinrailz.com/api/ai-products/create-payment-link (Product: ${productId}, Agent: ${agentId})
+👉 https://coinrailz.com/api/ai-products/purchase (POST with productId: ${productId})
 
 💰 **PRICING TIERS:**
 • 🥉 Basic: $9.99 (40 calls) ← **BEST VALUE!**
 • 🥈 Pro: $49.99 (250 calls + priority support)
 • 🥇 Enterprise: $199.99 (unlimited + custom features)
 
-🎁 **FREE TRIAL:** Get 5 API calls instantly: https://coinrailz.com/api/trial
+🎁 **FREE TRIAL:** Contact support@coinrailz.com for trial access
 
 🔥 **NO MONTHLY SUBSCRIPTIONS** - Pure prepaid system!
 🚀 **INSTANT ACTIVATION** - Start using APIs in under 1 minute
@@ -181,8 +181,8 @@ Agent Registration: Include "${agentId || 'AGENT_ID'}" with all donations for pr
 ⚡ **Status:** All systems operational
 
 🛒 **BUY NOW - INSTANT ACCESS:**
-👉 Purchase ${product.name}: https://coinrailz.com/api/ai-products/purchase
-👉 FREE 5-call trial: https://coinrailz.com/api/trial
+👉 Purchase ${product.name}: Visit https://coinrailz.com for checkout
+👉 API Documentation: https://coinrailz.com/api/docs
 
 Time: ${new Date().toISOString()}
 

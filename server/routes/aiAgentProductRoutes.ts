@@ -423,12 +423,14 @@ aiAgentProductRoutes.post('/stripe-webhook', express.raw({ type: 'application/js
     const { productId, agentId } = paymentIntent.metadata;
     
     console.log(`🎉 STRIPE PAYMENT CONFIRMED: ${paymentIntent.id} for agent ${agentId}`);
+    console.log(`💰 Amount: $${(paymentIntent.amount / 100).toFixed(2)}, Product: ${productId}`);
     
     try {
-      // Find the pending order
+      // Find the pending order by payment intent
       const orders = await db.select()
         .from(aiMarketplaceOrders)
         .where(eq(aiMarketplaceOrders.agentId, agentId))
+        .where(eq(aiMarketplaceOrders.productId, productId))
         .where(eq(aiMarketplaceOrders.status, 'pending'))
         .limit(1);
       
@@ -437,14 +439,22 @@ aiAgentProductRoutes.post('/stripe-webhook', express.raw({ type: 'application/js
         const product = API_PRODUCTS.find(p => p.id === productId);
         
         if (product) {
-          // Activate subscription
+          // Activate subscription with verified payment
           const apiKey = await activateSubscription(order.id, agentId, productId, product, paymentIntent.id);
-          console.log(`✅ SUBSCRIPTION ACTIVATED: API key issued for agent ${agentId}`);
+          console.log(`✅ PAYMENT VERIFIED & SUBSCRIPTION ACTIVATED: API key ${apiKey} issued for agent ${agentId}`);
+          console.log(`📊 Revenue: $${product.priceUSD} collected successfully`);
+        } else {
+          console.error(`❌ Product ${productId} not found in catalog`);
         }
+      } else {
+        console.error(`❌ No pending order found for agent ${agentId}, product ${productId}`);
       }
     } catch (error) {
-      console.error('Failed to activate subscription:', error);
+      console.error('💥 CRITICAL: Failed to activate subscription after confirmed payment:', error);
+      // TODO: Add alert system for manual intervention
     }
+  } else {
+    console.log(`📨 Stripe webhook event: ${event.type}`);
   }
 
   res.json({ received: true });

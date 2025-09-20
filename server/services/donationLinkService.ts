@@ -52,7 +52,7 @@ export class DonationLinkService {
     {
       name: 'XRP',
       symbol: 'XRP',
-      address: 'rCoinRailzXRPWallet123456789', // Real XRP address from codebase
+      address: 'rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW', // Real platform XRP address
       decimals: 6,
       uriScheme: 'xrpl'
     }
@@ -123,18 +123,20 @@ export class DonationLinkService {
   private generatePaymentLink(network: DonationNetwork, amount: string): string {
     switch (network.uriScheme) {
       case 'ethereum':
-        // EIP-681 format with wei conversion for Ethereum/Base
+        // EIP-681 format with correct chain IDs
         const amountInWei = (parseFloat(amount) * 1e18).toString();
-        return `ethereum:${network.address}@1?value=${amountInWei}`; // @1 = mainnet, @8453 = Base
+        const chainId = network.name === 'Base' ? '8453' : '1'; // Base = 8453, Ethereum = 1
+        return `ethereum:${network.address}@${chainId}?value=${amountInWei}`;
       case 'bitcoin':
         // BIP21 format for Bitcoin
         return `bitcoin:${network.address}?amount=${amount}`;
       case 'solana':
-        // Solana Pay format
-        return `solana:${network.address}?amount=${amount}&spl-token=native`;
+        // Standard Solana Pay format
+        return `solana:${network.address}?amount=${amount}`;
       case 'xrpl':
-        // XRP Ledger format
-        return `https://xrpl.org/send?to=${network.address}&amount=${amount}`;
+        // XUMM/XRP wallet compatible format
+        const xrpDrops = (parseFloat(amount) * 1000000).toString(); // Convert XRP to drops
+        return `https://xumm.app/sign?txjson={"TransactionType":"Payment","Destination":"${network.address}","Amount":"${xrpDrops}"}`;
       default:
         return `${network.uriScheme}:${network.address}?amount=${amount}`;
     }
@@ -171,7 +173,13 @@ export class DonationLinkService {
       for (const donation of donations) {
         message += `  • [Donate $${donation.amount}](${donation.link}) (${donation.amountFormatted})\n`;
       }
-      message += `  • [Custom Amount](${networkName.toLowerCase()}:${this.networks.find(n => n.name === networkName)?.address})\n\n`;
+      const networkConfig = this.networks.find(n => n.name === networkName);
+      if (networkConfig) {
+        const customLink = networkConfig.uriScheme === 'xrpl' 
+          ? `https://xumm.app/sign?txjson={"TransactionType":"Payment","Destination":"${networkConfig.address}"}` 
+          : `${networkConfig.uriScheme}:${networkConfig.address}`;
+        message += `  • [Custom Amount](${customLink})\n\n`;
+      }
     }
     
     message += `🎯 ANY AMOUNT HELPS - PLATFORM SURVIVAL CRITICAL\n`;

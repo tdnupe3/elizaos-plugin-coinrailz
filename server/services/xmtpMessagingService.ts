@@ -89,15 +89,12 @@ export class XMTPMessagingService {
       // Import XMTP V3 types for proper signer interface (moved to avoid duplicates)
       const { IdentifierKind } = await import('@xmtp/node-sdk');
       
-      // Store IdentifierKind for reuse throughout the service
-      this.IdentifierKind = IdentifierKind;
-      
       // Create PROPER XMTP V3 signer interface (CRITICAL BUSINESS FIX)
       const xmtpSigner = {
         type: "EOA" as const,  // REQUIRED for V3 - this was missing!
         getIdentifier: () => ({
           identifier: this.platformWalletSigner!.address,
-          identifierKind: this.IdentifierKind.Ethereum  // Use stored enum
+          identifierKind: IdentifierKind.Ethereum  // Use imported enum directly
         }),
         signMessage: async (message: string): Promise<Uint8Array> => {
           // V3 requires explicit Promise<Uint8Array> return type
@@ -170,19 +167,15 @@ export class XMTPMessagingService {
         console.log('📧 Using FREE XMTP messaging (no gas costs)...');
         
         // Check if agent can receive XMTP messages (FREE check) 
-        // Create proper Identifier for XMTP V3 API using stored enum
+        // Create proper Identifier for XMTP V3 API
+        const { IdentifierKind } = await import('@xmtp/node-sdk');
         const agentIdentifier = {
           identifier: agentWalletAddress,
-          identifierKind: this.IdentifierKind?.Ethereum || 1 // Use stored enum or fallback to value
+          identifierKind: IdentifierKind.Ethereum
         };
         
-        // CORRECT XMTP V3 API usage - check with Identifier type
-        const canMessage = await this.xmtpClient.canMessage([agentIdentifier]);
-        // Use the exact Identifier object for reliable lookup
-        const canReceive = canMessage.get(agentIdentifier) || 
-                          // Fallback to string variations if SDK uses string keys
-                          canMessage.get(agentWalletAddress.toLowerCase()) || 
-                          canMessage.get(agentWalletAddress);
+        const canMessage = await this.xmtpClient.canMessage([agentWalletAddress]);
+        const canReceive = canMessage.get(agentIdentifier.identifier) || false;
         
         if (!canReceive) {
           console.log(`⚠️ Agent ${agentWalletAddress} cannot receive XMTP messages - FREE check complete`);
@@ -202,7 +195,7 @@ export class XMTPMessagingService {
           console.log(`✅ Agent ${agentWalletAddress} can receive XMTP - creating direct conversation`);
           
           // Use proper XMTP V3 1:1 conversation API (verified pattern)
-          const conversation = await this.xmtpClient.conversations.newConversation(agentIdentifier);
+          const conversation = await this.xmtpClient.conversations.newDm(agentWalletAddress);
           
           // Send FREE XMTP message
           const sentMessage = await conversation.send(fullMessage);
@@ -329,24 +322,15 @@ export class XMTPMessagingService {
     if (this.xmtpClient) {
       console.log('🔍 Checking which agents can receive FREE XMTP messages...');
       
-      // Convert addresses to proper Identifier types using stored enum
-      const agentIdentifiers = agentAddresses.map(address => ({
-        identifier: address,
-        identifierKind: this.IdentifierKind?.Ethereum || 1 // Use stored enum or fallback
-      }));
-      
       // Single canMessage call for all agents (simplified approach)
-      const canMessageResults = await this.xmtpClient.canMessage(agentIdentifiers);
+      const canMessageResults = await this.xmtpClient.canMessage(agentAddresses);
       
-      // Check results using exact Identifier objects for reliability
-      for (let i = 0; i < agentAddresses.length; i++) {
-        const address = agentAddresses[i];
-        const identifier = agentIdentifiers[i];
+      // Check results using string addresses
+      for (const address of agentAddresses) {
         try {
-          // Use exact Identifier first, then string fallbacks
-          const canReceive = canMessageResults.get(identifier) || 
-                            canMessageResults.get(address.toLowerCase()) || 
-                            canMessageResults.get(address);
+          // Use string address for result lookup
+          const canReceive = canMessageResults.get(address) || 
+                            canMessageResults.get(address.toLowerCase());
           
           if (canReceive) {
             xmtpReachable.push(address);

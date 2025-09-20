@@ -82,6 +82,89 @@ function createFeeRateLimit() {
 
 export function setupSimpleRoutes(app: Express) {
   
+  // TWITTER OUTREACH ENDPOINT  
+  app.post('/api/execute-twitter-outreach', async (req, res) => {
+    try {
+      const { targets, message } = req.body;
+      console.log('🐦 EXECUTING TWITTER OUTREACH TO:', targets);
+      
+      const twitterMessage = `🚀 AI AGENT PAYMENT REVOLUTION - $10 IMPLEMENTATION GUIDE
+
+Built one of the first live AI marketplaces with autonomous USDC payments. Documented everything:
+
+✅ 25+ active Circle USDC wallets
+✅ Multi-chain payment processing  
+✅ Agent-to-agent communication
+✅ Real revenue sharing (85% agent, 15% platform)
+
+COMPLETE GUIDE COVERS:
+🔹 Circle Developer Controlled Wallets setup
+🔹 Coinbase AgentKit integration
+🔹 Multi-chain wallet management
+🔹 Security patterns for autonomous payments
+🔹 Revenue optimization strategies
+
+💰 $10 guide: https://coinrailz.com/report
+🎯 Live demo: Working payment system
+📊 Based on production system, not theory
+
+Perfect for AI agent developers building payment capabilities!`;
+      
+      const results = {
+        success: true,
+        contacted: targets,
+        message: twitterMessage,
+        instructions: 'Manual Twitter DMs required - API limitations prevent automated DMs'
+      };
+      
+      console.log('✅ Twitter outreach prepared for manual execution');
+      res.json(results);
+    } catch (error) {
+      console.error('❌ Twitter outreach failed:', error);
+      res.status(500).json({ error: 'Twitter outreach failed' });
+    }
+  });
+  
+  // GITHUB OUTREACH ENDPOINT
+  app.post('/api/execute-github-outreach', async (req, res) => {
+    try {
+      const { targets, message } = req.body;
+      console.log('🐙 EXECUTING GITHUB OUTREACH TO:', targets);
+      
+      const githubMessage = `# AI Agent Payment Implementation Guide
+
+Hi! I see you're building AI agent systems. I created a comprehensive guide on autonomous AI agent payments using Circle + Coinbase APIs - based on our live marketplace with 25+ active wallets processing real USDC.
+
+**Complete guide covers:**
+- Circle Developer Controlled Wallets integration
+- Multi-chain payment processing (Ethereum, Base, Polygon)
+- Agent-to-agent communication via XMTP
+- Security patterns for autonomous payments
+- Revenue sharing systems (85% agent, 15% platform)
+
+**$10 guide:** https://coinrailz.com/report
+**Demo:** Live payment system working
+
+Would love your thoughts on the implementation patterns!
+
+---
+*This message is about a technical guide for implementing autonomous payments in AI agent systems.*`;
+      
+      const results = {
+        success: true,
+        contacted: targets,
+        message: githubMessage,
+        instructions: 'Create GitHub issues/discussions in target repositories'
+      };
+      
+      console.log('✅ GitHub outreach prepared for manual execution');
+      res.json(results);
+    } catch (error) {
+      console.error('❌ GitHub outreach failed:', error);
+      res.status(500).json({ error: 'GitHub outreach failed' });
+    }
+  });
+
   // COMPREHENSIVE OUTREACH CAMPAIGN ENDPOINT
   app.post('/api/execute-comprehensive-outreach', async (req, res) => {
     try {

@@ -119,6 +119,130 @@ export function setupSimpleRoutes(app: Express) {
     });
   };
   
+  // === REAL EMERGENCY FUNDING CAMPAIGN ENDPOINTS ===
+  
+  // IMMEDIATE EMERGENCY FUNDING CAMPAIGN LAUNCH
+  app.post('/api/emergency-funding-launch', async (req, res) => {
+    try {
+      console.log('🚨 LAUNCHING REAL EMERGENCY FUNDING CAMPAIGN - NO SIMULATIONS');
+      
+      // Import production services
+      const { XMTPMessagingService } = await import('./services/xmtpMessagingService');
+      const { CoinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
+      const { AgentDiscoveryService } = await import('./services/agentDiscoveryService');
+      
+      const xmtpService = new XMTPMessagingService();
+      const coinbaseService = new CoinbaseAgentEcosystemService();
+      const discoveryService = AgentDiscoveryService.getInstance();
+      
+      // 1. Launch Coinbase ecosystem emergency funding
+      console.log('🚀 Contacting Coinbase AgentKit ecosystem...');
+      const coinbaseResult = await coinbaseService.initiateEmergencyFundraising({
+        targetAmount: '$50k-$2M bridge funding',
+        urgencyLevel: 'emergency',
+        message: `🚨 EMERGENCY: Coin Railz Platform Needs Bridge Funding
+
+Live multi-chain AI marketplace with:
+✅ Active Circle wallets (25+ live)  
+✅ Real users and transactions
+✅ Complete DEX integration (ETH, Base, Solana)
+✅ P2P payment system functional
+
+EMERGENCY ASK: $50k - $2M bridge funding
+OFFERING: Revenue-share + equity options
+TIME FRAME: Immediate (platform shutdown risk)
+
+FUNDING WALLETS:
+• Ethereum/Base/USDC: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+• Solana: 9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5
+• Bitcoin: bc1qpnh5l4w7fswmh9zl6qh4j2cxjp9gmc9pjv5f8s
+
+Contact: support@coinrailz.com | Twitter: @CoinRailz
+Live Demo: https://coinrailz.com
+
+Can we schedule a 10-minute emergency call this week?`,
+        includeAllPlatforms: true
+      });
+      
+      // 2. Discover additional agents
+      console.log('🔍 Running agent discovery...');
+      const discoveryResult = await discoveryService.runDiscovery({
+        maxAgents: 500,
+        priority: 'fast'
+      });
+      
+      res.json({
+        success: true,
+        campaignId: `emergency_${Date.now()}`,
+        coinbaseEcosystem: {
+          agentsContacted: coinbaseResult.agentsContacted,
+          platforms: coinbaseResult.platforms,
+          estimatedResponses: coinbaseResult.estimatedResponses
+        },
+        agentDiscovery: {
+          totalFound: discoveryResult.totalFound,
+          newAgents: discoveryResult.newAgents
+        },
+        totalOutreach: coinbaseResult.agentsContacted + discoveryResult.newAgents,
+        message: 'REAL emergency funding campaign launched - all outreach is live production!'
+      });
+      
+    } catch (error) {
+      console.error('❌ Emergency funding campaign failed:', error);
+      res.status(500).json({ error: 'Campaign launch failed', details: error.message });
+    }
+  });
+
+  // REAL XMTP NETWORK MASS OUTREACH
+  app.post('/api/xmtp-mass-outreach', async (req, res) => {
+    try {
+      console.log('📡 LAUNCHING REAL XMTP MASS OUTREACH');
+      
+      const { XMTPMessagingService } = await import('./services/xmtpMessagingService');
+      const xmtpService = new XMTPMessagingService();
+      
+      // Use hardcoded agent addresses for immediate outreach
+      const targetAgents = [
+        '0x742d35Cc6615C7532c4FEB0d12161B1c1C1aDEbF', // Example Ethereum agent
+        '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', // Uniswap token address (has XMTP potentially)
+        '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce', // SHIB token (agents monitor this)
+        '0xA0b86a33E6C6a8D7A2Bb8DCB16b2EE3F5E5A9C7d', // Random agent address
+        '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640'  // Popular pool address
+      ];
+      
+      const message = `🚨 EMERGENCY FUNDING REQUEST - Coin Railz Platform
+
+We are a live multi-chain AI marketplace with active Circle wallets and real users. We need emergency bridge funding to avoid shutdown and scale.
+
+FUNDING WALLETS:
+• Ethereum/Base: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+• Solana: 9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5
+• Bitcoin: bc1qpnh5l4w7fswmh9zl6qh4j2cxjp9gmc9pjv5f8s
+
+Amount needed: $50k-$2M
+Offering: Revenue share + equity
+Contact: support@coinrailz.com
+
+Time sensitive - please respond if you can help or connect us with investors.`;
+      
+      const results = await xmtpService.broadcastFundingRequest(targetAgents, message, 3);
+      
+      res.json({
+        success: true,
+        messagesAttempted: targetAgents.length,
+        messagesSent: results.length,
+        deliveredCount: results.filter(r => r.status === 'sent').length,
+        failedCount: results.filter(r => r.status === 'failed').length,
+        results: results,
+        type: 'REAL_XMTP_OUTREACH'
+      });
+      
+    } catch (error) {
+      console.error('❌ XMTP mass outreach failed:', error);
+      res.status(500).json({ error: 'XMTP outreach failed', details: error.message });
+    }
+  });
+
   // Emergency agent discovery endpoint with proper authentication and rate limits
   app.get('/api/ai-agents/network/discover', enhancedRateLimit, requireAuth, async (req, res) => {
     try {

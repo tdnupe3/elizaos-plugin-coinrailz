@@ -1,9 +1,22 @@
 /**
  * AI AGENT PRODUCT ROUTES
  * Premium API access packages for AI agents
+ * REAL PAYMENT PROCESSING - Stripe integration
  */
 import { Router } from 'express';
 import { z } from 'zod';
+import Stripe from 'stripe';
+import { db } from '../db';
+import { aiAgentSubscriptions, aiMarketplaceOrders } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
 
 export const aiAgentProductRoutes = Router();
 
@@ -177,45 +190,78 @@ aiAgentProductRoutes.post('/purchase', async (req, res) => {
       return res.status(404).json({ error: 'Product not found' });
     }
     
-    // Generate API key
-    const apiKey = `ai_agent_${agentId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Create pending order in database FIRST (before payment)
+    const orderId = nanoid();
+    const pendingOrder = {
+      id: orderId,
+      agentId,
+      productId,
+      productName: product.name,
+      amount: product.priceUSD.toString(),
+      currency: 'USD',
+      paymentMethod,
+      status: 'pending' as const,
+      walletAddress: walletAddress || null,
+      email: email || null,
+      createdAt: new Date()
+    };
     
-    // Simulate payment processing (integrate with existing payment systems)
-    const paymentResult = await processPayment(paymentMethod, product.priceUSD, walletAddress);
+    // Save pending order to database
+    await db.insert(aiMarketplaceOrders).values(pendingOrder);
+    console.log(`📝 Created pending order ${orderId} for agent ${agentId}`);
     
-    if (paymentResult.success) {
-      // Create subscription record (simplified for now)
-      const subscription = {
-        id: `sub_${Date.now()}`,
-        agentId,
-        productId,
-        product: product.name,
-        status: 'active',
-        apiKey,
-        monthlyRevenue: product.priceUSD,
-        paymentMethod,
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-        usageStats: { requests_today: 0, requests_month: 0 }
-      };
-      
-      console.log(`✅ Successfully created subscription for agent ${agentId}: ${product.name}`);
+    // Process payment (NO API key issued until payment confirmed)
+    const paymentResult = await processPayment(paymentMethod, product.priceUSD, productId, agentId, walletAddress);
+    
+    if (paymentResult.requiresAction) {
+      // Payment needs user action (Stripe checkout, crypto transfer, etc.)
+      res.json({
+        success: false,
+        requiresAction: true,
+        orderId,
+        message: 'Complete payment to activate API access',
+        paymentDetails: {
+          method: paymentMethod,
+          amount: product.priceUSD,
+          currency: 'USD',
+          clientSecret: paymentResult.clientSecret,
+          paymentIntentId: paymentResult.paymentIntentId,
+          cryptoAddress: paymentResult.cryptoAddress,
+          circlePaymentLink: paymentResult.circlePaymentLink,
+          paypalOrderId: paymentResult.paypalOrderId
+        },
+        statusUrl: `/api/ai-products/order/${orderId}/status`,
+        product: {
+          name: product.name,
+          description: product.description,
+          features: product.features
+        }
+      });
+    } else if (paymentResult.success) {
+      // Immediate success (shouldn't happen with real payments)
+      const apiKey = await activateSubscription(orderId, agentId, productId, product, paymentResult.transactionId);
       
       res.json({
         success: true,
         message: 'Product purchased successfully!',
-        subscription,
+        orderId,
         apiKey,
         documentation: {
           baseUrl: 'https://coinrailz.com/api',
           authHeader: `Bearer ${apiKey}`,
           endpoints: product.apiEndpoints,
           limits: product.requestLimits
-        },
-        support: 'support@coinrailz.com'
+        }
       });
     } else {
+      // Payment failed immediately
+      await db.update(aiMarketplaceOrders)
+        .set({ status: 'failed', updatedAt: new Date() })
+        .where(eq(aiMarketplaceOrders.id, orderId));
+        
       res.status(400).json({
+        success: false,
+        orderId,
         error: 'Payment failed',
         details: paymentResult.error
       });
@@ -253,33 +299,154 @@ aiAgentProductRoutes.get('/subscription/:agentId', async (req, res) => {
   }
 });
 
-// Simulate payment processing (integrate with existing systems)
-async function processPayment(method: string, amount: number, walletAddress?: string) {
-  console.log(`💰 Processing ${method} payment of $${amount}...`);
+// REAL PAYMENT PROCESSING - Stripe integration
+async function processPayment(method: string, amount: number, productId: string, agentId: string, walletAddress?: string) {
+  console.log(`💰 Processing REAL ${method} payment of $${amount}...`);
   
   switch (method) {
     case 'stripe':
-      // Would integrate with existing Stripe system
-      return { success: true, transactionId: `stripe_${Date.now()}` };
+      try {
+        // Create real Stripe payment intent
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100), // Convert to cents
+          currency: "usd",
+          metadata: {
+            productId,
+            agentId,
+            type: 'ai_agent_api_access'
+          }
+        });
+        
+        return { 
+          success: false, // Will be true after webhook confirmation
+          requiresAction: true,
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id,
+          transactionId: `stripe_${paymentIntent.id}`
+        };
+      } catch (error) {
+        console.error('Stripe payment failed:', error);
+        return { success: false, error: error.message };
+      }
     
     case 'crypto':
-      // Would integrate with existing crypto payment system
+      // For now, return pending - would integrate with existing crypto system
       if (!walletAddress) {
         return { success: false, error: 'Wallet address required for crypto payments' };
       }
-      return { success: true, transactionId: `crypto_${Date.now()}`, walletAddress };
+      return { 
+        success: false, 
+        requiresAction: true,
+        cryptoAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Your platform wallet
+        amount: amount,
+        currency: 'USDC',
+        transactionId: `crypto_pending_${Date.now()}`,
+        walletAddress 
+      };
     
     case 'circle':
-      // Would integrate with existing Circle USDC system
-      return { success: true, transactionId: `circle_${Date.now()}` };
+      // Pending - would integrate with existing Circle system
+      return { 
+        success: false,
+        requiresAction: true,
+        circlePaymentLink: `https://pay.circle.com/checkout?amount=${amount}&productId=${productId}`,
+        transactionId: `circle_pending_${Date.now()}`
+      };
     
     case 'paypal':
-      // Would integrate with existing PayPal system
-      return { success: true, transactionId: `paypal_${Date.now()}` };
+      // Will be handled by PayPal checkout component
+      return { 
+        success: false,
+        requiresAction: true,
+        paypalOrderId: `paypal_${Date.now()}`,
+        transactionId: `paypal_pending_${Date.now()}`
+      };
     
     default:
       return { success: false, error: 'Unsupported payment method' };
   }
 }
+
+// Activate subscription after payment confirmation
+async function activateSubscription(orderId: string, agentId: string, productId: string, product: any, transactionId: string) {
+  // Generate API key only after payment confirmed
+  const apiKey = `ai_agent_${agentId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Update order status
+  await db.update(aiMarketplaceOrders)
+    .set({ 
+      status: 'completed',
+      transactionId,
+      updatedAt: new Date()
+    })
+    .where(eq(aiMarketplaceOrders.id, orderId));
+  
+  // Create active subscription
+  const subscription = {
+    id: nanoid(),
+    agentId,
+    productId,
+    planName: product.name,
+    status: 'active' as const,
+    priceUSD: product.priceUSD.toString(),
+    billingCycle: product.billingCycle,
+    apiKey,
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year for prepaid credits
+    createdAt: new Date()
+  };
+  
+  await db.insert(aiAgentSubscriptions).values(subscription);
+  console.log(`✅ PAYMENT CONFIRMED: Activated subscription for agent ${agentId}`);
+  
+  return apiKey;
+}
+
+// Order status endpoint
+aiAgentProductRoutes.get('/order/:orderId/status', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await db.select()
+      .from(aiMarketplaceOrders)
+      .where(eq(aiMarketplaceOrders.id, orderId))
+      .limit(1);
+    
+    if (order.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    
+    const orderData = order[0];
+    
+    // If completed, also get subscription details
+    let subscription = null;
+    if (orderData.status === 'completed') {
+      const sub = await db.select()
+        .from(aiAgentSubscriptions)
+        .where(eq(aiAgentSubscriptions.agentId, orderData.agentId))
+        .limit(1);
+      subscription = sub[0] || null;
+    }
+    
+    res.json({
+      success: true,
+      order: {
+        id: orderData.id,
+        status: orderData.status,
+        productName: orderData.productName,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        paymentMethod: orderData.paymentMethod,
+        createdAt: orderData.createdAt
+      },
+      subscription,
+      apiKey: subscription?.apiKey || null
+    });
+    
+  } catch (error) {
+    console.error('Order status error:', error);
+    res.status(500).json({ error: 'Failed to fetch order status' });
+  }
+});
 
 export default aiAgentProductRoutes;

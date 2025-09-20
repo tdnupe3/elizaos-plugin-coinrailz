@@ -4,6 +4,7 @@ import { db } from './db';
 import { transactions, users, globalAIAgents, aiMarketplaceOrders } from '@shared/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import { BusinessLogicValidator } from './businessLogic';
+import { sendEmail } from './sendgridService';
 import { cacheMiddleware } from './caching';
 import { bnbChainService } from './services/bnbChainService';
 import { pulseChainService } from './services/pulseChainService';
@@ -80,6 +81,29 @@ function createFeeRateLimit() {
 }
 
 export function setupSimpleRoutes(app: Express) {
+  
+  // REAL EMAIL OUTREACH ENDPOINT
+  app.post('/api/send-outreach-email', async (req, res) => {
+    try {
+      const { to, subject, message } = req.body;
+      
+      const success = await sendEmail({
+        to,
+        from: 'support@coinrailz.com',
+        subject,
+        text: message,
+        html: `<p>${message.replace(/\n/g, '<br>')}</p>`
+      });
+      
+      if (success) {
+        res.json({ success: true, message: 'Email sent successfully' });
+      } else {
+        res.status(500).json({ error: 'Failed to send email' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: 'Email sending failed', details: error.message });
+    }
+  });
   // === EMERGENCY AI AGENT NETWORK DISCOVERY FOR FUNDRAISING ===
   console.log('🚨 Registering Emergency AI Agent Network Discovery');
   console.log('🌐 Integrating external agent discovery: Virtuals, x402, Coinbase AgentKit');

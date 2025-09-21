@@ -2,14 +2,13 @@
  * @coinrailz/agent-payments - Easy AI Agent Payment Integration
  * 
  * Production-ready payment system for AI agents using Circle USDC + Coinbase CDP
- * Based on live marketplace processing $10,000+ in real transactions
+ * Competitive 0.99%-1.75% fees vs 2.9% Stripe rates
  */
 
 export interface PaymentConfig {
-  circleApiKey: string;
-  cdpApiKey: string;
-  cdpPrivateKey: string;
+  apiKey: string; // Your CoinRailz API key (not Circle/CDP keys!)
   webhookUrl?: string;
+  baseUrl?: string;
 }
 
 export interface PaymentRequest {
@@ -45,7 +44,7 @@ export class CoinRailzAgentPayments {
 
   constructor(config: PaymentConfig, baseUrl = 'https://coinrailz.com') {
     this.config = config;
-    this.baseUrl = baseUrl;
+    this.baseUrl = config.baseUrl || baseUrl;
   }
 
   /**
@@ -58,7 +57,7 @@ export class CoinRailzAgentPayments {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.circleApiKey}`
+          'X-API-Key': this.config.apiKey
         },
         body: JSON.stringify({
           ...request,
@@ -84,7 +83,7 @@ export class CoinRailzAgentPayments {
       const response = await fetch(`${this.baseUrl}/api/agent-payments/status/${paymentId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.config.circleApiKey}`
+          'X-API-Key': this.config.apiKey
         }
       });
 
@@ -106,7 +105,7 @@ export class CoinRailzAgentPayments {
       const response = await fetch(`${this.baseUrl}/api/agent-payments/earnings/${agentId}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.config.circleApiKey}`
+          'X-API-Key': this.config.apiKey
         }
       });
 
@@ -129,7 +128,7 @@ export class CoinRailzAgentPayments {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.circleApiKey}`
+          'X-API-Key': this.config.apiKey
         },
         body: JSON.stringify({
           agentId,
@@ -157,7 +156,7 @@ export class CoinRailzAgentPayments {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.circleApiKey}`
+          'X-API-Key': this.config.apiKey
         },
         body: JSON.stringify({
           webhookUrl
@@ -186,9 +185,7 @@ export function createAgentPayments(config: PaymentConfig): CoinRailzAgentPaymen
  * import { createAgentPayments } from '@coinrailz/agent-payments';
  * 
  * const payments = createAgentPayments({
- *   circleApiKey: process.env.CIRCLE_API_KEY!,
- *   cdpApiKey: process.env.CDP_API_KEY_ID!,
- *   cdpPrivateKey: process.env.CDP_PRIVATE_KEY!,
+ *   apiKey: process.env.COINRAILZ_API_KEY!, // Your CoinRailz API key
  *   webhookUrl: 'https://myagent.com/payments/webhook'
  * });
  * 

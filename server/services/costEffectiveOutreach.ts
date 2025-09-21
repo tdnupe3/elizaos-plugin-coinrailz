@@ -119,7 +119,7 @@ export class CostEffectiveOutreach {
   /**
    * Reddit outreach implementation
    */
-  static async executeRedditOutreach(budget: number = 25): Promise<{success: boolean, reached: number, cost: number}> {
+  static async executeRedditOutreach(budget: number = 25): Promise<{success: boolean, reached: number, cost: number, error?: string}> {
     const targetSubreddits = [
       'MachineLearning',
       'artificial', 
@@ -184,7 +184,7 @@ Early adopter pricing ends soon!`;
   /**
    * REAL XMTP direct messaging to AI agent wallet addresses
    */
-  static async executeXMTPCampaign(): Promise<{success: boolean, reached: number, cost: number, error?: string}> {
+  static async executeXMTPCampaign(): Promise<{success: boolean, reached: number, cost: number, error?: string, details?: string}> {
     try {
       // Create targeted AI agent wallet addresses for real outreach
       const targetAddresses = [

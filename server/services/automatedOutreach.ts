@@ -70,7 +70,7 @@ Perfect for AI agent developers building payment capabilities!
 
 #AI #Crypto #AgentPayments #Circle #Coinbase`;
 
-    const results = { sent: 0, groups: [] };
+    const results = { sent: 0, groups: [] as string[] };
 
     for (const group of cryptoGroups) {
       try {
@@ -132,7 +132,7 @@ Live demo available
 
 Perfect for AI agent developers building payment capabilities. Would love your feedback!`;
 
-    const results = { sent: 0, wallets: [] };
+    const results = { sent: 0, wallets: [] as string[] };
 
     // XMTP implementation would go here
     // Note: Requires proper XMTP client setup with private key

@@ -6,6 +6,7 @@
  */
 
 import { ethers } from 'ethers';
+import { CoinbaseCDPService } from './coinbaseCDPService';
 
 interface BlockchainTarget {
   name: string;
@@ -23,15 +24,14 @@ export class BlockchainMessagingService {
   private totalCost: number = 0;
 
   constructor() {
-    // Initialize Base chain provider
+    // This will be initialized async in executeBlockchainOutreach
     this.provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
-    
-    // Initialize platform wallet with private key
-    const privateKey = process.env.CDP_PRIVATE_KEY;
-    if (!privateKey) {
-      throw new Error('CDP_PRIVATE_KEY not found');
-    }
-    this.platformWallet = new ethers.Wallet(privateKey, this.provider);
+  }
+
+  private async initializePlatformWallet() {
+    // Use centralized platform signer from CDP service
+    this.platformWallet = await CoinbaseCDPService.getPlatformSigner('base');
+    console.log(`🔗 Blockchain messaging initialized with platform wallet: ${this.platformWallet.address}`);
   }
 
   /**
@@ -39,6 +39,9 @@ export class BlockchainMessagingService {
    */
   async executeBlockchainOutreach(): Promise<void> {
     console.log('🔗 EXECUTING DIRECT BLOCKCHAIN MESSAGING CAMPAIGN...');
+    
+    // Initialize platform wallet first
+    await this.initializePlatformWallet();
     console.log(`💰 Platform Wallet: ${this.platformWallet.address}`);
     
     const targets = this.getHighValueTargets();

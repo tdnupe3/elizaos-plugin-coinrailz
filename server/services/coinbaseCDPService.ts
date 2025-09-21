@@ -189,21 +189,67 @@ export class CoinbaseCDPService {
   }
 
   /**
+   * 🔑 CENTRALIZED PLATFORM SIGNER - Used by all blockchain messaging services
+   * Properly derives EVM private key from CDP API secret
+   */
+  static async getPlatformSigner(chain: 'base' | 'ethereum'): Promise<ethers.Wallet> {
+    // Check for explicit EVM private key first
+    if (process.env.EVM_PRIVATE_KEY && /^0x[0-9a-fA-F]{64}$/.test(process.env.EVM_PRIVATE_KEY)) {
+      const privateKey = process.env.EVM_PRIVATE_KEY;
+      const provider = chain === 'base' 
+        ? new ethers.JsonRpcProvider('https://mainnet.base.org')
+        : new ethers.JsonRpcProvider('https://eth-mainnet.g.alchemy.com/v2/your-api-key');
+      return new ethers.Wallet(privateKey, provider);
+    }
+
+    // Derive from CDP seed (CDP_PRIVATE_KEY is base64 API secret, not EVM key)
+    const seed = process.env.CDP_PRIVATE_KEY || process.env.CDP_API_KEY_SECRET || process.env.CDP_WALLET_SECRET;
+    if (!seed) {
+      throw new Error('No CDP seed available for platform signer derivation');
+    }
+
+    try {
+      let seedBytes: Uint8Array;
+      
+      // Handle base64-encoded CDP secrets
+      if (seed.includes('/') || seed.includes('+') || seed.endsWith('=')) {
+        // Base64 decode first
+        seedBytes = ethers.getBytes(ethers.decodeBase64(seed));
+      } else {
+        // Use seed directly as UTF-8 bytes
+        seedBytes = ethers.toUtf8Bytes(seed);
+      }
+
+      // Create deterministic 32-byte EVM private key
+      const suffix = ':platform:evm';
+      const combined = new Uint8Array(seedBytes.length + suffix.length);
+      combined.set(seedBytes);
+      combined.set(ethers.toUtf8Bytes(suffix), seedBytes.length);
+      
+      const privateKey = ethers.keccak256(combined);
+      
+      // Connect to appropriate provider
+      const provider = chain === 'base' 
+        ? new ethers.JsonRpcProvider('https://mainnet.base.org')
+        : new ethers.JsonRpcProvider('https://eth-mainnet.g.alchemy.com/v2/your-api-key');
+      
+      const wallet = new ethers.Wallet(privateKey, provider);
+      
+      console.log(`🔑 Platform signer derived for ${chain}: ${wallet.address}`);
+      return wallet;
+      
+    } catch (error: any) {
+      throw new Error(`Failed to derive platform signer: ${error.message}`);
+    }
+  }
+
+  /**
    * Get platform wallet private key (implement secure key management)
    */
   private async getPlatformWalletPrivateKey(): Promise<string | null> {
-    // In production, this should be stored securely (encrypted in DB, HSM, etc.)
-    // For now, we'll generate a deterministic key from available secrets
-    const seed = process.env.CDP_PRIVATE_KEY || process.env.CDP_WALLET_SECRET;
-    if (!seed) {
-      console.error('❌ No platform wallet seed available');
-      return null;
-    }
-    
     try {
-      // Create a deterministic wallet from the CDP key
-      const hash = ethers.keccak256(ethers.toUtf8Bytes(seed + '_ethereum_platform'));
-      return hash; // This is the private key
+      const wallet = await CoinbaseCDPService.getPlatformSigner('base');
+      return wallet.privateKey;
     } catch (error) {
       console.error('❌ Failed to derive platform wallet key:', error);
       return null;

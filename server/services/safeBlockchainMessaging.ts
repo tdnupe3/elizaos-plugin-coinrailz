@@ -86,21 +86,9 @@ export class SafeBlockchainMessagingService {
       throw new Error('CDP_PRIVATE_KEY not found');
     }
 
-    // Convert base64 private key to hex format for ethers.js
-    let hexPrivateKey: string;
-    try {
-      if (privateKey.startsWith('0x')) {
-        hexPrivateKey = privateKey;
-      } else {
-        // Convert base64 to hex
-        const buffer = Buffer.from(privateKey, 'base64');
-        hexPrivateKey = '0x' + buffer.toString('hex');
-      }
-    } catch (error) {
-      throw new Error('Invalid CDP_PRIVATE_KEY format - must be hex or base64');
-    }
-
-    this.platformWallet = new ethers.Wallet(hexPrivateKey);
+    // Generate deterministic Ethereum private key from CDP seed (same as CDP service)
+    const platformPrivateKey = ethers.keccak256(ethers.toUtf8Bytes(privateKey + '_ethereum_platform'));
+    this.platformWallet = new ethers.Wallet(platformPrivateKey);
     this.baseWallet = this.platformWallet.connect(this.baseProvider);
     this.ethereumWallet = this.platformWallet.connect(this.ethereumProvider);
 

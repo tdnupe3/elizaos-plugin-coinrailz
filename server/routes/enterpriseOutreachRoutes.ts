@@ -549,4 +549,38 @@ router.post('/execute-blockchain-messaging', async (req, res) => {
   }
 });
 
+/**
+ * 🌐 EXECUTE MASSIVE BLOCKCHAIN OUTREACH - 200+ Target Campaign
+ */
+router.post('/execute-massive-blockchain-outreach', async (req, res) => {
+  try {
+    console.log('🌐 EXECUTING MASSIVE BLOCKCHAIN OUTREACH CAMPAIGN...');
+    
+    const { massiveBlockchainOutreachService } = await import('../services/massiveBlockchainOutreach');
+    await massiveBlockchainOutreachService.executeMassiveOutreach();
+    
+    const analytics = massiveBlockchainOutreachService.getCampaignAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'MASSIVE BLOCKCHAIN OUTREACH EXECUTED - 200+ targets across DeFi, DAOs, VCs, Gaming, AI, Banks, MEV bots, and Launchpads',
+      analytics,
+      campaign: {
+        scale: '200+ wallets targeted',
+        categories: ['DeFi Protocols', 'DAO Treasuries', 'Major Exchanges', 'MEV Bots', 'Gaming/NFT', 'AI+Blockchain', 'Banks', 'Launchpads', 'Institutional'],
+        network: 'Base Chain (ultra-low cost)',
+        advantages: ['Impossible to block', 'Permanently stored', 'Direct delivery', 'Multi-sector reach']
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Massive blockchain outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Massive blockchain outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

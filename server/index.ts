@@ -554,6 +554,10 @@ app.use('/api/experimental-outreach', experimentalOutreachRoutes);
 console.log('📊 Registering REVOLUTIONARY Outreach Analytics for campaign performance tracking...');
 import outreachAnalyticsRoutes from './routes/outreachAnalyticsRoutes';
 app.use('/api/analytics', outreachAnalyticsRoutes);
+
+console.log('🧠 Registering AI-POWERED Optimization & Auto-Scaling for maximum ROI...');
+import outreachOptimizationRoutes from './routes/outreachOptimizationRoutes';
+app.use('/api/optimization', outreachOptimizationRoutes);
 console.log('✅ Enterprise Outreach routes registered successfully');
 
 // Gas Station routes moved after setupSimpleRoutes

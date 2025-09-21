@@ -86,13 +86,21 @@ export class BlockchainMessagingService {
       // Get current gas price
       const feeData = await this.provider.getFeeData();
       
-      // Create transaction with message data
+      // Estimate gas properly for the actual transaction
+      const estimatedGas = await this.provider.estimateGas({
+        to: target.wallet,
+        value: ethers.parseEther('0.000001'),
+        data: messageData
+      });
+
+      // Create transaction with proper gas estimation (handle BigInt)
       const tx = {
         to: target.wallet,
         value: ethers.parseEther('0.000001'), // Send minimal ETH (0.000001 ETH)
         data: messageData,
-        gasLimit: 30000, // Sufficient for message + transfer
-        gasPrice: feeData.gasPrice
+        gasLimit: (estimatedGas * 130n) / 100n, // 30% buffer using BigInt math
+        maxFeePerGas: feeData.maxFeePerGas,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
       };
 
       // Send transaction
@@ -118,37 +126,10 @@ export class BlockchainMessagingService {
   }
 
   /**
-   * 📝 Generate partnership message for blockchain transmission
+   * 📝 Generate COMPACT partnership message for blockchain transmission
    */
   private generateMessage(target: BlockchainTarget): string {
-    return `🚀 COINRAILZ BLOCKCHAIN PARTNERSHIP ALERT
-
-${target.name} Treasury Team,
-
-IMMEDIATE ${target.dealSize} REVENUE OPPORTUNITY:
-${target.valueProposition}
-
-✅ Production-ready crypto payment rails
-✅ Multi-chain support (USDC, ETH, Base, XRP)  
-✅ Enterprise-grade security & compliance
-✅ Revenue share: 5-20 basis points
-✅ AI Agent payment infrastructure
-
-This message was sent directly via Base blockchain to ensure delivery.
-
-Partnership Details:
-- Technical integration demo available
-- Pilot program launch within 2 weeks
-- Multi-million dollar deal pipeline
-
-Reply via partnerships@coinrailz.com for immediate discussion.
-
-CoinRailz Partnership Team
-Platform: https://coinrailz.com
-Blockchain: Base Chain Mainnet
-
-Message sent from: ${this.platformWallet.address}
-Target: ${target.wallet}`;
+    return `COINRAILZ ${target.dealSize} PARTNERSHIP ALERT: ${target.valueProposition} Enterprise crypto payment infrastructure ready. Contact partnerships@coinrailz.com for immediate ${target.dealSize} revenue opportunity. Platform: coinrailz.com From: ${this.platformWallet.address}`;
   }
 
   /**
@@ -174,7 +155,7 @@ Target: ${target.wallet}`;
       },
       {
         name: 'Circle Treasury',
-        wallet: '0xA0b86a33E6441b4530C0F8a7d928CC42c7c5b8da',
+        wallet: '0xa0b86a33E6441b4530C0F8a7d928CC42c7c5b8da',
         category: 'treasury',
         description: 'USDC Issuer Treasury',
         dealSize: '$250,000', 

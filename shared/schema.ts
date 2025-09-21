@@ -2770,16 +2770,12 @@ export const sdkLicenseSubscriptions = pgTable('sdk_license_subscriptions', {
   // Dates
   startDate: timestamp('start_date').notNull().defaultNow(),
   endDate: timestamp('end_date').notNull(),
-  lastRenewalDate: timestamp('last_renewal_date'),
   nextBillingDate: timestamp('next_billing_date').notNull(),
   
   // Payment information
   paymentMethod: varchar('payment_method', { length: 30 }).notNull(), // stripe, crypto, wire_transfer, check
   stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
   stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
-  cryptoPaymentAddress: varchar('crypto_payment_address', { length: 255 }),
-  lastPaymentAmount: decimal('last_payment_amount', { precision: 10, scale: 2 }),
-  lastPaymentDate: timestamp('last_payment_date'),
   
   // Usage tracking
   currentMonthTransactions: integer('current_month_transactions').default(0),
@@ -2794,16 +2790,9 @@ export const sdkLicenseSubscriptions = pgTable('sdk_license_subscriptions', {
   // Configuration
   allowedDomains: text('allowed_domains').array(), // Domains allowed to use the SDK
   webhookUrls: text('webhook_urls').array(), // Webhook endpoints
-  customConfiguration: jsonb('custom_configuration'), // Custom settings for enterprise clients
-  
-  // Relationship management
-  accountManagerId: varchar('account_manager_id'), // Reference to user handling this account
-  salesRepId: varchar('sales_rep_id'), // Reference to sales rep who closed the deal
   
   // Metadata
   signupSource: varchar('signup_source', { length: 100 }), // website, sales_team, partner, referral
-  contractDocumentUrl: varchar('contract_document_url', { length: 500 }), // Signed contract location
-  notes: text('notes'), // Internal notes about the customer
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

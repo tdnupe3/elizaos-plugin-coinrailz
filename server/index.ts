@@ -550,6 +550,10 @@ console.log('🎯 Registering Enterprise Outreach routes for AI companies, finte
 app.use('/api/enterprise-outreach', enterpriseOutreachRoutes);
 console.log('🚀 Registering EXPERIMENTAL Outreach routes for revolutionary blockchain B2B outreach...');
 app.use('/api/experimental-outreach', experimentalOutreachRoutes);
+
+console.log('📊 Registering REVOLUTIONARY Outreach Analytics for campaign performance tracking...');
+import outreachAnalyticsRoutes from './routes/outreachAnalyticsRoutes';
+app.use('/api/analytics', outreachAnalyticsRoutes);
 console.log('✅ Enterprise Outreach routes registered successfully');
 
 // Gas Station routes moved after setupSimpleRoutes

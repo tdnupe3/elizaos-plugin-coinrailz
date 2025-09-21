@@ -12,6 +12,12 @@ import { db } from '../db';
 import { sdkLicenseTiers, sdkLicenseSubscriptions, users } from '../../shared/schema';
 import { createHash } from 'crypto';
 import authenticateUser from '../middleware/authMiddleware';
+import StripeLicensePaymentService from '../services/stripeLicensePaymentService';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: "2023-10-16",
+});
 
 const router = Router();
 
@@ -169,28 +175,76 @@ router.post('/purchase', async (req, res) => {
     const license = newLicense[0];
     console.log(`✅ Created license subscription ID: ${license.id} for ${license.companyName}`);
     
-    // Return license details and payment info
-    res.status(201).json({
-      success: true,
-      message: 'License created successfully - payment required to activate',
-      license: {
-        id: license.id,
-        licenseKey: license.licenseKey, // Return for payment processing
-        companyName: license.companyName,
-        tier: selectedTier.name,
-        status: license.status,
-        billingCycle: validatedData.billingCycle,
-        price: price,
-        setupFee: selectedTier.setupFee || 0,
-        totalAmount: Number(price) + Number(selectedTier.setupFee || 0)
-      },
-      paymentInfo: {
-        method: validatedData.paymentMethod,
-        amount: Number(price) + Number(selectedTier.setupFee || 0),
-        currency: 'USD',
-        description: `${selectedTier.name} License - ${validatedData.billingCycle}`
-      }
-    });
+    // Create Stripe payment intent for real payment processing
+    const totalAmount = Number(price) + Number(selectedTier.setupFee || 0);
+    
+    try {
+      const { clientSecret, paymentIntentId } = await StripeLicensePaymentService.createLicensePaymentIntent(
+        license.id,
+        totalAmount,
+        'usd',
+        {
+          companyName: validatedData.companyName,
+          contactEmail: validatedData.contactEmail,
+          tierName: selectedTier.name,
+          billingCycle: validatedData.billingCycle
+        }
+      );
+
+      console.log(`💳 Stripe payment intent created: ${paymentIntentId}`);
+
+      // Return license details and Stripe payment info
+      res.status(201).json({
+        success: true,
+        message: 'License created successfully - complete payment to activate',
+        license: {
+          id: license.id,
+          licenseKey: license.licenseKey,
+          companyName: license.companyName,
+          tier: selectedTier.name,
+          status: license.status,
+          billingCycle: validatedData.billingCycle,
+          price: price,
+          setupFee: selectedTier.setupFee || 0,
+          totalAmount: totalAmount
+        },
+        payment: {
+          clientSecret,
+          paymentIntentId,
+          amount: totalAmount,
+          currency: 'USD',
+          description: `${selectedTier.name} SDK License - ${validatedData.billingCycle}`,
+          method: 'stripe'
+        }
+      });
+      
+    } catch (stripeError) {
+      console.error('❌ Failed to create Stripe payment intent:', stripeError);
+      
+      // Still return license info but with fallback payment method
+      res.status(201).json({
+        success: true,
+        message: 'License created - payment processing temporarily unavailable',
+        license: {
+          id: license.id,
+          licenseKey: license.licenseKey,
+          companyName: license.companyName,
+          tier: selectedTier.name,
+          status: license.status,
+          billingCycle: validatedData.billingCycle,
+          price: price,
+          setupFee: selectedTier.setupFee || 0,
+          totalAmount: totalAmount
+        },
+        payment: {
+          method: 'manual',
+          amount: totalAmount,
+          currency: 'USD',
+          description: `${selectedTier.name} SDK License - ${validatedData.billingCycle}`,
+          instructions: 'Please contact sales to complete payment'
+        }
+      });
+    }
     
   } catch (error) {
     console.error('❌ License purchase failed:', error);
@@ -494,6 +548,93 @@ router.post('/activate', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'License activation failed'
+    });
+  }
+});
+
+/**
+ * POST /api/sdk/webhook
+ * Stripe webhook to handle payment confirmations
+ */
+router.post('/webhook', async (req, res) => {
+  const signature = req.headers['stripe-signature'];
+  
+  if (!signature) {
+    console.error('❌ No Stripe signature in webhook');
+    return res.status(400).send('No signature');
+  }
+
+  try {
+    // Verify webhook signature (you'll need to set STRIPE_WEBHOOK_SECRET)
+    const event = req.body; // For now, accept the event without verification
+    
+    console.log(`🔔 Stripe webhook received: ${event.type}`);
+
+    // Handle payment success
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      console.log(`✅ Payment succeeded: ${paymentIntent.id}`);
+      
+      const activated = await StripeLicensePaymentService.activateLicenseAfterPayment(paymentIntent.id);
+      if (activated) {
+        console.log(`✅ License activated after payment: ${paymentIntent.id}`);
+      }
+    }
+    
+    // Handle subscription activation
+    if (event.type === 'customer.subscription.created' || event.type === 'invoice.payment_succeeded') {
+      const subscription = event.data.object;
+      if (subscription.metadata?.licenseId) {
+        console.log(`✅ Subscription activated: ${subscription.id}`);
+        await StripeLicensePaymentService.activateLicenseAfterSubscription(subscription.id);
+      }
+    }
+
+    res.json({ received: true });
+    
+  } catch (error) {
+    console.error('❌ Webhook error:', error);
+    res.status(400).send(`Webhook error: ${error.message}`);
+  }
+});
+
+/**
+ * POST /api/sdk/confirm-payment
+ * Manual payment confirmation for testing
+ */
+router.post('/confirm-payment', async (req, res) => {
+  try {
+    const { paymentIntentId } = req.body;
+    
+    if (!paymentIntentId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Payment intent ID required'
+      });
+    }
+
+    console.log(`🔄 Manually confirming payment: ${paymentIntentId}`);
+    
+    const activated = await StripeLicensePaymentService.activateLicenseAfterPayment(paymentIntentId);
+    
+    if (activated) {
+      res.json({
+        success: true,
+        message: 'License activated successfully',
+        activated: true
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Failed to activate license'
+      });
+    }
+    
+  } catch (error) {
+    console.error('❌ Payment confirmation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Payment confirmation failed'
     });
   }
 });

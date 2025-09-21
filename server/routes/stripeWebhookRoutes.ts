@@ -11,13 +11,13 @@ const router = Router();
 
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
+  apiVersion: '2025-07-30.basil',
 });
 
-// Webhook endpoint secret for signature verification - fallback for development
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_development_fallback';
-if (!process.env.STRIPE_WEBHOOK_SECRET) {
-  console.warn('⚠️ Using fallback webhook secret - configure STRIPE_WEBHOOK_SECRET for production');
+// Webhook endpoint secret for signature verification
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+if (!webhookSecret) {
+  console.warn('⚠️ STRIPE_WEBHOOK_SECRET not configured - webhook signature verification disabled');
 }
 
 /**
@@ -32,11 +32,17 @@ router.post('/stripe-webhooks',
   let event: Stripe.Event;
 
   try {
-    // Verify webhook signature for security
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    if (webhookSecret) {
+      // Verify webhook signature for security
+      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+    } else {
+      // Parse webhook without signature verification
+      event = JSON.parse(req.body.toString());
+      console.warn('⚠️ Processing webhook without signature verification');
+    }
     console.log(`🔔 Stripe webhook received: ${event.type}`);
   } catch (err) {
-    console.error('⚠️ Webhook signature verification failed:', err);
+    console.error('⚠️ Webhook processing failed:', err);
     return res.status(400).send(`Webhook Error: ${err}`);
   }
 

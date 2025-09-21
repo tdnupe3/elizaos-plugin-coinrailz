@@ -23,6 +23,7 @@ import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
+import walletBalanceRoutes from './routes/walletBalanceRoutes';
 import { redditAuthRouter } from './routes/redditAuth';
 import automatedOutreachRouter from './routes/automatedOutreachRoutes';
 import coinflipRoutes from './routes/coinflipRoutes';
@@ -2778,6 +2779,7 @@ app.get('/api/dashboard/stats', (req, res) => {
 app.use('/api/plaid', plaidRoutes);
 app.use('/api/coinflip', coinflipRoutes);
 app.use('/api', immediateRevenueRoutes);
+app.use('/api', walletBalanceRoutes);
 
 // Add manual balance refresh endpoint
 app.post('/api/circle/balance-sync/force-sync-user/:email', async (req, res) => {

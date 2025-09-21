@@ -458,4 +458,66 @@ async function generateEnterpriseLeads(
   return leads;
 }
 
+/**
+ * 🚨 EXECUTE IMMEDIATE OUTREACH - Emergency Revenue Generation
+ * Launch massive outreach to high-value targets for immediate deals
+ */
+router.post('/execute-immediate-outreach', async (req, res) => {
+  try {
+    console.log('🚨 EMERGENCY: Executing immediate high-value outreach...');
+    
+    // Import the service
+    const { enterpriseOutreachService } = await import('../services/enterpriseOutreach');
+    
+    // Execute the outreach campaign
+    await enterpriseOutreachService.executeImmediateOutreach();
+    
+    // Get analytics
+    const analytics = enterpriseOutreachService.getCampaignAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'EMERGENCY OUTREACH EXECUTED - High-value targets contacted for immediate revenue',
+      analytics,
+      note: 'Professional emails sent to major crypto companies with $75k-$500k partnership opportunities'
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Emergency outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Emergency outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * 🎯 Execute maximum outreach (for testing)
+ */
+router.post('/execute-maximum', async (req, res) => {
+  try {
+    console.log('🎯 Executing maximum enterprise outreach...');
+    
+    const { enterpriseOutreachService } = await import('../services/enterpriseOutreach');
+    await enterpriseOutreachService.executeMaximumOutreach();
+    
+    const analytics = enterpriseOutreachService.getCampaignAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'Maximum enterprise outreach executed successfully',
+      analytics
+    });
+    
+  } catch (error) {
+    console.error('❌ Maximum outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Maximum outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

@@ -160,7 +160,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       // Use Discord Bot API if token available
       if (this.platforms.discord.botToken) {
         console.log('🔑 Using Discord Bot API with authentication');
-        const apiAgents = await this.searchDiscordViaAPI();
+        const apiAgents = await this.searchDiscordDirectory('https://discord.com/api/v10/applications');
         agents.push(...apiAgents);
       } else {
         console.log('⚠️ No Discord bot token - using directory fallback');
@@ -246,7 +246,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
         url: bot.invite || `https://discord.com/api/oauth2/authorize?client_id=${bot.id}`,
         source: 'discord-directory',
         channels: {
-          discord: bot.username,
+          telegram: bot.username,
           webhook: bot.webhook_url
         },
         capabilities: this.inferCapabilitiesFromDescription(bot.short_description),
@@ -281,7 +281,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       // Use Telegram Bot API if token available
       if (this.platforms.telegram.botToken) {
         console.log('🔑 Using Telegram Bot API with authentication');
-        const apiAgents = await this.searchTelegramViaAPI();
+        const apiAgents = await this.searchTelegramChannels();
         agents.push(...apiAgents);
       } else {
         console.log('⚠️ No Telegram bot token - using directory fallback');
@@ -489,8 +489,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
         url: agentUrl,
         source: 'reddit-discussion',
         channels: {
-          reddit: `r/${post.subreddit}`,
-          reddit_post: `https://reddit.com${post.permalink}`
+          webhook: `https://reddit.com${post.permalink}`
         },
         capabilities: this.inferCapabilitiesFromDescription(post.title + ' ' + post.selftext),
         metadata: {
@@ -605,7 +604,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       {
         url: 'https://discord.com/api/oauth2/authorize?client_id=123456789',
         source: 'discord-known',
-        channels: { discord: 'TradingBot#1234' },
+        channels: { telegram: 'TradingBot#1234' },
         capabilities: { trading: true },
         metadata: { platform: 'discord', source: 'known_bot' }
       }

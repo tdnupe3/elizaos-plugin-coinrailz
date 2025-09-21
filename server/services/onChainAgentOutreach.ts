@@ -209,12 +209,12 @@ export class OnChainAgentOutreach {
           for (const tx of block.transactions) {
             if (typeof tx === 'string') continue;
             
-            const count = addressFrequency.get(tx.from) || 0;
-            addressFrequency.set(tx.from, count + 1);
+            const count = addressFrequency.get((tx as any).from) || 0;
+            addressFrequency.set((tx as any).from, count + 1);
           }
           
           // High-frequency addresses in single block might be MEV bots
-          for (const [address, frequency] of addressFrequency) {
+          for (const [address, frequency] of Array.from(addressFrequency.entries())) {
             if (frequency >= 3) { // 3+ transactions in one block
               const existingBot = mevBots.find(bot => bot.walletAddress === address);
               if (!existingBot) {

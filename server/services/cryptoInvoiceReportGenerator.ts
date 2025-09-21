@@ -296,7 +296,8 @@ CONFIDENCE: ${report.confidenceScore}%`;
       }
     };
     
-    return addresses[network as keyof typeof addresses]?.[currency] || '0x0000...';
+    const networkAddresses = addresses[network as keyof typeof addresses];
+    return networkAddresses ? (networkAddresses as any)[currency] || '0x0000...' : '0x0000...';
   }
 
   private generateQRCodeData(address: string, amount: number, currency: string, invoiceId: string): string {

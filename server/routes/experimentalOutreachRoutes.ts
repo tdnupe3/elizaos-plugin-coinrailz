@@ -297,7 +297,8 @@ router.post('/test-agent-outreach', async (req, res) => {
       detectedActivity: ['test_trading'],
       estimatedVolume,
       agentType,
-      contactScore: 75
+      contactScore: 75,
+      lastActivity: new Date()
     };
     
     const result = await onChainAgentOutreach.sendValueFirstCryptoInvoice(testAgent);

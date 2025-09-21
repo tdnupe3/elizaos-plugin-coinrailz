@@ -640,7 +640,7 @@ app.post('/api/circle/kyc/submit', isAuthenticated, async (req, res) => {
     
     // Import KYC service dynamically
     const { circleKYCService } = await import('./services/circleKYCService');
-    const result = await circleKYCService.processKYCSubmission(userId, req.body);
+    const result = await circleKYCService.processKYCSubmission(req.body);
     
     res.json({
       success: true,

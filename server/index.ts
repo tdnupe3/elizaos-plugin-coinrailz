@@ -26,6 +26,7 @@ import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
 import walletBalanceRoutes from './routes/walletBalanceRoutes';
 import { redditAuthRouter } from './routes/redditAuth';
 import automatedOutreachRouter from './routes/automatedOutreachRoutes';
+import virtualsOutreachRouter from './routes/virtualsOutreachRoutes';
 import coinflipRoutes from './routes/coinflipRoutes';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
@@ -2842,6 +2843,7 @@ app.use('/api/data', dataMonetizationRoutes);
 // AUTOMATED OUTREACH ROUTES - EMERGENCY REVENUE GENERATION
 app.use('/api', redditAuthRouter);
 app.use('/api', automatedOutreachRouter);
+app.use('/api/outreach', virtualsOutreachRouter);
 
 // Register P2P routes with profitable fee structure BEFORE catch-all handler
 app.use('/api/p2p', p2pRoutes);

@@ -28,7 +28,8 @@ export interface ACPMessage {
  */
 export class VirtualsACPService {
   private static instance: VirtualsACPService;
-  private baseURL = 'https://app.virtuals.io/api'; // Virtuals API endpoint
+  private baseURL = 'https://api.virtuals.io'; // Real Virtuals API endpoint
+  private terminalURL = 'http://api-terminal.virtuals.io'; // Terminal API for activity logging
   private initialized = false;
 
   constructor() {
@@ -43,16 +44,53 @@ export class VirtualsACPService {
   }
 
   /**
+   * Get Terminal API access token
+   */
+  async getAccessToken(): Promise<string | null> {
+    try {
+      const terminalApiKey = process.env.VIRTUALS_TERMINAL_API_KEY;
+      if (!terminalApiKey) {
+        console.log('⚠️ VIRTUALS_TERMINAL_API_KEY not found - using sample data for development');
+        return null;
+      }
+
+      const response = await axios.post(`${this.baseURL}/api/accesses/tokens`, {}, {
+        headers: {
+          'X-API-KEY': terminalApiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.data?.data?.accessToken) {
+        console.log('✅ Virtuals Terminal API access token obtained');
+        return response.data.data.accessToken;
+      }
+
+      return null;
+    } catch (error) {
+      console.error('❌ Failed to get Virtuals access token:', error);
+      return null;
+    }
+  }
+
+  /**
    * Discover active AI agents on Virtuals Protocol
    */
   async discoverActiveAgents(): Promise<VirtualsAgent[]> {
     try {
       console.log('🔍 Discovering active AI agents on Virtuals Protocol...');
       
-      // Virtuals Protocol uses public API for agent discovery
-      const response = await axios.get(`${this.baseURL}/agents`, {
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        console.log('🧪 Using sample agent data for development (no API access)');
+        return this.getSampleAgentData();
+      }
+
+      // Use authenticated API for real agent discovery
+      const response = await axios.get(`${this.baseURL}/api/agents`, {
         timeout: 10000,
         headers: {
+          'Authorization': `Bearer ${accessToken}`,
           'User-Agent': 'Coin-Railz-Platform/1.0',
           'Accept': 'application/json'
         }

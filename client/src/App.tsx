@@ -246,6 +246,38 @@ function Router() {
         {() => <LazyLoadWrapper><EnterprisePage /></LazyLoadWrapper>}
       </Route>
       
+      {/* SDK Enterprise Pages - $2K-$200K Market */}
+      <Route path="/sdk-landing">
+        {() => {
+          const SDKLandingPage = lazy(() => import("@/pages/SDKLandingPage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <SDKLandingPage />
+            </Suspense>
+          );
+        }}
+      </Route>
+      <Route path="/sdk-enterprise-signup">
+        {() => {
+          const SDKEnterpriseSignup = lazy(() => import("@/pages/SDKEnterpriseSignup"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <SDKEnterpriseSignup />
+            </Suspense>
+          );
+        }}
+      </Route>
+      <Route path="/sdk-subscription-success">
+        {() => {
+          const SDKSubscriptionSuccess = lazy(() => import("@/pages/SDKSubscriptionSuccess"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <SDKSubscriptionSuccess />
+            </Suspense>
+          );
+        }}
+      </Route>
+      
       <Route path="/marketplace/checkout/:serviceId">
         {() => <LazyLoadWrapper><MarketplaceCheckout /></LazyLoadWrapper>}
       </Route>

@@ -19,8 +19,16 @@ automatedOutreachRouter.post('/outreach/xmtp-campaign', async (req, res) => {
     
     const result = await CostEffectiveOutreach.executeXMTPCampaign();
     
+    if (!result.success) {
+      return res.status(501).json({
+        success: false,
+        error: result.error || 'XMTP outreach not implemented',
+        message: 'XMTP messaging requires real implementation - currently not functional'
+      });
+    }
+    
     res.json({
-      success: true,
+      success: result.success,
       campaign: 'XMTP Direct Messaging',
       reached: result.reached,
       cost: result.cost,
@@ -47,16 +55,15 @@ automatedOutreachRouter.post('/outreach/full-campaign', async (req, res) => {
     
     console.log(`🎯 Executing full automated campaign with $${budget} budget`);
     
-    const results = await LowCostOutreachOrchestrator.executeOptimizedCampaign(budget);
-    
-    res.json({
-      success: true,
-      totalReached: results.totalReached,
-      totalCost: results.totalCost,
-      costPerContact: results.costPerContact,
-      channels: results.channelBreakdown,
-      nextSteps: results.nextSteps,
-      message: `Reached ${results.totalReached.toLocaleString()} developers for $${results.totalCost.toFixed(2)}`
+    return res.status(501).json({
+      success: false,
+      error: 'Automated outreach campaigns not implemented',
+      message: 'Full campaign automation requires real API implementations',
+      availableAlternatives: [
+        'Use working Stripe Payment Links for immediate revenue',
+        'Manual Reddit OAuth setup at /auth/reddit',
+        'Manual Discord/HN outreach with provided templates'
+      ]
     });
 
   } catch (error) {

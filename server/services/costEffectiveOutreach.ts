@@ -167,15 +167,12 @@ Early adopter pricing ends soon!`;
       // Record campaign in database
       const campaignId = nanoid();
       
-      // TODO: Implement actual Reddit API calls
-      // For now, simulate the outreach
-      const estimatedReach = actualPosts * 500; // Assume 500 views per post
-      const actualCost = (actualPosts / 1000) * 0.24;
-      
+      // Reddit API implementation required
       return {
-        success: true,
-        reached: estimatedReach,
-        cost: actualCost
+        success: false,
+        reached: 0,
+        cost: 0,
+        error: 'Reddit outreach not implemented - requires OAuth setup and real API calls'
       };
       
     } catch (error) {
@@ -209,13 +206,12 @@ SDK: https://coinrailz.com/sdk`;
 
       console.log(`📱 XMTP campaign: Messaging ${agents.length} discovered AI agents`);
       
-      // TODO: Implement actual XMTP messaging using existing service
-      // XMTPMessagingService is already operational
-      
+      // XMTP messaging not implemented - requires gas funding and real message sending
       return {
-        success: true,
-        reached: agents.length,
-        cost: 2.50 // Estimated gas costs
+        success: false,
+        reached: 0,
+        cost: 0,
+        error: 'XMTP messaging not implemented - requires ETH funding and actual message dispatch'
       };
       
     } catch (error) {

@@ -44,15 +44,39 @@ export class OnChainAgentOutreach {
   }
 
   private initializeProviders() {
-    // Ethereum
-    this.providers.set('ethereum', new ethers.JsonRpcProvider(
-      process.env.ALCHEMY_ETHEREUM_RPC || 'https://eth-mainnet.g.alchemy.com/v2/demo'
-    ));
+    const alchemyKey = process.env.ALCHEMY_API_KEY;
     
-    // Base (where Coinbase agents are most active)
-    this.providers.set('base', new ethers.JsonRpcProvider(
-      'https://mainnet.base.org'
-    ));
+    if (alchemyKey) {
+      console.log('🔗 Initializing LIVE blockchain connections via Alchemy');
+      
+      // LIVE PRODUCTION ENDPOINTS - Using Alchemy for high-reliability data
+      this.providers.set('ethereum', new ethers.JsonRpcProvider(
+        `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`
+      ));
+      
+      this.providers.set('base', new ethers.JsonRpcProvider(
+        `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`
+      ));
+      
+      this.providers.set('polygon', new ethers.JsonRpcProvider(
+        `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`
+      ));
+      
+      this.providers.set('arbitrum', new ethers.JsonRpcProvider(
+        `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`
+      ));
+    } else {
+      console.warn('⚠️ ALCHEMY_API_KEY not found, using public RPCs (limited functionality)');
+      
+      // Fallback to public RPCs (rate limited)
+      this.providers.set('ethereum', new ethers.JsonRpcProvider(
+        'https://eth-mainnet.public.blastapi.io'
+      ));
+      
+      this.providers.set('base', new ethers.JsonRpcProvider(
+        'https://mainnet.base.org'
+      ));
+    }
     
     // Polygon (low-cost transactions = high bot activity)
     this.providers.set('polygon', new ethers.JsonRpcProvider(

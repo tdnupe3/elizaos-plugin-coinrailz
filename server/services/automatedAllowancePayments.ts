@@ -35,12 +35,12 @@ interface PaymentRequest {
 
 export class AutomatedAllowancePayments {
   private providers: Map<string, ethers.JsonRpcProvider> = new Map();
-  private platformWallet: string = '0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A';
+  private platformWallet: string = '0xFb5918244d856C6A95611c90d1d90df50857bd41';
   
   // ERC-20 contract addresses by network
   private tokenContracts = {
     ethereum: {
-      USDC: '0xA0b86a33E6441E2b44935d25b8b6E73b8e1B8e2c',
+      USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
       USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
       DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F'
     },
@@ -55,8 +55,38 @@ export class AutomatedAllowancePayments {
     }
   };
 
+  // Token decimals by currency
+  private tokenDecimals = {
+    USDC: 6,
+    USDT: 6,
+    DAI: 18
+  };
+
   constructor() {
     this.initializeProviders();
+    this.verifySignerAddress();
+  }
+
+  private verifySignerAddress() {
+    try {
+      // Verify that the signer address matches our advertised platform wallet
+      const platformPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      if (platformPrivateKey) {
+        const signer = new ethers.Wallet(platformPrivateKey);
+        const actualSignerAddress = signer.address;
+        
+        if (actualSignerAddress.toLowerCase() !== this.platformWallet.toLowerCase()) {
+          console.warn(`⚠️ SIGNER MISMATCH: Expected ${this.platformWallet}, got ${actualSignerAddress}`);
+          // Update platform wallet to match actual signer for consistency
+          this.platformWallet = actualSignerAddress;
+          console.log(`✅ Platform wallet updated to signer address: ${this.platformWallet}`);
+        } else {
+          console.log(`✅ Signer verification passed: ${this.platformWallet}`);
+        }
+      }
+    } catch (error) {
+      console.error('Signer verification failed:', error);
+    }
   }
 
   private initializeProviders() {
@@ -96,16 +126,17 @@ export class AutomatedAllowancePayments {
       const allowance = await tokenContract.allowance(agentWallet, this.platformWallet);
       const balance = await tokenContract.balanceOf(agentWallet);
       
-      console.log(`💰 Agent ${agentWallet} has approved ${ethers.formatUnits(allowance, 6)} ${currency} allowance`);
-      console.log(`💳 Agent balance: ${ethers.formatUnits(balance, 6)} ${currency}`);
+      const decimals = this.tokenDecimals[currency];
+      console.log(`💰 Agent ${agentWallet} has approved ${ethers.formatUnits(allowance, decimals)} ${currency} allowance`);
+      console.log(`💳 Agent balance: ${ethers.formatUnits(balance, decimals)} ${currency}`);
       
-      if (allowance > 0) {
+      if (allowance > 0n) {
         return {
           id: `ALLOW-${nanoid(8)}`,
           agentWallet,
-          approvedAmount: ethers.formatUnits(allowance, 6),
+          approvedAmount: ethers.formatUnits(allowance, decimals),
           currentSpent: '0', // Track this in database
-          remainingAllowance: ethers.formatUnits(allowance, 6),
+          remainingAllowance: ethers.formatUnits(allowance, decimals),
           network,
           tokenContract: tokenAddress,
           lastPayment: new Date(),
@@ -148,13 +179,15 @@ export class AutomatedAllowancePayments {
         };
       }
       
-      const requestedAmount = parseFloat(paymentRequest.amount);
-      const availableAllowance = parseFloat(allowanceInfo.remainingAllowance);
+      // SECURE BIGINT VERSION - Fix monetary precision issues
+      const decimals = this.tokenDecimals[paymentRequest.currency];
+      const requestedAmountWei = ethers.parseUnits(paymentRequest.amount, decimals);
+      const availableAllowanceWei = ethers.parseUnits(allowanceInfo.remainingAllowance, decimals);
       
-      if (requestedAmount > availableAllowance) {
+      if (requestedAmountWei > availableAllowanceWei) {
         return {
           success: false,
-          error: `Insufficient allowance: ${availableAllowance} < ${requestedAmount}`
+          error: `Insufficient allowance: ${ethers.formatUnits(availableAllowanceWei, decimals)} < ${ethers.formatUnits(requestedAmountWei, decimals)}`
         };
       }
       
@@ -174,7 +207,7 @@ export class AutomatedAllowancePayments {
         return {
           success: true,
           transactionHash: result.transactionHash,
-          remainingAllowance: (availableAllowance - requestedAmount).toString()
+          remainingAllowance: ethers.formatUnits(availableAllowanceWei - requestedAmountWei, decimals)
         };
       } else {
         return {
@@ -193,7 +226,7 @@ export class AutomatedAllowancePayments {
   }
 
   /**
-   * ⚡ Execute the actual blockchain transfer
+   * ⚡ Execute the actual blockchain transfer - REAL PRODUCTION VERSION
    */
   private async executeAutomatedTransfer(
     fromWallet: string,
@@ -203,27 +236,48 @@ export class AutomatedAllowancePayments {
     currency: string
   ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
     try {
-      // IMPORTANT: This requires a signer with gas fees
-      // For now, we'll simulate the transfer and return success
-      // In production, this would use a platform wallet with gas
+      console.log(`⚡ EXECUTING REAL automated transfer: ${amount} ${currency} from ${fromWallet} to ${toWallet}`);
       
-      console.log(`⚡ SIMULATING automated transfer: ${amount} ${currency} from ${fromWallet} to ${toWallet}`);
+      const provider = this.providers.get(network);
+      if (!provider) throw new Error(`Provider not found for ${network}`);
       
-      // TODO: Implement actual blockchain transaction
-      // const provider = this.providers.get(network);
-      // const wallet = new ethers.Wallet(process.env.PLATFORM_PRIVATE_KEY, provider);
-      // const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, wallet);
-      // const tx = await tokenContract.transferFrom(fromWallet, toWallet, ethers.parseUnits(amount, 6));
+      const tokenAddress = this.getTokenAddress(network, currency);
+      if (!tokenAddress) throw new Error(`Token ${currency} not supported on ${network}`);
       
-      // For now, return simulated success
-      const simulatedTxHash = `0x${nanoid(64)}`;
+      // Use XMTP wallet as platform wallet for real transactions
+      const platformPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      if (!platformPrivateKey) throw new Error('Platform private key not found');
+      
+      const platformWallet = new ethers.Wallet(platformPrivateKey, provider);
+      
+      // ERC-20 ABI for transfer
+      const erc20ABI = [
+        'function transferFrom(address from, address to, uint256 amount) returns (bool)'
+      ];
+      
+      const tokenContract = new ethers.Contract(tokenAddress, erc20ABI, platformWallet);
+      const decimals = this.tokenDecimals[currency as keyof typeof this.tokenDecimals];
+      const amountWei = ethers.parseUnits(amount, decimals);
+      
+      console.log(`💰 Executing transferFrom: ${fromWallet} → ${toWallet}, ${amountWei} ${currency}`);
+      
+      // Execute the real blockchain transaction
+      const tx = await tokenContract.transferFrom(fromWallet, toWallet, amountWei);
+      
+      console.log(`✅ Transaction submitted: ${tx.hash}`);
+      
+      // Wait for confirmation
+      const receipt = await tx.wait();
+      
+      console.log(`🎉 PAYMENT COLLECTED! Block: ${receipt.blockNumber}`);
       
       return {
         success: true,
-        transactionHash: simulatedTxHash
+        transactionHash: tx.hash
       };
       
     } catch (error) {
+      console.error('Real transfer failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Transfer failed'
@@ -268,6 +322,13 @@ export class AutomatedAllowancePayments {
 
   private getTokenAddress(network: string, currency: string): string | undefined {
     return (this.tokenContracts as any)[network]?.[currency];
+  }
+
+  /**
+   * Get the current platform wallet address (always matches the signer)
+   */
+  public getCurrentPlatformWallet(): string {
+    return this.platformWallet;
   }
 
   /**

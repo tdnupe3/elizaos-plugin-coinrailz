@@ -10,11 +10,58 @@
  */
 
 import { Router } from 'express';
+import { z } from 'zod';
+import { ethers } from 'ethers';
+import { applyRateLimit } from '../middleware/rateLimiting';
+import { requireAuth } from '../middleware/requireAuth';
 import { automatedAllowancePayments } from '../services/automatedAllowancePayments';
 import { experimentalDefiPaymentExtractor } from '../services/experimentalDefiPaymentExtractor';
 import { cryptoInvoiceReportGenerator } from '../services/cryptoInvoiceReportGenerator';
 
 const router = Router();
+
+// 🔒 SECURITY: Validation schemas
+const walletSchema = z.string().refine(ethers.isAddress, 'Invalid Ethereum address');
+const networkSchema = z.enum(['ethereum', 'polygon', 'base']);
+const currencySchema = z.enum(['USDC', 'USDT', 'DAI']);
+
+const paymentRequestSchema = z.object({
+  recipientWallet: walletSchema,
+  amount: z.string().regex(/^\d+(\.\d{1,18})?$/, 'Invalid amount format'),
+  currency: currencySchema,
+  network: networkSchema,
+  serviceDescription: z.string().min(1).max(500)
+});
+
+const tokenPaymentSchema = z.object({
+  recipientWallet: walletSchema,
+  paymentAmountUSD: z.number().min(1).max(10000),
+  serviceDescription: z.string().min(1).max(500),
+  network: networkSchema.optional()
+});
+
+// 🛡️ SECURITY MIDDLEWARE
+function validateRequest<T>(schema: z.ZodSchema<T>) {
+  return (req: any, res: any, next: any) => {
+    try {
+      const validated = schema.parse(req.body);
+      req.validatedBody = validated;
+      next();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({
+          success: false,
+          error: 'Validation failed',
+          details: error.errors
+        });
+      }
+      next(error);
+    }
+  };
+}
+
+// Apply rate limiting to all revolutionary payment routes
+router.use(applyRateLimit('general'));
 
 /**
  * 🤖 Check if agent has approved spending allowance
@@ -59,7 +106,7 @@ router.get('/check-allowance/:wallet/:network/:currency', async (req, res) => {
 /**
  * 💰 Automatically collect payment from pre-approved allowance
  */
-router.post('/collect-automated-payment', async (req, res) => {
+router.post('/collect-automated-payment', requireAuth, validateRequest(paymentRequestSchema), async (req, res) => {
   try {
     const {
       recipientWallet,
@@ -67,7 +114,29 @@ router.post('/collect-automated-payment', async (req, res) => {
       currency,
       network,
       serviceDescription
-    } = req.body;
+    } = req.validatedBody;
+    
+    // 🔒 CRITICAL SECURITY: Verify wallet ownership before collection
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'User identification required for wallet operations'
+      });
+    }
+    
+    // TODO: Implement wallet ownership verification in database
+    // For now, require user to sign a verification message
+    console.log(`🔒 SECURITY CHECK: User ${userId} attempting collection from ${recipientWallet}`);
+    
+    // TEMPORARY SECURITY MEASURE: For production deployment, require explicit wallet binding
+    return res.status(403).json({
+      success: false,
+      error: 'Wallet ownership verification required before automated collection',
+      message: 'This endpoint requires wallet ownership verification to prevent unauthorized fund access. Please contact support to bind your wallet.',
+      walletRequested: recipientWallet,
+      securityLevel: 'MAXIMUM'
+    });
     
     console.log(`🤖 AUTOMATED COLLECTION: ${amount} ${currency} from ${recipientWallet}`);
     
@@ -168,7 +237,7 @@ router.get('/scan-defi-opportunities/:wallet', async (req, res) => {
 /**
  * ⚡ EXPERIMENTAL: Attempt payment extraction from DeFi protocol
  */
-router.post('/extract-defi-payment', async (req, res) => {
+router.post('/extract-defi-payment', requireAuth, async (req, res) => {
   try {
     const { opportunityId, wallet } = req.body;
     
@@ -210,14 +279,14 @@ router.post('/extract-defi-payment', async (req, res) => {
 /**
  * 🪙 REVOLUTIONARY: Create custom token as payment request
  */
-router.post('/create-token-payment', async (req, res) => {
+router.post('/create-token-payment', requireAuth, validateRequest(tokenPaymentSchema), async (req, res) => {
   try {
     const {
       recipientWallet,
       paymentAmountUSD,
       serviceDescription,
       network = 'base'
-    } = req.body;
+    } = req.validatedBody;
     
     console.log(`🪙 REVOLUTIONARY: Creating custom token payment for ${recipientWallet}`);
     
@@ -247,7 +316,7 @@ router.post('/create-token-payment', async (req, res) => {
 /**
  * 🎯 COMPREHENSIVE: Send automated payment request with report
  */
-router.post('/send-automated-payment-request', async (req, res) => {
+router.post('/send-automated-payment-request', requireAuth, async (req, res) => {
   try {
     const {
       recipientWallet,
@@ -308,8 +377,8 @@ NETWORK: ${network.toUpperCase()}
 ${report ? '📊 Personalized trading analysis attached' : ''}
 
 To enable automated payments, approve spending allowance:
-1. Call approve() on ${currency} contract
-2. Set spender: 0x742d35Cc6eBCA34D8f27cF3C8e6394d7C3D69f7A
+1. Call approve() on ${currency} contract  
+2. Set spender: ${automatedAllowancePayments.getCurrentPlatformWallet()}
 3. Set amount: ${amount} (or higher for multiple services)
 
 Questions? Reply to this XMTP message.

@@ -287,6 +287,16 @@ function Router() {
           );
         }}
       </Route>
+      <Route path="/enterprise-outreach">
+        {() => {
+          const EnterpriseOutreach = lazy(() => import("@/pages/EnterpriseOutreach"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <EnterpriseOutreach />
+            </Suspense>
+          );
+        }}
+      </Route>
       
       <Route path="/marketplace/checkout/:serviceId">
         {() => <LazyLoadWrapper><MarketplaceCheckout /></LazyLoadWrapper>}

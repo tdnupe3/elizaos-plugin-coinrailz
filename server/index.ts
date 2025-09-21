@@ -24,6 +24,7 @@ import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
+import enterpriseOutreachRoutes from './routes/enterpriseOutreachRoutes';
 import walletBalanceRoutes from './routes/walletBalanceRoutes';
 import { redditAuthRouter } from './routes/redditAuth';
 import automatedOutreachRouter from './routes/automatedOutreachRoutes';
@@ -528,6 +529,10 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
 app.use('/api/sdk-licensing', sdkLicensingRoutes);
 console.log('✅ SDK Licensing routes registered successfully');
+
+console.log('🎯 Registering Enterprise Outreach routes for AI companies, fintech startups, and payment processors...');
+app.use('/api/enterprise-outreach', enterpriseOutreachRoutes);
+console.log('✅ Enterprise Outreach routes registered successfully');
 
 // Gas Station routes moved after setupSimpleRoutes
 

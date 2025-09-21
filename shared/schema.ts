@@ -2846,3 +2846,84 @@ export const insertSDKLicenseSubscriptionSchema = createInsertSchema(sdkLicenseS
   createdAt: true,
   updatedAt: true,
 });
+
+// Enterprise Outreach Campaigns table for targeting AI companies, fintech startups, and payment processors
+export const enterpriseOutreachCampaigns = pgTable('enterprise_outreach_campaigns', {
+  id: varchar('id').primaryKey().notNull(),
+  userId: varchar('user_id').notNull().references(() => users.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  targetMarket: varchar('target_market', { length: 50 }).notNull(), // ai_companies, fintech_startups, payment_processors, enterprise_saas
+  targetCount: integer('target_count').notNull(),
+  emailTemplate: text('email_template').notNull(),
+  followUpTemplate: text('follow_up_template').notNull(),
+  targetCriteria: text('target_criteria').notNull(), // JSON string with targeting criteria
+  status: varchar('status', { length: 20 }).default('draft').notNull(), // draft, active, paused, completed
+  contacted: integer('contacted').default(0).notNull(),
+  responses: integer('responses').default(0).notNull(),
+  qualified: integer('qualified').default(0).notNull(),
+  conversions: integer('conversions').default(0).notNull(),
+  revenue: decimal('revenue', { precision: 15, scale: 2 }).default('0.00').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  lastActivity: timestamp('last_activity').defaultNow().notNull(),
+}, (table) => ({
+  userIndex: index('enterprise_outreach_campaigns_user_idx').on(table.userId),
+  statusIndex: index('enterprise_outreach_campaigns_status_idx').on(table.status),
+  marketIndex: index('enterprise_outreach_campaigns_market_idx').on(table.targetMarket),
+  activityIndex: index('enterprise_outreach_campaigns_activity_idx').on(table.lastActivity),
+}));
+
+// Enterprise Outreach Targets table for specific companies and contacts
+export const enterpriseOutreachTargets = pgTable('enterprise_outreach_targets', {
+  id: varchar('id').primaryKey().notNull(),
+  campaignId: varchar('campaign_id').references(() => enterpriseOutreachCampaigns.id),
+  userId: varchar('user_id').notNull().references(() => users.id),
+  companyName: varchar('company_name', { length: 255 }).notNull(),
+  domain: varchar('domain', { length: 255 }).notNull(),
+  industry: varchar('industry', { length: 100 }).notNull(),
+  employeeCount: varchar('employee_count', { length: 50 }).notNull(),
+  revenue: varchar('revenue', { length: 50 }).notNull(),
+  contactEmail: varchar('contact_email', { length: 255 }).notNull(),
+  contactName: varchar('contact_name', { length: 255 }).notNull(),
+  contactTitle: varchar('contact_title', { length: 255 }).notNull(),
+  linkedinUrl: varchar('linkedin_url', { length: 500 }),
+  phoneNumber: varchar('phone_number', { length: 50 }),
+  companyDescription: text('company_description').notNull(),
+  useCase: text('use_case').notNull(),
+  priority: varchar('priority', { length: 10 }).default('medium').notNull(), // high, medium, low
+  status: varchar('status', { length: 20 }).default('new').notNull(), // new, contacted, responded, qualified, converted
+  lastContactDate: timestamp('last_contact_date'),
+  nextFollowUp: timestamp('next_follow_up'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  campaignIndex: index('enterprise_outreach_targets_campaign_idx').on(table.campaignId),
+  userIndex: index('enterprise_outreach_targets_user_idx').on(table.userId),
+  statusIndex: index('enterprise_outreach_targets_status_idx').on(table.status),
+  priorityIndex: index('enterprise_outreach_targets_priority_idx').on(table.priority),
+  industryIndex: index('enterprise_outreach_targets_industry_idx').on(table.industry),
+  companyIndex: index('enterprise_outreach_targets_company_idx').on(table.companyName),
+  domainIndex: index('enterprise_outreach_targets_domain_idx').on(table.domain),
+  contactIndex: index('enterprise_outreach_targets_contact_idx').on(table.contactEmail),
+  followUpIndex: index('enterprise_outreach_targets_followup_idx').on(table.nextFollowUp),
+}));
+
+// Enterprise Outreach Types and Schemas
+export type EnterpriseOutreachCampaign = typeof enterpriseOutreachCampaigns.$inferSelect;
+export type InsertEnterpriseOutreachCampaign = typeof enterpriseOutreachCampaigns.$inferInsert;
+export type EnterpriseOutreachTarget = typeof enterpriseOutreachTargets.$inferSelect;
+export type InsertEnterpriseOutreachTarget = typeof enterpriseOutreachTargets.$inferInsert;
+
+export const insertEnterpriseOutreachCampaignSchema = createInsertSchema(enterpriseOutreachCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastActivity: true,
+});
+
+export const insertEnterpriseOutreachTargetSchema = createInsertSchema(enterpriseOutreachTargets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});

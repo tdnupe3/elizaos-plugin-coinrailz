@@ -255,12 +255,15 @@ Interested in monetizing AI services? Reply for free setup help!`;
           // Use the XMTP service to send actual message
           const result = await xmtpService.sendMessageToAgent(address, message);
           
-          if (result.success) {
+          const wasSent = result.status === 'sent' || result.status === 'delivered' || result.status === 'read';
+          if (wasSent) {
             messagesSent++;
-            totalCost += 0.01; // Estimated gas cost per message
-            console.log(`✅ Message sent successfully to ${address}`);
+            totalCost += 0; // XMTP messaging is free
+            console.log(`✅ Message sent successfully to ${address} (status: ${result.status})`);
           } else {
-            console.log(`❌ Message failed to ${address}: ${result.error}`);
+            const errorMsg = result.reason ?? 'Unknown XMTP failure';
+            console.log(`❌ Message failed to ${address}: ${errorMsg}`);
+            failureReasons.push(`${address}: ${errorMsg}`);
           }
           
           // Rate limiting - wait between messages

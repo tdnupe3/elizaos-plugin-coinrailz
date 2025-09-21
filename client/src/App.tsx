@@ -143,6 +143,7 @@ const SecurityDashboard = lazy(() => import("@/components/enhanced-security"));
 const SubscriptionPage = lazy(() => import("@/pages/subscription"));
 const SubscriptionDashboard = lazy(() => import("@/pages/subscription-dashboard"));
 const CustomerDashboard = lazy(() => import("@/pages/CustomerDashboard"));
+const EnterpriseOutreach = lazy(() => import("@/pages/EnterpriseOutreach"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -664,6 +665,9 @@ function Router() {
       </Route>
       <Route path="/sdk-dashboard">
         {() => <LazyLoadWrapper><CustomerDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/enterprise-outreach">
+        {() => <LazyLoadWrapper><EnterpriseOutreach /></LazyLoadWrapper>}
       </Route>
 
       <Route component={NotFound} />

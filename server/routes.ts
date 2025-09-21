@@ -44,6 +44,7 @@ import { registerEmergencyRoutes } from "./routes/emergencyRoutes";
 import dashboardRoutesV2 from "./routes/dashboardRoutes";
 import { registerCircleStatusRoutes } from "./routes/circleStatus";
 import agentDiscoveryRoutes from "./routes/agentDiscoveryRoutes";
+import revolutionaryPaymentRoutes from "./routes/revolutionaryPaymentRoutes";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
@@ -786,6 +787,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment processing routes
   const { paymentRoutes } = await import('./routes/paymentRoutes');
   app.use('/api/payments', paymentRoutes);
+  
+  // 🚀 REVOLUTIONARY: Automated payment systems
+  app.use('/api/revolutionary-payments', revolutionaryPaymentRoutes);
   
   // Stripe integration for marketplace payments
   const { default: stripeIntegrationRoutes } = await import('./routes/stripeIntegration');

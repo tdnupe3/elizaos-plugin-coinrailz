@@ -6,6 +6,7 @@ import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogic
 // Initialize automated revenue generation systems
 import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
 import { initializeAffiliateSystem } from './services/automatedAffiliate';
+import { sdkLeadGenerationService } from './services/sdkLeadGenerationService';
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";

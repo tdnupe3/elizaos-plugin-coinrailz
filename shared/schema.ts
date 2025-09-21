@@ -2707,6 +2707,116 @@ export const insertAIAgentSubscriptionSchema = createInsertSchema(aiAgentSubscri
   updatedAt: true,
 });
 
+// SDK License Tiers for AI Developer Market ($2K-$200K range)
+export const sdkLicenseTiers = pgTable('sdk_license_tiers', {
+  id: serial('id').primaryKey(),
+  name: varchar('name', { length: 100 }).notNull(),
+  description: text('description').notNull(),
+  yearlyPrice: decimal('yearly_price', { precision: 10, scale: 2 }).notNull(),
+  monthlyPrice: decimal('monthly_price', { precision: 10, scale: 2 }).notNull(),
+  setupFee: decimal('setup_fee', { precision: 10, scale: 2 }).default('0.00'),
+  
+  // Transaction limits and fees
+  transactionFeeRate: decimal('transaction_fee_rate', { precision: 5, scale: 4 }).notNull(), // e.g., 0.0099 for 0.99%
+  fixedFeePerTransaction: decimal('fixed_fee_per_transaction', { precision: 5, scale: 2 }).notNull(), // e.g., 0.05
+  monthlyTransactionLimit: integer('monthly_transaction_limit'), // null = unlimited
+  monthlyVolumeLimit: decimal('monthly_volume_limit', { precision: 15, scale: 2 }), // null = unlimited
+  
+  // Support and features
+  supportLevel: varchar('support_level', { length: 50 }).notNull(), // email, priority, dedicated, white_glove
+  slaGuarantee: varchar('sla_guarantee', { length: 50 }), // 99.5%, 99.9%, 99.99%
+  customIntegrations: boolean('custom_integrations').default(false),
+  whiteLabeling: boolean('white_labeling').default(false),
+  dedicatedInfrastructure: boolean('dedicated_infrastructure').default(false),
+  
+  // API Access and limits
+  apiRequestsPerSecond: integer('api_requests_per_second').default(10),
+  webhookEndpoints: integer('webhook_endpoints').default(5),
+  teamMembers: integer('team_members').default(1), // number of developer seats
+  
+  // Features array
+  features: text('features').array().notNull(),
+  
+  isActive: boolean('is_active').default(true),
+  targetMarket: varchar('target_market', { length: 100 }).default('enterprise_ai'), // startup, growth, enterprise_ai, fortune_500
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  nameIndex: index('sdk_license_tiers_name_idx').on(table.name),
+  priceIndex: index('sdk_license_tiers_price_idx').on(table.yearlyPrice),
+  targetMarketIndex: index('sdk_license_tiers_market_idx').on(table.targetMarket),
+}));
+
+// SDK License Subscriptions for Enterprise AI Developers
+export const sdkLicenseSubscriptions = pgTable('sdk_license_subscriptions', {
+  id: serial('id').primaryKey(),
+  licenseKey: varchar('license_key', { length: 255 }).notNull().unique(), // SDK license key
+  licenseKeyHash: varchar('license_key_hash', { length: 255 }).notNull(), // SHA-256 hashed license key
+  
+  // Customer information
+  companyName: varchar('company_name', { length: 255 }).notNull(),
+  contactEmail: varchar('contact_email', { length: 255 }).notNull(),
+  contactName: varchar('contact_name', { length: 255 }).notNull(),
+  phoneNumber: varchar('phone_number', { length: 20 }),
+  companySize: varchar('company_size', { length: 50 }), // startup, small, medium, large, enterprise
+  useCase: text('use_case'), // Description of AI agent use case
+  
+  // License details
+  tierId: integer('tier_id').notNull().references(() => sdkLicenseTiers.id),
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, suspended, expired, cancelled
+  billingCycle: varchar('billing_cycle', { length: 20 }).notNull().default('yearly'), // monthly, yearly
+  
+  // Dates
+  startDate: timestamp('start_date').notNull().defaultNow(),
+  endDate: timestamp('end_date').notNull(),
+  lastRenewalDate: timestamp('last_renewal_date'),
+  nextBillingDate: timestamp('next_billing_date').notNull(),
+  
+  // Payment information
+  paymentMethod: varchar('payment_method', { length: 30 }).notNull(), // stripe, crypto, wire_transfer, check
+  stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
+  stripeSubscriptionId: varchar('stripe_subscription_id', { length: 255 }),
+  cryptoPaymentAddress: varchar('crypto_payment_address', { length: 255 }),
+  lastPaymentAmount: decimal('last_payment_amount', { precision: 10, scale: 2 }),
+  lastPaymentDate: timestamp('last_payment_date'),
+  
+  // Usage tracking
+  currentMonthTransactions: integer('current_month_transactions').default(0),
+  currentMonthVolume: decimal('current_month_volume', { precision: 15, scale: 2 }).default('0.00'),
+  totalLifetimeTransactions: integer('total_lifetime_transactions').default(0),
+  totalLifetimeVolume: decimal('total_lifetime_volume', { precision: 15, scale: 2 }).default('0.00'),
+  totalLifetimeRevenue: decimal('total_lifetime_revenue', { precision: 15, scale: 2 }).default('0.00'),
+  
+  // Usage reset tracking
+  lastUsageReset: timestamp('last_usage_reset').defaultNow(),
+  
+  // Configuration
+  allowedDomains: text('allowed_domains').array(), // Domains allowed to use the SDK
+  webhookUrls: text('webhook_urls').array(), // Webhook endpoints
+  customConfiguration: jsonb('custom_configuration'), // Custom settings for enterprise clients
+  
+  // Relationship management
+  accountManagerId: varchar('account_manager_id'), // Reference to user handling this account
+  salesRepId: varchar('sales_rep_id'), // Reference to sales rep who closed the deal
+  
+  // Metadata
+  signupSource: varchar('signup_source', { length: 100 }), // website, sales_team, partner, referral
+  contractDocumentUrl: varchar('contract_document_url', { length: 500 }), // Signed contract location
+  notes: text('notes'), // Internal notes about the customer
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  licenseKeyIndex: index('sdk_license_subs_key_idx').on(table.licenseKey),
+  licenseKeyHashIndex: index('sdk_license_subs_hash_idx').on(table.licenseKeyHash),
+  companyIndex: index('sdk_license_subs_company_idx').on(table.companyName),
+  statusIndex: index('sdk_license_subs_status_idx').on(table.status),
+  tierIndex: index('sdk_license_subs_tier_idx').on(table.tierId),
+  billingDateIndex: index('sdk_license_subs_billing_idx').on(table.nextBillingDate),
+  stripeSubIndex: index('sdk_license_subs_stripe_idx').on(table.stripeSubscriptionId),
+}));
+
 // Discovered Agents Types and Schemas
 export type DiscoveredAgent = typeof discoveredAgents.$inferSelect;
 export type InsertDiscoveredAgent = typeof discoveredAgents.$inferInsert;
@@ -2717,4 +2827,22 @@ export const insertDiscoveredAgentSchema = createInsertSchema(discoveredAgents).
   verifiedAt: true,
   lastSeenAt: true,
   lastContactAt: true,
+});
+
+// SDK License Types and Schemas
+export type SDKLicenseTier = typeof sdkLicenseTiers.$inferSelect;
+export type InsertSDKLicenseTier = typeof sdkLicenseTiers.$inferInsert;
+export type SDKLicenseSubscription = typeof sdkLicenseSubscriptions.$inferSelect;
+export type InsertSDKLicenseSubscription = typeof sdkLicenseSubscriptions.$inferInsert;
+
+export const insertSDKLicenseTierSchema = createInsertSchema(sdkLicenseTiers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSDKLicenseSubscriptionSchema = createInsertSchema(sdkLicenseSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });

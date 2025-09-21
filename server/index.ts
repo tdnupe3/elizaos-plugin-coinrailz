@@ -22,6 +22,7 @@ import { registerRoutes as registerMainRoutes } from "./routes";
 import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
+import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
 import walletBalanceRoutes from './routes/walletBalanceRoutes';
 import { redditAuthRouter } from './routes/redditAuth';
@@ -523,6 +524,10 @@ app.use('/api/user-circle', userCircleRoutes);
 console.log('🚀 Registering AI Agent Payments SDK routes...');
 app.use('/api', agentPaymentsRoutes);
 console.log('✅ Agent Payments SDK routes registered successfully');
+
+console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
+app.use('/api/sdk-licensing', sdkLicensingRoutes);
+console.log('✅ SDK Licensing routes registered successfully');
 
 // Gas Station routes moved after setupSimpleRoutes
 

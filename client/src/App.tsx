@@ -277,6 +277,16 @@ function Router() {
           );
         }}
       </Route>
+      <Route path="/sdk-documentation">
+        {() => {
+          const SDKDocumentation = lazy(() => import("@/pages/SDKDocumentation"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <SDKDocumentation />
+            </Suspense>
+          );
+        }}
+      </Route>
       
       <Route path="/marketplace/checkout/:serviceId">
         {() => <LazyLoadWrapper><MarketplaceCheckout /></LazyLoadWrapper>}

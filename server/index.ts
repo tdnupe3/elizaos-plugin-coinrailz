@@ -26,6 +26,7 @@ import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
 import customerPortalRoutes from './routes/customerPortalRoutes';
+import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
 import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
 import enterpriseOutreachRoutes from './routes/enterpriseOutreachRoutes';
 import walletBalanceRoutes from './routes/walletBalanceRoutes';
@@ -538,6 +539,10 @@ app.use('/api/sdk', realSDKLicensingRoutes);
 console.log('🏢 Registering Customer Portal routes for enterprise dashboard...');
 app.use('/api/sdk/customer', customerPortalRoutes);
 console.log('✅ Customer Portal routes registered successfully');
+
+console.log('🔔 Registering CRITICAL Stripe Webhook for license activation...');
+app.use('/api/webhooks', stripeWebhookRoutes);
+console.log('✅ Stripe Webhook routes registered - payment-to-license flow operational');
 console.log('✅ Real SDK Licensing API registered successfully');
 
 console.log('🎯 Registering Enterprise Outreach routes for AI companies, fintech startups, and payment processors...');

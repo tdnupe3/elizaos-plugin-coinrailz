@@ -187,7 +187,8 @@ router.post('/purchase', async (req, res) => {
           companyName: validatedData.companyName,
           contactEmail: validatedData.contactEmail,
           tierName: selectedTier.name,
-          billingCycle: validatedData.billingCycle
+          billingCycle: validatedData.billingCycle,
+          tierId: validatedData.tierId.toString() // CRITICAL: Required for webhook license activation
         }
       );
 

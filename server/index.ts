@@ -518,6 +518,12 @@ app.use('/api/ai-products', aiAgentProductRoutes);
 // === CIRCLE USDC INTEGRATION ROUTES ===
 app.use('/api/circle', circleRoutes);
 app.use('/api/user-circle', userCircleRoutes);
+
+// === AI AGENT PAYMENTS SDK ROUTES ===
+console.log('🚀 Registering AI Agent Payments SDK routes...');
+app.use('/api', agentPaymentsRoutes);
+console.log('✅ Agent Payments SDK routes registered successfully');
+
 // Gas Station routes moved after setupSimpleRoutes
 
 // === BUSINESS LOGIC VALIDATION ROUTES ===

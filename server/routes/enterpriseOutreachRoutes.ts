@@ -520,4 +520,33 @@ router.post('/execute-maximum', async (req, res) => {
   }
 });
 
+/**
+ * 🔗 EXECUTE BLOCKCHAIN MESSAGING - Revolutionary On-Chain Outreach
+ */
+router.post('/execute-blockchain-messaging', async (req, res) => {
+  try {
+    console.log('🔗 EXECUTING REVOLUTIONARY BLOCKCHAIN MESSAGING...');
+    
+    const { blockchainMessagingService } = await import('../services/blockchainMessagingService');
+    await blockchainMessagingService.executeBlockchainOutreach();
+    
+    const analytics = blockchainMessagingService.getCampaignAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'BLOCKCHAIN MESSAGING EXECUTED - Direct wallet-to-wallet partnership outreach completed',
+      analytics,
+      note: 'Messages sent directly on Base blockchain to major DeFi protocol treasuries'
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Blockchain messaging failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Blockchain messaging execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

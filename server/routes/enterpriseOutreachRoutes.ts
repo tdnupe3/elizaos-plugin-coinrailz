@@ -550,34 +550,87 @@ router.post('/execute-blockchain-messaging', async (req, res) => {
 });
 
 /**
- * 🌐 EXECUTE MASSIVE BLOCKCHAIN OUTREACH - 200+ Target Campaign
+ * 🛡️ SAFE BLOCKCHAIN MESSAGING - Generate Execution Preview
  */
-router.post('/execute-massive-blockchain-outreach', async (req, res) => {
+router.post('/preview-safe-blockchain-messaging', async (req, res) => {
   try {
-    console.log('🌐 EXECUTING MASSIVE BLOCKCHAIN OUTREACH CAMPAIGN...');
+    console.log('📋 GENERATING SAFE BLOCKCHAIN MESSAGING PREVIEW...');
     
-    const { massiveBlockchainOutreachService } = await import('../services/massiveBlockchainOutreach');
-    await massiveBlockchainOutreachService.executeMassiveOutreach();
+    const { safeBlockchainMessagingService } = await import('../services/safeBlockchainMessaging');
+    const { includeRegulated = false } = req.body;
     
-    const analytics = massiveBlockchainOutreachService.getCampaignAnalytics();
+    const preview = await safeBlockchainMessagingService.generateExecutionPreview(includeRegulated);
+    const balances = await safeBlockchainMessagingService.getWalletBalances();
     
     res.json({
       success: true,
-      message: 'MASSIVE BLOCKCHAIN OUTREACH EXECUTED - 200+ targets across DeFi, DAOs, VCs, Gaming, AI, Banks, MEV bots, and Launchpads',
-      analytics,
-      campaign: {
-        scale: '200+ wallets targeted',
-        categories: ['DeFi Protocols', 'DAO Treasuries', 'Major Exchanges', 'MEV Bots', 'Gaming/NFT', 'AI+Blockchain', 'Banks', 'Launchpads', 'Institutional'],
-        network: 'Base Chain (ultra-low cost)',
-        advantages: ['Impossible to block', 'Permanently stored', 'Direct delivery', 'Multi-sector reach']
-      }
+      message: 'Safe blockchain messaging preview generated',
+      preview,
+      balances,
+      readyForExecution: preview.estimatedCostETH < 0.01, // Safety check
+      notice: 'This preview shows exact costs and validates all targets before execution'
     });
     
   } catch (error) {
-    console.error('❌ CRITICAL: Massive blockchain outreach failed:', error);
+    console.error('❌ CRITICAL: Preview generation failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Massive blockchain outreach execution failed',
+      error: 'Preview generation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * 🚀 EXECUTE SAFE BLOCKCHAIN MESSAGING - Production Ready
+ */
+router.post('/execute-safe-blockchain-messaging', async (req, res) => {
+  try {
+    console.log('🚀 EXECUTING SAFE BLOCKCHAIN MESSAGING...');
+    
+    const { safeBlockchainMessagingService } = await import('../services/safeBlockchainMessaging');
+    const { userConfirmation, maxTargets, preview } = req.body;
+    
+    if (!userConfirmation) {
+      return res.status(400).json({
+        success: false,
+        error: 'User confirmation required',
+        message: 'Must explicitly confirm execution with userConfirmation: true'
+      });
+    }
+    
+    if (!preview) {
+      return res.status(400).json({
+        success: false,
+        error: 'Preview required',
+        message: 'Must provide preview object from preview endpoint'
+      });
+    }
+    
+    const results = await safeBlockchainMessagingService.executeSafeMessaging(
+      preview, 
+      userConfirmation,
+      maxTargets
+    );
+    
+    res.json({
+      success: results.success,
+      message: 'SAFE BLOCKCHAIN MESSAGING EXECUTED',
+      execution: results,
+      advantages: [
+        'Multi-chain support (Base + Ethereum)',
+        'Zero-value transactions (contract-safe)',
+        'EIP-1559 gas optimization',
+        'Target validation and circuit breakers',
+        'Rate limiting and compliance filtering'
+      ]
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Safe blockchain messaging failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Safe blockchain messaging execution failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

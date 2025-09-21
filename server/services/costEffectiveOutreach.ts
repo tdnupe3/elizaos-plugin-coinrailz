@@ -227,12 +227,30 @@ Interested in monetizing AI services? Reply for free setup help!`;
       let messagesAttempted = 0;
       let messagesSent = 0;
       let totalCost = 0;
+      const failureReasons: string[] = [];
 
-      // Send messages to each target address
+      // CRITICAL FIX: First check which addresses are actually XMTP-enabled
+      console.log(`🔍 Checking XMTP compatibility for ${targetAddresses.length} addresses...`);
+      const xmtpEnabledAddresses: string[] = [];
+      
       for (const address of targetAddresses) {
+        const canReceiveXMTP = await xmtpService.canMessageAddress(address);
+        if (canReceiveXMTP) {
+          xmtpEnabledAddresses.push(address);
+          console.log(`✅ ${address} is XMTP-enabled`);
+        } else {
+          console.log(`❌ ${address} cannot receive XMTP messages`);
+          failureReasons.push(`${address}: Not XMTP-enabled`);
+        }
+      }
+
+      console.log(`📊 XMTP Discovery Results: ${xmtpEnabledAddresses.length}/${targetAddresses.length} addresses can receive XMTP messages`);
+
+      // Send messages to XMTP-enabled addresses only
+      for (const address of xmtpEnabledAddresses) {
         try {
           messagesAttempted++;
-          console.log(`📤 Sending XMTP message to ${address}...`);
+          console.log(`📤 Sending XMTP message to VERIFIED address ${address}...`);
           
           // Use the XMTP service to send actual message
           const result = await xmtpService.sendMessageToAgent(address, message);
@@ -255,19 +273,31 @@ Interested in monetizing AI services? Reply for free setup help!`;
         }
       }
 
+      // Report results with detailed failure analysis
+      const totalXMTPAttempts = xmtpEnabledAddresses.length;
+      const xmtpSuccessRate = totalXMTPAttempts > 0 ? (messagesSent / totalXMTPAttempts * 100).toFixed(1) : '0';
+      
+      console.log(`📊 XMTP Campaign Results:`);
+      console.log(`  - XMTP-enabled addresses: ${totalXMTPAttempts}/${targetAddresses.length}`);
+      console.log(`  - Successful messages: ${messagesSent}/${totalXMTPAttempts} (${xmtpSuccessRate}%)`);
+      console.log(`  - Failure reasons: ${failureReasons.join(', ')}`);
+
       if (messagesSent > 0) {
         console.log(`✅ XMTP campaign completed: ${messagesSent}/${messagesAttempted} messages sent`);
         return {
           success: true,
           reached: messagesSent,
-          cost: totalCost
+          cost: totalCost,
+          details: `XMTP Success: ${messagesSent}/${totalXMTPAttempts} enabled addresses`
         };
       } else {
+        // If XMTP failed completely, recommend trying Virtuals ACP
+        console.log('⚠️ XMTP campaign had zero success - consider using Virtuals ACP for actual AI agent communication');
         return {
           success: false,
           reached: 0,
           cost: 0,
-          error: 'No messages were successfully sent - check wallet funding and XMTP service'
+          error: `No XMTP messages sent. ${xmtpEnabledAddresses.length}/${targetAddresses.length} addresses were XMTP-enabled. Consider using Virtuals ACP instead.`
         };
       }
       

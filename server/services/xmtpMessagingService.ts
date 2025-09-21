@@ -153,6 +153,50 @@ export class XMTPMessagingService {
   }
 
   /**
+   * Check if wallet address can receive XMTP messages
+   */
+  async canMessageAddress(address: string): Promise<boolean> {
+    try {
+      await this.ensureReady();
+      if (!this.xmtpClient) {
+        return false;
+      }
+      
+      // Use XMTP's built-in canMessage method for discovery
+      // Fix for "Given napi value is not an array" error
+      const canMessage = await this.xmtpClient.canMessage([address]);
+      console.log(`🔍 XMTP Discovery: ${address} can receive messages: ${canMessage.length > 0 && canMessage[0]}`);
+      return canMessage.length > 0 && canMessage[0];
+    } catch (error) {
+      console.error(`❌ Error checking XMTP capability for ${address}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Discover all XMTP-enabled addresses from existing conversations
+   */
+  async discoverXMTPEnabledAddresses(): Promise<string[]> {
+    try {
+      await this.ensureReady();
+      if (!this.xmtpClient) {
+        return [];
+      }
+
+      console.log('🔍 Discovering XMTP-enabled addresses from existing conversations...');
+      const conversations = await this.xmtpClient.conversations.list();
+      
+      const enabledAddresses = conversations.map(conv => conv.peerAddress);
+      console.log(`✅ Found ${enabledAddresses.length} XMTP-enabled addresses`);
+      
+      return enabledAddresses;
+    } catch (error) {
+      console.error('❌ Error discovering XMTP addresses:', error);
+      return [];
+    }
+  }
+
+  /**
    * Send FREE XMTP message to external agent (NO BLOCKCHAIN COSTS)
    */
   async sendMessageToAgent(

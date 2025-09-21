@@ -29,6 +29,7 @@ import customerPortalRoutes from './routes/customerPortalRoutes';
 import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
 import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
 import enterpriseOutreachRoutes from './routes/enterpriseOutreachRoutes';
+import experimentalOutreachRoutes from './routes/experimentalOutreachRoutes';
 import walletBalanceRoutes from './routes/walletBalanceRoutes';
 import { redditAuthRouter } from './routes/redditAuth';
 import automatedOutreachRouter from './routes/automatedOutreachRoutes';
@@ -547,6 +548,8 @@ console.log('✅ Real SDK Licensing API registered successfully');
 
 console.log('🎯 Registering Enterprise Outreach routes for AI companies, fintech startups, and payment processors...');
 app.use('/api/enterprise-outreach', enterpriseOutreachRoutes);
+console.log('🚀 Registering EXPERIMENTAL Outreach routes for revolutionary blockchain B2B outreach...');
+app.use('/api/experimental-outreach', experimentalOutreachRoutes);
 console.log('✅ Enterprise Outreach routes registered successfully');
 
 // Gas Station routes moved after setupSimpleRoutes

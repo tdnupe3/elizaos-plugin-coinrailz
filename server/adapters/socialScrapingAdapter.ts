@@ -456,7 +456,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
         `https://www.reddit.com/${subreddit}/search.json?q=agent&limit=100&restrict_sr=1`,
         {
           headers: {
-            'User-Agent': 'CoinRailz-AgentDiscovery/1.0'
+            'User-Agent': 'web:coinrailz-platform:v2.1.0 (by /u/coinrailz_platform)'
           }
         }
       );
@@ -514,7 +514,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
     return {
       'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'CoinRailz-AgentDiscovery/1.0'
+      'User-Agent': 'web:coinrailz-platform:v2.1.0 (by /u/coinrailz_platform)'
     };
   }
 

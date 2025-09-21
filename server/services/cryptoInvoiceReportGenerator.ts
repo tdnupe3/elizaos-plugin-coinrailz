@@ -320,10 +320,10 @@ Our on-chain analysis identified your wallet (${invoice.recipientWallet}) as run
 We've prepared a personalized ${invoice.attachedReport.reportType.replace('_', ' ')} report showing potential savings of $${invoice.attachedReport.potentialSavings.toLocaleString()} annually.
 
 **KEY INSIGHTS FROM YOUR ANALYSIS:**
-${invoice.attachedReport.keyInsights.slice(0, 3).map(insight => `• ${insight}`).join('\n')}
+${(invoice.attachedReport.keyInsights || []).slice(0, 3).map(insight => `• ${insight}`).join('\n') || '• Advanced trading pattern analysis\n• MEV protection opportunities\n• Portfolio optimization potential'}
 
 **IMMEDIATE ACTIONABLE RECOMMENDATIONS:**
-${invoice.attachedReport.actionableRecommendations.slice(0, 2).map(rec => `• ${rec}`).join('\n')}
+${(invoice.attachedReport.actionableRecommendations || []).slice(0, 2).map(rec => `• ${rec}`).join('\n') || '• Implement automated rebalancing\n• Optimize gas fee strategies'}
 
 **INTEGRATION OPPORTUNITY:**
 Based on your trading patterns, our CoinRailz SDK could optimize your operations and reduce costs by 40-60%. 

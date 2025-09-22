@@ -6,6 +6,7 @@
  */
 
 import { ethers } from 'ethers';
+import { coinGeckoPricingService } from './pricing/CoinGeckoPricingService';
 
 interface MassiveBaseTarget {
   name: string;
@@ -138,7 +139,8 @@ export class MassiveBaseEcosystemThousandsService {
 
     console.log(`✅ MASSIVE BASE ECOSYSTEM OUTREACH COMPLETE`);
     console.log(`📊 Messages sent: ${this.messagesSent}`);
-    console.log(`💰 Total cost: $${(this.totalCost * 2800).toFixed(4)}`);
+    const realTimeUSDCost = await coinGeckoPricingService.getUSDValue(this.totalCost, 'ETH');
+    console.log(`💰 Total cost: $${realTimeUSDCost.toFixed(4)}`);
     
     this.generateMassiveCampaignReport();
   }
@@ -166,7 +168,8 @@ export class MassiveBaseEcosystemThousandsService {
     
     console.log(`✅ MASSIVE THOUSANDS SIMULATION COMPLETE`);
     console.log(`📊 Messages sent: ${this.messagesSent}`);
-    console.log(`💰 Total simulated cost: $${(this.totalCost * 2800).toFixed(4)}`);
+    const realTimeSimulatedCost = await coinGeckoPricingService.getUSDValue(this.totalCost, 'ETH');
+    console.log(`💰 Total simulated cost: $${realTimeSimulatedCost.toFixed(4)}`);
     
     this.generateMassiveCampaignReport();
   }
@@ -579,8 +582,9 @@ Ecosystem: ${target.ecosystem}`;
     
     console.log(`✅ Successful Messages: ${successfulSends.length}`);
     console.log(`❌ Failed Messages: ${failedSends.length}`);
-    console.log(`💰 Total Cost: $${(this.totalCost * 2800).toFixed(4)}`);
-    console.log(`💸 Average Cost/Message: $${((this.totalCost * 2800) / this.messagesSent).toFixed(6)}`);
+    const realTimeTotalCost = await coinGeckoPricingService.getUSDValue(this.totalCost, 'ETH');
+    console.log(`💰 Total Cost: $${realTimeTotalCost.toFixed(4)}`);
+    console.log(`💸 Average Cost/Message: $${(realTimeTotalCost / this.messagesSent).toFixed(6)}`);
     
     // Ecosystem breakdown
     const ecosystems = ['base_native', 'coinbase_ecosystem', 'defi_protocols', 'gaming_nfts', 'enterprise', 'institutional'];

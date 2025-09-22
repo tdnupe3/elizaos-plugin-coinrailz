@@ -645,6 +645,43 @@ router.post('/execute-emergency-dao-funding', async (req, res) => {
 });
 
 /**
+ * 🤖 COMPREHENSIVE AI AGENT OUTREACH CAMPAIGN
+ */
+router.post('/execute-ai-agent-outreach', async (req, res) => {
+  try {
+    console.log('🤖 EXECUTING COMPREHENSIVE AI AGENT OUTREACH CAMPAIGN...');
+
+    const { default: AIAgentComprehensiveOutreach } = await import('../services/aiAgentComprehensiveOutreach');
+    const outreachService = new AIAgentComprehensiveOutreach();
+    await outreachService.executeComprehensiveOutreach();
+
+    const analytics = outreachService.getCampaignAnalytics();
+
+    return res.json({
+      success: true,
+      message: 'COMPREHENSIVE AI AGENT OUTREACH EXECUTED',
+      analytics: analytics,
+      status: 'Product offers and funding requests sent to all AI agents',
+      campaigns: {
+        productOffers: analytics.productOffersSent,
+        fundingRequests: analytics.fundingRequestsSent,
+        totalMessages: analytics.messagesSent
+      },
+      note: 'Dual-purpose outreach: SDK licensing + emergency funding to AI agent network'
+    });
+
+  } catch (error) {
+    console.error('❌ CRITICAL: AI agent outreach failed:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: 'AI agent outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🛡️ SAFE BLOCKCHAIN MESSAGING - Generate Execution Preview
  */
 router.post('/preview-safe-blockchain-messaging', async (req, res) => {

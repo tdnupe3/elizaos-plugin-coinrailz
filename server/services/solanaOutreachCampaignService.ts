@@ -37,6 +37,7 @@ export interface TargetWallet {
 export class SolanaOutreachCampaignService {
   private connection: Connection;
   private platformWallet: Keypair | null = null;
+  private currentCampaignId: string | null = null;
 
   constructor() {
     // TEMPORARILY USE MAINNET for testing with real SOL balance
@@ -315,7 +316,7 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
           const transferInstruction = SystemProgram.transfer({
             fromPubkey: this.platformWallet!.publicKey,
             toPubkey: new PublicKey(target.address),
-            lamports: 1000 // 0.000001 SOL dust amount
+            lamports: 2040000 // Rent-exempt minimum (~0.002 SOL)
           });
           
           transaction.add(transferInstruction);
@@ -452,7 +453,7 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
       const transferInstruction = SystemProgram.transfer({
         fromPubkey: this.platformWallet.publicKey,
         toPubkey: targetPublicKey,
-        lamports: 1000 // Dust amount
+        lamports: 2040000 // Rent-exempt minimum (~0.002 SOL)
       });
       transaction.add(transferInstruction);
       
@@ -475,7 +476,7 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
       const feeTransaction = new Transaction({ recentBlockhash: feeBlockhash, feePayer: this.platformWallet.publicKey });
       feeTransaction.add(transferInstruction, memoInstruction);
       const realFee = await this.connection.getFeeForMessage(feeTransaction.compileMessage());
-      const feeInSOL = realFee ? realFee.value / LAMPORTS_PER_SOL : 0.000005;
+      const feeInSOL = (realFee?.value ?? 5000) / LAMPORTS_PER_SOL;
       
       // Sign and send transaction to blockchain
       const signature = await sendAndConfirmTransaction(
@@ -549,8 +550,8 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
       const balance = await this.connection.getBalance(this.platformWallet.publicKey);
       const balanceSOL = balance / LAMPORTS_PER_SOL;
       
-      // Estimate cost per transaction (transfer + memo + fees ~0.000005 SOL)
-      const estimatedCostPerTx = 0.000005;
+      // Estimate cost per transaction (0.002 SOL transfer + memo + fees ~0.000005 SOL)  
+      const estimatedCostPerTx = 0.002005;
       const estimatedTxCount = Math.floor(balanceSOL / estimatedCostPerTx);
       const canSend = balanceSOL > estimatedCostPerTx;
       
@@ -579,7 +580,7 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
     let sent = 0;
     let failed = 0;
     let totalCost = 0;
-    const costPerMessage = 0.000005; // Real blockchain cost per transaction
+    const costPerMessage = 0.002005; // Real cost: 0.002 SOL transfer + 0.000005 SOL fee
     
     console.log(`🚀 MASSIVE OUTREACH: Processing ${targets.length} targets in batches...`);
     

@@ -118,6 +118,11 @@ export class SolanaOutreachCampaignService {
 Visit: coinrailz.com/solana-premium
 Demo: Get instant whale alerts in your DMs
 
+🚨 EMERGENCY FUNDING REQUEST 🚨
+Supporting innovation in Solana ecosystem
+SOL Donations: 9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5
+Every contribution helps build better tools
+
 LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
         totalBudget: 50, // 50 SOL budget
         costPerMessage: 0.00025, // Ultra-low cost via memo fields

@@ -382,7 +382,7 @@ export class CustomerSupportService {
       {
         id: 'agent_sarah_kyc',
         name: 'Sarah Johnson',
-        email: 'sarah.johnson@coinrailz.com',
+        email: 'support@coinrailz.com',
         specializations: ['kyc', 'compliance', 'verification'],
         status: 'available',
         activeTickets: 0,
@@ -393,7 +393,7 @@ export class CustomerSupportService {
       {
         id: 'agent_mike_tech',
         name: 'Mike Chen',
-        email: 'mike.chen@coinrailz.com',
+        email: 'support@coinrailz.com',
         specializations: ['technical', 'api', 'integration'],
         status: 'available',
         activeTickets: 0,
@@ -404,7 +404,7 @@ export class CustomerSupportService {
       {
         id: 'agent_emma_financial',
         name: 'Emma Rodriguez',
-        email: 'emma.rodriguez@coinrailz.com',
+        email: 'support@coinrailz.com',
         specializations: ['financial', 'payments', 'refunds'],
         status: 'available',
         activeTickets: 0,
@@ -415,7 +415,7 @@ export class CustomerSupportService {
       {
         id: 'agent_alex_agent',
         name: 'Alex Kim',
-        email: 'alex.kim@coinrailz.com',
+        email: 'support@coinrailz.com',
         specializations: ['agent', 'marketplace', 'referrals'],
         status: 'available',
         activeTickets: 0,
@@ -426,7 +426,7 @@ export class CustomerSupportService {
       {
         id: 'agent_lisa_general',
         name: 'Lisa Thompson',
-        email: 'lisa.thompson@coinrailz.com',
+        email: 'support@coinrailz.com',
         specializations: ['general', 'account', 'billing'],
         status: 'available',
         activeTickets: 0,

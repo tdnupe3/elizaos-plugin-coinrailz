@@ -345,7 +345,7 @@ AMA about the technical implementation patterns!
     for (const email of aiDeveloperEmails) {
       try {
         await sendEmail({
-          from: 'noreply@coinrailz.com',
+          from: 'support@coinrailz.com',
           to: email,
           subject: emailTemplate.subject,
           html: emailTemplate.html

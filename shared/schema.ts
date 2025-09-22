@@ -14,10 +14,11 @@ import {
   date,
   real,
   json,
+  bigint,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -2916,3 +2917,53 @@ export const insertEnterpriseOutreachTargetSchema = createInsertSchema(enterpris
   createdAt: true,
   updatedAt: true,
 });
+
+// Base Ecosystem Mapping for B2B Marketing Service
+export const baseEcosystemTargets = pgTable('base_ecosystem_targets', {
+  id: serial('id').primaryKey(),
+  organizationName: varchar('organization_name').notNull(),
+  walletAddress: varchar('wallet_address').notNull(),
+  treasuryValue: bigint('treasury_value', { mode: 'number' }).notNull(),
+  region: varchar('region').notNull(),
+  category: varchar('category').notNull(), // 'defi', 'gaming', 'social', 'infrastructure', etc.
+  description: text('description'),
+  contactStatus: varchar('contact_status').default('available'), // 'available', 'contacted', 'responded'
+  lastContactDate: timestamp('last_contact_date'),
+  isVerified: boolean('is_verified').default(true),
+  deliveryChannels: text('delivery_channels').array().default(sql`ARRAY['blockchain']`), // Available outreach methods
+  successfulCampaigns: integer('successful_campaigns').default(0),
+  totalCampaigns: integer('total_campaigns').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+// B2B Marketing Campaign Management
+export const b2bMarketingCampaigns = pgTable('b2b_marketing_campaigns', {
+  id: serial('id').primaryKey(),
+  clientEmail: varchar('client_email').notNull(),
+  clientOrganization: varchar('client_organization').notNull(),
+  campaignName: varchar('campaign_name').notNull(),
+  targetCategory: varchar('target_category').notNull(), // which Base ecosystem category to target
+  message: text('message').notNull(),
+  budgetAmount: integer('budget_amount').notNull().default(5000), // $5K default
+  status: varchar('status').notNull().default('pending'), // 'pending', 'active', 'completed', 'paused'
+  targetsReached: integer('targets_reached').default(0),
+  deliverySuccessRate: decimal('delivery_success_rate', { precision: 5, scale: 2 }).default('0.00'),
+  blockchainTxHashes: text('blockchain_tx_hashes').array().default(sql`ARRAY[]::text[]`), // Store transaction proofs
+  paymentStatus: varchar('payment_status').default('pending'), // 'pending', 'paid', 'refunded'
+  stripePaymentIntentId: varchar('stripe_payment_intent_id'),
+  expectedTargets: integer('expected_targets').default(0),
+  deliveryCost: decimal('delivery_cost', { precision: 10, scale: 2 }).default('0.00'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+  completedAt: timestamp('completed_at')
+});
+
+// B2B Marketing Service Schema Types
+export const insertBaseEcosystemTargetSchema = createInsertSchema(baseEcosystemTargets);
+export type InsertBaseEcosystemTarget = z.infer<typeof insertBaseEcosystemTargetSchema>;
+export type SelectBaseEcosystemTarget = typeof baseEcosystemTargets.$inferSelect;
+
+export const insertB2BMarketingCampaignSchema = createInsertSchema(b2bMarketingCampaigns);
+export type InsertB2BMarketingCampaign = z.infer<typeof insertB2BMarketingCampaignSchema>;
+export type SelectB2BMarketingCampaign = typeof b2bMarketingCampaigns.$inferSelect;

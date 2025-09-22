@@ -115,6 +115,7 @@ const EnterprisePage = lazy(() => import("@/pages/enterprise"));
 const SignupFlowDemo = lazy(() => import("@/pages/signup-flow-demo"));
 const LegalDisclaimers = lazy(() => import("@/pages/legal-disclaimers"));
 const ContactUs = lazy(() => import("@/pages/contact-us"));
+const WalletAccess = lazy(() => import("@/pages/WalletAccess"));
 
 const AgentDashboard = lazy(() => import("@/pages/agent-dashboard"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
@@ -506,6 +507,9 @@ function Router() {
       </Route>
       <Route path="/contact-us">
         {() => <LazyLoadWrapper><ContactUs /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/wallet-access">
+        {() => <LazyLoadWrapper><WalletAccess /></LazyLoadWrapper>}
       </Route>
 
       {/* Report Landing Page - Public Access */}

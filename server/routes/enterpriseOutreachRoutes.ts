@@ -554,6 +554,64 @@ router.post('/execute-blockchain-messaging', async (req, res) => {
 });
 
 /**
+ * 💬 BLOCKSCAN CHAT MESSAGING - FREE Wallet-to-Wallet Chat
+ */
+router.post('/execute-chat-messaging', async (req, res) => {
+  try {
+    console.log('💬 EXECUTING BLOCKSCAN CHAT MESSAGING CAMPAIGN...');
+
+    const { default: BlockscanChatService } = await import('../services/blockscanChatService');
+    const chatService = new BlockscanChatService();
+    await chatService.sendChatMessages();
+
+    return res.json({
+      success: true,
+      message: 'Blockscan Chat messaging campaign executed successfully',
+      status: 'FREE messages sent via Blockscan Chat platform',
+      note: 'Zero gas fees - direct wallet messaging via professional platform'
+    });
+
+  } catch (error) {
+    console.error('❌ CRITICAL: Blockscan Chat messaging failed:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: 'Blockscan Chat messaging execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * 📊 CAMPAIGN RESPONSE MONITORING
+ */
+router.post('/monitor-responses', async (req, res) => {
+  try {
+    console.log('📊 MONITORING CAMPAIGN RESPONSES...');
+
+    const { default: BlockscanChatService } = await import('../services/blockscanChatService');
+    const chatService = new BlockscanChatService();
+    await chatService.monitorResponses();
+
+    return res.json({
+      success: true,
+      message: 'Response monitoring activated',
+      status: 'Monitoring both blockchain transactions and chat messages for responses',
+      walletAddress: 'Platform CDP wallet monitoring active'
+    });
+
+  } catch (error) {
+    console.error('❌ CRITICAL: Response monitoring failed:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: 'Response monitoring failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🛡️ SAFE BLOCKCHAIN MESSAGING - Generate Execution Preview
  */
 router.post('/preview-safe-blockchain-messaging', async (req, res) => {

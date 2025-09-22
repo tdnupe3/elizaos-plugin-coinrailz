@@ -35,7 +35,7 @@ export class RealDirectOutreach {
           try {
             const msg = {
               to: company.email,
-              from: 'partnerships@coinrailz.com',
+              from: 'support@coinrailz.com',
               subject: `REAL PARTNERSHIP - CoinRailz AI Fintech Platform ($5K-$200K Budget)`,
               text: `Dear ${company.name} Team,
 
@@ -55,7 +55,7 @@ Partnership Opportunities:
 • Hybrid quantum-classical algorithms
 • Portfolio optimization experiments
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Website: https://coinrailz.com
 Payment: Immediate USDC transfer available
 
@@ -228,7 +228,7 @@ We are CoinRailz, an AI-powered fintech platform with **18+ live USDC wallets** 
 • 15% commission on all funds raised
 • "Best AI Agent 2025" global recognition
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Website: https://coinrailz.com
 
 Ready for autonomous partnership!`;

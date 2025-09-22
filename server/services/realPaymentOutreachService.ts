@@ -93,7 +93,7 @@ export class RealPaymentOutreachService {
         
         const emailSuccess = await sendEmail({
           to: email,
-          from: 'enterprise@coinrailz.com', // Your verified sender
+          from: 'support@coinrailz.com', // Your verified sender
           subject: `Payment Request ${requestId}: ${organizationName} Enterprise Integration`,
           html: this.composeEmailHTML(requestId, organizationName, amount, currency),
           text: paymentMessage
@@ -147,7 +147,7 @@ ${message}
 
 💰 Amount: $${amount.toLocaleString()} USDC
 🔗 Payment Portal: https://coinrailz.com/pay/
-📧 Contact: partnerships@coinrailz.com
+📧 Contact: support@coinrailz.com
 
 This is a legitimate payment request delivered via Base blockchain for guaranteed delivery.
 Platform: https://coinrailz.com
@@ -233,7 +233,7 @@ CoinRailz Payment Systems is requesting payment for premium enterprise integrati
 3. Escrow Service Available for large amounts
 
 ⚡ SERVICE ACTIVATION: Immediate upon payment confirmation
-📞 Enterprise Support: enterprise@coinrailz.com
+📞 Enterprise Support: support@coinrailz.com
 🔐 Payment Portal: https://coinrailz.com/pay/${requestId}
 
 This payment request was generated for verified organizations with substantial treasury holdings. All services include enterprise-grade support and customization.
@@ -293,7 +293,7 @@ To unsubscribe or discuss alternative arrangements, please reply to this message
       </div>
       
       <p><strong>⚡ Service Activation:</strong> Immediate upon payment confirmation</p>
-      <p><strong>📞 Enterprise Support:</strong> enterprise@coinrailz.com</p>
+      <p><strong>📞 Enterprise Support:</strong> support@coinrailz.com</p>
       
       <hr style="margin: 30px 0;">
       
@@ -365,7 +365,7 @@ Coin Railz is launching a comprehensive B2B marketing service specifically for B
 
 Best regards,
 Coin Railz Partnership Team
-partnerships@coinrailz.com`,
+support@coinrailz.com`,
         pricing: 5000
       },
       {
@@ -389,7 +389,7 @@ As a leading infrastructure provider in the Base ecosystem, we believe you'd be 
 
 Best regards,
 Coin Railz Partnership Team
-partnerships@coinrailz.com`,
+support@coinrailz.com`,
         pricing: 5000
       },
       {
@@ -412,7 +412,7 @@ The Base ecosystem has emerged as a premier destination for Web3 gaming, and we'
 
 Best regards,
 Coin Railz Gaming Partnerships
-partnerships@coinrailz.com`,
+support@coinrailz.com`,
         pricing: 5000
       },
       {
@@ -435,7 +435,7 @@ The creator economy on Base is rapidly expanding, and we're launching a speciali
 
 Best regards,
 Coin Railz Creator Partnerships
-partnerships@coinrailz.com`,
+support@coinrailz.com`,
         pricing: 5000
       }
     ];
@@ -508,7 +508,7 @@ Service Details:
 - 24-48 hour delivery guarantee
 
 Investment: $5,000 per campaign
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 
 This represents a legitimate B2B service offering with real delivery capabilities.`;
     

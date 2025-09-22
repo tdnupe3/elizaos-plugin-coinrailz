@@ -200,7 +200,7 @@ ${this.getCallToAction(target)}
 This message sent via Base blockchain for guaranteed delivery.
 
 Partnership Details:
-📧 partnerships@coinrailz.com
+📧 support@coinrailz.com
 🌐 https://coinrailz.com
 💼 SDK Demo: https://coinrailz.com/enterprise
 

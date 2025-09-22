@@ -301,7 +301,7 @@ This message sent via Base blockchain for guaranteed delivery.
 Part of massive 10,000+ target Base ecosystem outreach.
 
 Partnership Details:
-📧 partnerships@coinrailz.com
+📧 support@coinrailz.com
 🌐 https://coinrailz.com
 💼 Base Integration: https://coinrailz.com/base-ecosystem
 

@@ -360,7 +360,7 @@ Our APIs are designed for agent-to-agent interaction:
 • Self-service account management
 
 📞 IMMEDIATE CONTACT:
-Email: partnerships@coinrailz.com
+Email: support@coinrailz.com
 Platform: ${agent.platform}
 Payment Processing: Instant via ${agent.paymentMethods.join(', ')}
 
@@ -465,7 +465,7 @@ Timeline: Immediate publication
 • Google News inclusion
 • SEO-optimized distribution
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Website: https://coinrailz.com
 Immediate publication requested.
 
@@ -531,14 +531,14 @@ About CoinRailz:
 CoinRailz is an AI-powered fintech platform providing comprehensive cryptocurrency infrastructure, autonomous agent marketplace, and enterprise payment solutions. The platform enables AI agents to participate in the global economy through secure, compliant, and efficient financial services.
 
 For more information, visit https://coinrailz.com
-Media Contact: partnerships@coinrailz.com
+Media Contact: support@coinrailz.com
 Developer Resources: API documentation and integration guides available online
 
 ###
 
 CONTACT INFORMATION:
 CoinRailz Media Relations
-Email: partnerships@coinrailz.com
+Email: support@coinrailz.com
 Website: https://coinrailz.com
 Platform: Live with 18+ active USDC wallets`;
   }

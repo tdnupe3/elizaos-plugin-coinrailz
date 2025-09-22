@@ -35,6 +35,7 @@ import { redditAuthRouter } from './routes/redditAuth';
 import automatedOutreachRouter from './routes/automatedOutreachRoutes';
 import virtualsOutreachRouter from './routes/virtualsOutreachRoutes';
 import coinflipRoutes from './routes/coinflipRoutes';
+import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
@@ -2838,6 +2839,7 @@ app.get('/api/dashboard/stats', (req, res) => {
 // Plaid and CoinFlip routes already registered at top of file
 app.use('/api/plaid', plaidRoutes);
 app.use('/api/coinflip', coinflipRoutes);
+app.use('/api/pumpfun-copy-trading', pumpfunCopyTradingRoutes);
 app.use('/api', immediateRevenueRoutes);
 app.use('/api', walletBalanceRoutes);
 

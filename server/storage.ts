@@ -59,6 +59,15 @@ import {
   type InsertAIAgentSubscription,
   type InsertTransactionProof,
   type SelectTransactionProof,
+  pumpfunHftWallets,
+  pumpfunCopyTrades,
+  pumpfunTradeSignals,
+  type InsertPumpfunHftWallet,
+  type SelectPumpfunHftWallet,
+  type InsertPumpfunCopyTrade,
+  type SelectPumpfunCopyTrade,
+  type InsertPumpfunTradeSignal,
+  type SelectPumpfunTradeSignal,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -2126,6 +2135,63 @@ export class DatabaseStorage implements IStorage {
   async createTransactionProof(proof: InsertTransactionProof): Promise<SelectTransactionProof> {
     const [result] = await db.insert(transactionProofs).values(proof).returning();
     return result;
+  }
+
+  // PumpFun Copy Trading implementation methods
+  async createPumpfunHftWallet(wallet: InsertPumpfunHftWallet): Promise<SelectPumpfunHftWallet> {
+    const [result] = await db.insert(pumpfunHftWallets).values(wallet).returning();
+    return result;
+  }
+
+  async getPumpfunHftWallets(): Promise<SelectPumpfunHftWallet[]> {
+    return await db.select().from(pumpfunHftWallets).orderBy(desc(pumpfunHftWallets.totalPnL));
+  }
+
+  async getPumpfunHftWalletByAddress(address: string): Promise<SelectPumpfunHftWallet | undefined> {
+    const result = await db.select().from(pumpfunHftWallets).where(eq(pumpfunHftWallets.address, address)).limit(1);
+    return result[0];
+  }
+
+  async updatePumpfunHftWallet(address: string, updates: Partial<InsertPumpfunHftWallet>): Promise<SelectPumpfunHftWallet | undefined> {
+    const [result] = await db.update(pumpfunHftWallets)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(pumpfunHftWallets.address, address))
+      .returning();
+    return result;
+  }
+
+  async createPumpfunCopyTrade(trade: InsertPumpfunCopyTrade): Promise<SelectPumpfunCopyTrade> {
+    const [result] = await db.insert(pumpfunCopyTrades).values(trade).returning();
+    return result;
+  }
+
+  async getPumpfunCopyTrades(limit: number = 50): Promise<SelectPumpfunCopyTrade[]> {
+    return await db.select().from(pumpfunCopyTrades)
+      .orderBy(desc(pumpfunCopyTrades.executedAt))
+      .limit(limit);
+  }
+
+  async getPumpfunCopyTradesByWallet(walletAddress: string): Promise<SelectPumpfunCopyTrade[]> {
+    return await db.select().from(pumpfunCopyTrades)
+      .where(eq(pumpfunCopyTrades.originalWalletAddress, walletAddress))
+      .orderBy(desc(pumpfunCopyTrades.executedAt));
+  }
+
+  async createPumpfunTradeSignal(signal: InsertPumpfunTradeSignal): Promise<SelectPumpfunTradeSignal> {
+    const [result] = await db.insert(pumpfunTradeSignals).values(signal).returning();
+    return result;
+  }
+
+  async getPumpfunTradeSignals(limit: number = 100): Promise<SelectPumpfunTradeSignal[]> {
+    return await db.select().from(pumpfunTradeSignals)
+      .orderBy(desc(pumpfunTradeSignals.signalTime))
+      .limit(limit);
+  }
+
+  async markPumpfunSignalExecuted(signalId: number): Promise<void> {
+    await db.update(pumpfunTradeSignals)
+      .set({ wasExecuted: true })
+      .where(eq(pumpfunTradeSignals.id, signalId));
   }
 
   async getTransactionProof(id: number): Promise<SelectTransactionProof | null> {

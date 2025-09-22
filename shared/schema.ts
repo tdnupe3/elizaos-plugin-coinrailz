@@ -3073,6 +3073,86 @@ export const solanaCustomAlertInsertSchema = createInsertSchema(solanaCustomAler
   updatedAt: true
 });
 
+// PumpFun Copy Trading Tables
+export const pumpfunHftWallets = pgTable("pumpfun_hft_wallets", {
+  id: serial("id").primaryKey(),
+  address: varchar("address", { length: 255 }).notNull().unique(),
+  winRate: decimal("win_rate", { precision: 5, scale: 2 }).notNull(),
+  totalPnL: decimal("total_pnl", { precision: 15, scale: 6 }).notNull(),
+  avgHoldTime: integer("avg_hold_time").notNull(), // minutes
+  tradingVolume24h: decimal("trading_volume_24h", { precision: 15, scale: 6 }).notNull(),
+  successfulTrades: integer("successful_trades").notNull(),
+  totalTrades: integer("total_trades").notNull(),
+  avgTradeSize: decimal("avg_trade_size", { precision: 15, scale: 6 }).notNull(),
+  lastActiveTime: timestamp("last_active_time").notNull(),
+  rating: varchar("rating", { length: 1 }).notNull(), // 'S', 'A', 'B', 'C'
+  specializations: text("specializations").array().default(sql`ARRAY[]::text[]`),
+  isMonitored: boolean("is_monitored").default(false),
+  discoveredAt: timestamp("discovered_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const pumpfunCopyTrades = pgTable("pumpfun_copy_trades", {
+  id: serial("id").primaryKey(),
+  originalWalletAddress: varchar("original_wallet_address", { length: 255 }).notNull(),
+  tokenMint: varchar("token_mint", { length: 255 }).notNull(),
+  action: varchar("action", { length: 10 }).notNull(), // 'buy' or 'sell'
+  originalAmount: decimal("original_amount", { precision: 15, scale: 6 }).notNull(),
+  executedAmount: decimal("executed_amount", { precision: 15, scale: 6 }).notNull(),
+  executionPrice: decimal("execution_price", { precision: 20, scale: 10 }),
+  slippage: decimal("slippage", { precision: 5, scale: 2 }),
+  gasFee: decimal("gas_fee", { precision: 15, scale: 6 }),
+  txHash: varchar("tx_hash", { length: 255 }),
+  success: boolean("success").notNull(),
+  errorMessage: text("error_message"),
+  signalConfidence: integer("signal_confidence"), // 0-100
+  reasoning: text("reasoning"),
+  executedAt: timestamp("executed_at").defaultNow().notNull(),
+});
+
+export const pumpfunTradeSignals = pgTable("pumpfun_trade_signals", {
+  id: serial("id").primaryKey(),
+  walletAddress: varchar("wallet_address", { length: 255 }).notNull(),
+  tokenMint: varchar("token_mint", { length: 255 }).notNull(),
+  action: varchar("action", { length: 10 }).notNull(),
+  amount: decimal("amount", { precision: 15, scale: 6 }).notNull(),
+  price: decimal("price", { precision: 20, scale: 10 }),
+  confidence: integer("confidence").notNull(), // 0-100
+  reasoning: text("reasoning"),
+  wasExecuted: boolean("was_executed").default(false),
+  signalTime: timestamp("signal_time").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// PumpFun Copy Trading Schema Types
+export const pumpfunHftWalletInsertSchema = createInsertSchema(pumpfunHftWallets).omit({
+  id: true,
+  discoveredAt: true,
+  updatedAt: true
+});
+
+export const pumpfunHftWalletSelectSchema = createSelectSchema(pumpfunHftWallets);
+export type InsertPumpfunHftWallet = z.infer<typeof pumpfunHftWalletInsertSchema>;
+export type SelectPumpfunHftWallet = typeof pumpfunHftWallets.$inferSelect;
+
+export const pumpfunCopyTradeInsertSchema = createInsertSchema(pumpfunCopyTrades).omit({
+  id: true,
+  executedAt: true
+});
+
+export const pumpfunCopyTradeSelectSchema = createSelectSchema(pumpfunCopyTrades);
+export type InsertPumpfunCopyTrade = z.infer<typeof pumpfunCopyTradeInsertSchema>;
+export type SelectPumpfunCopyTrade = typeof pumpfunCopyTrades.$inferSelect;
+
+export const pumpfunTradeSignalInsertSchema = createInsertSchema(pumpfunTradeSignals).omit({
+  id: true,
+  createdAt: true
+});
+
+export const pumpfunTradeSignalSelectSchema = createSelectSchema(pumpfunTradeSignals);
+export type InsertPumpfunTradeSignal = z.infer<typeof pumpfunTradeSignalInsertSchema>;
+export type SelectPumpfunTradeSignal = typeof pumpfunTradeSignals.$inferSelect;
+
 export const solanaCustomAlertSelectSchema = createSelectSchema(solanaCustomAlerts);
 export type InsertSolanaCustomAlert = z.infer<typeof solanaCustomAlertInsertSchema>;
 export type SelectSolanaCustomAlert = typeof solanaCustomAlerts.$inferSelect;

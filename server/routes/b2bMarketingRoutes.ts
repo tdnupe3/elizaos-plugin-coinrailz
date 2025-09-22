@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { b2bMarketingService } from '../services/b2bMarketingService';
+import { expandedBaseEcosystemService } from '../services/expandedBaseEcosystemTargets';
 // Note: requireAuth import removed as it doesn't exist yet, using basic validation
 
 /**
@@ -138,6 +139,32 @@ router.post('/initialize-database', async (req, res) => {
   } catch (error) {
     res.status(500).json({ 
       error: 'Failed to initialize database',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * 🚀 POST /api/b2b-marketing/expand-ecosystem
+ * Add 80+ additional Base ecosystem targets
+ */
+router.post('/expand-ecosystem', async (req, res) => {
+  try {
+    const result = await expandedBaseEcosystemService.addExpandedTargets();
+    
+    if (!result.success) {
+      return res.status(500).json({ error: result.error });
+    }
+
+    res.json({
+      success: true,
+      message: 'Base ecosystem database expanded successfully',
+      targetsAdded: result.targetsAdded,
+      totalTargets: 'Over 90+ verified targets now available'
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to expand ecosystem database',
       details: error instanceof Error ? error.message : String(error)
     });
   }

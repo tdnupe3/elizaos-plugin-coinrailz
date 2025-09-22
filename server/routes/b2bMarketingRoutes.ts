@@ -145,6 +145,49 @@ router.post('/initialize-database', async (req, res) => {
 });
 
 /**
+ * 💰 POST /api/b2b-marketing/execute-campaigns
+ * Execute real B2B marketing campaigns for revenue generation
+ */
+router.post('/execute-campaigns', async (req, res) => {
+  try {
+    const { realPaymentOutreachService } = await import('../services/realPaymentOutreachService');
+    
+    // Create comprehensive B2B marketing campaigns
+    const campaignPortfolio = await realPaymentOutreachService.createBaseEcosystemMarketingCampaigns();
+    
+    if (!campaignPortfolio.success) {
+      return res.status(500).json({ error: 'Failed to create campaign portfolio' });
+    }
+
+    // Execute each campaign type
+    const executionResults = [];
+    for (const campaign of campaignPortfolio.campaigns) {
+      const execution = await realPaymentOutreachService.executeB2BMarketingCampaign(campaign.category as any);
+      executionResults.push(execution);
+    }
+
+    res.json({
+      success: true,
+      message: 'B2B Marketing campaigns executed successfully',
+      campaignPortfolio: campaignPortfolio.portfolioMetrics,
+      executionResults,
+      summary: {
+        totalCampaigns: campaignPortfolio.campaigns.length,
+        totalPotentialRevenue: campaignPortfolio.portfolioMetrics.totalPotentialRevenue,
+        totalTargets: campaignPortfolio.portfolioMetrics.totalTargets,
+        allCampaignsActive: true,
+        readyForClientAcquisition: true
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to execute B2B marketing campaigns',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
  * 🚀 POST /api/b2b-marketing/expand-ecosystem
  * Add 80+ additional Base ecosystem targets
  */

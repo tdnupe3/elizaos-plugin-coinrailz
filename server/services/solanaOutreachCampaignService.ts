@@ -39,9 +39,11 @@ export class SolanaOutreachCampaignService {
   private platformWallet: Keypair | null = null;
 
   constructor() {
-    const rpcUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://api.mainnet-beta.solana.com'
-      : 'https://api.devnet.solana.com';
+    // TEMPORARILY USE MAINNET for testing with real SOL balance
+    const rpcUrl = 'https://api.mainnet-beta.solana.com';
+    // const rpcUrl = process.env.NODE_ENV === 'production' 
+    //   ? 'https://api.mainnet-beta.solana.com'
+    //   : 'https://api.devnet.solana.com';
     
     this.connection = new Connection(rpcUrl, 'confirmed');
   }

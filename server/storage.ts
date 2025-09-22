@@ -25,6 +25,7 @@ import {
   xrpOrders,
   aiAgentProducts,
   aiAgentSubscriptions,
+  transactionProofs,
   type User,
   type UpsertUser,
   type Transaction,
@@ -56,6 +57,8 @@ import {
   type InsertAIAgentProduct,
   type AIAgentSubscription,
   type InsertAIAgentSubscription,
+  type InsertTransactionProof,
+  type SelectTransactionProof,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -275,6 +278,13 @@ export interface IStorage {
   createMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getMessagesByChatId(chatId: string, limit?: number): Promise<ChatMessage[]>;
   markMessageAsRead(messageId: string): Promise<void>;
+
+  // Transaction proof operations for storing real blockchain transaction signatures  
+  createTransactionProof(proof: InsertTransactionProof): Promise<SelectTransactionProof>;
+  getTransactionProof(id: number): Promise<SelectTransactionProof | null>;
+  getTransactionProofBySignature(signature: string): Promise<SelectTransactionProof | null>;
+  getTransactionProofsByChain(chain: string): Promise<SelectTransactionProof[]>;
+  getTransactionProofsByCampaign(campaignId: string): Promise<SelectTransactionProof[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2110,6 +2120,30 @@ export class DatabaseStorage implements IStorage {
   async getActiveSubscriptions(): Promise<AIAgentSubscription[]> {
     return await db.select().from(aiAgentSubscriptions)
       .where(eq(aiAgentSubscriptions.status, 'active'));
+  }
+
+  // Transaction proof implementation methods for storing real blockchain transaction signatures
+  async createTransactionProof(proof: InsertTransactionProof): Promise<SelectTransactionProof> {
+    const [result] = await db.insert(transactionProofs).values(proof).returning();
+    return result;
+  }
+
+  async getTransactionProof(id: number): Promise<SelectTransactionProof | null> {
+    const [proof] = await db.select().from(transactionProofs).where(eq(transactionProofs.id, id));
+    return proof || null;
+  }
+
+  async getTransactionProofBySignature(signature: string): Promise<SelectTransactionProof | null> {
+    const [proof] = await db.select().from(transactionProofs).where(eq(transactionProofs.txSignature, signature));
+    return proof || null;
+  }
+
+  async getTransactionProofsByChain(chain: string): Promise<SelectTransactionProof[]> {
+    return await db.select().from(transactionProofs).where(eq(transactionProofs.chain, chain));
+  }
+
+  async getTransactionProofsByCampaign(campaignId: string): Promise<SelectTransactionProof[]> {
+    return await db.select().from(transactionProofs).where(eq(transactionProofs.campaignId, campaignId));
   }
 }
 

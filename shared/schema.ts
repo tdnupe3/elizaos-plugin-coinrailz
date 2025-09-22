@@ -60,6 +60,29 @@ export const discoveredAgents = pgTable(
   ],
 );
 
+// Transaction proofs table for storing real blockchain transaction signatures
+export const transactionProofs = pgTable(
+  "transaction_proofs",
+  {
+    id: serial("id").primaryKey(),
+    targetAddress: varchar("target_address").notNull(), // Recipient wallet address
+    txSignature: varchar("tx_signature").notNull(), // Blockchain transaction signature/hash
+    chain: varchar("chain").notNull(), // solana, base, ethereum, etc
+    messageSnippet: text("message_snippet"), // First 500 chars of message sent
+    campaignId: varchar("campaign_id"), // Optional campaign identifier
+    status: varchar("status").default("confirmed"), // confirmed, failed, pending
+    networkFee: numeric("network_fee", { precision: 18, scale: 8 }), // Actual fee paid
+    timestamp: timestamp("timestamp").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_transaction_proofs_chain").on(table.chain),
+    index("IDX_transaction_proofs_campaign").on(table.campaignId),
+    index("IDX_transaction_proofs_timestamp").on(table.timestamp),
+    uniqueIndex("IDX_transaction_proofs_signature").on(table.txSignature),
+  ],
+);
+
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {
@@ -3062,3 +3085,13 @@ export const solanaWalletAnalyticsInsertSchema = createInsertSchema(solanaWallet
 export const solanaWalletAnalyticsSelectSchema = createSelectSchema(solanaWalletAnalytics);
 export type InsertSolanaWalletAnalytics = z.infer<typeof solanaWalletAnalyticsInsertSchema>;
 export type SelectSolanaWalletAnalytics = typeof solanaWalletAnalytics.$inferSelect;
+
+// Transaction Proofs Schema Types - for storing real blockchain transaction signatures
+export const transactionProofInsertSchema = createInsertSchema(transactionProofs).omit({
+  id: true,
+  createdAt: true
+});
+
+export const transactionProofSelectSchema = createSelectSchema(transactionProofs);
+export type InsertTransactionProof = z.infer<typeof transactionProofInsertSchema>;
+export type SelectTransactionProof = typeof transactionProofs.$inferSelect;

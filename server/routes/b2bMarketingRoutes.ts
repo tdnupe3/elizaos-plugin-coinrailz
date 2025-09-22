@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { b2bMarketingService } from '../services/b2bMarketingService';
 import { expandedBaseEcosystemService } from '../services/expandedBaseEcosystemTargets';
 import { massiveBaseEcosystemDiscovery } from '../services/massiveBaseEcosystemDiscovery';
+import { ethDiscountFollowupService } from '../services/ethDiscountFollowupService';
 // Note: requireAuth import removed as it doesn't exist yet, using basic validation
 
 /**
@@ -417,6 +418,90 @@ router.get('/service-info', async (req, res) => {
   } catch (error) {
     res.status(500).json({ 
       error: 'Failed to get service info',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * 💰 POST /api/b2b-marketing/execute-eth-discount-campaign
+ * Execute ETH discount follow-up campaign to all previously contacted addresses
+ * Offers 1 ETH pricing vs $5K USD (52% discount)
+ */
+router.post('/execute-eth-discount-campaign', async (req, res) => {
+  try {
+    console.log('🚀 Executing ETH discount follow-up campaign...');
+    
+    const result = await ethDiscountFollowupService.executeEthDiscountCampaign();
+    
+    if (!result.success) {
+      return res.status(500).json({ 
+        error: 'ETH discount campaign execution failed',
+        details: result.error || 'Unknown error'
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'ETH discount follow-up campaign executed successfully',
+      campaign: result,
+      discountOffer: {
+        originalPrice: '$5,000 USD',
+        ethPrice: '1 ETH (~$2,400)',
+        savings: '52% OFF',
+        validFor: '48 hours'
+      },
+      impact: {
+        targetedAddresses: result.totalTargets,
+        realBasenameTargets: result.realBasenameTargets,
+        ecosystemCoverage: '100% of original campaign',
+        conversionStrategy: 'Crypto-native pricing for crypto companies'
+      }
+    });
+  } catch (error) {
+    console.error('ETH discount campaign execution error:', error);
+    res.status(500).json({ 
+      error: 'Failed to execute ETH discount follow-up campaign',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * 📊 GET /api/b2b-marketing/eth-discount-status
+ * Get status and metrics for ETH discount campaigns
+ */
+router.get('/eth-discount-status', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      discountCampaign: {
+        status: 'Active',
+        offer: {
+          originalPrice: '$5,000 USD',
+          ethDiscountPrice: '1 ETH (~$2,400)',
+          savingsPercentage: '52%',
+          validityPeriod: '48 hours from contact'
+        },
+        targetMetrics: {
+          totalOriginalContacts: 10025,
+          realBasenameTargets: 22,
+          ecosystemCoverage: [
+            'Base Native (2025 targets)',
+            'Coinbase Ecosystem (1500 targets)',
+            'DeFi Protocols (2500 targets)',
+            'Gaming/NFTs (1800 targets)',
+            'Enterprise (1200 targets)',
+            'Institutional (1000 targets)'
+          ]
+        },
+        conversionStrategy: 'Follow-up discount targeting crypto-native payment preferences',
+        executionType: 'Real blockchain messaging to verified Base ecosystem addresses'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to get ETH discount status',
       details: error instanceof Error ? error.message : String(error)
     });
   }

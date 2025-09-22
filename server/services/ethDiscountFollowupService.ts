@@ -183,7 +183,7 @@ ${target.ecosystem.toUpperCase()} Division`;
       name: target.basename,
       wallet: target.address,
       category: target.category as any,
-      dealSize: target.dealSize,
+      dealSize: typeof target.dealSize === 'string' ? parseInt(target.dealSize) : target.dealSize,
       priority: target.priority as any,
       messageType: 'eth_discount' as any,
       ecosystem: 'base_native' as any,

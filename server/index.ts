@@ -562,6 +562,10 @@ app.use('/api/optimization', outreachOptimizationRoutes);
 console.log('💰 Registering Legitimate Payment Request routes for consent-based automation...');
 import legitimatePaymentRoutes from './routes/legitimatePaymentRoutes';
 app.use('/api/payments', legitimatePaymentRoutes);
+
+console.log('🚀 Registering MASSIVE OUTREACH SCALING routes for verified high-value wallets...');
+import massiveOutreachScaling from './routes/massiveOutreachScaling';
+app.use('/api/massive', massiveOutreachScaling);
 console.log('✅ Enterprise Outreach routes registered successfully');
 
 // Import and register Monitoring Dashboard routes

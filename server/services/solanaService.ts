@@ -139,11 +139,17 @@ export class SolanaService {
   }
 
   /**
-   * Get current SOL price (mock implementation)
+   * Get current SOL price using real-time CoinGecko pricing
    */
   async getCurrentPrice(): Promise<number> {
-    // In production, integrate with price API like CoinGecko
-    return 180.50; // Mock SOL price
+    try {
+      const { coinGeckoPricingService } = await import('./pricing/CoinGeckoPricingService');
+      const price = await coinGeckoPricingService.getPrice('SOL');
+      return price.usd;
+    } catch (error) {
+      console.warn('⚠️ Failed to get real-time SOL price, using emergency fallback:', error);
+      return 220; // Current approximate emergency fallback
+    }
   }
 }
 

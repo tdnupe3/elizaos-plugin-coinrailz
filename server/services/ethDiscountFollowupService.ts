@@ -167,6 +167,9 @@ EXCLUSIVE OFFER: Pay 1 ETH to: ${(this.platformWallet as any).addressOverride ||
 
 This discount expires in 48 hours - crypto-native pricing for crypto companies!
 
+📧 Contact us: support@coinrailz.com
+🐦 Follow us: @coinrailz
+
 Reply to activate your ETH discount campaign.
 
 Base Chain Campaign Network

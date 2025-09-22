@@ -325,7 +325,7 @@ Enterprise-grade crypto payment infrastructure`;
    */
   async createPremiumServiceRequest(
     targetWallet: string,
-    serviceType: 'api_access' | 'sdk_license' | 'white_label' | 'enterprise_integration'
+    serviceType: 'api_access' | 'sdk_license' | 'white_label' | 'enterprise_integration' | 'defi_integration' | 'ai_integration' | 'gaming_integration' | 'social_platform' | 'infrastructure_integration' | 'bridge_integration' | 'creator_platform' | 'community_platform'
   ): Promise<PaymentRequest> {
     
     const serviceConfigs = {
@@ -352,6 +352,54 @@ Enterprise-grade crypto payment infrastructure`;
         currency: 'USDC' as const,
         description: 'Enterprise Integration - Custom integration, dedicated support team, SLA guarantee',
         deliveryUrl: 'https://coinrailz.com/enterprise/onboarding'
+      },
+      defi_integration: {
+        amount: 45000,
+        currency: 'USDC' as const,
+        description: 'DeFi Integration Suite - Cross-chain liquidity, yield optimization, protocol partnerships',
+        deliveryUrl: 'https://coinrailz.com/defi/integration'
+      },
+      ai_integration: {
+        amount: 75000,
+        currency: 'USDC' as const,
+        description: 'AI Agent Marketplace - Custom AI agent deployment, revenue sharing, enterprise AI tools',
+        deliveryUrl: 'https://coinrailz.com/ai/marketplace'
+      },
+      gaming_integration: {
+        amount: 35000,
+        currency: 'USDC' as const,
+        description: 'Gaming Payment Infrastructure - In-game economies, NFT marketplaces, tournament systems',
+        deliveryUrl: 'https://coinrailz.com/gaming/infrastructure'
+      },
+      social_platform: {
+        amount: 30000,
+        currency: 'USDC' as const,
+        description: 'Social Finance Platform - Creator monetization, social trading, community rewards',
+        deliveryUrl: 'https://coinrailz.com/social/platform'
+      },
+      infrastructure_integration: {
+        amount: 200000,
+        currency: 'USDC' as const,
+        description: 'Infrastructure Partnership - Core protocol integration, technical collaboration, co-marketing',
+        deliveryUrl: 'https://coinrailz.com/infrastructure/partnership'
+      },
+      bridge_integration: {
+        amount: 50000,
+        currency: 'USDC' as const,
+        description: 'Cross-Chain Payment Rails - Multi-chain support, bridge integration, liquidity optimization',
+        deliveryUrl: 'https://coinrailz.com/bridge/integration'
+      },
+      creator_platform: {
+        amount: 35000,
+        currency: 'USDC' as const,
+        description: 'Creator Economy Platform - NFT monetization, royalty management, fan engagement tools',
+        deliveryUrl: 'https://coinrailz.com/creator/platform'
+      },
+      community_platform: {
+        amount: 25000,
+        currency: 'USDC' as const,
+        description: 'Community Platform - DAO treasury management, governance tools, member rewards',
+        deliveryUrl: 'https://coinrailz.com/community/platform'
       }
     };
 

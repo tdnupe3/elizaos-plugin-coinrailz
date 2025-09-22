@@ -19,7 +19,7 @@ interface OutreachMessage {
 }
 
 export class BitcoinEcosystemOutreachService {
-  private bitcoinWallet = process.env.BITCOIN_WALLET_ADDRESS || 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'; // Our Bitcoin wallet
+  private bitcoinWallet = process.env.BITCOIN_WALLET_ADDRESS || 'bc1qpnh5l4w7fswmh9zl6qh4j2cxjp9gmc9pjv5f8s'; // Our Bitcoin wallet
   
   private bitcoinCommunityTargets: BitcoinCommunityTarget[] = [
     {

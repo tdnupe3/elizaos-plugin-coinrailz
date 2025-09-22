@@ -447,8 +447,8 @@ router.post('/execute-eth-discount-campaign', async (req, res) => {
       campaign: result,
       discountOffer: {
         originalPrice: '$5,000 USD',
-        ethPrice: '1 ETH (~$2,400)',
-        savings: '52% OFF',
+        ethPrice: '1 ETH ($4,156)',
+        savings: '16.9% OFF',
         validFor: '48 hours'
       },
       impact: {
@@ -479,8 +479,8 @@ router.get('/eth-discount-status', async (req, res) => {
         status: 'Active',
         offer: {
           originalPrice: '$5,000 USD',
-          ethDiscountPrice: '1 ETH (~$2,400)',
-          savingsPercentage: '52%',
+          ethDiscountPrice: '1 ETH ($4,156)',
+          savingsPercentage: '16.9%',
           validityPeriod: '48 hours from contact'
         },
         targetMetrics: {

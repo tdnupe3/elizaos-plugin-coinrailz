@@ -212,11 +212,25 @@ ${target.ecosystem.toUpperCase()} Division`;
     const totalCampaignCost = estimatedCostPerMessage * BigInt(allDiscountTargets.length);
     console.log(`💸 ETH Discount Campaign Cost: ${ethers.formatEther(totalCampaignCost)} ETH`);
     
-    // Show compelling discount metrics
-    console.log(`💰 OFFERING MASSIVE ETH DISCOUNT:`);
-    console.log(`   💵 Original Price: $5,000 USD`);
-    console.log(`   ⚡ ETH Price: 1 ETH (~$2,400)`);
-    console.log(`   🎯 Customer Savings: 52% OFF`);
+    // Get real-time ETH price and calculate accurate discount
+    let ethPriceUSD = 4155.85; // Current fallback
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+      const data = await response.json();
+      ethPriceUSD = data.ethereum.usd;
+    } catch (error) {
+      console.log('⚠️ Failed to fetch real-time ETH price, using fallback');
+    }
+    
+    const originalPrice = 5000;
+    const discountAmount = originalPrice - ethPriceUSD;
+    const discountPercentage = ((discountAmount / originalPrice) * 100).toFixed(1);
+    
+    // Show accurate discount metrics with real-time pricing
+    console.log(`💰 OFFERING ETH DISCOUNT WITH REAL-TIME PRICING:`);
+    console.log(`   💵 Original Price: $${originalPrice.toLocaleString()} USD`);
+    console.log(`   ⚡ ETH Price: 1 ETH ($${ethPriceUSD.toLocaleString()})`);
+    console.log(`   🎯 Customer Savings: ${discountPercentage}% OFF ($${discountAmount.toFixed(2)} saved)`);
     console.log(`   🚀 Crypto-native pricing for crypto companies!`);
 
     // Execute by ecosystem with ETH discount messaging
@@ -228,12 +242,12 @@ ${target.ecosystem.toUpperCase()} Division`;
     const institutional = allDiscountTargets.filter(t => t.ecosystem === 'institutional');
 
     console.log(`📊 ETH DISCOUNT ECOSYSTEM BREAKDOWN:`);
-    console.log(`   🟢 Base Native: ${baseNative.length} targets (52% ETH discount)`);
-    console.log(`   🔵 Coinbase Ecosystem: ${coinbaseEcosystem.length} targets (52% ETH discount)`);
-    console.log(`   🟡 DeFi Protocols: ${defiProtocols.length} targets (52% ETH discount)`);
-    console.log(`   🟣 Gaming/NFTs: ${gamingNfts.length} targets (52% ETH discount)`);
-    console.log(`   🟠 Enterprise: ${enterprise.length} targets (52% ETH discount)`);
-    console.log(`   ⚪ Institutional: ${institutional.length} targets (52% ETH discount)`);
+    console.log(`   🟢 Base Native: ${baseNative.length} targets (${discountPercentage}% ETH discount)`);
+    console.log(`   🔵 Coinbase Ecosystem: ${coinbaseEcosystem.length} targets (${discountPercentage}% ETH discount)`);
+    console.log(`   🟡 DeFi Protocols: ${defiProtocols.length} targets (${discountPercentage}% ETH discount)`);
+    console.log(`   🟣 Gaming/NFTs: ${gamingNfts.length} targets (${discountPercentage}% ETH discount)`);
+    console.log(`   🟠 Enterprise: ${enterprise.length} targets (${discountPercentage}% ETH discount)`);
+    console.log(`   ⚪ Institutional: ${institutional.length} targets (${discountPercentage}% ETH discount)`);
 
     await this.executeDiscountBatchForEcosystem('Base Native ETH Discount', baseNative);
     await this.executeDiscountBatchForEcosystem('Coinbase ETH Discount', coinbaseEcosystem);
@@ -243,7 +257,7 @@ ${target.ecosystem.toUpperCase()} Division`;
     await this.executeDiscountBatchForEcosystem('Institutional ETH Discount', institutional);
 
     console.log('🎉 ETH DISCOUNT FOLLOW-UP CAMPAIGN COMPLETE!');
-    console.log(`✅ Successfully targeted all ${allDiscountTargets.length} original campaign addresses with 52% ETH discount offer`);
+    console.log(`✅ Successfully targeted all ${allDiscountTargets.length} original campaign addresses with ${discountPercentage}% ETH discount offer`);
     
     return {
       success: true,

@@ -612,6 +612,39 @@ router.post('/monitor-responses', async (req, res) => {
 });
 
 /**
+ * 🚨 EMERGENCY DAO FUNDING CAMPAIGN
+ */
+router.post('/execute-emergency-dao-funding', async (req, res) => {
+  try {
+    console.log('🚨 EXECUTING EMERGENCY DAO FUNDING CAMPAIGN...');
+
+    const { default: EmergencyDAOFundingService } = await import('../services/emergencyDAOFundingService');
+    const emergencyService = new EmergencyDAOFundingService();
+    await emergencyService.executeEmergencyFunding();
+
+    const analytics = emergencyService.getCampaignAnalytics();
+
+    return res.json({
+      success: true,
+      message: 'EMERGENCY DAO FUNDING CAMPAIGN EXECUTED',
+      analytics: analytics,
+      status: 'Critical funding requests sent to all major DAOs',
+      urgency: 'EMERGENCY - 48 hour response window',
+      note: 'Comprehensive emergency funding outreach to DAO treasuries completed'
+    });
+
+  } catch (error) {
+    console.error('❌ CRITICAL: Emergency DAO funding failed:', error);
+
+    return res.status(500).json({
+      success: false,
+      error: 'Emergency DAO funding execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🛡️ SAFE BLOCKCHAIN MESSAGING - Generate Execution Preview
  */
 router.post('/preview-safe-blockchain-messaging', async (req, res) => {

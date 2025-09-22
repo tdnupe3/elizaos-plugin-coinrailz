@@ -643,6 +643,47 @@ router.post('/execute-enhanced-influencer-outreach', async (req, res) => {
 });
 
 /**
+ * 📞 EXECUTE REAL OUTREACH - ACTUAL CONTACT ATTEMPTS
+ */
+router.post('/execute-real-outreach', async (req, res) => {
+  try {
+    console.log('📞 EXECUTING REAL OUTREACH - ACTUAL CONTACT ATTEMPTS...');
+    
+    const { default: RealOutreachService } = await import('../services/realOutreachService');
+    const realOutreach = new RealOutreachService();
+    
+    const results = await realOutreach.executeRealOutreach();
+    const capabilities = realOutreach.getCapabilityReport();
+    
+    res.json({
+      success: true,
+      message: 'REAL OUTREACH EXECUTED - Actual contact attempts made where possible',
+      results,
+      capabilities,
+      honestAssessment: {
+        actualContactsMade: results.successful,
+        contactsAttempted: results.attempted,
+        limitations: results.limitations,
+        nextSteps: [
+          'Set up verified sender domain for email outreach',
+          'Use business contacts rather than personal emails', 
+          'Engage through public content (blogs, GitHub)',
+          'Focus on AI Agent VCs with business emails'
+        ]
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Real outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Real outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🔗 EXECUTE BLOCKCHAIN MESSAGING - Revolutionary On-Chain Outreach
  */
 router.post('/execute-blockchain-messaging', async (req, res) => {

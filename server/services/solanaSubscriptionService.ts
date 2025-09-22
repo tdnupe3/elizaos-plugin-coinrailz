@@ -8,21 +8,16 @@ import {
   sendAndConfirmTransaction
 } from '@solana/web3.js';
 import { db } from '../db';
-import { eq } from 'drizzle-orm';
-import { users } from '../../shared/schema';
+import { eq, and, gte } from 'drizzle-orm';
+import { 
+  solanaPremiumSubscriptions,
+  solanaPremiumSubscriptionInsertSchema,
+  type InsertSolanaPremiumSubscription,
+  type SelectSolanaPremiumSubscription
+} from '../../shared/schema';
+import { nanoid } from 'nanoid';
 
-export interface SolanaSubscription {
-  id: string;
-  userId: string;
-  walletAddress: string;
-  subscriptionType: 'premium_tools' | 'analytics_platform' | 'education_platform' | 'all_access';
-  status: 'active' | 'expired' | 'pending';
-  paymentAmount: number; // In SOL
-  paymentSignature?: string;
-  startDate: Date;
-  endDate: Date;
-  features: string[];
-}
+export type SolanaSubscription = SelectSolanaPremiumSubscription;
 
 export interface PaymentResult {
   success: boolean;
@@ -37,10 +32,7 @@ export class SolanaSubscriptionService {
   private subscriptionPrice = 1.0; // 1 SOL for premium access
 
   constructor() {
-    const rpcUrl = process.env.NODE_ENV === 'production' 
-      ? 'https://api.mainnet-beta.solana.com'
-      : 'https://api.devnet.solana.com';
-    
+    const rpcUrl = process.env.SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
     this.connection = new Connection(rpcUrl, 'confirmed');
   }
 
@@ -171,80 +163,81 @@ export class SolanaSubscriptionService {
   }
 
   /**
-   * 📋 Create subscription record
+   * 📋 Create subscription record in database
    */
   async createSubscription(
     walletAddress: string,
     subscriptionType: SolanaSubscription['subscriptionType'],
     paymentSignature: string
   ): Promise<string> {
-    const subscriptionId = `sub_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + 1); // 1 month subscription
+    try {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1); // 1 month subscription
 
-    const features = this.getSubscriptionFeatures(subscriptionType);
+      const features = this.getSubscriptionFeatures(subscriptionType);
 
-    // In production, store in database
-    const subscription: SolanaSubscription = {
-      id: subscriptionId,
-      userId: walletAddress, // Using wallet as user ID for simplicity
-      walletAddress,
-      subscriptionType,
-      status: 'active',
-      paymentAmount: this.subscriptionPrice,
-      paymentSignature,
-      startDate,
-      endDate,
-      features
-    };
+      const subscriptionData: InsertSolanaPremiumSubscription = {
+        userId: walletAddress, // Using wallet as user ID
+        walletAddress,
+        subscriptionType,
+        status: 'active',
+        paymentAmount: this.subscriptionPrice.toString(),
+        paymentSignature,
+        startDate,
+        endDate,
+        features
+      };
 
-    console.log(`📋 Created subscription: ${subscriptionId}`);
-    console.log(`📅 Valid until: ${endDate.toISOString()}`);
-    
-    return subscriptionId;
+      // Insert into database
+      const [newSubscription] = await db
+        .insert(solanaPremiumSubscriptions)
+        .values(subscriptionData)
+        .returning();
+
+      console.log(`✅ Subscription created in database: ${newSubscription.id}`);
+      console.log(`📅 Valid until: ${endDate.toISOString()}`);
+      
+      return newSubscription.id;
+      
+    } catch (error) {
+      console.error('❌ Failed to create subscription in database:', error);
+      throw new Error('Failed to create subscription record');
+    }
   }
 
   /**
-   * ✅ Verify active subscription
+   * ✅ Verify active subscription from database
    */
   async verifySubscription(
     walletAddress: string,
     requiredFeature?: string
   ): Promise<{ isValid: boolean; subscription?: SolanaSubscription; message: string }> {
     try {
-      // In production, query database for active subscriptions
-      // For now, mock active subscription for demonstration
-      
-      const mockSubscription: SolanaSubscription = {
-        id: `sub_${walletAddress.slice(0, 8)}`,
-        userId: walletAddress,
-        walletAddress,
-        subscriptionType: 'all_access',
-        status: 'active',
-        paymentAmount: 1.0,
-        paymentSignature: '5KZx...mock',
-        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
-        endDate: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000), // 23 days from now
-        features: this.getSubscriptionFeatures('all_access')
-      };
+      // Query database for active subscriptions
+      const subscriptions = await db
+        .select()
+        .from(solanaPremiumSubscriptions)
+        .where(
+          and(
+            eq(solanaPremiumSubscriptions.walletAddress, walletAddress),
+            eq(solanaPremiumSubscriptions.status, 'active'),
+            gte(solanaPremiumSubscriptions.endDate, new Date())
+          )
+        )
+        .orderBy(solanaPremiumSubscriptions.endDate);
 
-      if (mockSubscription.status !== 'active') {
+      if (!subscriptions.length) {
         return {
           isValid: false,
-          message: `Subscription is ${mockSubscription.status}`
+          message: 'No active subscription found'
         };
       }
 
-      if (new Date() > mockSubscription.endDate) {
-        return {
-          isValid: false,
-          message: 'Subscription has expired'
-        };
-      }
+      // Get the most recent active subscription
+      const subscription = subscriptions[subscriptions.length - 1];
 
-      if (requiredFeature && !mockSubscription.features.includes(requiredFeature)) {
+      if (requiredFeature && !subscription.features.includes(requiredFeature)) {
         return {
           isValid: false,
           message: `Feature '${requiredFeature}' not included in subscription`
@@ -253,7 +246,7 @@ export class SolanaSubscriptionService {
 
       return {
         isValid: true,
-        subscription: mockSubscription,
+        subscription,
         message: 'Subscription is active'
       };
       
@@ -337,7 +330,7 @@ export class SolanaSubscriptionService {
   }
 
   /**
-   * 📊 Get platform statistics
+   * 📊 Get real platform statistics from database
    */
   async getPlatformStats(): Promise<{
     totalSubscribers: number;
@@ -345,12 +338,51 @@ export class SolanaSubscriptionService {
     totalRevenue: number;
     popularPlan: string;
   }> {
-    return {
-      totalSubscribers: 1247, // Mock data
-      activeSubscriptions: 894,
-      totalRevenue: 1891.5, // In SOL
-      popularPlan: 'all_access'
-    };
+    try {
+      // Get all subscriptions
+      const allSubscriptions = await db
+        .select()
+        .from(solanaPremiumSubscriptions);
+
+      // Count active subscriptions
+      const activeSubscriptions = allSubscriptions.filter(sub => 
+        sub.status === 'active' && new Date(sub.endDate) > new Date()
+      ).length;
+
+      // Calculate total revenue
+      const totalRevenue = allSubscriptions.reduce((sum, sub) => 
+        sum + parseFloat(sub.paymentAmount), 0
+      );
+
+      // Find most popular plan
+      const planCounts = allSubscriptions.reduce((counts, sub) => {
+        counts[sub.subscriptionType] = (counts[sub.subscriptionType] || 0) + 1;
+        return counts;
+      }, {} as Record<string, number>);
+
+      const popularPlan = Object.entries(planCounts)
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || 'all_access';
+
+      // Count unique subscribers
+      const uniqueWallets = new Set(allSubscriptions.map(sub => sub.walletAddress));
+
+      return {
+        totalSubscribers: uniqueWallets.size,
+        activeSubscriptions,
+        totalRevenue,
+        popularPlan
+      };
+      
+    } catch (error) {
+      console.error('❌ Error getting platform stats:', error);
+      // Fallback to zeros if database query fails
+      return {
+        totalSubscribers: 0,
+        activeSubscriptions: 0,
+        totalRevenue: 0,
+        popularPlan: 'all_access'
+      };
+    }
   }
 }
 

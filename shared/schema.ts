@@ -16,7 +16,7 @@ import {
   json,
   bigint,
 } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 
@@ -2967,3 +2967,98 @@ export type SelectBaseEcosystemTarget = typeof baseEcosystemTargets.$inferSelect
 export const insertB2BMarketingCampaignSchema = createInsertSchema(b2bMarketingCampaigns);
 export type InsertB2BMarketingCampaign = z.infer<typeof insertB2BMarketingCampaignSchema>;
 export type SelectB2BMarketingCampaign = typeof b2bMarketingCampaigns.$inferSelect;
+
+// Solana Premium Platform Schema
+export const solanaPremiumSubscriptions = pgTable("solana_premium_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  walletAddress: varchar("wallet_address").notNull(),
+  subscriptionType: varchar("subscription_type").notNull(), // 'premium_tools' | 'analytics_platform' | 'education_platform' | 'all_access'
+  status: varchar("status").notNull().default('active'), // 'active' | 'expired' | 'pending' | 'cancelled'
+  paymentAmount: decimal("payment_amount", { precision: 10, scale: 6 }).notNull(),
+  paymentSignature: varchar("payment_signature"),
+  startDate: timestamp("start_date").notNull().defaultNow(),
+  endDate: timestamp("end_date").notNull(),
+  features: text("features").array().notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const solanaUserProgress = pgTable("solana_user_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  courseId: varchar("course_id").notNull(),
+  completedModules: text("completed_modules").array().notNull().default(sql`ARRAY[]::text[]`),
+  currentModule: varchar("current_module"),
+  progress: integer("progress").notNull().default(0), // 0-100 percentage
+  score: integer("score").notNull().default(0),
+  certificates: text("certificates").array().notNull().default(sql`ARRAY[]::text[]`),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const solanaCustomAlerts = pgTable("solana_custom_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  alertType: varchar("alert_type").notNull(), // 'whale_movement' | 'token_price' | 'volume_spike' | 'new_token'
+  conditions: jsonb("conditions").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  lastTriggered: timestamp("last_triggered"),
+  triggerCount: integer("trigger_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow()
+});
+
+export const solanaWalletAnalytics = pgTable("solana_wallet_analytics", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: varchar("wallet_address").notNull(),
+  solBalance: decimal("sol_balance", { precision: 18, scale: 9 }).notNull(),
+  tokenCount: integer("token_count").notNull(),
+  totalValue: decimal("total_value", { precision: 18, scale: 2 }).notNull(),
+  transactionCount: integer("transaction_count").notNull(),
+  firstActivity: timestamp("first_activity"),
+  lastActivity: timestamp("last_activity"),
+  riskScore: integer("risk_score").notNull().default(50), // 0-100
+  tags: text("tags").array().notNull().default(sql`ARRAY[]::text[]`),
+  lastUpdated: timestamp("last_updated").notNull().defaultNow()
+});
+
+// Solana Premium Platform Schema Types
+export const solanaPremiumSubscriptionInsertSchema = createInsertSchema(solanaPremiumSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const solanaPremiumSubscriptionSelectSchema = createSelectSchema(solanaPremiumSubscriptions);
+export type InsertSolanaPremiumSubscription = z.infer<typeof solanaPremiumSubscriptionInsertSchema>;
+export type SelectSolanaPremiumSubscription = typeof solanaPremiumSubscriptions.$inferSelect;
+
+export const solanaUserProgressInsertSchema = createInsertSchema(solanaUserProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const solanaUserProgressSelectSchema = createSelectSchema(solanaUserProgress);
+export type InsertSolanaUserProgress = z.infer<typeof solanaUserProgressInsertSchema>;
+export type SelectSolanaUserProgress = typeof solanaUserProgress.$inferSelect;
+
+export const solanaCustomAlertInsertSchema = createInsertSchema(solanaCustomAlerts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
+export const solanaCustomAlertSelectSchema = createSelectSchema(solanaCustomAlerts);
+export type InsertSolanaCustomAlert = z.infer<typeof solanaCustomAlertInsertSchema>;
+export type SelectSolanaCustomAlert = typeof solanaCustomAlerts.$inferSelect;
+
+export const solanaWalletAnalyticsInsertSchema = createInsertSchema(solanaWalletAnalytics).omit({
+  id: true,
+  lastUpdated: true
+});
+
+export const solanaWalletAnalyticsSelectSchema = createSelectSchema(solanaWalletAnalytics);
+export type InsertSolanaWalletAnalytics = z.infer<typeof solanaWalletAnalyticsInsertSchema>;
+export type SelectSolanaWalletAnalytics = typeof solanaWalletAnalytics.$inferSelect;

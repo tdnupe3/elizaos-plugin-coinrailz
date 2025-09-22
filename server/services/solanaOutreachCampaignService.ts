@@ -53,26 +53,19 @@ export class SolanaOutreachCampaignService {
       try {
         let secretKey: Uint8Array;
         
-        console.log(`🔑 Private key length: ${privateKey.length}, first 10 chars: ${privateKey.substring(0, 10)}`);
-        
         // Try base58 format first (standard Solana format from Phantom/Solflare)
         if (privateKey.length >= 85 && privateKey.length <= 90) {
-          console.log('🔄 Attempting base58 decode...');
           secretKey = bs58.decode(privateKey);
-          console.log(`✅ Base58 decoded to ${secretKey.length} bytes`);
         } else {
-          console.log('🔄 Attempting JSON parse...');
           // Try JSON array format
           const parsed = JSON.parse(privateKey);
           secretKey = new Uint8Array(parsed);
-          console.log(`✅ JSON parsed to ${secretKey.length} bytes`);
         }
         
         this.platformWallet = Keypair.fromSecretKey(secretKey);
         console.log(`✅ Solana wallet initialized: ${this.platformWallet.publicKey.toString()}`);
       } catch (error) {
-        console.error('❌ Private key parsing failed:', error);
-        throw new Error(`Invalid SOLANA_PRIVATE_KEY format - should be base58 string or JSON array of bytes. Error: ${error.message}`);
+        throw new Error('Invalid SOLANA_PRIVATE_KEY format - should be base58 string or JSON array of bytes');
       }
     }
   }

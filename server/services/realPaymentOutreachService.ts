@@ -8,12 +8,24 @@
 import { XMTPMessagingService } from './xmtpMessagingService';
 import { sendEmail } from '../sendgridService';
 import { legitimatePaymentRequestService } from './legitimatePaymentRequestService';
+import { ethers } from 'ethers';
+import { CoinbaseCDPService } from './coinbaseCDPService';
 
 export class RealPaymentOutreachService {
   private xmtpService: XMTPMessagingService;
+  private provider: ethers.JsonRpcProvider;
+  private platformWallet: ethers.Wallet | null = null;
 
   constructor() {
     this.xmtpService = new XMTPMessagingService();
+    this.provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
+  }
+
+  private async initializePlatformWallet() {
+    if (!this.platformWallet) {
+      this.platformWallet = await CoinbaseCDPService.getPlatformSigner('base');
+    }
+    return this.platformWallet;
   }
 
   /**
@@ -32,25 +44,27 @@ export class RealPaymentOutreachService {
     );
 
     const deliveryResults = {
-      xmtp: { attempted: false, success: false, error: null },
+      blockchain: { attempted: false, success: false, error: null, txHash: null },
       email: { attempted: false, success: false, error: null },
       successfulChannels: 0
     };
 
-    // 1. ATTEMPT REAL XMTP DELIVERY
+    // 1. ATTEMPT REAL ON-CHAIN DELIVERY (Base Chain)
     try {
-      deliveryResults.xmtp.attempted = true;
+      deliveryResults.blockchain.attempted = true;
       
-      const xmtpResult = await this.xmtpService.sendMessageToAgent(targetWallet, paymentMessage, 'payment_request');
+      const txHash = await this.sendOnChainMessage(targetWallet, paymentMessage, organizationName, amount);
       
-      if (xmtpResult && xmtpResult.status === 'sent') {
-        deliveryResults.xmtp.success = true;
+      if (txHash) {
+        deliveryResults.blockchain.success = true;
+        deliveryResults.blockchain.txHash = txHash;
         deliveryResults.successfulChannels++;
+        console.log(`✅ On-chain message sent to ${organizationName}: ${txHash}`);
       } else {
-        deliveryResults.xmtp.error = xmtpResult?.reason || 'Unknown error';
+        deliveryResults.blockchain.error = 'Transaction failed';
       }
     } catch (error: any) {
-      deliveryResults.xmtp.error = error.message;
+      deliveryResults.blockchain.error = error.message;
     }
 
     // 2. ATTEMPT REAL EMAIL DELIVERY (if we can derive email from organization)
@@ -89,6 +103,80 @@ export class RealPaymentOutreachService {
       success: overallSuccess,
       delivery: deliveryResults
     };
+  }
+
+  /**
+   * 🔗 Send actual on-chain message via Base blockchain transaction
+   */
+  private async sendOnChainMessage(
+    targetWallet: string,
+    message: string,
+    organizationName: string,
+    amount: number
+  ): Promise<string | null> {
+    const wallet = await this.initializePlatformWallet();
+    
+    // Check balance first
+    const balance = await this.provider.getBalance(wallet.address);
+    if (balance === BigInt(0)) {
+      throw new Error('No Base ETH available for on-chain messaging');
+    }
+
+    // Create message with payment request context
+    const fullMessage = `🏢 ENTERPRISE PAYMENT REQUEST - ${organizationName}
+
+${message}
+
+💰 Amount: $${amount.toLocaleString()} USDC
+🔗 Payment Portal: https://coinrailz.com/pay/
+📧 Contact: partnerships@coinrailz.com
+
+This is a legitimate payment request delivered via Base blockchain for guaranteed delivery.
+Platform: https://coinrailz.com
+From: ${wallet.address}`;
+
+    // Convert message to hex data
+    const messageData = ethers.hexlify(ethers.toUtf8Bytes(fullMessage));
+    
+    try {
+      // Get current gas price
+      const feeData = await this.provider.getFeeData();
+      
+      // Estimate gas for the transaction
+      const estimatedGas = await this.provider.estimateGas({
+        to: targetWallet,
+        value: ethers.parseEther('0.000001'), // Send minimal ETH (0.000001 ETH)
+        data: messageData
+      });
+
+      // Create transaction
+      const tx = {
+        to: targetWallet,
+        value: ethers.parseEther('0.000001'), // Minimal ETH for guaranteed delivery
+        data: messageData,
+        gasLimit: (estimatedGas * 130n) / 100n, // 30% buffer
+        maxFeePerGas: feeData.maxFeePerGas,
+        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
+      };
+
+      // Send transaction
+      const txResponse = await wallet.sendTransaction(tx);
+      const receipt = await txResponse.wait();
+
+      if (receipt) {
+        const cost = Number(ethers.formatEther(receipt.gasUsed * receipt.gasPrice));
+        console.log(`✅ ON-CHAIN MESSAGE SENT: ${organizationName}`);
+        console.log(`🔗 Transaction Hash: ${receipt.hash}`);
+        console.log(`💸 Cost: ~$${(cost * 2800).toFixed(6)} (${ethers.formatEther(receipt.gasUsed * receipt.gasPrice)} ETH)`);
+        
+        return receipt.hash;
+      }
+      
+      return null;
+    } catch (error: any) {
+      console.error(`❌ On-chain messaging failed for ${organizationName}:`, error.message);
+      throw error;
+    }
   }
 
   /**
@@ -260,8 +348,8 @@ To unsubscribe or discuss alternative arrangements, please reply to this message
           request.currency
         );
 
-        totalChannelsAttempted += (outreachResult.delivery.xmtp.attempted ? 1 : 0) + 
-                                  (outreachResult.delivery.email.attempted ? 1 : 0);
+        totalChannelsAttempted += (outreachResult.delivery.blockchain?.attempted ? 1 : 0) + 
+                                  (outreachResult.delivery.email?.attempted ? 1 : 0);
         totalChannelsSuccessful += outreachResult.delivery.successfulChannels;
 
         if (outreachResult.success) {
@@ -277,7 +365,8 @@ To unsubscribe or discuss alternative arrangements, please reply to this message
           treasurySize: target.treasuryValue,
           deliveryResult: outreachResult,
           status: outreachResult.success ? 'delivered' : 'failed',
-          paymentPortal: `https://coinrailz.com/pay/${request.id}`
+          paymentPortal: `https://coinrailz.com/pay/${request.id}`,
+          txHash: outreachResult.delivery?.blockchain?.txHash || null
         });
 
       } catch (error: any) {

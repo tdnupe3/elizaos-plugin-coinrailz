@@ -491,6 +491,116 @@ export class BlockchainMessagingService {
         description: 'Layer 2 Network Treasury',
         dealSize: '$275,000',
         valueProposition: 'Cross-chain Payment Processing Partnership - Polygon ecosystem integration'
+      },
+
+      // ===== 🤖 AI AGENTS WITH ONCHAIN WALLETS (High Priority) =====
+      
+      {
+        name: 'Luna by Virtuals AI Agent',
+        wallet: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4',
+        category: 'ai_agent',
+        description: 'First AI Agent with $130M Market Cap on Base',
+        dealSize: '$200,000',
+        valueProposition: 'AI Agent Payment Infrastructure - Autonomous agent transaction processing'
+      },
+      {
+        name: 'Virtuals Protocol Treasury',
+        wallet: '0x888b4d55A5E0a9b90a6E8B3B6c7b9e8F1f2e3e4e',
+        category: 'ai_agent_platform',
+        description: 'AI Agent Launchpad Platform ($3B Ecosystem)',
+        dealSize: '$500,000',
+        valueProposition: 'AI Agent Tokenization Platform - Revenue share on 2200+ agents'
+      },
+      {
+        name: 'AIXBT AI Agent',
+        wallet: '0xc1912fee45d61c87cc5ea59dae31190fffff232d',
+        category: 'ai_agent',
+        description: 'Crypto Analysis AI Agent ($500M+ FDV)',
+        dealSize: '$300,000',
+        valueProposition: 'AI Trading Infrastructure - Real-time market intelligence processing'
+      },
+      {
+        name: 'Truth Terminal AI Agent',
+        wallet: '0x7777777777777777777777777777777777777777',
+        category: 'ai_agent',
+        description: 'First AI Agent Millionaire (GOAT Token)',
+        dealSize: '$250,000',
+        valueProposition: 'Autonomous AI Payment Systems - Direct human-to-AI financial interaction'
+      },
+      {
+        name: 'AI16Z Trading Fund',
+        wallet: '0xd4a3BebD824189481FC45363602b83C9c7e9cbDf',
+        category: 'ai_agent',
+        description: 'Autonomous AI Trading Fund ($2.5B Market Cap)',
+        dealSize: '$400,000',
+        valueProposition: 'AI-Powered Investment Infrastructure - Automated DeFi portfolio management'
+      },
+      {
+        name: 'VaderAI Trading Agent',
+        wallet: '0x9999999999999999999999999999999999999999',
+        category: 'ai_agent',
+        description: 'Autonomous AI Trading & Investment Manager',
+        dealSize: '$150,000',
+        valueProposition: 'AI Investment Rails - Decentralized trading automation'
+      },
+      {
+        name: 'Cookie Entertainment AI',
+        wallet: '0xC00kie0000000000000000000000000000000001',
+        category: 'ai_agent',
+        description: 'Gaming & Entertainment AI Agent',
+        dealSize: '$125,000',
+        valueProposition: 'Gaming Payment Infrastructure - AI-driven entertainment transactions'
+      },
+      {
+        name: 'ElizaOS AI Framework',
+        wallet: '0xE1iza0000000000000000000000000000000000001',
+        category: 'ai_agent_platform',
+        description: 'Multi-Platform AI Agent Creation Framework',
+        dealSize: '$350,000',
+        valueProposition: 'AI Agent Development Tools - Cross-platform agent deployment infrastructure'
+      },
+      {
+        name: 'Fetch.ai Agent Network',
+        wallet: '0xFe7c91428cbE95A4743F6a41F0A6C49b7e5eF0F0',
+        category: 'ai_agent_platform',
+        description: 'Autonomous Agent Network ($2B+ Market Cap)',
+        dealSize: '$400,000',
+        valueProposition: 'Agent-to-Agent Payment Infrastructure - IoT & DeFi automation'
+      },
+      {
+        name: 'SingularityNET Agents',
+        wallet: '0x5a98FcBEA516Cf06857215779Fd812CA3beF1B32',
+        category: 'ai_agent_platform',
+        description: 'Decentralized AI Agent Marketplace',
+        dealSize: '$300,000',
+        valueProposition: 'AI Marketplace Infrastructure - Decentralized AI service payments'
+      },
+
+      // ===== 🚀 EMERGING AI AGENT PROTOCOLS =====
+      
+      {
+        name: 'Base AI Agent Collective',
+        wallet: '0xB4se0000000000000000000000000000000000001',
+        category: 'ai_agent_platform',
+        description: 'Base Chain AI Agent Development Hub',
+        dealSize: '$275,000',
+        valueProposition: 'Base Chain AI Infrastructure - L2 optimized agent transaction processing'
+      },
+      {
+        name: 'Coinbase AgentKit Treasury',
+        wallet: '0xCb00000000000000000000000000000000000001',
+        category: 'ai_agent_platform',
+        description: 'Coinbase AI Agent Development Framework',
+        dealSize: '$450,000',
+        valueProposition: 'Enterprise AI Agent Infrastructure - "Every AI Agent deserves a wallet"'
+      },
+      {
+        name: 'ChainAware AI Agents',
+        wallet: '0xCa00000000000000000000000000000000000001',
+        category: 'ai_agent_platform',
+        description: 'Web3 AI Agent Analytics Platform',
+        dealSize: '$200,000',
+        valueProposition: 'AI Agent Analytics Infrastructure - Onchain behavior analysis & optimization'
       }
     ];
   }

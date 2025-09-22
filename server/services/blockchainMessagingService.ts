@@ -784,11 +784,242 @@ export class BlockchainMessagingService {
       },
       {
         name: 'PayPal Holdings Treasury',
-        wallet: '0xP4yP41000000000000000000000000000000000001',
+        wallet: '0xP4yP41000000000000000000000000000001',
         category: 'mega_corp',
         description: 'PayPal Cryptocurrency & Digital Payments',
         dealSize: '$2,200,000',
         valueProposition: 'Digital Payment Innovation - Crypto buy/sell/hold services & stablecoin infrastructure'
+      },
+
+      // ===== 🤖 AI & MAJOR TECH PARTNERSHIPS =====
+      
+      {
+        name: 'OpenAI Corporate Treasury',
+        wallet: '0x0p3n41000000000000000000000000000000000001',
+        category: 'ai_tech',
+        description: 'OpenAI $12B Revenue, Microsoft Partnership',
+        dealSize: '$5,000,000',
+        valueProposition: 'AI Infrastructure Partnership - Enterprise API billing & payment processing for $12B revenue'
+      },
+      {
+        name: 'Anthropic AI Treasury',
+        wallet: '0xAn7hr0p1c000000000000000000000000000000001',
+        category: 'ai_tech',
+        description: 'Anthropic AI Research ($100M+ Revenue)',
+        dealSize: '$3,000,000',
+        valueProposition: 'AI Model API Billing - Usage-based payments for enterprise AI services'
+      },
+      {
+        name: 'Cohere AI Treasury',
+        wallet: '0xC0h3r3000000000000000000000000000000000001',
+        category: 'ai_tech',
+        description: 'Cohere AI/NLP Platform ($50M+ Revenue)',
+        dealSize: '$2,000,000',
+        valueProposition: 'Enterprise AI API Monetization - NLP services payment infrastructure'
+      },
+      {
+        name: 'Stability AI Treasury',
+        wallet: '0xS74b111ty000000000000000000000000000000001',
+        category: 'ai_tech',
+        description: 'Stability AI Generative Platform ($50M+ Revenue)',
+        dealSize: '$2,500,000',
+        valueProposition: 'Image Generation API Payments - Creative AI service billing infrastructure'
+      },
+      {
+        name: 'Hugging Face Treasury',
+        wallet: '0xHu991n9F4c30000000000000000000000000000001',
+        category: 'ai_tech',
+        description: 'Hugging Face AI Platform ($100M+ Revenue)',
+        dealSize: '$3,500,000',
+        valueProposition: 'Model Marketplace Payments - AI subscription & per-use billing infrastructure'
+      },
+
+      // ===== 📈 TRADING BOTS & INVESTMENT FUNDS =====
+      
+      {
+        name: 'Pantera Capital Treasury',
+        wallet: '0xP4n73r4000000000000000000000000000000000001',
+        category: 'trading_funds',
+        description: 'Pantera Capital ($2B+ AUM, First US Crypto Fund)',
+        dealSize: '$4,000,000',
+        valueProposition: 'Crypto Hedge Fund Infrastructure - Portfolio management & institutional trading'
+      },
+      {
+        name: 'Multicoin Capital Treasury',
+        wallet: '0xMu171c01n000000000000000000000000000000001',
+        category: 'trading_funds',
+        description: 'Multicoin Capital Thesis-Driven Crypto Fund',
+        dealSize: '$3,000,000',
+        valueProposition: 'Venture + Hedge Fund Operations - DeFi institutional infrastructure'
+      },
+      {
+        name: 'Galaxy Digital Treasury',
+        wallet: '0x6414xy000000000000000000000000000000000001',
+        category: 'trading_funds',
+        description: 'Galaxy Digital ($7.8B AUM Digital Asset Bank)',
+        dealSize: '$5,000,000',
+        valueProposition: 'Digital Asset Merchant Banking - Institutional crypto trading & custody'
+      },
+      {
+        name: 'TradeStation Algorithmic',
+        wallet: '0x7r4d3574710n000000000000000000000000000001',
+        category: 'trading_bots',
+        description: 'TradeStation Professional Algo Trading Platform',
+        dealSize: '$2,500,000',
+        valueProposition: 'Algorithmic Trading Infrastructure - Professional bot development & execution'
+      },
+      {
+        name: 'Cryptohopper Treasury',
+        wallet: '0xCryp70h0pp3r000000000000000000000000000001',
+        category: 'trading_bots',
+        description: 'Cryptohopper AI Trading Bot Platform',
+        dealSize: '$1,500,000',
+        valueProposition: 'AI Trading Bot Services - Automated crypto trading & arbitrage systems'
+      },
+      {
+        name: 'Coinrule Treasury',
+        wallet: '0xC01nru13000000000000000000000000000000000001',
+        category: 'trading_bots',
+        description: 'Coinrule Crypto Trading Bot Platform',
+        dealSize: '$1,200,000',
+        valueProposition: 'Crypto Bot Automation - Rule-based trading & portfolio management'
+      },
+
+      // ===== 🏦 ISO 20022 COMPLIANT INSTITUTIONS =====
+      
+      {
+        name: 'Federal Reserve ISO Treasury',
+        wallet: '0xF3d3r41R353rv3000000000000000000000000001',
+        category: 'iso_20022',
+        description: 'Federal Reserve ISO 20022 Fedwire Implementation',
+        dealSize: '$10,000,000',
+        valueProposition: 'Central Bank Digital Infrastructure - ISO 20022 compliance & payment rails'
+      },
+      {
+        name: 'European Central Bank Treasury',
+        wallet: '0x3ur0p34nCB000000000000000000000000000000001',
+        category: 'iso_20022',
+        description: 'ECB TARGET2 ISO 20022 Mandatory Compliance',
+        dealSize: '$8,000,000',
+        valueProposition: 'European Payment Infrastructure - ISO 20022 central bank services'
+      },
+      {
+        name: 'SWIFT ISO 20022 Treasury',
+        wallet: '0xSW1F7000000000000000000000000000000000000001',
+        category: 'iso_20022',
+        description: 'SWIFT Global Payment Network (1M+ daily messages)',
+        dealSize: '$15,000,000',
+        valueProposition: 'Global Payment Infrastructure - ISO 20022 cross-border payment system'
+      },
+      {
+        name: 'DBS Bank ISO Treasury',
+        wallet: '0xDB5B4nk000000000000000000000000000000000001',
+        category: 'iso_20022',
+        description: 'DBS Bank Singapore ISO 20022 Implementation',
+        dealSize: '$3,000,000',
+        valueProposition: 'Digital Banking Leadership - ISO 20022 Asian financial services'
+      },
+      {
+        name: 'Volante Technologies Treasury',
+        wallet: '0xV0141n73000000000000000000000000000000000001',
+        category: 'iso_20022',
+        description: 'Volante ISO 20022 Solution Provider (Fedwire Certified)',
+        dealSize: '$2,500,000',
+        valueProposition: 'ISO 20022 Infrastructure - Certified compliance solutions & payment processing'
+      },
+
+      // ===== 💰 FINTECH VENTURE CAPITAL & INVESTMENT =====
+      
+      {
+        name: 'Andreessen Horowitz a16z',
+        wallet: '0x416z000000000000000000000000000000000000001',
+        category: 'venture_capital',
+        description: 'a16z Crypto Fund ($42B Total AUM)',
+        dealSize: '$8,000,000',
+        valueProposition: 'Premier Crypto VC - Portfolio company payment infrastructure & enterprise solutions'
+      },
+      {
+        name: 'Paradigm Venture Treasury',
+        wallet: '0xP4r4d19m000000000000000000000000000000000001',
+        category: 'venture_capital',
+        description: 'Paradigm Multi-Billion Crypto VC Fund',
+        dealSize: '$6,000,000',
+        valueProposition: 'Institutional Crypto Investment - Portfolio infrastructure & payment solutions'
+      },
+      {
+        name: 'Blockchain Capital Treasury',
+        wallet: '0xB10ckch41nC4p174100000000000000000000000001',
+        category: 'venture_capital',
+        description: 'Blockchain Capital ($2B+ AUM, First Dedicated Crypto VC)',
+        dealSize: '$4,000,000',
+        valueProposition: 'Pioneer Crypto VC - Portfolio payment infrastructure & financial services'
+      },
+      {
+        name: 'Electric Capital Treasury',
+        wallet: '0x313c7r1cC4p174100000000000000000000000000001',
+        category: 'venture_capital',
+        description: 'Electric Capital Early-Stage Crypto VC',
+        dealSize: '$3,000,000',
+        valueProposition: 'Crypto Investment Leadership - Portfolio governance & payment solutions'
+      },
+      {
+        name: 'Digital Currency Group',
+        wallet: '0xD191741Currency6r0up000000000000000000001',
+        category: 'venture_capital',
+        description: 'DCG Global Crypto Investment (100+ Projects, 30+ Countries)',
+        dealSize: '$5,000,000',
+        valueProposition: 'Global Crypto Investment - Worldwide portfolio payment & infrastructure solutions'
+      },
+
+      // ===== 🚀 TECH ACCELERATORS & ENTERPRISE PARTNERSHIPS =====
+      
+      {
+        name: 'Y Combinator Treasury',
+        wallet: '0xYC0mb1n4t0r000000000000000000000000000000001',
+        category: 'accelerators',
+        description: 'Y Combinator ($600B Portfolio Value, Airbnb/Coinbase)',
+        dealSize: '$6,000,000',
+        valueProposition: 'Premier Startup Accelerator - Portfolio payment infrastructure & fintech solutions'
+      },
+      {
+        name: 'Techstars Treasury',
+        wallet: '0x73ch574rs000000000000000000000000000000001',
+        category: 'accelerators',
+        description: 'Techstars (4800+ Companies, 21 Unicorns)',
+        dealSize: '$4,000,000',
+        valueProposition: 'Global Startup Network - Portfolio enterprise payment solutions'
+      },
+      {
+        name: '500 Global Treasury',
+        wallet: '0x50061084100000000000000000000000000000000001',
+        category: 'accelerators',
+        description: '500 Global VC (Credit Karma, Udemy, 60 Countries)',
+        dealSize: '$3,500,000',
+        valueProposition: 'Global Startup Accelerator - Portfolio payment & financial infrastructure'
+      },
+      {
+        name: 'Google for Startups Treasury',
+        wallet: '0x6009130f0r574r7up5000000000000000000000001',
+        category: 'accelerators',
+        description: 'Google for Startups Accelerator Program',
+        dealSize: '$7,000,000',
+        valueProposition: 'Google Ecosystem Integration - Cloud payment services & enterprise solutions'
+      },
+      {
+        name: 'Microsoft GrowthX Treasury',
+        wallet: '0xM1cr0s0f76r0w7hX000000000000000000000000001',
+        category: 'accelerators',
+        description: 'Microsoft GrowthX B2B Tech Accelerator',
+        dealSize: '$5,000,000',
+        valueProposition: 'Microsoft Enterprise Integration - Azure blockchain & payment infrastructure'
+      },
+      {
+        name: 'Alchemist Accelerator Treasury',
+        wallet: '0xA1ch3m157000000000000000000000000000000001',
+        category: 'accelerators',
+        description: 'Alchemist Enterprise-Focused Accelerator (650+ Startups)',
+        dealSize: '$3,000,000',
+        valueProposition: 'Enterprise Startup Accelerator - B2B payment solutions & customer access'
       }
     ];
   }

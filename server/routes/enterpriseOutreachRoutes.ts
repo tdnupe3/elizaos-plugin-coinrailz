@@ -530,6 +530,10 @@ router.post('/execute-blockchain-messaging', async (req, res) => {
     const { blockchainMessagingService } = await import('../services/blockchainMessagingService');
     await blockchainMessagingService.executeBlockchainOutreach();
     
+    // Start monitoring for responses immediately after outreach
+    const { responseMonitoringService } = await import('../services/responseMonitoringService');
+    await responseMonitoringService.startMonitoring();
+    
     const analytics = blockchainMessagingService.getCampaignAnalytics();
     
     res.json({
@@ -631,6 +635,67 @@ router.post('/execute-safe-blockchain-messaging', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Safe blockchain messaging execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * 📊 GET RESPONSE MONITORING DASHBOARD - Track All Activity & Replies
+ */
+router.get('/response-monitoring', async (req, res) => {
+  try {
+    console.log('📊 Getting response monitoring dashboard...');
+    
+    const { responseMonitoringService } = await import('../services/responseMonitoringService');
+    
+    const metrics = responseMonitoringService.getEngagementMetrics();
+    const recentActivity = responseMonitoringService.getRecentActivity(20);
+    const followUps = responseMonitoringService.getHighPriorityFollowUps();
+    
+    res.json({
+      success: true,
+      message: 'Response monitoring dashboard data retrieved',
+      data: {
+        engagementMetrics: metrics,
+        recentActivity: recentActivity,
+        highPriorityFollowUps: followUps,
+        totalMonitoredTargets: recentActivity.length > 0 ? 'Active' : 'Initializing',
+        lastUpdate: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to get monitoring dashboard:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get monitoring dashboard',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * 🎯 START RESPONSE MONITORING - Begin tracking all contacted entities
+ */
+router.post('/start-monitoring', async (req, res) => {
+  try {
+    console.log('🎯 Starting comprehensive response monitoring...');
+    
+    const { responseMonitoringService } = await import('../services/responseMonitoringService');
+    await responseMonitoringService.startMonitoring();
+    
+    res.json({
+      success: true,
+      message: 'Response monitoring started successfully',
+      note: 'Now tracking blockchain activity, website visits, and API calls from all contacted entities'
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to start monitoring:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start monitoring',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

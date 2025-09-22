@@ -558,6 +558,10 @@ app.use('/api/analytics', outreachAnalyticsRoutes);
 console.log('🧠 Registering AI-POWERED Optimization & Auto-Scaling for maximum ROI...');
 import outreachOptimizationRoutes from './routes/outreachOptimizationRoutes';
 app.use('/api/optimization', outreachOptimizationRoutes);
+
+console.log('💰 Registering Legitimate Payment Request routes for consent-based automation...');
+import legitimatePaymentRoutes from './routes/legitimatePaymentRoutes';
+app.use('/api/payments', legitimatePaymentRoutes);
 console.log('✅ Enterprise Outreach routes registered successfully');
 
 // Import and register Monitoring Dashboard routes

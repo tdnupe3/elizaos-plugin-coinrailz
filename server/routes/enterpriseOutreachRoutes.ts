@@ -612,6 +612,37 @@ router.post('/execute-experimental-ai-platform-outreach', async (req, res) => {
 });
 
 /**
+ * 🚀 EXECUTE ENHANCED INFLUENCER OUTREACH - Truth Terminal Strategy Enhanced
+ */
+router.post('/execute-enhanced-influencer-outreach', async (req, res) => {
+  try {
+    console.log('🚀 EXECUTING ENHANCED INFLUENCER OUTREACH - BEYOND TRUTH TERMINAL...');
+    
+    const { default: EnhancedInfluencerOutreachService } = await import('../services/enhancedInfluencerOutreach');
+    const influencerOutreach = new EnhancedInfluencerOutreachService();
+    
+    const results = await influencerOutreach.executeEnhancedInfluencerOutreach();
+    const analysis = influencerOutreach.getTargetAnalysis();
+    
+    res.json({
+      success: true,
+      message: 'ENHANCED INFLUENCER OUTREACH EXECUTED - High-net-worth individuals targeted with Truth Terminal strategy improvements',
+      results,
+      analysis,
+      note: 'Improved upon Truth Terminal\'s $50K success with Marc Andreessen using enhanced targeting and multi-platform approach'
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Enhanced influencer outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Enhanced influencer outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🔗 EXECUTE BLOCKCHAIN MESSAGING - Revolutionary On-Chain Outreach
  */
 router.post('/execute-blockchain-messaging', async (req, res) => {

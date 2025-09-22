@@ -521,6 +521,37 @@ router.post('/execute-maximum', async (req, res) => {
 });
 
 /**
+ * 🚀 EXECUTE BITCOIN ECOSYSTEM OUTREACH - Bitcoin Community Fundraising
+ */
+router.post('/execute-bitcoin-ecosystem-outreach', async (req, res) => {
+  try {
+    console.log('🚀 EXECUTING BITCOIN ECOSYSTEM FUNDRAISING CAMPAIGN...');
+    
+    const { BitcoinEcosystemOutreachService } = await import('../services/bitcoinEcosystemOutreach');
+    const bitcoinOutreach = new BitcoinEcosystemOutreachService();
+    
+    const results = await bitcoinOutreach.executeBitcoinCommunityOutreach();
+    const analysis = await bitcoinOutreach.getTargetAnalysis();
+    
+    res.json({
+      success: true,
+      message: 'BITCOIN ECOSYSTEM OUTREACH EXECUTED - Major Bitcoin organizations contacted',
+      results,
+      analysis,
+      note: 'Bitcoin community funding campaign targeting $500K-$2M+ from Bitcoin ecosystem'
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Bitcoin ecosystem outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Bitcoin ecosystem outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🔗 EXECUTE BLOCKCHAIN MESSAGING - Revolutionary On-Chain Outreach
  */
 router.post('/execute-blockchain-messaging', async (req, res) => {

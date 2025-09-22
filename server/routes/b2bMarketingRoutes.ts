@@ -228,6 +228,43 @@ router.post('/execute-thousands-base-ecosystem', async (req, res) => {
 });
 
 /**
+ * 🟢 POST /api/b2b-marketing/discover-real-basenames
+ * Discover real .base.eth addresses for authentic Base ecosystem outreach
+ */
+router.post('/discover-real-basenames', async (req, res) => {
+  try {
+    console.log('🟢 DISCOVERING REAL .BASE.ETH ADDRESSES...');
+    
+    const { basenameDiscoveryService } = await import('../services/basenameDiscoveryService');
+    
+    // Discover real .base.eth addresses
+    const realTargets = await basenameDiscoveryService.discoverRealBasenames();
+    const analytics = basenameDiscoveryService.getDiscoveryAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'Real .base.eth addresses discovered successfully',
+      analytics,
+      realTargets: realTargets.slice(0, 20), // Show first 20 for preview
+      totalDiscovered: realTargets.length,
+      advantages: [
+        'Real verified Base ecosystem participants',
+        'Authentic .base.eth domain owners', 
+        'Active Base chain users',
+        'Higher engagement probability',
+        'Impossible to block blockchain messaging',
+        'Permanent on-chain communication'
+      ]
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to discover real .base.eth addresses',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
  * 🌊 POST /api/b2b-marketing/massive-discovery
  * Discover THOUSANDS of Base ecosystem wallets using Coinbase integrations
  */

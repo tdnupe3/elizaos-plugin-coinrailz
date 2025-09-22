@@ -560,6 +560,11 @@ import outreachOptimizationRoutes from './routes/outreachOptimizationRoutes';
 app.use('/api/optimization', outreachOptimizationRoutes);
 console.log('✅ Enterprise Outreach routes registered successfully');
 
+// Import and register Monitoring Dashboard routes
+import monitoringDashboard from './routes/monitoringDashboard';
+app.use('/api/monitoring', monitoringDashboard);
+console.log('📊 Monitoring Dashboard routes registered successfully');
+
 // Gas Station routes moved after setupSimpleRoutes
 
 // === BUSINESS LOGIC VALIDATION ROUTES ===

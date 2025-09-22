@@ -684,6 +684,37 @@ router.post('/execute-real-outreach', async (req, res) => {
 });
 
 /**
+ * 💰 EXECUTE FULL AUTONOMOUS REVENUE GENERATION - IMMEDIATE MONEY GENERATION
+ */
+router.post('/execute-autonomous-revenue', async (req, res) => {
+  try {
+    console.log('💰 EXECUTING FULL AUTONOMOUS REVENUE GENERATION - IMMEDIATE MONEY GENERATION...');
+    
+    const { default: AutonomousRevenueService } = await import('../services/autonomousRevenueService');
+    const revenueService = new AutonomousRevenueService();
+    
+    const results = await revenueService.executeFullAutonomousRevenue();
+    const capabilities = revenueService.getCapabilityReport();
+    
+    res.json({
+      success: true,
+      message: 'FULL AUTONOMOUS REVENUE GENERATION EXECUTED - All systems activated for immediate money generation',
+      results,
+      capabilities,
+      urgentNote: 'Competition deadlines and revenue opportunities activated immediately. Manual follow-up required for final submissions and contract negotiations.'
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Autonomous revenue generation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Autonomous revenue generation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🔗 EXECUTE BLOCKCHAIN MESSAGING - Revolutionary On-Chain Outreach
  */
 router.post('/execute-blockchain-messaging', async (req, res) => {

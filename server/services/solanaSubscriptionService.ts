@@ -262,8 +262,8 @@ export class SolanaSubscriptionService {
   /**
    * 🎫 Get subscription features
    */
-  private getSubscriptionFeatures(subscriptionType: SolanaSubscription['subscriptionType']): string[] {
-    const featureMap = {
+  private getSubscriptionFeatures(subscriptionType: string): string[] {
+    const featureMap: Record<string, string[]> = {
       premium_tools: [
         'whale_tracking',
         'portfolio_analytics',

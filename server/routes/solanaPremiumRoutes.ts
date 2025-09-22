@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { solanaPremiumToolsService } from '../services/solanaPremiumToolsService';
 import { solanaAnalyticsService } from '../services/solanaAnalyticsService';
 import { solanaEducationService } from '../services/solanaEducationService';
@@ -7,29 +8,94 @@ import { solanaOutreachCampaignService } from '../services/solanaOutreachCampaig
 
 const router = Router();
 
-// Middleware to verify subscription
-async function verifySubscription(req: any, res: any, next: any, requiredFeature: string) {
-  const walletAddress = req.headers['x-wallet-address'];
-  
-  if (!walletAddress) {
-    return res.status(401).json({
-      success: false,
-      error: 'Wallet address required in x-wallet-address header'
-    });
-  }
+// Security and rate limiting middleware
+const premiumRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute per IP
+  message: {
+    success: false,
+    error: 'Too many requests, please try again later'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
-  const verification = await solanaSubscriptionService.verifySubscription(walletAddress, requiredFeature);
-  
-  if (!verification.isValid) {
-    return res.status(403).json({
+const subscriptionRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // 5 subscription requests per minute per IP
+  message: {
+    success: false,
+    error: 'Too many subscription attempts, please try again later'
+  },
+});
+
+const campaignRateLimit = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 1, // 1 campaign launch per minute per IP
+  message: {
+    success: false,
+    error: 'Campaign launch rate limited, please wait'
+  },
+});
+
+// Apply security middleware to all routes
+router.use(premiumRateLimit);
+
+// Enhanced middleware to verify subscription with security
+async function verifySubscription(req: any, res: any, next: any, requiredFeature: string) {
+  try {
+    const walletAddress = req.headers['x-wallet-address'] as string;
+    
+    if (!walletAddress) {
+      return res.status(401).json({
+        success: false,
+        error: 'Wallet address required in x-wallet-address header'
+      });
+    }
+
+    // Validate wallet address format
+    if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(walletAddress)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid wallet address format'
+      });
+    }
+
+    const verification = await solanaSubscriptionService.verifySubscription(walletAddress, requiredFeature);
+    
+    if (!verification.isValid) {
+      return res.status(403).json({
+        success: false,
+        error: verification.message,
+        subscriptionRequired: true,
+        pricing: await solanaSubscriptionService.getSubscriptionPricing()
+      });
+    }
+    
+    req.subscription = verification.subscription;
+    req.walletAddress = walletAddress;
+    next();
+    
+  } catch (error) {
+    console.error('❌ Error verifying subscription:', error);
+    return res.status(500).json({
       success: false,
-      error: verification.message,
-      subscriptionRequired: true,
-      pricing: await solanaSubscriptionService.getSubscriptionPricing()
+      error: 'Internal server error during subscription verification'
+    });
+  }
+}
+
+// Input validation middleware
+function validateWalletInput(req: any, res: any, next: any) {
+  const { walletAddress } = req.body;
+  
+  if (walletAddress && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(walletAddress)) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid wallet address format'
     });
   }
   
-  req.subscription = verification.subscription;
   next();
 }
 
@@ -39,7 +105,7 @@ async function verifySubscription(req: any, res: any, next: any, requiredFeature
  * 💳 POST /api/solana-premium/subscribe
  * Process subscription payment
  */
-router.post('/subscribe', async (req, res) => {
+router.post('/subscribe', subscriptionRateLimit, validateWalletInput, async (req, res) => {
   try {
     const { walletAddress, subscriptionType, privateKey } = req.body;
     
@@ -476,7 +542,7 @@ router.get('/platform-stats', async (req, res) => {
  * 🚀 POST /api/solana-premium/launch-campaign
  * Launch premium trading platform outreach campaign
  */
-router.post('/launch-campaign', async (req, res) => {
+router.post('/launch-campaign', campaignRateLimit, async (req, res) => {
   try {
     const result = await solanaOutreachCampaignService.launchPremiumTradingCampaign();
     

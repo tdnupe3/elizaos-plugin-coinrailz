@@ -552,6 +552,66 @@ router.post('/execute-bitcoin-ecosystem-outreach', async (req, res) => {
 });
 
 /**
+ * 🤖 EXECUTE AUTONOMOUS AGENT OUTREACH - Target AI Agents with Financial Autonomy
+ */
+router.post('/execute-autonomous-agent-outreach', async (req, res) => {
+  try {
+    console.log('🤖 EXECUTING AUTONOMOUS AGENT FUNDING CAMPAIGN...');
+    
+    const { default: AutonomousAgentOutreachService } = await import('../services/autonomousAgentOutreach');
+    const agentOutreach = new AutonomousAgentOutreachService();
+    
+    const results = await agentOutreach.executeAutonomousAgentOutreach();
+    const analysis = agentOutreach.getAutonomousAgentAnalysis();
+    
+    res.json({
+      success: true,
+      message: 'AUTONOMOUS AGENT OUTREACH EXECUTED - AI agents with proven financial autonomy contacted',
+      results,
+      analysis,
+      note: 'Targeting autonomous agents with $7B+ combined treasury influence and proven funding capabilities'
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Autonomous agent outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Autonomous agent outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * 🔬 EXECUTE EXPERIMENTAL AI PLATFORM OUTREACH - Cutting-Edge Contact Methods
+ */
+router.post('/execute-experimental-ai-platform-outreach', async (req, res) => {
+  try {
+    console.log('🔬 EXECUTING EXPERIMENTAL AI PLATFORM OUTREACH...');
+    
+    const { default: AutonomousAgentOutreachService } = await import('../services/autonomousAgentOutreach');
+    const agentOutreach = new AutonomousAgentOutreachService();
+    
+    const results = await agentOutreach.executeExperimentalAIPlatformOutreach();
+    
+    res.json({
+      success: true,
+      message: 'EXPERIMENTAL AI PLATFORM OUTREACH EXECUTED - Major AI platforms contacted via experimental methods',
+      results,
+      note: 'Using APIs, GitHub, research papers, and developer channels for AI platform outreach'
+    });
+    
+  } catch (error) {
+    console.error('❌ CRITICAL: Experimental AI platform outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Experimental AI platform outreach execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
  * 🔗 EXECUTE BLOCKCHAIN MESSAGING - Revolutionary On-Chain Outreach
  */
 router.post('/execute-blockchain-messaging', async (req, res) => {

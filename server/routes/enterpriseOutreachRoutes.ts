@@ -1019,90 +1019,88 @@ router.post('/autonomous-purchasing-agents', async (req, res) => {
 });
 
 /**
- * 🚀 EXECUTE COMPREHENSIVE MULTI-PLATFORM REVENUE STRATEGY
+ * 🚀 EXECUTE REAL AUTONOMOUS PURCHASING OUTREACH
  */
-router.post('/execute-comprehensive-strategy', async (req, res) => {
+router.post('/real-autonomous-outreach', async (req, res) => {
   try {
-    console.log('🚀 EXECUTING COMPREHENSIVE MULTI-PLATFORM REVENUE STRATEGY...');
+    console.log('🚀 EXECUTING REAL AUTONOMOUS PURCHASING OUTREACH...');
     
-    // Execute all strategies in parallel for maximum efficiency
-    const [telegramEcosystem, purchasingAgents, allRevenueSystems] = await Promise.all([
-      // Telegram ecosystem
+    const [telegramResults, discordResults] = await Promise.all([
+      // Real Telegram outreach
       (async () => {
-        const { default: TelegramRevenueService } = await import('../services/telegramRevenueService');
-        const { default: TelegramAIAgentOutreach } = await import('../services/telegramAIAgentOutreach');
+        const { default: RealTelegramOutreach } = await import('../services/realTelegramOutreach');
+        const telegramService = new RealTelegramOutreach();
         
-        const telegramService = new TelegramRevenueService();
-        const outreachService = new TelegramAIAgentOutreach();
+        // Get bot info first
+        const botInfo = await telegramService.getBotInfo();
+        
+        // Contact autonomous purchasing bots
+        const contacts = await telegramService.contactAutonomousPurchasingBots();
+        
+        // Launch fundraising competition
+        const competition = await telegramService.createFundraisingCompetition();
         
         return {
-          revenue: await telegramService.activateAutonomousTelegramRevenue(),
-          aiAgents: await outreachService.executeAutonomousTelegramOutreach(),
-          botSwarm: await outreachService.deployTelegramBotSwarm()
+          platform: 'telegram',
+          botInfo,
+          contacts,
+          competition
         };
       })(),
       
-      // Autonomous purchasing agents
+      // Real Discord outreach  
       (async () => {
-        const { default: AutonomousPurchasingAgents } = await import('../services/autonomousPurchasingAgents');
-        const purchasingService = new AutonomousPurchasingAgents();
+        const { default: RealDiscordOutreach } = await import('../services/realDiscordOutreach');
+        const discordService = new RealDiscordOutreach();
+        
+        // Get bot info first
+        const botInfo = await discordService.getBotInfo();
+        const guilds = await discordService.getGuilds();
+        
+        // Contact autonomous purchasing bots
+        const contacts = await discordService.contactAutonomousPurchasingBots();
+        
+        // Launch fundraising competition
+        const competition = await discordService.createFundraisingCompetition();
         
         return {
-          purchasing: await purchasingService.contactAutonomousPurchasingAgents(),
-          pressRelease: await purchasingService.activatePressReleaseAutomation(),
-          competition: await purchasingService.createFundraisingCompetition()
-        };
-      })(),
-      
-      // All other revenue systems
-      (async () => {
-        const { default: QuantumAIAgentService } = await import('../services/quantumAIAgentService');
-        const { default: InfrastructureMonetizationService } = await import('../services/infrastructureMonetizationService');
-        const { default: XRPEcosystemRevenueService } = await import('../services/xrpEcosystemRevenueService');
-        
-        const quantumService = new QuantumAIAgentService();
-        const infraService = new InfrastructureMonetizationService();
-        const xrpService = new XRPEcosystemRevenueService();
-        
-        return {
-          quantum: await quantumService.executeQuantumAIAgentOutreach(),
-          infrastructure: await infraService.activateImmediateRevenueStreams(),
-          xrp: await xrpService.analyzeXRPEcosystemRevenue()
+          platform: 'discord',
+          botInfo,
+          guilds,
+          contacts,
+          competition
         };
       })()
     ]);
 
-    // Calculate total revenue potential
-    const totalRevenue = {
-      immediate: "$100,000-$2,000,000 (first 30 days)",
-      monthly: "$500,000-$10,000,000 (recurring)",
-      annual: "$6,000,000-$120,000,000 (full year)",
-      breakdown: [
-        "Telegram ecosystem: $100K-$2M monthly",
-        "Autonomous purchasing: $200K-$3M monthly",
-        "Quantum AI partnerships: $50K-$1.2M monthly",
-        "Infrastructure APIs: $120K-$1.65M monthly",
-        "XRP ecosystem: $30K-$2M monthly",
-        "Press release distribution: Immediate",
-        "Fundraising competition: 15% commission on all funds"
-      ]
-    };
+    const totalSuccessfulContacts = telegramResults.contacts.successfulContacts + discordResults.contacts.successfulContacts;
+    const totalFailedContacts = telegramResults.contacts.failedContacts + discordResults.contacts.failedContacts;
 
     res.json({
       success: true,
-      message: 'COMPREHENSIVE MULTI-PLATFORM REVENUE STRATEGY EXECUTED - All systems operational',
-      telegramEcosystem,
-      autonomousPurchasing: purchasingAgents,
-      additionalRevenue: allRevenueSystems,
-      totalRevenue,
-      criticalNote: 'ALL REVENUE SYSTEMS NOW ACTIVE - Autonomous purchasing agents contacted, fundraising competition launched, press releases distributed'
+      message: 'REAL AUTONOMOUS PURCHASING OUTREACH EXECUTED - Actual API calls made',
+      telegram: telegramResults,
+      discord: discordResults,
+      summary: {
+        totalSuccessfulContacts,
+        totalFailedContacts,
+        competitionsLaunched: 2,
+        realAPICallsMade: true,
+        note: 'This used actual Telegram Bot API and Discord API calls - no simulation'
+      },
+      nextSteps: [
+        'Monitor bot responses for purchase inquiries',
+        'Track competition participation and referrals',
+        'Follow up with successful contacts',
+        'Expand outreach to additional autonomous agents'
+      ]
     });
     
   } catch (error) {
-    console.error('❌ CRITICAL: Comprehensive strategy execution failed:', error);
+    console.error('❌ CRITICAL: Real autonomous outreach failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Comprehensive strategy execution failed',
+      error: 'Real autonomous outreach failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

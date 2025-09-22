@@ -7,6 +7,7 @@ import {
   Keypair,
   sendAndConfirmTransaction
 } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { db } from '../db';
 import { eq, and, gte } from 'drizzle-orm';
 import { 
@@ -47,10 +48,21 @@ export class SolanaSubscriptionService {
       }
       
       try {
-        const secretKey = JSON.parse(privateKey);
-        this.platformWallet = Keypair.fromSecretKey(new Uint8Array(secretKey));
-      } catch {
-        throw new Error('Invalid SOLANA_PRIVATE_KEY format - should be JSON array of bytes');
+        let secretKey: Uint8Array;
+        
+        // Try base58 format first (standard Solana format from Phantom/Solflare)
+        if (privateKey.length === 88 || privateKey.length === 87) {
+          secretKey = bs58.decode(privateKey);
+        } else {
+          // Try JSON array format
+          const parsed = JSON.parse(privateKey);
+          secretKey = new Uint8Array(parsed);
+        }
+        
+        this.platformWallet = Keypair.fromSecretKey(secretKey);
+        console.log(`✅ Solana subscription wallet initialized: ${this.platformWallet.publicKey.toString()}`);
+      } catch (error) {
+        throw new Error('Invalid SOLANA_PRIVATE_KEY format - should be base58 string or JSON array of bytes');
       }
     }
     

@@ -27,8 +27,6 @@ export class RealPaymentOutreachService {
     currency: string
   ): Promise<{success: boolean, delivery: any}> {
     
-    console.log(`🚀 REAL OUTREACH: Sending payment request ${requestId} to ${organizationName} (${targetWallet})`);
-
     const paymentMessage = this.composeEnterprisePaymentMessage(
       requestId, organizationName, amount, currency
     );
@@ -41,21 +39,17 @@ export class RealPaymentOutreachService {
 
     // 1. ATTEMPT REAL XMTP DELIVERY
     try {
-      console.log(`📱 Attempting REAL XMTP delivery to ${targetWallet}...`);
       deliveryResults.xmtp.attempted = true;
       
       const xmtpResult = await this.xmtpService.sendMessageToAgent(targetWallet, paymentMessage, 'payment_request');
       
       if (xmtpResult && xmtpResult.status === 'sent') {
-        console.log(`✅ REAL XMTP message sent successfully to ${targetWallet}`);
         deliveryResults.xmtp.success = true;
         deliveryResults.successfulChannels++;
       } else {
-        console.log(`❌ XMTP delivery failed to ${targetWallet}: ${xmtpResult?.reason || 'Unknown error'}`);
         deliveryResults.xmtp.error = xmtpResult?.reason || 'Unknown error';
       }
     } catch (error: any) {
-      console.log(`❌ XMTP delivery error to ${targetWallet}: ${error.message}`);
       deliveryResults.xmtp.error = error.message;
     }
 
@@ -63,7 +57,6 @@ export class RealPaymentOutreachService {
     const email = this.deriveContactEmail(organizationName, targetWallet);
     if (email) {
       try {
-        console.log(`📧 Attempting REAL email delivery to ${email}...`);
         deliveryResults.email.attempted = true;
         
         const emailSuccess = await sendEmail({
@@ -75,22 +68,22 @@ export class RealPaymentOutreachService {
         });
 
         if (emailSuccess) {
-          console.log(`✅ REAL email sent successfully to ${email}`);
           deliveryResults.email.success = true;
           deliveryResults.successfulChannels++;
         } else {
-          console.log(`❌ Email delivery failed to ${email}`);
           deliveryResults.email.error = 'SendGrid delivery failed' as any;
         }
       } catch (error: any) {
-        console.log(`❌ Email delivery error to ${email}: ${error.message}`);
         deliveryResults.email.error = error.message;
       }
     }
 
     const overallSuccess = deliveryResults.successfulChannels > 0;
     
-    console.log(`📊 REAL OUTREACH RESULT for ${organizationName}: ${deliveryResults.successfulChannels}/2 channels successful`);
+    // Only log results, not attempts
+    if (overallSuccess) {
+      console.log(`✅ REAL delivery successful to ${organizationName}: ${deliveryResults.successfulChannels} channel(s)`);
+    }
     
     return {
       success: overallSuccess,

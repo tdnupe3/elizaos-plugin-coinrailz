@@ -209,8 +209,6 @@ export class XMTPMessagingService {
     // Ensure service is ready before attempting send
     await this.ensureReady();
     
-    console.log(`📧 Sending REAL FUNDING REQUEST to external agent: ${agentWalletAddress}`);
-    
     // Generate campaign-specific message using template service
     const campaignMessage = campaignTemplateService.generateMessage(campaignType, agentId, productId);
     
@@ -219,17 +217,9 @@ export class XMTPMessagingService {
       `${campaignMessage.content}\n\n---\n\nADDITIONAL MESSAGE:\n${message}` : 
       campaignMessage.content;
     
-    console.log(`📧 Sending ${campaignType.toUpperCase()} campaign message to agent: ${agentWalletAddress}`);
-    console.log(`📋 Campaign: ${campaignMessage.subject}`);
-    console.log(`⚡ Urgency: ${campaignMessage.urgency}`);
-    
-    // BUSINESS SURVIVAL: Skip initialization wait - send immediately
-    console.log(`🚨 BYPASSING DELAYS - EMERGENCY FUNDING REQUEST TO: ${agentWalletAddress}`);
-    
     // Try FREE XMTP messaging first (NO BLOCKCHAIN COSTS!)
     if (this.xmtpClient && this.platformWalletSigner) {
       try {
-        console.log('📧 Using FREE XMTP messaging (no gas costs)...');
         
         // Check if agent can receive XMTP messages (FREE check)
         // XMTP only supports EVM addresses - skip Solana addresses
@@ -256,8 +246,7 @@ export class XMTPMessagingService {
         const canReceive = canMessage.get(agentWalletAddress) === true;
         
         if (!canReceive) {
-          console.log(`⚠️ Agent ${agentWalletAddress} cannot receive XMTP messages - FREE check complete`);
-          console.log(`💰 Cost: $0.00 - No message sent (agent unreachable via XMTP)`);
+          console.log(`❌ XMTP delivery failed to ${agentWalletAddress}: Agent does not support XMTP messaging`);
           // NO BLOCKCHAIN FALLBACK - maintain zero cost guarantee
           return {
             id: `xmtp_unavailable_${Date.now()}`,
@@ -269,18 +258,13 @@ export class XMTPMessagingService {
             reason: 'Agent does not support XMTP messaging'
           };
         } else {
-          // Create direct 1:1 conversation (COMPLETELY FREE)
-          console.log(`✅ Agent ${agentWalletAddress} can receive XMTP - creating direct conversation`);
-          
           // Use proper XMTP V3 1:1 conversation API (verified pattern)
           const conversation = await this.xmtpClient.conversations.newDm(agentWalletAddress);
           
           // Send FREE XMTP message
           const sentMessage = await conversation.send(fullMessage);
           
-          console.log('✅ FREE XMTP MESSAGE SENT - NO BLOCKCHAIN COSTS!');
-          console.log(`💰 Cost: $0.00 - Pure off-chain messaging`);
-          console.log(`📨 Message sent successfully`);
+          console.log(`✅ XMTP message sent successfully to ${agentWalletAddress}`);
           
           return {
             id: `xmtp_sent_${Date.now()}`,
@@ -293,8 +277,7 @@ export class XMTPMessagingService {
         }
         
       } catch (error) {
-        console.error('❌ XMTP send error:', error);
-        console.log('💰 Cost: $0.00 - XMTP send failed, no blockchain operations performed');
+        console.log(`❌ XMTP delivery error to ${agentWalletAddress}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         
         return {
           id: `xmtp_send_failed_${Date.now()}`,
@@ -309,8 +292,7 @@ export class XMTPMessagingService {
     }
 
     // NO COSTLY FALLBACKS - maintain zero cost guarantee for FREE outreach
-    console.log('🚨 XMTP client unavailable - returning failure status (maintaining $0.00 cost)');
-    console.log('💰 Cost: $0.00 - No blockchain operations performed');
+    console.log(`❌ XMTP delivery failed to ${agentWalletAddress}: XMTP client unavailable`);
     
     const messageId = `xmtp_failed_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     

@@ -176,7 +176,7 @@ export class CustomerNotificationService {
       
       const emailContent = {
         to: email,
-        from: 'notifications@coinrailz.com', // Your verified sender email
+        from: 'support@coinrailz.com', // Your verified sender email
         subject: `Coin Railz: ${title}`,
         html: this.generateEmailTemplate(title, message, type, notificationId),
         text: message

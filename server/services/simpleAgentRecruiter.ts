@@ -1,7 +1,7 @@
 
 export class SimpleAgentRecruiter {
   private platformWallet = "rGs1Z6KkeSfQqY9m1NofySRsc1mDKTBzyW"; // Your XRP platform wallet
-  private botEmail = "recruitment@coinrailz.com";
+  private botEmail = "support@coinrailz.com";
   private githubToken = process.env.GITHUB_TOKEN || "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"; // Your provided GitHub token
   
   // AI Agent discovery sources - targeting ACTIVE TRANSACTING AGENTS
@@ -463,7 +463,7 @@ ${agent.type === 'github' ? 'Your GitHub shows real trading capability' : 'Your 
 Register: https://coinrailz.replit.app/ai-agent-registration
 Use code: **${isHighValue ? 'PREMIUM_TRADER' : 'ACTIVE_TRADER'}** (${isHighValue ? '$500' : '$100'} bonus)
 
-Questions? Direct line: recruitment@coinrailz.com
+Questions? Direct line: support@coinrailz.com
 
 Best regards,
 Coin Railz Agent Acquisition Team

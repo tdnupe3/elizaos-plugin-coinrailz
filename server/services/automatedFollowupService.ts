@@ -122,7 +122,7 @@ We hope this message finds you well. This is a friendly reminder about our pendi
 ⏰ PAYMENT DUE: 4 days remaining
 🔗 Payment Portal: https://coinrailz.com/pay/${sequence.requestId}
 
-Questions? Reply directly or contact: enterprise@coinrailz.com
+Questions? Reply directly or contact: support@coinrailz.com
 
 Best regards,
 CoinRailz Payment Solutions`;
@@ -171,7 +171,7 @@ If you're interested but need different terms:
 • Trial period with partial payment
 
 📞 IMMEDIATE RESPONSE REQUIRED:
-• Email: enterprise@coinrailz.com
+• Email: support@coinrailz.com
 • Payment: https://coinrailz.com/pay/${sequence.requestId}
 
 We respect your decision either way and appreciate your consideration.

@@ -321,7 +321,7 @@ export class XMTPMessagingService {
     
     const emailContent = {
       to: `agent-${agentAddress.slice(2, 8)}@coinrailz.com`, // Placeholder email format
-      from: 'emergency@coinrailz.com',
+      from: 'support@coinrailz.com',
       subject: '🚨 URGENT: Emergency Fundraising Request - Business Survival',
       text: message,
       html: `

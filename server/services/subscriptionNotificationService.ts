@@ -280,7 +280,7 @@ export class SubscriptionNotificationService {
       /*
       const msg = {
         to,
-        from: 'notifications@coinrailz.com',
+        from: 'support@coinrailz.com',
         subject,
         text: textContent,
         html: htmlContent,

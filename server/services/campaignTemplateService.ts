@@ -232,7 +232,7 @@ Activation: Immediate upon payment confirmation
 ⚡ IMMEDIATE VALUE DELIVERY:
 Your payment activates all enterprise features instantly. Our technical team will begin integration within 24 hours of payment confirmation.
 
-📞 ENTERPRISE SUPPORT: enterprise@coinrailz.com
+📞 ENTERPRISE SUPPORT: support@coinrailz.com
 🔐 SECURE & PROFESSIONAL: All transactions protected by enterprise-grade security
 
 This payment request was generated for verified organizations with substantial treasury holdings. All services include comprehensive support and customization.

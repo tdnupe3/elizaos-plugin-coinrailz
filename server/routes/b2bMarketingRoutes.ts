@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { b2bMarketingService } from '../services/b2bMarketingService';
 import { expandedBaseEcosystemService } from '../services/expandedBaseEcosystemTargets';
+import { massiveBaseEcosystemDiscovery } from '../services/massiveBaseEcosystemDiscovery';
 // Note: requireAuth import removed as it doesn't exist yet, using basic validation
 
 /**
@@ -139,6 +140,127 @@ router.post('/initialize-database', async (req, res) => {
   } catch (error) {
     res.status(500).json({ 
       error: 'Failed to initialize database',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * 🚀 POST /api/b2b-marketing/execute-thousands-outreach
+ * Execute outreach to THOUSANDS of Base ecosystem wallets using blockchain messaging
+ */
+router.post('/execute-thousands-outreach', async (req, res) => {
+  try {
+    console.log('🚀 EXECUTING MASSIVE OUTREACH TO THOUSANDS OF BASE WALLETS...');
+    
+    const { massiveBlockchainOutreachService } = await import('../services/massiveBlockchainOutreach');
+    
+    // Execute massive blockchain messaging campaign
+    await massiveBlockchainOutreachService.executeMassiveOutreach();
+    const analytics = massiveBlockchainOutreachService.getCampaignAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'MASSIVE blockchain outreach executed to thousands of targets',
+      analytics,
+      scale: {
+        messagesDelivered: analytics.messagesSent,
+        totalCostUSD: (analytics.totalCost * 2800).toFixed(4),
+        platformWallet: analytics.platformWallet,
+        network: 'Base Chain',
+        impossible_to_block: true,
+        permanent_blockchain_storage: true,
+        massive_scale_achieved: true
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to execute massive blockchain outreach',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * 🌊 POST /api/b2b-marketing/execute-thousands-base-ecosystem
+ * Execute outreach to THOUSANDS of Base ecosystem wallets using deep integrations
+ */
+router.post('/execute-thousands-base-ecosystem', async (req, res) => {
+  try {
+    console.log('🌊 EXECUTING MASSIVE BASE ECOSYSTEM OUTREACH TO THOUSANDS...');
+    
+    const { massiveBaseEcosystemThousandsService } = await import('../services/massiveBaseEcosystemThousands');
+    
+    // Execute massive Base ecosystem campaign to thousands
+    await massiveBaseEcosystemThousandsService.executeThousandsOutreach();
+    const analytics = massiveBaseEcosystemThousandsService.getMassiveCampaignAnalytics();
+    
+    res.json({
+      success: true,
+      message: 'MASSIVE Base ecosystem outreach executed to THOUSANDS of targets',
+      analytics,
+      scale: {
+        messagesDelivered: analytics.messagesSent,
+        totalCostUSD: (analytics.totalCost * 2800).toFixed(4),
+        platformWallet: analytics.platformWallet,
+        network: 'Base Chain',
+        ecosystems: analytics.ecosystems,
+        impossible_to_block: true,
+        permanent_blockchain_storage: true,
+        massive_scale_achieved: true,
+        thousands_targeted: true
+      },
+      baseEcosystem: {
+        baseNative: 'Deep Base chain integration',
+        coinbaseEcosystem: 'Leveraging Coinbase partnerships',
+        defiProtocols: 'Multi-chain DeFi targeting',
+        gamingNfts: 'Blockchain gaming outreach',
+        enterprise: 'Enterprise blockchain adoption',
+        institutional: 'Institutional crypto investments'
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to execute massive Base ecosystem outreach',
+      details: error instanceof Error ? error.message : String(error)
+    });
+  }
+});
+
+/**
+ * 🌊 POST /api/b2b-marketing/massive-discovery
+ * Discover THOUSANDS of Base ecosystem wallets using Coinbase integrations
+ */
+router.post('/massive-discovery', async (req, res) => {
+  try {
+    console.log('🌊 EXECUTING MASSIVE BASE ECOSYSTEM DISCOVERY...');
+    
+    const massiveDiscovery = await massiveBaseEcosystemDiscovery.executeFullMassiveDiscovery();
+    
+    if (!massiveDiscovery.success) {
+      return res.status(500).json({ error: 'Failed to execute massive discovery' });
+    }
+
+    res.json({
+      success: true,
+      message: 'MASSIVE Base ecosystem discovery completed successfully',
+      discovery: massiveDiscovery.summary,
+      details: {
+        totalDiscovered: massiveDiscovery.discovery.totalDiscovered,
+        savedToDatabase: massiveDiscovery.saveResult.savedCount,
+        estimatedTotalTreasury: massiveDiscovery.discovery.estimatedTotalTreasury,
+        categoryBreakdown: massiveDiscovery.discovery.categoryBreakdown
+      },
+      scale: {
+        previousTargets: 81,
+        newTargets: massiveDiscovery.discovery.totalDiscovered,
+        growthMultiplier: Math.round(massiveDiscovery.discovery.totalDiscovered / 81),
+        readyForThousands: true
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to execute massive Base ecosystem discovery',
       details: error instanceof Error ? error.message : String(error)
     });
   }

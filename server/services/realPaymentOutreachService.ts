@@ -44,7 +44,7 @@ export class RealPaymentOutreachService {
       console.log(`📱 Attempting REAL XMTP delivery to ${targetWallet}...`);
       deliveryResults.xmtp.attempted = true;
       
-      const xmtpResult = await this.xmtpService.sendMessageToAgent(targetWallet, paymentMessage, 'donation');
+      const xmtpResult = await this.xmtpService.sendMessageToAgent(targetWallet, paymentMessage, 'payment_request');
       
       if (xmtpResult && xmtpResult.status === 'sent') {
         console.log(`✅ REAL XMTP message sent successfully to ${targetWallet}`);

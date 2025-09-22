@@ -5,7 +5,7 @@
 
 import { donationLinkService } from './donationLinkService';
 
-export type CampaignType = 'donation' | 'competition' | 'product_sale';
+export type CampaignType = 'donation' | 'competition' | 'product_sale' | 'payment_request';
 
 export interface CampaignMessage {
   type: CampaignType;
@@ -191,6 +191,60 @@ Time: ${new Date().toISOString()}
   }
 
   /**
+   * Generate message for payment request campaign
+   */
+  generatePaymentRequestMessage(agentId?: string, productId?: string): CampaignMessage {
+    return {
+      type: 'payment_request',
+      subject: '💰 ENTERPRISE PAYMENT REQUEST - COINRAILZ INTEGRATION SERVICES',
+      urgency: 'normal',
+      callToAction: [
+        'Review payment request details',
+        'Complete secure payment portal',
+        'Activate enterprise services immediately'
+      ],
+      content: `💰 ENTERPRISE PAYMENT REQUEST - COINRAILZ INTEGRATION SERVICES
+
+🏢 PROFESSIONAL SERVICE REQUEST FOR: ${agentId || 'ORGANIZATION'}
+
+We are requesting payment for premium enterprise integration services that will provide your organization with cutting-edge payment infrastructure.
+
+🎯 SERVICE DELIVERY INCLUDES:
+• ✅ Multi-chain payment processing (15+ networks)
+• ✅ Enterprise-grade API access (unlimited requests)
+• ✅ Dedicated technical support team
+• ✅ Custom integration assistance
+• ✅ 99.9% uptime SLA guarantee
+• ✅ Real-time transaction monitoring
+• ✅ Advanced security & compliance features
+
+💼 PAYMENT DETAILS:
+Request ID: ${productId || 'PENDING'}
+Service Type: Enterprise Payment Infrastructure Integration
+Payment Portal: Secure blockchain-based payment processing
+Activation: Immediate upon payment confirmation
+
+🔒 SECURE PAYMENT OPTIONS:
+1. Crypto Payment Portal (any major cryptocurrency)
+2. Traditional wire transfer (contact for details)
+3. Escrow service available for large amounts
+
+⚡ IMMEDIATE VALUE DELIVERY:
+Your payment activates all enterprise features instantly. Our technical team will begin integration within 24 hours of payment confirmation.
+
+📞 ENTERPRISE SUPPORT: enterprise@coinrailz.com
+🔐 SECURE & PROFESSIONAL: All transactions protected by enterprise-grade security
+
+This payment request was generated for verified organizations with substantial treasury holdings. All services include comprehensive support and customization.
+
+Time: ${new Date().toISOString()}
+Platform: https://coinrailz.com
+
+#EnterprisePayment #PaymentInfrastructure #CoinRailz`
+    };
+  }
+
+  /**
    * Generate message based on campaign type
    */
   generateMessage(campaignType: CampaignType, agentId?: string, productId?: string): CampaignMessage {
@@ -201,6 +255,8 @@ Time: ${new Date().toISOString()}
         return this.generateCompetitionMessage(agentId);
       case 'product_sale':
         return this.generateProductSalesMessage(agentId, productId);
+      case 'payment_request':
+        return this.generatePaymentRequestMessage(agentId, productId);
       default:
         throw new Error(`Unsupported campaign type: ${campaignType}`);
     }

@@ -7,6 +7,7 @@
 
 import express from 'express';
 import { legitimatePaymentRequestService } from '../services/legitimatePaymentRequestService';
+import { automatedFollowupService } from '../services/automatedFollowupService';
 
 const router = express.Router();
 
@@ -323,6 +324,10 @@ router.post('/scale-outreach', async (req, res) => {
 
     const successful = results.filter(r => r.status === 'sent');
     const failed = results.filter(r => r.status === 'failed');
+
+    // Initialize automated follow-ups for successful requests
+    console.log(`🔄 Initializing automated follow-ups for ${successful.length} successful requests...`);
+    await automatedFollowupService.initializeMassiveFollowUps(successful);
 
     res.json({
       success: true,

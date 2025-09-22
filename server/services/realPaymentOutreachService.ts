@@ -45,6 +45,7 @@ export class RealPaymentOutreachService {
 
     const deliveryResults = {
       blockchain: { attempted: false, success: false, error: null, txHash: null },
+      xmtp: { attempted: false, success: false, error: null },
       email: { attempted: false, success: false, error: null },
       successfulChannels: 0
     };
@@ -67,7 +68,24 @@ export class RealPaymentOutreachService {
       deliveryResults.blockchain.error = error.message;
     }
 
-    // 2. ATTEMPT REAL EMAIL DELIVERY (if we can derive email from organization)
+    // 2. ATTEMPT REAL XMTP DELIVERY
+    try {
+      deliveryResults.xmtp.attempted = true;
+      
+      const xmtpResult = await this.xmtpService.sendMessageToAgent(targetWallet, paymentMessage, 'payment_request');
+      
+      if (xmtpResult.status === 'sent') {
+        deliveryResults.xmtp.success = true;
+        deliveryResults.successfulChannels++;
+        console.log(`✅ XMTP message sent to ${organizationName}: ${xmtpResult.id}`);
+      } else {
+        deliveryResults.xmtp.error = xmtpResult.reason || 'XMTP delivery failed';
+      }
+    } catch (error: any) {
+      deliveryResults.xmtp.error = error.message;
+    }
+
+    // 3. ATTEMPT REAL EMAIL DELIVERY (if we can derive email from organization)
     const email = this.deriveContactEmail(organizationName, targetWallet);
     if (email) {
       try {
@@ -349,6 +367,7 @@ To unsubscribe or discuss alternative arrangements, please reply to this message
         );
 
         totalChannelsAttempted += (outreachResult.delivery.blockchain?.attempted ? 1 : 0) + 
+                                  (outreachResult.delivery.xmtp?.attempted ? 1 : 0) +
                                   (outreachResult.delivery.email?.attempted ? 1 : 0);
         totalChannelsSuccessful += outreachResult.delivery.successfulChannels;
 

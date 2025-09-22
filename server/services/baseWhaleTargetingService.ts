@@ -7,6 +7,7 @@
  */
 
 import { ethers } from 'ethers';
+import { coinGeckoPricingService } from './pricing/CoinGeckoPricingService';
 
 interface BaseWhale {
   address: string;
@@ -68,14 +69,14 @@ export class BaseWhaleTargetingService {
             balanceWei: balance,
             category: this.categorizeWhale(balance),
             priority: this.assignPriority(balance),
-            estimatedValue: this.estimateValue(balance)
+            estimatedValue: await this.estimateValue(balance)
           };
           
           whales.push(whale);
           console.log(`🐋 Found ${whale.category}: ${address} with ${ethBalance} ETH`);
         }
       } catch (error) {
-        console.log(`⚠️ Could not check balance for ${address}: ${error.message}`);
+        console.log(`⚠️ Could not check balance for ${address}: ${(error as Error).message}`);
       }
     }
 
@@ -193,11 +194,11 @@ export class BaseWhaleTargetingService {
       };
       
     } catch (error) {
-      console.error(`❌ Failed to message whale ${whale.address}:`, error.message);
+      console.error(`❌ Failed to message whale ${whale.address}:`, (error as Error).message);
       return {
         success: false,
         address: whale.address,
-        error: error.message
+        error: (error as Error).message
       };
     }
   }
@@ -293,16 +294,22 @@ Network: Base Chain`;
   }
 
   /**
-   * 💰 Estimate whale value for targeting
+   * 💰 Estimate whale value using REAL-TIME ETH pricing (CoinGecko)
    */
-  private estimateValue(balance: bigint): string {
+  private async estimateValue(balance: bigint): Promise<string> {
     const ethAmount = parseFloat(ethers.formatEther(balance));
-    const estimatedUSD = ethAmount * 2800; // Rough ETH price
-    
-    if (estimatedUSD >= 280000) return '$280K+ Portfolio';
-    if (estimatedUSD >= 28000) return '$28K+ Portfolio';
-    if (estimatedUSD >= 14000) return '$14K+ Portfolio';
-    return '$2.8K+ Portfolio';
+    try {
+      const usdValue = await coinGeckoPricingService.getUSDValue(ethAmount, 'ETH');
+      return coinGeckoPricingService.formatUSD(usdValue) + ' Portfolio';
+    } catch (error) {
+      console.warn('⚠️ Failed to get real-time ETH price, using fallback:', error);
+      // Emergency fallback with current approximate price
+      const estimatedUSD = ethAmount * 4000; // Current approximate ETH price
+      if (estimatedUSD >= 400000) return '$400K+ Portfolio';
+      if (estimatedUSD >= 40000) return '$40K+ Portfolio';
+      if (estimatedUSD >= 20000) return '$20K+ Portfolio';
+      return '$4K+ Portfolio';
+    }
   }
 }
 

@@ -100,6 +100,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // 🐋 Base Whale Targeting Routes
   app.use('/api/base-whales', await import('./routes/baseWhaleRoutes').then(m => m.default));
+  
+  // 💰 Real-time Crypto Pricing Routes (CoinGecko)
+  app.use('/api/prices', await import('./routes/pricingRoutes').then(m => m.default));
 
   // DEX Trading routes - Guest & User Support (No Auth Required)
   app.use('/api/dex', dexRoutes);

@@ -274,23 +274,16 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
       
     } catch (error) {
       console.error('⚠️ Error in massive discovery:', error);
-      // Even in error, return a substantial target set
-      return targets.length > 0 ? targets : this.generateFallbackTargets();
+      // SIMULATION REMOVED - Return empty array instead of fake targets
+      throw new Error('Real whale discovery failed - simulation code removed');
     }
   }
   
   /**
-   * 🎯 Generate fallback targets for immediate deployment
+   * ❌ SIMULATION REMOVED
    */
   private generateFallbackTargets(): TargetWallet[] {
-    const targets: TargetWallet[] = [];
-    
-    for (let i = 0; i < 10000; i++) {
-      const mockWallet = this.generateMockTargetWallet();
-      targets.push(mockWallet);
-    }
-    
-    return targets;
+    throw new Error('SIMULATION CODE REMOVED - Fallback target generation not allowed');
   }
 
   /**
@@ -413,21 +406,10 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
   }
 
   /**
-   * 🎲 Generate mock target wallet
+   * ❌ SIMULATION REMOVED
    */
   private generateMockTargetWallet(): TargetWallet {
-    const balance = 1 + Math.random() * 1000; // 1-1000 SOL
-    return {
-      address: this.generateValidSolanaAddress(),
-      balance,
-      activityScore: Math.floor(Math.random() * 100) + 1,
-      estimatedValue: balance,
-      lastActive: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-      transactionCount: Math.floor(Math.random() * 1000) + 10,
-      isWhale: balance >= 100,
-      whaleCategory: balance >= 1000 ? 'major' : balance >= 100 ? 'medium' : 'active',
-      tags: ['active_trader', 'defi_user', 'high_value'].filter(() => Math.random() > 0.5)
-    };
+    throw new Error('SIMULATION CODE REMOVED - Mock target generation not allowed');
   }
   
   /**

@@ -174,9 +174,8 @@ export class BaseWhaleTargetingService {
     try {
       console.log(`🐋 Messaging ${whale.category} with ${whale.ethBalance} ETH...`);
       
-      // This would integrate with the existing blockchain messaging system
-      // For now, we'll simulate the successful transaction with realistic data
-      const txHash = `0x${Math.random().toString(16).slice(2, 66)}`;
+      // ERROR: Real blockchain messaging not implemented
+      throw new Error('Real blockchain messaging system not implemented yet');
       
       this.messagesSent++;
       this.totalCost += 0.0001; // Base transaction cost

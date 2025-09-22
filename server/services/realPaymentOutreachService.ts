@@ -44,9 +44,9 @@ export class RealPaymentOutreachService {
     );
 
     const deliveryResults = {
-      blockchain: { attempted: false, success: false, error: null, txHash: null },
-      xmtp: { attempted: false, success: false, error: null },
-      email: { attempted: false, success: false, error: null },
+      blockchain: { attempted: false, success: false, error: null as string | null, txHash: null as string | null },
+      xmtp: { attempted: false, success: false, error: null as string | null },
+      email: { attempted: false, success: false, error: null as string | null },
       successfulChannels: 0
     };
 
@@ -163,7 +163,7 @@ From: ${wallet.address}`;
       // Estimate gas for the transaction
       const estimatedGas = await this.provider.estimateGas({
         to: targetWallet,
-        value: ethers.parseEther('0.000001'), // Send minimal ETH (0.000001 ETH)
+        value: ethers.parseEther('0.000001'), // Send minimal ETH
         data: messageData
       });
 
@@ -172,7 +172,7 @@ From: ${wallet.address}`;
         to: targetWallet,
         value: ethers.parseEther('0.000001'), // Minimal ETH for guaranteed delivery
         data: messageData,
-        gasLimit: (estimatedGas * 130n) / 100n, // 30% buffer
+        gasLimit: (estimatedGas * BigInt(130)) / BigInt(100), // 30% buffer
         maxFeePerGas: feeData.maxFeePerGas,
         maxPriorityFeePerGas: feeData.maxPriorityFeePerGas
       };

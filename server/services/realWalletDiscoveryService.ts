@@ -205,6 +205,7 @@ export class RealWalletDiscoveryService {
 
   /**
    * Verify that a wallet address represents a real user/entity
+   * STRICT VERIFICATION - Only real wallets with proven activity pass
    */
   private async verifyWalletIsReal(address: string): Promise<{
     isReal: boolean;
@@ -218,47 +219,63 @@ export class RealWalletDiscoveryService {
     signerRate: string;
   }> {
     try {
+      console.log(`🔍 Strict verification for ${address.slice(0, 8)}...`);
+      
       // Get account info
       const accountInfo = await this.getAccountInfo(address);
       if (!accountInfo) {
+        console.log(`❌ ${address.slice(0, 8)}: Account does not exist`);
         return { isReal: false, reason: 'Account does not exist', ownerProgram: '', isExecutable: false, balanceSOL: '0', txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
       }
 
-      // Must be SystemProgram-owned (real wallet, not PDA)
-      if (accountInfo.owner !== "11111111111111111111111111111112") {
-        return { isReal: false, reason: 'Not SystemProgram-owned (PDA or token account)', ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: '0', txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
+      // STRICT: Must be SystemProgram-owned (real wallet, not PDA)
+      const SYSTEM_PROGRAM_ID = "11111111111111111111111111111112";
+      if (accountInfo.owner !== SYSTEM_PROGRAM_ID) {
+        console.log(`❌ ${address.slice(0, 8)}: Not SystemProgram-owned (owner: ${accountInfo.owner})`);
+        return { isReal: false, reason: `Not SystemProgram-owned (PDA or token account), owner: ${accountInfo.owner}`, ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: '0', txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
       }
 
-      // Must not be executable (not a program)
+      // STRICT: Must not be executable (not a program)
       if (accountInfo.executable) {
+        console.log(`❌ ${address.slice(0, 8)}: Executable account (program)`);
         return { isReal: false, reason: 'Executable account (program)', ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: '0', txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
       }
 
-      // Must have reasonable balance
+      // STRICT: Must have reasonable balance (at least 0.01 SOL)
       const balanceSOL = accountInfo.lamports / 1e9;
-      if (balanceSOL < 0.001) {
-        return { isReal: false, reason: 'Insufficient balance (likely dust/abandoned)', ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
+      const MIN_BALANCE = 0.01;
+      if (balanceSOL < MIN_BALANCE) {
+        console.log(`❌ ${address.slice(0, 8)}: Insufficient balance ${balanceSOL.toFixed(4)} SOL < ${MIN_BALANCE} SOL`);
+        return { isReal: false, reason: `Insufficient balance ${balanceSOL.toFixed(4)} SOL < ${MIN_BALANCE} SOL (likely dust/abandoned)`, ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
       }
 
       // Get activity metrics
       const activity = await this.getRecentActivity(address);
       
-      // Must have recent activity
+      // STRICT: Must have recent activity (within 14 days for traders, 30 days for known entities)
       const daysSinceActive = (Date.now() / 1000 - activity.lastActive) / (24 * 60 * 60);
-      if (daysSinceActive > 30) {
-        return { isReal: false, reason: 'No recent activity (>30 days)', ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };
+      const MAX_DAYS_INACTIVE = 14; // Strict requirement for real active wallets
+      if (daysSinceActive > MAX_DAYS_INACTIVE) {
+        console.log(`❌ ${address.slice(0, 8)}: No recent activity (${daysSinceActive.toFixed(1)} days > ${MAX_DAYS_INACTIVE} days)`);
+        return { isReal: false, reason: `No recent activity (${daysSinceActive.toFixed(1)} days > ${MAX_DAYS_INACTIVE} days)`, ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };
       }
 
-      // Must have reasonable transaction activity
-      if (activity.txCount < 5) {
-        return { isReal: false, reason: 'Insufficient transaction history', ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };
+      // STRICT: Must have reasonable transaction activity (at least 10 transactions in 30 days)
+      const MIN_TX_COUNT = 10;
+      if (activity.txCount < MIN_TX_COUNT) {
+        console.log(`❌ ${address.slice(0, 8)}: Insufficient transaction history (${activity.txCount} < ${MIN_TX_COUNT})`);
+        return { isReal: false, reason: `Insufficient transaction history (${activity.txCount} < ${MIN_TX_COUNT})`, ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };
       }
 
-      // Must be signer in reasonable % of transactions
-      if (activity.signerRate < 0.3) {
-        return { isReal: false, reason: 'Low signer rate (likely receive-only address)', ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };
+      // STRICT: Must be signer in reasonable % of transactions (at least 50% to avoid deposit-only addresses)
+      const MIN_SIGNER_RATE = 0.5;
+      if (activity.signerRate < MIN_SIGNER_RATE) {
+        console.log(`❌ ${address.slice(0, 8)}: Low signer rate (${(activity.signerRate * 100).toFixed(1)}% < ${MIN_SIGNER_RATE * 100}%)`);
+        return { isReal: false, reason: `Low signer rate (${(activity.signerRate * 100).toFixed(1)}% < ${MIN_SIGNER_RATE * 100}%) - likely receive-only address`, ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };
       }
 
+      console.log(`✅ ${address.slice(0, 8)}: VERIFIED REAL WALLET - Balance: ${balanceSOL.toFixed(4)} SOL, Txs: ${activity.txCount}, Signer rate: ${(activity.signerRate * 100).toFixed(1)}%`);
+      
       return {
         isReal: true,
         ownerProgram: accountInfo.owner,
@@ -271,8 +288,8 @@ export class RealWalletDiscoveryService {
       };
 
     } catch (error) {
-      console.error(`Error verifying wallet ${address}:`, error);
-      return { isReal: false, reason: 'API error during verification', ownerProgram: '', isExecutable: false, balanceSOL: '0', txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
+      console.error(`❌ Error verifying wallet ${address}:`, error);
+      return { isReal: false, reason: `API error during verification: ${error}`, ownerProgram: '', isExecutable: false, balanceSOL: '0', txCount30d: 0, dexSwaps30d: 0, lastActive: new Date(), signerRate: '0' };
     }
   }
 

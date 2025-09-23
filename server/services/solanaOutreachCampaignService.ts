@@ -39,6 +39,9 @@ export class SolanaOutreachCampaignService {
   private connection: Connection;
   private platformWallet: Keypair | null = null;
   private currentCampaignId: string | null = null;
+  private dryRunMode: boolean = true; // Safety: Default to dry-run mode
+  private maxBudgetPerBatch: number = 0.1; // Max 0.1 SOL per batch
+  private requireManualApproval: boolean = true; // Require manual approval for sends
 
   constructor() {
     // TEMPORARILY USE MAINNET for testing with real SOL balance
@@ -264,7 +267,57 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
   }
 
   /**
-   * 📨 Execute outreach batch via memo fields
+   * 🔒 SAFETY: Set outreach mode (dry-run or live)
+   */
+  async setOutreachMode(dryRun: boolean, maxBudget?: number, requireApproval?: boolean): Promise<void> {
+    this.dryRunMode = dryRun;
+    if (maxBudget !== undefined) this.maxBudgetPerBatch = maxBudget;
+    if (requireApproval !== undefined) this.requireManualApproval = requireApproval;
+    
+    console.log(`🔧 Outreach mode set: ${dryRun ? 'DRY-RUN' : 'LIVE'}`);
+    console.log(`💰 Max budget per batch: ${this.maxBudgetPerBatch} SOL`);
+    console.log(`✋ Manual approval required: ${this.requireManualApproval}`);
+  }
+
+  /**
+   * 💰 Check wallet balance and validate budget
+   */
+  private async validateBudget(requiredAmount: number): Promise<{ valid: boolean; balance: number; reason?: string }> {
+    await this.initialize();
+    
+    try {
+      const balance = await this.connection.getBalance(this.platformWallet!.publicKey);
+      const balanceSOL = balance / LAMPORTS_PER_SOL;
+      
+      if (balanceSOL < requiredAmount) {
+        return {
+          valid: false,
+          balance: balanceSOL,
+          reason: `Insufficient balance: ${balanceSOL.toFixed(4)} SOL < ${requiredAmount.toFixed(4)} SOL required`
+        };
+      }
+      
+      if (requiredAmount > this.maxBudgetPerBatch) {
+        return {
+          valid: false,
+          balance: balanceSOL,
+          reason: `Budget exceeds limit: ${requiredAmount.toFixed(4)} SOL > ${this.maxBudgetPerBatch} SOL limit`
+        };
+      }
+      
+      return { valid: true, balance: balanceSOL };
+      
+    } catch (error) {
+      return {
+        valid: false,
+        balance: 0,
+        reason: `Error checking balance: ${error}`
+      };
+    }
+  }
+
+  /**
+   * 📨 Execute outreach batch via memo fields with SAFETY CONTROLS
    */
   private async executeOutreachBatch(
     targets: TargetWallet[],
@@ -278,6 +331,48 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
     let failed = 0;
     let totalCost = 0;
     const costPerMessage = 0.00025; // SOL per message
+    const estimatedCost = targets.length * costPerMessage;
+    
+    // SAFETY CHECK: Validate budget
+    const budgetCheck = await this.validateBudget(estimatedCost);
+    if (!budgetCheck.valid) {
+      console.log(`❌ Budget validation failed: ${budgetCheck.reason}`);
+      throw new Error(`Budget validation failed: ${budgetCheck.reason}`);
+    }
+    
+    console.log(`💰 Budget check passed: ${budgetCheck.balance.toFixed(4)} SOL available, ${estimatedCost.toFixed(4)} SOL needed`);
+    
+    // SAFETY CHECK: Manual approval in live mode
+    if (!this.dryRunMode && this.requireManualApproval) {
+      console.log(`⚠️ LIVE MODE: Manual approval required before sending to ${targets.length} verified wallets`);
+      console.log(`💸 Total cost will be: ${estimatedCost.toFixed(4)} SOL`);
+      console.log(`📋 Target summary:`);
+      targets.slice(0, 5).forEach((target, i) => {
+        console.log(`  ${i + 1}. ${target.address.slice(0, 8)}... (${target.balance.toFixed(2)} SOL, ${target.whaleCategory})`);
+      });
+      if (targets.length > 5) {
+        console.log(`  ... and ${targets.length - 5} more targets`);
+      }
+      
+      // In a real implementation, this would wait for user approval
+      throw new Error('Manual approval required - please approve this batch before sending');
+    }
+    
+    // DRY RUN MODE: Simulate without sending
+    if (this.dryRunMode) {
+      console.log(`🧪 DRY RUN MODE: Simulating outreach to ${targets.length} verified wallets`);
+      console.log(`💸 Would cost: ${estimatedCost.toFixed(4)} SOL`);
+      
+      for (const target of targets.slice(0, 10)) { // Only log first 10
+        console.log(`🧪 [DRY RUN] Would send to ${target.address.slice(0, 8)}... (${target.whaleCategory}, ${target.balance.toFixed(2)} SOL)`);
+      }
+      
+      return {
+        sent: targets.length, // Simulated
+        failed: 0,
+        cost: 0 // No actual cost in dry run
+      };
+    }
 
     console.log(`📨 Executing outreach to ${targets.length} targets...`);
 

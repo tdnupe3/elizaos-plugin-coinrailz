@@ -3216,3 +3216,29 @@ export const verifiedSolanaWalletInsertSchema = createInsertSchema(verifiedSolan
 export const verifiedSolanaWalletSelectSchema = createSelectSchema(verifiedSolanaWallets);
 export type InsertVerifiedSolanaWallet = z.infer<typeof verifiedSolanaWalletInsertSchema>;
 export type SelectVerifiedSolanaWallet = typeof verifiedSolanaWallets.$inferSelect;
+
+// Outreach Campaign Approvals - Track manual approvals before live sends
+export const outreachApprovals = pgTable("outreach_approvals", {
+  id: serial("id").primaryKey(),
+  campaignId: varchar("campaign_id", { length: 255 }).notNull().unique(),
+  targetCount: integer("target_count").notNull(),
+  estimatedCost: decimal("estimated_cost", { precision: 10, scale: 6 }).notNull(),
+  approvedByUser: boolean("approved_by_user").default(false),
+  approvedAt: timestamp("approved_at"),
+  executedAt: timestamp("executed_at"),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, approved, executed, cancelled
+  targetSummary: jsonb("target_summary"), // Sample targets for review
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("IDX_outreach_approvals_campaign_id").on(table.campaignId),
+  index("IDX_outreach_approvals_status").on(table.status),
+]);
+
+export const outreachApprovalInsertSchema = createInsertSchema(outreachApprovals).omit({
+  id: true,
+  createdAt: true
+});
+
+export const outreachApprovalSelectSchema = createSelectSchema(outreachApprovals);
+export type InsertOutreachApproval = z.infer<typeof outreachApprovalInsertSchema>;
+export type SelectOutreachApproval = typeof outreachApprovals.$inferSelect;

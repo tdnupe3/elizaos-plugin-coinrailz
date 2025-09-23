@@ -43,6 +43,7 @@ import targetedOutreachRoutes from './routes/targetedOutreachRoutes';
 import outreachRoutes from './routes/outreach';
 import autoJoinerRoutes from './routes/autoJoinerFixed';
 import subscriptionPayments from './routes/subscriptionPayments';
+import aiAgentServices from './routes/aiAgentServices';
 import { telegramOutreachService } from './services/telegramOutreachService.js';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
@@ -2853,6 +2854,7 @@ app.use('/api/targeted-outreach', targetedOutreachRoutes);
 app.use('/api/outreach', outreachRoutes);
 app.use('/api/auto-joiner', autoJoinerRoutes);
 app.use('/api/payments', subscriptionPayments);
+app.use('/api/ai-agent-services', aiAgentServices);
 app.use('/api', immediateRevenueRoutes);
 app.use('/api', walletBalanceRoutes);
 

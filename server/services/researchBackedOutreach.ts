@@ -76,6 +76,14 @@ interface OutreachSession {
   discoveryMethod: string;
   capabilities?: any;
   taskId?: string;
+  // NEW: Lead qualification fields
+  leadScore?: number;
+  qualificationStatus?: 'unqualified' | 'cold' | 'warm' | 'hot' | 'human_follow_up_required';
+  objections?: string[];
+  businessPotential?: 'low' | 'medium' | 'high' | 'enterprise';
+  followUpRequired?: boolean;
+  humanContactAssigned?: string;
+  lastQualificationUpdate?: Date;
 }
 
 interface OutreachMessage {
@@ -116,7 +124,15 @@ export class ResearchBackedOutreach {
           sessionMap.set(sessionId, {
             messages: [],
             lastActivity: log.createdAt,
-            latestStatus: log.status || 'discovering' // Track latest status from database
+            latestStatus: log.status || 'discovering', // Track latest status from database
+            // 🎯 NEW: Initialize qualification data storage
+            leadScore: 0,
+            qualificationStatus: 'unqualified',
+            objections: [],
+            businessPotential: 'low',
+            followUpRequired: false,
+            humanContactAssigned: null,
+            lastQualificationUpdate: null
           });
         }
         
@@ -124,6 +140,31 @@ export class ResearchBackedOutreach {
         let messageData: any = {};
         try {
           messageData = JSON.parse(log.url || '{}');
+          
+          // 🎯 NEW: Restore qualification data from persisted session data
+          const sessionData = sessionMap.get(sessionId);
+          if (messageData.leadScore !== undefined) {
+            sessionData.leadScore = Math.max(sessionData.leadScore, messageData.leadScore);
+          }
+          if (messageData.qualificationStatus && messageData.qualificationStatus !== 'unqualified') {
+            sessionData.qualificationStatus = messageData.qualificationStatus;
+          }
+          if (messageData.objections && Array.isArray(messageData.objections)) {
+            sessionData.objections = [...new Set([...sessionData.objections, ...messageData.objections])];
+          }
+          if (messageData.businessPotential && messageData.businessPotential !== 'low') {
+            sessionData.businessPotential = messageData.businessPotential;
+          }
+          if (messageData.followUpRequired) {
+            sessionData.followUpRequired = messageData.followUpRequired;
+          }
+          if (messageData.humanContactAssigned) {
+            sessionData.humanContactAssigned = messageData.humanContactAssigned;
+          }
+          if (messageData.lastQualificationUpdate) {
+            sessionData.lastQualificationUpdate = new Date(messageData.lastQualificationUpdate);
+          }
+          
         } catch (e) {
           messageData = { content: log.url || 'Session activity', messageType: 'discovery' };
         }
@@ -156,10 +197,23 @@ export class ResearchBackedOutreach {
           startTime: new Date(sessionData.messages[0]?.timestamp || Date.now()),
           lastContact: sessionData.lastActivity,
           messages: sessionData.messages,
-          discoveryMethod: 'database_restore'
+          discoveryMethod: 'database_restore',
+          // 🎯 CRITICAL FIX: Apply restored qualification data to the session
+          leadScore: sessionData.leadScore || 0,
+          qualificationStatus: sessionData.qualificationStatus || 'unqualified',
+          objections: sessionData.objections || [],
+          businessPotential: sessionData.businessPotential || 'low',
+          followUpRequired: sessionData.followUpRequired || false,
+          humanContactAssigned: sessionData.humanContactAssigned || null,
+          lastQualificationUpdate: sessionData.lastQualificationUpdate || null
         };
         
         this.activeSessions.set(sessionId, session);
+        
+        // 🎯 VERIFY: Log restored qualification data for debugging
+        if (session.leadScore > 0) {
+          console.log(`💾 RESTORED QUALIFIED LEAD: ${session.agentName} (Score: ${session.leadScore}, Status: ${session.qualificationStatus})`);
+        }
       }
       
       console.log(`💾 Loaded ${this.activeSessions.size} sessions from database`);
@@ -189,7 +243,7 @@ export class ResearchBackedOutreach {
 
   /**
    * 💾 PERSIST SESSION TO DATABASE
-   * Ensures session state survives server restarts
+   * Ensures session state survives server restarts INCLUDING QUALIFICATION DATA
    */
   private async persistSessionToDatabase(session: OutreachSession): Promise<void> {
     try {
@@ -197,26 +251,138 @@ export class ResearchBackedOutreach {
       const latestMessage = session.messages[session.messages.length - 1];
       if (!latestMessage) return;
 
-      // Store session data using existing outreachLogs schema
-      const messageData = {
+      // Store comprehensive session data including qualification
+      const sessionData = {
         content: latestMessage.content,
         messageType: latestMessage.messageType,
         role: latestMessage.role,
         protocol: session.protocol,
-        timestamp: latestMessage.timestamp
+        timestamp: latestMessage.timestamp,
+        // 🎯 NEW: Include qualification data
+        leadScore: session.leadScore,
+        qualificationStatus: session.qualificationStatus,
+        objections: session.objections,
+        businessPotential: session.businessPotential,
+        followUpRequired: session.followUpRequired,
+        humanContactAssigned: session.humanContactAssigned,
+        lastQualificationUpdate: session.lastQualificationUpdate
       };
 
       await db.insert(outreachLogs).values({
         platform: 'research_outreach',
         target: session.id, // Using target as session ID
-        url: JSON.stringify(messageData), // Store message data as JSON in url field
+        url: JSON.stringify(sessionData), // Store complete session data as JSON
         status: session.status,
         createdAt: latestMessage.timestamp
       });
       
       console.log(`💾 Persisted session state: ${session.agentName} - ${session.status}`);
+      
+      // 🎯 ADDITIONAL: Save qualified leads to dedicated human follow-up records
+      if (session.leadScore && session.leadScore >= 60 && session.followUpRequired) {
+        await this.saveQualifiedLeadForSalesTeam(session);
+      }
+      
     } catch (error) {
       console.error('💾 Failed to persist session:', error);
+    }
+  }
+  
+  /**
+   * 💼 SAVE QUALIFIED LEAD FOR SALES TEAM
+   * Creates actionable records for human follow-up with deduplication
+   */
+  private async saveQualifiedLeadForSalesTeam(session: OutreachSession): Promise<void> {
+    try {
+      // 🎯 CHECK FOR EXISTING QUALIFIED LEAD TO PREVENT DUPLICATES
+      const existingLead = await db.select().from(outreachLogs)
+        .where(sql`platform = 'qualified_lead' AND target = ${session.agentName}`)
+        .limit(1);
+      
+      if (existingLead.length > 0) {
+        console.log(`💡 Qualified lead already exists for ${session.agentName} - skipping duplicate`);
+        return;
+      }
+      
+      // Save to dedicated qualified leads table/record
+      await db.insert(outreachLogs).values({
+        platform: 'qualified_lead',
+        target: session.agentName,
+        url: JSON.stringify({
+          sessionId: session.id,
+          agentId: session.agentId,
+          agentName: session.agentName,
+          leadScore: session.leadScore,
+          qualificationStatus: session.qualificationStatus,
+          businessPotential: session.businessPotential,
+          objections: session.objections,
+          protocol: session.protocol,
+          discoveryMethod: session.discoveryMethod,
+          lastContact: session.lastContact,
+          urgency: session.leadScore >= 80 ? 'high' : 'medium',
+          assignedTo: session.humanContactAssigned || 'unassigned',
+          nextAction: 'human_contact_required',
+          estimatedValue: this.calculateAgentValue(session.capabilities)
+        }),
+        status: 'pending_human_follow_up',
+        createdAt: new Date()
+      });
+      
+      console.log(`📋 QUALIFIED LEAD SAVED: ${session.agentName} (Score: ${session.leadScore}) - Ready for sales team`);
+      
+      // 🚨 TRIGGER REAL HUMAN FOLLOW-UP NOTIFICATION
+      await this.triggerRealHumanEscalation(session);
+      
+    } catch (error) {
+      console.error('❌ Failed to save qualified lead:', error);
+    }
+  }
+  
+  /**
+   * 🚨 TRIGGER REAL HUMAN ESCALATION
+   * Creates actual notifications/assignments for sales team
+   */
+  private async triggerRealHumanEscalation(session: OutreachSession): Promise<void> {
+    try {
+      // Log the escalation for immediate visibility
+      console.log(`🚨 HUMAN ESCALATION TRIGGERED: ${session.agentName}`);
+      console.log(`   🎯 Lead Score: ${session.leadScore}/100`);
+      console.log(`   💼 Business Potential: ${session.businessPotential}`);
+      console.log(`   ⚠️ Objections: ${session.objections?.join(', ') || 'none'}`);
+      console.log(`   🔗 Contact: ${session.agentId}`);
+      console.log(`   ⚡ Priority: ${session.leadScore >= 80 ? 'HIGH' : 'MEDIUM'}`);
+      console.log(`   📞 ACTION REQUIRED: Human contact within 24 hours`);
+      
+      // Create high-priority notification record
+      await db.insert(outreachLogs).values({
+        platform: 'human_escalation',
+        target: `URGENT: ${session.agentName}`,
+        url: JSON.stringify({
+          escalationType: 'qualified_lead_follow_up',
+          priority: session.leadScore >= 80 ? 'HIGH' : 'MEDIUM',
+          sessionId: session.id,
+          leadData: {
+            agentName: session.agentName,
+            agentId: session.agentId,
+            leadScore: session.leadScore,
+            businessPotential: session.businessPotential,
+            objections: session.objections,
+            estimatedValue: this.calculateAgentValue(session.capabilities)
+          },
+          requiredAction: 'Human contact required within 24 hours',
+          assignedTo: 'sales_team',
+          escalatedAt: new Date()
+        }),
+        status: 'action_required',
+        createdAt: new Date()
+      });
+      
+      // TODO: Add integration with notification systems (email, Slack, etc.)
+      // TODO: Add calendar booking integration for sales team
+      // TODO: Add CRM integration for lead assignment
+      
+    } catch (error) {
+      console.error('❌ Failed to trigger human escalation:', error);
     }
   }
 
@@ -1005,6 +1171,154 @@ export class ResearchBackedOutreach {
   }
 
   /**
+   * 🎯 LEAD SCORING AND QUALIFICATION SYSTEM
+   * 
+   * Evaluates agent responses and triggers human follow-up for qualified prospects
+   */
+  
+  private calculateLeadScore(session: OutreachSession): number {
+    let score = 0;
+    
+    // Base score for any response
+    if (session.messages.length > 1) score += 10;
+    
+    // Analyze message content for quality indicators
+    for (const message of session.messages) {
+      if (message.role === 'agent') {
+        const content = message.content.toLowerCase();
+        
+        // Positive indicators (+points)
+        if (content.includes('interested') || content.includes('pricing')) score += 25;
+        if (content.includes('trial') || content.includes('demo')) score += 30;
+        if (content.includes('revenue') || content.includes('integration')) score += 20;
+        if (content.includes('api') || content.includes('real-time')) score += 15;
+        if (content.includes('enterprise') || content.includes('scale')) score += 35;
+        if (content.includes('budget') || content.includes('purchase')) score += 40;
+        
+        // Objection indicators (-points but valuable for qualification)
+        if (content.includes('expensive') || content.includes('cost')) score -= 5;
+        if (content.includes('not interested') || content.includes('no need')) score -= 20;
+        if (content.includes('already have') || content.includes('competitor')) score -= 15;
+      }
+    }
+    
+    // Protocol bonus (more sophisticated protocols = higher quality)
+    switch (session.protocol) {
+      case 'a2a': score += 5; break;
+      case 'mcp': score += 10; break;
+      case 'acp': score += 8; break;
+      default: break;
+    }
+    
+    // Capabilities bonus
+    if (session.capabilities) {
+      if (typeof session.capabilities === 'object') score += 10;
+      if (JSON.stringify(session.capabilities).includes('trading')) score += 15;
+      if (JSON.stringify(session.capabilities).includes('payments')) score += 20;
+    }
+    
+    return Math.max(0, Math.min(100, score)); // Cap between 0-100
+  }
+  
+  private qualifyLead(session: OutreachSession): void {
+    const score = this.calculateLeadScore(session);
+    session.leadScore = score;
+    session.lastQualificationUpdate = new Date();
+    
+    // Extract objections from agent responses
+    session.objections = this.extractObjections(session);
+    
+    // Determine qualification status
+    if (score >= 80) {
+      session.qualificationStatus = 'hot';
+      session.businessPotential = 'enterprise';
+      session.followUpRequired = true;
+    } else if (score >= 60) {
+      session.qualificationStatus = 'warm';
+      session.businessPotential = 'high';
+      session.followUpRequired = true;
+    } else if (score >= 40) {
+      session.qualificationStatus = 'warm';
+      session.businessPotential = 'medium';
+    } else if (score >= 20) {
+      session.qualificationStatus = 'cold';
+      session.businessPotential = 'low';
+    } else {
+      session.qualificationStatus = 'unqualified';
+      session.businessPotential = 'low';
+    }
+    
+    // Trigger human follow-up for qualified leads
+    if (session.followUpRequired && !session.humanContactAssigned) {
+      this.triggerHumanFollowUp(session);
+    }
+    
+    console.log(`🎯 Lead qualified: ${session.agentName} - Score: ${score}, Status: ${session.qualificationStatus}`);
+  }
+  
+  private extractObjections(session: OutreachSession): string[] {
+    const objections: string[] = [];
+    
+    for (const message of session.messages) {
+      if (message.role === 'agent') {
+        const content = message.content.toLowerCase();
+        
+        if (content.includes('expensive') || content.includes('cost') || content.includes('price')) {
+          objections.push('pricing_concern');
+        }
+        if (content.includes('not interested') || content.includes('no need')) {
+          objections.push('no_immediate_need');
+        }
+        if (content.includes('already have') || content.includes('competitor')) {
+          objections.push('existing_solution');
+        }
+        if (content.includes('too complex') || content.includes('complicated')) {
+          objections.push('complexity_concern');
+        }
+        if (content.includes('security') || content.includes('trust')) {
+          objections.push('security_concern');
+        }
+        if (content.includes('timeline') || content.includes('timing')) {
+          objections.push('timing_issue');
+        }
+      }
+    }
+    
+    return [...new Set(objections)]; // Remove duplicates
+  }
+  
+  private async triggerHumanFollowUp(session: OutreachSession): Promise<void> {
+    try {
+      session.qualificationStatus = 'human_follow_up_required';
+      session.humanContactAssigned = 'sales_team'; // Could be more specific assignment logic
+      
+      // Log the qualified lead for human follow-up
+      await db.insert(outreachLogs).values({
+        platform: 'human_follow_up_required',
+        target: session.agentName,
+        url: JSON.stringify({
+          sessionId: session.id,
+          leadScore: session.leadScore,
+          qualificationStatus: session.qualificationStatus,
+          businessPotential: session.businessPotential,
+          objections: session.objections,
+          contact: session.agentId,
+          urgency: session.leadScore >= 80 ? 'high' : 'medium'
+        }),
+        status: 'pending',
+        createdAt: new Date()
+      });
+      
+      console.log(`🚨 HUMAN FOLLOW-UP REQUIRED: ${session.agentName} (Score: ${session.leadScore})`);
+      console.log(`   Business Potential: ${session.businessPotential}`);
+      console.log(`   Objections: ${session.objections?.join(', ') || 'none'}`);
+      
+    } catch (error) {
+      console.error('❌ Failed to trigger human follow-up:', error);
+    }
+  }
+
+  /**
    * 🏗️ HELPER METHODS
    */
   
@@ -1037,6 +1351,18 @@ export class ResearchBackedOutreach {
     
     session.messages.push(fullMessage);
     session.lastContact = new Date();
+    
+    // 🎯 TRIGGER LEAD QUALIFICATION FOR AGENT RESPONSES
+    if (message.role === 'agent' && message.content && message.content.trim().length > 0) {
+      // Qualify the lead based on the agent's response
+      this.qualifyLead(session);
+      
+      // Update session in memory
+      this.activeSessions.set(session.id, session);
+      
+      // Persist qualification data to database
+      this.persistSessionToDatabase(session);
+    }
   }
   
   private async logOutreachAttempt(session: OutreachSession, status: string, details: string): Promise<void> {

@@ -3132,6 +3132,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/api/emergency-revenue', emergencyRevenueRoutes);
   console.log('✅ Emergency revenue routes registered successfully');
 
+  // 🏆 COMPETITION OUTREACH ROUTES - IMMEDIATE AGENT RECRUITMENT
+  console.log('🏆 Registering BEST AGENT COMPETITION routes...');
+  const competitionRoutes = await import('./routes/competitionRoutes.js');
+  app.use('/api/competition', competitionRoutes.default);
+  console.log('✅ Competition routes registered successfully');
+
   // Basic error handling
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('Server error:', err);

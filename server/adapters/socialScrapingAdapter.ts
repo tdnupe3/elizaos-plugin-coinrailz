@@ -57,6 +57,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
     },
     twitter: {
       apiEndpoint: 'https://api.twitter.com/2',
+      disabled: true, // No Twitter API available
       searchTerms: [
         'AI agent',
         'trading bot',
@@ -108,7 +109,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       discoveryPromises.push(this.discoverTelegramAgents(deepScrape));
     }
     
-    if (platforms.includes('twitter')) {
+    if (platforms.includes('twitter') && !this.platforms.twitter.disabled) {
       discoveryPromises.push(this.discoverTwitterAgents(deepScrape));
     }
     

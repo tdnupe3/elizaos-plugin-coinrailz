@@ -2,6 +2,7 @@ import { Connection, PublicKey, Transaction, SystemProgram, Keypair, sendAndConf
 import bs58 from 'bs58';
 import { storage } from '../storage.js';
 import type { InsertTransactionProof } from '@shared/schema';
+import { realWalletDiscoveryService } from './realWalletDiscoveryService.js';
 
 export interface OutreachCampaign {
   id: string;
@@ -186,96 +187,72 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
   }
 
   /**
-   * 🌊 MASSIVE DISCOVERY: Get ALL on-chain Solana wallets with 1+ SOL (whales first)
+   * 🌊 REAL DISCOVERY: Get VERIFIED on-chain Solana wallets with real users (whales first)
+   * NO MORE FAKE ADDRESSES - ONLY VERIFIED WALLETS
    */
   private async identifyHighValueTargets(): Promise<TargetWallet[]> {
-    console.log('🚀 MASSIVE DISCOVERY: Scanning ALL on-chain wallets with 1+ SOL...');
-    console.log('🐋 Starting from whale wallets and working down...');
-    
-    const targets: TargetWallet[] = [];
+    console.log('🚀 REAL DISCOVERY: Scanning VERIFIED on-chain wallets with real users...');
+    console.log('🐋 Using verified wallet database - NO FAKE ADDRESSES');
     
     try {
-      // PHASE 1: Mega Whales (10,000+ SOL) - Highest Priority
-      console.log('🦈 Phase 1: Discovering mega whales (10,000+ SOL)...');
-      for (let i = 0; i < 100; i++) {
-        const balance = 10000 + Math.random() * 90000; // 10K-100K SOL
-        targets.push({
-          address: this.generateValidSolanaAddress(),
-          balance,
-          estimatedValue: balance,
-          activityScore: 95 + Math.random() * 5,
-          lastActive: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
-          transactionCount: 1000 + Math.floor(Math.random() * 5000),
-          isWhale: true,
-          whaleCategory: 'mega'
-        });
+      // Step 1: Run discovery pipeline to ensure we have verified wallets
+      console.log('🌱 Running discovery pipeline to populate verified wallets...');
+      const discoveryResults = await realWalletDiscoveryService.runDiscoveryPipeline();
+      console.log(`✅ Discovery pipeline complete: ${discoveryResults.totalVerifiedWallets} verified wallets available`);
+      
+      // Step 2: Get verified outreach targets
+      console.log('🎯 Fetching verified wallets for outreach...');
+      const verifiedWallets = await realWalletDiscoveryService.getVerifiedOutreachTargets(100);
+      
+      if (verifiedWallets.length === 0) {
+        console.log('⚠️ No verified wallets found. Cannot proceed with outreach to fake addresses.');
+        throw new Error('No verified wallets available - refusing to use fake addresses');
       }
       
-      // PHASE 2: Major Whales (1,000+ SOL)
-      console.log('🐋 Phase 2: Discovering major whales (1,000+ SOL)...');
-      for (let i = 0; i < 500; i++) {
-        const balance = 1000 + Math.random() * 9000; // 1K-10K SOL
-        targets.push({
-          address: this.generateValidSolanaAddress(),
-          balance,
-          estimatedValue: balance,
-          activityScore: 90 + Math.random() * 10,
-          lastActive: new Date(Date.now() - Math.random() * 14 * 24 * 60 * 60 * 1000),
-          transactionCount: 500 + Math.floor(Math.random() * 2000),
-          isWhale: true,
-          whaleCategory: 'major'
-        });
-      }
-      
-      // PHASE 3: Medium Whales (100+ SOL)
-      console.log('🐟 Phase 3: Discovering medium whales (100+ SOL)...');
-      for (let i = 0; i < 2000; i++) {
-        const balance = 100 + Math.random() * 900; // 100-1K SOL
-        targets.push({
-          address: this.generateValidSolanaAddress(),
-          balance,
-          estimatedValue: balance,
-          activityScore: 80 + Math.random() * 15,
-          lastActive: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000),
-          transactionCount: 100 + Math.floor(Math.random() * 1000),
-          isWhale: true,
-          whaleCategory: 'medium'
-        });
-      }
-      
-      // PHASE 4: All remaining wallets with 1+ SOL (OPTIMIZED FOR MASSIVE SCALE)
-      console.log('💰 Phase 4: Discovering active wallets (1+ SOL) - OPTIMIZED for massive scale...');
-      // Generate 25K targets initially (memory-efficient), more can be added dynamically
-      for (let i = 0; i < 25000; i++) { // 25K active wallets (memory-efficient)
-        const balance = 1 + Math.random() * 99; // 1-100 SOL
-        targets.push({
-          address: this.generateValidSolanaAddress(),
-          balance,
-          estimatedValue: balance,
-          activityScore: 60 + Math.random() * 30,
-          lastActive: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
-          transactionCount: 10 + Math.floor(Math.random() * 500),
-          isWhale: false,
-          whaleCategory: 'active'
-        });
-      }
+      // Step 3: Convert to TargetWallet format
+      const targets: TargetWallet[] = verifiedWallets.map(wallet => {
+        const balanceSOL = parseFloat(wallet.balanceSOL);
+        const isWhale = balanceSOL >= 100;
+        const whaleCategory = balanceSOL >= 10000 ? 'mega' 
+                            : balanceSOL >= 1000 ? 'major'
+                            : balanceSOL >= 100 ? 'medium'
+                            : 'active';
+        
+        return {
+          address: wallet.address,
+          balance: balanceSOL,
+          estimatedValue: balanceSOL,
+          activityScore: 85 + Math.random() * 15, // High score for verified wallets
+          lastActive: wallet.lastActive,
+          transactionCount: 100, // Simplified - real data available in verification metadata
+          isWhale,
+          whaleCategory,
+          tags: [
+            ...wallet.labels,
+            wallet.entityType,
+            wallet.verificationLevel,
+            isWhale ? 'whale' : 'active_trader'
+          ].filter(Boolean)
+        };
+      });
       
       // Sort by balance descending (whales first)
       targets.sort((a, b) => b.estimatedValue - a.estimatedValue);
       
-      console.log(`🎯 MASSIVE DISCOVERY COMPLETE: ${targets.length} total wallets discovered`);
+      console.log(`🎯 REAL DISCOVERY COMPLETE: ${targets.length} VERIFIED wallets found`);
       console.log(`🦈 Mega whales: ${targets.filter(t => t.whaleCategory === 'mega').length}`);
       console.log(`🐋 Major whales: ${targets.filter(t => t.whaleCategory === 'major').length}`);
       console.log(`🐟 Medium whales: ${targets.filter(t => t.whaleCategory === 'medium').length}`);
       console.log(`💰 Active wallets: ${targets.filter(t => t.whaleCategory === 'active').length}`);
       console.log(`💎 Total Value Targeted: ${targets.reduce((sum, t) => sum + t.estimatedValue, 0).toFixed(0)} SOL`);
+      console.log(`🔒 ALL TARGETS ARE VERIFIED REAL WALLETS - No fake addresses included`);
       
       return targets;
       
     } catch (error) {
-      console.error('⚠️ Error in massive discovery:', error);
-      // SIMULATION REMOVED - Return empty array instead of fake targets
-      throw new Error('Real whale discovery failed - simulation code removed');
+      console.error('⚠️ Error in real wallet discovery:', error);
+      // Return empty array rather than fake addresses
+      throw new Error(`Real wallet discovery failed: ${error}`);
     }
   }
   
@@ -413,12 +390,17 @@ LEGITIMATE PREMIUM TRADING TOOLS - NO SCAMS`,
   }
   
   /**
-   * 🎯 Generate valid Solana address (REPLACED WITH REAL ADDRESS VALIDATION)
+   * 🚫 REMOVED: No more fake address generation
+   * All addresses must come from verified wallet database
    */
-  private generateValidSolanaAddress(): string {
-    // Generate a real valid Solana address by creating a new keypair
-    const randomKeypair = Keypair.generate();
-    return randomKeypair.publicKey.toString();
+  private validateRealWalletAddress(address: string): boolean {
+    try {
+      // Verify it's a valid Solana address format
+      new PublicKey(address);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

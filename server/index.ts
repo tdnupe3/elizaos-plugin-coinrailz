@@ -3150,6 +3150,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/api/sdk', sdkAccessRoutes.default);
   console.log('✅ SDK access routes registered successfully');
 
+  // 🔄 UNIFIED PAYMENT WEBHOOKS FOR ALL PAYMENT METHODS
+  console.log('🔄 Registering UNIFIED PAYMENT WEBHOOKS for all payment methods...');
+  const unifiedWebhookRoutes = await import('./routes/unifiedWebhookRoutes.js');
+  app.use('/api/webhooks', unifiedWebhookRoutes.default);
+  console.log('✅ Unified webhook routes registered successfully');
+
   // Basic error handling
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('Server error:', err);

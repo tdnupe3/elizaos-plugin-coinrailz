@@ -1035,31 +1035,22 @@ router.post('/create-order', isAuthenticated, async (req: any, res) => {
       messages: []
     };
 
-    // Store in database instead of global storage
-    try {
-      const dbOrder = await storage.createMarketplaceOrder({
-        id: orderId,
-        agentId: validatedData.agentId,
-        customerId,
-        serviceType: validatedData.serviceType || 'general',
-        amount: orderAmount.toString(),
-        agentCommission: agentPayout.toString(),
-        platformFee: platformFee.toString(),
-        status: 'pending',
-        paymentMethod: validatedData.paymentMethod,
-        serviceDescription: validatedData.serviceDescription,
-        customerRequirements: validatedData.requirements || validatedData.customerRequirements || '',
-        estimatedDeliveryHours: validatedData.estimatedDeliveryHours
-      });
-      console.log('Order stored in database:', dbOrder);
-    } catch (dbError) {
-      console.error('Database storage failed, using fallback:', dbError);
-      // Fallback to global storage for compatibility
-      if (!(global as any).orders) {
-        (global as any).orders = [];
-      }
-      (global as any).orders.push(order);
-    }
+    // Store in database with proper error handling
+    const dbOrder = await storage.createMarketplaceOrder({
+      id: orderId,
+      agentId: validatedData.agentId,
+      customerId,
+      serviceType: validatedData.serviceType || 'general',
+      amount: orderAmount.toString(),
+      agentCommission: agentPayout.toString(),
+      platformFee: platformFee.toString(),
+      status: 'pending',
+      paymentMethod: validatedData.paymentMethod,
+      serviceDescription: validatedData.serviceDescription,
+      customerRequirements: validatedData.requirements || validatedData.customerRequirements || '',
+      estimatedDeliveryHours: validatedData.estimatedDeliveryHours
+    });
+    console.log('Order stored in database:', dbOrder);
 
     res.status(201).json({
       success: true,
@@ -2075,24 +2066,21 @@ router.post('/reject-delivery', isAuthenticated, async (req: any, res) => {
       return res.status(400).json({ success: false, error: 'Customer ID and Order ID required' });
     }
 
-    // Find the order
-    const allOrders = (global as any).orders || [];
-    const orderIndex = allOrders.findIndex((order: any) => order.orderId === orderId && order.customerId === customerId);
+    // Find the order from database
+    const order = await storage.getOrderById(orderId);
     
-    if (orderIndex === -1) {
+    if (!order || order.customerId !== customerId) {
       return res.status(404).json({ success: false, error: 'Order not found or access denied' });
     }
 
-    // Update order back to active status for revision
-    allOrders[orderIndex].status = 'revision_requested';
-    allOrders[orderIndex].revisionReason = reason;
-    allOrders[orderIndex].revisionRequestedAt = new Date().toISOString();
-    allOrders[orderIndex].updatedAt = new Date().toISOString();
+    // Update order back to revision_requested status in database
+    await storage.updateOrderStatus(orderId, 'revision_requested');
+    // TODO: Add storage methods for revision reason and timestamp in production
 
     res.json({
       success: true,
       message: 'Revision requested successfully',
-      order: allOrders[orderIndex]
+      order: { ...order, status: 'revision_requested', revisionReason: reason }
     });
   } catch (error) {
     console.error('Delivery rejection error:', error);
@@ -2112,31 +2100,20 @@ router.post('/chat/send', isAuthenticated, async (req: any, res) => {
       return res.status(400).json({ success: false, error: 'Missing required fields' });
     }
 
-    // Find the order
-    const allOrders = (global as any).orders || [];
-    const orderIndex = allOrders.findIndex((order: any) => 
-      order.orderId === orderId && 
-      (order.customerId === userId || order.agentId === userId)
-    );
+    // Find the order from database
+    const order = await storage.getOrderById(orderId);
     
-    if (orderIndex === -1) {
+    if (!order || (order.customerId !== userId && order.agentId !== userId)) {
       return res.status(404).json({ success: false, error: 'Order not found or access denied' });
     }
 
-    // Create chat message
-    const chatMessage = {
-      id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      orderId,
+    // Create and store chat message in database
+    const chatMessage = await storage.createMessage({
+      chatId: orderId, // Use orderId as chatId
       senderId: userId,
-      senderType: senderType || 'user',
-      message,
-      timestamp: new Date().toISOString()
-    };
-
-    // Add message to order
-    allOrders[orderIndex].messages = allOrders[orderIndex].messages || [];
-    allOrders[orderIndex].messages.push(chatMessage);
-    allOrders[orderIndex].updatedAt = new Date().toISOString();
+      content: message,
+      senderRole: senderType || 'user'
+    });
 
     res.json({
       success: true,
@@ -2161,20 +2138,19 @@ router.get('/chat/:orderId', isAuthenticated, async (req: any, res) => {
       return res.status(400).json({ success: false, error: 'Missing required parameters' });
     }
 
-    // Find the order
-    const allOrders = (global as any).orders || [];
-    const order = allOrders.find((order: any) => 
-      order.orderId === orderId && 
-      (order.customerId === userId || order.agentId === userId)
-    );
+    // Find the order from database
+    const order = await storage.getOrderById(orderId);
     
-    if (!order) {
+    if (!order || (order.customerId !== userId && order.agentId !== userId)) {
       return res.status(404).json({ success: false, error: 'Order not found or access denied' });
     }
 
+    // Get chat messages from database
+    const messages = await storage.getMessages(orderId);
+
     res.json({
       success: true,
-      messages: order.messages || [],
+      messages: messages || [],
       chatStatus: 'active'
     });
   } catch (error) {

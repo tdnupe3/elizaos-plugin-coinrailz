@@ -3143,6 +3143,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   const premiumAPIRoutes = await import('./routes/premiumAPIRoutes.js');
   app.use('/api/premium', premiumAPIRoutes.default);
   console.log('✅ Premium API routes registered successfully');
+  
+  // 💿 SDK ACCESS & DOWNLOAD ROUTES
+  console.log('💿 Registering SDK ACCESS routes with license validation...');
+  const sdkAccessRoutes = await import('./routes/sdkAccessRoutes.js');
+  app.use('/api/sdk', sdkAccessRoutes.default);
+  console.log('✅ SDK access routes registered successfully');
 
   // Basic error handling
   app.use((err: any, req: any, res: any, next: any) => {

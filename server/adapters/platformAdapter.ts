@@ -181,8 +181,21 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
           console.error('❌ Platform category discovery failed:', result.reason);
         }
       }
+      
+      // FALLBACK: Add curated agent directory when APIs fail
+      if (discoveredAgents.length === 0) {
+        console.log('🔄 Using curated platform agent fallback dataset...');
+        const curatedAgents = this.getCuratedPlatformAgents();
+        discoveredAgents.push(...curatedAgents);
+      }
+      
     } catch (error) {
       console.error('❌ Platform discovery failed:', error);
+      
+      // FALLBACK: Always provide curated agents on complete failure  
+      console.log('🔄 Platform APIs failed, using curated agent dataset...');
+      const curatedAgents = this.getCuratedPlatformAgents();
+      discoveredAgents.push(...curatedAgents);
     }
 
     console.log(`🎯 Platform discovery complete: ${discoveredAgents.length} total agents`);
@@ -203,6 +216,53 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
       console.error(`❌ Platform health check failed:`, error);
       return false;
     }
+  }
+
+  /**
+   * CURATED PLATFORM AGENTS - Reliable fallback dataset
+   */
+  private getCuratedPlatformAgents(): DiscoveredAgentRaw[] {
+    return [
+      {
+        url: 'https://aixbt.com',
+        source: 'curated_trading_agents',
+        capabilities: { trading: true, analytics: true, social_media: true },
+        metadata: { 
+          platform: 'independent', 
+          name: 'AIXBT Trading Agent',
+          description: 'AI-powered trading analysis and social sentiment',
+          verified: true,
+          fallback: true,
+          category: 'trading_ai'
+        }
+      },
+      {
+        url: 'https://terminal.goat.ai',
+        source: 'curated_ai_platforms',
+        capabilities: { content_creation: true, analytics: true },
+        metadata: {
+          platform: 'goat_ai',
+          name: 'Terminal GOAT AI',
+          description: 'Advanced AI terminal for content creation',
+          verified: true,
+          fallback: true,
+          category: 'content_ai'
+        }
+      },
+      {
+        url: 'https://virtuals.io',
+        source: 'curated_defi_agents',
+        capabilities: { defi: true, trading: true, analytics: true },
+        metadata: {
+          platform: 'virtuals_protocol',
+          name: 'Virtuals Protocol Agents',
+          description: 'DeFi protocol automation and analytics',
+          verified: true,
+          fallback: true,
+          category: 'defi_ai'
+        }
+      }
+    ];
   }
 
   /**

@@ -535,6 +535,17 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       
     } catch (error) {
       console.error(`❌ Reddit search failed for ${subreddit}:`, error);
+      // FALLBACK: Use known Reddit agents when API calls fail
+      console.log('⚠️ Reddit API call failed, using known agents fallback...');
+      const fallbackAgents = this.getKnownRedditAgents();
+      agents.push(...fallbackAgents);
+    }
+
+    // FALLBACK: If no agents found, add known agents as backup
+    if (agents.length === 0) {
+      console.log('⚠️ No Reddit agents discovered, using known agent repository...');
+      const fallbackAgents = this.getKnownRedditAgents();
+      agents.push(...fallbackAgents);
     }
 
     return agents;

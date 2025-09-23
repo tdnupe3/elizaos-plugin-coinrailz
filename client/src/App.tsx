@@ -150,6 +150,7 @@ const AutoJoinerPage = lazy(() => import("@/pages/AutoJoinerPage"));
 const CryptoJoinerPro = lazy(() => import("@/pages/CryptoJoinerPro"));
 const SubscriptionSuccess = lazy(() => import("@/pages/SubscriptionSuccess"));
 const FreelanceDeveloperServices = lazy(() => import("@/pages/FreelanceDeveloperServices"));
+const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -698,6 +699,9 @@ function Router() {
       </Route>
       <Route path="/freelance-developer">
         {() => <LazyLoadWrapper><FreelanceDeveloperServices /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/emergency-consulting">
+        {() => <LazyLoadWrapper><EmergencyConsulting /></LazyLoadWrapper>}
       </Route>
 
       <Route component={NotFound} />

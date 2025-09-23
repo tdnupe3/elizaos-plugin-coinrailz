@@ -147,7 +147,9 @@ The most advanced Solana trading bot with AI-powered copy trading.
 • /portfolio - View portfolio
 • /upgrade - Upgrade subscription
 
-**🏆 Join 10,000+ profitable traders!**`;
+**🏆 Join 10,000+ profitable traders!**
+
+🔥 **TELL YOUR FRIENDS!** Share @FeedAlphaBot with other traders!`;
 
       const keyboard = {
         reply_markup: {
@@ -162,7 +164,7 @@ The most advanced Solana trading bot with AI-powered copy trading.
             ],
             [
               { text: '📊 Portfolio', callback_data: 'portfolio' },
-              { text: '⚙️ Settings', callback_data: 'settings' }
+              { text: '🚀 Share Bot', callback_data: 'share_bot' }
             ]
           ]
         }
@@ -616,6 +618,10 @@ Choose your plan:`;
           await this.handlePortfolioCommand(chatId);
           break;
           
+        case 'share_bot':
+          await this.shareBot(chatId);
+          break;
+          
         default:
           await this.bot.sendMessage(chatId, 'Feature coming soon! 🚀');
       }
@@ -879,6 +885,47 @@ Happy trading! 🚀`;
    */
   private setupInlineButtons(): void {
     // Additional inline button handlers can be added here
+  }
+
+  /**
+   * 🚀 Share bot with friends (VIRAL MARKETING)
+   */
+  private async shareBot(chatId: number): Promise<void> {
+    const shareMessage = `🤖 **Share @FeedAlphaBot with friends!**
+
+🔥 **Why your friends need this bot:**
+• Advanced Solana copy trading
+• Follow elite HFT wallets automatically  
+• Real-time PumpFun alerts
+• 1.5% fees vs 1%+ on BullX/Trojan
+• Professional portfolio analytics
+
+💰 **Spread the word:**
+Forward this message to crypto traders!
+
+**Try the bot:** https://t.me/FeedAlphaBot
+
+🏆 Better than BullX • Lower fees • More features`;
+
+    const keyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '📤 Forward to Friends', switch_inline_query: '🚀 Check out this advanced Solana trading bot @FeedAlphaBot - Copy elite traders automatically!' }
+          ],
+          [
+            { text: '💬 Share in Groups', switch_inline_query_current_chat: '🤖 New Solana trading bot @FeedAlphaBot - Advanced copy trading, lower fees than BullX!' }
+          ]
+        ]
+      }
+    };
+
+    await this.bot.sendMessage(chatId, shareMessage, {
+      parse_mode: 'Markdown',
+      ...keyboard
+    });
+
+    console.log(`🚀 VIRAL MARKETING: User ${chatId} sharing @FeedAlphaBot with friends!`);
   }
 
   /**

@@ -3138,7 +3138,7 @@ export const verifiedSolanaWallets = pgTable("verified_solana_wallets", {
   txCount30d: integer("tx_count_30d").notNull(), // Transaction count last 30 days
   dexSwaps30d: integer("dex_swaps_30d").default(0), // DEX swaps last 30 days
   lastActive: timestamp("last_active").notNull(), // Last transaction time
-  isSignerRate: decimal("is_signer_rate", { precision: 5, 2 }).notNull(), // % of txs where this address is signer
+  isSignerRate: decimal("is_signer_rate", { precision: 5, scale: 2 }).notNull(), // % of txs where this address is signer
   reachable: boolean("reachable").default(true), // Safe to send outreach messages
   excludedReason: text("excluded_reason"), // Why excluded if reachable=false
   metadata: jsonb("metadata"), // Additional verification data

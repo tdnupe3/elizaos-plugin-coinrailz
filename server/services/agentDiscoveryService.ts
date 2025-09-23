@@ -994,7 +994,7 @@ ${batchResults
   private initializeScheduler(): void {
     console.log('⏰ Initializing hourly discovery scheduler...');
     
-    // Run every hour
+    // Run every hour + immediate test run
     this.cronJob = cron.schedule('0 * * * *', async () => {
       console.log('🕐 Scheduled discovery starting...');
       
@@ -1009,6 +1009,20 @@ ${batchResults
     }, {
       scheduled: false // Start manually
     });
+
+    // Schedule immediate test run (1 minute after startup)
+    setTimeout(async () => {
+      console.log('🧪 Running immediate discovery test...');
+      try {
+        await this.runDiscovery({
+          priority: 'fast',
+          maxAgents: 100,
+          skipLock: true // Skip lock for immediate test
+        });
+      } catch (error) {
+        console.error('🚨 Immediate discovery test failed:', error);
+      }
+    }, 60000); // 1 minute delay
   }
 
   /**

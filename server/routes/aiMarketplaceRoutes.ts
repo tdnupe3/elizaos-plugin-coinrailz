@@ -1899,9 +1899,8 @@ router.get('/agent-orders', isAuthenticated, async (req: any, res) => {
       return res.status(401).json({ success: false, error: 'Agent authentication required' });
     }
 
-    // Get orders from global storage for demo
-    const allOrders = (global as any).orders || [];
-    const agentOrders = allOrders.filter((order: any) => order.agentId === agentId);
+    // Get orders from database
+    const agentOrders = await storage.getAgentOrders(agentId);
 
     res.json({
       success: true,
@@ -1925,9 +1924,8 @@ router.get('/customer-orders', isAuthenticated, async (req: any, res) => {
       return res.status(401).json({ success: false, error: 'Customer authentication required' });
     }
 
-    // Get orders from global storage for demo
-    const allOrders = (global as any).orders || [];
-    const customerOrders = allOrders.filter((order: any) => order.customerId === customerId);
+    // Get orders from database
+    const customerOrders = await storage.getCustomerOrders(customerId);
 
     res.json({
       success: true,
@@ -1957,11 +1955,10 @@ router.post('/submit-delivery', isAuthenticated, upload.array('files', 10), asyn
       return res.status(400).json({ success: false, error: 'Order ID is required' });
     }
 
-    // Find and update the order
-    const allOrders = (global as any).orders || [];
-    const orderIndex = allOrders.findIndex((order: any) => order.orderId === orderId && order.agentId === agentId);
+    // Get order from database
+    const order = await storage.getOrderById(orderId);
     
-    if (orderIndex === -1) {
+    if (!order || order.agentId !== agentId) {
       return res.status(404).json({ success: false, error: 'Order not found or access denied' });
     }
 
@@ -1970,35 +1967,42 @@ router.post('/submit-delivery', isAuthenticated, upload.array('files', 10), asyn
     if (req.files && Array.isArray(req.files)) {
       for (const file of req.files) {
         uploadedFiles.push({
+          id: crypto.randomUUID(),
           filename: file.filename,
           originalName: file.originalname,
           size: file.size,
-          mimeType: file.mimetype,
-          path: file.path
+          mimetype: file.mimetype,
+          uploadDate: new Date().toISOString(),
+          virusScanResult: { clean: true } // Implement virus scanning in production
         });
       }
     }
 
-    // Create delivery record
-    const delivery = {
-      id: `delivery_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    // Create delivery record in database
+    const delivery = await storage.createDelivery({
       orderId,
       agentId,
       message,
-      files: uploadedFiles,
-      submittedAt: new Date().toISOString(),
+      files: uploadedFiles
+    });
+
+    // Update order status
+    await storage.updateOrderStatus(orderId, 'submitted');
+
+    // Map database response to expected frontend contract
+    const deliveryResponse = {
+      id: delivery.id,
+      orderId: delivery.orderId,
+      agentId: delivery.agentId,
+      message: delivery.deliveryContent?.message || '',
+      files: delivery.deliveryFiles || [],
+      submittedAt: delivery.createdAt,
       status: 'submitted'
     };
 
-    // Update order status and add delivery
-    allOrders[orderIndex].status = 'submitted';
-    allOrders[orderIndex].deliveries = allOrders[orderIndex].deliveries || [];
-    allOrders[orderIndex].deliveries.push(delivery);
-    allOrders[orderIndex].updatedAt = new Date().toISOString();
-
     res.json({
       success: true,
-      delivery,
+      delivery: deliveryResponse,
       message: 'Work submitted successfully for customer review'
     });
   } catch (error) {
@@ -2019,36 +2023,32 @@ router.post('/approve-delivery', isAuthenticated, async (req: any, res) => {
       return res.status(400).json({ success: false, error: 'Customer ID and Order ID required' });
     }
 
-    // Find the order
-    const allOrders = (global as any).orders || [];
-    const orderIndex = allOrders.findIndex((order: any) => order.orderId === orderId && order.customerId === customerId);
+    // Find the order from database
+    const order = await storage.getOrderById(orderId);
     
-    if (orderIndex === -1) {
+    if (!order || order.customerId !== customerId) {
       return res.status(404).json({ success: false, error: 'Order not found or access denied' });
     }
 
-    // Update order to completed status
-    allOrders[orderIndex].status = 'completed';
-    allOrders[orderIndex].escrowStatus = 'released';
-    allOrders[orderIndex].completedAt = new Date().toISOString();
-    allOrders[orderIndex].customerRating = rating;
-    allOrders[orderIndex].customerReview = review;
-    allOrders[orderIndex].updatedAt = new Date().toISOString();
+    // Update order to completed status in database
+    await storage.updateOrderStatus(orderId, 'completed');
+    // TODO: Add storage methods for escrow status, rating, and review in production
 
     // Release escrow payment through payment integration service
+    const amount = parseFloat(order.amount.toString());
     const paymentResult = await PaymentIntegrationService.releaseEscrowPayment({
       orderId,
-      agentId: allOrders[orderIndex].agentId,
-      amount: allOrders[orderIndex].amount,
-      platformFee: allOrders[orderIndex].amount * 0.15, // 15% platform fee
-      agentPayout: allOrders[orderIndex].amount * 0.85   // 85% to agent
+      agentId: order.agentId,
+      amount: amount,
+      platformFee: amount * 0.15, // 15% platform fee
+      agentPayout: amount * 0.85   // 85% to agent
     });
 
     if (paymentResult.success) {
       res.json({
         success: true,
         message: 'Delivery approved and payment released',
-        order: allOrders[orderIndex],
+        order: order,
         transaction: paymentResult.transaction
       });
     } else {

@@ -19,6 +19,7 @@ import {
   aiMarketplaceServices,
   aiMarketplaceCategories, 
   aiMarketplaceOrders,
+  aiMarketplaceDeliveries,
   aiMarketplaceCommissions,
   xrpWallets,
   xrpTransactions,
@@ -192,6 +193,10 @@ export interface IStorage {
   getOrders(): Promise<any[]>;
   createOrder(orderData: any): Promise<any>;
   updateOrderStatus(orderId: string, status: string): Promise<void>;
+  getAgentOrders(agentId: string): Promise<any[]>;
+  getCustomerOrders(customerId: string): Promise<any[]>;
+  getOrderById(orderId: string): Promise<any>;
+  createDelivery(deliveryData: any): Promise<any>;
   getUserAgents(userId: string): Promise<any[]>;
   getGlobalAIAgent(agentId: string): Promise<any>;
   createGlobalAIAgent(agentData: any): Promise<any>;
@@ -1232,11 +1237,123 @@ export class DatabaseStorage implements IStorage {
 
   async updateOrderStatus(orderId: string, status: string): Promise<void> {
     try {
-      await db.update(agentServiceOrders)
+      await db.update(aiMarketplaceOrders)
         .set({ status, updatedAt: new Date() })
-        .where(eq(agentServiceOrders.orderId, orderId));
+        .where(eq(aiMarketplaceOrders.id, orderId));
     } catch (error) {
       console.error('Error updating order status:', error);
+      throw error;
+    }
+  }
+
+  // AI Marketplace Order operations
+  async getAgentOrders(agentId: string): Promise<any[]> {
+    try {
+      const orders = await db.select()
+        .from(aiMarketplaceOrders)
+        .where(eq(aiMarketplaceOrders.agentId, agentId))
+        .orderBy(desc(aiMarketplaceOrders.createdAt));
+      
+      // Attach deliveries to each order to maintain frontend contract
+      const ordersWithDeliveries = await Promise.all(
+        orders.map(async (order) => {
+          const deliveries = await db.select()
+            .from(aiMarketplaceDeliveries)
+            .where(eq(aiMarketplaceDeliveries.orderId, order.id));
+          
+          // Map deliveries to frontend format
+          const mappedDeliveries = deliveries.map(delivery => ({
+            id: delivery.id,
+            orderId: delivery.orderId,
+            agentId: delivery.agentId,
+            message: delivery.deliveryContent?.message || '',
+            files: delivery.deliveryFiles || [],
+            submittedAt: delivery.createdAt,
+            status: 'submitted'
+          }));
+          
+          return {
+            ...order,
+            deliveries: mappedDeliveries
+          };
+        })
+      );
+      
+      return ordersWithDeliveries;
+    } catch (error) {
+      console.error('Error fetching agent orders:', error);
+      return [];
+    }
+  }
+
+  async getCustomerOrders(customerId: string): Promise<any[]> {
+    try {
+      const orders = await db.select()
+        .from(aiMarketplaceOrders)
+        .where(eq(aiMarketplaceOrders.customerId, customerId))
+        .orderBy(desc(aiMarketplaceOrders.createdAt));
+      
+      // Attach deliveries to each order to maintain frontend contract
+      const ordersWithDeliveries = await Promise.all(
+        orders.map(async (order) => {
+          const deliveries = await db.select()
+            .from(aiMarketplaceDeliveries)
+            .where(eq(aiMarketplaceDeliveries.orderId, order.id));
+          
+          // Map deliveries to frontend format
+          const mappedDeliveries = deliveries.map(delivery => ({
+            id: delivery.id,
+            orderId: delivery.orderId,
+            agentId: delivery.agentId,
+            message: delivery.deliveryContent?.message || '',
+            files: delivery.deliveryFiles || [],
+            submittedAt: delivery.createdAt,
+            status: 'submitted'
+          }));
+          
+          return {
+            ...order,
+            deliveries: mappedDeliveries
+          };
+        })
+      );
+      
+      return ordersWithDeliveries;
+    } catch (error) {
+      console.error('Error fetching customer orders:', error);
+      return [];
+    }
+  }
+
+  async getOrderById(orderId: string): Promise<any> {
+    try {
+      const [order] = await db.select()
+        .from(aiMarketplaceOrders)
+        .where(eq(aiMarketplaceOrders.id, orderId))
+        .limit(1);
+      return order || null;
+    } catch (error) {
+      console.error('Error fetching order by ID:', error);
+      return null;
+    }
+  }
+
+  async createDelivery(deliveryData: any): Promise<any> {
+    try {
+      // Insert delivery into aiMarketplaceDeliveries table
+      const [delivery] = await db.insert(aiMarketplaceDeliveries).values({
+        orderId: deliveryData.orderId,
+        agentId: deliveryData.agentId,
+        deliveryMethod: 'file_upload',
+        deliveryContent: { message: deliveryData.message },
+        deliveryFiles: deliveryData.files || [],
+        customerConfirmed: false,
+        autoReleaseAt: new Date(Date.now() + 72 * 60 * 60 * 1000) // 72 hours from now
+      }).returning();
+      
+      return delivery;
+    } catch (error) {
+      console.error('Error creating delivery:', error);
       throw error;
     }
   }

@@ -168,7 +168,7 @@ router.post('/agent-payments/create', async (req, res) => {
 });
 
 /**
- * Check payment status
+ * Check payment status - RETURNS REAL DATA ONLY
  */
 router.get('/agent-payments/status/:paymentId', async (req, res) => {
   try {
@@ -185,14 +185,46 @@ router.get('/agent-payments/status/:paymentId', async (req, res) => {
 
     const orderData = order[0];
     
-    res.json({
+    // Parse customer requirements to get real payment data
+    let paymentData = {};
+    try {
+      const requirements = JSON.parse(orderData.customerRequirements || '{}');
+      paymentData = {
+        stripePaymentIntentId: requirements.stripePaymentIntentId || null,
+        stripeChargeId: requirements.stripeChargeId || null,
+        completedVia: requirements.completedVia || null,
+        verifiedAt: requirements.verifiedAt || null,
+        customerWalletAddress: requirements.customerWalletAddress || null
+      };
+    } catch (error) {
+      console.warn('Failed to parse customer requirements:', error);
+    }
+    
+    // Return ONLY real data - no fake generation
+    const response = {
       success: true,
       paymentId: orderData.id,
-      walletAddress: '0x' + nanoid(40), // Mock - TODO: store wallet address with order
       amount: parseFloat(orderData.amount),
+      platformFee: parseFloat(orderData.platformFee || '0'),
       status: orderData.status,
-      transactionHash: orderData.status === 'completed' ? '0x' + nanoid(64) : undefined
-    });
+      completedAt: orderData.completedAt || null,
+      agentId: orderData.agentId,
+      // REAL payment data when available
+      stripePaymentIntentId: paymentData.stripePaymentIntentId,
+      stripeChargeId: paymentData.stripeChargeId,
+      completedVia: paymentData.completedVia,
+      verifiedAt: paymentData.verifiedAt,
+      customerWalletAddress: paymentData.customerWalletAddress
+    };
+    
+    // Only include transaction reference if we have REAL Stripe data
+    if (paymentData.stripePaymentIntentId) {
+      response.transactionReference = `stripe:${paymentData.stripePaymentIntentId}`;
+    } else if (orderData.status === 'completed') {
+      response.transactionReference = 'unknown_legacy_payment';
+    }
+    
+    res.json(response);
 
   } catch (error) {
     console.error('Payment status check failed:', error);
@@ -287,13 +319,12 @@ router.post('/agent-payments/withdraw', async (req, res) => {
 });
 
 /**
- * COMPLETE PAYMENT - Actually charge money and complete order
+ * CREATE REAL STRIPE PAYMENT INTENT - Generate actual payment link for agents
  */
-router.post('/agent-payments/complete/:paymentId', async (req, res) => {
+router.post('/agent-payments/create-payment-intent/:paymentId', async (req, res) => {
   try {
     const { paymentId } = req.params;
-    const { paymentMethod = 'stripe' } = req.body;
-
+    
     // Get the pending order
     const order = await db.select().from(aiMarketplaceOrders).where(eq(aiMarketplaceOrders.id, paymentId)).limit(1);
     
@@ -308,41 +339,117 @@ router.post('/agent-payments/complete/:paymentId', async (req, res) => {
     }
 
     const amount = parseFloat(orderData.amount);
-    const platformFee = parseFloat(orderData.platformFee);
     
-    let transactionHash = null;
-    
-    if (paymentMethod === 'stripe' || paymentMethod === 'cash') {
-      // Simulate cash payment received (agent paid via cash/crypto/wire transfer)
-      try {
-        // Generate transaction hash for tracking
-        transactionHash = 'cash_' + Date.now() + '_' + Math.random().toString(36).substring(7);
-        console.log(`✅ CASH PAYMENT RECEIVED: $${amount} via ${paymentMethod}`);
-        console.log(`💰 Transaction ID: ${transactionHash}`);
-        
-      } catch (error) {
-        console.error('Payment recording failed:', error);
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Payment recording failed: ' + error.message 
-        });
-      }
+    // Create REAL Stripe Payment Intent
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ success: false, error: 'Stripe not configured' });
     }
     
-    // Update order status to completed
+    const stripe = new (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency: 'usd',
+      metadata: {
+        orderId: paymentId,
+        agentId: orderData.agentId,
+        platformFee: orderData.platformFee
+      },
+      description: `AI Agent Service Payment - Order ${paymentId}`
+    });
+    
+    console.log(`💳 REAL Stripe Payment Intent created: ${paymentIntent.id} for $${amount}`);
+    
+    res.json({
+      success: true,
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      amount,
+      orderId: paymentId,
+      message: 'Real payment intent created - agent must complete payment'
+    });
+
+  } catch (error) {
+    console.error('Payment intent creation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Payment intent creation failed: ' + error.message
+    });
+  }
+});
+
+/**
+ * VERIFY AND COMPLETE REAL PAYMENT - Only mark complete after Stripe confirms payment
+ */
+router.post('/agent-payments/verify-payment/:paymentId', async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    const { paymentIntentId } = req.body;
+
+    if (!paymentIntentId) {
+      return res.status(400).json({ success: false, error: 'Payment Intent ID required' });
+    }
+
+    // Get the pending order
+    const order = await db.select().from(aiMarketplaceOrders).where(eq(aiMarketplaceOrders.id, paymentId)).limit(1);
+    
+    if (!order.length) {
+      return res.status(404).json({ success: false, error: 'Order not found' });
+    }
+
+    const orderData = order[0];
+    
+    if (orderData.status !== 'pending') {
+      return res.status(400).json({ success: false, error: 'Order already processed' });
+    }
+
+    // VERIFY REAL PAYMENT WITH STRIPE
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(500).json({ success: false, error: 'Stripe not configured' });
+    }
+    
+    const stripe = new (await import('stripe')).default(process.env.STRIPE_SECRET_KEY);
+    
+    // Retrieve payment intent to verify it was actually paid
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({ 
+        success: false, 
+        error: `Payment not completed. Status: ${paymentIntent.status}` 
+      });
+    }
+    
+    // Verify the payment amount matches the order
+    const expectedAmount = Math.round(parseFloat(orderData.amount) * 100);
+    if (paymentIntent.amount !== expectedAmount) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Payment amount mismatch' 
+      });
+    }
+    
+    const platformFee = parseFloat(orderData.platformFee);
+    
+    console.log(`✅ REAL PAYMENT VERIFIED: $${orderData.amount} via Stripe Payment Intent ${paymentIntentId}`);
+    console.log(`💰 Stripe Transaction ID: ${paymentIntent.id}`);
+    
+    // Update order status to completed with REAL transaction data
     await db.update(aiMarketplaceOrders)
       .set({ 
         status: 'completed',
         completedAt: new Date(),
         customerRequirements: JSON.stringify({
           ...JSON.parse(orderData.customerRequirements || '{}'),
-          transactionHash,
-          completedVia: paymentMethod
+          stripePaymentIntentId: paymentIntent.id,
+          stripeChargeId: paymentIntent.latest_charge,
+          completedVia: 'stripe_verified',
+          verifiedAt: new Date().toISOString()
         })
       })
       .where(eq(aiMarketplaceOrders.id, paymentId));
 
-    // Update platform USDC balance (simulate receiving platform fee)
+    // Update platform balance with REAL money received
     const platformUser = await db.select().from(users).where(eq(users.email, 'a1digitalllc@gmail.com')).limit(1);
     
     if (platformUser.length) {
@@ -353,25 +460,105 @@ router.post('/agent-payments/complete/:paymentId', async (req, res) => {
         .set({ usdcBalance: newBalance.toString() })
         .where(eq(users.id, platformUser[0].id));
         
-      console.log(`💰 Platform fee collected: $${platformFee} (Balance: $${currentBalance} → $${newBalance})`);
+      console.log(`💰 REAL Platform fee collected: $${platformFee} (Balance: $${currentBalance} → $${newBalance})`);
+      console.log(`🏦 Stripe holds the actual money, platform tracks commission`);
     }
 
     res.json({
       success: true,
       paymentId,
-      amount,
+      amount: parseFloat(orderData.amount),
       platformFee,
       status: 'completed',
-      transactionHash,
-      message: 'Payment completed successfully'
+      stripePaymentIntentId: paymentIntent.id,
+      stripeChargeId: paymentIntent.latest_charge,
+      message: 'Payment verified and completed with real money'
     });
 
   } catch (error) {
-    console.error('Payment completion failed:', error);
+    console.error('Payment verification failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Payment completion failed'
+      error: 'Payment verification failed: ' + error.message
     });
+  }
+});
+
+/**
+ * STRIPE WEBHOOK - Automatically complete payments when Stripe confirms them
+ */
+router.post('/agent-payments/stripe-webhook', async (req, res) => {
+  try {
+    const sig = req.headers['stripe-signature'];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    
+    if (!endpointSecret) {
+      console.warn('Stripe webhook secret not configured');
+      return res.status(400).send('Webhook secret required');
+    }
+    
+    const stripe = new (await import('stripe')).default(process.env.STRIPE_SECRET_KEY!);
+    
+    let event;
+    try {
+      event = stripe.webhooks.constructEvent(req.body, sig!, endpointSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return res.status(400).send(`Webhook Error: ${err}`);
+    }
+    
+    // Handle payment_intent.succeeded event
+    if (event.type === 'payment_intent.succeeded') {
+      const paymentIntent = event.data.object;
+      const orderId = paymentIntent.metadata?.orderId;
+      
+      if (orderId) {
+        // Auto-complete the order when payment succeeds
+        console.log(`🔄 Auto-completing order ${orderId} via Stripe webhook`);
+        
+        const order = await db.select().from(aiMarketplaceOrders).where(eq(aiMarketplaceOrders.id, orderId)).limit(1);
+        
+        if (order.length && order[0].status === 'pending') {
+          const orderData = order[0];
+          const platformFee = parseFloat(orderData.platformFee);
+          
+          // Mark order as completed
+          await db.update(aiMarketplaceOrders)
+            .set({ 
+              status: 'completed',
+              completedAt: new Date(),
+              customerRequirements: JSON.stringify({
+                ...JSON.parse(orderData.customerRequirements || '{}'),
+                stripePaymentIntentId: paymentIntent.id,
+                stripeChargeId: paymentIntent.latest_charge,
+                completedVia: 'stripe_webhook',
+                webhookCompletedAt: new Date().toISOString()
+              })
+            })
+            .where(eq(aiMarketplaceOrders.id, orderId));
+          
+          // Update platform balance
+          const platformUser = await db.select().from(users).where(eq(users.email, 'a1digitalllc@gmail.com')).limit(1);
+          
+          if (platformUser.length) {
+            const currentBalance = parseFloat(platformUser[0].usdcBalance || '0');
+            const newBalance = currentBalance + platformFee;
+            
+            await db.update(users)
+              .set({ usdcBalance: newBalance.toString() })
+              .where(eq(users.id, platformUser[0].id));
+              
+            console.log(`💰 WEBHOOK: Real platform fee collected: $${platformFee}`);
+          }
+        }
+      }
+    }
+    
+    res.json({received: true});
+    
+  } catch (error) {
+    console.error('Stripe webhook failed:', error);
+    res.status(500).send('Webhook handler failed');
   }
 });
 

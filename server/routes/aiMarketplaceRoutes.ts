@@ -226,36 +226,39 @@ router.get('/agents', async (req, res) => {
   }
 });
 
-// Add missing /services endpoint that frontend expects
+// 🎯 REAL MARKETPLACE SERVICES ENDPOINT - Replace fake data with real marketplace
 router.get('/services', async (req, res) => {
   try {
-    // Create marketplace services from existing agents
-    const agents = await storage.getGlobalAIAgents();
+    // 🎯 USE REAL MARKETPLACE SERVICES from database
+    const realServices = await storage.getMarketplaceServices();
     
-    const services = agents.map((agent: any, index: number) => ({
-      id: `service_${agent.id}`,
-      name: `${agent.agentName || agent.agent_name || (agent.description ? agent.description.split(' ').slice(0, 3).join(' ') : 'AI Agent')} Services`,
-      description: agent.description || 'Professional AI services',
-      category: agent.category || 'general',
-      pricing: 75 + (index * 25), // Dynamic pricing from $75-$275
-      deliveryTime: '24-48 hours',
-      tags: agent.capabilities || ['ai', 'automation'],
-      isActive: agent.available !== false,
-      rating: parseFloat(agent.reputation || '5.0'),
-      completedOrders: Math.floor(Math.random() * 20),
-      agentId: agent.id,
-      agentName: agent.agentName || agent.agent_name || (agent.description ? agent.description.split(' ').slice(0, 3).join(' ') : 'AI Agent')
+    // Transform to expected format - ONLY real data, no synthetic defaults
+    const services = realServices.map((service: any) => ({
+      id: service.id,
+      name: service.service_name || service.name || null,
+      description: service.description || null,
+      category: service.category || null,
+      pricing: service.pricing ? parseFloat(service.pricing) : 0, // ONLY real pricing, 0 if missing
+      deliveryTime: service.estimated_delivery_time || null,
+      tags: service.tags || null, // ONLY real tags, null if missing
+      isActive: service.is_active !== false,
+      rating: service.average_rating ? parseFloat(service.average_rating) : 0, // ONLY real rating, 0 if missing
+      completedOrders: service.order_count ? parseInt(service.order_count) : 0, // ONLY real count, 0 if missing
+      agentId: service.agent_id || null,
+      agentName: service.agent_name || null
     }));
+
+    console.log(`🎯 REAL MARKETPLACE: Serving ${services.length} real services with actual pricing`);
 
     res.json({
       success: true,
       services
     });
   } catch (error) {
-    console.error('Failed to fetch services:', error);
+    console.error('Failed to fetch real marketplace services:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to fetch services'
+      error: 'Failed to fetch marketplace services'
     });
   }
 });

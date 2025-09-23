@@ -5,6 +5,9 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
+import { storage } from '../storage';
+import { db } from '../db';
+import { sql } from 'drizzle-orm';
 
 const router = Router();
 
@@ -14,18 +17,69 @@ const router = Router();
  */
 router.get('/ai-marketplace/stats', async (req, res) => {
   try {
-    // In production, query database for real stats
+    // 🎯 GET REAL STATS FROM DATABASE
+    const agents = await storage.getGlobalAIAgents();
+    const marketplaceServices = await storage.getMarketplaceServices();
+    
+    // Calculate real metrics
+    const activeAgents = agents.filter(agent => agent.available !== false);
+    const activeServices = marketplaceServices.filter(service => service.is_active !== false);
+    
+    // 🎯 REAL COMPLETION RATE from actual order status records
+    let completionRate = 0;
+    
+    try {
+      // Try to get real completion rate from aiMarketplaceOrders table with status tracking
+      const ordersQuery = await db.execute(sql`
+        SELECT 
+          COUNT(*) as total_orders,
+          COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_orders
+        FROM ai_marketplace_orders
+      `);
+      
+      if (ordersQuery.rows.length > 0) {
+        const { total_orders, completed_orders } = ordersQuery.rows[0] as any;
+        completionRate = total_orders > 0 ? Math.round((completed_orders / total_orders) * 100) : 0;
+        console.log(`📊 REAL completion rate: ${completed_orders}/${total_orders} = ${completionRate}%`);
+      } else {
+        // No order status data available - show 0 instead of fake data
+        completionRate = 0;
+        console.log(`📊 No order status data available - completion rate set to 0`);
+      }
+    } catch (error) {
+      console.log('📊 No order status tracking available - omitting completion rate');
+      completionRate = 0; // Don't show fake data if we can't calculate it
+    }
+    
+    // Calculate real average rating - ONLY from actual ratings, no defaults
+    const validRatings = activeServices
+      .map(service => parseFloat(service.average_rating))
+      .filter(rating => !isNaN(rating) && rating > 0);
+    const avgRating = validRatings.length > 0 
+      ? (validRatings.reduce((sum, rating) => sum + rating, 0) / validRatings.length) 
+      : 0;
+    
+    // Calculate real total revenue from completed orders
+    const totalRevenue = activeServices.reduce((sum, service) => {
+      const orderCount = parseInt(service.order_count) || 0;
+      const pricing = parseFloat(service.pricing) || 0;
+      return sum + (orderCount * pricing);
+    }, 0);
+    
     const stats = {
-      totalAgents: 15,
-      activeServices: 8,
-      completionRate: 95,
-      avgRating: 4.8,
-      totalRevenue: '$15,234',
-      monthlyGrowth: 24
+      totalAgents: agents.length, // REAL count from database
+      activeServices: activeServices.length, // REAL count from database
+      completionRate, // REAL calculation from order status data
+      avgRating: Math.round(avgRating * 10) / 10, // REAL average rating
+      totalRevenue: totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : '$0', // REAL revenue calculation
+      monthlyGrowth: null // No synthetic data - will add real calculation when historical data available
     };
+
+    console.log(`🎯 REAL MARKETPLACE STATS: ${stats.totalAgents} agents, ${stats.activeServices} services, ${stats.totalRevenue} revenue`);
 
     res.json(stats);
   } catch (error: any) {
+    console.error('Error fetching real marketplace stats:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch marketplace stats',

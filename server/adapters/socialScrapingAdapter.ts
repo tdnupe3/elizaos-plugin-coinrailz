@@ -16,6 +16,9 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
   public expectedYield = 1500; // Expected agents per run
   public timeout = 90000; // 1.5 minutes
   public rateLimit = 30; // 30 requests per minute (conservative for scraping)
+  
+  private redditAccessToken: string | null = null;
+  private redditTokenExpiry: number = 0;
 
   // Social platform endpoints and configurations  
   private platforms = {
@@ -452,10 +455,19 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
     const agents: DiscoveredAgentRaw[] = [];
     
     try {
+      // Get Reddit OAuth token first
+      const accessToken = await this.getRedditAccessToken();
+      
+      if (!accessToken) {
+        console.log('⚠️ Reddit API unavailable, using known agents...');
+        return [];
+      }
+
       const response = await this.safeFetch(
-        `https://www.reddit.com/${subreddit}/search.json?q=agent&limit=100&restrict_sr=1`,
+        `https://oauth.reddit.com/${subreddit}/search?q=agent%20bot%20trading&limit=50&restrict_sr=1&sort=top&t=month`,
         {
           headers: {
+            'Authorization': `Bearer ${accessToken}`,
             'User-Agent': 'web:coinrailz-platform:v2.1.0 (by /u/coinrailz_platform)'
           }
         }
@@ -477,6 +489,58 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
     }
 
     return agents;
+  }
+
+  /**
+   * Get Reddit OAuth access token
+   */
+  private async getRedditAccessToken(): Promise<string | null> {
+    try {
+      // Check if we have a valid cached token
+      if (this.redditAccessToken && Date.now() < this.redditTokenExpiry) {
+        return this.redditAccessToken;
+      }
+
+      const clientId = process.env.REDDIT_CLIENT_ID;
+      const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+      
+      if (!clientId || !clientSecret) {
+        console.log('⚠️ Reddit OAuth credentials not configured');
+        return null;
+      }
+
+      // Get OAuth token from Reddit
+      const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+      
+      const response = await this.safeFetch('https://www.reddit.com/api/v1/access_token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'User-Agent': 'web:coinrailz-platform:v2.1.0 (by /u/coinrailz_platform)',
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+      });
+
+      if (!response.ok) {
+        console.log(`⚠️ Reddit OAuth failed: ${response.status}`);
+        return null;
+      }
+
+      const data = await this.safeJsonParse(response);
+      
+      if (data.access_token) {
+        this.redditAccessToken = data.access_token;
+        this.redditTokenExpiry = Date.now() + (data.expires_in * 1000) - 60000; // 1 minute buffer
+        console.log('✅ Reddit OAuth token obtained');
+        return this.redditAccessToken;
+      }
+
+      return null;
+    } catch (error) {
+      console.log('⚠️ Reddit OAuth error:', error);
+      return null;
+    }
   }
 
   private processRedditPost(post: any): DiscoveredAgentRaw | null {

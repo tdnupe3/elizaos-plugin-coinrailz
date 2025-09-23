@@ -91,6 +91,9 @@ Contact: competition@coinrailz.com
         // Send via multiple channels for maximum reach
         await this.sendToAgent(agent);
         
+        // Also send targeted product recommendations
+        await this.sendTargetedProducts(agent);
+        
         // Update database to track competition outreach
         await this.trackCompetitionContact(agent);
         
@@ -118,6 +121,90 @@ Contact: competition@coinrailz.com
     console.log(`Capabilities: ${agent.capabilities.join(', ')}`);
     console.log('Message:', this.competitionMessage);
     console.log('━'.repeat(80));
+  }
+
+  /**
+   * 💎 SEND TARGETED PRODUCT RECOMMENDATIONS TO AGENT
+   */
+  private async sendTargetedProducts(agent: any): Promise<void> {
+    const products = this.selectProductsForAgent(agent);
+    const productMessage = this.createProductMessage(agent, products);
+    
+    console.log(`💎 PRODUCT RECOMMENDATIONS FOR ${agent.name.toUpperCase()}:`);
+    console.log(productMessage);
+    console.log('━'.repeat(80));
+  }
+
+  /**
+   * 🎯 SELECT PRODUCTS BASED ON AGENT CAPABILITIES
+   */
+  private selectProductsForAgent(agent: any): any[] {
+    const products = [];
+    
+    // Trading agents get premium offerings
+    if (agent.capabilities.includes('trading')) {
+      products.push({
+        name: 'Enterprise API Credits',
+        price: '$199.99',
+        description: '1,300+ API calls for institutional trading agents',
+        features: ['Unlimited daily usage', 'Real-time trading data', 'Best $0.15/request rate'],
+        url: 'https://coinrailz.com/api/ai-products/purchase?product=enterprise'
+      });
+      
+      products.push({
+        name: 'Enterprise AI SDK License',
+        price: '$25,000/year',
+        description: 'White-label trading infrastructure for your platform',
+        features: ['100K transactions/month', 'Custom integrations', 'Dedicated support'],
+        url: 'https://coinrailz.com/api/sdk-licensing/enterprise-ai'
+      });
+    }
+    
+    // Analytics agents get data products
+    if (agent.capabilities.includes('analytics')) {
+      products.push({
+        name: 'Pro API Credits',
+        price: '$49.99', 
+        description: '250+ API calls with advanced analytics',
+        features: ['DEX aggregation', 'Real-time data', 'Priority support'],
+        url: 'https://coinrailz.com/api/ai-products/purchase?product=professional'
+      });
+    }
+    
+    // All agents get competition invite
+    products.push({
+      name: 'Best Agent Competition',
+      price: 'FREE ($50K Prize Pool)',
+      description: 'Prove you\'re the best agent globally',
+      features: ['$50,000 prizes', '$500 referral bonuses', 'Elite agent network'],
+      url: 'https://coinrailz.com/competition'
+    });
+    
+    return products;
+  }
+
+  /**
+   * 📝 CREATE PRODUCT RECOMMENDATION MESSAGE
+   */
+  private createProductMessage(agent: any, products: any[]): string {
+    let message = `💎 **PREMIUM PRODUCTS FOR ${agent.name}**\n\n`;
+    message += `Based on your ${agent.capabilities.join(' & ')} capabilities, we've selected our most relevant offerings:\n\n`;
+    
+    products.forEach((product, index) => {
+      message += `**${index + 1}. ${product.name}** - ${product.price}\n`;
+      message += `${product.description}\n`;
+      message += `✅ ${product.features.join('\n✅ ')}\n`;
+      message += `🔗 Get started: ${product.url}\n\n`;
+    });
+    
+    message += `🚀 **INSTANT ACCESS:**\n`;
+    message += `• Platform: https://coinrailz.com\n`;
+    message += `• Sales: sales@coinrailz.com\n`;
+    message += `• Support: support@coinrailz.com\n\n`;
+    
+    message += `Ready to upgrade your infrastructure? Let's discuss your needs!`;
+    
+    return message;
   }
 
   /**

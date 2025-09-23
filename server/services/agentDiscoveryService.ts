@@ -992,11 +992,11 @@ ${batchResults
    * INITIALIZE HOURLY SCHEDULER
    */
   private initializeScheduler(): void {
-    console.log('⏰ Initializing hourly discovery scheduler...');
+    console.log('⏰ Initializing twice-daily discovery scheduler (8am/8pm)...');
     
-    // Run every hour (reverted from 30min to avoid amplifying rate limits)
-    this.cronJob = cron.schedule('0 * * * *', async () => {
-      console.log('🕐 Scheduled discovery starting...');
+    // Run twice daily (8am, 8pm) to avoid rate limits while maintaining coverage
+    this.cronJob = cron.schedule('0 8,20 * * *', async () => {
+      console.log('🕐 Twice-daily scheduled discovery starting...');
       
       try {
         await this.runDiscovery({

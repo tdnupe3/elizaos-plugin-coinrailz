@@ -1798,29 +1798,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Use the actual marketplace_orders table structure
-  async createMarketplaceOrderDuplicate(orderData: any): Promise<any> {
-    try {
-      const result = await db.execute(sql`
-        INSERT INTO marketplace_orders (
-          user_id, agent_id, service_type, amount, platform_fee, status, description
-        ) VALUES (
-          ${orderData.customerId}, 
-          ${orderData.agentId || 'ai-agent-001'},
-          ${orderData.serviceType || 'general'}, 
-          ${orderData.totalAmount || orderData.amount || 75},
-          ${orderData.platformFee || 0}, 
-          ${orderData.status || 'pending'},
-          ${orderData.deliveryRequirements || orderData.description || 'Service order'}
-        ) RETURNING id, user_id, service_type, amount, status
-      `);
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating marketplace order:', error);
-      throw new Error('Failed to create marketplace order');
-    }
-  }
 
   async getMarketplaceOrder(orderId: string): Promise<any> {
     try {
@@ -1837,23 +1814,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateMarketplaceOrderDuplicate(orderId: string, updates: any): Promise<any> {
-    try {
-      const [order] = await db
-        .update(aiMarketplaceOrders)
-        .set({
-          ...updates,
-          updatedAt: new Date()
-        })
-        .where(eq(aiMarketplaceOrders.id, orderId))
-        .returning();
-
-      return order;
-    } catch (error) {
-      console.error('Error updating marketplace order:', error);
-      throw error;
-    }
-  }
 
   // XRP Ledger ecosystem implementation methods
   async createXrpWallet(walletData: InsertXrpWallet): Promise<XrpWallet> {

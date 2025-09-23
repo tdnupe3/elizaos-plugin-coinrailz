@@ -142,7 +142,7 @@ export class MassiveBaseEcosystemThousandsService {
     const realTimeUSDCost = await coinGeckoPricingService.getUSDValue(this.totalCost, 'ETH');
     console.log(`💰 Total cost: $${realTimeUSDCost.toFixed(4)}`);
     
-    this.generateMassiveCampaignReport();
+    await this.generateMassiveCampaignReport();
   }
 
   /**
@@ -551,7 +551,7 @@ Ecosystem: ${target.ecosystem}`;
   /**
    * 📊 Generate massive campaign report
    */
-  private generateMassiveCampaignReport(): void {
+  private async generateMassiveCampaignReport(): Promise<void> {
     console.log('\n📊 MASSIVE BASE ECOSYSTEM THOUSANDS CAMPAIGN REPORT');
     console.log('='.repeat(80));
     

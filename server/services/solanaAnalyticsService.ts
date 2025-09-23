@@ -180,7 +180,7 @@ export class SolanaAnalyticsService {
     try {
       console.log(`📈 Getting ${days} days of historical data for ${type}: ${address}`);
       
-      const historicalData: HistoricalData[] = [];
+      let historicalData: HistoricalData[] = [];
       
       // Get real historical data from APIs
       historicalData = await this.fetchRealHistoricalData(address, type, days);

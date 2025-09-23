@@ -1,13 +1,42 @@
 /**
  * LEAD SCORING API ROUTES
- * Provides endpoints for accessing lead scoring data and high-value prospects
+ * Provides authenticated endpoints for accessing lead scoring data and high-value prospects
+ * 
+ * SECURITY: All routes protected by isAuthenticated middleware in routes.ts
  */
 
 import { Router } from 'express';
+import { z } from 'zod';
 import { leadScoringService } from '../services/leadScoringService';
 import { outreachAnalytics } from '../services/outreachAnalytics';
+import { isAuthenticated } from '../replitAuth';
 
 const router = Router();
+
+// Apply authentication to ALL routes within this router for defense-in-depth
+router.use(isAuthenticated);
+
+// Validation schemas for request bodies and query parameters
+const objectionProcessingSchema = z.object({
+  responseContent: z.string().min(1, 'Response content is required'),
+  channel: z.enum(['email', 'linkedin', 'twitter', 'discord', 'telegram', 'cold_call']),
+  campaignId: z.string().optional()
+});
+
+const conversionSimulationSchema = z.object({
+  targetId: z.string().min(1, 'Target ID is required'),
+  amount: z.number().min(1, 'Amount must be positive').default(999)
+});
+
+const targetIdParamSchema = z.object({
+  targetId: z.string().min(1, 'Target ID is required')
+});
+
+const analyticsQuerySchema = z.object({
+  limit: z.string().transform(Number).pipe(z.number().min(1).max(1000)).optional(),
+  offset: z.string().transform(Number).pipe(z.number().min(0)).optional(),
+  timeframe: z.enum(['day', 'week', 'month', 'all']).optional()
+});
 
 /**
  * GET /api/leads/high-value
@@ -55,7 +84,17 @@ router.get('/high-value', async (req, res) => {
  */
 router.post('/:targetId/score', async (req, res) => {
   try {
-    const { targetId } = req.params;
+    // Validate path parameters
+    const paramValidation = targetIdParamSchema.safeParse(req.params);
+    if (!paramValidation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid target ID',
+        details: paramValidation.error.format()
+      });
+    }
+    
+    const { targetId } = paramValidation.data;
     console.log(`🎯 Calculating lead score for: ${targetId}`);
     
     const scoring = await leadScoringService.calculateLeadScore(targetId);
@@ -85,15 +124,28 @@ router.post('/:targetId/score', async (req, res) => {
  */
 router.post('/:targetId/objection', async (req, res) => {
   try {
-    const { targetId } = req.params;
-    const { responseContent, channel, campaignId } = req.body;
-    
-    if (!responseContent || !channel) {
+    // Validate path parameters
+    const paramValidation = targetIdParamSchema.safeParse(req.params);
+    if (!paramValidation.success) {
       return res.status(400).json({
         success: false,
-        error: 'responseContent and channel are required'
+        error: 'Invalid target ID',
+        details: paramValidation.error.format()
       });
     }
+    
+    // Validate request body with Zod
+    const validationResult = objectionProcessingSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: validationResult.error.format()
+      });
+    }
+    
+    const { targetId } = paramValidation.data;
+    const { responseContent, channel, campaignId } = validationResult.data;
     
     console.log(`🤔 Processing objection for target: ${targetId}`);
     
@@ -125,6 +177,16 @@ router.post('/:targetId/objection', async (req, res) => {
  */
 router.get('/analytics/objections', async (req, res) => {
   try {
+    // Validate query parameters
+    const queryValidation = analyticsQuerySchema.safeParse(req.query);
+    if (!queryValidation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid query parameters',
+        details: queryValidation.error.format()
+      });
+    }
+    
     console.log('📈 Generating objection analytics...');
     
     const analytics = await leadScoringService.getObjectionAnalytics();
@@ -156,6 +218,16 @@ router.get('/analytics/objections', async (req, res) => {
  */
 router.get('/analytics/performance', async (req, res) => {
   try {
+    // Validate query parameters
+    const queryValidation = analyticsQuerySchema.safeParse(req.query);
+    if (!queryValidation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid query parameters',
+        details: queryValidation.error.format()
+      });
+    }
+    
     console.log('📊 Generating lead scoring performance analytics...');
     
     // Get outreach analytics data
@@ -209,14 +281,17 @@ router.get('/analytics/performance', async (req, res) => {
  */
 router.post('/demo/simulate-conversion', async (req, res) => {
   try {
-    const { targetId, amount = 999 } = req.body;
-    
-    if (!targetId) {
+    // Validate request body with Zod
+    const validationResult = conversionSimulationSchema.safeParse(req.body);
+    if (!validationResult.success) {
       return res.status(400).json({
         success: false,
-        error: 'targetId is required'
+        error: 'Invalid request data',
+        details: validationResult.error.format()
       });
     }
+    
+    const { targetId, amount } = validationResult.data;
     
     console.log(`🧪 Simulating conversion for demo: ${targetId}`);
     

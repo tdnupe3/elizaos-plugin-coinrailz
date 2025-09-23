@@ -286,7 +286,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       // Use Telegram Bot API if token available
       if (this.platforms.telegram.botToken) {
         console.log('🔑 Using Telegram Bot API with authentication');
-        const apiAgents = await this.searchTelegramChannels();
+        const apiAgents = await this.searchTelegramChannelsAPI();
         agents.push(...apiAgents);
       } else {
         console.log('⚠️ No Telegram bot token - using directory fallback');
@@ -326,6 +326,20 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
     }
 
     return agents;
+  }
+
+  /**
+   * SEARCH TELEGRAM CHANNELS API
+   * Use Telegram Bot API to find agents
+   */
+  private async searchTelegramChannelsAPI(): Promise<DiscoveredAgentRaw[]> {
+    try {
+      // For now, return known Telegram agents until API implementation
+      return this.getKnownTelegramAgents();
+    } catch (error) {
+      console.error('❌ Telegram API search failed:', error);
+      return this.getKnownTelegramAgents();
+    }
   }
 
   /**

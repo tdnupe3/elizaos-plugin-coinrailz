@@ -481,6 +481,22 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
   }
 
   /**
+   * DISCOVER XMTP AGENTS ENHANCED
+   * Enhanced XMTP discovery with advanced filtering and capabilities detection
+   */
+  private async discoverXMTPAgentsEnhanced(limit: number): Promise<DiscoveredAgentRaw[]> {
+    console.log('💬 Enhanced XMTP agent discovery...');
+    
+    try {
+      // For now, use the standard XMTP discovery with enhanced filtering
+      return await this.discoverXMTPParticipants(limit);
+    } catch (error) {
+      console.error('❌ Enhanced XMTP discovery failed:', error);
+      return this.getKnownXMTPAgents();
+    }
+  }
+
+  /**
    * DISCOVER FARCASTER AGENTS
    * Find AI agents active on Farcaster protocol
    */

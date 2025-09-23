@@ -8,6 +8,7 @@ import { initializeAutomatedOutreach } from './services/automatedOutreachOrchest
 import { telegramTradingBot } from './services/telegramTradingBot.js';
 import { initializeAffiliateSystem } from './services/automatedAffiliate';
 import emergencyRevenueRoutes from './routes/emergencyRevenueRoutes';
+import competitionRoutes from './routes/competitionRoutes.js';
 import { sdkLeadGenerationService } from './services/sdkLeadGenerationService';
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
@@ -3134,8 +3135,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
   // 🏆 COMPETITION OUTREACH ROUTES - IMMEDIATE AGENT RECRUITMENT
   console.log('🏆 Registering BEST AGENT COMPETITION routes...');
-  const competitionRoutes = await import('./routes/competitionRoutes.js');
-  app.use('/api/competition', competitionRoutes.default);
+  app.use('/api/competition', competitionRoutes);
   console.log('✅ Competition routes registered successfully');
 
   // Basic error handling

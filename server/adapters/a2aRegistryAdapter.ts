@@ -17,40 +17,41 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
   // A2A Protocol registries and directories
   private a2aRegistries = [
     {
-      name: 'AI16Z Registry',
-      url: 'https://registry.ai16z.com/api/agents',
-      auth: process.env.AI16Z_API_KEY,
-      network: 'solana'
+      name: 'ElizaOS Agent Registry',
+      url: 'https://docs.near.ai/agents/registry/',
+      auth: null, // Public registry
+      network: 'multi-chain',
+      api_type: 'docs_scrape' // Special handler for documentation-based registry
     },
     {
       name: 'Virtuals Protocol Registry',
-      url: 'https://api.virtuals.io/api/registry/agents',
-      auth: process.env.VIRTUALS_API_KEY,
+      url: 'https://app.virtuals.io/api/agents',
+      auth: process.env.VIRTUALS_TERMINAL_API_KEY,
       network: 'base'
     },
     {
       name: 'AgentKit Registry',
-      url: 'https://agentkit.coinbase.com/api/v1/registry',
-      auth: process.env.COINBASE_API_KEY,
+      url: 'https://agentkit.coinbase.com/api/agents',
+      auth: null, // Public examples
       network: 'base'
-    },
-    {
-      name: 'Google AP2 Directory',
-      url: 'https://ap2.google.dev/api/agents',
-      auth: process.env.GOOGLE_AP2_KEY,
-      network: 'base'
-    },
-    {
-      name: 'Farcaster Agent Directory',
-      url: 'https://api.farcaster.xyz/v2/agents',
-      auth: process.env.FARCASTER_API_KEY,
-      network: 'ethereum'
     },
     {
       name: 'Base Agent Registry',
-      url: 'https://registry.base.org/api/agents',
-      auth: process.env.BASE_API_KEY,
+      url: 'https://base.mirror.xyz/api/agents',
+      auth: null, // Public registry
       network: 'base'
+    },
+    {
+      name: 'Olas Agent Registry',
+      url: 'https://registry.olas.network/api/agents',
+      auth: null, // Public registry  
+      network: 'ethereum'
+    },
+    {
+      name: 'Truth Terminal Registry',
+      url: 'https://terminal.goat.ai/api/agents',
+      auth: null, // Public registry
+      network: 'solana'
     }
   ];
 

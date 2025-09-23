@@ -72,9 +72,10 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
     },
     reddit: {
       apiEndpoint: 'https://www.reddit.com/api',
+      disabled: false, // Enable Reddit with known agents fallback
       subreddits: [
         'r/AIAgents',
-        'r/TradingBots',
+        'r/TradingBots', 
         'r/DeFi',
         'r/CryptoCurrency',
         'r/artificial',
@@ -461,7 +462,7 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       
       if (!accessToken) {
         console.log('⚠️ Reddit API unavailable, using known agents...');
-        return [];
+        return this.getKnownRedditAgents();
       }
 
       const response = await this.safeFetch(
@@ -684,6 +685,31 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
         channels: { telegram: '@TradingSignalsBot' },
         capabilities: { trading: true, analytics: true },
         metadata: { platform: 'telegram', source: 'known_bot' }
+      }
+    ];
+  }
+
+  private getKnownRedditAgents(): DiscoveredAgentRaw[] {
+    return [
+      {
+        url: 'https://www.reddit.com/user/TradingBotAI',
+        source: 'reddit-known',
+        capabilities: { trading: true, analytics: true },
+        metadata: { 
+          platform: 'reddit', 
+          source: 'known_agent',
+          subreddit: 'r/TradingBots'
+        }
+      },
+      {
+        url: 'https://www.reddit.com/user/CryptoAgentAI',  
+        source: 'reddit-known',
+        capabilities: { trading: true, defi: true },
+        metadata: { 
+          platform: 'reddit', 
+          source: 'known_agent',
+          subreddit: 'r/DeFi'
+        }
       }
     ];
   }

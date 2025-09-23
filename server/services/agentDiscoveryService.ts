@@ -994,7 +994,7 @@ ${batchResults
   private initializeScheduler(): void {
     console.log('⏰ Initializing hourly discovery scheduler...');
     
-    // Run every hour + immediate test run
+    // Run every hour (reverted from 30min to avoid amplifying rate limits)
     this.cronJob = cron.schedule('0 * * * *', async () => {
       console.log('🕐 Scheduled discovery starting...');
       

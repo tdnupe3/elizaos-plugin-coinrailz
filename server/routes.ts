@@ -4409,14 +4409,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         debugInfo.database.orderCount = `ERROR: ${err.message}`;
       }
 
-      // Test user existence
+      // Test user count (no longer checking for specific test user)
       try {
-        const userExists = await db.execute(sql`
-          SELECT id FROM users WHERE id = 'oauth-test-user-1749701423054' LIMIT 1
-        `);
-        debugInfo.testResults.testUserExists = userExists.rows.length > 0;
+        const userCount = await db.execute(sql`SELECT COUNT(*) as total FROM users`);
+        debugInfo.testResults.totalUsers = userCount.rows[0]?.total || 0;
       } catch (err: any) {
-        debugInfo.testResults.testUserExists = `ERROR: ${err.message}`;
+        debugInfo.testResults.totalUsers = `ERROR: ${err.message}`;
       }
 
       res.json({

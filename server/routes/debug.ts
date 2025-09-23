@@ -60,14 +60,12 @@ router.get('/api/debug/order-system', async (req, res) => {
       debugInfo.database.orderCount = `ERROR: ${err.message}`;
     }
 
-    // Test user existence
+    // User count check (no specific test user references)
     try {
-      const userExists = await db.execute(sql`
-        SELECT id FROM users WHERE id = 'oauth-test-user-1749701423054' LIMIT 1
-      `);
-      debugInfo.testResults.testUserExists = userExists.rows.length > 0;
+      const userCount = await db.execute(sql`SELECT COUNT(*) as total FROM users`);
+      debugInfo.testResults.totalUsers = userCount.rows[0]?.total || 0;
     } catch (err: any) {
-      debugInfo.testResults.testUserExists = `ERROR: ${err.message}`;
+      debugInfo.testResults.totalUsers = `ERROR: ${err.message}`;
     }
 
     // Test agent existence
@@ -80,27 +78,15 @@ router.get('/api/debug/order-system', async (req, res) => {
       debugInfo.testResults.testAgentExists = `ERROR: ${err.message}`;
     }
 
-    // Test direct SQL insertion
+    // Database connection test (no longer creates fake orders)
     try {
-      const testId = `test_${Date.now()}`;
-      const insertResult = await db.execute(sql`
-        INSERT INTO ai_marketplace_orders (
-          id, agent_id, customer_id, service_type, amount, agent_commission, 
-          platform_fee, status, payment_method, service_description, 
-          customer_requirements, estimated_delivery_hours
-        ) VALUES (
-          ${testId}, 'agent_4BB7ifoc2_jW', 'oauth-test-user-1749701423054', 'DEBUG TEST', 
-          100.00, 85.00, 15.00, 'pending', 'test', 'Debug insertion test',
-          '{"test": true}', 24
-        ) RETURNING id
-      `);
-      debugInfo.testResults.directSQLInsertion = {
+      const connectionTest = await db.execute(sql`SELECT 1 as test_connection`);
+      debugInfo.testResults.databaseConnection = {
         success: true,
-        insertedId: insertResult.rows[0]?.id,
-        rowsAffected: insertResult.rowCount
+        connected: connectionTest.rows.length > 0
       };
     } catch (err: any) {
-      debugInfo.testResults.directSQLInsertion = {
+      debugInfo.testResults.databaseConnection = {
         success: false,
         error: err.message,
         code: err.code,

@@ -6,11 +6,11 @@ const db = require('./server/db');
 class TruthVerificationSystem {
   static async getFactualMetrics() {
     const results = await Promise.all([
-      // Real revenue (excluding test user)
-      db.execute(`SELECT COALESCE(SUM(amount), 0) as total_revenue FROM ai_marketplace_orders WHERE customer_id != 'oauth-test-user-1749701423054' AND created_at > '2025-09-19'`),
+      // Real revenue (all orders now genuine - test data removed)
+      db.execute(`SELECT COALESCE(SUM(amount), 0) as total_revenue FROM ai_marketplace_orders WHERE created_at > '2025-09-19'`),
       
-      // Real orders count
-      db.execute(`SELECT COUNT(*) as real_orders FROM ai_marketplace_orders WHERE customer_id != 'oauth-test-user-1749701423054' AND created_at > '2025-09-19'`),
+      // Real orders count (all orders now genuine - test data removed)  
+      db.execute(`SELECT COUNT(*) as real_orders FROM ai_marketplace_orders WHERE created_at > '2025-09-19'`),
       
       // External agents (human registered only)
       db.execute(`SELECT COUNT(*) as external_agents FROM global_ai_agents WHERE is_human_registered = true AND agent_name NOT LIKE '%Treasury%' AND agent_name NOT LIKE '%Emergency Fund%'`),

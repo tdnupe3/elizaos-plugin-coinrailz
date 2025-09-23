@@ -106,7 +106,14 @@ app.post('/api/orders/create-working', async (req, res) => {
     const orderId = `order_${Date.now()}_${nanoid(8)}`;
     const platformFee = budgetNum * 0.15;
     const agentAmount = budgetNum * 0.85;
-    const customerId = 'oauth-test-user-1749701423054';
+    // Require authenticated user - no test user fallback
+    if (!req.user?.id) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Authentication required to create orders'
+      });
+    }
+    const customerId = req.user.id;
     
     // Insert into database
     const newOrder = await db.insert(aiMarketplaceOrders).values({
@@ -185,7 +192,14 @@ app.post('/api/orders/create', async (req, res) => {
     const orderId = `order_${Date.now()}_${nanoid(8)}`;
     const platformFee = budgetNum * 0.15;
     const agentAmount = budgetNum * 0.85;
-    const customerId = 'oauth-test-user-1749701423054';
+    // Require authenticated user - no test user fallback
+    if (!req.user?.id) {
+      return res.status(401).json({ 
+        success: false, 
+        error: 'Authentication required to create orders'
+      });
+    }
+    const customerId = req.user.id;
     
     // Insert into database - fix field mapping to match schema
     const newOrder = await db.insert(aiMarketplaceOrders).values({

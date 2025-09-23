@@ -73,7 +73,14 @@ router.post('/api/orders/create', async (req, res) => {
     const platformFee = budgetAmount * 0.15;
     const agentAmount = budgetAmount * 0.85;
     
-    const customerId = (req.user as any)?.id || 'oauth-test-user-1749701423054';
+    // Require authenticated user - no test user fallback for production
+    if (!(req.user as any)?.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required to create orders'
+      });
+    }
+    const customerId = (req.user as any).id;
     
     console.log(`💾 DIRECT DATABASE INSERT: ${orderId}`);
     console.log(`Customer: ${customerId}, Agent: ${orderData.agentId}, Amount: ${budgetAmount}`);

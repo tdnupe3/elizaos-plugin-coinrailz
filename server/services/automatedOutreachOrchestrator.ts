@@ -9,6 +9,8 @@ import axios from 'axios';
 import { sendEmail } from '../sendgridService';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
+import { leadScoringService } from './leadScoringService';
+import { outreachAnalytics } from './outreachAnalytics';
 
 interface OutreachTarget {
   platform: 'github' | 'twitter' | 'reddit' | 'email';
@@ -381,8 +383,139 @@ AMA about the technical implementation patterns!
         VALUES (${platform}, ${target}, ${url}, ${status}, NOW())
         ON CONFLICT DO NOTHING
       `);
+      
+      // Track outreach event for analytics and lead scoring
+      outreachAnalytics.trackEvent({
+        campaignId: 'automated-outreach',
+        walletAddress: target,
+        eventType: status === 'sent' ? 'contact_attempted' : 'response_received',
+        channel: platform as any,
+        metadata: {
+          outreachUrl: url,
+          targetType: 'external_contact'
+        }
+      });
+
+      console.log(`📊 Tracked outreach event: ${status} → ${target} via ${platform}`);
+      
     } catch (error) {
       console.error('Failed to log outreach activity:', error);
+    }
+  }
+
+  /**
+   * Process response from outreach target and trigger lead scoring
+   */
+  async processOutreachResponse(
+    targetIdentifier: string, 
+    responseContent: string, 
+    platform: string,
+    targetEmail?: string,
+    targetCompany?: string
+  ): Promise<void> {
+    try {
+      console.log(`📬 Processing response from ${targetIdentifier} via ${platform}`);
+      
+      // Log the response activity
+      await this.logOutreachActivity(platform, targetIdentifier, '', 'response_received');
+      
+      // Track as response event for analytics
+      outreachAnalytics.trackResponse('automated-outreach', targetIdentifier, platform, responseContent);
+      
+      // If this is a new lead, we need to create a target record first
+      // This is simplified - in production, you'd have better target management
+      let targetId = targetIdentifier;
+      
+      try {
+        // Process any objections in the response
+        if (this.containsObjection(responseContent)) {
+          console.log(`🤔 Objection detected in response from ${targetIdentifier}`);
+          
+          // This would work with proper target management
+          const objectionClassification = await leadScoringService.processObjection(
+            targetId,
+            responseContent,
+            platform,
+            'automated-outreach'
+          );
+          
+          console.log(`📝 Objection classified: ${objectionClassification.category} (severity: ${objectionClassification.severity})`);
+        } else {
+          // Score the lead based on positive response
+          await leadScoringService.updateTargetScore(targetId);
+          console.log(`🎯 Lead score updated for ${targetIdentifier}`);
+        }
+        
+        // Check if this lead now requires human follow-up
+        const highValueLeads = await leadScoringService.getLeadsRequiringHumanFollowUp();
+        const isHighValue = highValueLeads.some(lead => lead.id === targetId);
+        
+        if (isHighValue) {
+          console.log(`🚨 HIGH-VALUE LEAD ALERT: ${targetIdentifier} requires human follow-up!`);
+          
+          // In production, this would trigger notifications to sales team
+          // For now, just log it prominently
+          await this.notifyHighValueLead(targetIdentifier, platform, responseContent);
+        }
+        
+      } catch (leadScoringError) {
+        // Don't fail the whole process if lead scoring fails
+        console.log(`⚠️ Lead scoring failed for ${targetIdentifier}, but continuing with basic tracking:`, leadScoringError);
+      }
+      
+    } catch (error) {
+      console.error(`❌ Response processing failed for ${targetIdentifier}:`, error);
+    }
+  }
+  
+  /**
+   * Check if response contains objections using keyword detection
+   */
+  private containsObjection(responseContent: string): boolean {
+    const objectionKeywords = [
+      'not interested', 'no thanks', 'not for us', 'pass', 'decline',
+      'expensive', 'cost', 'price', 'budget', 'afford',
+      'already using', 'current solution', 'competitor',
+      'not now', 'later', 'timing', 'busy'
+    ];
+    
+    const contentLower = responseContent.toLowerCase();
+    return objectionKeywords.some(keyword => contentLower.includes(keyword));
+  }
+  
+  /**
+   * Notify about high-value lead requiring human follow-up
+   */
+  private async notifyHighValueLead(targetId: string, platform: string, responseContent: string): Promise<void> {
+    try {
+      // Log high-value lead notification
+      console.log(`🔥 HIGH-VALUE LEAD NOTIFICATION:`);
+      console.log(`   Target: ${targetId}`);
+      console.log(`   Platform: ${platform}`);
+      console.log(`   Response: ${responseContent.substring(0, 200)}...`);
+      console.log(`   Action: HUMAN FOLLOW-UP REQUIRED`);
+      
+      // Track this as a qualified lead conversion
+      outreachAnalytics.trackEvent({
+        campaignId: 'automated-outreach',
+        walletAddress: targetId,
+        eventType: 'response_received',
+        channel: platform as any,
+        metadata: {
+          leadQuality: 'high_value',
+          requiresHumanFollowUp: true,
+          responsePreview: responseContent.substring(0, 500)
+        }
+      });
+      
+      // In production, this would:
+      // - Send Slack notification to sales team
+      // - Create task in CRM system
+      // - Schedule follow-up call
+      // - Send email alert to account managers
+      
+    } catch (error) {
+      console.error('Failed to notify about high-value lead:', error);
     }
   }
 

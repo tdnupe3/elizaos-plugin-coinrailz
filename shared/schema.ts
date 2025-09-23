@@ -2905,6 +2905,16 @@ export const enterpriseOutreachTargets = pgTable('enterprise_outreach_targets', 
   useCase: text('use_case').notNull(),
   priority: varchar('priority', { length: 10 }).default('medium').notNull(), // high, medium, low
   status: varchar('status', { length: 20 }).default('new').notNull(), // new, contacted, responded, qualified, converted
+  
+  // Lead Scoring System Fields
+  leadScore: integer('lead_score').default(0).notNull(), // 0-100 dynamic score
+  leadTier: varchar('lead_tier', { length: 10 }).default('cold').notNull(), // cold, warm, hot, qualified
+  lastScoredAt: timestamp('last_scored_at'),
+  followUpStatus: varchar('follow_up_status', { length: 20 }).default('automated').notNull(), // automated, requires_human, assigned_human, completed
+  objectionCategory: varchar('objection_category', { length: 50 }), // pricing, timing, features, not_interested, competitor
+  responseTime: integer('response_time'), // Average response time in hours
+  engagementScore: integer('engagement_score').default(0), // Engagement tracking 0-100
+  
   lastContactDate: timestamp('last_contact_date'),
   nextFollowUp: timestamp('next_follow_up'),
   notes: text('notes'),
@@ -2920,6 +2930,43 @@ export const enterpriseOutreachTargets = pgTable('enterprise_outreach_targets', 
   domainIndex: index('enterprise_outreach_targets_domain_idx').on(table.domain),
   contactIndex: index('enterprise_outreach_targets_contact_idx').on(table.contactEmail),
   followUpIndex: index('enterprise_outreach_targets_followup_idx').on(table.nextFollowUp),
+  
+  // Lead Scoring Indexes for optimization
+  leadScoreIndex: index('enterprise_outreach_targets_score_idx').on(table.leadScore),
+  leadTierIndex: index('enterprise_outreach_targets_tier_idx').on(table.leadTier),
+  followUpStatusIndex: index('enterprise_outreach_targets_followup_status_idx').on(table.followUpStatus),
+  objectionIndex: index('enterprise_outreach_targets_objection_idx').on(table.objectionCategory),
+}));
+
+// Enterprise Outreach Objections table for structured objection analysis  
+export const enterpriseOutreachObjections = pgTable('enterprise_outreach_objections', {
+  id: serial('id').primaryKey(),
+  targetId: varchar('target_id').notNull().references(() => enterpriseOutreachTargets.id),
+  campaignId: varchar('campaign_id').references(() => enterpriseOutreachCampaigns.id),
+  
+  // Objection details
+  objectionCategory: varchar('objection_category', { length: 50 }).notNull(), // pricing, timing, features, not_interested, competitor, budget, authority
+  objectionText: text('objection_text').notNull(), // Raw objection from response
+  sentiment: varchar('sentiment', { length: 10 }).default('neutral').notNull(), // positive, neutral, negative
+  severity: integer('severity').default(5).notNull(), // 1-10 severity scale
+  
+  // Context
+  communicationChannel: varchar('communication_channel', { length: 30 }).notNull(), // email, github, twitter, xmtp, phone
+  responseDelay: integer('response_delay'), // Hours between outreach and objection
+  
+  // Follow-up tracking
+  isResolved: boolean('is_resolved').default(false).notNull(),
+  resolutionNotes: text('resolution_notes'),
+  resolvedAt: timestamp('resolved_at'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  targetIndex: index('enterprise_outreach_objections_target_idx').on(table.targetId),
+  campaignIndex: index('enterprise_outreach_objections_campaign_idx').on(table.campaignId),
+  categoryIndex: index('enterprise_outreach_objections_category_idx').on(table.objectionCategory),
+  severityIndex: index('enterprise_outreach_objections_severity_idx').on(table.severity),
+  resolvedIndex: index('enterprise_outreach_objections_resolved_idx').on(table.isResolved),
 }));
 
 // Enterprise Outreach Types and Schemas
@@ -2927,6 +2974,8 @@ export type EnterpriseOutreachCampaign = typeof enterpriseOutreachCampaigns.$inf
 export type InsertEnterpriseOutreachCampaign = typeof enterpriseOutreachCampaigns.$inferInsert;
 export type EnterpriseOutreachTarget = typeof enterpriseOutreachTargets.$inferSelect;
 export type InsertEnterpriseOutreachTarget = typeof enterpriseOutreachTargets.$inferInsert;
+export type EnterpriseOutreachObjection = typeof enterpriseOutreachObjections.$inferSelect;
+export type InsertEnterpriseOutreachObjection = typeof enterpriseOutreachObjections.$inferInsert;
 
 export const insertEnterpriseOutreachCampaignSchema = createInsertSchema(enterpriseOutreachCampaigns).omit({
   id: true,
@@ -2936,6 +2985,12 @@ export const insertEnterpriseOutreachCampaignSchema = createInsertSchema(enterpr
 });
 
 export const insertEnterpriseOutreachTargetSchema = createInsertSchema(enterpriseOutreachTargets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEnterpriseOutreachObjectionSchema = createInsertSchema(enterpriseOutreachObjections).omit({
   id: true,
   createdAt: true,
   updatedAt: true,

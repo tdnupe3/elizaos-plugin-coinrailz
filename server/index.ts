@@ -6,6 +6,7 @@ import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogic
 // Initialize automated revenue generation systems
 import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
 import { initializeAffiliateSystem } from './services/automatedAffiliate';
+import emergencyRevenueRoutes from './routes/emergencyRevenueRoutes';
 import { sdkLeadGenerationService } from './services/sdkLeadGenerationService';
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
@@ -3115,6 +3116,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   
   // Setup enhanced business logic routes with all safety mechanisms
   setupEnhancedBusinessLogicRoutes(app);
+  
+  // 🚨 EMERGENCY REVENUE GENERATION ROUTES - IMMEDIATE ACTION
+  console.log('🚨 Registering EMERGENCY REVENUE GENERATION routes...');
+  app.use('/api/emergency-revenue', emergencyRevenueRoutes);
+  console.log('✅ Emergency revenue routes registered successfully');
 
   // Basic error handling
   app.use((err: any, req: any, res: any, next: any) => {

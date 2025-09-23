@@ -3146,26 +3146,50 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     httpServer.listen(port, '0.0.0.0', () => {
       console.log(`Development server running on 0.0.0.0:${port}`);
       
-      // 🚨 AUTOMATED SYSTEMS PAUSED - NO SPENDING MODE 🚨
-      console.log('⏸️ All automated revenue generation systems PAUSED to prevent spending');
-      console.log('⚠️ NO OUTREACH, NO SOL TRANSACTIONS, NO AUTOMATED SPENDING');
-      // initializeAutomatedOutreach(); // DISABLED TO PREVENT SPENDING
-      // initializeAffiliateSystem(); // DISABLED TO PREVENT SPENDING
+      // 🚨 EMERGENCY REVENUE GENERATION MODE - ZERO COST OUTREACH ONLY 🚨
+      console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
+      console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
+      console.log('❌ SOL transactions still DISABLED');
       
-      console.log('🚨 ALL AUTOMATED SPENDING SYSTEMS DISABLED');
+      try {
+        initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
+        console.log('✅ Emergency outreach orchestrator started');
+        
+        // Affiliate system still disabled (involves payouts)
+        // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
+        
+        console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
+        console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
+        console.log('💳 Payment systems ready for immediate revenue collection');
+        
+      } catch (error) {
+        console.error('❌ Failed to initialize emergency outreach:', error);
+      }
     });
   }).catch(error => {
     console.error('Vite setup failed:', error);
     httpServer.listen(port, '0.0.0.0', () => {
       console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
       
-      // 🚨 AUTOMATED SYSTEMS PAUSED - NO SPENDING MODE 🚨
-      console.log('⏸️ All automated revenue generation systems PAUSED to prevent spending');
-      console.log('⚠️ NO OUTREACH, NO SOL TRANSACTIONS, NO AUTOMATED SPENDING');
-      // initializeAutomatedOutreach(); // DISABLED TO PREVENT SPENDING
-      // initializeAffiliateSystem(); // DISABLED TO PREVENT SPENDING
+      // 🚨 EMERGENCY REVENUE GENERATION MODE - ZERO COST OUTREACH ONLY 🚨
+      console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
+      console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
+      console.log('❌ SOL transactions still DISABLED');
       
-      console.log('🚨 ALL AUTOMATED SPENDING SYSTEMS DISABLED');
+      try {
+        initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
+        console.log('✅ Emergency outreach orchestrator started');
+        
+        // Affiliate system still disabled (involves payouts)
+        // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
+        
+        console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
+        console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
+        console.log('💳 Payment systems ready for immediate revenue collection');
+        
+      } catch (error) {
+        console.error('❌ Failed to initialize emergency outreach:', error);
+      }
     });
   });
 }

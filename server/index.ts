@@ -3137,6 +3137,12 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   console.log('🏆 Registering BEST AGENT COMPETITION routes...');
   app.use('/api/competition', competitionRoutes);
   console.log('✅ Competition routes registered successfully');
+  
+  // 🎯 PREMIUM API ENDPOINTS - PROTECTED BY AUTHENTICATION
+  console.log('🔐 Registering PREMIUM API routes with authentication...');
+  const premiumAPIRoutes = await import('./routes/premiumAPIRoutes.js');
+  app.use('/api/premium', premiumAPIRoutes.default);
+  console.log('✅ Premium API routes registered successfully');
 
   // Basic error handling
   app.use((err: any, req: any, res: any, next: any) => {

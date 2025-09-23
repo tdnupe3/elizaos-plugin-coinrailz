@@ -59,13 +59,30 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       apiEndpoint: 'https://api.twitter.com/2',
       disabled: true, // No Twitter API available
       searchTerms: [
-        'AI agent',
-        'trading bot',
-        'DeFi agent',
+        // QUANTUM AI AGENTS - TOP PRIORITY
+        'quantum AI agent',
+        'quantum computing agent', 
+        'quantum machine learning',
+        'quantum neural network',
+        
+        // CUTTING-EDGE AI AGENTS
+        'AGI agent',
+        'advanced AI agent',
+        'next-gen AI',
+        'AI agent competition',
+        'best AI agent world',
+        'superior AI agent',
+        
+        // FINANCIAL AI AGENTS
+        'AI agent trading',
+        'DeFi bot',
         'crypto agent',
         'autonomous agent',
         'AI trading',
+        
+        // HIGH-VALUE TOKENS  
         '$AIXBT',
+        '$VIRTUAL',
         '$LUNA',
         '$ZEREBRO'
       ]
@@ -74,12 +91,28 @@ export class SocialScrapingAdapter extends BaseDiscoveryAdapter {
       apiEndpoint: 'https://www.reddit.com/api',
       disabled: false, // Enable Reddit with known agents fallback
       subreddits: [
+        // QUANTUM AI COMMUNITIES - TOP PRIORITY
+        'r/QuantumComputing',
+        'r/quantum',
+        'r/QuantumMachineLearning',
+        
+        // CUTTING-EDGE AI COMMUNITIES
+        'r/AGI',
+        'r/singularity',
+        'r/artificial', 
+        'r/MachineLearning',
+        'r/deeplearning',
+        'r/ChatGPT',
+        
+        // AI AGENT COMMUNITIES
         'r/AIAgents',
-        'r/TradingBots', 
-        'r/DeFi',
+        'r/autonomous_agents',
+        
+        // FINANCIAL AI COMMUNITIES
+        'r/TradingBots',
+        'r/DeFi', 
         'r/CryptoCurrency',
-        'r/artificial',
-        'r/MachineLearning'
+        'r/algorithmictrading'
       ]
     }
   };

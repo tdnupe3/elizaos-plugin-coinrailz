@@ -40,6 +40,8 @@ import coinflipRoutes from './routes/coinflipRoutes';
 import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
 import realWalletDiscoveryRoutes from './routes/realWalletDiscoveryRoutes';
 import targetedOutreachRoutes from './routes/targetedOutreachRoutes';
+import outreachRoutes from './routes/outreach';
+import { telegramOutreachService } from './services/telegramOutreachService.js';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
@@ -2846,6 +2848,7 @@ app.use('/api/coinflip', coinflipRoutes);
 app.use('/api/pumpfun-copy-trading', pumpfunCopyTradingRoutes);
 app.use('/api/real-wallet-discovery', realWalletDiscoveryRoutes);
 app.use('/api/targeted-outreach', targetedOutreachRoutes);
+app.use('/api/outreach', outreachRoutes);
 app.use('/api', immediateRevenueRoutes);
 app.use('/api', walletBalanceRoutes);
 

@@ -145,6 +145,7 @@ const SubscriptionPage = lazy(() => import("@/pages/subscription"));
 const SubscriptionDashboard = lazy(() => import("@/pages/subscription-dashboard"));
 const CustomerDashboard = lazy(() => import("@/pages/CustomerDashboard"));
 const EnterpriseOutreach = lazy(() => import("@/pages/EnterpriseOutreach"));
+const OutreachPage = lazy(() => import("@/pages/OutreachPage"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -672,6 +673,12 @@ function Router() {
       </Route>
       <Route path="/enterprise-outreach">
         {() => <LazyLoadWrapper><EnterpriseOutreach /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/outreach">
+        {() => <LazyLoadWrapper><OutreachPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/telegram-outreach">
+        {() => <LazyLoadWrapper><OutreachPage /></LazyLoadWrapper>}
       </Route>
 
       <Route component={NotFound} />

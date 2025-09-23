@@ -564,7 +564,10 @@ app.use('/api/experimental-outreach', experimentalOutreachRoutes);
 
 console.log('📊 Registering REVOLUTIONARY Outreach Analytics for campaign performance tracking...');
 import outreachAnalyticsRoutes from './routes/outreachAnalyticsRoutes';
-app.use('/api/analytics', outreachAnalyticsRoutes);
+// Import research-backed outreach service for 2024-2025 AI agent protocols
+import { researchBackedOutreach } from './services/researchBackedOutreach';
+
+app.use('/api/outreach-analytics', outreachAnalyticsRoutes);
 
 console.log('🧠 Registering AI-POWERED Optimization & Auto-Scaling for maximum ROI...');
 import outreachOptimizationRoutes from './routes/outreachOptimizationRoutes';

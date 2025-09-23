@@ -41,7 +41,7 @@ import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
 import realWalletDiscoveryRoutes from './routes/realWalletDiscoveryRoutes';
 import targetedOutreachRoutes from './routes/targetedOutreachRoutes';
 import outreachRoutes from './routes/outreach';
-import autoJoinerRoutes from './routes/autoJoiner';
+import autoJoinerRoutes from './routes/autoJoinerFixed';
 import { telegramOutreachService } from './services/telegramOutreachService.js';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";

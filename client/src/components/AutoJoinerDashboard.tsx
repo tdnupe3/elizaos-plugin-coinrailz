@@ -15,6 +15,7 @@ interface AutoJoinStats {
   failedCount: number;
   progress: number;
   logs: string[];
+  hasSession: boolean;
 }
 
 export function AutoJoinerDashboard() {
@@ -117,6 +118,33 @@ https://t.me/altcoin_signals`);
         loadStats();
       } else {
         throw new Error(response.error || 'Failed to stop auto-joiner');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearSession = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest('/api/auto-joiner/clear-session', {
+        method: 'POST'
+      });
+
+      if (response.success) {
+        toast({
+          title: "Session Cleared",
+          description: "Telegram session cleared - you'll need to login again next time"
+        });
+        loadStats();
+      } else {
+        throw new Error(response.error || 'Failed to clear session');
       }
     } catch (error: any) {
       toast({
@@ -284,6 +312,14 @@ https://t.me/altcoin_signals`);
               🧹 Reset
             </Button>
             <Button 
+              onClick={clearSession} 
+              disabled={isLoading || stats?.isRunning}
+              variant="outline"
+              data-testid="button-clear-session"
+            >
+              🗑️ Clear Session
+            </Button>
+            <Button 
               onClick={() => setShowLogs(!showLogs)} 
               variant="outline"
               data-testid="button-toggle-logs"
@@ -291,6 +327,24 @@ https://t.me/altcoin_signals`);
               {showLogs ? '📄 Hide Logs' : '📄 Show Logs'}
             </Button>
           </div>
+
+          {stats && stats.hasSession && (
+            <div className="bg-green-50 border border-green-200 p-3 rounded">
+              <div className="flex items-center gap-2 text-green-700">
+                <span>✅</span>
+                <span className="font-medium">Telegram session active - ready to join groups!</span>
+              </div>
+            </div>
+          )}
+
+          {stats && !stats.hasSession && (
+            <div className="bg-yellow-50 border border-yellow-200 p-3 rounded">
+              <div className="flex items-center gap-2 text-yellow-700">
+                <span>⚠️</span>
+                <span className="font-medium">First time? You'll need to enter SMS code when starting</span>
+              </div>
+            </div>
+          )}
           
           <div className="bg-gray-50 p-4 rounded text-sm">
             <h4 className="font-semibold mb-2">How it works:</h4>

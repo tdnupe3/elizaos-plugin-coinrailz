@@ -13,6 +13,70 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 const router = Router();
 
+// Create Stripe checkout session for marketplace orders
+router.post('/create-checkout-session', async (req, res) => {
+  try {
+    const { 
+      serviceId, 
+      serviceName, 
+      amount, 
+      agentId, 
+      customerName, 
+      customerEmail, 
+      deliveryRequirements,
+      successUrl,
+      cancelUrl 
+    } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+
+    if (!customerEmail) {
+      return res.status(400).json({ error: 'Customer email required' });
+    }
+
+    // Create Stripe checkout session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: serviceName,
+            description: `AI Marketplace Service: ${serviceName}`,
+          },
+          unit_amount: Math.round(amount * 100), // Convert to cents
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      customer_email: customerEmail,
+      metadata: {
+        serviceId: serviceId || '',
+        agentId: agentId || '',
+        customerName: customerName || '',
+        deliveryRequirements: deliveryRequirements || '',
+        platform: 'coin-railz-marketplace'
+      },
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+    });
+
+    res.json({ 
+      success: true,
+      checkoutUrl: session.url,
+      sessionId: session.id
+    });
+  } catch (error: any) {
+    console.error('Stripe checkout session creation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to create checkout session',
+      message: error.message 
+    });
+  }
+});
+
 // Create payment intent for marketplace orders
 router.post('/create-payment-intent', async (req, res) => {
   try {
@@ -251,6 +315,40 @@ router.post('/webhook', async (req, res) => {
         }
       }
       break;
+
+    case 'checkout.session.completed':
+      const session = event.data.object;
+      console.log('Checkout session completed:', session.id);
+      
+      // Create marketplace order after successful payment
+      if (session.metadata?.platform === 'coin-railz-marketplace') {
+        try {
+          const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          // Create marketplace order with payment confirmation
+          await storage.createMarketplaceOrder({
+            id: orderId,
+            service_id: session.metadata.serviceId,
+            agent_id: session.metadata.agentId,
+            customer_name: session.metadata.customerName,
+            customer_email: session.customer_email || session.customer_details?.email,
+            delivery_requirements: session.metadata.deliveryRequirements,
+            amount: (session.amount_total || 0) / 100, // Convert from cents
+            status: 'paid',
+            payment_method: 'stripe',
+            payment_id: session.payment_intent,
+            platform_fee: ((session.amount_total || 0) / 100) * 0.15, // 15% platform fee
+            agent_payout: ((session.amount_total || 0) / 100) * 0.85, // 85% to agent
+            created_at: new Date(),
+            updated_at: new Date()
+          });
+
+          console.log(`✅ REAL ORDER CREATED: ${orderId} for $${(session.amount_total || 0) / 100} - Customer: ${session.customer_email || session.customer_details?.email}`);
+        } catch (orderError) {
+          console.error('Failed to create order after payment:', orderError);
+        }
+      }
+      break;
       
     default:
       console.log(`Unhandled event type ${event.type}`);
@@ -258,5 +356,6 @@ router.post('/webhook', async (req, res) => {
 
   res.json({ received: true });
 });
+
 
 export default router;

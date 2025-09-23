@@ -45,59 +45,45 @@ export default function MarketplaceCheckout() {
     }
   });
 
-  // Create order mutation - using working backend endpoint
-  const createOrderMutation = useMutation({
+  // Create Stripe checkout session for REAL payment processing
+  const createPaymentMutation = useMutation({
     mutationFn: async (orderData: any) => {
-      return await apiRequest('POST', '/api/orders/create-working', {
-        agentId: orderData.agentId || 'agent_4BB7ifoc2_jW',
-        serviceTitle: orderData.serviceTitle || 'Marketplace Service',
-        serviceDescription: orderData.deliveryRequirements || 'Service delivery from marketplace',
-        budget: orderData.amount || service?.pricing || 100,
-        paymentMethod: 'USDC'
+      // Create Stripe checkout session (order will be created AFTER successful payment)
+      return await apiRequest('POST', '/api/stripe/create-checkout-session', {
+        serviceId: serviceId,
+        serviceName: service?.name || 'Marketplace Service',
+        amount: service?.pricing || 100,
+        agentId: service?.agentId,
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        deliveryRequirements: orderData.deliveryRequirements,
+        successUrl: `${window.location.origin}/marketplace/payment-success`,
+        cancelUrl: `${window.location.origin}/marketplace/checkout/${serviceId}`
       });
     },
-    onSuccess: async (data) => {
-      if (data.success && data.order) {
+    onSuccess: (data) => {
+      if (data.success && data.checkoutUrl) {
         toast({
-          title: "Order Created Successfully",
-          description: "Proceeding to payment...",
+          title: "Redirecting to Payment",
+          description: "You'll be redirected to secure payment processing...",
         });
         
-        // Create Stripe payment intent
-        try {
-          const paymentResponse = await apiRequest('POST', '/api/stripe/create-payment-intent', {
-            amount: service.pricing,
-            orderId: data.order.id,
-            serviceId: serviceId
-          });
-          
-          if (paymentResponse.success && paymentResponse.clientSecret) {
-            console.log('Payment intent created:', paymentResponse.clientSecret);
-            
-            // Simulate payment success for now (in production, this would redirect to Stripe)
-            // Confirm payment
-            await apiRequest('POST', '/api/stripe/confirm-payment', {
-              paymentIntentId: paymentResponse.paymentIntentId,
-              orderId: data.order.id
-            });
-            
-            setTimeout(() => {
-              setLocation('/marketplace/payment-success');
-            }, 1500);
-          }
-        } catch (error) {
-          console.error('Payment intent creation failed:', error);
-          toast({
-            title: "Payment Setup Failed",
-            description: "Order created but payment setup failed",
-            variant: "destructive",
-          });
-        }
+        // Redirect to REAL Stripe checkout
+        setTimeout(() => {
+          window.location.href = data.checkoutUrl;
+        }, 1000);
+      } else {
+        toast({
+          title: "Payment Setup Failed",
+          description: "Unable to create payment session",
+          variant: "destructive",
+        });
       }
     },
     onError: (error) => {
+      console.error('Payment session creation failed:', error);
       toast({
-        title: "Order Creation Failed",
+        title: "Payment Setup Failed",
         description: "Please try again or contact support",
         variant: "destructive",
       });
@@ -122,7 +108,7 @@ export default function MarketplaceCheckout() {
       deliveryRequirements: customerInfo.deliveryRequirements
     };
 
-    createOrderMutation.mutate(orderData);
+    createPaymentMutation.mutate(orderData);
   };
 
   if (!match) {
@@ -316,10 +302,10 @@ export default function MarketplaceCheckout() {
                 className="w-full" 
                 size="lg"
                 onClick={handleOrderSubmission}
-                disabled={createOrderMutation.isPending}
+                disabled={createPaymentMutation.isPending}
               >
                 <CreditCard className="w-4 h-4 mr-2" />
-                {createOrderMutation.isPending ? 'Processing...' : `Pay $${service.pricing}`}
+                {createPaymentMutation.isPending ? 'Processing...' : `Pay $${service.pricing}`}
               </Button>
               <p className="text-xs text-gray-500 text-center mt-2">
                 Secure payment powered by Stripe

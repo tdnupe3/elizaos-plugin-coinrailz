@@ -141,16 +141,27 @@ export class AgentDiscoveryService {
    */
   private async initializeRedis(): Promise<void> {
     try {
-      // Use existing Redis connection if available, otherwise create new one
-      const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+      // Only try Redis if explicitly configured with REDIS_URL
+      const redisUrl = process.env.REDIS_URL;
+      
+      if (!redisUrl) {
+        console.log('📝 No REDIS_URL configured - using single process mode');
+        this.redis = null;
+        return;
+      }
+      
       this.redis = new Redis(redisUrl, {
         retryDelayOnFailover: 100,
         maxRetriesPerRequest: 3,
-        lazyConnect: true
+        lazyConnect: true,
+        enableOfflineQueue: false // Prevent queuing commands when disconnected
       });
+      
+      // Test connection silently
+      await this.redis.ping();
       console.log('✅ Redis initialized for distributed discovery locking');
     } catch (error) {
-      console.warn('⚠️ Redis unavailable for distributed locking - single process mode only:', error);
+      console.log('📝 Redis unavailable - using single process mode');
       this.redis = null;
     }
   }

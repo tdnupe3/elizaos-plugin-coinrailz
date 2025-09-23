@@ -21,13 +21,23 @@ export class ScalingCacheService {
    * Initialize Redis for production scaling
    */
   static initializeRedis(redisUrl?: string): void {
-    if (redisUrl || process.env.REDIS_URL) {
+    const configuredRedisUrl = redisUrl || process.env.REDIS_URL;
+    
+    if (configuredRedisUrl) {
       try {
-        this.redis = new Redis(redisUrl || process.env.REDIS_URL!);
+        this.redis = new Redis(configuredRedisUrl, {
+          retryDelayOnFailover: 100,
+          maxRetriesPerRequest: 3,
+          lazyConnect: true,
+          enableOfflineQueue: false
+        });
         console.log('Redis cache initialized for scaling');
       } catch (error) {
-        console.warn('Redis initialization failed, using memory cache:', error);
+        console.log('Redis cache unavailable, using memory cache only');
+        this.redis = null;
       }
+    } else {
+      console.log('No Redis URL configured, using memory cache only');
     }
   }
 
@@ -179,115 +189,3 @@ export class ScalingCacheService {
   }
 }
 
-interface CacheConfig {
-  ttl: number;
-  namespace: string;
-  compression?: boolean;
-}
-
-export class ScalingCacheService {
-  private static memoryCache = new Map<string, { data: any; expires: number }>();
-  private static redis: Redis | null = null;
-
-  /**
-   * Multi-tier cache strategy: Memory -> Redis -> Database
-   */
-  static async get<T>(key: string, config: CacheConfig): Promise<T | null> {
-    const fullKey = `${config.namespace}:${key}`;
-    
-    // Level 1: Memory cache (fastest)
-    const memCached = this.memoryCache.get(fullKey);
-    if (memCached && memCached.expires > Date.now()) {
-      return memCached.data;
-    }
-    
-    // Level 2: Redis cache (if available)
-    if (this.redis) {
-      try {
-        const redisCached = await this.redis.get(fullKey);
-        if (redisCached) {
-          const data = JSON.parse(redisCached);
-          // Populate memory cache
-          this.memoryCache.set(fullKey, {
-            data,
-            expires: Date.now() + config.ttl
-          });
-          return data;
-        }
-      } catch (error) {
-        console.warn('Redis cache miss:', error);
-      }
-    }
-    
-    return null;
-  }
-
-  /**
-   * Set data in all cache levels
-   */
-  static async set<T>(key: string, data: T, config: CacheConfig): Promise<void> {
-    const fullKey = `${config.namespace}:${key}`;
-    const expires = Date.now() + config.ttl;
-    
-    // Level 1: Memory cache
-    this.memoryCache.set(fullKey, { data, expires });
-    
-    // Level 2: Redis cache
-    if (this.redis) {
-      try {
-        await this.redis.setex(fullKey, Math.floor(config.ttl / 1000), JSON.stringify(data));
-      } catch (error) {
-        console.warn('Redis cache set failed:', error);
-      }
-    }
-  }
-
-  /**
-   * Cache frequently accessed data for scaling
-   */
-  static async getCachedUserBalance(userId: string): Promise<any> {
-    return this.get(`user_balance_${userId}`, {
-      ttl: 30000, // 30 seconds
-      namespace: 'balances'
-    });
-  }
-
-  static async setCachedUserBalance(userId: string, balance: any): Promise<void> {
-    return this.set(`user_balance_${userId}`, balance, {
-      ttl: 30000,
-      namespace: 'balances'
-    });
-  }
-
-  /**
-   * Cache AI agent marketplace data
-   */
-  static async getCachedAgentData(agentId: string): Promise<any> {
-    return this.get(`agent_${agentId}`, {
-      ttl: 300000, // 5 minutes
-      namespace: 'agents'
-    });
-  }
-
-  /**
-   * Initialize Redis for production scaling
-   */
-  static initializeRedis(redisUrl?: string): void {
-    if (redisUrl && process.env.NODE_ENV === 'production') {
-      try {
-        this.redis = new Redis(redisUrl);
-        console.log('Redis cache initialized for scaling');
-      } catch (error) {
-        console.warn('Redis initialization failed:', error);
-      }
-    }
-  }
-
-  /**
-   * Clear cache during high memory pressure
-   */
-  static clearMemoryCache(): void {
-    this.memoryCache.clear();
-    console.log('Memory cache cleared for scaling optimization');
-  }
-}

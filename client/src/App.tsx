@@ -548,7 +548,7 @@ function Router() {
         {() => <LazyLoadWrapper><AgentOrderManagement /></LazyLoadWrapper>}
       </Route>
       <Route path="/agent-dashboard">
-        {() => <LazyLoadWrapper><AgentOrderManagement /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><AgentDashboard /></LazyLoadWrapper>}
       </Route>
       <Route path="/my-orders">
         {() => <LazyLoadWrapper><CustomerOrderDashboard /></LazyLoadWrapper>}

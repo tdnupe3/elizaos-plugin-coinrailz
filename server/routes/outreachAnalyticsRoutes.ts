@@ -1,5 +1,11 @@
 /**
- * 📊 EXPERIMENTAL OUTREACH ANALYTICS API ROUTES
+ * 📊 RESEARCH-BACKED OUTREACH ANALYTICS API ROUTES
+ * 
+ * Analytics for 2024-2025 AI agent communication protocols:
+ * - Agent2Agent (A2A) Protocol by Google
+ * - Model Context Protocol (MCP) by Anthropic  
+ * - Agent Communication Protocol (ACP) by IBM
+ * - Direct API discovery methods
  * 
  * Revolutionary analytics endpoints for blockchain-native B2B outreach.
  * Provides real-time conversion tracking, campaign ROI, and channel performance.
@@ -7,6 +13,7 @@
 
 import { Router } from 'express';
 import { outreachAnalytics } from '../services/outreachAnalytics';
+import { researchBackedOutreach } from '../services/researchBackedOutreach';
 
 const router = Router();
 
@@ -300,6 +307,208 @@ router.get('/optimization/suggestions', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Optimization analysis failed'
+    });
+  }
+});
+
+/**
+ * 🔬 RESEARCH-BACKED PROTOCOL ANALYTICS
+ * 
+ * New analytics endpoints for standardized AI agent protocols
+ */
+
+/**
+ * 📊 GET COMPREHENSIVE RESEARCH-BACKED ANALYTICS
+ * 
+ * Returns analytics from all implemented 2024-2025 protocols
+ */
+router.get('/research/comprehensive', async (req, res) => {
+  try {
+    // Get analytics from research-backed outreach service
+    const researchAnalytics = researchBackedOutreach.generateOutreachAnalytics();
+    const activeSessions = researchBackedOutreach.getActiveSessions();
+    
+    const comprehensiveData = {
+      timestamp: new Date().toISOString(),
+      research_protocols: {
+        a2a_protocol: 'ACTIVE - Google Agent2Agent v0.3.0',
+        mcp_protocol: 'ACTIVE - Anthropic Model Context Protocol',
+        acp_protocol: 'ACTIVE - IBM Agent Communication Protocol',
+        direct_api: 'ACTIVE - Direct API discovery fallback'
+      },
+      session_analytics: researchAnalytics,
+      active_sessions: activeSessions.length,
+      protocol_breakdown: {
+        a2a: activeSessions.filter(s => s.protocol === 'a2a').length,
+        mcp: activeSessions.filter(s => s.protocol === 'mcp').length,
+        acp: activeSessions.filter(s => s.protocol === 'acp').length,
+        direct: activeSessions.filter(s => s.protocol === 'direct').length
+      },
+      success_metrics: {
+        total_attempts: researchAnalytics.totalSessions,
+        active_connections: researchAnalytics.statusDistribution.active,
+        completed_negotiations: researchAnalytics.statusDistribution.completed,
+        success_rate: researchAnalytics.totalSessions > 0 
+          ? ((researchAnalytics.statusDistribution.active + researchAnalytics.statusDistribution.completed) / researchAnalytics.totalSessions * 100).toFixed(2) + '%'
+          : '0%'
+      }
+    };
+    
+    res.json({
+      success: true,
+      data: comprehensiveData,
+      message: 'Research-backed protocol analytics - 2024-2025 AI agent standards'
+    });
+    
+  } catch (error) {
+    console.error('❌ Research analytics failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve research analytics'
+    });
+  }
+});
+
+/**
+ * 🎯 GET ACTIVE PROTOCOL SESSIONS
+ * 
+ * Returns real-time sessions across all protocols
+ */
+router.get('/research/sessions', async (req, res) => {
+  try {
+    const activeSessions = researchBackedOutreach.getActiveSessions();
+    
+    const sessionsData = activeSessions.map(session => ({
+      id: session.id,
+      agentName: session.agentName,
+      protocol: session.protocol,
+      status: session.status,
+      discoveryMethod: session.discoveryMethod,
+      duration: Math.round((new Date().getTime() - session.startTime.getTime()) / (1000 * 60)),
+      lastContact: Math.round((new Date().getTime() - session.lastContact.getTime()) / (1000 * 60)),
+      messageCount: session.messages.length,
+      capabilities: session.capabilities
+    }));
+    
+    res.json({
+      success: true,
+      data: {
+        total_sessions: sessionsData.length,
+        sessions: sessionsData,
+        protocols_in_use: [...new Set(sessionsData.map(s => s.protocol))]
+      },
+      message: 'Active research-backed protocol sessions'
+    });
+    
+  } catch (error) {
+    console.error('❌ Session analytics failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve session data'
+    });
+  }
+});
+
+/**
+ * 🚀 TRIGGER RESEARCH-BACKED OUTREACH CAMPAIGN
+ * 
+ * Manually starts comprehensive protocol-based outreach
+ */
+router.post('/research/trigger', async (req, res) => {
+  try {
+    console.log('🚀 Research-backed outreach campaign triggered via API');
+    
+    // Start comprehensive research-backed outreach
+    researchBackedOutreach.executeComprehensiveOutreach().catch(error => {
+      console.error('❌ Research outreach campaign failed:', error);
+    });
+    
+    res.json({
+      success: true,
+      message: 'Research-backed outreach campaign started',
+      protocols: ['A2A', 'MCP', 'ACP', 'Direct API'],
+      phases: [
+        'Phase 1: Internal Platform Agents (37 agents)',
+        'Phase 2: A2A Protocol Discovery',
+        'Phase 3: MCP Discovery',
+        'Phase 4: ACP Discovery', 
+        'Phase 5: Direct API Discovery'
+      ],
+      estimated_duration: '10-15 minutes'
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to trigger research campaign:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start research campaign'
+    });
+  }
+});
+
+/**
+ * 📈 GET PROTOCOL PERFORMANCE COMPARISON
+ * 
+ * Compares effectiveness of different AI agent protocols
+ */
+router.get('/research/protocol-comparison', async (req, res) => {
+  try {
+    const sessions = researchBackedOutreach.getActiveSessions();
+    
+    const protocolStats = {
+      a2a: { attempts: 0, successful: 0, avg_response_time: 0 },
+      mcp: { attempts: 0, successful: 0, avg_response_time: 0 },
+      acp: { attempts: 0, successful: 0, avg_response_time: 0 },
+      direct: { attempts: 0, successful: 0, avg_response_time: 0 }
+    };
+    
+    sessions.forEach(session => {
+      if (protocolStats[session.protocol]) {
+        protocolStats[session.protocol].attempts++;
+        if (['active', 'completed'].includes(session.status)) {
+          protocolStats[session.protocol].successful++;
+        }
+        
+        const responseTime = (session.lastContact.getTime() - session.startTime.getTime()) / (1000 * 60);
+        protocolStats[session.protocol].avg_response_time += responseTime;
+      }
+    });
+    
+    // Calculate averages and success rates
+    Object.keys(protocolStats).forEach(protocol => {
+      const stats = protocolStats[protocol];
+      if (stats.attempts > 0) {
+        stats.avg_response_time = (stats.avg_response_time / stats.attempts).toFixed(1);
+        stats.success_rate = ((stats.successful / stats.attempts) * 100).toFixed(1) + '%';
+      } else {
+        stats.avg_response_time = '0';
+        stats.success_rate = '0%';
+      }
+    });
+    
+    // Find most effective protocol
+    const mostEffective = Object.keys(protocolStats).reduce((best, current) => {
+      const currentSuccessRate = parseFloat(protocolStats[current].success_rate);
+      const bestSuccessRate = parseFloat(protocolStats[best].success_rate);
+      return currentSuccessRate > bestSuccessRate ? current : best;
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        protocol_stats: protocolStats,
+        most_effective_protocol: mostEffective.toUpperCase(),
+        total_protocols_tested: 4,
+        research_period: '2024-2025 Protocol Era'
+      },
+      message: 'AI agent protocol performance comparison'
+    });
+    
+  } catch (error) {
+    console.error('❌ Protocol comparison failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate protocol comparison'
     });
   }
 });

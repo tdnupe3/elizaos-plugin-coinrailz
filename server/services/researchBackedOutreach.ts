@@ -392,30 +392,32 @@ export class ResearchBackedOutreach {
    * Implements multi-protocol discovery and outreach using research-backed methods
    */
   async executeComprehensiveOutreach(): Promise<void> {
-    console.log('🚀 Starting comprehensive research-backed AI agent outreach...');
+    console.log('🚀 Starting REAL EXTERNAL AI agent outreach (NO FAKE INTERNAL SESSIONS)...');
     
     try {
-      // PHASE 1: Internal Platform Agent Discovery
-      await this.discoverInternalAgents();
+      // ❌ DISABLED: Internal Platform Agent Discovery (FAKE SESSIONS)
+      // await this.discoverInternalAgents(); // THIS WAS CREATING FAKE REVENUE SESSIONS
       
-      // PHASE 2: A2A Protocol Discovery
+      console.log('🎯 FOCUSING ON REAL EXTERNAL CUSTOMERS ONLY');
+      
+      // PHASE 2: A2A Protocol Discovery (REAL EXTERNAL)
       await this.implementA2AProtocolDiscovery();
       
-      // PHASE 3: Model Context Protocol Discovery
+      // PHASE 3: Model Context Protocol Discovery (REAL EXTERNAL)
       await this.implementMCPDiscovery();
       
-      // PHASE 4: Agent Communication Protocol (IBM ACP)
+      // PHASE 4: Agent Communication Protocol (IBM ACP) (REAL EXTERNAL)
       await this.implementACPDiscovery();
       
-      // PHASE 5: Direct API Discovery (fallback)
+      // PHASE 5: Direct API Discovery (REAL EXTERNAL)
       await this.implementDirectAPIDiscovery();
       
-      // PHASE 6: Generate comprehensive outreach analytics
+      // PHASE 6: Generate REAL outreach analytics (NO FAKE SESSIONS)
       const analytics = this.generateOutreachAnalytics();
-      console.log('📊 OUTREACH COMPLETE:', analytics);
+      console.log('📊 REAL EXTERNAL OUTREACH COMPLETE:', analytics);
       
     } catch (error) {
-      console.error('❌ Comprehensive outreach failed:', error);
+      console.error('❌ Real external outreach failed:', error);
     }
   }
 

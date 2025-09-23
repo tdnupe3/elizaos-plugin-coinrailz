@@ -767,17 +767,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/', publicMarketplaceRoutes);
   
   // DIRECT ORDER ENDPOINT TEST - Bypass router registration issues
-  app.post('/api/orders/create-direct', (req, res) => {
+  app.post('/api/orders/create-direct', async (req, res) => {
     console.log('🎯 DIRECT ORDER CREATE ENDPOINT HIT!');
     console.log('Method:', req.method, 'Path:', req.path);
     console.log('Body:', req.body);
     
-    res.json({
-      success: true,
-      message: 'Direct order creation endpoint working!',
-      data: req.body,
-      timestamp: new Date().toISOString()
-    });
+    try {
+      const { agentId, serviceTitle, serviceDescription, budget, paymentMethod } = req.body;
+      const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
+      
+      // Calculate platform fee (15% as per business logic)
+      const budgetAmount = parseFloat(budget);
+      const platformFee = budgetAmount * 0.15;
+      const agentAmount = budgetAmount * 0.85;
+      
+      // Create customer ID for direct orders (system customer)
+      const customerId = 'system_customer';
+      
+      console.log(`💾 PERSISTING ORDER TO DATABASE: ${orderId}`);
+      console.log(`Agent: ${agentId}, Amount: $${budgetAmount}, Platform Fee: $${platformFee}`);
+      
+      // Insert into database
+      await db.execute(sql`
+        INSERT INTO ai_marketplace_orders (
+          id, agent_id, customer_id, service_type, amount, agent_commission, 
+          platform_fee, status, payment_method, service_description, 
+          customer_requirements, estimated_delivery_hours, created_at
+        ) VALUES (
+          ${orderId}, ${agentId}, ${customerId}, ${serviceTitle}, 
+          ${budgetAmount}, ${agentAmount}, ${platformFee}, 
+          'pending', ${paymentMethod || 'USDC'}, 
+          ${serviceDescription || 'Direct API order'},
+          '{}', 24, NOW()
+        )
+      `);
+      
+      console.log(`✅ ORDER PERSISTED TO DATABASE: ${orderId} - $${budgetAmount}`);
+      
+      res.json({
+        success: true,
+        message: 'Order created and persisted to database!',
+        orderId: orderId,
+        data: {
+          agentId,
+          serviceTitle,
+          serviceDescription,
+          budget: budgetAmount,
+          platformFee,
+          agentAmount,
+          paymentMethod
+        },
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Failed to persist order:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create order',
+        message: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
   });
 
   // ORDER MANAGEMENT - Complete order lifecycle

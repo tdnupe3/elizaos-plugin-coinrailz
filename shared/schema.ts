@@ -3124,6 +3124,35 @@ export const pumpfunTradeSignals = pgTable("pumpfun_trade_signals", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Verified Solana Wallets - ONLY real wallets with proven on-chain activity
+export const verifiedSolanaWallets = pgTable("verified_solana_wallets", {
+  id: serial("id").primaryKey(),
+  address: varchar("address", { length: 255 }).notNull().unique(),
+  source: varchar("source", { length: 50 }).notNull(), // 'helius_indexer', 'curated_list', 'protocol_labels'
+  entityType: varchar("entity_type", { length: 50 }), // 'protocol_treasury', 'exchange_wallet', 'trader', 'dao_treasury', 'team_multisig'
+  verificationLevel: varchar("verification_level", { length: 20 }).notNull(), // 'indexed', 'official', 'community_verified'
+  labels: text("labels").array().default(sql`ARRAY[]::text[]`), // Human-readable labels from explorers
+  ownerProgram: varchar("owner_program", { length: 255 }).notNull(), // Must be SystemProgram for real wallets
+  isExecutable: boolean("is_executable").default(false), // Must be false for real wallets
+  balanceSOL: decimal("balance_sol", { precision: 15, scale: 6 }).notNull(),
+  txCount30d: integer("tx_count_30d").notNull(), // Transaction count last 30 days
+  dexSwaps30d: integer("dex_swaps_30d").default(0), // DEX swaps last 30 days
+  lastActive: timestamp("last_active").notNull(), // Last transaction time
+  isSignerRate: decimal("is_signer_rate", { precision: 5, 2 }).notNull(), // % of txs where this address is signer
+  reachable: boolean("reachable").default(true), // Safe to send outreach messages
+  excludedReason: text("excluded_reason"), // Why excluded if reachable=false
+  metadata: jsonb("metadata"), // Additional verification data
+  discoveredAt: timestamp("discovered_at").defaultNow().notNull(),
+  verifiedAt: timestamp("verified_at").defaultNow().notNull(),
+  lastCheckedAt: timestamp("last_checked_at").defaultNow().notNull(),
+}, (table) => [
+  index("IDX_verified_wallets_address").on(table.address),
+  index("IDX_verified_wallets_verification_level").on(table.verificationLevel),
+  index("IDX_verified_wallets_entity_type").on(table.entityType),
+  index("IDX_verified_wallets_reachable").on(table.reachable),
+  index("IDX_verified_wallets_last_active").on(table.lastActive),
+]);
+
 // PumpFun Copy Trading Schema Types
 export const pumpfunHftWalletInsertSchema = createInsertSchema(pumpfunHftWallets).omit({
   id: true,
@@ -3175,3 +3204,15 @@ export const transactionProofInsertSchema = createInsertSchema(transactionProofs
 export const transactionProofSelectSchema = createSelectSchema(transactionProofs);
 export type InsertTransactionProof = z.infer<typeof transactionProofInsertSchema>;
 export type SelectTransactionProof = typeof transactionProofs.$inferSelect;
+
+// Verified Solana Wallets Schema Types
+export const verifiedSolanaWalletInsertSchema = createInsertSchema(verifiedSolanaWallets).omit({
+  id: true,
+  discoveredAt: true,
+  verifiedAt: true,
+  lastCheckedAt: true
+});
+
+export const verifiedSolanaWalletSelectSchema = createSelectSchema(verifiedSolanaWallets);
+export type InsertVerifiedSolanaWallet = z.infer<typeof verifiedSolanaWalletInsertSchema>;
+export type SelectVerifiedSolanaWallet = typeof verifiedSolanaWallets.$inferSelect;

@@ -3320,3 +3320,4 @@ export const telegramTradeInsertSchema = createInsertSchema(telegramTrades).omit
 export const telegramTradeSelectSchema = createSelectSchema(telegramTrades);
 export type InsertTelegramTrade = z.infer<typeof telegramTradeInsertSchema>;
 export type SelectTelegramTrade = typeof telegramTrades.$inferSelect;
+

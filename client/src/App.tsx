@@ -147,6 +147,8 @@ const CustomerDashboard = lazy(() => import("@/pages/CustomerDashboard"));
 const EnterpriseOutreach = lazy(() => import("@/pages/EnterpriseOutreach"));
 const OutreachPage = lazy(() => import("@/pages/OutreachPage"));
 const AutoJoinerPage = lazy(() => import("@/pages/AutoJoinerPage"));
+const CryptoJoinerPro = lazy(() => import("@/pages/CryptoJoinerPro"));
+const SubscriptionSuccess = lazy(() => import("@/pages/SubscriptionSuccess"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -686,6 +688,12 @@ function Router() {
       </Route>
       <Route path="/telegram-auto-joiner">
         {() => <LazyLoadWrapper><AutoJoinerPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/crypto-joiner-pro">
+        {() => <LazyLoadWrapper><CryptoJoinerPro /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/subscription-success">
+        {() => <LazyLoadWrapper><SubscriptionSuccess /></LazyLoadWrapper>}
       </Route>
 
       <Route component={NotFound} />

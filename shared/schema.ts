@@ -3242,3 +3242,81 @@ export const outreachApprovalInsertSchema = createInsertSchema(outreachApprovals
 export const outreachApprovalSelectSchema = createSelectSchema(outreachApprovals);
 export type InsertOutreachApproval = z.infer<typeof outreachApprovalInsertSchema>;
 export type SelectOutreachApproval = typeof outreachApprovals.$inferSelect;
+
+// Telegram Trading Bot Tables
+export const telegramUsers = pgTable("telegram_users", {
+  id: serial("id").primaryKey(),
+  chatId: varchar("chat_id", { length: 255 }).notNull().unique(),
+  username: varchar("username", { length: 255 }),
+  subscriptionTier: varchar("subscription_tier", { length: 20 }).default("free"), // free, basic, pro, premium
+  copyTradingEnabled: boolean("copy_trading_enabled").default(false),
+  tradingBalance: decimal("trading_balance", { precision: 18, scale: 9 }).default("0"),
+  totalPnL: decimal("total_pnl", { precision: 18, scale: 9 }).default("0"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastActiveAt: timestamp("last_active_at").defaultNow()
+}, (table) => [
+  index("IDX_telegram_users_chat_id").on(table.chatId),
+  index("IDX_telegram_users_subscription").on(table.subscriptionTier),
+]);
+
+export const userWallets = pgTable("user_wallets", {
+  id: serial("id").primaryKey(),
+  telegramUserId: varchar("telegram_user_id", { length: 255 }).notNull(),
+  address: varchar("address", { length: 255 }).notNull(),
+  privateKey: text("private_key"), // Encrypted in production
+  chain: varchar("chain", { length: 50 }).notNull(), // solana, ethereum, base, etc.
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => [
+  index("IDX_user_wallets_telegram_user").on(table.telegramUserId),
+  index("IDX_user_wallets_address").on(table.address),
+]);
+
+export const telegramTrades = pgTable("telegram_trades", {
+  id: serial("id").primaryKey(),
+  telegramUserId: varchar("telegram_user_id", { length: 255 }).notNull(),
+  tokenMint: varchar("token_mint", { length: 255 }).notNull(),
+  action: varchar("action", { length: 10 }).notNull(), // buy, sell
+  amount: decimal("amount", { precision: 18, scale: 9 }).notNull(),
+  price: decimal("price", { precision: 18, scale: 9 }),
+  slippage: decimal("slippage", { precision: 5, scale: 2 }),
+  fee: decimal("fee", { precision: 18, scale: 9 }),
+  txHash: varchar("tx_hash", { length: 255 }),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, completed, failed
+  pnl: decimal("pnl", { precision: 18, scale: 9 }),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+}, (table) => [
+  index("IDX_telegram_trades_user").on(table.telegramUserId),
+  index("IDX_telegram_trades_status").on(table.status),
+  index("IDX_telegram_trades_created").on(table.createdAt),
+]);
+
+// Telegram Bot Schema Types
+export const telegramUserInsertSchema = createInsertSchema(telegramUsers).omit({
+  id: true,
+  createdAt: true,
+  lastActiveAt: true
+});
+
+export const telegramUserSelectSchema = createSelectSchema(telegramUsers);
+export type InsertTelegramUser = z.infer<typeof telegramUserInsertSchema>;
+export type SelectTelegramUser = typeof telegramUsers.$inferSelect;
+
+export const userWalletInsertSchema = createInsertSchema(userWallets).omit({
+  id: true,
+  createdAt: true
+});
+
+export const userWalletSelectSchema = createSelectSchema(userWallets);
+export type InsertUserWallet = z.infer<typeof userWalletInsertSchema>;
+export type SelectUserWallet = typeof userWallets.$inferSelect;
+
+export const telegramTradeInsertSchema = createInsertSchema(telegramTrades).omit({
+  id: true,
+  createdAt: true
+});
+
+export const telegramTradeSelectSchema = createSelectSchema(telegramTrades);
+export type InsertTelegramTrade = z.infer<typeof telegramTradeInsertSchema>;
+export type SelectTelegramTrade = typeof telegramTrades.$inferSelect;

@@ -68,6 +68,9 @@ import {
   type SelectPumpfunCopyTrade,
   type InsertPumpfunTradeSignal,
   type SelectPumpfunTradeSignal,
+  verifiedSolanaWallets,
+  type InsertVerifiedSolanaWallet,
+  type SelectVerifiedSolanaWallet,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sum, sql, lte, gte, lt } from "drizzle-orm";
@@ -2210,6 +2213,93 @@ export class DatabaseStorage implements IStorage {
 
   async getTransactionProofsByCampaign(campaignId: string): Promise<SelectTransactionProof[]> {
     return await db.select().from(transactionProofs).where(eq(transactionProofs.campaignId, campaignId));
+  }
+
+  // Verified Solana Wallets - ONLY real wallets with proven on-chain activity
+  async createVerifiedSolanaWallet(wallet: InsertVerifiedSolanaWallet): Promise<SelectVerifiedSolanaWallet> {
+    const [result] = await db.insert(verifiedSolanaWallets).values(wallet).returning();
+    return result;
+  }
+
+  async getVerifiedSolanaWallets(filters?: {
+    verificationLevel?: string;
+    entityType?: string;
+    reachable?: boolean;
+    minBalance?: number;
+    minTxCount?: number;
+    activeSince?: Date;
+  }): Promise<SelectVerifiedSolanaWallet[]> {
+    let query = db.select().from(verifiedSolanaWallets);
+    
+    if (filters) {
+      const conditions = [];
+      
+      if (filters.verificationLevel) {
+        conditions.push(eq(verifiedSolanaWallets.verificationLevel, filters.verificationLevel));
+      }
+      if (filters.entityType) {
+        conditions.push(eq(verifiedSolanaWallets.entityType, filters.entityType));
+      }
+      if (filters.reachable !== undefined) {
+        conditions.push(eq(verifiedSolanaWallets.reachable, filters.reachable));
+      }
+      if (filters.minBalance) {
+        conditions.push(gte(verifiedSolanaWallets.balanceSOL, filters.minBalance.toString()));
+      }
+      if (filters.minTxCount) {
+        conditions.push(gte(verifiedSolanaWallets.txCount30d, filters.minTxCount));
+      }
+      if (filters.activeSince) {
+        conditions.push(gte(verifiedSolanaWallets.lastActive, filters.activeSince));
+      }
+      
+      if (conditions.length > 0) {
+        query = query.where(and(...conditions));
+      }
+    }
+    
+    return await query.orderBy(desc(verifiedSolanaWallets.lastActive));
+  }
+
+  async getVerifiedSolanaWalletByAddress(address: string): Promise<SelectVerifiedSolanaWallet | null> {
+    const [wallet] = await db.select().from(verifiedSolanaWallets)
+      .where(eq(verifiedSolanaWallets.address, address))
+      .limit(1);
+    return wallet || null;
+  }
+
+  async getReachableVerifiedWallets(limit: number = 100): Promise<SelectVerifiedSolanaWallet[]> {
+    return await db.select().from(verifiedSolanaWallets)
+      .where(and(
+        eq(verifiedSolanaWallets.reachable, true),
+        eq(verifiedSolanaWallets.ownerProgram, "11111111111111111111111111111112"), // SystemProgram
+        eq(verifiedSolanaWallets.isExecutable, false),
+        gte(verifiedSolanaWallets.balanceSOL, "0.01"), // Minimum 0.01 SOL
+        or(
+          gte(verifiedSolanaWallets.txCount30d, 10),
+          gte(verifiedSolanaWallets.dexSwaps30d, 5)
+        )
+      ))
+      .orderBy(desc(verifiedSolanaWallets.verificationLevel), desc(verifiedSolanaWallets.lastActive))
+      .limit(limit);
+  }
+
+  async updateVerifiedSolanaWallet(address: string, updates: Partial<InsertVerifiedSolanaWallet>): Promise<SelectVerifiedSolanaWallet | null> {
+    const [result] = await db.update(verifiedSolanaWallets)
+      .set({ ...updates, lastCheckedAt: new Date() })
+      .where(eq(verifiedSolanaWallets.address, address))
+      .returning();
+    return result || null;
+  }
+
+  async markWalletUnreachable(address: string, reason: string): Promise<void> {
+    await db.update(verifiedSolanaWallets)
+      .set({ 
+        reachable: false, 
+        excludedReason: reason,
+        lastCheckedAt: new Date()
+      })
+      .where(eq(verifiedSolanaWallets.address, address));
   }
 }
 

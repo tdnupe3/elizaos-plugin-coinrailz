@@ -94,10 +94,11 @@ export default function SDKLanding() {
           <pre className="text-green-400 text-sm overflow-x-auto">
 {`import { createAgentPayments } from '@coinrailz/agent-payments';
 
+// ⚠️ SERVER-SIDE ONLY - DO NOT USE IN CLIENT/BROWSER CODE
 const payments = createAgentPayments({
-  circleApiKey: process.env.CIRCLE_API_KEY,
-  cdpApiKey: process.env.CDP_API_KEY,
-  cdpPrivateKey: process.env.CDP_PRIVATE_KEY
+  circleApiKey: process.env.CIRCLE_API_KEY,      // SERVER ONLY
+  cdpApiKey: process.env.CDP_API_KEY,           // SERVER ONLY
+  cdpPrivateKey: process.env.CDP_PRIVATE_KEY    // SERVER ONLY - CRITICAL!
 });
 
 // Create a payment for your AI service

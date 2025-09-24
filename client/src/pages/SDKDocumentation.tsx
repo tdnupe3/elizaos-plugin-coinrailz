@@ -93,6 +93,7 @@ console.log('Client secret:', payment.clientSecret);
       code: `import { CoinRailzWebhook } from '@coinrailz/payments';
 
 export async function POST(request: Request) {
+  // ⚠️ SERVER-SIDE ONLY - NEVER expose webhook secrets to client
   const webhook = new CoinRailzWebhook(process.env.COINRAILZ_WEBHOOK_SECRET);
   
   try {
@@ -163,7 +164,7 @@ function PaymentForm({ amount }) {
   };
   
   return (
-    <CoinRailzProvider licenseKey={process.env.NEXT_PUBLIC_COINRAILZ_KEY}>
+    <CoinRailzProvider licenseKey={import.meta.env.VITE_COINRAILZ_PUBLIC_KEY}>
       <button 
         onClick={handlePayment}
         disabled={isLoading}

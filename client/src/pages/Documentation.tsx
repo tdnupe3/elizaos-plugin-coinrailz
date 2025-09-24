@@ -206,9 +206,11 @@ yarn add @coinrailz/agent-payments`}
           <div className="bg-gray-900 rounded-lg p-4">
             <pre className="text-green-400 text-sm">
 {`# .env file
-CIRCLE_API_KEY=your_circle_api_key
-CDP_API_KEY_ID=your_cdp_api_key_id
-CDP_PRIVATE_KEY=your_cdp_private_key
+# ⚠️ SERVER-SIDE ENVIRONMENT VARIABLES ONLY
+# NEVER expose these to client/browser code
+CIRCLE_API_KEY=your_circle_api_key         # PRIVATE - SERVER ONLY
+CDP_API_KEY_ID=your_cdp_api_key_id        # PRIVATE - SERVER ONLY  
+CDP_PRIVATE_KEY=your_cdp_private_key      # PRIVATE - SERVER ONLY
 COINRAILZ_SDK_KEY=your_sdk_key`}
             </pre>
           </div>
@@ -224,11 +226,12 @@ COINRAILZ_SDK_KEY=your_sdk_key`}
             <pre className="text-green-400 text-sm overflow-x-auto">
 {`import { createAgentPayments } from '@coinrailz/agent-payments';
 
+// ⚠️ SERVER-SIDE ONLY - DO NOT USE IN CLIENT/BROWSER CODE
 const payments = createAgentPayments({
-  circleApiKey: process.env.CIRCLE_API_KEY,
-  cdpApiKey: process.env.CDP_API_KEY,
-  cdpPrivateKey: process.env.CDP_PRIVATE_KEY,
-  sdkKey: process.env.COINRAILZ_SDK_KEY
+  circleApiKey: process.env.CIRCLE_API_KEY,        // SERVER ONLY
+  cdpApiKey: process.env.CDP_API_KEY,             // SERVER ONLY  
+  cdpPrivateKey: process.env.CDP_PRIVATE_KEY,     // SERVER ONLY - NEVER CLIENT
+  sdkKey: process.env.COINRAILZ_SDK_KEY           // SERVER ONLY
 });
 
 // Create payment for AI service
@@ -367,6 +370,7 @@ function SDKIntegrationSection() {
 {`import OpenAI from 'openai';
 import { createAgentPayments } from '@coinrailz/agent-payments';
 
+// ⚠️ SERVER-SIDE ONLY
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const payments = createAgentPayments({ /* your config */ });
 
@@ -460,10 +464,11 @@ function SDKExamplesSection() {
               <pre className="text-green-400 text-sm overflow-x-auto">
 {`class PremiumAIService {
   constructor() {
+    // ⚠️ SERVER-SIDE ONLY - DO NOT USE IN BROWSER
     this.payments = createAgentPayments({
-      circleApiKey: process.env.CIRCLE_API_KEY,
-      cdpApiKey: process.env.CDP_API_KEY,
-      sdkKey: process.env.COINRAILZ_SDK_KEY
+      circleApiKey: process.env.CIRCLE_API_KEY,   // SERVER ONLY
+      cdpApiKey: process.env.CDP_API_KEY,         // SERVER ONLY
+      sdkKey: process.env.COINRAILZ_SDK_KEY       // SERVER ONLY
     });
   }
   

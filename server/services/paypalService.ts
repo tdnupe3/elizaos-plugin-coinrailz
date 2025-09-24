@@ -1,9 +1,10 @@
 /**
- * PayPal Payment Service
- * Handles PayPal payment processing for the Coin Railz platform
+ * PayPal Payment Service - Enhanced Security Parity
+ * Handles PayPal payment processing with Stripe-equivalent security
  */
 
 import { env } from '../environment';
+import { z } from 'zod';
 
 interface PayPalAccessToken {
   access_token: string;
@@ -11,6 +12,7 @@ interface PayPalAccessToken {
   expires_in: number;
 }
 
+// Enhanced PayPal order interface with metadata support
 interface PayPalOrderRequest {
   intent: 'CAPTURE';
   purchase_units: Array<{
@@ -19,6 +21,7 @@ interface PayPalOrderRequest {
       value: string;
     };
     description?: string;
+    custom_id?: string; // For storing metadata as JSON string
   }>;
   application_context?: {
     return_url?: string;
@@ -27,6 +30,29 @@ interface PayPalOrderRequest {
     user_action?: 'PAY_NOW' | 'CONTINUE';
   };
 }
+
+// Security validation schemas (Stripe parity) - Flexible for backward compatibility
+const createPayPalOrderSchema = z.object({
+  amount: z.number().min(0.01, 'Amount must be greater than 0'),
+  currency: z.string().min(3).max(3, 'Currency must be 3 characters'),
+  orderId: z.string().optional(), // Optional - auto-generated if not provided
+  serviceId: z.string().optional(),
+  platform: z.string().default('coin-railz-marketplace'),
+  description: z.string().optional(),
+  returnUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional()
+});
+
+const paymentMetadataSchema = z.object({
+  orderId: z.string(),
+  serviceId: z.string().optional(),
+  platform: z.string(),
+  timestamp: z.string(),
+  source: z.literal('paypal_service')
+});
+
+type PayPalOrderData = z.infer<typeof createPayPalOrderSchema>;
+type PaymentMetadata = z.infer<typeof paymentMetadataSchema>;
 
 interface PayPalOrder {
   id: string;
@@ -92,27 +118,41 @@ class PayPalService {
     return this.accessToken;
   }
 
-  async createOrder(orderData: {
-    amount: number;
-    currency: string;
-    description?: string;
-    returnUrl?: string;
-    cancelUrl?: string;
-  }): Promise<PayPalOrder> {
+  // Enhanced createOrder with security parity to Stripe - Backward compatible
+  async createOrder(orderData: PayPalOrderData | {amount: number, currency: string, description?: string, returnUrl?: string, cancelUrl?: string}): Promise<PayPalOrder & { metadata: PaymentMetadata }> {
+    // Validate input with Zod schema (Stripe parity)
+    const validatedData = createPayPalOrderSchema.parse(orderData);
+    
+    // Auto-generate orderId if not provided (backward compatibility)
+    const orderId = validatedData.orderId || `paypal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Create secure metadata (Stripe parity)
+    const metadata: PaymentMetadata = {
+      orderId: orderId,
+      serviceId: validatedData.serviceId || 'marketplace_service',
+      platform: validatedData.platform,
+      timestamp: new Date().toISOString(),
+      source: 'paypal_service'
+    };
+
+    // Validate metadata schema
+    paymentMetadataSchema.parse(metadata);
+
     const accessToken = await this.getAccessToken();
 
     const orderRequest: PayPalOrderRequest = {
       intent: 'CAPTURE',
       purchase_units: [{
         amount: {
-          currency_code: orderData.currency.toUpperCase(),
-          value: orderData.amount.toFixed(2),
+          currency_code: validatedData.currency.toUpperCase(),
+          value: validatedData.amount.toFixed(2),
         },
-        description: orderData.description || 'Coin Railz Payment',
+        description: validatedData.description || 'Coin Railz Payment',
+        custom_id: JSON.stringify(metadata), // Store metadata securely
       }],
       application_context: {
-        return_url: orderData.returnUrl || `${env.FRONTEND_URL}/payment/success`,
-        cancel_url: orderData.cancelUrl || `${env.FRONTEND_URL}/payment/cancel`,
+        return_url: validatedData.returnUrl || `${env.FRONTEND_URL}/payment/success`,
+        cancel_url: validatedData.cancelUrl || `${env.FRONTEND_URL}/payment/cancel`,
         brand_name: 'Coin Railz',
         user_action: 'PAY_NOW',
       },
@@ -132,11 +172,26 @@ class PayPalService {
       throw new Error(`PayPal order creation failed: ${response.status} - ${errorData}`);
     }
 
-    return await response.json();
+    const paypalOrder = await response.json();
+    
+    // Return order with metadata for tracking (Stripe parity)
+    return {
+      ...paypalOrder,
+      metadata
+    };
   }
 
-  async captureOrder(orderId: string): Promise<any> {
+  // Enhanced captureOrder with metadata validation (Stripe parity)
+  async captureOrder(orderId: string, expectedMetadata?: Partial<PaymentMetadata>): Promise<any> {
     const accessToken = await this.getAccessToken();
+
+    // First, get order details to validate metadata (replay protection)
+    const orderDetails = await this.getOrder(orderId);
+    
+    if (expectedMetadata) {
+      const orderMetadata = this.extractMetadata(orderDetails);
+      this.validateMetadata(orderMetadata, expectedMetadata);
+    }
 
     const response = await fetch(`${this.baseURL}/v2/checkout/orders/${orderId}/capture`, {
       method: 'POST',
@@ -151,7 +206,60 @@ class PayPalService {
       throw new Error(`PayPal order capture failed: ${response.status} - ${errorData}`);
     }
 
-    return await response.json();
+    const captureResult = await response.json();
+    
+    // Include metadata in capture result for tracking
+    if (orderDetails.purchase_units?.[0]?.custom_id) {
+      try {
+        captureResult.metadata = JSON.parse(orderDetails.purchase_units[0].custom_id);
+      } catch (error) {
+        console.warn('Failed to parse PayPal order metadata:', error);
+      }
+    }
+
+    return captureResult;
+  }
+
+  // Extract and validate metadata from PayPal order (Stripe parity)
+  extractMetadata(paypalOrder: any): PaymentMetadata | null {
+    try {
+      const customId = paypalOrder.purchase_units?.[0]?.custom_id;
+      if (!customId) return null;
+      
+      const metadata = JSON.parse(customId);
+      return paymentMetadataSchema.parse(metadata);
+    } catch (error) {
+      console.warn('Invalid PayPal order metadata:', error);
+      return null;
+    }
+  }
+
+  // Validate metadata for security (replay protection)
+  validateMetadata(actual: PaymentMetadata | null, expected: Partial<PaymentMetadata>): void {
+    if (!actual) {
+      throw new Error('Missing payment metadata - security validation failed');
+    }
+
+    if (expected.orderId && actual.orderId !== expected.orderId) {
+      throw new Error('Order ID mismatch - potential replay attack detected');
+    }
+
+    if (expected.platform && actual.platform !== expected.platform) {
+      throw new Error('Platform mismatch - unauthorized payment attempt detected');
+    }
+
+    if (expected.serviceId && actual.serviceId !== expected.serviceId) {
+      throw new Error('Service ID mismatch - payment validation failed');
+    }
+
+    // Validate timestamp freshness (prevent old payment reuse)
+    const paymentTime = new Date(actual.timestamp);
+    const now = new Date();
+    const hoursDiff = (now.getTime() - paymentTime.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursDiff > 24) {
+      throw new Error('Payment metadata too old - security validation failed');
+    }
   }
 
   async getOrder(orderId: string): Promise<any> {

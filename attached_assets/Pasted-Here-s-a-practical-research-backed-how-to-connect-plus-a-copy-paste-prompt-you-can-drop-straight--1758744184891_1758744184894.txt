@@ -1,0 +1,173 @@
+Here’s a practical, research-backed “how to connect” plus a copy-paste prompt you can drop straight into your Replit agent so it implements A2A discovery + calling remote agents.
+
+How to connect to Google’s A2A protocol (quick guide)
+
+What A2A expects
+
+Discovery: fetch the target agent’s Agent Card at https://<agent-host>/.well-known/agent.json. The card tells you the agent’s base url, protocolVersion, supported input/output modes, capabilities (e.g., streaming), skills, and any auth notes. 
+Google Developers Blog
++1
+
+Transport & format: talk over HTTPS using JSON-RPC 2.0. 
+Google GitHub
+
+RPC methods: the baseline request your client must support is message/send (JSON-RPC method name). Servers can also expose streaming/async task flows and push notifications. 
+Google Codelabs
+
+Server side (if you host one): the Python SDK provides A2AStarletteApplication which auto-serves /.well-known/agent.json and the JSON-RPC POST endpoint. 
+a2aproject.github.io
++1
+
+Samples you can copy: Google’s codelab shows two A2A server agents (Burger & Pizza) on Cloud Run and an ADK client agent orchestrating them; it also shows the exact Agent Card fields and a message/send body. 
+Google Codelabs
+
+Tooling: You can go raw HTTP, or use the A2A SDKs (Python or JS) for discovery + send. 
+GitHub
+
+Auth: many enterprise agents gate the card and/or RPC behind OAuth2/OIDC tokens; A2A leaves auth to standard web mechanisms and your Agent Card can declare the requirement. 
+Google Codelabs
+
+Ecosystem: Google published an upgraded toolkit + marketplace direction for A2A; partners are publishing A2A agents you can call the same way. 
+Google Cloud
+
+Copy-paste prompt for your Replit agent
+
+Paste the block below into your Replit agent. It’s a full spec/task list your agent can execute to add A2A client capabilities (discovery + call), with optional server stubs. It’s language-agnostic but includes concrete I/O, acceptance tests, and env var contracts.
+
+ROLE: Senior AI systems engineer. Implement full client-side support for Google’s Agent-to-Agent (A2A) protocol, plus optional server stubs for local testing. Do NOT be vague. Produce working code, config, and tests.
+
+GOALS:
+1) A2A DISCOVERY
+   - Implement a function discover_agent_card(card_url: str) -> AgentCard that:
+     a) Issues GET {card_url} (e.g., https://host/.well-known/agent.json).
+     b) Supports optional Authorization: Bearer <A2A_TOKEN>.
+     c) Validates required fields: name, description, url, version, protocolVersion, defaultInputModes, defaultOutputModes.
+     d) Parses capabilities (e.g., capabilities.streaming) and skills[] (id, name, description, tags, examples).
+     e) Returns a typed object AgentCard and caches it.
+
+   - Implement discover_from_base(host_url: str) to auto-append /.well-known/agent.json if only a host is provided.
+
+   - ENV:
+     A2A_REMOTE_CARDS = comma-separated list of card URLs or base hosts.
+     A2A_TOKEN = optional bearer token for discovery & calls (some enterprise agents gate the card).
+
+2) A2A CLIENT (JSON-RPC 2.0)
+   - Implement send_message(agent_card: AgentCard, message_text: str, session_id: str = uuid4(), input_mode = "text/plain", extra_params = {}) -> SendResult
+     a) Build a JSON-RPC 2.0 request body:
+        {
+          "id": uuid4(),
+          "jsonrpc": "2.0",
+          "method": "message/send",
+          "params": {
+            "message": message_text,
+            "inputMode": input_mode,
+            "sessionId": session_id,
+            ...extra_params
+          }
+        }
+     b) POST to agent_card.url (use HTTPS). Content-Type: application/json.
+     c) Add Authorization: Bearer <A2A_TOKEN> if present.
+     d) On success, return a structured result:
+        - mode: "sync" | "stream" | "async"
+        - task_id/context_id if returned
+        - artifacts[] (text, file urls, json), and raw payload.
+
+   - Implement optional streaming:
+     If agent_card.capabilities.streaming==true OR response indicates streaming/push:
+       - Support either: (1) HTTP streaming endpoint, or (2) long-poll/poll-by-task-id.
+       - Provide on_chunk callback(stream_event) and on_complete callback.
+
+   - Implement optional push notifications:
+     - If card indicates pushNotifications, expose a local endpoint/webhook (configurable) to receive task state.
+     - Verify notification token if provided by server; correlate by task/context id.
+
+   - ENV (client):
+     A2A_CLIENT_TIMEOUT_MS (default 30000)
+     A2A_WEBHOOK_URL (optional, for push notifications)
+     A2A_LOG_LEVEL = info|debug
+
+3) SKILL-BASED ROUTING
+   - Implement choose_agent_for_task(query_text) that:
+     a) Loads all discovered AgentCards.
+     b) Scores skills by matching query_text against skill.name/description/tags/examples.
+     c) Picks top-1 (or top-k) agent(s) and returns the chosen AgentCard(s).
+
+   - Implement call_skill(query_text) that:
+     a) agent = choose_agent_for_task(query_text)
+     b) send_message(agent, query_text)
+     c) Pretty-print and persist results to ./a2a_runs/<timestamp> with card snapshot + request + response.
+
+4) AUTH & RESILIENCE
+   - Support plain bearer token (A2A_TOKEN).
+   - Provide an OAuth2 Client Credentials hook interface:
+     if A2A_OAUTH2_TOKEN_URL set, fetch token using A2A_CLIENT_ID / A2A_CLIENT_SECRET / A2A_SCOPES and cache with expiry.
+   - Retries: exponential backoff on 5xx and network; no retry on 4xx unless 401->token refresh.
+   - Strict JSON-RPC compliance: include "id" and "jsonrpc":"2.0" in requests; handle error objects.
+
+5) OPTIONAL SERVER (for local test)
+   - Provide a minimal A2A server with:
+     a) GET /.well-known/agent.json serving an AgentCard with:
+        protocolVersion, name, description, url (HOST_OVERRIDE or computed), defaultInputModes=["text","text/plain"], defaultOutputModes=["text","text/plain"], capabilities.streaming=(configurable), and a single demo skill (id="echo_text").
+     b) POST endpoint that accepts JSON-RPC "message/send": returns a Task or a sync result with text artifact echoing the message.
+   - Provide a CLI to run: `a2a-dev-server --port 8080 --streaming=false`.
+
+6) TESTS & ACCEPTANCE
+   - Unit tests: card fetch/validate; JSON-RPC send; token injection; retry logic; routing.
+   - Integration tests:
+     a) Start local server; discover its card; send "hello"; expect echoed artifact and success.
+     b) If env A2A_REMOTE_CARDS is set, iterate remotes and run "what can you do?" then a domain-specific prompt (e.g., “order 2 cheeseburgers”).
+   - Include `curl` examples for manual validation:
+     curl -sS -H "Authorization: Bearer $A2A_TOKEN" -H "Content-Type: application/json" \
+       -d '{"id":"123","jsonrpc":"2.0","method":"message/send","params":{"message":"hello from client","inputMode":"text/plain"}}' \
+       https://YOUR_AGENT_BASE_URL
+
+7) DX & OUTPUTS
+   - Produce a minimal README explaining env vars, how to run the client and optional server, and how to plug this into other agents.
+   - Emit JSON logs with fields: event, agent_name, request_id, task_id, context_id, duration_ms, error.
+
+DELIVERABLES:
+- ./a2a_client/ (library code)
+- ./a2a_server/ (optional local server)
+- ./examples/quickstart.py or quickstart.ts (discovers, routes, sends)
+- ./tests/
+- ./README.md
+- A single command to run local demo and another to call remotes.
+
+ENV VARS SUMMARY:
+- A2A_REMOTE_CARDS="https://host1/.well-known/agent.json,https://host2/.well-known/agent.json"
+- A2A_TOKEN="<optional bearer>"
+- A2A_OAUTH2_TOKEN_URL, A2A_CLIENT_ID, A2A_CLIENT_SECRET, A2A_SCOPES="<space-or-comma-list>"
+- A2A_WEBHOOK_URL="<http(s)://...>"
+- A2A_CLIENT_TIMEOUT_MS="30000"
+- HOST_OVERRIDE="http://localhost:8080" (for server mode)
+
+LANGUAGE/LIBRARY HINTS (choose 1 and implement):
+- Python: install a2a SDK if available; otherwise requests/httpx for JSON-RPC. Provide a Starlette/Uvicorn server for optional server mode.
+- TypeScript/Node: use @a2a-js/sdk for discovery + send; Express for optional webhook/server.
+
+DONE CRITERIA:
+- `npm run a2a:demo` or `python -m examples.quickstart`:
+  -> prints discovered agents, chosen skill, request, and a summarized result.
+  -> creates ./a2a_runs/<timestamp>/* with artifacts.
+  -> passes unit/integration tests.
+
+Why this works (references)
+
+Agent Card & discovery live at /.well-known/agent.json; client uses it to learn the agent’s URL, capabilities, skills, and auth expectations. 
+Google Developers Blog
++1
+
+Payloads are JSON-RPC 2.0 over HTTP(S); the codelab shows the message/send method and describes the task lifecycle and optional streaming/push. 
+Google Codelabs
+
+Python server scaffold: A2AStarletteApplication exposes the card and the JSON-RPC POST handler in one go. 
+a2aproject.github.io
+
+End-to-end sample (Burger/Pizza/Concierge) demonstrates public Cloud Run agents and an ADK client orchestrator; it also shows fixing the Agent Card’s url via HOST_OVERRIDE. 
+Google Codelabs
+
+SDK option: official JS client shows discovery from card URL and sendMessage patterns if you don’t want to hand-roll HTTP. 
+GitHub
+
+Ecosystem direction (toolkit + marketplace) from Google Cloud: A2A is actively maintained and being productized. 
+Google Cloud

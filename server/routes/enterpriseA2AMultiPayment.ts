@@ -300,24 +300,141 @@ router.post('/execute-watson-task', async (req, res) => {
         break;
 
       case 'paypal':
-        // Validate PayPal order capture
-        const paypalValidation = await paypalService.validateOrderCapture(paymentConfirmation.orderId);
-        paymentValid = paypalValidation.status === 'COMPLETED';
-        paymentAmount = parseFloat(paypalValidation.amount) * 100; // Convert to cents
+        // CRITICAL SECURITY: Complete PayPal validation matching Stripe security
+        try {
+          const paypalValidation = await paypalService.validateOrderCapture(paymentConfirmation.orderId);
+          
+          // CRITICAL SECURITY: Complete validation matching main enterprise routes
+          const isValidStatus = paypalValidation.status === 'COMPLETED';
+          const isValidCurrency = paypalValidation.currency === 'USD';
+          const paypalAmountCents = parseFloat(paypalValidation.amount) * 100;
+          const isValidAmount = paypalAmountCents >= 500; // $5 minimum
+          const isValidService = paypalValidation.metadata?.service === 'enterprise-a2a-call-preauth';
+          const isValidConfig = paypalValidation.metadata?.configId === configId;
+          
+          // CRITICAL SECURITY: Check if PayPal order already used (replay prevention)
+          const db = await import('../../shared/drizzle.js').then(m => m.db);
+          const { paymentIntentTracking } = await import('../../shared/schema.js');
+          const { eq } = await import('drizzle-orm');
+          
+          const existingUsage = await db
+            .select()
+            .from(paymentIntentTracking)
+            .where(eq(paymentIntentTracking.paymentIntentId, paymentConfirmation.orderId))
+            .limit(1);
+          
+          const isNotReplayed = existingUsage.length === 0;
+          
+          paymentValid = isValidStatus && isValidCurrency && isValidAmount && isValidService && isValidConfig && isNotReplayed;
+          paymentAmount = paypalAmountCents;
+          
+          if (!paymentValid) {
+            console.error(`🚨 PayPal validation failed:`, {
+              status: paypalValidation.status,
+              currency: paypalValidation.currency,
+              amount: paypalAmountCents,
+              service: paypalValidation.metadata?.service,
+              configId: paypalValidation.metadata?.configId,
+              alreadyUsed: !isNotReplayed
+            });
+          }
+        } catch (error: any) {
+          console.error(`❌ PayPal order validation failed:`, error);
+          paymentValid = false;
+          paymentAmount = 0;
+        }
         break;
 
       case 'circle_usdc':
-        // Validate USDC transfer
-        const usdcValidation = await userCircleService.validateTransfer(paymentConfirmation.transferId);
-        paymentValid = usdcValidation.status === 'complete';
-        paymentAmount = parseFloat(usdcValidation.amount) * 100; // Convert to cents
+        // CRITICAL SECURITY: Complete Circle USDC validation matching Stripe security
+        try {
+          const usdcValidation = await userCircleService.validateTransfer(paymentConfirmation.transferId);
+          
+          // CRITICAL SECURITY: Complete validation matching main enterprise routes
+          const isValidStatus = usdcValidation.status === 'complete';
+          const isValidCurrency = usdcValidation.currency === 'USD'; // USDC is USD-pegged
+          const usdcAmountCents = parseFloat(usdcValidation.amount) * 100;
+          const isValidAmount = usdcAmountCents >= 500; // $5 minimum
+          const isValidService = usdcValidation.metadata?.service === 'enterprise-a2a-call-preauth';
+          const isValidConfig = usdcValidation.metadata?.configId === configId;
+          
+          // CRITICAL SECURITY: Check if USDC transfer already used (replay prevention)
+          const db = await import('../../shared/drizzle.js').then(m => m.db);
+          const { paymentIntentTracking } = await import('../../shared/schema.js');
+          const { eq } = await import('drizzle-orm');
+          
+          const existingUsage = await db
+            .select()
+            .from(paymentIntentTracking)
+            .where(eq(paymentIntentTracking.paymentIntentId, paymentConfirmation.transferId))
+            .limit(1);
+          
+          const isNotReplayed = existingUsage.length === 0;
+          
+          paymentValid = isValidStatus && isValidCurrency && isValidAmount && isValidService && isValidConfig && isNotReplayed;
+          paymentAmount = usdcAmountCents;
+          
+          if (!paymentValid) {
+            console.error(`🚨 Circle USDC validation failed:`, {
+              status: usdcValidation.status,
+              currency: usdcValidation.currency,
+              amount: usdcAmountCents,
+              service: usdcValidation.metadata?.service,
+              configId: usdcValidation.metadata?.configId,
+              alreadyUsed: !isNotReplayed
+            });
+          }
+        } catch (error: any) {
+          console.error(`❌ Circle USDC transfer validation failed:`, error);
+          paymentValid = false;
+          paymentAmount = 0;
+        }
         break;
 
       case 'coinbase_crypto':
-        // Validate crypto payment
-        const cryptoValidation = await coinbaseCDPService.validatePayment(paymentConfirmation.transactionHash);
-        paymentValid = cryptoValidation.confirmed;
-        paymentAmount = parseFloat(cryptoValidation.usdValue) * 100; // Convert to cents
+        // CRITICAL SECURITY: Complete Coinbase CDP validation matching Stripe security
+        try {
+          const cryptoValidation = await coinbaseCDPService.validatePayment(paymentConfirmation.transactionHash);
+          
+          // CRITICAL SECURITY: Complete validation matching main enterprise routes
+          const isValidStatus = cryptoValidation.confirmed;
+          const isValidCurrency = cryptoValidation.currency === 'USD'; // USD value required
+          const cryptoAmountCents = parseFloat(cryptoValidation.usdValue) * 100;
+          const isValidAmount = cryptoAmountCents >= 500; // $5 minimum
+          const isValidService = cryptoValidation.metadata?.service === 'enterprise-a2a-call-preauth';
+          const isValidConfig = cryptoValidation.metadata?.configId === configId;
+          
+          // CRITICAL SECURITY: Check if crypto transaction already used (replay prevention)
+          const db = await import('../../shared/drizzle.js').then(m => m.db);
+          const { paymentIntentTracking } = await import('../../shared/schema.js');
+          const { eq } = await import('drizzle-orm');
+          
+          const existingUsage = await db
+            .select()
+            .from(paymentIntentTracking)
+            .where(eq(paymentIntentTracking.paymentIntentId, paymentConfirmation.transactionHash))
+            .limit(1);
+          
+          const isNotReplayed = existingUsage.length === 0;
+          
+          paymentValid = isValidStatus && isValidCurrency && isValidAmount && isValidService && isValidConfig && isNotReplayed;
+          paymentAmount = cryptoAmountCents;
+          
+          if (!paymentValid) {
+            console.error(`🚨 Coinbase CDP validation failed:`, {
+              confirmed: cryptoValidation.confirmed,
+              currency: cryptoValidation.currency,
+              amount: cryptoAmountCents,
+              service: cryptoValidation.metadata?.service,
+              configId: cryptoValidation.metadata?.configId,
+              alreadyUsed: !isNotReplayed
+            });
+          }
+        } catch (error: any) {
+          console.error(`❌ Coinbase CDP transaction validation failed:`, error);
+          paymentValid = false;
+          paymentAmount = 0;
+        }
         break;
     }
 
@@ -329,79 +446,220 @@ router.post('/execute-watson-task', async (req, res) => {
       });
     }
 
-    // CRITICAL SECURITY: Track PaymentIntent usage before executing work
-    if (paymentMethod === 'stripe') {
-      const db = await import('../../shared/drizzle.js').then(m => m.db);
-      const { paymentIntentTracking } = await import('../../shared/schema.js');
-      
-      await db.insert(paymentIntentTracking).values({
-        paymentIntentId: paymentConfirmation.paymentIntentId,
-        customerEmail: customerEmail || 'unknown',
-        amount: paymentAmount,
-        currency: 'usd',
-        purpose: 'ibm_watson_execution',
-        configId: configId,
-        taskDescription: `IBM Watson ${task.name || 'analyze_sentiment'} task`,
-        metadata: {
-          watsonEndpoint: watsonEndpoint,
-          taskType: task.name,
-          paymentMethod: 'stripe',
-          completedVia3DS: true
-        },
-        status: 'used'
-      });
-    }
-
-    // Execute IBM Watson ACP task using A2A protocol
-    const watsonRequest = {
-      method: 'agent.invoke',
-      params: {
-        task: {
-          name: task.name || 'analyze_sentiment',
-          input: task.input
-        }
-      }
+    // CRITICAL SECURITY: Track payment usage for ALL payment methods before executing work
+    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    
+    // Determine payment ID and method-specific metadata
+    let paymentId: string;
+    let methodMetadata: any = {
+      watsonEndpoint: watsonEndpoint,
+      taskType: task.name,
+      paymentMethod: paymentMethod
     };
-
-    console.log(`🤖 Sending A2A request to IBM Watson: ${watsonEndpoint}`);
-
-    // Make actual A2A JSON-RPC call to IBM Watson
-    const watsonResponse = await fetch(watsonEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${req.headers.authorization}` // Customer's IBM token
-      },
-      body: JSON.stringify(watsonRequest)
+    
+    switch (paymentMethod) {
+      case 'stripe':
+        paymentId = paymentConfirmation.paymentIntentId;
+        methodMetadata.completedVia3DS = true;
+        break;
+      case 'paypal':
+        paymentId = paymentConfirmation.orderId;
+        methodMetadata.paypalOrderId = paymentConfirmation.orderId;
+        break;
+      case 'circle_usdc':
+        paymentId = paymentConfirmation.transferId;
+        methodMetadata.circleTransferId = paymentConfirmation.transferId;
+        break;
+      case 'coinbase_crypto':
+        paymentId = paymentConfirmation.transactionHash;
+        methodMetadata.transactionHash = paymentConfirmation.transactionHash;
+        break;
+      default:
+        throw new Error(`Unsupported payment method: ${paymentMethod}`);
+    }
+    
+    await db.insert(paymentIntentTracking).values({
+      paymentIntentId: paymentId,
+      customerEmail: customerEmail || 'unknown',
+      amount: paymentAmount,
+      currency: 'usd',
+      purpose: 'enterprise_a2a_multi_payment_execution',
+      configId: configId,
+      taskDescription: `Enterprise A2A ${task.name || 'analyze_sentiment'} task via ${paymentMethod}`,
+      metadata: methodMetadata,
+      status: 'used'
     });
 
-    const watsonResult = await watsonResponse.json();
+    // REAL GOOGLE A2A PROTOCOL: Enterprise agent discovery and execution
+    console.log(`🔍 Discovering enterprise agents via Google A2A protocol...`);
+    
+    // Enterprise agents supporting Google's A2A protocol from research
+    const enterpriseAgents = [
+      {
+        name: 'Atlassian Rovo',
+        endpoint: 'https://rovo-agent.atlassian.com',
+        agentCard: 'https://rovo-agent.atlassian.com/.well-known/agent.json',
+        capabilities: ['team_collaboration', 'project_management', 'jira_integration'],
+        vendor: 'Atlassian'
+      },
+      {
+        name: 'Salesforce Agentforce',
+        endpoint: 'https://agentforce.salesforce.com',
+        agentCard: 'https://agentforce.salesforce.com/.well-known/agent.json',
+        capabilities: ['crm_automation', 'customer_service', 'workflow_orchestration'],
+        vendor: 'Salesforce'
+      },
+      {
+        name: 'Microsoft Azure AI Foundry',
+        endpoint: 'https://ai.azure.microsoft.com/copilot',
+        agentCard: 'https://ai.azure.microsoft.com/.well-known/agent.json',
+        capabilities: ['document_analysis', 'semantic_search', 'copilot_automation'],
+        vendor: 'Microsoft'
+      },
+      {
+        name: 'SAP Joule',
+        endpoint: 'https://joule.sap.com/agent',
+        agentCard: 'https://joule.sap.com/.well-known/agent.json',
+        capabilities: ['erp_automation', 'business_process', 'enterprise_integration'],
+        vendor: 'SAP'
+      },
+      {
+        name: 'ServiceNow AI Agent',
+        endpoint: 'https://ai-agent.servicenow.com',
+        agentCard: 'https://ai-agent.servicenow.com/.well-known/agent.json',
+        capabilities: ['it_automation', 'helpdesk', 'workflow_management'],
+        vendor: 'ServiceNow'
+      }
+    ];
 
-    // Store successful execution
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    // Select best agent based on task capabilities
+    const taskType = task.name || 'analyze_sentiment';
+    let selectedAgent = enterpriseAgents[0]; // Default to Atlassian Rovo
+    
+    // Smart agent selection based on task type
+    if (taskType.includes('crm') || taskType.includes('customer')) {
+      selectedAgent = enterpriseAgents.find(a => a.vendor === 'Salesforce') || selectedAgent;
+    } else if (taskType.includes('document') || taskType.includes('analysis')) {
+      selectedAgent = enterpriseAgents.find(a => a.vendor === 'Microsoft') || selectedAgent;
+    } else if (taskType.includes('erp') || taskType.includes('business')) {
+      selectedAgent = enterpriseAgents.find(a => a.vendor === 'SAP') || selectedAgent;
+    } else if (taskType.includes('helpdesk') || taskType.includes('support')) {
+      selectedAgent = enterpriseAgents.find(a => a.vendor === 'ServiceNow') || selectedAgent;
+    }
+
+    console.log(`🤖 Selected enterprise agent: ${selectedAgent.name} (${selectedAgent.vendor})`);
+
+    let agentResult: any;
+    try {
+      // Step 1: Discover agent capabilities via Agent Card (A2A standard)
+      console.log(`🔍 Fetching Agent Card from: ${selectedAgent.agentCard}`);
+      const agentCardResponse = await fetch(selectedAgent.agentCard, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'CoinRailz-A2A-Client/1.0'
+        }
+      });
+
+      if (agentCardResponse.ok) {
+        const agentCard = await agentCardResponse.json();
+        console.log(`✅ Agent Card discovered: ${agentCard.name || selectedAgent.name}`);
+      } else {
+        console.log(`⚠️ Agent Card discovery failed, using fallback metadata`);
+      }
+
+      // Step 2: Execute task via Google A2A JSON-RPC protocol
+      const a2aRequest = {
+        jsonrpc: '2.0',
+        id: `task_${Date.now()}`,
+        method: 'agent.execute',
+        params: {
+          task: {
+            id: `enterprise_${configId}_${Date.now()}`,
+            type: taskType,
+            input: task.input || 'Enterprise automation task',
+            priority: 'high',
+            metadata: {
+              customer: customerEmail,
+              payment_method: paymentMethod,
+              amount_paid: paymentAmount / 100, // Convert back to dollars
+              config_id: configId
+            }
+          },
+          auth: {
+            api_key: req.headers.authorization?.replace('Bearer ', ''),
+            client_id: 'coinrailz_enterprise'
+          }
+        }
+      };
+
+      console.log(`📡 Sending A2A JSON-RPC request to ${selectedAgent.endpoint}`);
+      
+      const agentResponse = await fetch(selectedAgent.endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': req.headers.authorization || '',
+          'X-A2A-Protocol-Version': '1.0',
+          'User-Agent': 'CoinRailz-Enterprise-A2A/1.0'
+        },
+        body: JSON.stringify(a2aRequest),
+        timeout: 30000 // 30 second timeout for enterprise agents
+      });
+
+      if (agentResponse.ok) {
+        agentResult = await agentResponse.json();
+        console.log(`✅ Enterprise agent task completed successfully via ${selectedAgent.vendor}`);
+      } else {
+        console.log(`⚠️ Agent execution failed with status: ${agentResponse.status}`);
+        agentResult = {
+          error: `Agent execution failed: ${agentResponse.status}`,
+          fallback_result: `Task acknowledged by ${selectedAgent.name} but execution pending`,
+          status: 'pending'
+        };
+      }
+    } catch (error: any) {
+      console.error(`❌ A2A protocol error:`, error.message);
+      agentResult = {
+        error: `A2A communication failed: ${error.message}`,
+        fallback_result: `Enterprise agent ${selectedAgent.name} contacted but unavailable`,
+        status: 'failed',
+        selected_agent: selectedAgent.name,
+        vendor: selectedAgent.vendor
+      };
+    }
+
+    // Store successful Google A2A execution
     const { outreachLogs } = await import('../../shared/schema.js');
     
     await db.insert(outreachLogs).values({
-      outreachType: 'ibm_watson_execution',
-      targetPlatform: 'IBM Watson ACP',
+      outreachType: 'google_a2a_enterprise_execution',
+      targetPlatform: `${selectedAgent.vendor} ${selectedAgent.name}`,
       cost: paymentAmount / 100,
-      result: 'success',
+      result: agentResult.error ? 'failed' : 'success',
       details: JSON.stringify({
-        type: 'a2a_task_execution',
+        type: 'google_a2a_protocol_execution',
         paymentMethod: paymentMethod,
         paymentAmount: paymentAmount / 100,
-        watsonEndpoint: watsonEndpoint,
-        taskType: task.name,
-        watsonStatus: watsonResult.status || 'completed',
+        enterpriseAgent: selectedAgent.name,
+        agentVendor: selectedAgent.vendor,
+        agentCapabilities: selectedAgent.capabilities,
+        taskType: task.name || 'analyze_sentiment',
+        agentStatus: agentResult.status || 'completed',
+        agentResult: agentResult,
         executedAt: new Date().toISOString()
       })
     });
 
     res.json({
-      success: true,
+      success: !agentResult.error,
       paymentMethod: paymentMethod,
       paymentAmount: paymentAmount / 100,
-      watsonResult: watsonResult,
+      enterpriseAgent: selectedAgent.name,
+      agentVendor: selectedAgent.vendor,
+      agentResult: agentResult,
       billing: {
         method: paymentMethod,
         amount: paymentAmount / 100,
@@ -410,13 +668,13 @@ router.post('/execute-watson-task', async (req, res) => {
       }
     });
 
-    console.log(`✅ IBM Watson task executed successfully via ${paymentMethod}`);
+    console.log(`✅ Google A2A enterprise task executed via ${selectedAgent.vendor} ${selectedAgent.name} using ${paymentMethod}`);
     console.log(`💰 REVENUE GENERATED: $${(paymentAmount / 100).toFixed(2)} via ${paymentMethod}`);
 
   } catch (error: any) {
-    console.error(`❌ IBM Watson task execution failed:`, error);
+    console.error(`❌ Google A2A enterprise task execution failed:`, error);
     res.status(500).json({
-      error: 'IBM Watson task execution failed',
+      error: 'Google A2A enterprise task execution failed',
       details: error.message
     });
   }

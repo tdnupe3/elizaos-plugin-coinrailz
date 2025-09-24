@@ -546,7 +546,8 @@ app.use('/api/task-boards', taskBoardRoutes);
 
 // === A2A PROTOCOL TESTING & TELEMETRY ===
 import a2aTestingRoutes from './routes/a2aTestingRoutes.js';
-import enterpriseA2ARoutes from './routes/enterpriseA2ARoutes.js';\nimport enterpriseA2AMultiPayment from './routes/enterpriseA2AMultiPayment.js';
+import enterpriseA2ARoutes from './routes/enterpriseA2ARoutes.js';
+import enterpriseA2AMultiPayment from './routes/enterpriseA2AMultiPayment.js';
 app.use('/api/a2a', a2aTestingRoutes);
 
 // === AI AGENT PRODUCT STORE ===
@@ -608,7 +609,8 @@ console.log('✅ Enterprise Outreach routes registered successfully');
 
 // Register Enterprise A2A routes for immediate revenue generation
 console.log('🏢 Registering ENTERPRISE A2A routes for immediate revenue generation...');
-app.use('/api/enterprise-a2a', enterpriseA2ARoutes);\napp.use('/api/enterprise-a2a-multi', enterpriseA2AMultiPayment);
+app.use('/api/enterprise-a2a', enterpriseA2ARoutes);
+app.use('/api/enterprise-a2a-multi', enterpriseA2AMultiPayment);
 console.log('✅ Enterprise A2A routes registered successfully');
 
 // Import and register Monitoring Dashboard routes

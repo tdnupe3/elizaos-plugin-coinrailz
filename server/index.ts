@@ -546,6 +546,7 @@ app.use('/api/task-boards', taskBoardRoutes);
 
 // === A2A PROTOCOL TESTING & TELEMETRY ===
 import a2aTestingRoutes from './routes/a2aTestingRoutes.js';
+import enterpriseA2ARoutes from './routes/enterpriseA2ARoutes.js';
 app.use('/api/a2a', a2aTestingRoutes);
 
 // === AI AGENT PRODUCT STORE ===
@@ -604,6 +605,11 @@ console.log('🌍 Registering GLOBAL REAL OUTREACH routes for additional geograp
 import globalRealOutreachRoutes from './routes/globalRealOutreachRoutes';
 app.use('/api/global', globalRealOutreachRoutes);
 console.log('✅ Enterprise Outreach routes registered successfully');
+
+// Register Enterprise A2A routes for immediate revenue generation
+console.log('🏢 Registering ENTERPRISE A2A routes for immediate revenue generation...');
+app.use('/api/enterprise-a2a', enterpriseA2ARoutes);
+console.log('✅ Enterprise A2A routes registered successfully');
 
 // Import and register Monitoring Dashboard routes
 import monitoringDashboard from './routes/monitoringDashboard';

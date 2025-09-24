@@ -82,7 +82,7 @@ export class A2AFailoverPipeline {
         .from(outreachLogs)
         .where(and(
           eq(outreachLogs.outreachType, 'a2a_protocol'),
-          sql`${outreachLogs.createdAt} > (NOW() - INTERVAL '2 hours')`
+          sql`created_at > NOW() - INTERVAL '2 hours'`
         ))
         .orderBy(desc(outreachLogs.createdAt))
         .limit(50);

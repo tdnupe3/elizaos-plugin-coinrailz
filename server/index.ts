@@ -51,6 +51,7 @@ import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
 import { peezyService } from './services/peezyIntegrationService';
+import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
 import rateLimitImport from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
@@ -549,6 +550,11 @@ import a2aTestingRoutes from './routes/a2aTestingRoutes.js';
 import enterpriseA2ARoutes from './routes/enterpriseA2ARoutes.js';
 import enterpriseA2AMultiPayment from './routes/enterpriseA2AMultiPayment.js';
 app.use('/api/a2a', a2aTestingRoutes);
+
+// === A2A API WRAPPER SERVICE - EXTERNAL APIs AS AGENTS ===
+console.log('🔌 Registering A2A API Wrapper Service - converting external APIs to A2A agents...');
+app.use('/api', a2aWrapperRoutes);
+console.log('✅ A2A API Wrapper routes registered - OpenAI/Anthropic/Cohere now available as A2A agents');
 
 // === AI AGENT PRODUCT STORE ===
 import aiAgentProductRoutes from './routes/aiAgentProductRoutes.js';

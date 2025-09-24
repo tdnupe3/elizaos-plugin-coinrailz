@@ -147,6 +147,45 @@ router.post('/plugin-complete', async (req, res) => {
 
     console.log(`✅ Setup fee PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - installing enterprise config`);
 
+    // CRITICAL SECURITY: Validate PaymentIntent metadata before allowing setup
+    const expectedAmount = 10000; // $100.00 setup fee for enterprise
+    const expectedConfigId = configId;
+
+    if (paymentIntent.amount < expectedAmount) {
+      console.error(`🚨 SETUP PAYMENT VALIDATION FAILURE: Insufficient amount ${paymentIntent.amount} cents, required ${expectedAmount} cents for ${configId}`);
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient payment amount. Enterprise setup requires $${(expectedAmount/100).toFixed(2)} setup fee.`,
+        securityViolation: 'insufficient_setup_payment',
+        paid: paymentIntent.amount / 100,
+        required: expectedAmount / 100
+      });
+    }
+
+    if (!paymentIntent.metadata?.service || paymentIntent.metadata.service !== 'enterprise-a2a-setup') {
+      console.error(`🚨 SETUP PAYMENT VALIDATION FAILURE: Invalid service "${paymentIntent.metadata?.service}", expected "enterprise-a2a-setup" for ${configId}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment service mismatch. This payment cannot be used for enterprise setup.',
+        securityViolation: 'setup_service_mismatch',
+        received: paymentIntent.metadata?.service,
+        expected: 'enterprise-a2a-setup'
+      });
+    }
+
+    if (!paymentIntent.metadata?.configId || paymentIntent.metadata.configId !== expectedConfigId) {
+      console.error(`🚨 SETUP PAYMENT VALIDATION FAILURE: Invalid configId "${paymentIntent.metadata?.configId}", expected "${expectedConfigId}"`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment config mismatch. This payment cannot be used for this enterprise configuration.',
+        securityViolation: 'setup_config_mismatch',
+        received: paymentIntent.metadata?.configId,
+        expected: expectedConfigId
+      });
+    }
+
+    console.log(`🔒 SETUP PAYMENT VALIDATION PASSED: Amount ${paymentIntent.amount}, Purpose ${paymentIntent.metadata.purpose}, Config ${paymentIntent.metadata.configId}`);
+
     // Re-install enterprise configuration with confirmed payment
     const success = await enterpriseA2AAdapter.pluginEnterpriseConfig(configId, config);
     
@@ -494,6 +533,45 @@ router.post('/complete', async (req, res) => {
     }
 
     console.log(`✅ PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - executing enterprise task`);
+
+    // CRITICAL SECURITY: Validate PaymentIntent metadata before allowing work
+    const expectedAmount = 500; // $5.00 minimum for enterprise execution
+    const expectedConfigId = configId;
+
+    if (paymentIntent.amount < expectedAmount) {
+      console.error(`🚨 PAYMENT VALIDATION FAILURE: Insufficient amount ${paymentIntent.amount} cents, required ${expectedAmount} cents for ${configId}`);
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient payment amount. Enterprise execution requires minimum $${(expectedAmount/100).toFixed(2)}.`,
+        securityViolation: 'insufficient_payment',
+        paid: paymentIntent.amount / 100,
+        required: expectedAmount / 100
+      });
+    }
+
+    if (!paymentIntent.metadata?.service || paymentIntent.metadata.service !== 'enterprise-a2a-call-preauth') {
+      console.error(`🚨 PAYMENT VALIDATION FAILURE: Invalid service "${paymentIntent.metadata?.service}", expected "enterprise-a2a-call-preauth" for ${configId}`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment service mismatch. This payment cannot be used for enterprise execution.',
+        securityViolation: 'service_mismatch',
+        received: paymentIntent.metadata?.service,
+        expected: 'enterprise-a2a-call-preauth'
+      });
+    }
+
+    if (!paymentIntent.metadata?.configId || paymentIntent.metadata.configId !== expectedConfigId) {
+      console.error(`🚨 PAYMENT VALIDATION FAILURE: Invalid configId "${paymentIntent.metadata?.configId}", expected "${expectedConfigId}"`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment config mismatch. This payment cannot be used for this enterprise configuration.',
+        securityViolation: 'config_mismatch',
+        received: paymentIntent.metadata?.configId,
+        expected: expectedConfigId
+      });
+    }
+
+    console.log(`🔒 PAYMENT VALIDATION PASSED: Amount ${paymentIntent.amount}, Purpose ${paymentIntent.metadata.purpose}, Config ${paymentIntent.metadata.configId}`);
 
     // SECURITY: Track PaymentIntent usage before executing work
     await db.insert(paymentIntentTracking).values({
@@ -889,6 +967,50 @@ router.post('/batch-complete', async (req, res) => {
     }
 
     console.log(`✅ Batch PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - executing ${tasks.length} tasks`);
+
+    // CRITICAL SECURITY: Validate PaymentIntent metadata before allowing batch work
+    // Use the same pre-authorization logic as batch creation to validate expected amount
+    const estimatedTotalUnits = tasks.reduce((sum, { task }) => 
+      sum + (task.estimatedUnits || 20), 0
+    );
+    const expectedMinAmount = Math.max(1000, Math.min(10000, estimatedTotalUnits * 6)); // Match creation logic
+    const expectedTaskCount = tasks.length;
+
+    if (paymentIntent.amount < expectedMinAmount) {
+      console.error(`🚨 BATCH PAYMENT VALIDATION FAILURE: Insufficient amount ${paymentIntent.amount} cents, required ${expectedMinAmount} cents for ${tasks.length} tasks`);
+      return res.status(400).json({
+        success: false,
+        error: `Insufficient payment amount. Batch execution requires minimum $${(expectedMinAmount/100).toFixed(2)} for ${tasks.length} tasks.`,
+        securityViolation: 'insufficient_batch_payment',
+        paid: paymentIntent.amount / 100,
+        required: expectedMinAmount / 100,
+        taskCount: tasks.length
+      });
+    }
+
+    if (!paymentIntent.metadata?.service || paymentIntent.metadata.service !== 'enterprise-a2a-batch-preauth') {
+      console.error(`🚨 BATCH PAYMENT VALIDATION FAILURE: Invalid service "${paymentIntent.metadata?.service}", expected "enterprise-a2a-batch-preauth" for batch`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment service mismatch. This payment cannot be used for batch enterprise execution.',
+        securityViolation: 'batch_service_mismatch',
+        received: paymentIntent.metadata?.service,
+        expected: 'enterprise-a2a-batch-preauth'
+      });
+    }
+
+    if (!paymentIntent.metadata?.taskCount || parseInt(paymentIntent.metadata.taskCount) !== expectedTaskCount) {
+      console.error(`🚨 BATCH PAYMENT VALIDATION FAILURE: Invalid task count "${paymentIntent.metadata?.taskCount}", expected "${expectedTaskCount}"`);
+      return res.status(400).json({
+        success: false,
+        error: 'Payment task count mismatch. This payment cannot be used for this batch size.',
+        securityViolation: 'batch_task_count_mismatch',
+        received: paymentIntent.metadata?.taskCount,
+        expected: expectedTaskCount
+      });
+    }
+
+    console.log(`🔒 BATCH PAYMENT VALIDATION PASSED: Amount ${paymentIntent.amount}, Purpose ${paymentIntent.metadata.purpose}, Tasks ${paymentIntent.metadata.taskCount}`);
 
     // SECURITY: Track PaymentIntent usage before executing batch work
     await db.insert(paymentIntentTracking).values({

@@ -228,10 +228,10 @@ COINRAILZ_SDK_KEY=your_sdk_key`}
 
 // ⚠️ SERVER-SIDE ONLY - DO NOT USE IN CLIENT/BROWSER CODE
 const payments = createAgentPayments({
-  circleApiKey: process.env.CIRCLE_API_KEY,        // SERVER ONLY
-  cdpApiKey: process.env.CDP_API_KEY,             // SERVER ONLY  
-  cdpPrivateKey: process.env.CDP_PRIVATE_KEY,     // SERVER ONLY - NEVER CLIENT
-  sdkKey: process.env.COINRAILZ_SDK_KEY           // SERVER ONLY
+  circleApiKey: 'your_circle_api_key_here',        // Replace with your Circle API key
+  cdpApiKey: 'your_cdp_api_key_here',             // Replace with your CDP API key  
+  cdpPrivateKey: 'your_cdp_private_key_here',     // Replace with your CDP private key - NEVER CLIENT
+  sdkKey: 'your_coinrailz_sdk_key_here'           // Replace with your SDK key
 });
 
 // Create payment for AI service
@@ -371,7 +371,7 @@ function SDKIntegrationSection() {
 import { createAgentPayments } from '@coinrailz/agent-payments';
 
 // ⚠️ SERVER-SIDE ONLY
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: 'your_openai_api_key_here' });
 const payments = createAgentPayments({ /* your config */ });
 
 class PaidGPTAgent {
@@ -466,9 +466,9 @@ function SDKExamplesSection() {
   constructor() {
     // ⚠️ SERVER-SIDE ONLY - DO NOT USE IN BROWSER
     this.payments = createAgentPayments({
-      circleApiKey: process.env.CIRCLE_API_KEY,   // SERVER ONLY
-      cdpApiKey: process.env.CDP_API_KEY,         // SERVER ONLY
-      sdkKey: process.env.COINRAILZ_SDK_KEY       // SERVER ONLY
+      circleApiKey: 'your_circle_api_key_here',   // Replace with your Circle API key
+      cdpApiKey: 'your_cdp_api_key_here',         // Replace with your CDP API key
+      sdkKey: 'your_coinrailz_sdk_key_here'       // Replace with your SDK key
     });
   }
   
@@ -587,10 +587,10 @@ COINRAILZ_SDK_KEY=test_sdk_key
 
 // Test configuration
 const payments = createAgentPayments({
-  circleApiKey: process.env.CIRCLE_API_KEY,
-  cdpApiKey: process.env.CDP_API_KEY,
-  cdpPrivateKey: process.env.CDP_PRIVATE_KEY,
-  sdkKey: process.env.COINRAILZ_SDK_KEY,
+  circleApiKey: 'test_circle_api_key_sandbox',
+  cdpApiKey: 'test_cdp_api_key_sandbox',
+  cdpPrivateKey: 'test_cdp_private_key_sandbox',
+  sdkKey: 'test_coinrailz_sdk_key',
   testMode: true  // Enables sandbox mode
 });`}
               </pre>

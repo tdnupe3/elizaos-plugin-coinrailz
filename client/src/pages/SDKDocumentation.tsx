@@ -94,7 +94,7 @@ console.log('Client secret:', payment.clientSecret);
 
 export async function POST(request: Request) {
   // ⚠️ SERVER-SIDE ONLY - NEVER expose webhook secrets to client
-  const webhook = new CoinRailzWebhook(process.env.COINRAILZ_WEBHOOK_SECRET);
+  const webhook = new CoinRailzWebhook('your_webhook_secret_here');
   
   try {
     const event = await webhook.verify(request);

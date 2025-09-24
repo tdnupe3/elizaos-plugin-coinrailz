@@ -96,9 +96,9 @@ export default function SDKLanding() {
 
 // ⚠️ SERVER-SIDE ONLY - DO NOT USE IN CLIENT/BROWSER CODE
 const payments = createAgentPayments({
-  circleApiKey: process.env.CIRCLE_API_KEY,      // SERVER ONLY
-  cdpApiKey: process.env.CDP_API_KEY,           // SERVER ONLY
-  cdpPrivateKey: process.env.CDP_PRIVATE_KEY    // SERVER ONLY - CRITICAL!
+  circleApiKey: 'your_circle_api_key_here',      // Replace with your Circle API key
+  cdpApiKey: 'your_cdp_api_key_here',           // Replace with your CDP API key
+  cdpPrivateKey: 'your_cdp_private_key_here'    // Replace with your CDP private key - CRITICAL!
 });
 
 // Create a payment for your AI service

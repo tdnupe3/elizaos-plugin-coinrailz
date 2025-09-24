@@ -13,6 +13,176 @@ import enterpriseA2AAdapter, { EnterpriseConfig, A2ATask } from '../adapters/ent
 const router = Router();
 
 /**
+ * 💳 POST /api/enterprise-a2a/setup-payment
+ * Capture customer payment method using SetupIntent
+ * Required before any enterprise billing can work
+ */
+router.post('/setup-payment', async (req, res) => {
+  try {
+    const { customerEmail, customerName }: { customerEmail: string; customerName?: string } = req.body;
+    
+    if (!customerEmail) {
+      return res.status(400).json({
+        success: false,
+        error: 'customerEmail is required for payment setup'
+      });
+    }
+
+    console.log(`💳 Setting up payment method for: ${customerEmail}`);
+    
+    const stripe = (await import('stripe')).default;
+    const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
+    
+    // Find or create customer
+    let customer;
+    const existingCustomers = await stripeClient.customers.list({
+      email: customerEmail,
+      limit: 1
+    });
+    
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0];
+    } else {
+      customer = await stripeClient.customers.create({
+        email: customerEmail,
+        name: customerName || customerEmail.split('@')[0],
+        description: 'Enterprise A2A API Customer'
+      });
+    }
+    
+    // Create SetupIntent to capture payment method for automated billing
+    const setupIntent = await stripeClient.setupIntents.create({
+      customer: customer.id,
+      payment_method_types: ['card'],
+      usage: 'off_session',
+      metadata: {
+        service: 'enterprise-a2a-setup',
+        customerEmail: customerEmail
+      }
+    });
+    
+    console.log(`✅ SetupIntent created for ${customerEmail}: ${setupIntent.id}`);
+    
+    res.json({
+      success: true,
+      setupIntent: {
+        id: setupIntent.id,
+        client_secret: setupIntent.client_secret,
+        status: setupIntent.status
+      },
+      customer: {
+        id: customer.id,
+        email: customer.email
+      },
+      message: 'Complete payment method setup to enable enterprise billing'
+    });
+    
+  } catch (error: any) {
+    console.error('❌ Payment setup failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * ✅ POST /api/enterprise-a2a/plugin-complete
+ * Complete enterprise setup after 3D Secure authentication for $100 setup fee
+ * Uses existing confirmed PaymentIntent to avoid double charging
+ */
+router.post('/plugin-complete', async (req, res) => {
+  try {
+    const { paymentIntentId, configId, config }: { 
+      paymentIntentId: string;
+      configId: string; 
+      config: EnterpriseConfig;
+    } = req.body;
+    
+    if (!paymentIntentId || !configId || !config) {
+      return res.status(400).json({
+        success: false,
+        error: 'paymentIntentId, configId, and config are required'
+      });
+    }
+
+    console.log(`🔄 Completing enterprise setup with confirmed PaymentIntent: ${paymentIntentId}`);
+    
+    const stripe = (await import('stripe')).default;
+    const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
+    
+    // Retrieve and verify the PaymentIntent is confirmed
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(402).json({
+        success: false,
+        error: `Setup fee PaymentIntent not confirmed. Status: ${paymentIntent.status}`,
+        paymentStatus: paymentIntent.status,
+        clientSecret: paymentIntent.client_secret
+      });
+    }
+
+    console.log(`✅ Setup fee PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - installing enterprise config`);
+
+    // Re-install enterprise configuration with confirmed payment
+    const success = await enterpriseA2AAdapter.pluginEnterpriseConfig(configId, config);
+    
+    if (!success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to install enterprise configuration after payment confirmation'
+      });
+    }
+
+    // Store setup fee billing record
+    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    const { outreachLogs } = await import('../../shared/schema.js');
+    
+    await db.insert(outreachLogs).values({
+      outreachType: 'a2a_billing',
+      targetPlatform: config.platform,
+      cost: 100.00,
+      result: 'success',
+      details: JSON.stringify({
+        type: 'setup_fee_post_3ds',
+        configId,
+        platform: config.platform,
+        stripePaymentIntent: paymentIntent.id,
+        amount: 100.00,
+        paidAt: new Date().toISOString()
+      })
+    });
+
+    console.log(`💰 REAL SETUP REVENUE GENERATED: $100.00 (Confirmed: ${paymentIntent.id})`);
+
+    res.json({
+      success: true,
+      configId,
+      config: {
+        platform: config.platform,
+        credentials: '[REDACTED]'
+      },
+      billing: {
+        setupFee: 100.00,
+        stripePaymentIntent: paymentIntent.id,
+        status: paymentIntent.status,
+        paidAt: new Date().toISOString()
+      },
+      message: 'Enterprise configuration installed successfully after 3D Secure completion',
+      nextSteps: 'Use /api/enterprise-a2a/execute to run billable tasks'
+    });
+    
+  } catch (error: any) {
+    console.error('❌ Setup 3D Secure completion failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 💰 POST /api/enterprise-a2a/plugin-config
  * Allow teams to plug in their enterprise tenant configurations
  * REVENUE: $100 setup fee per enterprise integration (REAL STRIPE BILLING)
@@ -41,6 +211,20 @@ router.post('/plugin-config', async (req, res) => {
       try {
         const stripe = (await import('stripe')).default;
         const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
+        
+        // MANDATORY: Customer email required for all enterprise billing
+        if (!customerEmail) {
+          // Remove configuration since no billing possible
+          enterpriseA2AAdapter.removeConfig(configId);
+          
+          return res.status(402).json({
+            success: false,
+            error: 'Customer email required for $100 setup fee billing',
+            setupRequired: true,
+            setupEndpoint: '/api/enterprise-a2a/setup-payment',
+            requiresPayment: true
+          });
+        }
         
         // Create or retrieve customer
         let customer;
@@ -79,10 +263,59 @@ router.post('/plugin-config', async (req, res) => {
           }
         });
 
-        // MANDATORY: Confirm payment immediately to ensure collection
+        // MANDATORY: Confirm setup fee using customer's stored payment method
+        if (!customer) {
+          return res.status(402).json({
+            success: false,
+            error: 'Customer required for setup fee payment',
+            setupRequired: true,
+            setupEndpoint: '/api/enterprise-a2a/setup-payment'
+          });
+        }
+        
+        // Retrieve customer's default payment method
+        const paymentMethods = await stripeClient.paymentMethods.list({
+          customer: customer.id,
+          type: 'card',
+          limit: 1
+        });
+        
+        if (paymentMethods.data.length === 0) {
+          // Remove the configuration since no payment method available
+          enterpriseA2AAdapter.removeConfig(configId);
+          
+          return res.status(402).json({
+            success: false,
+            error: 'No payment method on file. Please setup payment method first.',
+            setupRequired: true,
+            setupEndpoint: '/api/enterprise-a2a/setup-payment',
+            customerEmail: customerEmail || 'required'
+          });
+        }
+        
         const confirmedPayment = await stripeClient.paymentIntents.confirm(setupFeeCharge.id, {
+          payment_method: paymentMethods.data[0].id,
+          off_session: true, // Use stored payment method for automated billing
           return_url: 'https://coinrailz.com/enterprise/setup-complete'
         });
+
+        if (confirmedPayment.status === 'requires_action') {
+          // Remove the configuration since 3D Secure is needed
+          enterpriseA2AAdapter.removeConfig(configId);
+          
+          return res.status(402).json({
+            success: false,
+            error: 'Setup fee requires additional authentication (3D Secure) - complete authentication first',
+            paymentStatus: confirmedPayment.status,
+            paymentIntentId: confirmedPayment.id,
+            clientSecret: confirmedPayment.client_secret,
+            next_action: confirmedPayment.next_action,
+            requiresAuthentication: true,
+            completionEndpoint: '/api/enterprise-a2a/plugin-complete',
+            configData: { configId, config },
+            instructions: 'Complete 3D Secure authentication, then call /plugin-complete endpoint with paymentIntentId'
+          });
+        }
 
         if (confirmedPayment.status !== 'succeeded') {
           // Remove the configuration since payment failed
@@ -90,7 +323,7 @@ router.post('/plugin-config', async (req, res) => {
           
           return res.status(402).json({
             success: false,
-            error: 'Payment required - setup fee must be paid before configuration',
+            error: 'Setup fee payment failed - configuration cannot proceed',
             paymentStatus: confirmedPayment.status,
             clientSecret: confirmedPayment.client_secret,
             requiresPayment: true
@@ -164,6 +397,126 @@ router.post('/plugin-config', async (req, res) => {
 });
 
 /**
+ * ✅ POST /api/enterprise-a2a/complete
+ * Complete enterprise work after 3D Secure authentication
+ * Uses existing confirmed PaymentIntent to avoid double charging
+ */
+router.post('/complete', async (req, res) => {
+  try {
+    const { paymentIntentId, configId, task }: { 
+      paymentIntentId: string;
+      configId: string; 
+      task: A2ATask;
+    } = req.body;
+    
+    if (!paymentIntentId || !configId || !task) {
+      return res.status(400).json({
+        success: false,
+        error: 'paymentIntentId, configId, and task are required'
+      });
+    }
+
+    console.log(`🔄 Completing enterprise task with confirmed PaymentIntent: ${paymentIntentId}`);
+    
+    const stripe = (await import('stripe')).default;
+    const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
+    
+    // Retrieve and verify the PaymentIntent is confirmed
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(402).json({
+        success: false,
+        error: `PaymentIntent not confirmed. Status: ${paymentIntent.status}`,
+        paymentStatus: paymentIntent.status,
+        clientSecret: paymentIntent.client_secret
+      });
+    }
+
+    console.log(`✅ PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - executing enterprise task`);
+
+    // Execute enterprise task with confirmed payment
+    const result = await enterpriseA2AAdapter.executeTask(configId, task);
+    
+    if (result.success && result.billableUnits) {
+      const actualCharge = result.billableUnits * 0.05;
+      const refundAmount = paymentIntent.amount - Math.round(actualCharge * 100);
+
+      // Refund the difference if any
+      if (refundAmount > 0) {
+        await stripeClient.refunds.create({
+          payment_intent: paymentIntent.id,
+          amount: refundAmount,
+          reason: 'requested_by_customer',
+          metadata: {
+            reason: 'adjust_to_actual_usage_post_3ds',
+            actualCharge: actualCharge.toString(),
+            originalCharge: (paymentIntent.amount / 100).toString()
+          }
+        });
+      }
+
+      // Store success record in database
+      const db = await import('../../shared/drizzle.js').then(m => m.db);
+      const { outreachLogs } = await import('../../shared/schema.js');
+      
+      await db.insert(outreachLogs).values({
+        outreachType: 'a2a_billing',
+        targetPlatform: configId,
+        cost: actualCharge,
+        result: 'success',
+        details: JSON.stringify({
+          type: 'single_api_call_post_3ds',
+          billableUnits: result.billableUnits,
+          stripePaymentIntent: paymentIntent.id,
+          amount: actualCharge,
+          paidAt: new Date().toISOString(),
+          refundAmount: refundAmount > 0 ? refundAmount / 100 : 0
+        })
+      });
+
+      console.log(`💰 REAL REVENUE GENERATED: $${actualCharge.toFixed(2)} (Confirmed: ${paymentIntent.id})`);
+
+      res.json({
+        ...result,
+        billing: {
+          charge: actualCharge,
+          stripePaymentIntent: paymentIntent.id,
+          status: paymentIntent.status,
+          paidAt: new Date().toISOString(),
+          refunded: refundAmount > 0 ? refundAmount / 100 : 0
+        }
+      });
+    } else {
+      // Full refund for failed calls
+      await stripeClient.refunds.create({
+        payment_intent: paymentIntent.id,
+        reason: 'requested_by_customer',
+        metadata: {
+          reason: 'task_execution_failed_post_3ds'
+        }
+      });
+
+      res.json({
+        ...result,
+        billing: {
+          charge: 0,
+          refunded: paymentIntent.amount / 100,
+          reason: 'Task execution failed - full refund issued'
+        }
+      });
+    }
+    
+  } catch (error: any) {
+    console.error('❌ 3D Secure completion failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 💰 POST /api/enterprise-a2a/execute
  * Execute billable A2A task on enterprise agent
  * REVENUE: $0.05 per successful call (REAL STRIPE BILLING)
@@ -222,8 +575,52 @@ router.post('/execute', async (req, res) => {
         }
       });
 
-      // MANDATORY: Confirm pre-authorization before any work
-      const confirmedPreAuth = await stripeClient.paymentIntents.confirm(maxCallCharge.id);
+      // MANDATORY: Confirm pre-authorization using customer's stored payment method
+      if (!customer) {
+        return res.status(402).json({
+          success: false,
+          error: 'Customer required for payment processing',
+          setupRequired: true,
+          setupEndpoint: '/api/enterprise-a2a/setup-payment'
+        });
+      }
+      
+      // Retrieve customer's default payment method
+      const paymentMethods = await stripeClient.paymentMethods.list({
+        customer: customer.id,
+        type: 'card',
+        limit: 1
+      });
+      
+      if (paymentMethods.data.length === 0) {
+        return res.status(402).json({
+          success: false,
+          error: 'No payment method on file. Please setup payment method first.',
+          setupRequired: true,
+          setupEndpoint: '/api/enterprise-a2a/setup-payment',
+          customerEmail: customerEmail || 'required'
+        });
+      }
+      
+      const confirmedPreAuth = await stripeClient.paymentIntents.confirm(maxCallCharge.id, {
+        payment_method: paymentMethods.data[0].id,
+        return_url: 'https://coinrailz.com/billing/success' // Required for 3D Secure
+      });
+
+      if (confirmedPreAuth.status === 'requires_action') {
+        return res.status(402).json({
+          success: false,
+          error: 'Payment requires additional authentication (3D Secure) - complete authentication first',
+          paymentStatus: confirmedPreAuth.status,
+          paymentIntentId: confirmedPreAuth.id,
+          clientSecret: confirmedPreAuth.client_secret,
+          next_action: confirmedPreAuth.next_action,
+          preAuthAmount: preAuthAmount / 100,
+          requiresAuthentication: true,
+          completionEndpoint: '/api/enterprise-a2a/complete',
+          instructions: 'Complete 3D Secure authentication, then call /complete endpoint with paymentIntentId'
+        });
+      }
 
       if (confirmedPreAuth.status !== 'succeeded') {
         return res.status(402).json({
@@ -231,12 +628,12 @@ router.post('/execute', async (req, res) => {
           error: 'Payment pre-authorization failed - no enterprise work will be performed',
           paymentStatus: confirmedPreAuth.status,
           clientSecret: confirmedPreAuth.client_secret,
-          maxCharge: 5.00,
+          preAuthAmount: preAuthAmount / 100,
           requiresPayment: true
         });
       }
 
-      console.log(`✅ Payment pre-authorized ($5.00 max) - executing enterprise task`);
+      console.log(`✅ Payment CAPTURED and CONFIRMED ($${(preAuthAmount/100).toFixed(2)}) - executing enterprise task`);
 
       // ONLY AFTER PAYMENT CONFIRMED: Execute enterprise task
       const result = await enterpriseA2AAdapter.executeTask(configId, task);
@@ -337,6 +734,117 @@ router.post('/execute', async (req, res) => {
 });
 
 /**
+ * ✅ POST /api/enterprise-a2a/batch-complete
+ * Complete batch enterprise work after 3D Secure authentication
+ * Uses existing confirmed PaymentIntent to avoid double charging
+ */
+router.post('/batch-complete', async (req, res) => {
+  try {
+    const { paymentIntentId, tasks }: { 
+      paymentIntentId: string;
+      tasks: Array<{ configId: string; task: A2ATask }>;
+    } = req.body;
+    
+    if (!paymentIntentId || !tasks || !Array.isArray(tasks)) {
+      return res.status(400).json({
+        success: false,
+        error: 'paymentIntentId and tasks array are required'
+      });
+    }
+
+    console.log(`🔄 Completing batch of ${tasks.length} enterprise tasks with confirmed PaymentIntent: ${paymentIntentId}`);
+    
+    const stripe = (await import('stripe')).default;
+    const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
+    
+    // Retrieve and verify the PaymentIntent is confirmed
+    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(402).json({
+        success: false,
+        error: `Batch PaymentIntent not confirmed. Status: ${paymentIntent.status}`,
+        paymentStatus: paymentIntent.status,
+        clientSecret: paymentIntent.client_secret
+      });
+    }
+
+    console.log(`✅ Batch PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - executing ${tasks.length} tasks`);
+
+    // Execute batch tasks with confirmed payment
+    const results = await enterpriseA2AAdapter.executeBatch(tasks);
+    
+    // Calculate actual charges
+    const totalBillableUnits = results.reduce((sum, result) => 
+      sum + (result.success ? result.billableUnits || 0 : 0), 0
+    );
+    const actualCharge = totalBillableUnits * 0.05;
+    const refundAmount = paymentIntent.amount - Math.round(actualCharge * 100);
+
+    // Refund the difference if any
+    if (refundAmount > 0) {
+      await stripeClient.refunds.create({
+        payment_intent: paymentIntent.id,
+        amount: refundAmount,
+        reason: 'requested_by_customer',
+        metadata: {
+          reason: 'adjust_to_actual_batch_usage_post_3ds',
+          actualCharge: actualCharge.toString(),
+          originalCharge: (paymentIntent.amount / 100).toString(),
+          taskCount: tasks.length.toString()
+        }
+      });
+    }
+
+    // Store success record in database
+    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    const { outreachLogs } = await import('../../shared/schema.js');
+    
+    await db.insert(outreachLogs).values({
+      outreachType: 'a2a_billing',
+      targetPlatform: 'batch_enterprise',
+      cost: actualCharge,
+      result: 'success',
+      details: JSON.stringify({
+        type: 'batch_api_calls_post_3ds',
+        taskCount: tasks.length,
+        successfulTasks: results.filter(r => r.success).length,
+        totalBillableUnits,
+        stripePaymentIntent: paymentIntent.id,
+        amount: actualCharge,
+        paidAt: new Date().toISOString(),
+        refundAmount: refundAmount > 0 ? refundAmount / 100 : 0
+      })
+    });
+
+    console.log(`💰 REAL BATCH REVENUE GENERATED: $${actualCharge.toFixed(2)} for ${tasks.length} tasks (Confirmed: ${paymentIntent.id})`);
+
+    res.json({
+      success: true,
+      results,
+      billing: {
+        totalCalls: tasks.length,
+        successfulCalls: results.filter(r => r.success).length,
+        billableUnits: totalBillableUnits,
+        charge: actualCharge,
+        stripePaymentIntent: paymentIntent.id,
+        status: paymentIntent.status,
+        paidAt: new Date().toISOString(),
+        refunded: refundAmount > 0 ? refundAmount / 100 : 0,
+        perCallRate: 0.05
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('❌ Batch 3D Secure completion failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * 💰 POST /api/enterprise-a2a/batch-execute
  * Execute multiple A2A tasks in batch with MANDATORY PRE-AUTHORIZATION
  * REVENUE: $0.05 per successful call, NO FREE WORK ALLOWED
@@ -396,8 +904,53 @@ router.post('/batch-execute', async (req, res) => {
         }
       });
 
-      // MANDATORY: Confirm pre-authorization before any batch work
-      const confirmedPreAuth = await stripeClient.paymentIntents.confirm(batchCharge.id);
+      // MANDATORY: Confirm pre-authorization using customer's stored payment method
+      if (!customer) {
+        return res.status(402).json({
+          success: false,
+          error: 'Customer required for batch payment processing',
+          setupRequired: true,
+          setupEndpoint: '/api/enterprise-a2a/setup-payment'
+        });
+      }
+      
+      // Retrieve customer's default payment method
+      const paymentMethods = await stripeClient.paymentMethods.list({
+        customer: customer.id,
+        type: 'card',
+        limit: 1
+      });
+      
+      if (paymentMethods.data.length === 0) {
+        return res.status(402).json({
+          success: false,
+          error: 'No payment method on file for batch processing. Please setup payment method first.',
+          setupRequired: true,
+          setupEndpoint: '/api/enterprise-a2a/setup-payment',
+          customerEmail: customerEmail || 'required'
+        });
+      }
+      
+      const confirmedPreAuth = await stripeClient.paymentIntents.confirm(batchCharge.id, {
+        payment_method: paymentMethods.data[0].id,
+        return_url: 'https://coinrailz.com/billing/success' // Required for 3D Secure
+      });
+
+      if (confirmedPreAuth.status === 'requires_action') {
+        return res.status(402).json({
+          success: false,
+          error: 'Batch payment requires additional authentication (3D Secure) - complete authentication first',
+          paymentStatus: confirmedPreAuth.status,
+          paymentIntentId: confirmedPreAuth.id,
+          clientSecret: confirmedPreAuth.client_secret,
+          next_action: confirmedPreAuth.next_action,
+          preAuthAmount: preAuthAmount / 100,
+          requiresAuthentication: true,
+          taskCount: tasks.length,
+          completionEndpoint: '/api/enterprise-a2a/batch-complete',
+          instructions: 'Complete 3D Secure authentication, then call /batch-complete endpoint with paymentIntentId'
+        });
+      }
 
       if (confirmedPreAuth.status !== 'succeeded') {
         return res.status(402).json({
@@ -410,7 +963,7 @@ router.post('/batch-execute', async (req, res) => {
         });
       }
 
-      console.log(`✅ Batch payment pre-authorized ($${(preAuthAmount/100).toFixed(2)}) - executing ${tasks.length} tasks`);
+      console.log(`✅ Batch payment CAPTURED and CONFIRMED ($${(preAuthAmount/100).toFixed(2)}) - executing ${tasks.length} tasks`);
 
       // ONLY AFTER PAYMENT CONFIRMED: Execute batch tasks
       const results = await enterpriseA2AAdapter.executeBatch(tasks);

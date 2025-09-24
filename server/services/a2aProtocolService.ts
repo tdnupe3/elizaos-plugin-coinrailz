@@ -258,18 +258,18 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     }
   }
 
-  // Generate multiple possible task endpoints for agent
+  // Generate A2A-compliant task endpoints based on official protocol specification
   private generateTaskEndpoints(baseUrl: string): string[] {
+    // Official A2A Protocol endpoints (based on Google documentation)
     const endpoints = [
-      '/api/a2a/task',      // Standard A2A
-      '/a2a/task',          // Short path
-      '/a2a/execute',       // Alternative naming
-      '/api/task',          // Generic API
-      '/task',              // Simple path  
-      '/rpc',               // JSON-RPC
-      '/jsonrpc',           // JSON-RPC alternative
-      '/api/v1/task',       // Versioned API
-      '/execute'            // Direct execution
+      '/tasks/send',        // ✅ Official A2A protocol endpoint
+      '/.well-known/tasks', // ✅ Alternative A2A discovery
+      '/api/a2a/tasks',     // ✅ Namespaced A2A
+      '/a2a/tasks',         // ✅ Short A2A path
+      '/tasks',             // ✅ Generic tasks endpoint
+      // Legacy fallbacks for compatibility
+      '/api/task',          // REST fallback
+      '/execute'            // Direct execution fallback
     ];
     
     return endpoints.map(endpoint => `${baseUrl.replace(/\/$/, '')}${endpoint}`);
@@ -370,35 +370,8 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       this.tasks.set(taskId, task);
 
       for (const endpoint of endpoints) {
-        // 🎯 ADAPTIVE PROTOCOL NEGOTIATION - Try multiple request formats per endpoint
-        const protocols = [
-          // JSON-RPC 2.0 format
-          {
-            name: 'JSON-RPC',
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(rpcRequest)
-          },
-          // REST format
-          {
-            name: 'REST',
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              description: taskDescription,
-              parameters: parameters,
-              task_id: taskId,
-              urgency: parameters.urgency_level
-            })
-          },
-          // Simple GET for execute endpoints
-          endpoint.includes('/execute') ? {
-            name: 'GET',
-            method: 'GET',
-            headers: {},
-            query: `?task=${encodeURIComponent(taskDescription)}&urgency=${parameters.urgency_level}`
-          } : null
-        ].filter(Boolean);
+        // 🎯 A2A PROTOCOL COMPLIANT NEGOTIATION - Follow Google A2A specification
+        const protocols = this.getA2ACompliantProtocols(endpoint, taskDescription, taskId, parameters, rpcRequest);
 
         for (const protocol of protocols) {
           try {
@@ -472,6 +445,66 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       console.log(`❌ A2A: Failed to send task to ${agentUrl}:`, error);
       return null;
     }
+  }
+
+  // Get A2A-compliant protocol configurations based on endpoint type
+  private getA2ACompliantProtocols(endpoint: string, taskDescription: string, taskId: string, parameters: any, rpcRequest: any): any[] {
+    const protocols = [];
+    
+    // For official A2A /tasks/send endpoint - use POST with JSON-RPC
+    if (endpoint.includes('/tasks/send') || endpoint.includes('/tasks')) {
+      protocols.push({
+        name: 'A2A-Standard',
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method: 'tasks.send', 
+          params: {
+            task: {
+              id: taskId,
+              description: taskDescription,
+              parameters: parameters,
+              priority: parameters.urgency_level || 'high'
+            }
+          },
+          id: taskId
+        })
+      });
+    }
+
+    // For /execute endpoints - use POST with simple payload
+    if (endpoint.includes('/execute')) {
+      protocols.push({
+        name: 'Execute-POST',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'execute',
+          task: taskDescription,
+          parameters: parameters,
+          task_id: taskId
+        })
+      });
+    }
+
+    // Generic REST fallback for any endpoint
+    protocols.push({
+      name: 'REST-Fallback',
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        description: taskDescription,
+        parameters: parameters,
+        task_id: taskId,
+        urgency: parameters.urgency_level
+      })
+    });
+
+    return protocols;
   }
 
   // Mass agent discovery and task execution

@@ -7,7 +7,7 @@
  */
 
 import { A2AAPIWrapperService } from './a2aAPIWrapperService.js';
-import { ProviderCapabilityService } from './providerCapabilityService.js';
+import { ProviderCapabilityService } from './providerCapabilityService.js';\nimport { storage } from '../storage.js';
 
 interface PaidSlackAction {
   action_id: string;
@@ -165,7 +165,7 @@ export class FastRevenueService {
 
       // Record successful revenue transaction
       const transactionId = `slk_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      this.recordRevenue(action.price_usd, transactionId, customerEmail, 'slack_actions');
+      await this.recordRevenue(action.price_usd, transactionId, customerEmail, 'slack_actions');
 
       return {
         result: {
@@ -516,7 +516,7 @@ export class FastRevenueService {
   /**
    * 💰 Record Revenue Transaction (Enhanced with Persistence)
    */
-  private recordRevenue(amount: number, transactionId: string, userId: string): void {
+  private recordRevenue(amount: number, transactionId: string, userId: string, service: string = 'fast_revenue'): void {
     this.revenueGenerated += amount;
     this.transactionCount += 1;
     

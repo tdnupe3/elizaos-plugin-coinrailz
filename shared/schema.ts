@@ -3412,3 +3412,134 @@ export const paymentIntentTrackingSelectSchema = createSelectSchema(paymentInten
 export type InsertPaymentIntentTracking = z.infer<typeof paymentIntentTrackingInsertSchema>;
 export type SelectPaymentIntentTracking = typeof paymentIntentTracking.$inferSelect;
 
+// Fast Revenue Service Tables - Real database persistence for immediate revenue generation
+
+// Revenue Records - Replaces in-memory revenueRecords array
+export const fastRevenueRecords = pgTable(
+  "fast_revenue_records",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    timestamp: timestamp("timestamp").defaultNow().notNull(),
+    service: varchar("service").notNull(), // slack_action, webhook_report, a2a_message, credit_purchase
+    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+    currency: varchar("currency").default("USD").notNull(),
+    userId: varchar("user_id"),
+    metadata: jsonb("metadata"), // Additional service-specific data
+    stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+    paymentStatus: varchar("payment_status").default("pending"), // pending, completed, failed, refunded
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_fast_revenue_service").on(table.service),
+    index("IDX_fast_revenue_user").on(table.userId),
+    index("IDX_fast_revenue_timestamp").on(table.timestamp),
+    index("IDX_fast_revenue_status").on(table.paymentStatus),
+  ],
+);
+
+// Premium Credits - Replaces in-memory premiumCredits Map
+export const fastPremiumCredits = pgTable(
+  "fast_premium_credits",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: varchar("user_id").notNull(),
+    credits: decimal("credits", { precision: 8, scale: 2 }).notNull(),
+    tier: varchar("tier").default("basic").notNull(), // basic, premium, enterprise
+    pricePerCredit: decimal("price_per_credit", { precision: 6, scale: 4 }).notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+    purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
+    purchaseTransactionId: varchar("purchase_transaction_id"), // Link to revenue record
+    remainingCredits: decimal("remaining_credits", { precision: 8, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_premium_credits_user").on(table.userId),
+    index("IDX_premium_credits_tier").on(table.tier),
+    index("IDX_premium_credits_expires").on(table.expiresAt),
+    uniqueIndex("IDX_premium_credits_purchase").on(table.purchaseTransactionId),
+  ],
+);
+
+// Credit Usage Log - Track when credits are spent
+export const fastCreditUsage = pgTable(
+  "fast_credit_usage",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    userId: varchar("user_id").notNull(),
+    creditPackageId: varchar("credit_package_id").notNull(), // Foreign key to fastPremiumCredits
+    creditsSpent: decimal("credits_spent", { precision: 8, scale: 2 }).notNull(),
+    service: varchar("service").notNull(), // a2a_message, slack_action, webhook_report
+    serviceDetails: jsonb("service_details"), // Specific action or request details
+    usedAt: timestamp("used_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_credit_usage_user").on(table.userId),
+    index("IDX_credit_usage_package").on(table.creditPackageId),
+    index("IDX_credit_usage_service").on(table.service),
+    index("IDX_credit_usage_date").on(table.usedAt),
+  ],
+);
+
+// Relations for fast revenue tables
+export const fastRevenueRecordsRelations = relations(fastRevenueRecords, ({ one }) => ({
+  user: one(users, {
+    fields: [fastRevenueRecords.userId],
+    references: [users.id],
+  }),
+}));
+
+export const fastPremiumCreditsRelations = relations(fastPremiumCredits, ({ one, many }) => ({
+  user: one(users, {
+    fields: [fastPremiumCredits.userId],
+    references: [users.id],
+  }),
+  usageLog: many(fastCreditUsage),
+}));
+
+export const fastCreditUsageRelations = relations(fastCreditUsage, ({ one }) => ({
+  user: one(users, {
+    fields: [fastCreditUsage.userId],
+    references: [users.id],
+  }),
+  creditPackage: one(fastPremiumCredits, {
+    fields: [fastCreditUsage.creditPackageId],
+    references: [fastPremiumCredits.id],
+  }),
+}));
+
+// Zod schemas for fast revenue tables
+export const fastRevenueRecordsInsertSchema = createInsertSchema(fastRevenueRecords).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const fastRevenueRecordsSelectSchema = createSelectSchema(fastRevenueRecords);
+
+export const fastPremiumCreditsInsertSchema = createInsertSchema(fastPremiumCredits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const fastPremiumCreditsSelectSchema = createSelectSchema(fastPremiumCredits);
+
+export const fastCreditUsageInsertSchema = createInsertSchema(fastCreditUsage).omit({
+  id: true,
+  usedAt: true,
+});
+
+export const fastCreditUsageSelectSchema = createSelectSchema(fastCreditUsage);
+
+// Types for fast revenue persistence
+export type FastRevenueRecord = typeof fastRevenueRecords.$inferSelect;
+export type InsertFastRevenueRecord = z.infer<typeof fastRevenueRecordsInsertSchema>;
+
+export type FastPremiumCredit = typeof fastPremiumCredits.$inferSelect;
+export type InsertFastPremiumCredit = z.infer<typeof fastPremiumCreditsInsertSchema>;
+
+export type FastCreditUsage = typeof fastCreditUsage.$inferSelect;
+export type InsertFastCreditUsage = z.infer<typeof fastCreditUsageInsertSchema>;
+

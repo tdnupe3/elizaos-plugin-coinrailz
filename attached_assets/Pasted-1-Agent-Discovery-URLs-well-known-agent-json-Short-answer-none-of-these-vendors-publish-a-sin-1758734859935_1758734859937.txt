@@ -1,0 +1,264 @@
+1) Agent Discovery URLs (/.well-known/agent.json)
+
+Short answer: none of these vendors publish a single global, public /.well-known/agent.json for their platforms. In A2A, the Agent Card is usually hosted per agent / per tenant domain (or in a private catalog/marketplace), not at a universal vendor URL. The A2A spec and tutorials confirm that discovery happens at https://<agent-host>/.well-known/agent.json, with Linux Foundation stewardship of the well-known path, but don’t provide vendor-wide URLs. 
+Google Developers Blog
++2
+GitHub
++2
+
+What this means for each:
+
+Salesforce Agentforce – Expect your org’s “My Domain” to host agent resources (and, if exposed, its agent card). Salesforce Agentforce API docs explicitly refer to My Domain URL for API calls and auth tokens; there is no public, vendor-wide /.well-known/agent.json. Pattern (illustrative):
+https://<my-domain>.my.salesforce.com/.well-known/agent.json (if your org exposes it). 
+Salesforce Developers
++1
+
+Microsoft Copilot Studio / Azure AI Foundry – Microsoft says Copilot Studio agents can invoke external A2A agents; discovery is per deployed agent/app (tenant resource). There isn’t a Microsoft-wide public card. Pattern is your deployed app’s host:
+https://<your-agent-host>/.well-known/agent.json. 
+Microsoft
++2
+Microsoft for Developers
++2
+
+SAP Joule – SAP confirms A2A and Agent Cards; cards are exposed by each agent server (commonly on your SAP BTP route/host). No global SAP card. Pattern:
+https://<your-btp-app-host>/.well-known/agent.json. 
+SAP Community
+
+Box AI Enhanced Extract Agent – Box describes A2A support and agent capabilities, but does not publish a public card. Any Agent Card would be behind a Box enterprise tenant or a customer-deployed endpoint that fronts Box capabilities. Pattern (if an org publishes one):
+https://<customer-hosted-agent>/.well-known/agent.json. 
+Google Cloud
++1
+
+Why you won’t find public links: A2A discovery is decentralized; most enterprise agents are tenant-scoped and often require auth just to fetch their card. The well-known path itself is standardized and registered (Linux Foundation / a2aproject). 
+GitHub
+
+2) Authentication Requirements (OAuth2 / API keys)
+
+TL;DR: All four lean on their existing enterprise auth stacks. You’ll obtain OAuth2 access tokens (or similar) in your tenant, then call the agent endpoint (and sometimes even to read the card).
+
+Salesforce Agentforce
+Auth model: OAuth 2.0 via Connected App → Create a Token (client ID/secret + domain). All Agentforce Agent API calls require a bearer token. Docs show using My Domain and generating access tokens. 
+Salesforce Developers
++2
+Salesforce Developers
++2
+
+Partner/public? Salesforce has partner programs; many features are enterprise-licensed. 
+Salesforce
+
+Microsoft Copilot Studio / Azure AI Foundry
+Auth model: Microsoft Entra ID (Azure AD) OAuth2. Copilot Studio lets you configure user or client-credential sign-in; Azure AI Foundry projects are tenant resources secured by Entra (and/or service principals). 
+Microsoft Learn
++2
+Microsoft Learn
++2
+
+Partner/public? Generally Azure subscription and tenant auth; public “open” cards are uncommon. 
+Microsoft Azure
+
+SAP Joule (on SAP BTP)
+Auth model: XSUAA (SAP Authorization & Trust Management) issuing OAuth2 JWTs. Joule/BTP apps typically require XSUAA-issued tokens; trust is configured in the subaccount. 
+SAP Help Portal
++2
+SAP Learning
++2
+
+Partner/public? Enterprise BTP tenants; access is through SAP licensing. 
+SAP
+
+Box AI Enhanced Extract Agent
+Auth model: Box OAuth 2.0 (client ID/secret; JWT app or standard OAuth). Any agent that fronts Box content will typically require Box OAuth to act on files, and may also require your app’s auth to even fetch the agent card. 
+developer.box.com
+
+Partner/public? Box AI Agents are tied to Box enterprise plans; no public anonymous endpoint. 
+Box
++1
+
+Security note: In A2A, the Agent Card itself can declare auth needs (e.g., “Authorization: Bearer …”). Many enterprise agents don’t expose their card or endpoint without a token—fully consistent with the spec. 
+gravitee.io
+
+3) Public vs. Partner Access (and demos/sandboxes)
+
+Salesforce Agentforce – Enterprise/partner access. You need a Salesforce org with Agentforce enabled. Most real agents are not publicly callable; they’re scoped to the tenant. No official public sandbox /.well-known/agent.json for Agentforce. (Salesforce does have sandboxes/dev orgs, but your agents and cards live under your My Domain.) 
+Salesforce Developers
++1
+
+Microsoft Copilot Studio / Azure AI Foundry – Tenant resources; you deploy agents into your Azure subscription; Copilot Studio can call external A2A agents. Microsoft provides tutorials and labs for connecting A2A agents, but those run under your hostnames. No global public agent endpoints. 
+Microsoft
++1
+
+SAP Joule – Enterprise only (SAP subscriptions). A2A is part of Joule/BTP orchestration; no public Joule agent card; you’ll host/route your agent services in BTP. 
+SAP Learning
+
+Box AI Enhanced Extract Agent – Enterprise Box accounts. Announced and documented, but access is inside Box environments or via an org-deployed integration; no public demo endpoint published. 
+Google Cloud
++1
+
+Who does have public demos?
+
+A2A codelabs/samples (e.g., “Purchasing Concierge”) publish example /.well-known/agent.json for sample agents you deploy. Great for testing—just not vendor production agents. 
+Google Codelabs
+
+Community and framework demos (LangGraph, crewAI, etc.) often host public sample cards; vendors above generally don’t. (Background/spec references confirm per-agent hosting.) 
+Medium
+
+4) Official A2A Integration Docs (by platform)
+
+Microsoft (Azure AI Foundry / Copilot Studio)
+
+Microsoft Cloud blog: “Empowering multi-agent apps with the open A2A protocol” (overview + Copilot Studio can invoke external agents). 
+Microsoft
+
+Azure AI Foundry site & pricing: general docs and product page. 
+Microsoft Learn
++1
+
+Foundry blog (engineering): A2A .NET SDK posts + guidance integrating with Semantic Kernel. 
+Microsoft for Developers
++1
+
+Microsoft Learning lab: Connect to remote agents with A2A (step-by-step). 
+Microsoft Learning
+
+Salesforce Agentforce
+
+Salesforce blog on Agent interoperability & A2A. 
+Salesforce
+
+Agentforce developer docs (Agent API: auth/get started, examples). 
+Salesforce Developers
++1
+
+Agentforce product page / pricing overview. 
+Salesforce
++1
+
+PayPal Commerce Agents (Agent Toolkit)
+
+PayPal Agent Toolkit site (blog/GitHub/docs hub). 
+PayPal AI
+
+Quickstart / developer blog docs for the toolkit. 
+PayPal Developer
++2
+PayPal Developer
++2
+
+PayPal + agent payments protocol (AP2) for agent-driven payments (context for A2A commerce hand-offs). 
+PayPal Developer
+
+Box & SAP also have relevant write-ups: Google Cloud’s customer story on Box AI agents with A2A, and SAP learning/course materials describing Joule’s A2A orchestration. 
+Google Cloud
++1
+
+5) Fee Structures (agent-to-agent costs, licensing)
+
+There is no protocol fee for A2A itself. Costs come from the platforms you’re running on and the models/APIs your agents use:
+
+Microsoft Azure AI Foundry / Copilot Studio
+
+Foundry portal is free to explore; you pay per underlying service (models, storage, orchestrations, etc.). A2A usage is not billed separately; it’s part of your apps’ normal resource consumption. 
+Microsoft Azure
++1
+
+Salesforce Agentforce
+
+Offers flexible pricing (conversation-based, “Flex Credits,” or per-user licensing). No separate line item for “A2A calls”; it’s part of the Agentforce SKUs. Exact numbers require sales; press/blogs note evolving pricing. 
+Salesforce
++1
+
+SAP Joule (SAP Business AI)
+
+SAP uses AI Units / entitlements across products; Joule pricing is handled via SAP sales (no public per-A2A fee). Third-party coverage mentions AI units pricing; official pages route you to sales. 
+SAP
++2
+SAP
++2
+
+Box AI Enhanced Extract Agent
+
+Available under Box enterprise plans (Box AI/Extract offerings). Pricing is plan-based; no separate A2A fee published. See Box pricing and investor/product posts for positioning. 
+Box
++1
+
+PayPal Agent Toolkit
+
+Toolkit/docs are public; commerce actions incur standard PayPal API/merchant fees (e.g., transaction fees). AP2 is about safe agent-driven payments, not a separate fee schedule. 
+PayPal AI
++1
+
+Practical “How-To” (contacting these agents from your agent)
+
+Find the host (tenant/app domain) for the target agent.
+
+Fetch Agent Card (if accessible) at /.well-known/agent.json. Be prepared to send Authorization: Bearer <token>. (Some enterprise cards are gated.) 
+gravitee.io
+
+Obtain OAuth2 token for that tenant:
+
+Salesforce: Connected App → “Create a Token” flow; use My Domain in token endpoint. 
+Salesforce Developers
++1
+
+Microsoft: Entra ID app registration / client credentials or user auth for Copilot Studio. 
+Microsoft Learn
++1
+
+SAP: Configure XSUAA on BTP subaccount/app; request token with proper scopes. 
+SAP Help Portal
+
+Box: Standard OAuth2 / JWT app credentials for Box API access. 
+developer.box.com
+
+Invoke via A2A JSON-RPC (agent.invoke, agent.task.subscribe, etc.) using the endpoint and capabilities declared in the card. (Spec/tutorials cover the method names, streaming, artifacts.) 
+Google Developers Blog
++1
+
+Quick answers (copy-paste friendly)
+
+Do Salesforce/Microsoft/SAP/Box have public /.well-known/agent.json?
+No—they’re tenant/app specific; use your org/app host. 
+Google Developers Blog
+
+Exact auth?
+Salesforce: OAuth2 via Connected App token (“Create a Token”), My Domain. 
+Salesforce Developers
+
+Microsoft: Entra ID (OAuth2) for Copilot Studio/Foundry resources. 
+Microsoft Learn
+
+SAP: XSUAA (OAuth2 JWT) on BTP. 
+SAP Help Portal
+
+Box: Box OAuth2 / JWT app. 
+developer.box.com
+
+Public vs partner? Mostly enterprise/partner; no public demo endpoints for these four. Use your tenant or deploy samples. 
+Google Codelabs
+
+Official docs links (A2A angle):
+Microsoft: A2A blog + Foundry docs + A2A .NET SDK + MS Learn lab. 
+Microsoft Learning
++3
+Microsoft
++3
+Microsoft Learn
++3
+
+Salesforce: A2A interoperability blog + Agentforce Dev Docs. 
+Salesforce
++1
+
+PayPal: Agent Toolkit hub + quickstarts (context for A2A commerce hand-offs). 
+PayPal AI
++2
+PayPal Developer
++2
+
+Fees? No “A2A fee.” You pay platform licensing/consumption (Salesforce Agentforce SKUs, Azure services, SAP AI units, Box enterprise plans) and any commerce fees (PayPal). 
+PayPal Developer
++4
+Salesforce
++4
+Microsoft Azure
++4

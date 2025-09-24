@@ -9,16 +9,55 @@
 
 import { Router } from 'express';
 import { FastRevenueService } from '../services/fastRevenueService.js';
+import rateLimitImport from 'express-rate-limit';
 
 const router = Router();
 const revenueService = FastRevenueService.getInstance();
+
+// ChatGPT requirement: Authentication middleware for /fast-revenue endpoints
+const authenticateUser = (req: any, res: any, next: any) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token || token.length < 10) {
+    return res.status(401).json({ 
+      error: 'Authentication required',
+      message: 'Please provide valid Bearer token in Authorization header'
+    });
+  }
+  
+  // Basic token validation (TODO: Replace with full JWT validation)
+  if (!token.startsWith('usr_') && !token.startsWith('ent_') && !token.startsWith('api_')) {
+    return res.status(401).json({
+      error: 'Invalid token format',
+      message: 'Token must start with usr_, ent_, or api_ prefix'
+    });
+  }
+  
+  // Extract userId from token (simplified validation)
+  req.userId = token.includes('_') ? token.split('_')[1] : token;
+  req.userTier = token.startsWith('ent_') ? 'enterprise' : 
+                token.startsWith('api_') ? 'premium' : 'basic';
+  next();
+};
+
+// ChatGPT requirement: Rate limiting for fast revenue endpoints
+const fastRevenueRateLimit = rateLimitImport({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 50, // 50 requests per minute per IP
+  message: {
+    error: 'Rate limit exceeded',
+    message: 'Too many fast revenue requests. Please wait before retrying.',
+    retry_after: '60 seconds'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /**
  * 💬 PAID SLACK ACTIONS
  */
 
-// Get available paid Slack actions
-router.get('/api/fast-revenue/slack/actions', async (req, res) => {
+// Get available paid Slack actions (Authentication required)
+router.get('/api/fast-revenue/slack/actions', fastRevenueRateLimit, authenticateUser, async (req, res) => {
   try {
     const actions = revenueService.getPaidSlackActions();
     res.json({
@@ -34,8 +73,8 @@ router.get('/api/fast-revenue/slack/actions', async (req, res) => {
   }
 });
 
-// Execute paid Slack action
-router.post('/api/fast-revenue/slack/execute', async (req, res) => {
+// Execute paid Slack action (Authentication + Rate limiting required)
+router.post('/api/fast-revenue/slack/execute', fastRevenueRateLimit, authenticateUser, async (req, res) => {
   try {
     const { 
       action_id, 
@@ -83,8 +122,8 @@ router.post('/api/fast-revenue/slack/execute', async (req, res) => {
  * 🔗 INBOUND WEBHOOKS SKU
  */
 
-// Process webhook report request
-router.post('/api/fast-revenue/webhook/report', async (req, res) => {
+// Process webhook report request (Authentication + Rate limiting required)
+router.post('/api/fast-revenue/webhook/report', fastRevenueRateLimit, authenticateUser, async (req, res) => {
   try {
     const { url, report_type, customer_email, webhook_callback } = req.body;
 
@@ -131,8 +170,8 @@ router.post('/api/fast-revenue/webhook/report', async (req, res) => {
   }
 });
 
-// Get webhook report pricing
-router.get('/api/fast-revenue/webhook/pricing', async (req, res) => {
+// Get webhook report pricing (Authentication required)
+router.get('/api/fast-revenue/webhook/pricing', fastRevenueRateLimit, authenticateUser, async (req, res) => {
   try {
     res.json({
       report_types: {
@@ -170,8 +209,8 @@ router.get('/api/fast-revenue/webhook/pricing', async (req, res) => {
  * 📊 REVENUE TRACKING
  */
 
-// Get revenue statistics
-router.get('/api/fast-revenue/stats', async (req, res) => {
+// Get revenue statistics (Authentication required)
+router.get('/api/fast-revenue/stats', fastRevenueRateLimit, authenticateUser, async (req, res) => {
   try {
     const stats = revenueService.getRevenueStats();
     
@@ -192,8 +231,8 @@ router.get('/api/fast-revenue/stats', async (req, res) => {
   }
 });
 
-// Health check for fast revenue services
-router.get('/api/fast-revenue/health', async (req, res) => {
+// Health check for fast revenue services (Authentication required)
+router.get('/api/fast-revenue/health', fastRevenueRateLimit, authenticateUser, async (req, res) => {
   try {
     // Check if required services are operational
     const slackHealthy = true; // We know Slack is working from earlier tests
@@ -213,6 +252,157 @@ router.get('/api/fast-revenue/health', async (req, res) => {
     res.status(500).json({ 
       status: 'error',
       error: error.message 
+    });
+  }
+});
+
+/**
+ * 💳 PREMIUM MESSAGING CREDITS ENDPOINTS (ChatGPT Requirement)
+ */
+
+// Purchase premium credits
+router.post('/api/fast-revenue/credits/purchase', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+  try {
+    const { tier, credit_amount, payment_method_id } = req.body;
+    const userId = req.userId;
+
+    if (!tier || !credit_amount || !payment_method_id) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['tier', 'credit_amount', 'payment_method_id'],
+        valid_tiers: ['basic', 'premium', 'enterprise']
+      });
+    }
+
+    const result = await revenueService.purchasePremiumCredits(
+      userId,
+      tier,
+      credit_amount,
+      payment_method_id
+    );
+
+    res.json({
+      success: true,
+      purchase: result,
+      user_credits: revenueService.getUserCredits(userId)
+    });
+
+  } catch (error: any) {
+    console.error('❌ Credit purchase failed:', error);
+    res.status(500).json({
+      error: 'Purchase failed',
+      message: error.message
+    });
+  }
+});
+
+// Get user credit balance
+router.get('/api/fast-revenue/credits/balance', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+  try {
+    const userId = req.userId;
+    const credits = revenueService.getUserCredits(userId);
+
+    if (!credits) {
+      return res.json({
+        credits: 0,
+        tier: 'none',
+        message: 'No credits purchased yet'
+      });
+    }
+
+    res.json({
+      user_id: userId,
+      credit_balance: credits,
+      pricing_tiers: {
+        basic: '$0.05 per credit',
+        premium: '$0.15 per credit',
+        enterprise: '$0.25 per credit'
+      }
+    });
+
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Send premium A2A message (spends credits)
+router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+  try {
+    const { provider, message, credit_cost } = req.body;
+    const userId = req.userId;
+
+    if (!provider || !message || !credit_cost) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['provider', 'message', 'credit_cost']
+      });
+    }
+
+    // Validate provider is available
+    const validProviders = ['openai', 'anthropic', 'cohere', 'dexscreener', 'ibm', 'slack'];
+    if (!validProviders.includes(provider)) {
+      return res.status(400).json({
+        error: 'Invalid provider',
+        valid_providers: validProviders
+      });
+    }
+
+    // Check if user has enough credits
+    const hasCredits = await revenueService.spendCreditsForMessage(userId, credit_cost);
+    if (!hasCredits) {
+      return res.status(402).json({
+        error: 'Insufficient credits',
+        message: 'Please purchase more credits to send this message',
+        credit_balance: revenueService.getUserCredits(userId)?.credits || 0
+      });
+    }
+
+    // Actually send the A2A message via wrapper service
+    const a2aWrapper = new (require('../services/a2aAPIWrapperService.js').A2AAPIWrapperService)();
+    
+    let messageResponse;
+    try {
+      messageResponse = await a2aWrapper.sendMessage(provider, {
+        message,
+        user_id: userId,
+        credit_transaction: true
+      });
+    } catch (a2aError: any) {
+      // If A2A call fails, refund the credits
+      const userCredits = revenueService.getUserCredits(userId);
+      if (userCredits) {
+        // Add credits back (refund)
+        await revenueService.purchasePremiumCredits(userId, userCredits.tier as any, credit_cost, 'refund');
+      }
+      
+      return res.status(500).json({
+        error: 'A2A message failed',
+        message: a2aError.message,
+        credits_refunded: credit_cost
+      });
+    }
+
+    const messageResult = {
+      provider,
+      message_sent: message,
+      response: messageResponse.response,
+      model_used: messageResponse.model,
+      tokens_used: messageResponse.usage?.tokens_used || 0,
+      credits_spent: credit_cost,
+      remaining_credits: revenueService.getUserCredits(userId)?.credits || 0,
+      timestamp: new Date().toISOString()
+    };
+
+    res.json({
+      success: true,
+      message_result: messageResult
+    });
+
+  } catch (error: any) {
+    console.error('❌ Premium message failed:', error);
+    res.status(500).json({
+      error: 'Message send failed',
+      message: error.message
     });
   }
 });

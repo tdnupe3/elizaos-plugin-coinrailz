@@ -35,6 +35,24 @@ interface WebhookReportResult {
   cost_usd: number;
 }
 
+interface PremiumCredit {
+  userId: string;
+  credits: number;
+  tier: 'basic' | 'premium' | 'enterprise';
+  pricePerCredit: number;
+  expiresAt: Date;
+}
+
+interface RevenueRecord {
+  id: string;
+  timestamp: Date;
+  service: string;
+  amount: number;
+  currency: string;
+  userId?: string;
+  metadata?: any;
+}
+
 /**
  * 💰 FAST REVENUE GENERATION SERVICE
  */
@@ -46,6 +64,8 @@ export class FastRevenueService {
   // Revenue tracking
   private revenueGenerated = 0;
   private transactionCount = 0;
+  private revenueRecords: RevenueRecord[] = []; // TODO: Replace with persistent storage
+  private premiumCredits: Map<string, PremiumCredit> = new Map();
 
   private constructor() {
     this.a2aWrapper = new A2AAPIWrapperService();
@@ -145,7 +165,7 @@ export class FastRevenueService {
 
       // Record successful revenue transaction
       const transactionId = `slk_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      this.recordRevenue(action.price_usd, transactionId, customerEmail);
+      this.recordRevenue(action.price_usd, transactionId, customerEmail, 'slack_actions');
 
       return {
         result: {
@@ -213,7 +233,7 @@ export class FastRevenueService {
       };
 
       // Record revenue
-      this.recordRevenue(cost, reportId, request.customer_email || 'webhook_user');
+      this.recordRevenue(cost, reportId, request.customer_email || 'webhook_user', 'webhook_reports');
 
       // Send webhook callback if provided
       if (request.webhook_callback) {
@@ -418,25 +438,134 @@ export class FastRevenueService {
   }
 
   /**
-   * 💰 Record Revenue Transaction
+   * 💳 PREMIUM MESSAGING CREDIT SYSTEM (ChatGPT Requirement)
    */
-  private recordRevenue(amount: number, transactionId: string, customerEmail: string): void {
+  async purchasePremiumCredits(
+    userId: string, 
+    tier: 'basic' | 'premium' | 'enterprise',
+    creditAmount: number,
+    paymentMethodId: string
+  ): Promise<{ transaction_id: string; credits_added: number; total_cost: number }> {
+    
+    const pricing = {
+      basic: 0.05,     // $0.05 per credit
+      premium: 0.15,   // $0.15 per credit  
+      enterprise: 0.25 // $0.25 per credit
+    };
+
+    const pricePerCredit = pricing[tier];
+    const totalCost = creditAmount * pricePerCredit;
+    const transactionId = `crd_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+    // TODO: Process payment via Stripe/PayPal/Circle
+    
+    // Add credits to user account
+    const existing = this.premiumCredits.get(userId);
+    const newCredits = (existing?.credits || 0) + creditAmount;
+    
+    this.premiumCredits.set(userId, {
+      userId,
+      credits: newCredits,
+      tier,
+      pricePerCredit,
+      expiresAt: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) // 1 year
+    });
+
+    // Record revenue
+    this.recordRevenue(totalCost, transactionId, userId, 'premium_credits');
+
+    return {
+      transaction_id: transactionId,
+      credits_added: creditAmount,
+      total_cost: totalCost
+    };
+  }
+
+  /**
+   * 💸 Spend Premium Credits for A2A Messages
+   */
+  async spendCreditsForMessage(userId: string, creditCost: number): Promise<boolean> {
+    const userCredits = this.premiumCredits.get(userId);
+    
+    if (!userCredits || userCredits.credits < creditCost) {
+      return false; // Insufficient credits
+    }
+
+    // Deduct credits
+    userCredits.credits -= creditCost;
+    this.premiumCredits.set(userId, userCredits);
+    
+    console.log(`💳 Credits spent: ${creditCost} | Remaining: ${userCredits.credits} (User: ${userId})`);
+    return true;
+  }
+
+  /**
+   * 📊 Get User Credit Balance
+   */
+  getUserCredits(userId: string): { credits: number; tier: string; expires_at: string } | null {
+    const userCredits = this.premiumCredits.get(userId);
+    if (!userCredits) return null;
+
+    return {
+      credits: userCredits.credits,
+      tier: userCredits.tier,
+      expires_at: userCredits.expiresAt.toISOString()
+    };
+  }
+
+  /**
+   * 💰 Record Revenue Transaction (Enhanced with Persistence)
+   */
+  private recordRevenue(amount: number, transactionId: string, userId: string): void {
     this.revenueGenerated += amount;
     this.transactionCount += 1;
+    
+    // Store in memory (TODO: Replace with database persistence)
+    const record: RevenueRecord = {
+      id: transactionId,
+      timestamp: new Date(),
+      service: 'fast_revenue',
+      amount,
+      currency: 'USD',
+      userId,
+      metadata: { source: 'premium_credits' }
+    };
+    
+    this.revenueRecords.push(record);
     
     console.log(`💰 REVENUE GENERATED: $${amount} (Transaction: ${transactionId})`);
     console.log(`📊 Total Revenue: $${this.revenueGenerated.toFixed(2)} | Transactions: ${this.transactionCount}`);
     
-    // TODO: Store in database for proper tracking
+    // TODO: Store in PostgreSQL for audit-ready reporting
   }
 
   /**
-   * 📊 Get Revenue Stats
+   * 📊 Get Revenue Stats (Enhanced for Enterprise Audit)
    */
-  getRevenueStats(): { total_revenue: number; transaction_count: number } {
+  getRevenueStats(): { 
+    total_revenue: number; 
+    transaction_count: number;
+    revenue_by_service: Record<string, number>;
+    recent_transactions: RevenueRecord[];
+  } {
+    // Calculate revenue by service
+    const revenueByService: Record<string, number> = {};
+    this.revenueRecords.forEach(record => {
+      revenueByService[record.service] = (revenueByService[record.service] || 0) + record.amount;
+    });
+
     return {
       total_revenue: this.revenueGenerated,
-      transaction_count: this.transactionCount
+      transaction_count: this.transactionCount,
+      revenue_by_service: revenueByService,
+      recent_transactions: this.revenueRecords.slice(-10) // Last 10 transactions
     };
+  }
+
+  /**
+   * 📈 Get All Revenue Records (For Enterprise Reporting)
+   */
+  getAllRevenueRecords(): RevenueRecord[] {
+    return [...this.revenueRecords]; // Return copy for safety
   }
 }

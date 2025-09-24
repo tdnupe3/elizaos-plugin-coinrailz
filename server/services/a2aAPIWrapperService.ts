@@ -328,9 +328,15 @@ const PROVIDER_CONFIGS: Record<ProviderType, ProviderConfig> = {
  * 🎯 A2A API WRAPPER SERVICE
  */
 export class A2AAPIWrapperService {
-  private circuits: Map<ProviderType, { failures: number; lastFailure: Date }> = new Map();
+  // Circuit breaker tracking - ChatGPT recommendation: >50% failure rate in last 50 attempts
+  private circuits = new Map<ProviderType, { 
+    recentAttempts: Array<{ success: boolean; timestamp: number }>;
+    isOpen: boolean; 
+    openedAt?: number;
+  }>();
   private ibmTokenCache: { token: string; expiresAt: Date } | null = null;
-  private readonly CIRCUIT_THRESHOLD = 5;
+  private readonly CIRCUIT_WINDOW_SIZE = 50; // Track last 50 attempts (ChatGPT spec)
+  private readonly CIRCUIT_FAILURE_THRESHOLD = 0.5; // 50% failure rate
   private readonly CIRCUIT_RESET_TIME = 300000; // 5 minutes
   private readonly IBM_TOKEN_EXPIRY = 3600000; // 1 hour
 
@@ -399,38 +405,83 @@ export class A2AAPIWrapperService {
   }
 
   /**
-   * 🔧 CHECK CIRCUIT BREAKER
+   * 🔧 CHECK CIRCUIT BREAKER - ChatGPT: >50% failure rate in last 50 attempts
    */
   private isCircuitOpen(provider: ProviderType): boolean {
     const circuit = this.circuits.get(provider);
     if (!circuit) return false;
 
-    const timeSinceLastFailure = Date.now() - circuit.lastFailure.getTime();
-    
-    if (timeSinceLastFailure > this.CIRCUIT_RESET_TIME) {
-      this.circuits.delete(provider);
-      return false;
+    // Check if circuit was manually opened and if reset time has passed
+    if (circuit.isOpen && circuit.openedAt) {
+      const timeSinceOpened = Date.now() - circuit.openedAt;
+      if (timeSinceOpened > this.CIRCUIT_RESET_TIME) {
+        // Reset circuit after timeout
+        circuit.isOpen = false;
+        circuit.openedAt = undefined;
+        return false;
+      }
+      return true; // Still open
     }
 
-    return circuit.failures >= this.CIRCUIT_THRESHOLD;
+    // Check failure rate in recent attempts
+    if (circuit.recentAttempts.length >= this.CIRCUIT_WINDOW_SIZE) {
+      const failures = circuit.recentAttempts.filter(attempt => !attempt.success).length;
+      const failureRate = failures / circuit.recentAttempts.length;
+      
+      if (failureRate > this.CIRCUIT_FAILURE_THRESHOLD) {
+        // Open circuit due to high failure rate
+        circuit.isOpen = true;
+        circuit.openedAt = Date.now();
+        console.warn(`🚨 Circuit breaker OPENED for ${provider}: ${Math.round(failureRate * 100)}% failure rate (${failures}/${circuit.recentAttempts.length})`);
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
-   * 🚨 RECORD FAILURE
+   * 🚨 RECORD RESULT - Track success/failure for circuit breaker
    */
-  private recordFailure(provider: ProviderType): void {
-    const existing = this.circuits.get(provider);
-    this.circuits.set(provider, {
-      failures: (existing?.failures || 0) + 1,
-      lastFailure: new Date()
-    });
+  private recordResult(provider: ProviderType, success: boolean): void {
+    const now = Date.now();
+    let circuit = this.circuits.get(provider);
+    
+    if (!circuit) {
+      circuit = {
+        recentAttempts: [],
+        isOpen: false
+      };
+      this.circuits.set(provider, circuit);
+    }
+
+    // Add new attempt
+    circuit.recentAttempts.push({ success, timestamp: now });
+    
+    // Keep only last CIRCUIT_WINDOW_SIZE attempts
+    if (circuit.recentAttempts.length > this.CIRCUIT_WINDOW_SIZE) {
+      circuit.recentAttempts = circuit.recentAttempts.slice(-this.CIRCUIT_WINDOW_SIZE);
+    }
+
+    // Log current stats for monitoring
+    const failures = circuit.recentAttempts.filter(attempt => !attempt.success).length;
+    const failureRate = Math.round((failures / circuit.recentAttempts.length) * 100);
+    
+    if (circuit.recentAttempts.length >= 10) { // Only log after some attempts
+      console.log(`📊 ${provider} circuit: ${failureRate}% failure rate (${failures}/${circuit.recentAttempts.length} attempts)`);
+    }
   }
 
   /**
-   * ✅ RESET CIRCUIT
+   * ✅ RESET CIRCUIT - Called on successful requests
    */
   private resetCircuit(provider: ProviderType): void {
-    this.circuits.delete(provider);
+    const circuit = this.circuits.get(provider);
+    if (circuit && circuit.isOpen) {
+      circuit.isOpen = false;
+      circuit.openedAt = undefined;
+      console.log(`✅ Circuit breaker RESET for ${provider} after successful request`);
+    }
   }
 
   /**
@@ -528,13 +579,15 @@ export class A2AAPIWrapperService {
       // Transform response
       const result = config.responseTransformer(apiResponse);
       
-      // Reset circuit on success
+      // Record successful attempt and reset circuit if it was open
+      this.recordResult(provider, true);
       this.resetCircuit(provider);
       
       return result;
 
     } catch (error: any) {
-      this.recordFailure(provider);
+      // Record failed attempt for circuit breaker
+      this.recordResult(provider, false);
       
       // Use detailed error categorization from ChatGPT recommendations
       const errorDetails = categorizeError(error, provider);

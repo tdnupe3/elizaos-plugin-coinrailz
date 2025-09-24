@@ -151,6 +151,18 @@ router.post('/plugin-complete', async (req, res) => {
     const expectedAmount = 10000; // $100.00 setup fee for enterprise
     const expectedConfigId = configId;
 
+    // CRITICAL SECURITY: Validate currency is USD to prevent foreign currency bypass attacks
+    if (paymentIntent.currency !== 'usd') {
+      console.error(`🚨 SETUP PAYMENT CURRENCY VIOLATION: Non-USD currency ${paymentIntent.currency} attempted for ${configId}`);
+      return res.status(400).json({
+        success: false,
+        error: `Invalid payment currency. Enterprise setup requires USD payments only.`,
+        securityViolation: 'invalid_currency',
+        providedCurrency: paymentIntent.currency,
+        requiredCurrency: 'usd'
+      });
+    }
+
     if (paymentIntent.amount < expectedAmount) {
       console.error(`🚨 SETUP PAYMENT VALIDATION FAILURE: Insufficient amount ${paymentIntent.amount} cents, required ${expectedAmount} cents for ${configId}`);
       return res.status(400).json({
@@ -537,6 +549,18 @@ router.post('/complete', async (req, res) => {
     // CRITICAL SECURITY: Validate PaymentIntent metadata before allowing work
     const expectedAmount = 500; // $5.00 minimum for enterprise execution
     const expectedConfigId = configId;
+
+    // CRITICAL SECURITY: Validate currency is USD to prevent foreign currency bypass attacks
+    if (paymentIntent.currency !== 'usd') {
+      console.error(`🚨 EXECUTION PAYMENT CURRENCY VIOLATION: Non-USD currency ${paymentIntent.currency} attempted for ${configId}`);
+      return res.status(400).json({
+        success: false,
+        error: `Invalid payment currency. Enterprise execution requires USD payments only.`,
+        securityViolation: 'invalid_currency',
+        providedCurrency: paymentIntent.currency,
+        requiredCurrency: 'usd'
+      });
+    }
 
     if (paymentIntent.amount < expectedAmount) {
       console.error(`🚨 PAYMENT VALIDATION FAILURE: Insufficient amount ${paymentIntent.amount} cents, required ${expectedAmount} cents for ${configId}`);
@@ -975,6 +999,19 @@ router.post('/batch-complete', async (req, res) => {
     );
     const expectedMinAmount = Math.max(1000, Math.min(10000, estimatedTotalUnits * 6)); // Match creation logic
     const expectedTaskCount = tasks.length;
+
+    // CRITICAL SECURITY: Validate currency is USD to prevent foreign currency bypass attacks
+    if (paymentIntent.currency !== 'usd') {
+      console.error(`🚨 BATCH PAYMENT CURRENCY VIOLATION: Non-USD currency ${paymentIntent.currency} attempted for ${tasks.length} tasks`);
+      return res.status(400).json({
+        success: false,
+        error: `Invalid payment currency. Enterprise batch execution requires USD payments only.`,
+        securityViolation: 'invalid_currency',
+        providedCurrency: paymentIntent.currency,
+        requiredCurrency: 'usd',
+        taskCount: tasks.length
+      });
+    }
 
     if (paymentIntent.amount < expectedMinAmount) {
       console.error(`🚨 BATCH PAYMENT VALIDATION FAILURE: Insufficient amount ${paymentIntent.amount} cents, required ${expectedMinAmount} cents for ${tasks.length} tasks`);

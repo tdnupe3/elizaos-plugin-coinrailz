@@ -3347,6 +3347,31 @@ export const telegramTrades = pgTable("telegram_trades", {
   index("IDX_telegram_trades_created").on(table.createdAt),
 ]);
 
+// PaymentIntent tracking to prevent replay attacks
+export const paymentIntentTracking = pgTable(
+  "payment_intent_tracking",
+  {
+    id: serial("id").primaryKey(),
+    paymentIntentId: varchar("payment_intent_id").notNull().unique(),
+    customerEmail: varchar("customer_email").notNull(),
+    amount: integer("amount").notNull(), // Amount in cents
+    currency: varchar("currency").default("usd"),
+    purpose: varchar("purpose").notNull(), // "setup_fee", "execution", "batch"
+    configId: varchar("config_id"), // For setup fees
+    taskDescription: text("task_description"), // For executions
+    metadata: jsonb("metadata"), // Additional tracking data
+    status: varchar("status").default("used"), // used, refunded, disputed
+    usedAt: timestamp("used_at").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_payment_intent_tracking_unique").on(table.paymentIntentId),
+    index("IDX_payment_intent_tracking_customer").on(table.customerEmail),
+    index("IDX_payment_intent_tracking_purpose").on(table.purpose),
+    index("IDX_payment_intent_tracking_config").on(table.configId),
+  ],
+);
+
 // Telegram Bot Schema Types
 export const telegramUserInsertSchema = createInsertSchema(telegramUsers).omit({
   id: true,
@@ -3375,4 +3400,15 @@ export const telegramTradeInsertSchema = createInsertSchema(telegramTrades).omit
 export const telegramTradeSelectSchema = createSelectSchema(telegramTrades);
 export type InsertTelegramTrade = z.infer<typeof telegramTradeInsertSchema>;
 export type SelectTelegramTrade = typeof telegramTrades.$inferSelect;
+
+// PaymentIntent tracking schema types
+export const paymentIntentTrackingInsertSchema = createInsertSchema(paymentIntentTracking).omit({
+  id: true,
+  usedAt: true,
+  createdAt: true
+});
+
+export const paymentIntentTrackingSelectSchema = createSelectSchema(paymentIntentTracking);
+export type InsertPaymentIntentTracking = z.infer<typeof paymentIntentTrackingInsertSchema>;
+export type SelectPaymentIntentTracking = typeof paymentIntentTracking.$inferSelect;
 

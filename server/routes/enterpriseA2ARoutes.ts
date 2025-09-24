@@ -108,6 +108,28 @@ router.post('/plugin-complete', async (req, res) => {
 
     console.log(`🔄 Completing enterprise setup with confirmed PaymentIntent: ${paymentIntentId}`);
     
+    // SECURITY: Check for PaymentIntent replay attacks
+    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    const { sql } = await import('drizzle-orm');
+    
+    const existingUsage = await db.select().from(paymentIntentTracking)
+      .where(sql`payment_intent_id = ${paymentIntentId}`).limit(1);
+    
+    if (existingUsage.length > 0) {
+      console.error(`🚨 PAYMENT REPLAY ATTACK BLOCKED: ${paymentIntentId} already used for ${existingUsage[0].purpose}`);
+      return res.status(402).json({
+        success: false,
+        error: 'PaymentIntent already used - cannot replay payments for additional enterprise work',
+        securityViolation: 'payment_replay_attack',
+        originalUsage: {
+          purpose: existingUsage[0].purpose,
+          usedAt: existingUsage[0].usedAt,
+          configId: existingUsage[0].configId
+        }
+      });
+    }
+    
     const stripe = (await import('stripe')).default;
     const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
     
@@ -135,8 +157,24 @@ router.post('/plugin-complete', async (req, res) => {
       });
     }
 
-    // Store setup fee billing record
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    // SECURITY: Track PaymentIntent usage to prevent replay attacks
+    await db.insert(paymentIntentTracking).values({
+      paymentIntentId: paymentIntent.id,
+      customerEmail: paymentIntent.receipt_email || 'unknown',
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      purpose: 'setup_fee',
+      configId: configId,
+      taskDescription: `Enterprise A2A setup for ${config.platform}`,
+      metadata: {
+        configPlatform: config.platform,
+        completedVia3DS: true,
+        stripePaymentIntentId: paymentIntent.id
+      },
+      status: 'used'
+    });
+
+    // Store setup fee billing record  
     const { outreachLogs } = await import('../../shared/schema.js');
     
     await db.insert(outreachLogs).values({
@@ -418,6 +456,28 @@ router.post('/complete', async (req, res) => {
 
     console.log(`🔄 Completing enterprise task with confirmed PaymentIntent: ${paymentIntentId}`);
     
+    // SECURITY: Check for PaymentIntent replay attacks
+    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    const { sql } = await import('drizzle-orm');
+    
+    const existingUsage = await db.select().from(paymentIntentTracking)
+      .where(sql`payment_intent_id = ${paymentIntentId}`).limit(1);
+    
+    if (existingUsage.length > 0) {
+      console.error(`🚨 PAYMENT REPLAY ATTACK BLOCKED: ${paymentIntentId} already used for ${existingUsage[0].purpose}`);
+      return res.status(402).json({
+        success: false,
+        error: 'PaymentIntent already used - cannot replay payments for additional enterprise work',
+        securityViolation: 'payment_replay_attack',
+        originalUsage: {
+          purpose: existingUsage[0].purpose,
+          usedAt: existingUsage[0].usedAt,
+          taskDescription: existingUsage[0].taskDescription
+        }
+      });
+    }
+    
     const stripe = (await import('stripe')).default;
     const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
     
@@ -435,6 +495,23 @@ router.post('/complete', async (req, res) => {
 
     console.log(`✅ PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - executing enterprise task`);
 
+    // SECURITY: Track PaymentIntent usage before executing work
+    await db.insert(paymentIntentTracking).values({
+      paymentIntentId: paymentIntent.id,
+      customerEmail: paymentIntent.receipt_email || 'unknown',
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      purpose: 'execution',
+      configId: configId,
+      taskDescription: task.description || 'Enterprise A2A task execution',
+      metadata: {
+        taskType: task.task_type,
+        completedVia3DS: true,
+        stripePaymentIntentId: paymentIntent.id
+      },
+      status: 'used'
+    });
+
     // Execute enterprise task with confirmed payment
     const result = await enterpriseA2AAdapter.executeTask(configId, task);
     
@@ -442,18 +519,26 @@ router.post('/complete', async (req, res) => {
       const actualCharge = result.billableUnits * 0.05;
       const refundAmount = paymentIntent.amount - Math.round(actualCharge * 100);
 
-      // Refund the difference if any
+      // SECURITY: Wrap refunds in try-catch to handle already-refunded PaymentIntents
+      let refundSuccess = false;
       if (refundAmount > 0) {
-        await stripeClient.refunds.create({
-          payment_intent: paymentIntent.id,
-          amount: refundAmount,
-          reason: 'requested_by_customer',
-          metadata: {
-            reason: 'adjust_to_actual_usage_post_3ds',
-            actualCharge: actualCharge.toString(),
-            originalCharge: (paymentIntent.amount / 100).toString()
-          }
-        });
+        try {
+          await stripeClient.refunds.create({
+            payment_intent: paymentIntent.id,
+            amount: refundAmount,
+            reason: 'requested_by_customer',
+            metadata: {
+              reason: 'adjust_to_actual_usage_post_3ds',
+              actualCharge: actualCharge.toString(),
+              originalCharge: (paymentIntent.amount / 100).toString()
+            }
+          });
+          refundSuccess = true;
+        } catch (refundError: any) {
+          console.error(`⚠️ Refund failed for ${paymentIntent.id}: ${refundError.message}`);
+          // Work was performed successfully even if refund fails
+          refundSuccess = false;
+        }
       }
 
       // Store success record in database
@@ -489,22 +574,34 @@ router.post('/complete', async (req, res) => {
       });
     } else {
       // Full refund for failed calls
-      await stripeClient.refunds.create({
-        payment_intent: paymentIntent.id,
-        reason: 'requested_by_customer',
-        metadata: {
-          reason: 'task_execution_failed_post_3ds'
-        }
-      });
+      try {
+        await stripeClient.refunds.create({
+          payment_intent: paymentIntent.id,
+          reason: 'requested_by_customer',
+          metadata: {
+            reason: 'task_execution_failed_post_3ds'
+          }
+        });
 
-      res.json({
-        ...result,
-        billing: {
-          charge: 0,
-          refunded: paymentIntent.amount / 100,
-          reason: 'Task execution failed - full refund issued'
-        }
-      });
+        res.json({
+          ...result,
+          billing: {
+            charge: 0,
+            refunded: paymentIntent.amount / 100,
+            reason: 'Task execution failed - full refund issued'
+          }
+        });
+      } catch (refundError: any) {
+        console.error(`⚠️ Failed task refund failed for ${paymentIntent.id}: ${refundError.message}`);
+        res.json({
+          ...result,
+          billing: {
+            charge: 0,
+            refundStatus: 'failed',
+            reason: 'Task execution failed but refund also failed'
+          }
+        });
+      }
     }
     
   } catch (error: any) {
@@ -754,6 +851,28 @@ router.post('/batch-complete', async (req, res) => {
 
     console.log(`🔄 Completing batch of ${tasks.length} enterprise tasks with confirmed PaymentIntent: ${paymentIntentId}`);
     
+    // SECURITY: Check for PaymentIntent replay attacks
+    const db = await import('../../shared/drizzle.js').then(m => m.db);
+    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    const { sql } = await import('drizzle-orm');
+    
+    const existingUsage = await db.select().from(paymentIntentTracking)
+      .where(sql`payment_intent_id = ${paymentIntentId}`).limit(1);
+    
+    if (existingUsage.length > 0) {
+      console.error(`🚨 PAYMENT REPLAY ATTACK BLOCKED: ${paymentIntentId} already used for ${existingUsage[0].purpose}`);
+      return res.status(402).json({
+        success: false,
+        error: 'PaymentIntent already used - cannot replay payments for additional enterprise work',
+        securityViolation: 'payment_replay_attack',
+        originalUsage: {
+          purpose: existingUsage[0].purpose,
+          usedAt: existingUsage[0].usedAt,
+          taskDescription: existingUsage[0].taskDescription
+        }
+      });
+    }
+    
     const stripe = (await import('stripe')).default;
     const stripeClient = new stripe(process.env.STRIPE_SECRET_KEY!);
     
@@ -771,6 +890,23 @@ router.post('/batch-complete', async (req, res) => {
 
     console.log(`✅ Batch PaymentIntent confirmed ($${(paymentIntent.amount/100).toFixed(2)}) - executing ${tasks.length} tasks`);
 
+    // SECURITY: Track PaymentIntent usage before executing batch work
+    await db.insert(paymentIntentTracking).values({
+      paymentIntentId: paymentIntent.id,
+      customerEmail: paymentIntent.receipt_email || 'unknown',
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      purpose: 'batch',
+      configId: tasks.map(t => t.configId).join(','),
+      taskDescription: `Batch execution: ${tasks.length} enterprise A2A tasks`,
+      metadata: {
+        taskCount: tasks.length,
+        completedVia3DS: true,
+        stripePaymentIntentId: paymentIntent.id
+      },
+      status: 'used'
+    });
+
     // Execute batch tasks with confirmed payment
     const results = await enterpriseA2AAdapter.executeBatch(tasks);
     
@@ -781,15 +917,29 @@ router.post('/batch-complete', async (req, res) => {
     const actualCharge = totalBillableUnits * 0.05;
     const refundAmount = paymentIntent.amount - Math.round(actualCharge * 100);
 
-    // Refund the difference if any
+    // SECURITY: Wrap refunds in try-catch to handle already-refunded PaymentIntents
+    let refundSuccess = false;
     if (refundAmount > 0) {
-      await stripeClient.refunds.create({
-        payment_intent: paymentIntent.id,
-        amount: refundAmount,
-        reason: 'requested_by_customer',
-        metadata: {
-          reason: 'adjust_to_actual_batch_usage_post_3ds',
-          actualCharge: actualCharge.toString(),
+      try {
+        await stripeClient.refunds.create({
+          payment_intent: paymentIntent.id,
+          amount: refundAmount,
+          reason: 'requested_by_customer',
+          metadata: {
+            reason: 'adjust_to_actual_usage_batch_post_3ds',
+            actualCharge: actualCharge.toString(),
+            originalCharge: (paymentIntent.amount / 100).toString(),
+            taskCount: tasks.length.toString()
+          }
+        });
+        refundSuccess = true;
+      } catch (refundError: any) {
+        console.error(`⚠️ Batch refund failed for ${paymentIntent.id}: ${refundError.message}`);
+        // Batch work was performed successfully even if refund fails
+        refundSuccess = false;
+      }
+    } else {
+      refundSuccess = true; // No refund needed
           originalCharge: (paymentIntent.amount / 100).toString(),
           taskCount: tasks.length.toString()
         }

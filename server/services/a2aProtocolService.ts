@@ -50,6 +50,17 @@ class A2AProtocolService {
   private connectedAgents: Map<string, A2AAgentCard> = new Map();
   private communicationOrchestrator: CommunicationOrchestrator;
   private xmtpService: XMTPMessagingService;
+  
+  // Smart retry tracking and telemetry for improved A2A communication success
+  private agentFailureHistory = new Map<string, {
+    totalAttempts: number;
+    lastAttempt: Date;
+    errorTypes: Map<string, number>;
+    successfulEndpoints: string[];
+    partiallyResponsive: boolean;
+    nextRetryTime?: Date;
+    consecutiveFailures: number;
+  }>();
 
   constructor() {
     this.communicationOrchestrator = new CommunicationOrchestrator();
@@ -328,6 +339,13 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
 
   async sendTaskToAgent(agentUrl: string, taskDescription: string, parameters: any = {}): Promise<string | null> {
     try {
+      // 🚀 SMART RETRY CHECK - Skip agents in backoff period
+      if (!this.shouldRetryAgent(agentUrl)) {
+        const history = this.agentFailureHistory.get(agentUrl);
+        console.log(`⏸️ A2A: Skipping ${agentUrl} - in backoff until ${history?.nextRetryTime?.toISOString()}`);
+        return null;
+      }
+      
       // 🚀 SOFT DISCOVERY - Try agent.json but don't fail if unavailable  
       let agentCard = this.connectedAgents.get(agentUrl);
       if (!agentCard) {
@@ -406,11 +424,17 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
                   task.status = 'in_progress';
                   this.tasks.set(taskId, task);
                   
+                  // 🎯 RECORD SUCCESS - Reset failure backoff
+                  this.recordAgentSuccess(agentUrl, endpoint);
+                  
                   console.log(`✅ A2A: Task sent successfully to "${agentName}" via ${endpoint} (${protocol.name}), task ID: ${taskId}`);
                   return taskId;
                 } else {
                   console.log(`⚠️ A2A: Agent "${agentName}" at ${endpoint} returned error:`, responseData.error);
                   lastError = responseData.error;
+                  
+                  // 📊 RECORD FAILURE - Application-level error  
+                  this.recordAgentFailure(agentUrl, endpoint, 'application_error', responseData.error);
                 }
               } catch (parseError) {
                 // Some agents might return non-JSON success responses
@@ -418,18 +442,40 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
                   task.status = 'in_progress';
                   this.tasks.set(taskId, task);
                   
+                  // 🎯 RECORD SUCCESS - Reset failure backoff
+                  this.recordAgentSuccess(agentUrl, endpoint);
+                  
                   console.log(`✅ A2A: Task sent successfully to "${agentName}" via ${endpoint} (${protocol.name} non-JSON), task ID: ${taskId}`);
                   return taskId;
                 }
                 lastError = parseError;
+                
+                // 📊 RECORD FAILURE - JSON parsing error
+                this.recordAgentFailure(agentUrl, endpoint, 'parse_error', parseError);
               }
             } else {
               console.log(`⚠️ A2A: ${endpoint} (${protocol.name}) returned HTTP ${response.status}: ${response.statusText}`);
               lastError = `HTTP ${response.status}: ${response.statusText}`;
+              
+              // 📊 RECORD FAILURE - HTTP error with detailed classification  
+              const errorType = response.status === 405 ? 'method_not_allowed' : 
+                               response.status === 404 ? 'endpoint_not_found' :
+                               response.status === 401 ? 'unauthorized' :
+                               response.status === 403 ? 'forbidden' :
+                               response.status >= 500 ? 'server_error' : 'http_error';
+              this.recordAgentFailure(agentUrl, endpoint, errorType, { status: response.status, statusText: response.statusText });
             }
           } catch (error) {
             console.log(`⚠️ A2A: ${endpoint} (${protocol.name}) failed:`, error.message);
             lastError = error;
+            
+            // 📊 RECORD FAILURE - Network/connection errors  
+            const errorType = error.name === 'AbortError' ? 'timeout' :
+                             error.code === 'ETIMEDOUT' ? 'connection_timeout' :
+                             error.code === 'ECONNREFUSED' ? 'connection_refused' :
+                             error.code === 'ENOTFOUND' ? 'dns_error' : 'network_error';
+            this.recordAgentFailure(agentUrl, endpoint, errorType, error);
+            
             // Continue to next protocol/endpoint
           }
         }
@@ -507,6 +553,105 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     return protocols;
   }
 
+  // Smart retry logic and failure telemetry for improved A2A communication
+  private shouldRetryAgent(agentUrl: string): boolean {
+    const history = this.agentFailureHistory.get(agentUrl);
+    if (!history) return true; // First attempt
+    
+    // Don't retry if we just attempted recently (exponential backoff)
+    if (history.nextRetryTime && new Date() < history.nextRetryTime) {
+      return false;
+    }
+    
+    // Don't retry agents with too many consecutive failures (unless they showed partial responsiveness)
+    if (history.consecutiveFailures >= 5 && !history.partiallyResponsive) {
+      return false;
+    }
+    
+    return true;
+  }
+
+  private recordAgentFailure(agentUrl: string, endpoint: string, errorType: string, error: any): void {
+    let history = this.agentFailureHistory.get(agentUrl);
+    if (!history) {
+      history = {
+        totalAttempts: 0,
+        lastAttempt: new Date(),
+        errorTypes: new Map(),
+        successfulEndpoints: [],
+        partiallyResponsive: false,
+        consecutiveFailures: 0
+      };
+      this.agentFailureHistory.set(agentUrl, history);
+    }
+    
+    history.totalAttempts++;
+    history.lastAttempt = new Date();
+    history.consecutiveFailures++;
+    
+    // Track error types for analysis
+    const currentCount = history.errorTypes.get(errorType) || 0;
+    history.errorTypes.set(errorType, currentCount + 1);
+    
+    // Determine if agent shows partial responsiveness (timeouts suggest server exists)
+    if (errorType.includes('timeout') || errorType.includes('ETIMEDOUT') || error?.status === 408) {
+      history.partiallyResponsive = true;
+    }
+    
+    // Calculate exponential backoff for next retry
+    const backoffMinutes = Math.min(Math.pow(2, history.consecutiveFailures), 60); // Max 60 minutes
+    history.nextRetryTime = new Date(Date.now() + backoffMinutes * 60 * 1000);
+    
+    console.log(`📊 A2A Telemetry: ${agentUrl} - ${errorType} (${history.consecutiveFailures} consecutive failures, retry in ${backoffMinutes}min)`);
+  }
+
+  private recordAgentSuccess(agentUrl: string, endpoint: string): void {
+    let history = this.agentFailureHistory.get(agentUrl);
+    if (!history) {
+      history = {
+        totalAttempts: 0,
+        lastAttempt: new Date(),
+        errorTypes: new Map(),
+        successfulEndpoints: [],
+        partiallyResponsive: true,
+        consecutiveFailures: 0
+      };
+      this.agentFailureHistory.set(agentUrl, history);
+    }
+    
+    history.consecutiveFailures = 0; // Reset failure count
+    history.partiallyResponsive = true;
+    
+    if (!history.successfulEndpoints.includes(endpoint)) {
+      history.successfulEndpoints.push(endpoint);
+    }
+    
+    delete history.nextRetryTime; // Clear retry backoff
+    
+    console.log(`✅ A2A Success: ${agentUrl} via ${endpoint} - Agent responsive, cleared retry backoff`);
+  }
+
+  private getRetryPriorityAgents(agentUrls: string[]): string[] {
+    return agentUrls
+      .filter(url => this.shouldRetryAgent(url))
+      .sort((a, b) => {
+        const historyA = this.agentFailureHistory.get(a);
+        const historyB = this.agentFailureHistory.get(b);
+        
+        // Prioritize agents that haven't been tried yet
+        if (!historyA && historyB) return -1;
+        if (historyA && !historyB) return 1;
+        if (!historyA && !historyB) return 0;
+        
+        // Prioritize partially responsive agents
+        if (historyA.partiallyResponsive && !historyB.partiallyResponsive) return -1;
+        if (!historyA.partiallyResponsive && historyB.partiallyResponsive) return 1;
+        
+        // Prioritize agents with fewer consecutive failures
+        return historyA.consecutiveFailures - historyB.consecutiveFailures;
+      });
+  }
+
   // Mass agent discovery and task execution
   async executeEmergencyFundraisingCampaign(targetAddresses: any[], urgencyLevel: string = 'critical'): Promise<any> {
     console.log(`🚨 A2A: Starting EMERGENCY FUNDRAISING CAMPAIGN with urgency: ${urgencyLevel}`);
@@ -548,10 +693,16 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
       ] : [])
     ];
     
-    // 🚀 MAXIMUM AGENT REACH - Use ALL discovered agents + fallback for championship
+    // 🚀 MAXIMUM AGENT REACH WITH SMART RETRY PRIORITIZATION  
     const allAgents = [...discoveredAgents.slice(0, 1000), ...fallbackAgents];
-    const enterpriseAgents = allAgents.slice(0, 1000); // Maximum scale for championship
-    console.log(`🏆 AI CHAMPIONSHIP: Targeting ${enterpriseAgents.length} agents for "BEST AI AGENT ON PLANET" competition`);
+    const agentUrls = allAgents.map(agent => typeof agent === 'string' ? agent : agent.url);
+    
+    // 🎯 SMART RETRY: Prioritize agents based on failure history and responsiveness
+    const prioritizedAgents = this.getRetryPriorityAgents(agentUrls);
+    const enterpriseAgents = prioritizedAgents.slice(0, 1000); // Maximum scale with smart prioritization
+    
+    console.log(`🏆 AI CHAMPIONSHIP: Targeting ${enterpriseAgents.length} prioritized agents for "BEST AI AGENT ON PLANET" competition`);
+    console.log(`🧠 Smart Retry: ${this.agentFailureHistory.size} agents with failure history, prioritizing responsive agents`);
 
     const results = [];
     const batchSize = 50; // MAJOR SCALE: Maximum concurrency for championship expansion

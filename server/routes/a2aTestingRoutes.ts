@@ -4,7 +4,7 @@
  */
 
 import { Router } from 'express';
-import { A2AProtocolService } from '../services/a2aProtocolService.js';
+import a2aService from '../services/a2aProtocolService.js';
 
 const router = Router();
 
@@ -16,7 +16,6 @@ router.post('/smoke-test', async (req, res) => {
   try {
     console.log('🧪 A2A Smoke test initiated via API...');
     
-    const a2aService = new A2AProtocolService();
     const smokeTestResults = await a2aService.smokeTestCompliantAgents();
     
     res.json({ 
@@ -41,7 +40,6 @@ router.get('/telemetry-analysis', async (req, res) => {
   try {
     console.log('📊 A2A Telemetry analysis initiated via API...');
     
-    const a2aService = new A2AProtocolService();
     const telemetryAnalysis = await a2aService.analyzeTelemetryAndTuneBackoff();
     
     res.json({ 
@@ -67,7 +65,6 @@ router.post('/emergency-campaign', async (req, res) => {
     console.log('🚨 A2A Emergency campaign initiated via API...');
     
     const { targetAddresses, urgencyLevel } = req.body;
-    const a2aService = new A2AProtocolService();
     
     const results = await a2aService.executeEmergencyFundraisingCampaign(
       targetAddresses || [], 

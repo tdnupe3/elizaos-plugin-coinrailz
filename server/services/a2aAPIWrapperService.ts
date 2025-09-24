@@ -40,6 +40,7 @@ export interface MessageResponse {
   success: boolean;
   response?: string;
   error?: string;
+  error_code?: string; // Detailed error categorization from ChatGPT recommendations
   usage?: {
     tokens_used: number;
     cost: number;
@@ -59,6 +60,68 @@ export interface ProviderConfig {
   headers: Record<string, string>;
   requestTransformer: (req: MessageRequest) => any;
   responseTransformer: (apiResponse: any) => MessageResponse;
+}
+
+/**
+ * 🚨 ERROR CATEGORIZER - Detailed error codes from ChatGPT recommendations
+ */
+function categorizeError(error: any, provider: ProviderType): { error_code: string, error_message: string } {
+  // Network/DNS failures
+  if (error.code === 'ENOTFOUND') {
+    return { error_code: 'DNS_FAIL', error_message: `DNS resolution failed for ${provider}` };
+  }
+  if (error.code === 'ECONNREFUSED') {
+    return { error_code: 'TCP_TIMEOUT', error_message: `Connection refused to ${provider}` };
+  }
+  if (error.code?.startsWith('CERT_') || error.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+    return { error_code: 'TLS_HANDSHAKE_FAIL', error_message: `TLS certificate error for ${provider}` };
+  }
+  
+  // HTTP status codes
+  if (error.message?.includes('HTTP 401')) {
+    return { error_code: 'HTTP_401', error_message: `Authentication failed - invalid API key for ${provider}` };
+  }
+  if (error.message?.includes('HTTP 403')) {
+    return { error_code: 'HTTP_403', error_message: `Access forbidden - check permissions for ${provider}` };
+  }
+  if (error.message?.includes('HTTP 404')) {
+    return { error_code: 'HTTP_404', error_message: `API endpoint not found for ${provider}` };
+  }
+  if (error.message?.includes('HTTP 429')) {
+    return { error_code: 'HTTP_429', error_message: `Rate limit exceeded for ${provider}` };
+  }
+  if (error.message?.includes('HTTP 5')) {
+    return { error_code: 'HTTP_5xx', error_message: `Server error from ${provider}` };
+  }
+  
+  // API-specific errors
+  if (error.message?.includes('model') && error.message?.includes('not found')) {
+    return { error_code: 'MODEL_UNAVAILABLE', error_message: `Model not available for ${provider}` };
+  }
+  if (error.message?.includes('billing') || error.message?.includes('quota')) {
+    return { error_code: 'ORG_BILLING_INACTIVE', error_message: `Billing/quota issue for ${provider}` };
+  }
+  if (error.message?.includes('region')) {
+    return { error_code: 'REGION_BLOCKED', error_message: `Region not supported for ${provider}` };
+  }
+  
+  // Missing credentials - provider-specific environment variable names
+  const credentialMap: Record<ProviderType, string> = {
+    openai: 'OPENAI_API_KEY',
+    anthropic: 'ANTHROPIC_API_KEY',
+    cohere: 'COHERE_API_KEY',
+    ibm: 'IBM_API_KEY',
+    slack: 'SLACK_BOT_TOKEN',
+    dexscreener: 'none' // Public API, no credentials needed
+  };
+  
+  const credentialEnvVar = credentialMap[provider];
+  if (credentialEnvVar !== 'none' && !process.env[credentialEnvVar]) {
+    return { error_code: 'AUTH_MISSING_HEADER', error_message: `Missing ${credentialEnvVar} for ${provider}` };
+  }
+  
+  // Generic network error
+  return { error_code: 'NETWORK_ERROR', error_message: error.message || `Network error for ${provider}` };
 }
 
 /**
@@ -389,6 +452,7 @@ export class A2AAPIWrapperService {
       return {
         success: false,
         error: `Missing API key for ${provider}`,
+        error_code: 'MISSING_API_KEY',
         provider
       };
     }
@@ -398,6 +462,7 @@ export class A2AAPIWrapperService {
       return {
         success: false,
         error: `Circuit breaker open for ${provider} - too many recent failures`,
+        error_code: 'CIRCUIT_BREAKER_OPEN',
         provider
       };
     }
@@ -471,9 +536,15 @@ export class A2AAPIWrapperService {
     } catch (error: any) {
       this.recordFailure(provider);
       
+      // Use detailed error categorization from ChatGPT recommendations
+      const errorDetails = categorizeError(error, provider);
+      
+      console.error(`❌ A2A ${provider} error [${errorDetails.error_code}]:`, errorDetails.error_message);
+      
       return {
         success: false,
-        error: error.message,
+        error: errorDetails.error_message,
+        error_code: errorDetails.error_code,
         provider
       };
     }

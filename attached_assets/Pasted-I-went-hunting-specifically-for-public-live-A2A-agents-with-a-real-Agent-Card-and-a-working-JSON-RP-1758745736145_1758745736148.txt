@@ -1,0 +1,202 @@
+I went hunting specifically for public, live A2A agents with a real Agent Card and a working JSON-RPC endpoint, not marketing pages or “future integration” docs. Here’s the honest state of things plus a very practical way to automate discovery + validation from your Replit agent.
+
+What’s actually public right now (and why it’s hard)
+
+There isn’t a central, authoritative public directory of A2A agents yet. The A2A maintainers are actively discussing provider-level “/agents/public” listings, but it’s not a standard, and most vendors don’t expose one publicly today. 
+GitHub
+
+Agent Cards live at a well-known path; note the path changed: older docs/examples use /.well-known/agent.json, newer spec uses /.well-known/agent-card.json. Real agents may expose either (or both). Your discovery must try both paths. 
+A2A Project
++1
+
+Cloud Run demo agents exist (e.g., the Google Codelab deploys “pizza-agent” and “burger-agent” as public Cloud Run services), but they’re per-project and often torn down, so URLs you see in tutorials aren’t guaranteed to stay live. Treat them as patterns you can discover/verify, not fixed endpoints. 
+Google Codelabs
+
+Frameworks with A2A support (LangGraph Server, Microsoft Teams AI/“Copilot Studio” SDKs, ADK, Quarkus) document the A2A surface but publish localhost or private examples; public instances are usually gated behind accounts or partner orgs. 
+WildFly
++3
+LangChain Docs
++3
+Microsoft Learn
++3
+
+Bottom line: there are public agents out there (individuals and teams do publish their demos), but they’re not centrally indexed and churn frequently. The only scalable path is to programmatically discover and auto-validate live Agent Cards, then probe their /a2a (or provider-declared) endpoint.
+
+Copy-paste prompt for your Replit agent
+
+Use this exact prompt to make your agent find real A2A agents, verify their Agent Cards, and smoke-test message/send. It’s tool-agnostic: your agent should browse/search, fetch, and write results to a CSV/Markdown table.
+
+PROMPT FOR REPLIT AGENT (copy/paste)
+
+Goal: Discover public, live A2A agents (Google’s Agent-to-Agent protocol), verify each with a real Agent Card and a working JSON-RPC method (preferably message/send), and output a clean table + CSV of confirmed agents. No fake registries; only agents that pass validation.
+
+Authoritative references to follow (for schema & paths):
+– Latest A2A spec (Agent Card, path now /.well-known/agent-card.json; older path /.well-known/agent.json also common). Verify both. 
+A2A Project
++1
+
+– LangGraph Server A2A (cards at /.well-known/agent-card.json?assistant_id={id}; endpoints at /a2a/{assistant_id}). 
+LangChain Docs
+
+– Google Codelab: Cloud Run demos use public URLs (e.g., pizza-agent, burger-agent) — use as patterns to discover similar public deployments, but always verify. 
+Google Codelabs
+
+1) Discovery strategy (do all):
+
+Targeted web search for pages that link to or mention live agents with card paths. Try queries:
+
+"\"/.well-known/agent-card.json\"", "\"/.well-known/agent.json\"", "A2A AgentCard", "message/send" "A2A"
+
+"site:run.app agent \"well-known\"", "site:appspot.com \"agent-card.json\"", "site:vercel.app \"agent-card.json\""
+
+Framework-specific: "LangGraph Server A2A assistant_id", "A2AStarletteApplication public demo".
+
+Look for Cloud Run deployments that smell like agents: subdomain patterns *-agent-*.run.app. For candidates, probe both:
+
+https://<host>/.well-known/agent-card.json
+
+https://<host>/.well-known/agent.json
+
+LangGraph servers you find publicly: when you see an assistant_id in docs/pages, try:
+
+https://<host>/.well-known/agent-card.json?assistant_id=<id>
+
+GitHub & blog posts: search code/posts for live demo URLs; many authors paste their Cloud Run / Fly.io / Render / Vercel domains. Extract every hostname and probe the two card paths above.
+
+2) Agent Card validation rules:
+
+Fetch JSON at the candidate path. Accept 200 OK with application/json (or JSON sniffable).
+
+The card MUST include, at minimum:
+
+protocolVersion (accept "0.2.x" or "0.3.x"), name, description, url, version, skills (array).
+
+If present, record preferredTransport, additionalInterfaces, capabilities.streaming, defaultInputModes, defaultOutputModes, and securitySchemes/security. (Field names per spec.) 
+A2A Project
+
+Note the path duality: old agent.json vs new agent-card.json; keep whichever succeeded. 
+A2A Project
++1
+
+3) Endpoint derivation & smoke test:
+
+If the card exposes a preferred transport with a concrete URL, use that; otherwise:
+
+If it’s a LangGraph card, use /a2a/{assistant_id} from the card or docs. 
+LangChain Docs
+
+Otherwise default to the card’s url as the base and POST JSON-RPC to that (common servers mount A2A at the base).
+
+Send a minimal JSON-RPC message/send:
+
+{
+  "jsonrpc": "2.0",
+  "id": "probe-1",
+  "method": "message/send",
+  "params": {
+    "message": { "role": "user", "parts": [ { "kind": "text", "text": "Say 'pong'." } ] },
+    "messageId": "probe-1",
+    "thread": { "threadId": "probe-thread" }
+  }
+}
+
+
+Handle auth: If you get 401/403, read securitySchemes in the card and re-try if you have public tokens/keys (rare). If no public key, mark “Requires auth (unverified)”. 
+A2A Project
+
+Success criteria: HTTP 200 with result shaped like A2A (look for result.status plus an artifacts array or a text part) OR an A2A-shaped error with code/message that proves it’s a real A2A server.
+
+4) Output format (both Markdown table and CSV):
+
+Columns: Host, Card Path, protocolVersion, name, skills[0..n] (ids), preferredTransport, A2A Endpoint Used, Auth Required?, Smoke Test Result, Notes.
+
+Put the CSV at a2a_live_agents.csv and also print the Markdown table inline.
+
+De-duplicate by host + assistant_id.
+
+5) Safety & etiquette:
+
+Respect robots/robots-like rate limits; max 1 QPS per host, 10 concurrent overall.
+
+Timeout 5s; skip hosts that block well-known paths.
+
+Don’t hammer enterprise domains.
+
+Deliverables:
+
+a2a_live_agents.csv with only validated or “requires auth” agents.
+
+A Markdown table summary.
+
+A short paragraph for each verified agent describing how to call it (curl snippet).
+
+Notes: Prefer /.well-known/agent-card.json first, then fallback to /.well-known/agent.json; the spec migrated to the new path in 0.3.0. 
+A2A Project
+
+END PROMPT
+
+Curl & code you can use immediately
+1) Probe for a card (new path, then old)
+# new (0.3.x)
+curl -sS https://<host>/.well-known/agent-card.json | jq .
+# old (0.2.x)
+curl -sS https://<host>/.well-known/agent.json | jq .
+
+
+Spec and docs show both in the wild. 
+A2A Project
++1
+
+2) Send a minimal message/send JSON-RPC
+curl -sS https://<base-or-a2a-endpoint> \
+  -H 'content-type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "probe-1",
+    "method": "message/send",
+    "params": {
+      "message": { "role": "user", "parts": [ { "kind":"text", "text":"Say pong." } ] },
+      "messageId": "probe-1",
+      "thread": { "threadId":"probe-thread" }
+    }
+  }'
+
+
+(If it’s LangGraph Server, that endpoint often looks like https://<host>/a2a/<assistant_id>.) 
+LangChain Docs
+
+Seed patterns worth scanning (not fixed URLs)
+
+Cloud Run “-agent-”: many tutorials deploy A2A agents to Google Cloud Run and expose public HTTPS URLs. You’ll see names like pizza-agent-XXXXX.run.app and burger-agent-XXXXX.run.app. Use those as patterns during discovery; don’t assume the codelab’s example IDs are still up. 
+Google Codelabs
+
+LangGraph servers: docs show cards at /.well-known/agent-card.json?assistant_id={assistant_id} with JSON-RPC at /a2a/{assistant_id}. If you find a public LG server and an assistant id leaked in a blog/post, you can validate quickly. 
+LangChain Docs
+
+Why your bot must try both card paths (important)
+
+The latest spec recommends agent-card.json, but lots of posts, samples, and older SDKs still publish agent.json. Your discovery logic should attempt both for every host; that’s the #1 reason crawlers miss otherwise-valid agents. 
+A2A Project
++1
+
+References you can keep open while building your scanner
+
+A2A spec (latest): card fields, transports, security schemes, endpoints, and the newer agent-card.json path. 
+A2A Project
+
+A2A spec (0.2.x): shows the older agent.json location and client helpers you’ll still encounter. 
+A2A Project
++1
+
+LangGraph A2A docs: how cards and /a2a/{assistant_id} endpoints are shaped in production servers. 
+LangChain Docs
+
+Google Codelab (Cloud Run demo agents): confirms that public Cloud Run URLs are a common hosting pattern for A2A demo agents. 
+Google Codelabs
+
+Registry discussion (work-in-progress): why there isn’t a stable global listing yet. 
+GitHub
+
+Quick reality check
+
+I didn’t find a stable, vendor-maintained list of public A2A agents you can call today; most “big-logo” implementations are enterprise-only or behind auth, and community demos come and go. That’s why I gave you the automated discovery + verification workflow — it’s the only reliable way to produce a list of real, callable agents for your competition right now. If you want, I can also adapt the prompt to TypeScript/Python code with the exact HTTP checks and CSV writing in one go.

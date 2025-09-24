@@ -125,10 +125,20 @@ function categorizeError(error: any, provider: ProviderType): { error_code: stri
 }
 
 /**
- * 🔧 AUTH INJECTOR - Applies correct headers per provider
+ * 🔧 AUTH INJECTOR - Applies correct headers per provider with consistent identity
+ * ChatGPT recommendation: Static egress identity for vendor allowlists
  */
 function applyAuthAndHeaders(provider: ProviderType, headers: Record<string, string> = {}): Record<string, string> {
   const authHeaders = { ...headers };
+  
+  // ChatGPT: Consistent User-Agent for vendor allowlists and professional identity
+  const CONSISTENT_USER_AGENT = "CoinRailz-A2A-Platform/2.0 (business@coinrailz.com; +https://coinrailz.com/a2a)";
+  authHeaders["User-Agent"] = CONSISTENT_USER_AGENT;
+  
+  // Add standard headers for better compatibility
+  authHeaders["Accept"] = "application/json";
+  authHeaders["Accept-Encoding"] = "gzip, deflate";
+  authHeaders["Connection"] = "keep-alive";
   
   switch (provider) {
     case "openai":
@@ -145,7 +155,7 @@ function applyAuthAndHeaders(provider: ProviderType, headers: Record<string, str
       authHeaders["Content-Type"] = "application/json";
       break;
     case "dexscreener":
-      authHeaders["User-Agent"] = "a2a-bot/1.0 (support@coinrailz.com)";
+      // DexScreener already has User-Agent from above consistent identity
       if (process.env.DEX_API_KEY) {
         authHeaders["X-API-KEY"] = process.env.DEX_API_KEY;
       }

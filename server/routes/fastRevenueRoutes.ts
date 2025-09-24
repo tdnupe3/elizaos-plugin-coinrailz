@@ -10,7 +10,7 @@
 import { Router } from 'express';
 import { FastRevenueService } from '../services/fastRevenueService.js';
 import rateLimitImport from 'express-rate-limit';
-import { fastRevenueAuth } from '../middleware/authMiddleware.js';
+import { fastRevenueAuth } from '../middleware/authMiddleware.js';\nimport Stripe from 'stripe';
 
 const router = Router();
 const revenueService = FastRevenueService.getInstance();

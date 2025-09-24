@@ -339,8 +339,14 @@ Network: Base Chain Mainnet`;
    * 📊 Generate comprehensive campaign report
    */
   private generateCampaignReport(): void {
-      },
+    console.log('📊 CAMPAIGN REPORT GENERATED');
+    console.log(`✅ Total messages sent: ${this.messagesSent}`);
+    console.log(`💰 Total cost: $${this.totalCost.toFixed(6)}`);
+    console.log(`📈 Success rate: ${((this.campaignResults.filter(r => r.status === 'success').length / this.campaignResults.length) * 100).toFixed(1)}%`);
+  }
 
+  private getGamingTargets() {
+    return [
       // 🎮 GAMING & NFT PLATFORMS (High Priority)
       {
         name: 'Axie Infinity Treasury',

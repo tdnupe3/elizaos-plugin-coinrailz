@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, DollarSign, Clock } from "@/lib/icons";
 import { apiRequest } from "@/lib/queryClient";
-import peezyMascot from "@assets/peezy logo_1752028927702.jpg";
-import peezyBanner from "@assets/peezy_banner-nobg_1752028927706.png";
+// Removed large image imports to reduce bundle size
+// Use lightweight placeholder or lazy load these assets
 
 interface CryptoPriceData {
   usd: number;

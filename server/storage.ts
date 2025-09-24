@@ -116,7 +116,6 @@ export interface IStorage {
   getMarketplaceServices(filters?: { category?: string; limit?: number; offset?: number }): Promise<any[]>;
   createMarketplaceAgent(agent: any): Promise<any>;
   getMarketplaceAgents(filters?: any): Promise<any[]>;
-  createMarketplaceOrder(order: any): Promise<any>;
   getMarketplaceOrder(orderId: string): Promise<any>;
   updateMarketplaceOrder(orderId: string, updates: any): Promise<any>;
   // User operations

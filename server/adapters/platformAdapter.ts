@@ -12,6 +12,20 @@
 import { BaseDiscoveryAdapter } from './baseAdapter';
 import { DiscoveredAgentRaw } from '../services/agentDiscoveryService';
 
+// Type definitions for platform configuration
+interface PlatformConfig {
+  name: string;
+  url: string;
+  category: string;
+  params?: string;
+  apiKey?: string;
+  searchParams?: Record<string, any>;
+}
+
+interface PlatformsConfig {
+  [key: string]: PlatformConfig[];
+}
+
 export class PlatformAdapter extends BaseDiscoveryAdapter {
   public name = 'Platform Discovery Adapter';
   public expectedYield = 3000; // Expected agents per run
@@ -19,7 +33,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
   public rateLimit = 60; // 60 requests per minute
 
   // Platform endpoints and marketplaces
-  private platforms = {
+  private platforms: PlatformsConfig = {
     aiMarketplaces: [
       {
         name: 'Hugging Face Agents',
@@ -305,8 +319,9 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
         // Rate limiting between platforms
         await this.sleep(2000);
         
-      } catch (error) {
-        console.error(`❌ Failed to discover from ${platform.name}:`, error.message);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Failed to discover from ${platform.name}:`, errorMessage);
       }
     }
 
@@ -590,8 +605,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
         url: `https://huggingface.co/${model.id}` || model.url,
         source: `${platform.name.toLowerCase().replace(/\s+/g, '-')}`,
         channels: {
-          api: `https://api-inference.huggingface.co/models/${model.id}`,
-          webhook: model.webhook_url
+          webhook: model.webhook_url || `https://api-inference.huggingface.co/models/${model.id}`
         },
         capabilities: {
           ai_model: true,
@@ -619,8 +633,8 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
         url: assistant.url || `https://platform.openai.com/gpts/${assistant.id}`,
         source: `${platform.name.toLowerCase().replace(/\s+/g, '-')}`,
         channels: {
-          api: assistant.api_endpoint,
-          chat: assistant.chat_url
+          webhook: assistant.api_endpoint,
+          telegram: assistant.chat_url
         },
         capabilities: {
           ai_assistant: true,
@@ -647,8 +661,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
         url: bot.url || `https://platform.bot/${bot.id}`,
         source: `${platform.name.toLowerCase().replace(/\s+/g, '-')}`,
         channels: {
-          api: bot.api_endpoint,
-          webhook: bot.webhook_url
+          webhook: bot.webhook_url || bot.api_endpoint
         },
         capabilities: {
           trading: true,
@@ -676,8 +689,8 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
         url: protocol.url || protocol.website,
         source: `${platform.name.toLowerCase().replace(/\s+/g, '-')}`,
         channels: {
-          api: protocol.api_endpoint,
-          contract: protocol.contract_address
+          webhook: protocol.api_endpoint,
+          telegram: protocol.contract_address
         },
         capabilities: {
           defi: true,
@@ -705,8 +718,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
         url: api.url || api.endpoint,
         source: `${platform.name.toLowerCase().replace(/\s+/g, '-')}`,
         channels: {
-          api: api.endpoint,
-          webhook: api.webhook_url
+          webhook: api.webhook_url || api.endpoint
         },
         capabilities: {
           api_service: true,
@@ -752,7 +764,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
 
   private isAgentModel(model: any): boolean {
     const agentTags = ['agent', 'assistant', 'chatbot', 'conversational', 'autonomous'];
-    const tags = (model.tags || []).map(t => t.toLowerCase());
+    const tags = (model.tags || []).map((t: any) => t.toLowerCase());
     const description = (model.description || '').toLowerCase();
     
     return agentTags.some(tag => 
@@ -846,7 +858,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
       {
         url: 'https://platform.openai.com/gpts',
         source: `${platformName.toLowerCase().replace(/\s+/g, '-')}-known`,
-        channels: { api: 'https://api.openai.com/v1/chat/completions' },
+        channels: { webhook: 'https://api.openai.com/v1/chat/completions' },
         capabilities: { ai_assistant: true, conversation: true },
         metadata: { platform: platformName, source: 'known_assistant' }
       }
@@ -858,7 +870,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
       {
         url: `https://platform.trading/${platformName.toLowerCase()}`,
         source: `${platformName.toLowerCase().replace(/\s+/g, '-')}-known`,
-        channels: { api: 'https://api.trading.platform/v1' },
+        channels: { webhook: 'https://api.trading.platform/v1' },
         capabilities: { trading: true, automation: true },
         metadata: { platform: platformName, source: 'known_bot' }
       }
@@ -870,7 +882,7 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
       {
         url: `https://service.blockchain/${platformName.toLowerCase()}`,
         source: `${platformName.toLowerCase().replace(/\s+/g, '-')}-known`,
-        channels: { api: 'https://api.blockchain.service/v1' },
+        channels: { webhook: 'https://api.blockchain.service/v1' },
         capabilities: { blockchain: true, api_service: true },
         metadata: { platform: platformName, source: 'known_service' }
       }

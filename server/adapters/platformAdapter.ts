@@ -126,19 +126,28 @@ export class PlatformAdapter extends BaseDiscoveryAdapter {
 
     agentDirectories: [
       {
-        name: 'Agent Directory',
-        url: 'https://agentdirectory.ai/api/agents',
-        category: 'agent_directory'
+        name: 'Hugging Face Agents',
+        url: 'https://huggingface.co/models',
+        category: 'agent_directory',
+        searchParams: { 
+          filter: 'agent',
+          sort: 'downloads',
+          direction: 'desc'
+        }
       },
       {
-        name: 'AI Agent Hub',
-        url: 'https://aiagenthub.com/api/v1/agents',
-        category: 'agent_directory'
+        name: 'LangChain Hub Agents',
+        url: 'https://smith.langchain.com/hub',
+        category: 'agent_directory',
+        searchParams: {
+          repo_type: 'agents'
+        }
       },
       {
-        name: 'Bot Store',
-        url: 'https://botstore.ai/api/bots',
-        category: 'agent_directory'
+        name: 'Google AI Agents (Vertex)',
+        url: 'https://cloud.google.com/vertex-ai/docs/agent-builder',
+        category: 'agent_directory',
+        apiKey: process.env.GOOGLE_CLOUD_API_KEY
       }
     ]
   };

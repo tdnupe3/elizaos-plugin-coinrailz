@@ -940,14 +940,9 @@ router.post('/batch-complete', async (req, res) => {
       }
     } else {
       refundSuccess = true; // No refund needed
-          originalCharge: (paymentIntent.amount / 100).toString(),
-          taskCount: tasks.length.toString()
-        }
-      });
     }
 
     // Store success record in database
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
     const { outreachLogs } = await import('../../shared/schema.js');
     
     await db.insert(outreachLogs).values({

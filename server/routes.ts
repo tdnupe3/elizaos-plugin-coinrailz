@@ -4878,6 +4878,50 @@ Questions? Reply to this message or contact support@coinrailz.com
     }
   });
 
+  // A2A FAILOVER PIPELINE ROUTES
+  app.get('/api/a2a-failover/stats', async (req, res) => {
+    try {
+      const { a2aFailoverPipeline } = await import('./services/a2aFailoverPipeline');
+      const stats = a2aFailoverPipeline.getFailoverStats();
+      
+      res.json({
+        success: true,
+        stats: stats,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Failed to get A2A failover stats:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  app.get('/api/a2a-failover/active', async (req, res) => {
+    try {
+      const { a2aFailoverPipeline } = await import('./services/a2aFailoverPipeline');
+      const activeFailovers = a2aFailoverPipeline.getActiveFailovers();
+      
+      res.json({
+        success: true,
+        activeFailovers: activeFailovers,
+        count: activeFailovers.length,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Failed to get active A2A failovers:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Multi-chain outreach expansion routes
   app.get('/api/multi-chain-expansion/execute', async (req, res) => {
     try {

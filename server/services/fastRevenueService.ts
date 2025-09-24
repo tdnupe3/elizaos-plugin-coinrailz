@@ -7,7 +7,7 @@
  */
 
 import { A2AAPIWrapperService } from './a2aAPIWrapperService.js';
-import { ProviderCapabilityService } from './providerCapabilityService.js';\nimport { storage } from '../storage.js';
+import { ProviderCapabilityService } from './providerCapabilityService.js'; import { storage } from '../storage.js';
 
 interface PaidSlackAction {
   action_id: string;
@@ -64,8 +64,8 @@ export class FastRevenueService {
   // Revenue tracking
   private revenueGenerated = 0;
   private transactionCount = 0;
-  private revenueRecords: RevenueRecord[] = []; // TODO: Replace with persistent storage
-  private premiumCredits: Map<string, PremiumCredit> = new Map();
+  // Revenue now persisted in database - removed in-memory storage
+  // Premium credits now persisted in database - removed in-memory storage
 
   private constructor() {
     this.a2aWrapper = new A2AAPIWrapperService();

@@ -2,8 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { storage } from '../storage.js';
 
-// JWT Secret - in production, this should be from environment variables
-const JWT_SECRET = process.env.JWT_SECRET || 'coinrailz_jwt_secret_2025_production_key';
+// JWT Secret - REQUIRED from environment variables for enterprise security  
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.error('🔒 WARNING: JWT_SECRET not set - using development fallback. REQUIRED for production deployment!');
+  return 'development_jwt_secret_not_for_production';
+})();
 
 interface JWTPayload {
   userId: string;

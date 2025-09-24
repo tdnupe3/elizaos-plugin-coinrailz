@@ -10,7 +10,7 @@
 import { Router } from 'express';
 import { FastRevenueService } from '../services/fastRevenueService.js';
 import rateLimitImport from 'express-rate-limit';
-import { fastRevenueAuth } from '../middleware/authMiddleware.js';
+import { secureRevenueAuth } from '../middleware/secureAuthMiddleware.js';
 
 const router = Router();
 const revenueService = FastRevenueService.getInstance();
@@ -33,7 +33,7 @@ const fastRevenueRateLimit = rateLimitImport({
  */
 
 // Get available paid Slack actions (Authentication required)
-router.get('/api/fast-revenue/slack/actions', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.get('/api/fast-revenue/slack/actions', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     const actions = revenueService.getPaidSlackActions();
     res.json({
@@ -50,7 +50,7 @@ router.get('/api/fast-revenue/slack/actions', fastRevenueRateLimit, fastRevenueA
 });
 
 // Execute paid Slack action (Authentication + Rate limiting required)
-router.post('/api/fast-revenue/slack/execute', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.post('/api/fast-revenue/slack/execute', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     const { 
       action_id, 
@@ -99,7 +99,7 @@ router.post('/api/fast-revenue/slack/execute', fastRevenueRateLimit, fastRevenue
  */
 
 // Process webhook report request (Authentication + Rate limiting required)
-router.post('/api/fast-revenue/webhook/report', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.post('/api/fast-revenue/webhook/report', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     const { url, report_type, customer_email, webhook_callback } = req.body;
 
@@ -147,7 +147,7 @@ router.post('/api/fast-revenue/webhook/report', fastRevenueRateLimit, fastRevenu
 });
 
 // Get webhook report pricing (Authentication required)
-router.get('/api/fast-revenue/webhook/pricing', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.get('/api/fast-revenue/webhook/pricing', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     res.json({
       report_types: {
@@ -186,9 +186,9 @@ router.get('/api/fast-revenue/webhook/pricing', fastRevenueRateLimit, fastRevenu
  */
 
 // Get revenue statistics (Authentication required)
-router.get('/api/fast-revenue/stats', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.get('/api/fast-revenue/stats', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
-    const stats = revenueService.getRevenueStats();
+    const stats = await revenueService.getRevenueStats();
     
     res.json({
       revenue_stats: stats,
@@ -208,7 +208,7 @@ router.get('/api/fast-revenue/stats', fastRevenueRateLimit, fastRevenueAuth, asy
 });
 
 // Health check for fast revenue services (Authentication required)
-router.get('/api/fast-revenue/health', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.get('/api/fast-revenue/health', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     // Check if required services are operational
     const slackHealthy = true; // We know Slack is working from earlier tests
@@ -237,7 +237,7 @@ router.get('/api/fast-revenue/health', fastRevenueRateLimit, fastRevenueAuth, as
  */
 
 // Purchase premium credits
-router.post('/api/fast-revenue/credits/purchase', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.post('/api/fast-revenue/credits/purchase', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     const { tier, credit_amount, payment_method_id } = req.body;
     const userId = (req as any).userId;
@@ -273,10 +273,10 @@ router.post('/api/fast-revenue/credits/purchase', fastRevenueRateLimit, fastReve
 });
 
 // Get user credit balance
-router.get('/api/fast-revenue/credits/balance', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.get('/api/fast-revenue/credits/balance', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     const userId = (req as any).userId;
-    const credits = revenueService.getUserCredits(userId);
+    const credits = await revenueService.getUserCredits(userId);
 
     if (!credits) {
       return res.json({
@@ -302,7 +302,7 @@ router.get('/api/fast-revenue/credits/balance', fastRevenueRateLimit, fastRevenu
 });
 
 // Send premium A2A message (spends credits)
-router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
+router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, secureRevenueAuth, async (req, res) => {
   try {
     const { provider, message, credit_cost } = req.body;
     const userId = (req as any).userId;
@@ -326,10 +326,11 @@ router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, fast
     // Check if user has enough credits
     const hasCredits = await revenueService.spendCreditsForMessage(userId, credit_cost);
     if (!hasCredits) {
+      const userCredits = await revenueService.getUserCredits(userId);
       return res.status(402).json({
         error: 'Insufficient credits',
         message: 'Please purchase more credits to send this message',
-        credit_balance: revenueService.getUserCredits(userId)?.credits || 0
+        credit_balance: userCredits?.credits || 0
       });
     }
 
@@ -345,7 +346,7 @@ router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, fast
       });
     } catch (a2aError: any) {
       // If A2A call fails, refund the credits
-      const userCredits = revenueService.getUserCredits(userId);
+      const userCredits = await revenueService.getUserCredits(userId);
       if (userCredits) {
         // Add credits back (refund)
         await revenueService.purchasePremiumCredits(userId, userCredits.tier as any, credit_cost, 'refund');
@@ -365,7 +366,7 @@ router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, fast
       model_used: messageResponse.model,
       tokens_used: messageResponse.usage?.tokens_used || 0,
       credits_spent: credit_cost,
-      remaining_credits: revenueService.getUserCredits(userId)?.credits || 0,
+      remaining_credits: (await revenueService.getUserCredits(userId))?.credits || 0,
       timestamp: new Date().toISOString()
     };
 

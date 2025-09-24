@@ -54,13 +54,18 @@ import { peezyService } from './services/peezyIntegrationService';
 import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
 import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
+import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
 import { ProviderCapabilityService } from './services/providerCapabilityService.js';
 import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
 import rateLimitImport from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
-// Apply JSON parsing middleware FIRST
+// STRIPE WEBHOOK BEFORE JSON PARSER - Critical for raw body signature verification
+import { stripeWebhookHandler } from './routes/stripePaymentRoutes.js';
+app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/json'}), stripeWebhookHandler);
+
+// Apply JSON parsing middleware AFTER Stripe webhook
 app.use(express.json({ limit: '50mb' }));
 
 // IMMEDIATE ORDER CREATION - REGISTER BEFORE ALL MIDDLEWARE TO BYPASS CONFLICTS
@@ -577,7 +582,9 @@ console.log('✅ A2A Bridge adapters registered - External APIs now look like A2
 // === FAST REVENUE PATHS - CHATGPT POINT 7 ===
 console.log('💰 Registering Fast Revenue Paths - Slack workflows + paywall, webhook reports...');
 app.use(fastRevenueRoutes);
+app.use(stripePaymentRoutes);
 console.log('✅ Fast Revenue routes registered - Immediate revenue generation active');
+console.log('✅ Stripe Payment routes registered - Enterprise payment processing active');
 
 // === AI AGENT PRODUCT STORE ===
 import aiAgentProductRoutes from './routes/aiAgentProductRoutes.js';

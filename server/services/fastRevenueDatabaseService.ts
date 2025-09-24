@@ -39,8 +39,8 @@ export class FastRevenueDatabaseService {
   ): Promise<void> {
     try {
       const revenueRecord: InsertFastRevenueRecord = {
-        transactionId,
-        amount,
+        stripePaymentIntentId: transactionId,
+        amount: amount.toString(),
         currency: 'USD',
         service,
         userId,
@@ -75,10 +75,10 @@ export class FastRevenueDatabaseService {
 
       const creditPackage: InsertFastPremiumCredit = {
         userId,
-        credits: creditAmount,
+        credits: creditAmount.toString(),
         tier,
-        pricePerCredit,
-        paymentIntentId,
+        pricePerCredit: pricePerCredit.toString(),
+        purchaseTransactionId: paymentIntentId,
         expiresAt
       };
 
@@ -114,7 +114,7 @@ export class FastRevenueDatabaseService {
         .from(fastPremiumCredits)
         .where(eq(fastPremiumCredits.userId, userId));
 
-      const totalCredits = userCredits.reduce((sum, pkg) => sum + pkg.credits, 0);
+      const totalCredits = userCredits.reduce((sum, pkg) => sum + parseFloat(pkg.credits), 0);
       
       if (totalCredits < creditCost) {
         console.log(`❌ Insufficient credits: ${totalCredits} available, ${creditCost} required (User: ${userId})`);
@@ -127,22 +127,22 @@ export class FastRevenueDatabaseService {
       for (const package_ of userCredits) {
         if (remainingCost <= 0) break;
         
-        const deduction = Math.min(package_.credits, remainingCost);
-        const newCredits = package_.credits - deduction;
+        const deduction = Math.min(parseFloat(package_.credits), remainingCost);
+        const newCredits = parseFloat(package_.credits) - deduction;
         
         // Update package credits
         await db
           .update(fastPremiumCredits)
-          .set({ credits: newCredits })
+          .set({ credits: newCredits.toString() })
           .where(eq(fastPremiumCredits.id, package_.id));
 
         // Log the usage
         const usage: InsertFastCreditUsage = {
           userId,
-          creditsUsed: deduction,
+          creditsSpent: deduction.toString(),
           creditPackageId: package_.id,
           service: 'a2a_messaging',
-          metadata: {
+          serviceDetails: {
             targetAgent,
             messageContent: messageContent.substring(0, 100), // Truncate for storage
             timestamp: new Date().toISOString()
@@ -183,7 +183,7 @@ export class FastRevenueDatabaseService {
         return null;
       }
 
-      const totalCredits = userCredits.reduce((sum, pkg) => sum + pkg.credits, 0);
+      const totalCredits = userCredits.reduce((sum, pkg) => sum + parseFloat(pkg.credits), 0);
       const highestTier = userCredits.reduce((highest, pkg) => {
         const tierPriority = { basic: 1, premium: 2, enterprise: 3 };
         return tierPriority[pkg.tier as keyof typeof tierPriority] > tierPriority[highest as keyof typeof tierPriority] 
@@ -199,7 +199,7 @@ export class FastRevenueDatabaseService {
         tier: highestTier,
         packages: userCredits.map(pkg => ({
           id: pkg.id,
-          credits: pkg.credits,
+          credits: parseFloat(pkg.credits),
           tier: pkg.tier,
           expires_at: pkg.expiresAt.toISOString()
         })),

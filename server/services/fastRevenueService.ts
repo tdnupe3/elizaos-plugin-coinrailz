@@ -7,7 +7,9 @@
  */
 
 import { A2AAPIWrapperService } from './a2aAPIWrapperService.js';
-import { ProviderCapabilityService } from './providerCapabilityService.js'; import { storage } from '../storage.js';
+import { ProviderCapabilityService } from './providerCapabilityService.js';
+import { storage } from '../storage.js';
+import { FastRevenueDatabaseService } from './fastRevenueDatabaseService.js';
 
 interface PaidSlackAction {
   action_id: string;
@@ -60,16 +62,16 @@ export class FastRevenueService {
   private static instance: FastRevenueService;
   private a2aWrapper: A2AAPIWrapperService;
   private capabilityService: ProviderCapabilityService;
+  private databaseService: FastRevenueDatabaseService;
 
-  // Revenue tracking
+  // Revenue tracking - moved to database
   private revenueGenerated = 0;
   private transactionCount = 0;
-  // Revenue now persisted in database - removed in-memory storage
-  // Premium credits now persisted in database - removed in-memory storage
 
   private constructor() {
     this.a2aWrapper = new A2AAPIWrapperService();
     this.capabilityService = ProviderCapabilityService.getInstance();
+    this.databaseService = FastRevenueDatabaseService.getInstance();
   }
 
   public static getInstance(): FastRevenueService {
@@ -459,25 +461,25 @@ export class FastRevenueService {
 
     // TODO: Process payment via Stripe/PayPal/Circle
     
-    // Add credits to user account
-    const existing = this.premiumCredits.get(userId);
-    const newCredits = (existing?.credits || 0) + creditAmount;
+    // Process payment via Stripe (will be implemented)
+    // For now, proceed with credit allocation
     
-    this.premiumCredits.set(userId, {
+    // Add credits to user account via database
+    const result = await this.databaseService.purchasePremiumCredits(
       userId,
-      credits: newCredits,
       tier,
-      pricePerCredit,
-      expiresAt: new Date(Date.now() + (365 * 24 * 60 * 60 * 1000)) // 1 year
-    });
+      creditAmount,
+      transactionId, // payment intent ID
+      pricePerCredit
+    );
 
-    // Record revenue
-    this.recordRevenue(totalCost, transactionId, userId, 'premium_credits');
+    // Record revenue in database
+    await this.databaseService.recordRevenue(totalCost, transactionId, userId, 'premium_credits');
 
     return {
-      transaction_id: transactionId,
-      credits_added: creditAmount,
-      total_cost: totalCost
+      transaction_id: result.packageId,
+      credits_added: result.creditsAdded,
+      total_cost: result.totalCost
     };
   }
 
@@ -485,87 +487,79 @@ export class FastRevenueService {
    * 💸 Spend Premium Credits for A2A Messages
    */
   async spendCreditsForMessage(userId: string, creditCost: number): Promise<boolean> {
-    const userCredits = this.premiumCredits.get(userId);
-    
-    if (!userCredits || userCredits.credits < creditCost) {
-      return false; // Insufficient credits
+    try {
+      const success = await this.databaseService.spendCreditsForMessage(userId, creditCost, 'A2A message', 'a2a_wrapper');
+      if (success) {
+        console.log(`💳 Credits spent: ${creditCost} (User: ${userId})`);
+      }
+      return success;
+    } catch (error) {
+      console.error('❌ Failed to spend credits:', error);
+      return false;
     }
-
-    // Deduct credits
-    userCredits.credits -= creditCost;
-    this.premiumCredits.set(userId, userCredits);
-    
-    console.log(`💳 Credits spent: ${creditCost} | Remaining: ${userCredits.credits} (User: ${userId})`);
-    return true;
   }
 
   /**
    * 📊 Get User Credit Balance
    */
-  getUserCredits(userId: string): { credits: number; tier: string; expires_at: string } | null {
-    const userCredits = this.premiumCredits.get(userId);
-    if (!userCredits) return null;
-
-    return {
-      credits: userCredits.credits,
-      tier: userCredits.tier,
-      expires_at: userCredits.expiresAt.toISOString()
-    };
+  async getUserCredits(userId: string): Promise<{ credits: number; tier: string; expires_at: string } | null> {
+    try {
+      return await this.databaseService.getUserCredits(userId);
+    } catch (error) {
+      console.error('❌ Failed to get user credits:', error);
+      return null;
+    }
   }
 
   /**
-   * 💰 Record Revenue Transaction (Enhanced with Persistence)
+   * 💰 Record Revenue Transaction (Database Persistence)
    */
-  private recordRevenue(amount: number, transactionId: string, userId: string, service: string = 'fast_revenue'): void {
+  private async recordRevenue(amount: number, transactionId: string, userId: string, service: string = 'fast_revenue'): Promise<void> {
     this.revenueGenerated += amount;
     this.transactionCount += 1;
     
-    // Store in memory (TODO: Replace with database persistence)
-    const record: RevenueRecord = {
-      id: transactionId,
-      timestamp: new Date(),
-      service: 'fast_revenue',
-      amount,
-      currency: 'USD',
-      userId,
-      metadata: { source: 'premium_credits' }
-    };
-    
-    this.revenueRecords.push(record);
+    // Store in database
+    await this.databaseService.recordRevenue(amount, transactionId, userId, service);
     
     console.log(`💰 REVENUE GENERATED: $${amount} (Transaction: ${transactionId})`);
     console.log(`📊 Total Revenue: $${this.revenueGenerated.toFixed(2)} | Transactions: ${this.transactionCount}`);
-    
-    // TODO: Store in PostgreSQL for audit-ready reporting
   }
 
   /**
-   * 📊 Get Revenue Stats (Enhanced for Enterprise Audit)
+   * 📊 Get Revenue Stats (Database Persistence)
    */
-  getRevenueStats(): { 
+  async getRevenueStats(): Promise<{ 
     total_revenue: number; 
     transaction_count: number;
-    revenue_by_service: Record<string, number>;
-    recent_transactions: RevenueRecord[];
-  } {
-    // Calculate revenue by service
-    const revenueByService: Record<string, number> = {};
-    this.revenueRecords.forEach(record => {
-      revenueByService[record.service] = (revenueByService[record.service] || 0) + record.amount;
-    });
-
-    return {
-      total_revenue: this.revenueGenerated,
-      transaction_count: this.transactionCount,
-      revenue_by_service: revenueByService,
-      recent_transactions: this.revenueRecords.slice(-10) // Last 10 transactions
-    };
+    recent_transactions: any[];
+  }> {
+    try {
+      const stats = await this.databaseService.getRevenueStats();
+      return {
+        total_revenue: stats.totalRevenue,
+        transaction_count: stats.transactionCount,
+        recent_transactions: stats.recentTransactions
+      };
+    } catch (error) {
+      console.error('❌ Failed to get revenue stats:', error);
+      return {
+        total_revenue: this.revenueGenerated,
+        transaction_count: this.transactionCount,
+        recent_transactions: []
+      };
+    }
   }
 
   /**
-   * 📈 Get All Revenue Records (For Enterprise Reporting)
+   * 📈 Get All Revenue Records (Database Persistence)
    */
-  getAllRevenueRecords(): RevenueRecord[] {
-    return [...this.revenueRecords]; // Return copy for safety
+  async getAllRevenueRecords(): Promise<any[]> {
+    try {
+      const stats = await this.databaseService.getRevenueStats();
+      return stats.recentTransactions;
+    } catch (error) {
+      console.error('❌ Failed to get revenue records:', error);
+      return [];
+    }
   }
 }

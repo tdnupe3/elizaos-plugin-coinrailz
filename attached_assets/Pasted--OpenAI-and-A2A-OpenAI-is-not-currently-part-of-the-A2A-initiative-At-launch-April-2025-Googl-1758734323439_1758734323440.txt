@@ -1,0 +1,82 @@
+🔹 OpenAI and A2A
+
+OpenAI is not currently part of the A2A initiative.
+At launch (April 2025), Google announced A2A with partners like Microsoft, Salesforce, SAP, Box, ServiceNow, Atlassian, PayPal, Intuit, etc. — OpenAI was not listed .
+
+ChatGPT / GPTs don’t natively expose an A2A agent card or JSON-RPC interface. Instead, OpenAI offers the Assistants API
+ (REST) and “GPTs” via the GPT Store. Both are OpenAI-proprietary, not A2A-compliant.
+
+Workarounds:
+
+Adapter / Gateway: You can wrap an OpenAI assistant (or GPT) with your own thin server that exposes an A2A agent card and translates A2A JSON-RPC calls into OpenAI API calls. (Many developers are doing this already for LangChain/LangGraph agents.)
+
+Third-party bridges: Some frameworks (LangGraph, crewAI, Semantic Kernel) are building A2A connectors — so you could spin up a local agent that calls OpenAI behind the scenes, while exposing A2A outward.
+
+👉 In short: OpenAI doesn’t ship A2A, but you can make your own A2A-compatible OpenAI agent with an adapter.
+
+🔹 Other Large Companies and A2A
+
+Microsoft – Very much “all in.” They’ve wired Copilot Studio / Semantic Kernel into A2A . So an Azure Copilot can directly communicate with, say, a Salesforce Agentforce agent.
+
+Salesforce – Native support in Agentforce 3 , with marketplace integration (AgentExchange).
+
+SAP – Co-developed A2A with Google. SAP Joule (their ERP copilot) already uses it .
+
+Atlassian – Rovo agents speak A2A .
+
+Box – Their Enhanced Extract Agent is A2A-enabled .
+
+PayPal – Payments agents use A2A for “agentic commerce” .
+
+Intuit – QuickBooks agents are A2A-capable .
+
+ServiceNow & UKG – Integrated their workflow agents via A2A .
+
+Workday – Explicitly uses A2A + MCP to make external agent calls .
+
+IBM – IBM has long pushed multi-agent orchestration. They contributed ideas from their internal ACP (Agent Communication Protocol) into A2A . Their Watsonx Orchestrate/Assistant agents can interop via A2A. IBM’s angle: A2A is the “universal translator” to let Watson agents talk with LangChain, Gemini, etc. .
+
+🔹 Example: Contacting IBM Watson from Your Agent
+
+Let’s say you want your agent to call IBM Watson Assistant for a specialized task (like sentiment analysis or IT support dialog). The flow would be:
+
+Discover IBM’s agent card:
+
+Public agents publish a /.well-known/agent.json.
+
+IBM would list Watson Assistant’s skills/capabilities (e.g. analyze_sentiment, answer_query) in that JSON card.
+
+Establish trust / auth:
+
+Many enterprise agents require OAuth2 tokens or API keys.
+
+A2A spec allows agent cards to declare auth requirements (e.g. “Bearer token with scope X”).
+
+Send an A2A task:
+
+{
+  "method": "agent.invoke",
+  "params": {
+    "task": {
+      "name": "analyze_sentiment",
+      "input": "Customer says: 'I'm really upset about the billing error.'"
+    }
+  }
+}
+
+
+This JSON-RPC request would be sent to Watson’s A2A endpoint (URL given in the agent card).
+
+Watson agent processes task → responds with task status updates (working, completed) and results (structured JSON or text).
+
+Your agent integrates the response back into the larger workflow (e.g. escalate to a Customer Service Agent).
+
+👉 Without A2A, you’d have to hard-code IBM’s REST API. With A2A, any compliant agent (Watson, Salesforce, Box, etc.) looks the same from your agent’s perspective.
+
+✅ Bottom line:
+
+OpenAI doesn’t (yet) support A2A — you’d need to wrap it.
+
+Microsoft, Salesforce, SAP, Box, PayPal, Intuit, ServiceNow, Workday, IBM all do support A2A or are implementing it now.
+
+To talk to IBM Watson (or any large vendor’s agent), you’d fetch its agent card, handle its auth, and then use standard A2A JSON-RPC calls.

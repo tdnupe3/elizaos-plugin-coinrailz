@@ -4832,6 +4832,52 @@ Questions? Reply to this message or contact support@coinrailz.com
     }
   });
 
+  // DAO TREASURY OUTREACH ROUTES
+  app.get('/api/dao-treasury/launch', async (req, res) => {
+    try {
+      console.log('🏛️ Launching DAO treasury outreach campaign...');
+      
+      const { daoTreasuryOutreach } = await import('./services/daoTreasuryOutreach');
+      await daoTreasuryOutreach.executeDaoTreasuryCampaign();
+      
+      res.json({
+        success: true,
+        message: 'DAO treasury campaign launched successfully',
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('❌ DAO treasury outreach failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  app.get('/api/dao-treasury/campaigns', async (req, res) => {
+    try {
+      const { daoTreasuryOutreach } = await import('./services/daoTreasuryOutreach');
+      const campaigns = daoTreasuryOutreach.getActiveCampaigns();
+      
+      res.json({
+        success: true,
+        campaigns: campaigns,
+        stats: daoTreasuryOutreach.getCampaignStats(),
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Failed to get DAO campaigns:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   // Multi-chain outreach expansion routes
   app.get('/api/multi-chain-expansion/execute', async (req, res) => {
     try {

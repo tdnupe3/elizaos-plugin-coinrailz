@@ -151,6 +151,104 @@ export class EnterpriseOutreachService {
         urgency: 'high'
       },
       
+      // Enterprise AI Agent Networks (Non-Google)
+      {
+        company: 'Anthropic (Claude)',
+        category: 'ai_agent_marketplace',
+        contact: 'Enterprise Partnerships',
+        email: 'partnerships@anthropic.com',
+        phone: '+1-415-991-0123',
+        dealSize: '$400,000',
+        valueProposition: 'MCP Protocol Payment Infrastructure - USDC micropayments for Claude agent interactions',
+        urgency: 'high'
+      },
+      {
+        company: 'OpenAI (ChatGPT)',
+        category: 'ai_agent_marketplace',
+        contact: 'Business Development',
+        email: 'partnerships@openai.com',
+        phone: '+1-415-374-1800',
+        dealSize: '$500,000',
+        valueProposition: 'AI Agent Revenue Share Platform - Blockchain-native payment processing for GPT Store',
+        urgency: 'high'
+      },
+      {
+        company: 'IBM Watson (ACP)',
+        category: 'ai_agent_marketplace',
+        contact: 'AI Partner Ecosystem',
+        email: 'ai-partnerships@ibm.com',
+        phone: '+1-914-499-1900',
+        dealSize: '$350,000',
+        valueProposition: 'ACP Protocol Integration - Enterprise USDC payments for Watson AI agent services',
+        urgency: 'high'
+      },
+      {
+        company: 'Microsoft Azure AI',
+        category: 'ai_agent_marketplace',
+        contact: 'Azure Partner Team',
+        email: 'azurepartners@microsoft.com',
+        phone: '+1-425-882-8080',
+        dealSize: '$300,000',
+        valueProposition: 'Copilot Payment Integration - Multi-chain payment processing for Azure AI services',
+        urgency: 'high'
+      },
+      {
+        company: 'Hugging Face',
+        category: 'ai_agent_marketplace',
+        contact: 'Enterprise Team',
+        email: 'enterprise@huggingface.co',
+        phone: '+1-646-876-9923',
+        dealSize: '$200,000',
+        valueProposition: 'AI Model Marketplace Payments - Crypto payment rails for model hosting and inference',
+        urgency: 'medium'
+      },
+      {
+        company: 'Replicate',
+        category: 'ai_agent_marketplace',
+        contact: 'Business Development',
+        email: 'partnerships@replicate.com',
+        dealSize: '$150,000',
+        valueProposition: 'ML Model Payment Processing - USDC micropayments for API inference calls',
+        urgency: 'medium'
+      },
+      {
+        company: 'Cohere',
+        category: 'ai_agent_marketplace',
+        contact: 'Enterprise Sales',
+        email: 'enterprise@cohere.ai',
+        phone: '+1-647-370-9045',
+        dealSize: '$180,000',
+        valueProposition: 'Enterprise AI Payment Infrastructure - Multi-chain support for Cohere API monetization',
+        urgency: 'medium'
+      },
+      {
+        company: 'Together AI',
+        category: 'ai_agent_marketplace',
+        contact: 'Partnership Team',
+        email: 'partnerships@together.xyz',
+        dealSize: '$120,000',
+        valueProposition: 'Decentralized AI Payment Rails - Blockchain-native payments for distributed inference',
+        urgency: 'medium'
+      },
+      {
+        company: 'Virtuals Protocol',
+        category: 'ai_agent_marketplace',
+        contact: 'Protocol Team',
+        email: 'partnerships@virtuals.io',
+        dealSize: '$250,000',
+        valueProposition: 'AI Agent Token Economy - Native blockchain integration for VIRTUAL token payments',
+        urgency: 'high'
+      },
+      {
+        company: 'ElizaOS',
+        category: 'ai_agent_marketplace',
+        contact: 'Core Team',
+        email: 'partnerships@elizaos.ai',
+        dealSize: '$100,000',
+        valueProposition: 'Open Source AI Agent Monetization - Payment processing for Eliza-based agents',
+        urgency: 'medium'
+      },
+      
       // Crypto Exchanges - Enterprise Infrastructure
       {
         company: 'Kraken',

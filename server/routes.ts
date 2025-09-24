@@ -4835,14 +4835,18 @@ Questions? Reply to this message or contact support@coinrailz.com
   // DAO TREASURY OUTREACH ROUTES
   app.get('/api/dao-treasury/launch', async (req, res) => {
     try {
-      console.log('🏛️ Launching DAO treasury outreach campaign...');
+      console.log('🏛️ Launching REAL DAO treasury outreach with live data...');
       
-      const { daoTreasuryOutreach } = await import('./services/daoTreasuryOutreach');
-      await daoTreasuryOutreach.executeDaoTreasuryCampaign();
+      const { realDAOTreasuryOutreach } = await import('./services/daoTreasuryOutreach');
+      await realDAOTreasuryOutreach.launchRealDAOCampaign();
+      
+      const results = realDAOTreasuryOutreach.getRealCampaignStatus();
       
       res.json({
         success: true,
-        message: 'DAO treasury campaign launched successfully',
+        message: 'Real DAO treasury outreach launched with DefiLlama live data',
+        results: results,
+        dataSource: 'DefiLlama API + Verified Contacts',
         timestamp: new Date().toISOString()
       });
       
@@ -4881,8 +4885,8 @@ Questions? Reply to this message or contact support@coinrailz.com
   // A2A FAILOVER PIPELINE ROUTES
   app.get('/api/a2a-failover/stats', async (req, res) => {
     try {
-      const { a2aFailoverPipeline } = await import('./services/a2aFailoverPipeline');
-      const stats = a2aFailoverPipeline.getFailoverStats();
+      const { realA2AFailoverPipeline } = await import('./services/a2aFailoverPipeline');
+      const stats = realA2AFailoverPipeline.getRealFailoverStats();
       
       res.json({
         success: true,
@@ -4902,8 +4906,8 @@ Questions? Reply to this message or contact support@coinrailz.com
 
   app.get('/api/a2a-failover/active', async (req, res) => {
     try {
-      const { a2aFailoverPipeline } = await import('./services/a2aFailoverPipeline');
-      const activeFailovers = a2aFailoverPipeline.getActiveFailovers();
+      const { realA2AFailoverPipeline } = await import('./services/a2aFailoverPipeline');
+      const activeFailovers = realA2AFailoverPipeline.getActiveFailovers();
       
       res.json({
         success: true,

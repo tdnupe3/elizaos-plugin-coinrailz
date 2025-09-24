@@ -7,6 +7,7 @@ import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogic
 import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
 import { telegramTradingBot } from './services/telegramTradingBot.js';
 import { initializeAffiliateSystem } from './services/automatedAffiliate';
+import { realA2AFailoverPipeline } from './services/a2aFailoverPipeline.js';
 import emergencyRevenueRoutes from './routes/emergencyRevenueRoutes';
 import competitionRoutes from './routes/competitionRoutes.js';
 import { sdkLeadGenerationService } from './services/sdkLeadGenerationService';
@@ -3238,6 +3239,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
         console.log('💳 Payment systems ready for immediate revenue collection');
         
+        // Bootstrap A2A failover pipeline monitoring
+        console.log('🔄 Bootstrapping A2A failover pipeline...');
+        const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
+        console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
+        
       } catch (error) {
         console.error('❌ Failed to initialize emergency outreach:', error);
       }
@@ -3262,6 +3268,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
         console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
         console.log('💳 Payment systems ready for immediate revenue collection');
+        
+        // Bootstrap A2A failover pipeline monitoring
+        console.log('🔄 Bootstrapping A2A failover pipeline...');
+        const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
+        console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
         
       } catch (error) {
         console.error('❌ Failed to initialize emergency outreach:', error);

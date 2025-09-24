@@ -4836,7 +4836,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.get('/api/multi-chain-expansion/execute', async (req, res) => {
     try {
       console.log('🌐 Executing multi-chain outreach expansion...');
-      const { multiChainOutreachExpansionService } = await import('./services/multiChainOutreachExpansion.js');
+      const { multiChainOutreachExpansionService } = await import('./services/multiChainOutreachExpansion');
       const results = await multiChainOutreachExpansionService.executeSelectiveExpansion();
       res.json({
         success: true,
@@ -4855,7 +4855,7 @@ Questions? Reply to this message or contact support@coinrailz.com
 
   app.get('/api/multi-chain-expansion/summary', async (req, res) => {
     try {
-      const { multiChainOutreachExpansionService } = await import('./services/multiChainOutreachExpansion.js');
+      const { multiChainOutreachExpansionService } = await import('./services/multiChainOutreachExpansion');
       const summary = await multiChainOutreachExpansionService.getExpansionSummary();
       res.json({
         success: true,

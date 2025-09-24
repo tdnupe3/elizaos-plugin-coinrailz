@@ -544,6 +544,10 @@ app.use('/api', dashboardRoutes);
 import taskBoardRoutes from './routes/taskBoardRoutes.js';
 app.use('/api/task-boards', taskBoardRoutes);
 
+// === A2A PROTOCOL TESTING & TELEMETRY ===
+import a2aTestingRoutes from './routes/a2aTestingRoutes.js';
+app.use('/api/a2a', a2aTestingRoutes);
+
 // === AI AGENT PRODUCT STORE ===
 import aiAgentProductRoutes from './routes/aiAgentProductRoutes.js';
 app.use('/api/ai-products', aiAgentProductRoutes);

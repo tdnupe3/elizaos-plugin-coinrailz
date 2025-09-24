@@ -4832,5 +4832,45 @@ Questions? Reply to this message or contact support@coinrailz.com
     }
   });
 
+  // Multi-chain outreach expansion routes
+  app.get('/api/multi-chain-expansion/execute', async (req, res) => {
+    try {
+      console.log('🌐 Executing multi-chain outreach expansion...');
+      const { multiChainOutreachExpansionService } = await import('./services/multiChainOutreachExpansion.js');
+      const results = await multiChainOutreachExpansionService.executeSelectiveExpansion();
+      res.json({
+        success: true,
+        ...results,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('❌ Multi-chain expansion failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  app.get('/api/multi-chain-expansion/summary', async (req, res) => {
+    try {
+      const { multiChainOutreachExpansionService } = await import('./services/multiChainOutreachExpansion.js');
+      const summary = await multiChainOutreachExpansionService.getExpansionSummary();
+      res.json({
+        success: true,
+        ...summary,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('❌ Multi-chain expansion summary failed:', error);
+      res.status(500).json({ 
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   return server;
 }

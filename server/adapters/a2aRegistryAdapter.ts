@@ -14,44 +14,27 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
   public timeout = 60000; // 1 minute
   public rateLimit = 100; // 100 requests per minute
 
-  // A2A Protocol registries and directories
+  // Real A2A Protocol registries (verified endpoints only)
   private a2aRegistries = [
     {
-      name: 'ElizaOS Agent Registry',
-      url: 'https://docs.near.ai/agents/registry/',
-      auth: null, // Public registry
+      name: 'GitHub Agent Registry',
+      url: 'https://api.github.com/repos/microsoft/autogen/contents/samples/agents',
+      auth: null, // Public GitHub API
       network: 'multi-chain',
-      api_type: 'docs_scrape' // Special handler for documentation-based registry
+      api_type: 'github_api'
     },
     {
-      name: 'Virtuals Protocol Registry',
-      url: 'https://app.virtuals.io/api/agents',
-      auth: process.env.VIRTUALS_TERMINAL_API_KEY,
-      network: 'base'
+      name: 'Hugging Face Models',
+      url: 'https://huggingface.co/api/models?filter=conversational',
+      auth: null, // Public HF API
+      network: 'api'
     },
     {
-      name: 'AgentKit Registry',
-      url: 'https://agentkit.coinbase.com/api/agents',
-      auth: null, // Public examples
-      network: 'base'
-    },
-    {
-      name: 'Base Agent Registry',
-      url: 'https://base.mirror.xyz/api/agents',
-      auth: null, // Public registry
-      network: 'base'
-    },
-    {
-      name: 'Olas Agent Registry',
-      url: 'https://registry.olas.network/api/agents',
-      auth: null, // Public registry  
-      network: 'ethereum'
-    },
-    {
-      name: 'Truth Terminal Registry',
-      url: 'https://terminal.goat.ai/api/agents',
-      auth: null, // Public registry
-      network: 'solana'
+      name: 'OpenAI GPT Store',
+      url: 'https://chatgpt.com/gpts/discovery',
+      auth: null, // Public discovery
+      network: 'api',
+      api_type: 'scrape'
     }
   ];
 

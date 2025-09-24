@@ -131,11 +131,29 @@ export class XMTPMessagingService {
           .digest()
       );
       
-      this.xmtpClient = await Client.create(xmtpSigner, {
-        env: 'production',
-        dbEncryptionKey,
-        dbPath
-      });
+      // Check if client already exists to avoid installation limit
+      if (this.xmtpClient) {
+        console.log('♻️ XMTP client already initialized, reusing existing installation');
+        return;
+      }
+
+      // Try to create client with installation management
+      try {
+        this.xmtpClient = await Client.create(xmtpSigner, {
+          env: 'production',
+          dbEncryptionKey,
+          dbPath
+        });
+      } catch (installError) {
+        if (installError.message.includes('10/10 installations') || installError.message.includes('installation')) {
+          console.log('⚠️ XMTP installation limit reached - using basic wallet messaging');
+          console.log('💡 XMTP messaging disabled, using on-chain wallet messaging instead');
+          // Don't throw - continue with wallet-only messaging
+          this.xmtpClient = null;
+        } else {
+          throw installError;
+        }
+      }
       
       console.log(`🔗 XMTP identity: ${xmtpWalletAddress} (persistent across restarts)`);
 

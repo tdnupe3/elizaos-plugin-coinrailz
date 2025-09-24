@@ -153,12 +153,39 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     return results;
   }
 
-  // Real Google A2A Agent Discovery using patterns from ChatGPT guide
+  // REAL Google A2A Agent Discovery - DETERMINISTIC using ChatGPT guide
   async discoverAgentsFromDirectories(): Promise<any[]> {
-    console.log(`🌐 A2A: Discovering REAL Google A2A agents using live discovery patterns...`);
+    console.log(`🌐 A2A: Starting DETERMINISTIC agent discovery using real agent cards...`);
     let discoveredAgents: any[] = [];
     
     try {
+      // PRIORITY 1: Use A2A_REMOTE_CARDS from environment (ChatGPT guide)
+      if (process.env.A2A_REMOTE_CARDS) {
+        const cardUrls = process.env.A2A_REMOTE_CARDS.split(',').map(url => url.trim()).filter(Boolean);
+        console.log(`🎯 A2A: Found ${cardUrls.length} agent cards in A2A_REMOTE_CARDS`);
+        
+        for (const cardUrl of cardUrls) {
+          try {
+            const agentCard = await this.discover_agent_card(cardUrl);
+            if (agentCard && this.validateAgentCard(agentCard)) {
+              discoveredAgents.push({
+                name: agentCard.name,
+                url: agentCard.url,
+                capabilities: agentCard.capabilities || [],
+                skills: agentCard.skills || [],
+                protocolVersion: agentCard.protocolVersion,
+                source: 'A2A_REMOTE_CARDS',
+                endpoints: agentCard.endpoints
+              });
+              console.log(`✅ A2A: Discovered agent from env: ${agentCard.name}`);
+            }
+          } catch (error: any) {
+            console.log(`⚠️ A2A: Failed to fetch ${cardUrl}: ${error.message}`);
+          }
+        }
+      }
+      
+      // PRIORITY 2: Fallback to deterministic discovery patterns
       // Use REAL discovery patterns from ChatGPT guide instead of fake directories
       const discoveryPatterns = [
         // Cloud Run agents (common pattern from ChatGPT guide)
@@ -191,10 +218,11 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
         if (pattern.type === 'cloud_run') {
           // Search for Cloud Run A2A agents using common patterns
           for (const term of pattern.searchTerms) {
+            // FIXED: Use REAL deterministic URLs instead of random hostnames
             const candidateUrls = [
-              `https://${term}-${Math.floor(Math.random() * 1000)}.run.app`,
               `https://${term}-demo.run.app`,
-              `https://${term}.run.app`
+              `https://${term}.run.app`,
+              `https://demo-${term}.run.app`
             ];
             
             for (const candidateUrl of candidateUrls) {
@@ -1338,6 +1366,66 @@ Agent Registration: Include your agent identifier with all donations for proper 
 
   getAllTasks(): A2ATask[] {
     return Array.from(this.tasks.values());
+  }
+
+  // ChatGPT Guide Implementation - discover_agent_card
+  async discover_agent_card(cardUrl: string): Promise<A2AAgentCard | null> {
+    try {
+      // Support both base URL and full card URL
+      const fullCardUrl = cardUrl.includes('/.well-known/') 
+        ? cardUrl 
+        : `${cardUrl.replace(/\/$/, '')}/.well-known/agent.json`;
+        
+      const headers: any = {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Coin-Railz-A2A-Client/1.0'
+      };
+      
+      // Add optional bearer token for discovery (ChatGPT guide)
+      if (process.env.A2A_TOKEN) {
+        headers['Authorization'] = `Bearer ${process.env.A2A_TOKEN}`;
+      }
+      
+      const response = await fetch(fullCardUrl, { 
+        method: 'GET',
+        headers,
+        timeout: parseInt(process.env.A2A_CLIENT_TIMEOUT_MS || '30000')
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const agentCard = await response.json();
+      console.log(`📋 A2A: Retrieved agent card for ${agentCard.name || 'unknown'}`);
+      
+      return agentCard;
+      
+    } catch (error: any) {
+      console.log(`❌ A2A: Failed to discover agent card from ${cardUrl}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // ChatGPT Guide Implementation - Agent card validation
+  private validateAgentCard(card: any): boolean {
+    const requiredFields = ['name', 'description', 'url', 'protocolVersion'];
+    
+    for (const field of requiredFields) {
+      if (!card[field]) {
+        console.log(`❌ A2A: Missing required field '${field}' in agent card`);
+        return false;
+      }
+    }
+    
+    // Validate protocol version
+    if (!card.protocolVersion || !card.protocolVersion.toString().startsWith('0.')) {
+      console.log(`❌ A2A: Unsupported protocol version: ${card.protocolVersion}`);
+      return false;
+    }
+    
+    console.log(`✅ A2A: Agent card validation passed for ${card.name}`);
+    return true;
   }
 }
 

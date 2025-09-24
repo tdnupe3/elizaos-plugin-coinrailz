@@ -174,7 +174,7 @@ export class ProductionLoadTester {
       const agentData = {
         agentName: 'Test Agent',
         capabilities: ['trading', 'analysis'],
-        walletAddress: '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F'
+        walletAddress: process.env.TEST_WALLET_ADDRESS || 'LOADTEST_ONLY'
       };
 
       // Simulate marketplace operations
@@ -369,11 +369,11 @@ export class ProductionLoadTester {
     let profitability = { revenue: 0, costs: 0, profit: 0, margin: 0 };
 
     try {
-      // Simulate user registration process
+      // Use environment-based test data to avoid hardcoded fake addresses
       const userData = {
-        email: 'test@example.com',
-        username: 'testuser',
-        walletAddress: '0x742d35Cc6634C0532925a3b8D4C9db96F426A01F'
+        email: process.env.TEST_EMAIL || 'loadtest@coinrailz.localhost',
+        username: 'loadtest_user_' + Date.now(),
+        walletAddress: process.env.TEST_WALLET_ADDRESS || 'LOADTEST_ONLY'
       };
 
       // Validate registration data

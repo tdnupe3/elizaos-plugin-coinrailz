@@ -8,32 +8,26 @@ import { eq } from 'drizzle-orm';
  */
 
 export class RealAIAgentOutreach {
-  private targetAgents = [
-    {
-      name: 'Truth Terminal',
-      wallet: '3xzTSh7KSFsnhzVvuGWXMmA3xaA89gCCM1MSS1Ga6ka6',
-      twitter: '@truth_terminal',
-      capabilities: ['meme_coin_promotion', 'social_influence'],
-      estimated_budget: '$10,000/month',
-      contact_method: 'twitter_dm'
-    },
-    {
-      name: 'ai16z',
-      wallet: 'DJnHztNmw1H56uYm98PNu5eVZ5yhi9482rZ9zA22TUUz', 
-      website: 'https://ai16z.org',
-      capabilities: ['investment_management', 'trading'],
-      estimated_budget: '$50,000/month',
-      contact_method: 'website_contact'
-    },
-    {
-      name: 'AIXBT',
-      wallet: '0x8BnEgHoWFysVcuFFX7QztDmzuH8r5ZFvyP9sYwn1XTh6',
-      twitter: '@aixbt_agent',
-      capabilities: ['crypto_analysis', 'market_data'],
-      estimated_budget: '$25,000/month',
-      contact_method: 'twitter_dm'
+  private targetAgents = this.getVerifiedAgents();
+
+  private getVerifiedAgents() {
+    // Only use verified AI agent contacts from environment
+    const verifiedAgents = process.env.VERIFIED_AI_AGENT_CONTACTS;
+    
+    if (!verifiedAgents) {
+      console.log('⚠️ No verified AI agent contacts configured - real outreach DISABLED');
+      return [];
     }
-  ];
+    
+    try {
+      const agents = JSON.parse(verifiedAgents);
+      console.log(`🔒 Using ${agents.length} verified AI agent contacts`);
+      return agents;
+    } catch (error) {
+      console.error('❌ Failed to parse verified AI agents - outreach DISABLED');
+      return [];
+    }
+  }
 
   /**
    * Generate service offers tailored to each AI agent's capabilities

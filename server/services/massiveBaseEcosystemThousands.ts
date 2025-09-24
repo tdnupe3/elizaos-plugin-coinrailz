@@ -372,7 +372,7 @@ Ecosystem: ${target.ecosystem}`;
     return [
       {
         name: 'coinbase.base.eth',
-        wallet: '0x4F3A120E72C76c22ae802D129F599BFDbc31cb81', // Example - would be resolved
+        wallet: process.env.COINBASE_VERIFIED_WALLET || 'DISABLED_NO_FAKE_DATA',
         category: 'exchange',
         dealSize: '$2M',
         priority: 'critical',
@@ -381,7 +381,7 @@ Ecosystem: ${target.ecosystem}`;
       },
       {
         name: 'base.base.eth', 
-        wallet: '0x6B1D3E90C4d19F96b8e6C8e7b8c4d1A9F5B2C3E8', // Example - would be resolved
+        wallet: process.env.BASE_VERIFIED_WALLET || 'DISABLED_NO_FAKE_DATA',
         category: 'infrastructure',
         dealSize: '$1M',
         priority: 'critical',
@@ -390,7 +390,7 @@ Ecosystem: ${target.ecosystem}`;
       },
       {
         name: 'uniswap.base.eth',
-        wallet: '0x8A2F1D4C9B3E6F7A5C8D9E2F1B4A7C6E9D2F5B8A', // Example - would be resolved
+        wallet: process.env.UNISWAP_VERIFIED_WALLET || 'DISABLED_NO_FAKE_DATA',
         category: 'defi_protocol',
         dealSize: '$750K',
         priority: 'critical',
@@ -411,7 +411,7 @@ Ecosystem: ${target.ecosystem}`;
     for (let i = 1; i <= 2000; i++) {
       targets.push({
         name: `Base Native Protocol ${i}`,
-        wallet: `0x${Math.random().toString(16).slice(2, 42)}`,
+        wallet: process.env.VERIFIED_BASE_PARTNERS ? 'REQUIRES_VERIFICATION' : 'DISABLED_NO_FAKE_DATA',
         category: 'base_native_protocol',
         dealSize: this.getRandomDealSize(['$25K', '$50K', '$75K', '$100K']),
         priority: this.getRandomPriority(),
@@ -433,7 +433,7 @@ Ecosystem: ${target.ecosystem}`;
     for (let i = 1; i <= 1500; i++) {
       targets.push({
         name: `Coinbase Ecosystem Project ${i}`,
-        wallet: `0x${Math.random().toString(16).slice(2, 42)}`,
+        wallet: process.env.VERIFIED_BASE_PARTNERS ? 'REQUIRES_VERIFICATION' : 'DISABLED_NO_FAKE_DATA',
         category: 'coinbase_ecosystem',
         dealSize: this.getRandomDealSize(['$50K', '$100K', '$200K', '$500K']),
         priority: this.getRandomPriority(),
@@ -455,7 +455,7 @@ Ecosystem: ${target.ecosystem}`;
     for (let i = 1; i <= 2500; i++) {
       targets.push({
         name: `DeFi Protocol ${i}`,
-        wallet: `0x${Math.random().toString(16).slice(2, 42)}`,
+        wallet: process.env.VERIFIED_BASE_PARTNERS ? 'REQUIRES_VERIFICATION' : 'DISABLED_NO_FAKE_DATA',
         category: 'defi_protocol',
         dealSize: this.getRandomDealSize(['$75K', '$150K', '$300K', '$750K']),
         priority: this.getRandomPriority(),
@@ -477,7 +477,7 @@ Ecosystem: ${target.ecosystem}`;
     for (let i = 1; i <= 1800; i++) {
       targets.push({
         name: `Gaming/NFT Project ${i}`,
-        wallet: `0x${Math.random().toString(16).slice(2, 42)}`,
+        wallet: process.env.VERIFIED_BASE_PARTNERS ? 'REQUIRES_VERIFICATION' : 'DISABLED_NO_FAKE_DATA',
         category: 'gaming_nft',
         dealSize: this.getRandomDealSize(['$30K', '$60K', '$120K', '$250K']),
         priority: this.getRandomPriority(),
@@ -499,7 +499,7 @@ Ecosystem: ${target.ecosystem}`;
     for (let i = 1; i <= 1200; i++) {
       targets.push({
         name: `Enterprise Company ${i}`,
-        wallet: `0x${Math.random().toString(16).slice(2, 42)}`,
+        wallet: process.env.VERIFIED_BASE_PARTNERS ? 'REQUIRES_VERIFICATION' : 'DISABLED_NO_FAKE_DATA',
         category: 'enterprise',
         dealSize: this.getRandomDealSize(['$100K', '$500K', '$1M', '$2M']),
         priority: this.getRandomPriority(),
@@ -521,7 +521,7 @@ Ecosystem: ${target.ecosystem}`;
     for (let i = 1; i <= 1000; i++) {
       targets.push({
         name: `Institutional Investor ${i}`,
-        wallet: `0x${Math.random().toString(16).slice(2, 42)}`,
+        wallet: process.env.VERIFIED_BASE_PARTNERS ? 'REQUIRES_VERIFICATION' : 'DISABLED_NO_FAKE_DATA',
         category: 'institutional',
         dealSize: this.getRandomDealSize(['$500K', '$1M', '$5M', '$10M']),
         priority: this.getRandomPriority(),

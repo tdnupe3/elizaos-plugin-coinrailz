@@ -29,8 +29,8 @@ interface ExpansionTarget {
 }
 
 export class MultiChainOutreachExpansionService {
-  private platformWallet = '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
-  private cdpWallet = '0x337b1b6a0FA833Ae09a697606Ca3FD21ADF696ed';
+  private platformWallet = process.env.PLATFORM_WALLET_ADDRESS || '';
+  private cdpWallet = process.env.CDP_WALLET_ADDRESS || '';
   
   constructor() {
     console.log('🌐 Initializing Multi-Chain Outreach Expansion Service...');
@@ -314,16 +314,20 @@ export class MultiChainOutreachExpansionService {
     console.log('⚪ Expanding Circle USDC Ecosystem outreach...');
     
     try {
-      // Target Circle ecosystem and USDC-focused protocols
-      const circleTargets = [
-        { name: 'Circle Internet Financial', wallet: '0x55FE002aefF02F77364de339a1292923A15844B8', dealSize: '$5M', priority: 'critical' as const },
-        { name: 'Centre Consortium', wallet: '0xA0b86991c431C24b32dD77fbF0B75B61D31C08cD', dealSize: '$2M', priority: 'critical' as const },
-        { name: 'Coinbase Institutional', wallet: '0x3cD751E6b0078Be393132286c442345e5DC49699', dealSize: '$3M', priority: 'critical' as const },
-        { name: 'Compound Finance', wallet: '0xc00e94Cb662C3520282E6f5717214004A7f26888', dealSize: '$1M', priority: 'high' as const },
-        { name: 'Aave Protocol', wallet: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9', dealSize: '$800K', priority: 'high' as const },
-        { name: 'MakerDAO', wallet: '0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2', dealSize: '$1.5M', priority: 'critical' as const },
-        { name: 'Uniswap Foundation', wallet: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', dealSize: '$600K', priority: 'high' as const }
-      ];
+      // Target Circle ecosystem only if verified partner addresses are configured
+      const verifiedCirclePartners = process.env.VERIFIED_CIRCLE_PARTNERS;
+      
+      if (!verifiedCirclePartners) {
+        console.log('⚠️ No verified Circle partner wallets configured - Circle expansion skipped');
+        return {
+          contactsReached: 0,
+          highValueTargets: 0,
+          campaignDetails: { status: 'SKIPPED - No verified partner addresses configured' }
+        };
+      }
+      
+      // Parse verified partners from environment (JSON format expected)
+      const circleTargets = JSON.parse(verifiedCirclePartners);
 
       console.log(`🎯 Targeting ${circleTargets.length} major Circle/USDC ecosystem players...`);
 

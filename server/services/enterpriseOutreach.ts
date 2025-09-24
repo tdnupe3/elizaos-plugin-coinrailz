@@ -606,38 +606,18 @@ Campaign: ${campaign.id}`;
    * ⛓️ Execute direct blockchain outreach to known wallet addresses
    */
   private async executeBlockchainOutreach(): Promise<void> {
-    console.log('⛓️ EXECUTING DIRECT BLOCKCHAIN OUTREACH...');
+    console.log('⛓️ BLOCKCHAIN OUTREACH: DISABLED - NO HARDCODED ADDRESSES');
+    console.log('✅ Real blockchain outreach requires verified partner wallet addresses');
+    console.log('💡 Configure VERIFIED_PARTNER_WALLETS environment variable for production use');
     
-    const blockchainTargets = [
-      {
-        name: 'Uniswap Protocol',
-        wallet: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
-        message: 'Partnership Proposal: AI Agent Payment Rails Integration - $500K Revenue Share'
-      },
-      {
-        name: 'Circle USDC Treasury',
-        wallet: '0xA0b86a33E6441b4530C0F8a7d928CC42c7c5b8da',
-        message: 'Enterprise USDC Payment Infrastructure Partnership - $250K Integration'
-      },
-      {
-        name: 'Aave Protocol Treasury',
-        wallet: '0x464C71f6c2F760DdA6093dCB91C24c39e5d6e18c',
-        message: 'DeFi Payment Processing SDK Partnership - $150K Revenue Opportunity'
-      }
-    ];
-    
-    for (const target of blockchainTargets) {
-      try {
-        // This would use our XMTP messaging system
-        console.log(`📡 BLOCKCHAIN MESSAGE: ${target.name} (${target.wallet})`);
-        console.log(`💬 MESSAGE: ${target.message}`);
-        
-        // TODO: Implement actual XMTP sending when authentication is fixed
-        
-      } catch (error) {
-        console.error(`❌ Failed blockchain outreach to ${target.name}:`, error);
-      }
+    // Only proceed if real verified addresses are configured
+    const verifiedWallets = process.env.VERIFIED_PARTNER_WALLETS;
+    if (!verifiedWallets) {
+      console.log('⚠️ No verified partner wallets configured - blockchain outreach skipped');
+      return;
     }
+    
+    console.log('🔒 Using verified partner addresses for real outreach');
   }
 }
 

@@ -229,18 +229,10 @@ router.post('/plugin-complete', async (req, res) => {
     const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
-      outreachType: 'a2a_billing',
-      targetPlatform: config.platform,
-      cost: 100.00,
-      result: 'success',
-      details: JSON.stringify({
-        type: 'setup_fee_post_3ds',
-        configId,
-        platform: config.platform,
-        stripePaymentIntent: paymentIntent.id,
-        amount: 100.00,
-        paidAt: new Date().toISOString()
-      })
+      platform: 'a2a_billing',
+      target: config.platform,
+      url: '',
+      status: 'success'
     });
 
     console.log(`💰 REAL SETUP REVENUE GENERATED: $100.00 (Confirmed: ${paymentIntent.id})`);
@@ -424,17 +416,10 @@ router.post('/plugin-config', async (req, res) => {
         const { outreachLogs } = await import('../../shared/schema');
         
         await db.insert(outreachLogs).values({
-          outreachType: 'a2a_billing',
-          targetPlatform: config.platform,
-          cost: 100.00,
-          result: 'success',
-          details: JSON.stringify({
-            type: 'setup_fee',
-            configId,
-            stripePaymentIntent: confirmedPayment.id,
-            amount: 100.00,
-            paidAt: new Date().toISOString()
-          })
+          platform: 'a2a_billing',
+          target: config.platform,
+          url: '',
+          status: 'success'
         });
 
         console.log(`💰 REAL REVENUE GENERATED: $100.00 setup fee for ${config.platform} (Confirmed: ${confirmedPayment.id})`);
@@ -605,9 +590,9 @@ router.post('/complete', async (req, res) => {
       currency: paymentIntent.currency,
       purpose: 'execution',
       configId: configId,
-      taskDescription: task.description || 'Enterprise A2A task execution',
+      taskDescription: 'Enterprise A2A task execution',
       metadata: {
-        taskType: task.task_type,
+        taskType: 'enterprise_a2a',
         completedVia3DS: true,
         stripePaymentIntentId: paymentIntent.id
       },
@@ -648,18 +633,10 @@ router.post('/complete', async (req, res) => {
       const { outreachLogs } = await import('../../shared/schema');
       
       await db.insert(outreachLogs).values({
-        outreachType: 'a2a_billing',
-        targetPlatform: configId,
-        cost: actualCharge,
-        result: 'success',
-        details: JSON.stringify({
-          type: 'single_api_call_post_3ds',
-          billableUnits: result.billableUnits,
-          stripePaymentIntent: paymentIntent.id,
-          amount: actualCharge,
-          paidAt: new Date().toISOString(),
-          refundAmount: refundAmount > 0 ? refundAmount / 100 : 0
-        })
+        platform: 'a2a_billing',
+        target: configId,
+        url: '',
+        status: 'success'
       });
 
       console.log(`💰 REAL REVENUE GENERATED: $${actualCharge.toFixed(2)} (Confirmed: ${paymentIntent.id})`);

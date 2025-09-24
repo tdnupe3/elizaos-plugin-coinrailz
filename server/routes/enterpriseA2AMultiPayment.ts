@@ -226,19 +226,10 @@ router.post('/discover-google-a2a-agents', async (req, res) => {
     const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
-      outreachType: 'google_a2a_discovery',
-      targetPlatform: 'Google A2A Enterprise Agents',
-      result: 'success',
-      details: JSON.stringify({
-        type: 'a2a_agent_discovery',
-        endpointsChecked: Object.keys(GOOGLE_A2A_ENTERPRISE_AGENTS).length,
-        agentsDiscovered: discoveryResults.filter(r => r.status === 'discovered').length,
-        knownEndpoints: discoveryResults.filter(r => r.status === 'known_endpoint').length,
-        manualOutreachRequired: discoveryResults.filter(r => r.status === 'manual_outreach_required').length,
-        configId: configId,
-        customerEmail: customerEmail,
-        discoveredAt: new Date().toISOString()
-      })
+      platform: 'google_a2a_discovery',
+      target: 'Google A2A Enterprise Agents',
+      url: '',
+      status: 'success'
     });
 
     res.json({

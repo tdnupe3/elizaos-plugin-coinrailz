@@ -222,8 +222,8 @@ router.post('/discover-google-a2a-agents', async (req, res) => {
     }
 
     // Store discovery results for enterprise configuration
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
-    const { outreachLogs } = await import('../../shared/schema.js');
+    const { db } = await import('../db');
+    const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
       outreachType: 'google_a2a_discovery',
@@ -302,8 +302,8 @@ router.post('/execute-watson-task', async (req, res) => {
           const isValidConfig = paymentIntent.metadata?.configId === configId;
           
           // CRITICAL SECURITY: Check if PaymentIntent already used (replay prevention)
-          const db = await import('../../shared/drizzle.js').then(m => m.db);
-          const { paymentIntentTracking } = await import('../../shared/schema.js');
+          const { db } = await import('../db');
+          const { paymentIntentTracking } = await import('../../shared/schema');
           const { eq } = await import('drizzle-orm');
           
           const existingUsage = await db
@@ -348,8 +348,8 @@ router.post('/execute-watson-task', async (req, res) => {
           const isValidConfig = paypalValidation.metadata?.configId === configId;
           
           // CRITICAL SECURITY: Check if PayPal order already used (replay prevention)
-          const db = await import('../../shared/drizzle.js').then(m => m.db);
-          const { paymentIntentTracking } = await import('../../shared/schema.js');
+          const { db } = await import('../db');
+          const { paymentIntentTracking } = await import('../../shared/schema');
           const { eq } = await import('drizzle-orm');
           
           const existingUsage = await db
@@ -394,8 +394,8 @@ router.post('/execute-watson-task', async (req, res) => {
           const isValidConfig = usdcValidation.metadata?.configId === configId;
           
           // CRITICAL SECURITY: Check if USDC transfer already used (replay prevention)
-          const db = await import('../../shared/drizzle.js').then(m => m.db);
-          const { paymentIntentTracking } = await import('../../shared/schema.js');
+          const { db } = await import('../db');
+          const { paymentIntentTracking } = await import('../../shared/schema');
           const { eq } = await import('drizzle-orm');
           
           const existingUsage = await db
@@ -440,8 +440,8 @@ router.post('/execute-watson-task', async (req, res) => {
           const isValidConfig = cryptoValidation.metadata?.configId === configId;
           
           // CRITICAL SECURITY: Check if crypto transaction already used (replay prevention)
-          const db = await import('../../shared/drizzle.js').then(m => m.db);
-          const { paymentIntentTracking } = await import('../../shared/schema.js');
+          const { db } = await import('../db');
+          const { paymentIntentTracking } = await import('../../shared/schema');
           const { eq } = await import('drizzle-orm');
           
           const existingUsage = await db
@@ -482,8 +482,8 @@ router.post('/execute-watson-task', async (req, res) => {
     }
 
     // CRITICAL SECURITY: Track payment usage for ALL payment methods before executing work
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
-    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    const { db } = await import('../db');
+    const { paymentIntentTracking } = await import('../../shared/schema');
     
     // Determine payment ID and method-specific metadata
     let paymentId: string;
@@ -667,7 +667,7 @@ router.post('/execute-watson-task', async (req, res) => {
     }
 
     // Store successful Google A2A execution
-    const { outreachLogs } = await import('../../shared/schema.js');
+    const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
       outreachType: 'google_a2a_enterprise_execution',

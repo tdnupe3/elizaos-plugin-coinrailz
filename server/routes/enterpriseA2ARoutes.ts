@@ -8,7 +8,7 @@
  */
 
 import { Router } from 'express';
-import enterpriseA2AAdapter, { EnterpriseConfig, A2ATask } from '../adapters/enterpriseA2AAdapter.js';
+import enterpriseA2AAdapter, { EnterpriseConfig, A2ATask } from '../adapters/enterpriseA2AAdapter';
 
 const router = Router();
 
@@ -109,8 +109,8 @@ router.post('/plugin-complete', async (req, res) => {
     console.log(`🔄 Completing enterprise setup with confirmed PaymentIntent: ${paymentIntentId}`);
     
     // SECURITY: Check for PaymentIntent replay attacks
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
-    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    const { db } = await import('../db');
+    const { paymentIntentTracking } = await import('../../shared/schema');
     const { sql } = await import('drizzle-orm');
     
     const existingUsage = await db.select().from(paymentIntentTracking)
@@ -226,7 +226,7 @@ router.post('/plugin-complete', async (req, res) => {
     });
 
     // Store setup fee billing record  
-    const { outreachLogs } = await import('../../shared/schema.js');
+    const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
       outreachType: 'a2a_billing',
@@ -420,8 +420,8 @@ router.post('/plugin-config', async (req, res) => {
         }
 
         // ONLY AFTER SUCCESSFUL PAYMENT: Store success record in database
-        const db = await import('../../shared/drizzle.js').then(m => m.db);
-        const { outreachLogs } = await import('../../shared/schema.js');
+        const { db } = await import('../db');
+        const { outreachLogs } = await import('../../shared/schema');
         
         await db.insert(outreachLogs).values({
           outreachType: 'a2a_billing',
@@ -508,8 +508,8 @@ router.post('/complete', async (req, res) => {
     console.log(`🔄 Completing enterprise task with confirmed PaymentIntent: ${paymentIntentId}`);
     
     // SECURITY: Check for PaymentIntent replay attacks
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
-    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    const { db } = await import('../db');
+    const { paymentIntentTracking } = await import('../../shared/schema');
     const { sql } = await import('drizzle-orm');
     
     const existingUsage = await db.select().from(paymentIntentTracking)
@@ -644,8 +644,8 @@ router.post('/complete', async (req, res) => {
       }
 
       // Store success record in database
-      const db = await import('../../shared/drizzle.js').then(m => m.db);
-      const { outreachLogs } = await import('../../shared/schema.js');
+      const { db } = await import('../db');
+      const { outreachLogs } = await import('../../shared/schema');
       
       await db.insert(outreachLogs).values({
         outreachType: 'a2a_billing',
@@ -856,8 +856,8 @@ router.post('/execute', async (req, res) => {
         }
 
         // Store success record in database
-        const db = await import('../../shared/drizzle.js').then(m => m.db);
-        const { outreachLogs } = await import('../../shared/schema.js');
+        const { db } = await import('../db');
+        const { outreachLogs } = await import('../../shared/schema');
         
         await db.insert(outreachLogs).values({
           outreachType: 'a2a_billing',
@@ -954,8 +954,8 @@ router.post('/batch-complete', async (req, res) => {
     console.log(`🔄 Completing batch of ${tasks.length} enterprise tasks with confirmed PaymentIntent: ${paymentIntentId}`);
     
     // SECURITY: Check for PaymentIntent replay attacks
-    const db = await import('../../shared/drizzle.js').then(m => m.db);
-    const { paymentIntentTracking } = await import('../../shared/schema.js');
+    const { db } = await import('../db');
+    const { paymentIntentTracking } = await import('../../shared/schema');
     const { sql } = await import('drizzle-orm');
     
     const existingUsage = await db.select().from(paymentIntentTracking)
@@ -1102,7 +1102,7 @@ router.post('/batch-complete', async (req, res) => {
     }
 
     // Store success record in database
-    const { outreachLogs } = await import('../../shared/schema.js');
+    const { outreachLogs } = await import('../../shared/schema');
     
     await db.insert(outreachLogs).values({
       outreachType: 'a2a_billing',
@@ -1295,8 +1295,8 @@ router.post('/batch-execute', async (req, res) => {
       }
 
       // Store success record in database
-      const db = await import('../../shared/drizzle.js').then(m => m.db);
-      const { outreachLogs } = await import('../../shared/schema.js');
+      const { db } = await import('../db');
+      const { outreachLogs } = await import('../../shared/schema');
       
       await db.insert(outreachLogs).values({
         outreachType: 'a2a_billing',

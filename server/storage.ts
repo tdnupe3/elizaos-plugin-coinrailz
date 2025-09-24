@@ -1735,26 +1735,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createMarketplaceServiceDuplicate(serviceData: any): Promise<any> {
-    try {
-      const result = await db.execute(sql`
-        INSERT INTO ai_marketplace_services (
-          agent_id, category_id, service_name, description, 
-          pricing, estimated_delivery_time, tags, is_active
-        ) VALUES (
-          ${serviceData.agentId}, ${serviceData.categoryId}, 
-          ${serviceData.serviceName}, ${serviceData.description},
-          ${JSON.stringify(serviceData.pricing)}, ${serviceData.estimatedDeliveryTime},
-          ${JSON.stringify(serviceData.tags)}, ${serviceData.isActive || false}
-        ) RETURNING id, service_name, pricing
-      `);
-      
-      return result.rows[0];
-    } catch (error) {
-      console.error('Error creating marketplace service:', error);
-      throw new Error('Failed to create marketplace service');
-    }
-  }
 
   // Removed duplicates - using implementations above
 
@@ -1852,40 +1832,8 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getAgentTransaction(orderId: string): Promise<any> {
-    try {
-      const [transaction] = await db.select()
-        .from(agentTransactions)
-        .where(eq(agentTransactions.orderId, orderId))
-        .limit(1);
-      return transaction;
-    } catch (error) {
-      console.error('Error fetching agent transaction:', error);
-      return null;
-    }
-  }
 
-  async updateAgentTransaction(orderId: string, updates: any): Promise<void> {
-    try {
-      await db.update(agentTransactions)
-        .set(updates)
-        .where(eq(agentTransactions.orderId, orderId));
-    } catch (error) {
-      console.error('Error updating agent transaction:', error);
-      throw error;
-    }
-  }
 
-  async createPlatformRevenue(data: any): Promise<any> {
-    try {
-      // For now, log the platform revenue - this would normally go to a revenue tracking table
-      console.log('Platform revenue collected:', data);
-      return { success: true, ...data };
-    } catch (error) {
-      console.error('Error creating platform revenue record:', error);
-      throw error;
-    }
-  }
 
   async createDispute(disputeData: any): Promise<any> {
     try {

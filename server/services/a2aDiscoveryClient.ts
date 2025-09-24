@@ -289,12 +289,14 @@ export class A2ADiscoveryClient {
 
   /**
    * 💰 INVOKE A2A AGENT METHOD (REVENUE-GENERATING CALLS)
+   * Fixed to honor each endpoint's specific auth requirements
    */
   async invokeAgentMethod(
     agentCard: AgentCard,
     method: string,
     params: any,
-    accessToken: string
+    accessToken: string,
+    apiKey?: string
   ): Promise<any> {
     try {
       const endpoint = agentCard.agent.endpoints[method];
@@ -303,15 +305,32 @@ export class A2ADiscoveryClient {
         throw new Error(`Method '${method}' not supported by agent`);
       }
 
-      const response = await axios({
+      // 🔐 BUILD HEADERS BASED ON ENDPOINT AUTH REQUIREMENTS
+      const headers: Record<string, string> = {
+        'User-Agent': this.USER_AGENT
+      };
+
+      // Handle different authentication types
+      if (endpoint.auth === 'bearer' || agentCard.agent.auth?.type === 'oauth2') {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      } else if (endpoint.auth === 'api_key' && apiKey) {
+        // Common API key header patterns
+        headers['X-API-Key'] = apiKey;
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
+      // 📋 BUILD REQUEST PAYLOAD BASED ON METHOD TYPE
+      let requestConfig: any = {
         method: endpoint.method,
         url: endpoint.url,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
-          'User-Agent': this.USER_AGENT
-        },
-        data: {
+        headers,
+        timeout: 30000
+      };
+
+      if (endpoint.method === 'POST') {
+        // Use JSON-RPC for POST methods (standard A2A protocol)
+        headers['Content-Type'] = 'application/json';
+        requestConfig.data = {
           jsonrpc: '2.0',
           method: 'agent.invoke',
           params: {
@@ -321,15 +340,33 @@ export class A2ADiscoveryClient {
             }
           },
           id: Date.now()
-        },
-        timeout: 30000
-      });
+        };
+      } else if (endpoint.method === 'GET') {
+        // Use query parameters for GET methods
+        requestConfig.params = {
+          task: JSON.stringify({
+            name: method,
+            input: params
+          })
+        };
+      }
+
+      console.log(`🎯 Invoking ${endpoint.method} ${endpoint.url} with ${endpoint.auth || 'default'} auth`);
+
+      const response = await axios(requestConfig);
 
       console.log(`✅ A2A method '${method}' executed successfully`);
       return response.data;
       
     } catch (error: any) {
       console.error(`❌ A2A method invocation failed:`, error.message);
+      
+      // Provide more detailed error info for debugging
+      if (error.response) {
+        console.error(`❌ Response status: ${error.response.status}`);
+        console.error(`❌ Response data:`, error.response.data);
+      }
+      
       throw error;
     }
   }

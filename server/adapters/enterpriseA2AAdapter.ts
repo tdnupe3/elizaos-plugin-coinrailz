@@ -21,6 +21,12 @@ export interface EnterpriseConfig {
     tenantId?: string; // Microsoft
     subaccount?: string; // SAP BTP
   };
+  apiKeys?: {
+    [endpointName: string]: string; // Specific API keys for different endpoints
+  };
+  authMethods?: {
+    [endpointName: string]: 'oauth2' | 'api_key' | 'bearer'; // Override auth method per endpoint
+  };
   customEndpoints?: {
     [method: string]: string;
   };
@@ -52,6 +58,7 @@ export class EnterpriseA2AAdapter {
     accessToken: string;
     config: EnterpriseConfig;
     lastUsed: Date;
+    apiKeys: { [endpoint: string]: string };
   }> = new Map();
 
   private readonly CONNECTION_TTL = 3600000; // 1 hour
@@ -94,7 +101,8 @@ export class EnterpriseA2AAdapter {
         agentCard: result.agentCard,
         accessToken: result.accessToken,
         config,
-        lastUsed: new Date()
+        lastUsed: new Date(),
+        apiKeys: config.apiKeys || {}
       });
 
       console.log(`✅ ${config.platform} config plugged in successfully`);
@@ -106,6 +114,17 @@ export class EnterpriseA2AAdapter {
       console.error(`❌ Plugin config failed for ${configId}:`, error.message);
       return false;
     }
+  }
+
+  /**
+   * 🗑️ REMOVE CONFIG (for failed payments)
+   */
+  removeConfig(configId: string): boolean {
+    const removed = this.connections.delete(configId);
+    if (removed) {
+      console.log(`🗑️ Removed config ${configId} due to payment failure`);
+    }
+    return removed;
   }
 
   /**
@@ -148,14 +167,19 @@ export class EnterpriseA2AAdapter {
 
       const refreshedConnection = this.connections.get(configId)!;
       
-      // Execute A2A method call
+      // Execute A2A method call with proper authentication
       console.log(`🎯 Executing ${task.method} on ${refreshedConnection.config.platform}`);
+      
+      // Get API key for this specific method if available
+      const methodApiKey = refreshedConnection.apiKeys[task.method] || 
+                          refreshedConnection.apiKeys['default'];
       
       const result = await a2aDiscoveryClient.invokeAgentMethod(
         refreshedConnection.agentCard,
         task.method,
         task.params,
-        refreshedConnection.accessToken
+        refreshedConnection.accessToken,
+        methodApiKey
       );
 
       // Update last used time

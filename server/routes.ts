@@ -90,6 +90,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Dashboard routes V2 - Real user data 
   app.use('/api/dashboard', dashboardRoutesV2);
 
+  // 🚨 EMERGENCY DAO FUNDING REQUEST CAMPAIGN
+  app.post('/api/emergency/launch-dao-funding-campaign', async (req, res) => {
+    console.log('🚨 EXECUTING EMERGENCY DAO FUNDING CAMPAIGN...');
+    
+    try {
+      const { EmergencyDAOFundingService } = await import('./services/emergencyDAOFundingService');
+      const emergencyFunding = new EmergencyDAOFundingService();
+      
+      // Execute emergency funding campaign to all major DAOs
+      await emergencyFunding.executeEmergencyFunding();
+      
+      const analytics = emergencyFunding.getCampaignAnalytics();
+      
+      console.log('✅ EMERGENCY DAO FUNDING CAMPAIGN LAUNCHED');
+      console.log(`📊 Messages sent: ${analytics.messagesSent}`);
+      console.log(`💰 Total cost: $${analytics.totalCost}`);
+      
+      res.json({
+        success: true,
+        message: 'Emergency DAO funding campaign executed successfully',
+        campaign: {
+          targetDAOs: [
+            'Uniswap DAO ($500K potential)',
+            'Compound DAO ($300K potential)', 
+            'Arbitrum DAO ($1.5M potential)',
+            'Optimism Collective ($1.2M potential)',
+            'Polygon DAO ($500K potential)',
+            'MakerDAO ($750K potential)',
+            'Aave DAO ($400K potential)',
+            'Plus 15+ more major DAOs'
+          ],
+          totalPotential: '$8.5M+ in potential funding',
+          urgencyLevel: 'CRITICAL',
+          messagesSent: analytics.messagesSent,
+          totalCost: `$${analytics.totalCost.toFixed(6)}`,
+          platformWallet: analytics.platformWallet
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Emergency DAO funding campaign failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Campaign failed'
+      });
+    }
+  });
+
+  // 🏆 BEST AGENT IN THE WORLD COMPETITION CAMPAIGN
+  app.post('/api/competition/launch-best-agent-competition', async (req, res) => {
+    console.log('🏆 LAUNCHING BEST AGENT IN THE WORLD COMPETITION...');
+    
+    try {
+      const { competitionOutreach } = await import('./services/competitionOutreach.js');
+      const { targetedProductOutreach } = await import('./services/targetedProductOutreach.js');
+      
+      // Launch competition to known agents
+      await competitionOutreach.sendCompetitionInvites();
+      console.log('✅ Competition invites sent to known agents');
+      
+      // Start viral recruitment campaign
+      await competitionOutreach.startViralRecruitment();
+      console.log('✅ Viral recruitment campaign activated');
+      
+      // Send targeted product offers to all discovered agents
+      await targetedProductOutreach.sendTargetedProductOffers();
+      console.log('✅ Product offers sent to discovered agents');
+      
+      console.log('🎯 BEST AGENT COMPETITION CAMPAIGN COMPLETE');
+      
+      res.json({
+        success: true,
+        message: 'Best Agent in the World Competition launched successfully',
+        competition: {
+          name: 'Best Agent in the World Competition',
+          prizePool: '$50,000',
+          duration: '30 days',
+          categories: [
+            'Quantum Computing & AI Integration',
+            'Advanced Trading & DeFi Strategies', 
+            'Cross-Chain Automation Excellence',
+            'Revenue Generation Innovation',
+            'Multi-Platform Agent Coordination'
+          ],
+          referralBonus: '$500 per agent (up to $10K)',
+          agentsContacted: {
+            knownAgents: 4,
+            discoveredAgents: 'all available',
+            viralRecruitment: 'active'
+          },
+          products: [
+            'API Credit Packages ($9.99-$199.99)',
+            'SDK Licensing ($2K-$200K/year)',
+            'Enterprise Data Solutions ($25K/month)',
+            'Competition Entry (FREE + prizes)'
+          ]
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Best Agent Competition launch failed:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Competition launch failed'
+      });
+    }
+  });
+
   // 🎯 COMPLETE REVENUE CONVERSION SYSTEM - Sends REAL messages to customers
   app.post('/api/revenue/execute-conversion-campaign', async (req, res) => {
     console.log('🚀 EXECUTING COMPLETE REVENUE CONVERSION CAMPAIGN - $2,225 TARGET');

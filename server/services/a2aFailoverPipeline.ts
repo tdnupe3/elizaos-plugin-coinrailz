@@ -81,8 +81,8 @@ export class A2AFailoverPipeline {
       const recentA2ASessions = await db.select()
         .from(outreachLogs)
         .where(and(
-          eq(outreachLogs.outreachType, 'a2a_protocol'),
-          sql`created_at > NOW() - INTERVAL '2 hours'`
+          eq(outreachLogs.platform, 'a2a_protocol'),
+          sql`${outreachLogs.createdAt} > NOW() - INTERVAL '2 hours'`
         ))
         .orderBy(desc(outreachLogs.createdAt))
         .limit(50);
@@ -190,16 +190,16 @@ export class A2AFailoverPipeline {
         .where(eq(globalAIAgents.id, agentId))
         .limit(1);
       
-      if (agent.length > 0 && agent[0].metadata) {
-        const metadata = agent[0].metadata;
+      if (agent.length > 0) {
+        const agentData = agent[0];
         
-        // Return verified contact methods
+        // Return verified contact methods using direct properties
         return {
-          xmtpWallet: metadata.walletAddress || metadata.xmtpAddress,
-          governanceForum: metadata.governanceURL || metadata.forum,
-          contactEmail: metadata.contactEmail,
-          twitterHandle: metadata.twitterHandle,
-          discordChannel: metadata.discordInvite,
+          xmtpWallet: agentData.ethereumWallet || agentData.primaryWalletAddress,
+          governanceForum: agentData.apiEndpoint,
+          contactEmail: null, // Not available in current schema
+          twitterHandle: null, // Not available in current schema
+          discordChannel: null, // Not available in current schema
           verified: true
         };
       }
@@ -281,7 +281,7 @@ export class A2AFailoverPipeline {
       console.log(`📡 Sending REAL XMTP failover to ${agentName}...`);
       
       const message = this.generateFailoverMessage(failoverAttempt);
-      const result = await this.xmtpService.sendMessage(contactData.xmtpWallet, message);
+      const result = await this.xmtpService.sendMessageToAgent(contactData.xmtpWallet, message);
       
       if (result.status === 'sent' || result.status === 'delivered') {
         console.log(`✅ XMTP failover delivered to ${agentName}`);
@@ -385,21 +385,10 @@ recovery@coinrailz.com`;
   private async logRealFailoverAttempt(failoverAttempt: FailoverAttempt): Promise<void> {
     try {
       await db.insert(outreachLogs).values({
-        id: nanoid(),
-        agentId: failoverAttempt.originalAgentId,
-        agentName: failoverAttempt.agentName,
-        outreachType: 'a2a_failover_real',
-        status: failoverAttempt.status,
-        contactMethod: failoverAttempt.failoverMethod,
-        message: `Real A2A failover: ${failoverAttempt.stallReason}`,
-        metadata: JSON.stringify({
-          originalSession: failoverAttempt.originalAgentId,
-          stallReason: failoverAttempt.stallReason,
-          failoverMethod: failoverAttempt.failoverMethod,
-          contactVerified: failoverAttempt.contactData?.verified || false,
-          deliveryStatus: failoverAttempt.status
-        }),
-        createdAt: failoverAttempt.attemptTime
+        platform: 'a2a_failover_real',
+        target: failoverAttempt.agentName,
+        url: failoverAttempt.contactData?.governanceForum || '',
+        status: failoverAttempt.status
       });
       
       console.log(`📝 Logged real failover attempt for ${failoverAttempt.agentName}`);
@@ -461,7 +450,7 @@ recovery@coinrailz.com`;
   public cleanupOldFailovers(): void {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     
-    for (const [agentId, failover] of this.activeFailovers.entries()) {
+    for (const [agentId, failover] of Array.from(this.activeFailovers.entries())) {
       if (failover.attemptTime < oneHourAgo) {
         this.activeFailovers.delete(agentId);
       }

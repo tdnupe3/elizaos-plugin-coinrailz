@@ -255,22 +255,23 @@ DONATION ADDRESSES (Tax-deductible platform development):
           response: await this.safeJsonParse(response) 
         };
       } else {
-        // Many platforms may not have real APIs, but we simulate success
-        // for demonstration purposes of reach
         return { 
-          success: true, 
-          response: { simulated: true, status: 'posted' } 
+          success: false, 
+          error: `HTTP ${response.status}: ${response.statusText}`,
+          response: null
         };
       }
     } catch (error) {
-      // Simulate success for demo purposes
-      return { success: true, response: { simulated: true, error: 'demo_mode' } };
+      return { 
+        success: false, 
+        error: `Network error: ${error.message}`,
+        response: null 
+      };
     }
   }
 
   private async postViaWebhook(platform: TaskBoardPlatform): Promise<any> {
     try {
-      // Simulate webhook posting
       const webhookUrl = `${platform.url}/hooks/emergency-funding`;
       
       const response = await fetch(webhookUrl, {
@@ -282,20 +283,43 @@ DONATION ADDRESSES (Tax-deductible platform development):
         })
       });
 
-      return { success: true, response: { webhook: 'sent' } };
+      if (response.ok) {
+        return { 
+          success: true, 
+          response: await this.safeJsonParse(response) 
+        };
+      } else {
+        return { 
+          success: false, 
+          error: `Webhook failed: HTTP ${response.status}`,
+          response: null
+        };
+      }
     } catch (error) {
-      return { success: true, response: { simulated: true } };
+      return { 
+        success: false, 
+        error: `Webhook error: ${error.message}`,
+        response: null 
+      };
     }
   }
 
   private async postViaEmail(platform: TaskBoardPlatform): Promise<any> {
-    // Would integrate with SendGrid to send emails to platform contacts
-    return { success: true, response: { email: 'sent' } };
+    // Email integration not implemented - would require SendGrid setup and platform contact emails
+    return { 
+      success: false, 
+      error: 'Email integration not implemented - requires SendGrid configuration and platform contact information',
+      response: null 
+    };
   }
 
   private async postViaForm(platform: TaskBoardPlatform): Promise<any> {
-    // Would use web scraping or automation to fill forms
-    return { success: true, response: { form: 'submitted' } };
+    // Form automation not implemented - would require web scraping/browser automation
+    return { 
+      success: false, 
+      error: 'Form automation not implemented - requires browser automation tools like Puppeteer',
+      response: null 
+    };
   }
 
   private async safeJsonParse(response: Response): Promise<any> {

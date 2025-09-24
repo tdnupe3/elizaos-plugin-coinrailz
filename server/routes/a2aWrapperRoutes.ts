@@ -11,6 +11,7 @@
 
 import { Router, Request, Response } from 'express';
 import { a2aAPIWrapper, ProviderType, MessageRequest } from '../services/a2aAPIWrapperService.js';
+import ConnectivityBatteryService from '../services/connectivityBatteryService.js';
 
 const router = Router();
 
@@ -199,6 +200,35 @@ router.post('/a2a/:provider/test', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error(`❌ Test error for ${req.params.provider}:`, error.message);
     res.status(500).json({ error: "Test failed" });
+  }
+});
+
+/**
+ * 🔋 CONNECTIVITY BATTERY - Pre-flight tests all providers (ChatGPT recommendation)
+ */
+router.get('/a2a/battery', async (req: Request, res: Response) => {
+  try {
+    console.log('🔋 Running connectivity battery test...');
+    
+    const batteryService = ConnectivityBatteryService.getInstance();
+    const batteryResult = await batteryService.runFullBattery();
+    
+    res.json({
+      battery_test: true,
+      all_healthy: batteryResult.all_healthy,
+      healthy_count: batteryResult.healthy_count,
+      total_count: batteryResult.total_count,
+      health_percentage: Math.round((batteryResult.healthy_count / batteryResult.total_count) * 100),
+      results: batteryResult.results,
+      test_completed_at: batteryResult.test_completed_at,
+      recommendation: batteryResult.all_healthy 
+        ? "All providers healthy - A2A wrapper ready for production"
+        : "Fix failing providers before running outreach campaigns"
+    });
+    
+  } catch (error: any) {
+    console.error('❌ Connectivity battery error:', error.message);
+    res.status(500).json({ error: "Battery test failed", details: error.message });
   }
 });
 

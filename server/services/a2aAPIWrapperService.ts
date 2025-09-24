@@ -115,13 +115,13 @@ const PROVIDER_CONFIGS: Record<ProviderType, ProviderConfig> = {
     headers: {},
     requestTransformer: (req: MessageRequest) => ({
       model: req.model || "gpt-4o-mini",
-      messages: [{ role: "user", content: req.message }],
+      input: req.message,
       max_tokens: req.max_tokens || 150,
       temperature: req.temperature || 0.7
     }),
     responseTransformer: (apiResponse: any): MessageResponse => ({
       success: true,
-      response: apiResponse.choices?.[0]?.message?.content || "No response",
+      response: apiResponse.output || apiResponse.choices?.[0]?.message?.content || "No response",
       provider: "openai",
       model: apiResponse.model,
       usage: {

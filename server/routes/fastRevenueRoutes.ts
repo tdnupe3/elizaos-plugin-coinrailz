@@ -10,34 +10,10 @@
 import { Router } from 'express';
 import { FastRevenueService } from '../services/fastRevenueService.js';
 import rateLimitImport from 'express-rate-limit';
+import { fastRevenueAuth } from '../middleware/authMiddleware.js';
 
 const router = Router();
 const revenueService = FastRevenueService.getInstance();
-
-// ChatGPT requirement: Authentication middleware for /fast-revenue endpoints
-const authenticateUser = (req: any, res: any, next: any) => {
-  const token = req.headers.authorization?.replace('Bearer ', '');
-  if (!token || token.length < 10) {
-    return res.status(401).json({ 
-      error: 'Authentication required',
-      message: 'Please provide valid Bearer token in Authorization header'
-    });
-  }
-  
-  // Basic token validation (TODO: Replace with full JWT validation)
-  if (!token.startsWith('usr_') && !token.startsWith('ent_') && !token.startsWith('api_')) {
-    return res.status(401).json({
-      error: 'Invalid token format',
-      message: 'Token must start with usr_, ent_, or api_ prefix'
-    });
-  }
-  
-  // Extract userId from token (simplified validation)
-  req.userId = token.includes('_') ? token.split('_')[1] : token;
-  req.userTier = token.startsWith('ent_') ? 'enterprise' : 
-                token.startsWith('api_') ? 'premium' : 'basic';
-  next();
-};
 
 // ChatGPT requirement: Rate limiting for fast revenue endpoints
 const fastRevenueRateLimit = rateLimitImport({
@@ -57,7 +33,7 @@ const fastRevenueRateLimit = rateLimitImport({
  */
 
 // Get available paid Slack actions (Authentication required)
-router.get('/api/fast-revenue/slack/actions', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.get('/api/fast-revenue/slack/actions', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     const actions = revenueService.getPaidSlackActions();
     res.json({
@@ -74,7 +50,7 @@ router.get('/api/fast-revenue/slack/actions', fastRevenueRateLimit, authenticate
 });
 
 // Execute paid Slack action (Authentication + Rate limiting required)
-router.post('/api/fast-revenue/slack/execute', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.post('/api/fast-revenue/slack/execute', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     const { 
       action_id, 
@@ -123,7 +99,7 @@ router.post('/api/fast-revenue/slack/execute', fastRevenueRateLimit, authenticat
  */
 
 // Process webhook report request (Authentication + Rate limiting required)
-router.post('/api/fast-revenue/webhook/report', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.post('/api/fast-revenue/webhook/report', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     const { url, report_type, customer_email, webhook_callback } = req.body;
 
@@ -171,7 +147,7 @@ router.post('/api/fast-revenue/webhook/report', fastRevenueRateLimit, authentica
 });
 
 // Get webhook report pricing (Authentication required)
-router.get('/api/fast-revenue/webhook/pricing', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.get('/api/fast-revenue/webhook/pricing', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     res.json({
       report_types: {
@@ -210,7 +186,7 @@ router.get('/api/fast-revenue/webhook/pricing', fastRevenueRateLimit, authentica
  */
 
 // Get revenue statistics (Authentication required)
-router.get('/api/fast-revenue/stats', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.get('/api/fast-revenue/stats', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     const stats = revenueService.getRevenueStats();
     
@@ -232,7 +208,7 @@ router.get('/api/fast-revenue/stats', fastRevenueRateLimit, authenticateUser, as
 });
 
 // Health check for fast revenue services (Authentication required)
-router.get('/api/fast-revenue/health', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.get('/api/fast-revenue/health', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     // Check if required services are operational
     const slackHealthy = true; // We know Slack is working from earlier tests
@@ -261,10 +237,10 @@ router.get('/api/fast-revenue/health', fastRevenueRateLimit, authenticateUser, a
  */
 
 // Purchase premium credits
-router.post('/api/fast-revenue/credits/purchase', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.post('/api/fast-revenue/credits/purchase', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     const { tier, credit_amount, payment_method_id } = req.body;
-    const userId = req.userId;
+    const userId = (req as any).userId;
 
     if (!tier || !credit_amount || !payment_method_id) {
       return res.status(400).json({
@@ -297,9 +273,9 @@ router.post('/api/fast-revenue/credits/purchase', fastRevenueRateLimit, authenti
 });
 
 // Get user credit balance
-router.get('/api/fast-revenue/credits/balance', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.get('/api/fast-revenue/credits/balance', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
-    const userId = req.userId;
+    const userId = (req as any).userId;
     const credits = revenueService.getUserCredits(userId);
 
     if (!credits) {
@@ -326,10 +302,10 @@ router.get('/api/fast-revenue/credits/balance', fastRevenueRateLimit, authentica
 });
 
 // Send premium A2A message (spends credits)
-router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, authenticateUser, async (req, res) => {
+router.post('/api/fast-revenue/credits/send-message', fastRevenueRateLimit, fastRevenueAuth, async (req, res) => {
   try {
     const { provider, message, credit_cost } = req.body;
-    const userId = req.userId;
+    const userId = (req as any).userId;
 
     if (!provider || !message || !credit_cost) {
       return res.status(400).json({

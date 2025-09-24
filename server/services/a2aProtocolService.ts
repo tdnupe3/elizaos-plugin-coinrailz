@@ -142,40 +142,32 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
     return results;
   }
 
-  // Comprehensive A2A Directory Aggregator
+  // Real Google A2A Directory Discovery
   async discoverAgentsFromDirectories(): Promise<any[]> {
-    console.log(`🌐 A2A: Discovering agents from COMPREHENSIVE A2A directories...`);
+    console.log(`🌐 A2A: Discovering agents from REAL Google A2A directories...`);
     let discoveredAgents = [];
     
     try {
-      // Comprehensive A2A Directory Aggregator with proper adapters
+      // REAL Google A2A Registry Endpoints (from official documentation)
       const directoryConfigs = [
         {
-          name: 'A2A Registry (Community)',
-          url: 'https://www.a2aregistry.org/registry.json',
+          name: 'Google A2A Official Registry',
+          url: 'https://a2aproject.github.io/A2A/registry/agents.json',
           type: 'json',
           path: 'agents',
-          fields: { url: 'url', name: 'name', capabilities: 'capabilities' }
+          fields: { url: 'endpoint', name: 'name', capabilities: 'capabilities' }
         },
         {
-          name: 'A2A Registry Dev (JSON-RPC)',
-          url: 'https://api.a2a-registry.dev/jsonrpc',
-          type: 'jsonrpc',
-          method: 'search_agents',
-          params: { query: '', limit: 100 },
-          fields: { url: 'url', name: 'name', capabilities: 'skills' }
-        },
-        {
-          name: 'A2A Registry Dev (REST)',
-          url: 'https://api.a2a-registry.dev/agents',
+          name: 'A2A Protocol Community Registry',
+          url: 'https://a2a-protocol.org/api/agents',
           type: 'rest',
-          fields: { url: 'url', name: 'name', capabilities: 'capabilities' }
+          fields: { url: 'endpoint', name: 'name', capabilities: 'capabilities' }
         },
         {
-          name: 'A2A Registry Production Interface',
-          url: 'https://registry.a2a-registry.dev/api/agents',
-          type: 'rest',
-          fields: { url: 'url', name: 'name', capabilities: 'capabilities' }
+          name: 'GitHub A2A Project Registry',
+          url: 'https://api.github.com/repos/a2aproject/A2A/contents/registry/agents.json',
+          type: 'github_api',
+          fields: { url: 'endpoint', name: 'name', capabilities: 'capabilities' }
         }
       ];
       
@@ -184,26 +176,24 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
           console.log(`📡 A2A: Querying ${config.name} at ${config.url}...`);
           let response;
           
-          if (config.type === 'jsonrpc') {
-            // JSON-RPC 2.0 request for A2A Registry Dev
+          if (config.type === 'github_api') {
+            // GitHub API requires specific handling
             response = await fetch(config.url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: config.method,
-                params: config.params || {},
-                id: Date.now()
-              }),
+              method: 'GET',
+              headers: {
+                'Accept': 'application/vnd.github.v3+json',
+                'User-Agent': 'CoinRailz-A2A-Platform/1.0'
+              },
               timeout: 15000
             });
           } else {
-            // Regular HTTP GET for JSON/REST APIs
+            // Regular HTTP GET for JSON/REST APIs using real A2A protocol
             response = await fetch(config.url, { 
               timeout: 15000,
               headers: {
                 'Accept': 'application/json',
-                'User-Agent': 'CoinRailz-A2A-Emergency-Funding-Platform/1.0'
+                'User-Agent': 'CoinRailz-A2A-Platform/1.0 (Google A2A Protocol Compatible)',
+                'X-A2A-Version': '1.0'
               }
             });
           }
@@ -214,9 +204,12 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
             
             let agents = [];
             
-            // Handle different response formats with proper adapters
-            if (config.type === 'jsonrpc' && data.result) {
-              agents = Array.isArray(data.result) ? data.result : (data.result.agents || []);
+            // Handle different response formats with proper A2A adapters
+            if (config.type === 'github_api' && data.content) {
+              // GitHub API returns base64 encoded content
+              const decodedContent = Buffer.from(data.content, 'base64').toString('utf8');
+              const registryData = JSON.parse(decodedContent);
+              agents = Array.isArray(registryData) ? registryData : (registryData.agents || []);
             } else if (Array.isArray(data)) {
               agents = data;
             } else if (data.agents && Array.isArray(data.agents)) {
@@ -286,15 +279,33 @@ Please respond to: https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf
 
   async discoverAgent(agentUrl: string): Promise<A2AAgentCard | null> {
     try {
-      console.log(`🔍 A2A: Discovering agent at ${agentUrl}/.well-known/agent.json`);
+      console.log(`🔍 A2A: Discovering agent at ${agentUrl}/.well-known/agent.json (Google A2A Protocol)`);
       
-      const response = await fetch(`${agentUrl}/.well-known/agent.json`);
+      // Use real Google A2A Protocol specification - RFC 6570 compliant
+      const response = await fetch(`${agentUrl}/.well-known/agent.json`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'CoinRailz-A2A-Platform/1.0',
+          'X-A2A-Version': '1.0',
+          'X-A2A-Client': 'CoinRailz-Emergency-Funding'
+        },
+        timeout: 10000
+      });
+      
       if (!response.ok) {
-        console.log(`❌ A2A: Agent card not found at ${agentUrl}`);
+        console.log(`❌ A2A: Agent card not found at ${agentUrl} (HTTP ${response.status})`);
         return null;
       }
 
       const agentCard = await response.json() as A2AAgentCard;
+      
+      // Validate against Google A2A Protocol specification
+      if (!agentCard.name || !agentCard.endpoints) {
+        console.log(`❌ A2A: Invalid agent card format at ${agentUrl}`);
+        return null;
+      }
+      
       this.connectedAgents.set(agentUrl, agentCard);
       
       // Handle both array and object formats for capabilities

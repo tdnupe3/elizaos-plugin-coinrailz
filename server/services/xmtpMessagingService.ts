@@ -57,32 +57,37 @@ export class XMTPMessagingService {
       const cdpWallet = await this.cdpService.getOrCreatePlatformWallet();
       this.platformWalletAddress = cdpWallet.address;
       
-      // FORCE generate new XMTP wallet to bypass 10/10 installation limit
-      console.log('🔄 Generating fresh XMTP wallet to bypass installation limits...');
-      console.log('🚨 Previous XMTP_EOA_PRIVATE_KEY hit 10/10 installation limit');
-      const newWallet = ethers.Wallet.createRandom();
-      const xmtpPrivateKey = newWallet.privateKey;
-      console.log('🆔 Fresh XMTP wallet created:', newWallet.address);
-      console.log('✅ New InboxID will resolve installation conflicts');
+      // Use EXISTING XMTP_EOA_PRIVATE_KEY for persistent identity
+      console.log('🔑 Using EXISTING XMTP_EOA_PRIVATE_KEY for persistent identity');
+      const xmtpPrivateKey = process.env.XMTP_EOA_PRIVATE_KEY;
       
-      console.log('🔑 Using secure XMTP identity from environment');
-      console.log('🔒 XMTP identity will be consistent and secure across restarts');
+      if (!xmtpPrivateKey) {
+        throw new Error('XMTP_EOA_PRIVATE_KEY environment variable required for persistent XMTP identity');
+      }
       
-      // Convert base64 private key to hex format if needed (CDP keys are base64 encoded)
+      console.log('✅ XMTP identity will be consistent and persistent across all restarts');
+      console.log('🔒 Using existing wallet address for stable agent communication');
+      
+      // Use XMTP_EOA_PRIVATE_KEY directly (should be hex format)
       let processedPrivateKey = xmtpPrivateKey;
-      if (!xmtpPrivateKey.startsWith('0x') && xmtpPrivateKey.includes('/') || xmtpPrivateKey.includes('+')) {
-        // Base64 encoded private key - convert to hex
-        try {
-          const privateKeyBytes = Buffer.from(xmtpPrivateKey, 'base64');
-          processedPrivateKey = '0x' + privateKeyBytes.toString('hex');
-          console.log('🔄 Converted base64 private key to hex format for ethers.js');
-        } catch (error) {
-          console.error('❌ Failed to convert base64 private key:', error);
-          throw error;
+      
+      // Ensure proper hex format for ethers.js
+      if (!xmtpPrivateKey.startsWith('0x')) {
+        if (xmtpPrivateKey.length === 64) {
+          // Raw hex without 0x prefix
+          processedPrivateKey = '0x' + xmtpPrivateKey;
+        } else {
+          throw new Error('XMTP_EOA_PRIVATE_KEY must be a valid Ethereum private key (32 bytes hex)');
         }
       }
       
+      // Validate private key format
+      if (processedPrivateKey.length !== 66 || !/^0x[0-9a-fA-F]{64}$/.test(processedPrivateKey)) {
+        throw new Error('XMTP_EOA_PRIVATE_KEY must be a valid Ethereum private key (0x + 64 hex chars)');
+      }
+      
       this.platformWalletSigner = new ethers.Wallet(processedPrivateKey);
+      console.log(`🔗 XMTP Persistent Wallet: ${this.platformWalletSigner.address}`);
       
       // Import required XMTP types
       const { IdentifierKind } = await import('@xmtp/node-sdk');

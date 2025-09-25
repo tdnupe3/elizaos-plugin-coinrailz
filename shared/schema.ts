@@ -3571,6 +3571,26 @@ export const prospectWallets = pgTable(
   ],
 );
 
+// Coinbase Address Database table for .cb.id & .base.eth advertising service
+export const coinbaseAddressDatabase = pgTable(
+  "coinbase_address_database",
+  {
+    id: serial("id").primaryKey(),
+    address: varchar("address").notNull().unique(),
+    domainName: varchar("domain_name"), // ENS domain like alice.cb.id or bob.base.eth
+    domainType: varchar("domain_type").notNull(), // '.cb.id' or '.base.eth'
+    lastActivity: timestamp("last_activity"),
+    canReceiveMessages: boolean("can_receive_messages").default(true),
+    addedAt: timestamp("added_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_coinbase_address_unique").on(table.address),
+    index("IDX_coinbase_domain_type").on(table.domainType),
+    index("IDX_coinbase_can_receive").on(table.canReceiveMessages),
+    index("IDX_coinbase_added_at").on(table.addedAt),
+  ],
+);
+
 // Outreach Campaigns table
 export const outreachCampaigns = pgTable(
   "outreach_campaigns", 
@@ -3674,4 +3694,15 @@ export type InsertOutreachCampaign = z.infer<typeof outreachCampaignsInsertSchem
 
 export type OutreachMessage = typeof outreachMessages.$inferSelect;
 export type InsertOutreachMessage = z.infer<typeof outreachMessagesInsertSchema>;
+
+// Coinbase Address Database schemas and types
+export const coinbaseAddressDatabaseInsertSchema = createInsertSchema(coinbaseAddressDatabase).omit({
+  id: true,
+  addedAt: true,
+});
+
+export const coinbaseAddressDatabaseSelectSchema = createSelectSchema(coinbaseAddressDatabase);
+
+export type CoinbaseAddressRecord = typeof coinbaseAddressDatabase.$inferSelect;
+export type InsertCoinbaseAddressRecord = z.infer<typeof coinbaseAddressDatabaseInsertSchema>;
 

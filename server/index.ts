@@ -58,6 +58,7 @@ import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
 import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
 import { ProviderCapabilityService } from './services/providerCapabilityService.js';
 import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from './paypal.js';
 import rateLimitImport from 'express-rate-limit';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
@@ -3222,6 +3223,22 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   const unifiedWebhookRoutes = await import('./routes/unifiedWebhookRoutes.js');
   app.use('/api/webhooks', unifiedWebhookRoutes.default);
   console.log('✅ Unified webhook routes registered successfully');
+
+  // 💳 PAYPAL ROUTES - Required for multi-payment campaign checkout
+  console.log('💳 Registering PayPal routes for multi-payment checkout...');
+  app.get("/api/paypal/setup", async (req, res) => {
+    await loadPaypalDefault(req, res);
+  });
+  
+  app.post("/api/paypal/order", async (req, res) => {
+    // Request body should contain: { intent, amount, currency }
+    await createPaypalOrder(req, res);
+  });
+  
+  app.post("/api/paypal/order/:orderID/capture", async (req, res) => {
+    await capturePaypalOrder(req, res);
+  });
+  console.log('✅ PayPal routes registered successfully');
 
   // 🎯 CAMPAIGN CONVERSION ROUTES - PRODUCTION CHECKOUT SYSTEM
   console.log('🎯 Registering CAMPAIGN CONVERSION routes with real checkout...');

@@ -47,6 +47,7 @@ router.post('/checkout', async (req, res) => {
       campaign_type,
       session_id,
       customer_info,
+      payment_method = 'stripe', // 'stripe', 'paypal', or 'usdc'
       metadata = {}
     } = req.body;
 
@@ -54,6 +55,13 @@ router.post('/checkout', async (req, res) => {
     if (!campaign_id || !customer_info?.email) {
       return res.status(400).json({
         error: 'Missing required fields: campaign_id, customer_info.email'
+      });
+    }
+
+    // Validate payment method
+    if (!['stripe', 'paypal', 'usdc'].includes(payment_method)) {
+      return res.status(400).json({
+        error: 'Invalid payment method. Must be "stripe", "paypal", or "usdc"'
       });
     }
 
@@ -72,24 +80,81 @@ router.post('/checkout', async (req, res) => {
       });
     }
 
-    // Create Stripe payment intent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
-      currency: 'usd',
-      automatic_payment_methods: {
-        enabled: true,
-      },
-      metadata: {
-        campaign_id,
-        campaign_type,
-        session_id: session_id || '',
-        customer_email: customer_info.email,
-        source: 'campaign_conversion',
-        ...metadata
-      },
-      description: `Campaign Partnership: ${metadata.offer_name || campaign_id}`,
-      receipt_email: customer_info.email,
-    });
+    let paymentData: any = {};
+    let paymentIntentId: string | null = null;
+
+    if (payment_method === 'stripe') {
+      // Create Stripe payment intent
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100), // Convert to cents
+        currency: 'usd',
+        automatic_payment_methods: {
+          enabled: true,
+        },
+        metadata: {
+          campaign_id,
+          campaign_type,
+          session_id: session_id || '',
+          customer_email: customer_info.email,
+          source: 'campaign_conversion',
+          ...metadata
+        },
+        description: `Campaign Partnership: ${metadata.offer_name || campaign_id}`,
+        receipt_email: customer_info.email,
+      });
+
+      paymentData = {
+        client_secret: paymentIntent.client_secret,
+        payment_intent_id: paymentIntent.id,
+        payment_method: 'stripe'
+      };
+      paymentIntentId = paymentIntent.id;
+    } else if (payment_method === 'paypal') {
+      // PayPal order will be created on frontend using our PayPal routes
+      paymentData = {
+        payment_method: 'paypal',
+        amount: amount,
+        currency: 'USD',
+        paypal_setup_url: '/api/paypal/setup',
+        paypal_create_url: '/api/paypal/order',
+        paypal_capture_url: '/api/paypal/order/{orderID}/capture'
+      };
+      paymentIntentId = `paypal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    } else if (payment_method === 'usdc') {
+      // USDC payment setup - customer will send to our Circle wallet
+      try {
+        const { CircleService } = await import('../services/circleService');
+        const circleService = new CircleService();
+        
+        // Get platform wallet for receiving USDC
+        const wallets = await circleService.listWallets();
+        const platformWallet = wallets?.[0]; // Use first available wallet
+        
+        if (!platformWallet) {
+          return res.status(500).json({
+            error: 'USDC payment processing unavailable - no platform wallet'
+          });
+        }
+
+        paymentData = {
+          payment_method: 'usdc',
+          recipient_address: platformWallet.address,
+          amount: amount,
+          currency: 'USDC',
+          blockchain: platformWallet.blockchain || 'ETH',
+          instructions: 'Send USDC to the provided address. Payment will be confirmed automatically.'
+        };
+        paymentIntentId = `usdc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      } catch (error) {
+        console.error('Circle USDC setup error:', error);
+        paymentData = {
+          payment_method: 'usdc',
+          error: 'USDC payment temporarily unavailable',
+          fallback_to: 'stripe'
+        };
+        paymentIntentId = `usdc_error_${Date.now()}`;
+      }
+    }
 
     // Store conversion record
     const conversionRecord: Partial<CampaignConversion> = {
@@ -99,7 +164,7 @@ router.post('/checkout', async (req, res) => {
       session_id,
       customer_email: customer_info.email,
       customer_info,
-      payment_intent_id: paymentIntent.id,
+      payment_intent_id: paymentIntentId || undefined,
       conversion_stage: 'payment_created',
       amount: amount, // Store in dollars (amount is already in USD)
       metadata,
@@ -117,16 +182,16 @@ router.post('/checkout', async (req, res) => {
       metadata: {
         campaign_id,
         campaign_type,
-        payment_intent_id: paymentIntent.id
+        payment_intent_id: paymentIntentId
       }
     });
 
     res.json({
       success: true,
-      paymentIntentId: paymentIntent.id,
-      clientSecret: paymentIntent.client_secret,
+      payment_data: paymentData,
       amount: amount,
       currency: 'usd',
+      payment_method: payment_method,
       campaign_id,
       conversion_id: conversionRecord.id
     });

@@ -10,6 +10,7 @@ import { coinbaseIdBaseEthOutreach } from '../services/coinbaseIdBaseEthOutreach
 import { db } from '../db';
 import { coinbaseAddressDatabase } from '../../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
+import { createPaypalOrder } from '../paypal';
 
 const router = Router();
 
@@ -167,6 +168,105 @@ router.post('/create-payment-intent', async (req: Request, res: Response) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to create payment intent',
+      details: error.message 
+    });
+  }
+});
+
+/**
+ * 💰 POST /api/coinbase-advertising/create-paypal-order
+ * Create PayPal order for $5K advertising campaign (Alternative to Stripe)
+ */
+router.post('/create-paypal-order', async (req: Request, res: Response) => {
+  try {
+    const { clientName, message, targetPreference = 'all' } = req.body;
+
+    if (!clientName || !message) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required fields: clientName, message' 
+      });
+    }
+
+    if (!['all', '.cb.id', '.base.eth'].includes(targetPreference)) {
+      return res.status(400).json({
+        error: 'Invalid target preference. Must be: all, .cb.id, or .base.eth'
+      });
+    }
+
+    // Critical: Verify platform wallet readiness before accepting payment
+    if (!process.env.XMTP_EOA_PRIVATE_KEY) {
+      return res.status(503).json({
+        success: false,
+        error: 'Service temporarily unavailable - platform wallet not configured'
+      });
+    }
+
+    // Verify address database has sufficient entries for $5K campaign value
+    const addressCount = await coinbaseIdBaseEthOutreach.getAddressCount();
+    if (addressCount < 3) {
+      return res.status(503).json({
+        success: false,
+        error: 'Service temporarily unavailable - insufficient address database for campaign reach'
+      });
+    }
+
+    // Create PayPal order using the existing PayPal service
+    const paypalOrderRequest = {
+      body: {
+        amount: '5000.00',
+        currency: 'USD',
+        intent: 'CAPTURE'
+      }
+    };
+
+    // Override the req object for PayPal service compatibility
+    const paypalReq = { body: paypalOrderRequest.body } as Request;
+    let paypalOrderId: string;
+    let paypalResponse: any;
+
+    // Capture PayPal response by overriding res methods
+    const mockRes = {
+      status: (code: number) => ({
+        json: (data: any) => {
+          if (code === 200 || code === 201) {
+            paypalResponse = data;
+            paypalOrderId = data.id;
+          } else {
+            throw new Error(`PayPal order creation failed: ${JSON.stringify(data)}`);
+          }
+        }
+      })
+    } as unknown as Response;
+
+    await createPaypalOrder(paypalReq, mockRes);
+
+    if (!paypalOrderId) {
+      throw new Error('PayPal order ID not received');
+    }
+
+    console.log(`💳 PayPal order created for ${clientName}: ${paypalOrderId}`);
+    
+    res.json({
+      success: true,
+      orderId: paypalOrderId,
+      paypalResponse: paypalResponse,
+      amount: 5000,
+      currency: 'USD',
+      paymentMethod: 'paypal',
+      metadata: {
+        clientName,
+        message: message.substring(0, 500),
+        targetPreference,
+        service: 'coinbase-advertising-campaign'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Error creating PayPal order:', error);
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to create PayPal order',
       details: error.message 
     });
   }

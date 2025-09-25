@@ -607,3 +607,6 @@ export class CustomerNotificationService {
     };
   }
 }
+
+// Create instance for import compatibility
+export const customerNotificationService = CustomerNotificationService;

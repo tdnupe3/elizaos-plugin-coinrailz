@@ -1104,6 +1104,10 @@ Questions? Reply to this message or contact support@coinrailz.com
   const { default: aiAgentProductRoutes } = await import('./routes/aiAgentProductRoutes');
   app.use('/api/ai-products', aiAgentProductRoutes);
 
+  // AI Agent Outreach System for wallet discovery and targeted campaigns
+  const { default: aiAgentOutreachRoutes } = await import('./routes/aiAgentOutreachRoutes');
+  app.use('/api/outreach', aiAgentOutreachRoutes);
+
   // Payment processing routes
   const { paymentRoutes } = await import('./routes/paymentRoutes');
   app.use('/api/payments', paymentRoutes);

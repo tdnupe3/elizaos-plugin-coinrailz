@@ -3543,3 +3543,135 @@ export type InsertFastPremiumCredit = z.infer<typeof fastPremiumCreditsInsertSch
 export type FastCreditUsage = typeof fastCreditUsage.$inferSelect;
 export type InsertFastCreditUsage = z.infer<typeof fastCreditUsageInsertSchema>;
 
+// AI Agent Prospect Wallets table
+export const prospectWallets = pgTable(
+  "prospect_wallets",
+  {
+    id: serial("id").primaryKey(),
+    chain: varchar("chain").notNull(), // base, solana, xrpl
+    address: varchar("address").notNull(),
+    sourceToken: varchar("source_token").notNull(), // Contract/mint that led to discovery
+    tokenLabel: varchar("token_label").notNull(), // CLANKER, BUZZ, XRT, etc
+    balance: varchar("balance"), // Token balance as string
+    holderRank: integer("holder_rank"), // Ranking by token holdings
+    canReceiveXMTP: boolean("can_receive_xmtp").default(false),
+    canReceiveDialect: boolean("can_receive_dialect").default(false),
+    lastActivity: timestamp("last_activity"),
+    discoveredAt: timestamp("discovered_at").defaultNow(),
+    lastContactedAt: timestamp("last_contacted_at"),
+    responseStatus: varchar("response_status").default("pending"), // pending, responded, bounced
+    contactCount: integer("contact_count").default(0),
+    metadata: jsonb("metadata"), // Additional wallet info
+  },
+  (table) => [
+    uniqueIndex("IDX_prospect_wallets_chain_address").on(table.chain, table.address),
+    index("IDX_prospect_wallets_token").on(table.tokenLabel),
+    index("IDX_prospect_wallets_xmtp").on(table.canReceiveXMTP),
+    index("IDX_prospect_wallets_rank").on(table.holderRank),
+  ],
+);
+
+// Outreach Campaigns table
+export const outreachCampaigns = pgTable(
+  "outreach_campaigns", 
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name").notNull(),
+    targetEcosystem: varchar("target_ecosystem"), // clanker, buzz, xrpturbo, all
+    messageTemplate: text("message_template").notNull(),
+    status: varchar("status").default("draft"), // draft, active, paused, completed
+    targetCount: integer("target_count").default(0),
+    sentCount: integer("sent_count").default(0),
+    responseCount: integer("response_count").default(0),
+    revenueGenerated: numeric("revenue_generated", { precision: 12, scale: 2 }).default("0"),
+    createdAt: timestamp("created_at").defaultNow(),
+    launchedAt: timestamp("launched_at"),
+    completedAt: timestamp("completed_at"),
+    metadata: jsonb("metadata"),
+  },
+  (table) => [
+    index("IDX_outreach_campaigns_status").on(table.status),
+    index("IDX_outreach_campaigns_ecosystem").on(table.targetEcosystem),
+  ],
+);
+
+// Outreach Messages table
+export const outreachMessages = pgTable(
+  "outreach_messages",
+  {
+    id: serial("id").primaryKey(),
+    campaignId: integer("campaign_id").references(() => outreachCampaigns.id),
+    prospectWalletId: integer("prospect_wallet_id").references(() => prospectWallets.id),
+    protocol: varchar("protocol").notNull(), // xmtp, dialect, xrpl_memo, email
+    messageContent: text("message_content").notNull(),
+    status: varchar("status").default("pending"), // pending, sent, delivered, bounced, responded
+    sentAt: timestamp("sent_at"),
+    deliveredAt: timestamp("delivered_at"),
+    respondedAt: timestamp("responded_at"),
+    messageId: varchar("message_id"), // External message ID from protocol
+    txHash: varchar("tx_hash"), // For on-chain messages (XRPL memo, etc)
+    error: text("error"), // Error details if delivery failed
+    cost: numeric("cost", { precision: 10, scale: 6 }), // Message cost in USD
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_outreach_messages_campaign").on(table.campaignId),
+    index("IDX_outreach_messages_prospect").on(table.prospectWalletId),
+    index("IDX_outreach_messages_status").on(table.status),
+    index("IDX_outreach_messages_protocol").on(table.protocol),
+  ],
+);
+
+// Relations
+export const prospectWalletsRelations = relations(prospectWallets, ({ many }) => ({
+  messages: many(outreachMessages),
+}));
+
+export const outreachCampaignsRelations = relations(outreachCampaigns, ({ many }) => ({
+  messages: many(outreachMessages),
+}));
+
+export const outreachMessagesRelations = relations(outreachMessages, ({ one }) => ({
+  campaign: one(outreachCampaigns, {
+    fields: [outreachMessages.campaignId],
+    references: [outreachCampaigns.id],
+  }),
+  prospectWallet: one(prospectWallets, {
+    fields: [outreachMessages.prospectWalletId],
+    references: [prospectWallets.id],
+  }),
+}));
+
+// Zod schemas
+export const prospectWalletsInsertSchema = createInsertSchema(prospectWallets).omit({
+  id: true,
+  discoveredAt: true,
+});
+
+export const prospectWalletsSelectSchema = createSelectSchema(prospectWallets);
+
+export const outreachCampaignsInsertSchema = createInsertSchema(outreachCampaigns).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const outreachCampaignsSelectSchema = createSelectSchema(outreachCampaigns);
+
+export const outreachMessagesInsertSchema = createInsertSchema(outreachMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const outreachMessagesSelectSchema = createSelectSchema(outreachMessages);
+
+// Types
+export type ProspectWallet = typeof prospectWallets.$inferSelect;
+export type InsertProspectWallet = z.infer<typeof prospectWalletsInsertSchema>;
+
+export type OutreachCampaign = typeof outreachCampaigns.$inferSelect;
+export type InsertOutreachCampaign = z.infer<typeof outreachCampaignsInsertSchema>;
+
+export type OutreachMessage = typeof outreachMessages.$inferSelect;
+export type InsertOutreachMessage = z.infer<typeof outreachMessagesInsertSchema>;
+

@@ -1,0 +1,581 @@
+/**
+ * AI Agent Outreach Routes
+ * Manages wallet discovery, campaigns, and targeted messaging to AI agent ecosystems
+ */
+
+import express from "express";
+import { z } from "zod";
+import { db } from "../db";
+import { 
+  prospectWallets,
+  outreachCampaigns, 
+  outreachMessages,
+  prospectWalletsInsertSchema,
+  outreachCampaignsInsertSchema,
+  outreachMessagesInsertSchema,
+  type ProspectWallet,
+  type OutreachCampaign,
+  type OutreachMessage
+} from "@shared/schema";
+import { eq, desc, and, count, sql } from "drizzle-orm";
+import { AIAgentWalletDiscovery } from "../services/aiAgentWalletDiscovery";
+import { UnifiedMessagingService } from "../services/unifiedMessagingService";
+
+const router = express.Router();
+
+// Initialize services
+const walletDiscovery = new AIAgentWalletDiscovery();
+const messagingService = new UnifiedMessagingService();
+
+/**
+ * GET /api/outreach/discovery/stats - Get discovery statistics
+ */
+router.get("/discovery/stats", async (req, res) => {
+  try {
+    const stats = walletDiscovery.getDiscoveryStats();
+    
+    // Get database statistics
+    const [prospectStats] = await db
+      .select({
+        totalWallets: count(prospectWallets.id),
+        baseWallets: sql<number>`count(case when ${prospectWallets.chain} = 'base' then 1 end)`,
+        solanaWallets: sql<number>`count(case when ${prospectWallets.chain} = 'solana' then 1 end)`,
+        xrplWallets: sql<number>`count(case when ${prospectWallets.chain} = 'xrpl' then 1 end)`,
+        xmtpCapable: sql<number>`count(case when ${prospectWallets.canReceiveXMTP} = true then 1 end)`,
+        dialectCapable: sql<number>`count(case when ${prospectWallets.canReceiveDialect} = true then 1 end)`
+      })
+      .from(prospectWallets);
+    
+    const [campaignStats] = await db
+      .select({
+        totalCampaigns: count(outreachCampaigns.id),
+        activeCampaigns: sql<number>`count(case when ${outreachCampaigns.status} = 'active' then 1 end)`,
+        totalRevenue: sql<number>`sum(${outreachCampaigns.revenueGenerated})`
+      })
+      .from(outreachCampaigns);
+    
+    res.json({
+      success: true,
+      stats: {
+        ...stats,
+        database: {
+          ...prospectStats,
+          ...campaignStats,
+          totalRevenue: campaignStats.totalRevenue || 0
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error('Discovery stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get discovery statistics'
+    });
+  }
+});
+
+/**
+ * POST /api/outreach/discovery/run - Run wallet discovery across all chains
+ */
+router.post("/discovery/run", async (req, res) => {
+  try {
+    console.log('🚀 Starting AI agent wallet discovery...');
+    
+    // Run discovery across all chains
+    const results = await walletDiscovery.runFullDiscovery();
+    
+    // Save discovered wallets to database
+    let savedWallets = 0;
+    let updatedWallets = 0;
+    
+    for (const wallet of results.discoveryResults) {
+      try {
+        // Check if wallet already exists
+        const [existing] = await db
+          .select()
+          .from(prospectWallets)
+          .where(and(
+            eq(prospectWallets.chain, wallet.chain),
+            eq(prospectWallets.address, wallet.address)
+          ));
+        
+        if (existing) {
+          // Update existing wallet
+          await db
+            .update(prospectWallets)
+            .set({
+              balance: wallet.balance,
+              holderRank: wallet.holderRank,
+              canReceiveXMTP: wallet.canReceiveXMTP || false,
+              canReceiveDialect: wallet.canReceiveDialect || false,
+              lastActivity: wallet.lastActivity,
+              metadata: {
+                lastDiscovery: new Date().toISOString(),
+                revenue: wallet.sourceToken.includes('CLANKER') ? '$13M+' : undefined,
+                marketCap: wallet.sourceToken.includes('BUZZ') ? '$16M' : undefined
+              }
+            })
+            .where(eq(prospectWallets.id, existing.id));
+          
+          updatedWallets++;
+        } else {
+          // Insert new wallet
+          await db.insert(prospectWallets).values({
+            chain: wallet.chain,
+            address: wallet.address,
+            sourceToken: wallet.sourceToken,
+            tokenLabel: wallet.tokenLabel,
+            balance: wallet.balance,
+            holderRank: wallet.holderRank,
+            canReceiveXMTP: wallet.canReceiveXMTP || false,
+            canReceiveDialect: wallet.canReceiveDialect || false,
+            lastActivity: wallet.lastActivity,
+            metadata: {
+              discoveredVia: 'ai_agent_ecosystem',
+              revenue: wallet.sourceToken.includes('CLANKER') ? '$13M+' : undefined,
+              marketCap: wallet.sourceToken.includes('BUZZ') ? '$16M' : undefined
+            }
+          });
+          
+          savedWallets++;
+        }
+        
+      } catch (dbError) {
+        console.error(`Error saving wallet ${wallet.address}:`, dbError);
+      }
+    }
+    
+    // Generate CSV for export
+    const csvData = walletDiscovery.generateOutreachCSV(results.discoveryResults);
+    
+    console.log(`✅ Discovery complete: ${savedWallets} new, ${updatedWallets} updated wallets`);
+    
+    res.json({
+      success: true,
+      results: {
+        ...results,
+        database: {
+          newWallets: savedWallets,
+          updatedWallets: updatedWallets,
+          totalSaved: savedWallets + updatedWallets
+        },
+        csvData: csvData.split('\n').length > 1 ? `${csvData.split('\n').length - 1} rows` : 'No data'
+      },
+      message: `Discovered ${results.totalWallets} wallets (${results.messagingCapable} messaging-capable)`
+    });
+    
+  } catch (error) {
+    console.error('Discovery run error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run wallet discovery',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/outreach/prospects - Get discovered prospect wallets with filtering
+ */
+router.get("/prospects", async (req, res) => {
+  try {
+    const {
+      chain,
+      tokenLabel,
+      canMessage,
+      limit = 50,
+      offset = 0,
+      sortBy = 'holderRank'
+    } = req.query;
+    
+    let query = db.select().from(prospectWallets);
+    let whereConditions: any[] = [];
+    
+    if (chain) {
+      whereConditions.push(eq(prospectWallets.chain, chain as string));
+    }
+    
+    if (tokenLabel) {
+      whereConditions.push(eq(prospectWallets.tokenLabel, tokenLabel as string));
+    }
+    
+    if (canMessage === 'true') {
+      whereConditions.push(
+        sql`(${prospectWallets.canReceiveXMTP} = true OR ${prospectWallets.canReceiveDialect} = true OR ${prospectWallets.chain} = 'xrpl')`
+      );
+    }
+    
+    if (whereConditions.length > 0) {
+      query = query.where(and(...whereConditions));
+    }
+    
+    // Apply sorting
+    if (sortBy === 'holderRank') {
+      query = query.orderBy(prospectWallets.holderRank);
+    } else {
+      query = query.orderBy(desc(prospectWallets.discoveredAt));
+    }
+    
+    const prospects = await query
+      .limit(parseInt(limit as string))
+      .offset(parseInt(offset as string));
+    
+    // Get total count for pagination
+    let countQuery = db.select({ count: count() }).from(prospectWallets);
+    if (whereConditions.length > 0) {
+      countQuery = countQuery.where(and(...whereConditions));
+    }
+    const [{ count: totalCount }] = await countQuery;
+    
+    res.json({
+      success: true,
+      prospects,
+      pagination: {
+        total: totalCount,
+        limit: parseInt(limit as string),
+        offset: parseInt(offset as string),
+        hasMore: parseInt(offset as string) + parseInt(limit as string) < totalCount
+      }
+    });
+    
+  } catch (error) {
+    console.error('Get prospects error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get prospect wallets'
+    });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns - Create new outreach campaign
+ */
+router.post("/campaigns", async (req, res) => {
+  try {
+    const campaignData = outreachCampaignsInsertSchema.parse(req.body);
+    
+    const [campaign] = await db
+      .insert(outreachCampaigns)
+      .values(campaignData)
+      .returning();
+    
+    console.log(`✅ Created outreach campaign: ${campaign.name}`);
+    
+    res.json({
+      success: true,
+      campaign,
+      message: `Campaign "${campaign.name}" created successfully`
+    });
+    
+  } catch (error) {
+    console.error('Create campaign error:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Failed to create campaign',
+      details: error instanceof Error ? error.message : 'Validation failed'
+    });
+  }
+});
+
+/**
+ * GET /api/outreach/campaigns - Get outreach campaigns
+ */
+router.get("/campaigns", async (req, res) => {
+  try {
+    const { status, limit = 20, offset = 0 } = req.query;
+    
+    let query = db.select().from(outreachCampaigns);
+    
+    if (status) {
+      query = query.where(eq(outreachCampaigns.status, status as string));
+    }
+    
+    const campaigns = await query
+      .orderBy(desc(outreachCampaigns.createdAt))
+      .limit(parseInt(limit as string))
+      .offset(parseInt(offset as string));
+    
+    res.json({
+      success: true,
+      campaigns
+    });
+    
+  } catch (error) {
+    console.error('Get campaigns error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get campaigns'
+    });
+  }
+});
+
+/**
+ * POST /api/outreach/campaigns/:id/execute - Execute outreach campaign
+ */
+router.post("/campaigns/:id/execute", async (req, res) => {
+  try {
+    const campaignId = parseInt(req.params.id);
+    const { maxTargets = 100, dryRun = false } = req.body;
+    
+    // Get campaign
+    const [campaign] = await db
+      .select()
+      .from(outreachCampaigns)
+      .where(eq(outreachCampaigns.id, campaignId));
+    
+    if (!campaign) {
+      return res.status(404).json({
+        success: false,
+        error: 'Campaign not found'
+      });
+    }
+    
+    // Get target prospects based on campaign ecosystem
+    let targetQuery = db.select().from(prospectWallets);
+    
+    if (campaign.targetEcosystem && campaign.targetEcosystem !== 'all') {
+      targetQuery = targetQuery.where(eq(prospectWallets.tokenLabel, campaign.targetEcosystem));
+    }
+    
+    // Only target messaging-capable wallets
+    targetQuery = targetQuery.where(
+      sql`(${prospectWallets.canReceiveXMTP} = true OR ${prospectWallets.canReceiveDialect} = true OR ${prospectWallets.chain} = 'xrpl')`
+    );
+    
+    const targets = await targetQuery
+      .orderBy(prospectWallets.holderRank)
+      .limit(maxTargets);
+    
+    if (targets.length === 0) {
+      return res.json({
+        success: true,
+        dryRun: true,
+        targets: 0,
+        message: 'No messaging-capable targets found for this campaign'
+      });
+    }
+    
+    if (dryRun) {
+      return res.json({
+        success: true,
+        dryRun: true,
+        targets: targets.length,
+        preview: targets.slice(0, 5).map(t => ({
+          address: `${t.address.substring(0, 8)}...`,
+          chain: t.chain,
+          tokenLabel: t.tokenLabel,
+          protocol: t.canReceiveXMTP ? 'xmtp' : t.canReceiveDialect ? 'dialect' : 'xrpl_memo'
+        })),
+        message: `Would message ${targets.length} prospects`
+      });
+    }
+    
+    // Execute campaign (send messages)
+    let sent = 0;
+    let failed = 0;
+    const results = [];
+    
+    for (const target of targets) {
+      try {
+        // Determine messaging protocol
+        let protocol: 'xmtp' | 'dialect' | 'xrpl_memo' = 'xrpl_memo';
+        if (target.canReceiveXMTP) protocol = 'xmtp';
+        else if (target.canReceiveDialect) protocol = 'dialect';
+        
+        // Customize message for target
+        const personalizedMessage = campaign.messageTemplate
+          .replace('{address}', target.address)
+          .replace('{ecosystem}', target.tokenLabel)
+          .replace('{chain}', target.chain.toUpperCase());
+        
+        // Send message via unified messaging service
+        const result = await messagingService.sendMessage({
+          to: target.address,
+          content: personalizedMessage,
+          type: protocol === 'xmtp' ? 'xmtp' : protocol === 'dialect' ? 'solana_sms' : 'sms',
+          metadata: {
+            walletAddress: target.address,
+            chainId: target.chain,
+            messageType: 'outreach_campaign'
+          }
+        });
+        
+        // Record message in database
+        await db.insert(outreachMessages).values({
+          campaignId,
+          prospectWalletId: target.id,
+          protocol,
+          messageContent: personalizedMessage,
+          status: result.success ? 'sent' : 'failed',
+          sentAt: result.success ? new Date() : undefined,
+          messageId: result.messageId,
+          error: result.error,
+          cost: result.cost || 0
+        });
+        
+        if (result.success) {
+          sent++;
+          // Update prospect last contact
+          await db
+            .update(prospectWallets)
+            .set({
+              lastContactedAt: new Date(),
+              contactCount: sql`${prospectWallets.contactCount} + 1`
+            })
+            .where(eq(prospectWallets.id, target.id));
+        } else {
+          failed++;
+        }
+        
+        results.push({
+          address: `${target.address.substring(0, 8)}...`,
+          protocol,
+          success: result.success,
+          error: result.error
+        });
+        
+        // Rate limiting between messages
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (error) {
+        failed++;
+        console.error(`Failed to message ${target.address}:`, error);
+        results.push({
+          address: `${target.address.substring(0, 8)}...`,
+          protocol: 'unknown',
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+    
+    // Update campaign stats
+    await db
+      .update(outreachCampaigns)
+      .set({
+        status: 'active',
+        sentCount: sent,
+        targetCount: targets.length,
+        launchedAt: new Date()
+      })
+      .where(eq(outreachCampaigns.id, campaignId));
+    
+    console.log(`✅ Campaign executed: ${sent} sent, ${failed} failed`);
+    
+    res.json({
+      success: true,
+      execution: {
+        campaignId,
+        targets: targets.length,
+        sent,
+        failed,
+        successRate: `${((sent / targets.length) * 100).toFixed(1)}%`
+      },
+      results: results.slice(0, 10), // First 10 results for preview
+      message: `Campaign executed: ${sent}/${targets.length} messages sent successfully`
+    });
+    
+  } catch (error) {
+    console.error('Execute campaign error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to execute campaign',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * GET /api/outreach/templates/ai-agents - Get AI agent outreach message templates
+ */
+router.get("/templates/ai-agents", async (req, res) => {
+  try {
+    const templates = {
+      funding_request: {
+        name: "Emergency Funding Request",
+        template: `Hello from Coin Railz! 🤖
+
+We've identified you as a holder in the {ecosystem} ecosystem on {chain}. 
+
+We're seeking $5,000 in emergency funding to scale our AI agent payment infrastructure. Our platform already offers:
+
+• 5-protocol messaging (XMTP, Lens, Solana SMS, WalletConnect)
+• Circle USDC wallet management
+• Multi-chain payment processing
+• AI agent discovery & communication tools
+
+ROI: 2% revenue share for funding partners + priority API access.
+
+Ready to support AI agent infrastructure? Reply or contact us at coinrailz.com
+
+Address: {address}`,
+        targetAudience: "AI agent holders and builders"
+      },
+      
+      service_offering: {
+        name: "Payment Infrastructure Services",
+        template: `Hey {ecosystem} community member! 💳
+
+Coin Railz offers enterprise payment infrastructure perfect for AI agents:
+
+✅ $9.99-199.99 prepaid credit packages
+✅ Multi-protocol messaging (XMTP, Lens, Solana SMS)
+✅ Circle USDC wallets & real-time balances  
+✅ DEX aggregation across Base/Solana/XRPL
+✅ 85% revenue share for AI marketplace transactions
+
+Perfect for scaling {ecosystem} projects on {chain}.
+
+Start with our $9.99 Starter Credits: coinrailz.com/api-products
+Built for AI agents, by AI infrastructure experts.`,
+        targetAudience: "AI agent developers and platforms"
+      },
+      
+      partnership_proposal: {
+        name: "Strategic Partnership",
+        template: `Partnership opportunity for {ecosystem} ecosystem 🤝
+
+Coin Railz has built comprehensive payment infrastructure that could accelerate your {chain} projects:
+
+🔥 WHAT WE BRING:
+• Production-ready payment processing
+• 5 messaging protocols integrated
+• Real money operations (Circle USDC)
+• Multi-chain support (Base, Solana, XRPL)
+
+🎯 PARTNERSHIP BENEFITS:
+• Revenue sharing on joint customers
+• White-label API access
+• Custom integrations
+• Cross-promotion opportunities
+
+Interested in exploring synergies? Let's discuss how we can grow the {ecosystem} ecosystem together.
+
+Contact: partnerships@coinrailz.com`,
+        targetAudience: "AI agent platforms and ecosystems"
+      }
+    };
+    
+    res.json({
+      success: true,
+      templates,
+      ecosystems: [
+        'CLANKER ($13M revenue)',
+        'BUZZ (Hive AI, $16M market cap)', 
+        'XRT (XRPTurbo Launchpad)',
+        'AIFUN (AI Agent Layer)',
+        'BNKR (Bankr Bot Infra)'
+      ]
+    });
+    
+  } catch (error) {
+    console.error('Get templates error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get templates'
+    });
+  }
+});
+
+export default router;

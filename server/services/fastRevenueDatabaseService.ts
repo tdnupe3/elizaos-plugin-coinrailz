@@ -212,6 +212,169 @@ export class FastRevenueDatabaseService {
   }
 
   /**
+   * 🎯 Store Campaign Conversion (DATABASE PERSISTENCE)
+   */
+  async storeCampaignConversion(conversion: any): Promise<void> {
+    try {
+      // Store in fast revenue records for now - can be extended with dedicated table
+      const revenueRecord = {
+        stripePaymentIntentId: conversion.payment_intent_id || 'pending',
+        amount: conversion.amount.toString(),
+        currency: 'USD',
+        service: `campaign_${conversion.campaign_type}`,
+        userId: conversion.customer_email,
+        paymentProvider: 'stripe',
+        metadata: {
+          ...conversion.metadata,
+          conversion_id: conversion.id,
+          campaign_id: conversion.campaign_id,
+          session_id: conversion.session_id
+        }
+      };
+      
+      await db.insert(fastRevenueRecords).values(revenueRecord);
+      console.log(`💾 Campaign conversion stored: ${conversion.id} (${conversion.campaign_type})`);
+    } catch (error) {
+      console.error('❌ Failed to store campaign conversion:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 📊 Track Revenue Metric (DATABASE PERSISTENCE)
+   */
+  async trackRevenueMetric(metric: any): Promise<void> {
+    try {
+      // Store metric in revenue records with special service type
+      const metricRecord = {
+        stripePaymentIntentId: `metric_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        amount: metric.value.toString(),
+        currency: 'USD',
+        service: `metric_${metric.metric_type}`,
+        userId: 'system',
+        paymentProvider: 'internal',
+        metadata: metric.metadata || {}
+      };
+      
+      await db.insert(fastRevenueRecords).values(metricRecord);
+      console.log(`📊 Revenue metric tracked: ${metric.metric_type} = ${metric.value}`);
+    } catch (error) {
+      console.error('❌ Failed to track revenue metric:', error);
+      // Don't throw - metrics tracking shouldn't break main flow
+    }
+  }
+
+  /**
+   * 🔄 Update Campaign Conversion (DATABASE PERSISTENCE)
+   */
+  async updateCampaignConversion(campaignId: string, customerEmail: string, updates: any): Promise<void> {
+    try {
+      // Update by matching campaign metadata
+      await db
+        .update(fastRevenueRecords)
+        .set({
+          metadata: sql`metadata || ${JSON.stringify(updates)}`,
+          updatedAt: new Date()
+        })
+        .where(sql`metadata->>'campaign_id' = ${campaignId} AND user_id = ${customerEmail}`);
+      
+      console.log(`🔄 Campaign conversion updated: ${campaignId} for ${customerEmail}`);
+    } catch (error) {
+      console.error('❌ Failed to update campaign conversion:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 💳 Update Campaign Conversion by Payment (DATABASE PERSISTENCE)
+   */
+  async updateCampaignConversionByPayment(paymentId: string, updates: any): Promise<void> {
+    try {
+      await db
+        .update(fastRevenueRecords)
+        .set({
+          metadata: sql`metadata || ${JSON.stringify(updates)}`,
+          updatedAt: new Date()
+        })
+        .where(eq(fastRevenueRecords.stripePaymentIntentId, paymentId));
+      
+      console.log(`💳 Campaign payment updated: ${paymentId}`);
+    } catch (error) {
+      console.error('❌ Failed to update campaign payment:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 🎁 Store Conversion Offer (DATABASE PERSISTENCE)
+   */
+  async storeConversionOffer(offer: any): Promise<void> {
+    try {
+      const offerRecord = {
+        stripePaymentIntentId: offer.id,
+        amount: offer.amount.toString(),
+        currency: 'USD',
+        service: `offer_${offer.offer_type}`,
+        userId: offer.session_id || 'anonymous',
+        paymentProvider: 'pending',
+        metadata: {
+          offer_type: offer.offer_type,
+          session_id: offer.session_id,
+          session_type: offer.session_type,
+          expires_at: offer.expires_at,
+          status: offer.status
+        }
+      };
+      
+      await db.insert(fastRevenueRecords).values(offerRecord);
+      console.log(`🎁 Conversion offer stored: ${offer.id}`);
+    } catch (error) {
+      console.error('❌ Failed to store conversion offer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 📈 Get Campaign Analytics (DATABASE PERSISTENCE)
+   */
+  async getCampaignAnalytics(): Promise<any> {
+    try {
+      const campaignData = await db
+        .select()
+        .from(fastRevenueRecords)
+        .where(sql`service LIKE 'campaign_%' OR service LIKE 'metric_%'`);
+
+      const conversions = campaignData.filter(r => r.service.startsWith('campaign_'));
+      const metrics = campaignData.filter(r => r.service.startsWith('metric_'));
+
+      return {
+        total_conversions: conversions.length,
+        total_revenue: conversions.reduce((sum, c) => sum + parseFloat(c.amount), 0),
+        conversion_by_type: conversions.reduce((acc: any, c) => {
+          const type = c.service.replace('campaign_', '');
+          acc[type] = (acc[type] || 0) + 1;
+          return acc;
+        }, {}),
+        revenue_by_type: conversions.reduce((acc: any, c) => {
+          const type = c.service.replace('campaign_', '');
+          acc[type] = (acc[type] || 0) + parseFloat(c.amount);
+          return acc;
+        }, {}),
+        recent_conversions: conversions.slice(-10)
+      };
+    } catch (error) {
+      console.error('❌ Failed to get campaign analytics:', error);
+      return {
+        total_conversions: 0,
+        total_revenue: 0,
+        conversion_by_type: {},
+        revenue_by_type: {},
+        recent_conversions: []
+      };
+    }
+  }
+
+  /**
    * 📈 Get Revenue Statistics (DATABASE PERSISTENCE)
    */
   async getRevenueStats(): Promise<{

@@ -55,6 +55,7 @@ import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
 import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
+import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
 import { ProviderCapabilityService } from './services/providerCapabilityService.js';
 import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
 import rateLimitImport from 'express-rate-limit';
@@ -3221,6 +3222,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   const unifiedWebhookRoutes = await import('./routes/unifiedWebhookRoutes.js');
   app.use('/api/webhooks', unifiedWebhookRoutes.default);
   console.log('✅ Unified webhook routes registered successfully');
+
+  // 🎯 CAMPAIGN CONVERSION ROUTES - PRODUCTION CHECKOUT SYSTEM
+  console.log('🎯 Registering CAMPAIGN CONVERSION routes with real checkout...');
+  app.use('/api/campaigns', campaignConversionRoutes);
+  console.log('✅ Campaign conversion routes registered successfully');
 
   // Basic error handling
   app.use((err: any, req: any, res: any, next: any) => {

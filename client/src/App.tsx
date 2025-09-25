@@ -98,6 +98,8 @@ import { lazy } from "react";
 
 // Import report landing page directly for critical path
 import ReportLandingPage from "@/pages/ReportLandingPage";
+import { CheckoutPage } from "@/pages/CheckoutPage";
+import { CheckoutSuccessPage } from "@/pages/CheckoutSuccessPage";
 
 // Lazy load remaining components
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
@@ -505,6 +507,8 @@ function Router() {
 
       <Route path="/signup" component={SignUp} />
       <Route path="/signin" component={SignIn} />
+      <Route path="/checkout/:paymentIntentId" component={CheckoutPage} />
+      <Route path="/checkout/success" component={CheckoutSuccessPage} />
       <Route path="/signup-flow">
         {() => <LazyLoadWrapper><SignupFlowDemo /></LazyLoadWrapper>}
       </Route>

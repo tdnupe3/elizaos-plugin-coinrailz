@@ -2,6 +2,12 @@ import express from "express";
 import path from "path";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
+
+// CRITICAL: Global flag to disable all background services during production build
+const IS_BUILD_MODE = process.env.NODE_ENV === 'production' && !process.env.DEPLOYMENT_COMPLETE;
+if (IS_BUILD_MODE) {
+  console.log('🚫 BUILD MODE: All background services disabled for deployment bundling');
+}
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
 // Initialize automated revenue generation systems
 import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
@@ -378,8 +384,8 @@ setupAuth(app);
 // Mark passport as configured for OAuth routes
 console.log('✅ OAuth configuration loaded successfully');
 
-// Start Circle balance syncing only in development or after deployment is complete
-if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
+// Start Circle balance syncing only when not in build mode
+if (!IS_BUILD_MODE) {
   setTimeout(async () => {
     try {
       const { circleBalanceSyncer } = await import('./services/circleBalanceSyncer.js');
@@ -394,7 +400,7 @@ if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
     }
   }, 3000); // Start after 3 seconds to ensure all services are initialized
 } else {
-  console.log('⏸️ Circle balance syncing disabled during production build');
+  console.log('🚫 BUILD MODE: Circle balance syncing disabled');
 }
 app.set('passport-configured', true);
 
@@ -3322,7 +3328,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       }
       
       // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
-      if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
+      if (!IS_BUILD_MODE) {
         console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
         console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
         console.log('❌ SOL transactions still DISABLED');
@@ -3347,7 +3353,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
           console.error('❌ Failed to initialize emergency outreach:', error);
         }
       } else {
-        console.log('⏸️ Background services disabled during production build');
+        console.log('🚫 BUILD MODE: All revenue generation services disabled');
       }
     });
   }).catch(error => {
@@ -3356,7 +3362,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
       
       // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
-      if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
+      if (!IS_BUILD_MODE) {
         console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
         console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
         console.log('❌ SOL transactions still DISABLED');
@@ -3381,7 +3387,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
           console.error('❌ Failed to initialize emergency outreach:', error);
         }
       } else {
-        console.log('⏸️ Background services disabled during production build');
+        console.log('🚫 BUILD MODE: All revenue generation services disabled');
       }
     });
   });

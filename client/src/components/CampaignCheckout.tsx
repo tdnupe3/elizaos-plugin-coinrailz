@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Clock, Target, DollarSign } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { CheckCircle, Clock, Target, DollarSign, CreditCard, Wallet, Coins } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import PayPalButton from './PayPalButton';
 
 interface CampaignOffer {
   id: string;
@@ -72,6 +74,7 @@ export function CampaignCheckout({ campaignType, sessionId, offerId }: CampaignC
   const [selectedOffer, setSelectedOffer] = useState<CampaignOffer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal' | 'usdc'>('stripe');
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     email: '',
@@ -99,8 +102,9 @@ export function CampaignCheckout({ campaignType, sessionId, offerId }: CampaignC
     try {
       // Create payment intent with campaign tracking
       const paymentData = {
-        amount: selectedOffer.value * 100, // Convert to cents
-        currency: 'usd',
+        amount: selectedOffer.value, // Send amount in dollars (server handles conversion)
+        currency: paymentMethod === 'usdc' ? 'USDC' : 'usd',
+        payment_method: paymentMethod,
         campaign_id: selectedOffer.id,
         campaign_type: selectedOffer.campaign_type,
         session_id: sessionId,
@@ -125,9 +129,16 @@ export function CampaignCheckout({ campaignType, sessionId, offerId }: CampaignC
         conversion_stage: 'payment_initiated'
       });
 
+      const toastTitle = paymentMethod === 'stripe' ? "Payment Created!" : 
+                        paymentMethod === 'paypal' ? "PayPal Payment Ready!" : 
+                        "USDC Payment Instructions";
+      const toastDescription = paymentMethod === 'stripe' ? "Use the payment link below to complete your purchase." :
+                              paymentMethod === 'paypal' ? "Complete your PayPal payment below." :
+                              "Send USDC to the provided address to complete payment.";
+
       toast({
-        title: "Payment Created!",
-        description: "Use the payment link below to complete your purchase.",
+        title: toastTitle,
+        description: toastDescription,
       });
 
     } catch (error: any) {
@@ -154,28 +165,77 @@ export function CampaignCheckout({ campaignType, sessionId, offerId }: CampaignC
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h4 className="font-semibold text-green-800 mb-2">Payment Details</h4>
-            <p className="text-green-700 text-sm mb-3">
-              Payment ID: {paymentResult.paymentIntentId}
-            </p>
-            <Button 
-              asChild 
-              className="w-full"
-              size="lg"
-            >
-              <a 
-                href={`/checkout/${paymentResult.paymentIntentId}`}
-                target="_blank"
-                rel="noopener noreferrer"
+          {paymentResult.payment_method === 'stripe' && (
+            <div className="bg-green-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-green-800 mb-2">Stripe Payment</h4>
+              <p className="text-green-700 text-sm mb-3">
+                Payment ID: {paymentResult.payment_data?.payment_intent_id}
+              </p>
+              <Button 
+                asChild 
+                className="w-full"
+                size="lg"
               >
-                Complete Payment - ${selectedOffer?.value}
-              </a>
-            </Button>
-          </div>
+                <a 
+                  href={`/checkout/${paymentResult.payment_data?.payment_intent_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Complete Payment - ${selectedOffer?.value?.toLocaleString()}
+                </a>
+              </Button>
+            </div>
+          )}
+
+          {paymentResult.payment_method === 'paypal' && (
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-blue-800 mb-2">PayPal Payment</h4>
+              <p className="text-blue-700 text-sm mb-3">
+                Amount: ${paymentResult.amount?.toLocaleString()} USD
+              </p>
+              <PayPalButton
+                amount={paymentResult.amount?.toString() || '5000'}
+                currency="USD"
+                intent="capture"
+                onSuccess={(orderId) => {
+                  toast({
+                    title: "Payment Successful!",
+                    description: `PayPal order ${orderId} completed successfully.`
+                  });
+                }}
+              />
+            </div>
+          )}
+
+          {paymentResult.payment_method === 'usdc' && (
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-purple-800 mb-2">USDC Payment</h4>
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-purple-700">Send Amount:</Label>
+                  <p className="font-mono text-lg font-bold text-purple-900">
+                    {paymentResult.payment_data?.amount} USDC
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-purple-700">To Address:</Label>
+                  <div className="p-2 bg-purple-100 rounded border font-mono text-sm break-all">
+                    {paymentResult.payment_data?.recipient_address}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-purple-700">Blockchain:</Label>
+                  <p className="text-purple-900">{paymentResult.payment_data?.blockchain}</p>
+                </div>
+                <div className="text-xs text-purple-600">
+                  {paymentResult.payment_data?.instructions}
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="text-center text-sm text-muted-foreground">
-            <p>Payment secured by Stripe • SSL encrypted</p>
+            <p>Payment secured by {paymentResult.payment_method === 'stripe' ? 'Stripe' : paymentResult.payment_method === 'paypal' ? 'PayPal' : 'Circle'} • SSL encrypted</p>
             <p>Questions? Contact support for assistance</p>
           </div>
         </CardContent>
@@ -316,6 +376,48 @@ export function CampaignCheckout({ campaignType, sessionId, offerId }: CampaignC
               onChange={(e) => setCustomerInfo(prev => ({ ...prev, website: e.target.value }))}
               placeholder="https://yourcompany.com"
             />
+          </div>
+
+          <div className="space-y-3">
+            <Label>Payment Method</Label>
+            <RadioGroup 
+              value={paymentMethod} 
+              onValueChange={(value) => setPaymentMethod(value as 'stripe' | 'paypal' | 'usdc')}
+              className="grid grid-cols-1 md:grid-cols-3 gap-4"
+            >
+              <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
+                <RadioGroupItem value="stripe" id="stripe" />
+                <Label htmlFor="stripe" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <CreditCard className="w-4 h-4" />
+                  <div>
+                    <div className="font-semibold">Credit Card</div>
+                    <div className="text-xs text-muted-foreground">Stripe secure payments</div>
+                  </div>
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
+                <RadioGroupItem value="paypal" id="paypal" />
+                <Label htmlFor="paypal" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <Wallet className="w-4 h-4" />
+                  <div>
+                    <div className="font-semibold">PayPal</div>
+                    <div className="text-xs text-muted-foreground">PayPal account or card</div>
+                  </div>
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-gray-50">
+                <RadioGroupItem value="usdc" id="usdc" />
+                <Label htmlFor="usdc" className="flex items-center gap-2 cursor-pointer flex-1">
+                  <Coins className="w-4 h-4" />
+                  <div>
+                    <div className="font-semibold">USDC Crypto</div>
+                    <div className="text-xs text-muted-foreground">Circle USDC stablecoin</div>
+                  </div>
+                </Label>
+              </div>
+            </RadioGroup>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">

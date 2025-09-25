@@ -1,5 +1,5 @@
 import express from 'express';
-import secureAuthMiddleware from '../middleware/secureAuthMiddleware.js';
+// import secureAuthMiddleware from '../middleware/secureAuthMiddleware.js';
 import { FastRevenueDatabaseService } from '../services/fastRevenueDatabaseService.js';
 import Stripe from 'stripe';
 

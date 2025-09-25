@@ -549,6 +549,11 @@ app.get('/api/crypto/prices', async (req, res) => {
   }
 });
 
+// 🎯 CAMPAIGN CONVERSION ROUTES - MUST BE FIRST TO AVOID GLOBAL /api CONFLICTS
+console.log('🎯 Registering CAMPAIGN CONVERSION routes with real checkout...');
+app.use('/api/campaigns', campaignConversionRoutes);
+console.log('✅ Campaign conversion routes registered successfully');
+
 app.use('/api', marketplaceRoutes);
 app.use('/api', dashboardRoutes);
 
@@ -3240,10 +3245,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   console.log('✅ PayPal routes registered successfully');
 
-  // 🎯 CAMPAIGN CONVERSION ROUTES - PRODUCTION CHECKOUT SYSTEM
-  console.log('🎯 Registering CAMPAIGN CONVERSION routes with real checkout...');
-  app.use('/api/campaigns', campaignConversionRoutes);
-  console.log('✅ Campaign conversion routes registered successfully');
+  // MOVED: Campaign routes moved to beginning to avoid global /api route conflicts
 
   // Basic error handling
   app.use((err: any, req: any, res: any, next: any) => {

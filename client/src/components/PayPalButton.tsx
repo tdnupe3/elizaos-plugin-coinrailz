@@ -38,17 +38,17 @@ export default function PayPalButton({
       currency: currency,
       intent: intent,
     };
-    const response = await fetch("/api/payments/paypal/create-order", {
+    const response = await fetch("/api/paypal/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(orderPayload),
     });
     const output = await response.json();
-    return { orderId: output.paypalOrderId };
+    return { orderId: output.id };
   };
 
   const captureOrder = async (orderId: string) => {
-    const response = await fetch(`/api/payments/paypal/capture/${orderId}`, {
+    const response = await fetch(`/api/paypal/order/${orderId}/capture`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -101,7 +101,7 @@ export default function PayPalButton({
   
   const initPayPal = async () => {
     try {
-      const clientToken: string = await fetch("/api/payments/paypal/setup")
+      const clientToken: string = await fetch("/api/paypal/setup")
         .then((res) => res.json())
         .then((data) => {
           return data.clientId; // Use clientId instead of clientToken

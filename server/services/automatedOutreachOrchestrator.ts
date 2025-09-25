@@ -556,9 +556,9 @@ AMA about the technical implementation patterns!
 // Initialize the orchestrator
 let orchestrator: AutomatedOutreachOrchestrator | null = null;
 
-export function initializeAutomatedOutreach() {
+export async function initializeAutomatedOutreach() {
   // CHECK NUCLEAR FLAG - Disable everything during deployment
-  const { DISABLE_BACKGROUND_SERVICES } = require('../buildModeDetection');
+  const { DISABLE_BACKGROUND_SERVICES } = await import('../buildModeDetection.js');
   
   if (DISABLE_BACKGROUND_SERVICES) {
     console.log('🚫 NUCLEAR MODE: Automated outreach disabled for deployment');

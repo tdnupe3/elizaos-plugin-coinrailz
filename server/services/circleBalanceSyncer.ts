@@ -262,5 +262,35 @@ class CircleBalanceSyncer {
   }
 }
 
-// Export singleton instance
-export const circleBalanceSyncer = new CircleBalanceSyncer();
+// Export lazy singleton instance - only create when explicitly needed
+let circleBalanceSyncerInstance: CircleBalanceSyncer | null = null;
+
+export const circleBalanceSyncer = {
+  getInstance(): CircleBalanceSyncer {
+    if (!circleBalanceSyncerInstance) {
+      circleBalanceSyncerInstance = new CircleBalanceSyncer();
+    }
+    return circleBalanceSyncerInstance;
+  },
+  
+  // Proxy methods for existing API compatibility
+  async startSyncing() {
+    return this.getInstance().startSyncing();
+  },
+  
+  stopSyncing() {
+    return this.getInstance().stopSyncing();
+  },
+  
+  async syncAllBalances() {
+    return this.getInstance().syncAllBalances();
+  },
+  
+  async forceSyncUser(email: string) {
+    return this.getInstance().forceSyncUser(email);
+  },
+  
+  getStatus() {
+    return this.getInstance().getStatus();
+  }
+};

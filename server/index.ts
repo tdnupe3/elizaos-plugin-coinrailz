@@ -3331,7 +3331,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('❌ SOL transactions still DISABLED');
         
         try {
-          initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
+          initializeAutomatedOutreach().catch(console.error); // RE-ENABLED for emergency revenue (no spending)
           console.log('✅ Emergency outreach orchestrator started');
           
           // Affiliate system still disabled (involves payouts)
@@ -3365,7 +3365,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('❌ SOL transactions still DISABLED');
         
         try {
-          initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
+          initializeAutomatedOutreach().catch(console.error); // RE-ENABLED for emergency revenue (no spending)
           console.log('✅ Emergency outreach orchestrator started');
           
           // Affiliate system still disabled (involves payouts)

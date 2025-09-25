@@ -110,7 +110,7 @@ export class AgentDiscoveryService {
     this.processId = `discovery_${process.pid}_${Date.now()}`;
     this.initializeRedis();
     this.initializeAdapters().catch(console.error);
-    this.initializeScheduler();
+    this.initializeScheduler().catch(console.error);
     
     AgentDiscoveryService.instance = this;
     console.log('✅ AgentDiscoveryService singleton instance created');
@@ -991,9 +991,9 @@ ${batchResults
   /**
    * INITIALIZE HOURLY SCHEDULER
    */
-  private initializeScheduler(): void {
+  private async initializeScheduler(): Promise<void> {
     // CHECK NUCLEAR FLAG - Disable everything during deployment
-    const { DISABLE_BACKGROUND_SERVICES } = require('../buildModeDetection');
+    const { DISABLE_BACKGROUND_SERVICES } = await import('../buildModeDetection.js');
     
     if (DISABLE_BACKGROUND_SERVICES) {
       console.log('🚫 NUCLEAR MODE: Agent discovery scheduler disabled for deployment');

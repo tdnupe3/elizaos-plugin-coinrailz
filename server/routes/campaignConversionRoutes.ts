@@ -4,6 +4,17 @@ import { FastRevenueDatabaseService } from '../services/fastRevenueDatabaseServi
 import Stripe from 'stripe';
 
 const router = express.Router();
+
+// Simple test endpoint to verify campaign routes are working
+router.get('/test', (req, res) => {
+  console.log('✅ CAMPAIGN ROUTES TEST ENDPOINT HIT');
+  res.json({ 
+    success: true, 
+    message: 'Campaign routes are working',
+    timestamp: new Date().toISOString() 
+  });
+});
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20' as any,
 });

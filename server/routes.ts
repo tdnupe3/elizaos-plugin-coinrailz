@@ -347,6 +347,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 🚀 $5K Coinbase Advertising Service - .cb.id & .base.eth outreach
   app.use('/api/coinbase-advertising', await import('./routes/coinbaseAdvertisingRoutes').then(m => m.default));
   
+  // 🎯 PILOT CAMPAIGN - Proof of Delivery for Sales Collateral
+  app.use('/api/pilot-campaign', await import('./routes/pilotCampaignRoutes').then(m => m.default));
+  
   // 🐋 Base Whale Targeting Routes
   app.use('/api/base-whales', await import('./routes/baseWhaleRoutes').then(m => m.default));
   

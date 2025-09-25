@@ -1,0 +1,65 @@
+npm notice
+npm notice New major version of npm available! 10.8.2 -> 11.6.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.6.1
+npm notice To update run: npm install -g npm@11.6.1
+npm notice
+
+2025-09-25T14:52:53Z info: Pushing pid1 binary layer...
+2025-09-25T14:52:54Z info: Pushing hosting layer...
+2025-09-25T14:52:54Z info: Created hosting layer
+2025-09-25T14:52:54Z info: Created pid1 binary layer
+2025-09-25T14:53:30Z info: Deployment: 35295349-583f-4a9a-b341-ea25ecb16286
+2025-09-25T14:53:30Z info: Connecting to builder
+2025-09-25T14:53:31Z info: Builder connected
+2025-09-25T14:53:31Z info: Installing packages
+2025-09-25T14:53:31Z info: Starting Build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+
+vite v5.4.14 building for production...
+
+transforming...
+
+Browserslist: browsers data (caniuse-lite) is 11 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+✓ 2193 modules transformed.
+
+rendering chunks...
+
+computing gzip size...
+
+✓ built in 8.86s
+
+▲ [WARNING] Duplicate member "calculateTransactionFee" in class body [duplicate-class-member]
+
+    server/services/feeCalculator.ts:459:9:
+      459 │   static calculateTransactionFee(params: {
+          ╵          ~~~~~~~~~~~~~~~~~~~~~~~
+
+  The original member "calculateTransactionFee" is here:
+
+    server/services/feeCalculator.ts:184:9:
+      184 │   static calculateTransactionFee({
+          ╵          ~~~~~~~~~~~~~~~~~~~~~~~
+
+
+2025-09-25T14:53:41Z info: Pushing pid1 binary layer...
+2025-09-25T14:53:42Z info: Pushing hosting layer...
+2025-09-25T14:53:42Z info: Pushing Repl layer...
+2025-09-25T14:53:42Z info: Created hosting layer
+2025-09-25T14:53:42Z info: Created pid1 binary layer
+2025-09-25T14:54:54Z info: Created Repl layer
+2025-09-25T14:54:54Z info: Pushing Repl (cache) layer...
+2025-09-25T14:54:54Z info: Created Repl (cache) layer
+2025-09-25T14:54:56Z info: Pushed image manifest
+2025-09-25T14:54:57Z info: Created Repl layer
+2025-09-25T14:54:57Z info: Pushing Repl (cache) layer...
+2025-09-25T14:54:57Z info: Created Repl (cache) layer
+2025-09-25T14:54:58Z info: Pushed soci index manifest
+2025-09-25T14:54:59Z info: Pushed image manifest
+2025-09-25T14:55:00Z info: Pushed soci index manifest
+2025-09-25T14:55:01Z info: Creating Autoscale service

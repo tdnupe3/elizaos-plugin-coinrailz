@@ -3,11 +3,8 @@ import path from "path";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 
-// CRITICAL: Global flag to disable all background services during production build
-const IS_BUILD_MODE = process.env.NODE_ENV === 'production' && !process.env.DEPLOYMENT_COMPLETE;
-if (IS_BUILD_MODE) {
-  console.log('🚫 BUILD MODE: All background services disabled for deployment bundling');
-}
+// CRITICAL: Import nuclear build mode detection
+import { DISABLE_BACKGROUND_SERVICES } from './buildModeDetection';
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
 // Initialize automated revenue generation systems
 import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';

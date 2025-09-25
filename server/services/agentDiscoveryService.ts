@@ -992,6 +992,14 @@ ${batchResults
    * INITIALIZE HOURLY SCHEDULER
    */
   private initializeScheduler(): void {
+    // CHECK NUCLEAR FLAG - Disable everything during deployment
+    const { DISABLE_BACKGROUND_SERVICES } = require('../buildModeDetection');
+    
+    if (DISABLE_BACKGROUND_SERVICES) {
+      console.log('🚫 NUCLEAR MODE: Agent discovery scheduler disabled for deployment');
+      return;
+    }
+    
     console.log('⏰ Initializing twice-daily discovery scheduler (8am/8pm)...');
     
     // Run twice daily (8am, 8pm) to avoid rate limits while maintaining coverage
@@ -1010,7 +1018,7 @@ ${batchResults
       scheduled: false // Start manually
     });
 
-    // Schedule immediate test run (1 minute after startup)
+    // Schedule immediate test run (1 minute after startup) - ONLY IN DEVELOPMENT
     setTimeout(async () => {
       console.log('🧪 Running immediate discovery test...');
       try {

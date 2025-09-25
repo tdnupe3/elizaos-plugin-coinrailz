@@ -127,7 +127,7 @@ export class CustomerNotificationService {
           deliveryResults.push({ 
             channel: channel.type, 
             success: false, 
-            error: channelError.message 
+            error: channelError instanceof Error ? channelError.message : 'Unknown error' 
           });
         }
       }
@@ -202,7 +202,7 @@ export class CustomerNotificationService {
       console.error('Email sending failed:', error);
       return { 
         success: false,
-        error: error.message 
+        messageId: undefined 
       };
     }
   }
@@ -256,7 +256,7 @@ export class CustomerNotificationService {
       console.error('SMS sending failed:', error);
       return { 
         success: false,
-        error: error.message 
+        messageId: undefined 
       };
     }
   }

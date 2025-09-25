@@ -79,6 +79,14 @@ import { encryptPIIFields, decryptPIIFields, PIIEncryption } from "./utils/piiEn
 
 // Interface for storage operations
 export interface IStorage {
+  // MFA system methods
+  createMfaVerificationCode(data: any): Promise<any>;
+  getLatestMfaCode(userId: string, method: string): Promise<any>;
+  incrementMfaCodeAttempts(id: number): Promise<any>;
+  markMfaCodeVerified(id: number): Promise<any>;
+  getTrustedDevice(userId: string, fingerprint: string): Promise<any>;
+  createTrustedDevice(data: any): Promise<any>;
+  
   // Payment system methods
   createPaymentIntent(data: any): Promise<any>;
   getPaymentIntent(paymentId: string): Promise<any>;
@@ -304,6 +312,14 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  
+  // MFA system stub methods
+  async createMfaVerificationCode(data: any): Promise<any> { return {}; }
+  async getLatestMfaCode(userId: string, method: string): Promise<any> { return null; }
+  async incrementMfaCodeAttempts(id: number): Promise<any> { return {}; }
+  async markMfaCodeVerified(id: number): Promise<any> { return {}; }
+  async getTrustedDevice(userId: string, fingerprint: string): Promise<any> { return null; }
+  async createTrustedDevice(data: any): Promise<any> { return {}; }
   
   // Marketplace methods
   async createMarketplaceOrder(data: any): Promise<any> {

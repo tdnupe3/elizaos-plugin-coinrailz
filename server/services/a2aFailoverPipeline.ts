@@ -48,8 +48,12 @@ export class A2AFailoverPipeline {
     
     console.log('🔄 A2A Failover Pipeline V2.0 initialized');
     
-    // CRITICAL: Auto-start monitoring at construction
-    this.startMonitoring();
+    // Only auto-start monitoring outside production builds
+    if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
+      this.startMonitoring();
+    } else {
+      console.log('⏸️ A2A monitoring disabled during production build');
+    }
   }
 
   /**

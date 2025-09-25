@@ -378,20 +378,24 @@ setupAuth(app);
 // Mark passport as configured for OAuth routes
 console.log('✅ OAuth configuration loaded successfully');
 
-// Start Circle balance syncing
-setTimeout(async () => {
-  try {
-    const { circleBalanceSyncer } = await import('./services/circleBalanceSyncer.js');
+// Start Circle balance syncing only in development or after deployment is complete
+if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
+  setTimeout(async () => {
     try {
-      await circleBalanceSyncer.startSyncing();
-      console.log('✅ Circle balance syncing started');
+      const { circleBalanceSyncer } = await import('./services/circleBalanceSyncer.js');
+      try {
+        await circleBalanceSyncer.startSyncing();
+        console.log('✅ Circle balance syncing started');
+      } catch (error) {
+        console.log('⚠️ Circle balance syncing failed to start:', error);
+      }
     } catch (error) {
-      console.log('⚠️ Circle balance syncing failed to start:', error);
+      console.log('⚠️ Circle balance syncer not available:', error);
     }
-  } catch (error) {
-    console.log('⚠️ Circle balance syncer not available:', error);
-  }
-}, 3000); // Start after 3 seconds to ensure all services are initialized
+  }, 3000); // Start after 3 seconds to ensure all services are initialized
+} else {
+  console.log('⏸️ Circle balance syncing disabled during production build');
+}
 app.set('passport-configured', true);
 
 // OAuth login endpoint handled by replitAuth.ts - removing conflicting endpoint
@@ -3317,29 +3321,33 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.error('❌ Failed to initialize Telegram Trading Bot:', error);
       }
       
-      // 🚨 EMERGENCY REVENUE GENERATION MODE - ZERO COST OUTREACH ONLY 🚨
-      console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
-      console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
-      console.log('❌ SOL transactions still DISABLED');
-      
-      try {
-        initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
-        console.log('✅ Emergency outreach orchestrator started');
+      // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
+      if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
+        console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
+        console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
+        console.log('❌ SOL transactions still DISABLED');
         
-        // Affiliate system still disabled (involves payouts)
-        // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
-        
-        console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
-        console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
-        console.log('💳 Payment systems ready for immediate revenue collection');
-        
-        // Bootstrap A2A failover pipeline monitoring
-        console.log('🔄 Bootstrapping A2A failover pipeline...');
-        const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
-        console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
-        
-      } catch (error) {
-        console.error('❌ Failed to initialize emergency outreach:', error);
+        try {
+          initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
+          console.log('✅ Emergency outreach orchestrator started');
+          
+          // Affiliate system still disabled (involves payouts)
+          // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
+          
+          console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
+          console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
+          console.log('💳 Payment systems ready for immediate revenue collection');
+          
+          // Bootstrap A2A failover pipeline monitoring
+          console.log('🔄 Bootstrapping A2A failover pipeline...');
+          const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
+          console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
+          
+        } catch (error) {
+          console.error('❌ Failed to initialize emergency outreach:', error);
+        }
+      } else {
+        console.log('⏸️ Background services disabled during production build');
       }
     });
   }).catch(error => {
@@ -3347,29 +3355,33 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     httpServer.listen(port, '0.0.0.0', () => {
       console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
       
-      // 🚨 EMERGENCY REVENUE GENERATION MODE - ZERO COST OUTREACH ONLY 🚨
-      console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
-      console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
-      console.log('❌ SOL transactions still DISABLED');
-      
-      try {
-        initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
-        console.log('✅ Emergency outreach orchestrator started');
+      // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
+      if (process.env.NODE_ENV !== 'production' || process.env.DEPLOYMENT_COMPLETE) {
+        console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
+        console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
+        console.log('❌ SOL transactions still DISABLED');
         
-        // Affiliate system still disabled (involves payouts)
-        // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
-        
-        console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
-        console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
-        console.log('💳 Payment systems ready for immediate revenue collection');
-        
-        // Bootstrap A2A failover pipeline monitoring
-        console.log('🔄 Bootstrapping A2A failover pipeline...');
-        const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
-        console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
-        
-      } catch (error) {
-        console.error('❌ Failed to initialize emergency outreach:', error);
+        try {
+          initializeAutomatedOutreach(); // RE-ENABLED for emergency revenue (no spending)
+          console.log('✅ Emergency outreach orchestrator started');
+          
+          // Affiliate system still disabled (involves payouts)
+          // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
+          
+          console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
+          console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
+          console.log('💳 Payment systems ready for immediate revenue collection');
+          
+          // Bootstrap A2A failover pipeline monitoring
+          console.log('🔄 Bootstrapping A2A failover pipeline...');
+          const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
+          console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
+          
+        } catch (error) {
+          console.error('❌ Failed to initialize emergency outreach:', error);
+        }
+      } else {
+        console.log('⏸️ Background services disabled during production build');
       }
     });
   });

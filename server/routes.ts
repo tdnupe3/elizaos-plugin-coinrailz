@@ -1096,6 +1096,14 @@ Questions? Reply to this message or contact support@coinrailz.com
   const { default: messagingRoutes } = await import('./routes/messagingSystem');
   app.use('/api/messaging', messagingRoutes);
 
+  // Multi-protocol messaging system for AI agents
+  const { default: aiMessagingRoutes } = await import('./routes/messagingRoutes');
+  app.use('/api/messaging', aiMessagingRoutes);
+
+  // AI Agent Product API packages for purchase
+  const { default: aiAgentProductRoutes } = await import('./routes/aiAgentProductRoutes');
+  app.use('/api/ai-products', aiAgentProductRoutes);
+
   // Payment processing routes
   const { paymentRoutes } = await import('./routes/paymentRoutes');
   app.use('/api/payments', paymentRoutes);

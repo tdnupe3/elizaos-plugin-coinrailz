@@ -37,12 +37,16 @@ const API_PRODUCTS = [
       'Enterprise-grade APIs',
       'Circle USDC wallet creation',
       'Real-time crypto data',
+      'Multi-protocol messaging (XMTP, Lens, Solana SMS, WalletConnect)',
       'Crypto payments only'
     ],
     apiEndpoints: [
       '/api/crypto/prices',
       '/api/circle/wallet/create',
       '/api/xmtp/send-message',
+      '/api/messaging/lens/send',
+      '/api/messaging/solana-sms/send',
+      '/api/messaging/walletconnect/send',
       '/api/market/data'
     ],
     requestLimits: {
@@ -66,12 +70,20 @@ const API_PRODUCTS = [
       'DEX aggregation',
       'Circle wallet management',
       'XMTP messaging',
+      'Lens Protocol messaging',
+      'Solana SMS messaging',
+      'WalletConnect v2 messaging',
+      'Unified messaging API',
       'Priority support'
     ],
     apiEndpoints: [
       '/api/crypto/prices',
       '/api/circle/wallet/*',
       '/api/xmtp/*',
+      '/api/messaging/lens/*',
+      '/api/messaging/solana-sms/*',
+      '/api/messaging/walletconnect/*',
+      '/api/messaging/unified/*',
       '/api/dex/aggregate',
       '/api/p2p/transfer',
       '/api/trading/signals'
@@ -95,6 +107,9 @@ const API_PRODUCTS = [
       'Credits never expire',
       'All premium features included',
       'Unlimited daily usage',
+      'Complete messaging suite (5 protocols)',
+      'AI agent discovery across protocols',
+      'Bulk messaging capabilities',
       'Trading signals',
       'XRP operations',
       'Dedicated support',
@@ -104,6 +119,7 @@ const API_PRODUCTS = [
       '/api/crypto/*',
       '/api/circle/*',
       '/api/xmtp/*',
+      '/api/messaging/*',
       '/api/dex/*',
       '/api/p2p/*',
       '/api/xrp/*',

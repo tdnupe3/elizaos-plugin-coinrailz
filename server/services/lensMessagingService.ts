@@ -30,17 +30,27 @@ export class LensMessagingService {
    */
   private async initializeClient(): Promise<void> {
     try {
-      // Initialize Lens client with Polygon network
-      const { LensClient, production } = await import('@lens-protocol/client');
-      
-      this.client = new LensClient({
-        environment: production
-      });
+      // Skip Lens initialization in production due to package compatibility
+      if (process.env.NODE_ENV === 'production') {
+        console.log('🔄 Lens Protocol skipped in production mode');
+        this.client = null;
+        return;
+      }
 
-      console.log('✅ Lens Protocol client initialized');
+      // Try to initialize Lens client with proper error handling
+      const lensModule = await import('@lens-protocol/client').catch(() => null);
+      
+      if (lensModule && lensModule.LensClient) {
+        this.client = new lensModule.LensClient({
+          environment: lensModule.production
+        });
+        console.log('✅ Lens Protocol client initialized');
+      } else {
+        console.log('🔄 Lens Protocol client not available, using fallback');
+        this.client = null;
+      }
     } catch (error) {
-      console.error('❌ Failed to initialize Lens client:', error);
-      // Fallback for development
+      console.log('🔄 Lens Protocol initialization failed, using fallback:', error.message);
       this.client = null;
     }
   }

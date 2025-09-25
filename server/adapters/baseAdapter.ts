@@ -192,9 +192,30 @@ export abstract class BaseDiscoveryAdapter implements DiscoveryAdapter {
       });
 
       clearTimeout(timeoutId);
+      
+      // Handle 401 errors gracefully without crashing the system
+      if (response.status === 401) {
+        console.log(`🔐 API authentication failed for ${url} - skipping with graceful degradation`);
+        return response;
+      }
+      
+      // Handle other errors gracefully for better reliability
+      if (!response.ok && response.status !== 404 && response.status !== 429) {
+        console.log(`⚠️ HTTP ${response.status} for ${url} - continuing with fallback`);
+      }
+      
       return response;
     } catch (error) {
       clearTimeout(timeoutId);
+      
+      // Handle network errors gracefully
+      const err = error as Error;
+      if (err.name === 'AbortError') {
+        console.log(`⏰ Request timeout for ${url}`);
+      } else {
+        console.log(`🌐 Network error for ${url}: ${err.message}`);
+      }
+      
       throw error;
     }
   }

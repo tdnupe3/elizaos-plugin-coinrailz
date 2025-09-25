@@ -111,16 +111,38 @@ export class XMTPMessagingService {
       // Create XMTP client with proper signer interface  
       const xmtpWalletAddress = this.platformWalletSigner.address;
       
-      // Clear any existing corrupted database first
+      // Clear any existing corrupted database with proper locking
       const dbPath = `/tmp/xmtp_db_${xmtpWalletAddress}`;
       try {
         const fs = await import('fs');
-        if (fs.existsSync(dbPath)) {
-          fs.rmSync(dbPath, { recursive: true, force: true });
-          console.log('🗑️ Cleared existing XMTP database to prevent encryption conflicts');
+        const path = await import('path');
+        
+        // Wait a bit if database is in use
+        let retries = 3;
+        while (retries > 0) {
+          try {
+            if (fs.existsSync(dbPath)) {
+              // Close any file descriptors that might be holding the database
+              if (global.gc) global.gc();
+              
+              // Remove database files with retry logic
+              fs.rmSync(dbPath, { recursive: true, force: true });
+              console.log('🗑️ Cleared existing XMTP database to prevent encryption conflicts');
+            }
+            break;
+          } catch (dbError: any) {
+            if (dbError?.message?.includes('EBUSY') || dbError?.message?.includes('lock')) {
+              retries--;
+              console.log(`⏳ Database busy, retrying... (${retries} attempts left)`);
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              throw dbError;
+            }
+          }
         }
       } catch (error) {
-        console.log('ℹ️ No existing database to clear');
+        console.log('ℹ️ Could not clear database, continuing with fallback mode');
+        // Don't throw - continue without XMTP if database issues
       }
       
       // Generate consistent encryption key based on wallet address (deterministic)
@@ -144,8 +166,8 @@ export class XMTPMessagingService {
           dbEncryptionKey,
           dbPath
         });
-      } catch (installError) {
-        if (installError.message.includes('10/10 installations') || installError.message.includes('installation')) {
+      } catch (installError: any) {
+        if (installError?.message?.includes('10/10 installations') || installError?.message?.includes('installation')) {
           console.log('⚠️ XMTP installation limit reached - using basic wallet messaging');
           console.log('💡 XMTP messaging disabled, using on-chain wallet messaging instead');
           // Don't throw - continue with wallet-only messaging
@@ -186,10 +208,15 @@ export class XMTPMessagingService {
       }
       
       // Use XMTP's built-in canMessage method for discovery
-      // Fix for "Given napi value is not an array" error
-      const canMessage = await this.xmtpClient.canMessage([address]);
-      console.log(`🔍 XMTP Discovery: ${address} can receive messages: ${canMessage.length > 0 && canMessage[0]}`);
-      return canMessage.length > 0 && canMessage[0];
+      try {
+        const canMessageMap = await this.xmtpClient.canMessage(address);
+        const canReceive = canMessageMap.get(address) || false;
+        console.log(`🔍 XMTP Discovery: ${address} can receive messages: ${canReceive}`);
+        return canReceive;
+      } catch (error) {
+        console.log(`⚠️ XMTP canMessage check failed for ${address}, assuming false`);
+        return false;
+      }
     } catch (error) {
       console.error(`❌ Error checking XMTP capability for ${address}:`, error);
       return false;

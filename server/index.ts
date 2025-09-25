@@ -382,7 +382,7 @@ setupAuth(app);
 console.log('✅ OAuth configuration loaded successfully');
 
 // Start Circle balance syncing only when not in build mode
-if (!IS_BUILD_MODE) {
+if (!DISABLE_BACKGROUND_SERVICES) {
   setTimeout(async () => {
     try {
       const { circleBalanceSyncer } = await import('./services/circleBalanceSyncer.js');
@@ -3325,7 +3325,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       }
       
       // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
-      if (!IS_BUILD_MODE) {
+      if (!DISABLE_BACKGROUND_SERVICES) {
         console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
         console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
         console.log('❌ SOL transactions still DISABLED');
@@ -3359,7 +3359,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
       
       // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
-      if (!IS_BUILD_MODE) {
+      if (!DISABLE_BACKGROUND_SERVICES) {
         console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
         console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
         console.log('❌ SOL transactions still DISABLED');

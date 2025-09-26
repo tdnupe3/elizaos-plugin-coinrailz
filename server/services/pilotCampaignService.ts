@@ -162,7 +162,7 @@ export class PilotCampaignService {
    * 📝 Generate pilot campaign message
    */
   private generatePilotMessage(target: PilotTarget): string {
-    return `🎯 COIN RAILZ PILOT CAMPAIGN: This message proves impossible-to-block delivery to ${target.domain_name}. We can guarantee your marketing messages reach verified Coinbase/Base wallet holders via blockchain transactions. No ads can be blocked, filtered, or ignored. Platform demo: coinrailz.com | Contact: pilot@coinrailz.com | Campaign ID: PILOT-${Date.now()}`;
+    return `🎯 COIN RAILZ PILOT CAMPAIGN: This message proves impossible-to-block delivery to ${target.domain_name}. We can guarantee your marketing messages reach verified Coinbase/Base wallet holders via blockchain transactions. No ads can be blocked, filtered, or ignored. Platform demo: coinrailz.com | Contact: support@coinrailz.com | Campaign ID: PILOT-${Date.now()}`;
   }
 
   /**

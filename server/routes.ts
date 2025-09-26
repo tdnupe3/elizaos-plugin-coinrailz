@@ -351,6 +351,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/pilot-campaign', await import('./routes/pilotCampaignRoutes').then(m => m.default));
   app.use('/api/delivery-analytics', await import('./routes/deliveryAnalyticsRoutes').then(m => m.default));
   
+  // 🎯 PROFESSIONAL SALES COLLATERAL - Live data integration for marketing materials
+  app.use('/api/sales-collateral', await import('./routes/salesCollateralRoutes').then(m => m.default));
+  
   // 🐋 Base Whale Targeting Routes
   app.use('/api/base-whales', await import('./routes/baseWhaleRoutes').then(m => m.default));
   

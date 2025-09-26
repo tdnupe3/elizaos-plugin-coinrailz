@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
 import { WalletDisplay } from "@/components/wallet-display";
 
-import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign, Wallet } from "@/lib/icons";
+import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign, Wallet, Shield } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -49,6 +49,14 @@ export default function MainMenu() {
       icon: ArrowLeftRight,
       color: 'bg-blue-600 hover:bg-blue-700',
       route: '/dex-trading'
+    },
+    {
+      id: 'smart-contract-audit',
+      title: 'Smart Contract Audit - $1K',
+      description: '5-min professional security analysis • No signup required',
+      icon: Shield,
+      color: 'bg-red-600 hover:bg-red-700',
+      route: '/smart-contract-audit'
     },
     {
       id: 'referrals',

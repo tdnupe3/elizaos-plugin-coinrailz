@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { smartContractAuditService } from '../services/smartContractAuditService';
 import { insertSmartContractAuditSchema, type SmartContractAudit } from '@shared/schema';
 import { isAuthenticated } from '../replitAuth';
+import { PaymentIntegrationService } from '../services/paymentIntegration';
 
 const router = Router();
 
@@ -67,13 +68,15 @@ router.post('/submit', isAuthenticated, async (req, res) => {
 });
 
 /**
- * 💳 POST /api/audits/confirm-payment
- * Confirm payment for audit request
+ * 💳 POST /api/audits/create-payment
+ * Create payment intent for audit request  
  */
-router.post('/confirm-payment', isAuthenticated, async (req, res) => {
+router.post('/create-payment', isAuthenticated, async (req, res) => {
   try {
-    const { auditId, paymentMethod, paymentTxHash, stripePaymentIntentId, paypalOrderId } = 
-      paymentConfirmationSchema.parse(req.body);
+    const { auditId, paymentMethod } = z.object({
+      auditId: z.string(),
+      paymentMethod: z.enum(['stripe', 'paypal', 'circle_usdc', 'crypto'])
+    }).parse(req.body);
 
     // Verify audit belongs to user
     const audit = await smartContractAuditService.getAuditById(auditId);
@@ -84,12 +87,79 @@ router.post('/confirm-payment', isAuthenticated, async (req, res) => {
       });
     }
 
-    // Update payment information and start audit
-    // This would integrate with payment verification services
+    if (audit.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        error: 'Audit is not in pending status',
+      });
+    }
+
+    // Create payment using existing payment integration service
+    const paymentResult = await PaymentIntegrationService.createEscrowPayment({
+      orderId: auditId,
+      customerId: req.user!.id,
+      agentId: 'audit-service', // Use audit service as the "agent"
+      amount: 1000, // $1,000 per audit
+      currency: 'USD',
+      paymentMethod: paymentMethod === 'circle_usdc' ? 'usdc' : paymentMethod as 'stripe' | 'paypal',
+      description: `Smart Contract Audit: ${audit.projectName}`
+    });
+
+    if (!paymentResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: paymentResult.error || 'Payment creation failed',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Payment intent created successfully',
+      clientSecret: paymentResult.clientSecret,
+      auditId,
+      amount: 1000,
+      currency: 'USD',
+    });
+
+  } catch (error) {
+    console.error('❌ Payment creation failed:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Failed to create payment',
+      details: error instanceof z.ZodError ? error.errors : error,
+    });
+  }
+});
+
+/**
+ * 💳 POST /api/audits/confirm-payment
+ * Confirm payment for audit request and start processing
+ */
+router.post('/confirm-payment', isAuthenticated, async (req, res) => {
+  try {
+    const { auditId, paymentIntentId, paymentMethod } = z.object({
+      auditId: z.string(),
+      paymentIntentId: z.string().optional(),
+      paymentMethod: z.enum(['stripe', 'paypal', 'circle_usdc', 'crypto'])
+    }).parse(req.body);
+
+    // Verify audit belongs to user
+    const audit = await smartContractAuditService.getAuditById(auditId);
+    if (!audit || audit.customerId !== req.user!.id) {
+      return res.status(404).json({
+        success: false,
+        error: 'Audit not found or access denied',
+      });
+    }
+
+    // In a real implementation, verify payment completion here
+    // For now, trust that payment was successful and start audit
     console.log(`💳 Payment confirmed for audit ${auditId} via ${paymentMethod}`);
     
-    // Start audit processing
-    setTimeout(() => smartContractAuditService.processAudit(auditId), 2000);
+    // Start audit processing in background
+    setTimeout(() => {
+      smartContractAuditService.processAudit(auditId).catch(console.error);
+    }, 2000);
 
     res.json({
       success: true,

@@ -199,10 +199,10 @@ export default function Dashboard() {
                 {usdcBalanceLoading || statsLoading ? 'Refreshing...' : 'Refresh'}
               </Button>
               <UserGuidanceModal />
-              <Button className="bg-blue-600 hover:bg-blue-700 flex-1 sm:flex-none text-xs sm:text-sm" asChild>
+              <Button className="bg-green-600 hover:bg-green-700 flex-1 sm:flex-none text-xs sm:text-sm" asChild>
                 <Link href="/">
-                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                  Services
+                  <ArrowUpRight className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  🏠 Home
                 </Link>
               </Button>
             </div>

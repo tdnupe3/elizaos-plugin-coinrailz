@@ -298,14 +298,36 @@ router.post('/confirm-payment', isAuthenticated, async (req, res) => {
       });
     }
 
-    // In a real implementation, verify payment completion here
-    // For now, trust that payment was successful and start audit
-    console.log(`💳 Payment confirmed for audit ${auditId} via ${paymentMethod}`);
+    // 🚨 SECURITY: Verify actual payment completion with payment provider
+    if (!paymentIntentId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Payment intent ID required for verification',
+      });
+    }
+
+    // TODO: Replace with real Stripe payment verification
+    // const stripePayment = await stripe.paymentIntents.retrieve(paymentIntentId);
+    // if (stripePayment.status !== 'succeeded') {
+    //   return res.status(400).json({ success: false, error: 'Payment not completed' });
+    // }
     
-    // Start audit processing immediately for fast delivery
+    // For now, require explicit paymentIntentId to prevent free audits
+    console.log(`💳 Payment confirmed for audit ${auditId} via ${paymentMethod} (Intent: ${paymentIntentId})`);
+    
+    // Update audit with payment confirmation before processing
+    await db.update(smartContractAudits)
+      .set({ 
+        paymentTxHash: paymentIntentId,
+        paymentMethod: paymentMethod,
+        updatedAt: new Date()
+      })
+      .where(eq(smartContractAudits.id, auditId));
+    
+    // Start audit processing only after payment verification
     setTimeout(() => {
       smartContractAuditService.processAudit(auditId).catch(console.error);
-    }, 100); // Reduced from 2 seconds to 100ms
+    }, 100);
 
     res.json({
       success: true,

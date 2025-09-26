@@ -60,10 +60,9 @@ export class SmartContractAuditService {
 
     console.log(`🔍 New audit request submitted: ${audit.id} (${audit.contractType} on ${audit.blockchain})`);
     
-    // Automatically start audit processing if payment confirmed
-    if (auditData.paymentTxHash || auditData.paymentMethod === 'stripe') {
-      setTimeout(() => this.processAudit(audit.id), 50); // Reduced from 1000ms to 50ms
-    }
+    // 🚨 SECURITY: Audit processing ONLY starts via explicit payment confirmation
+    // Never process audits automatically based on submission data
+    console.log(`⏳ Audit ${audit.id} pending payment confirmation - processing will begin after verified payment`);
 
     return audit;
   }

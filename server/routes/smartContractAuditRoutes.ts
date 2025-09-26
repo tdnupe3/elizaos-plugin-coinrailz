@@ -6,6 +6,7 @@
 
 import { Router } from 'express';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
 import { smartContractAuditService } from '../services/smartContractAuditService';
 import { insertSmartContractAuditSchema, type SmartContractAudit } from '@shared/schema';
 import { isAuthenticated } from '../replitAuth';
@@ -53,7 +54,7 @@ router.post('/submit', isAuthenticated, async (req, res) => {
     // Add customer ID from authenticated user
     const auditData = {
       ...validatedData,
-      customerId: (req.user as any).id,
+      customerId: (req.user as any)?.id,
     };
 
     const audit = await smartContractAuditService.submitAuditRequest(auditData);
@@ -97,9 +98,20 @@ router.post('/submit-guest', async (req, res) => {
 
     const audit = await smartContractAuditService.submitAuditRequest(auditData);
 
+    // Generate guest handoff token for payment
+    const guestPaymentToken = jwt.sign(
+      { 
+        auditId: audit.id, 
+        email: validatedData.guestEmail,
+        type: 'guest_payment',
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+      },
+      process.env.JWT_SECRET || 'fallback-secret'
+    );
+
     res.json({
       success: true,
-      message: 'Guest audit request submitted successfully! We will contact you at the provided email.',
+      message: 'Guest audit request submitted successfully! Use the payment link to complete your audit.',
       audit: {
         id: audit.id,
         certificateId: audit.certificateId,
@@ -107,6 +119,7 @@ router.post('/submit-guest', async (req, res) => {
         amount: audit.amount,
         estimatedDeliveryHours: audit.estimatedDeliveryHours,
         guestEmail: audit.guestEmail,
+        guestPaymentToken, // Token for payment without auth
       },
     });
 
@@ -133,7 +146,7 @@ router.post('/create-payment', isAuthenticated, async (req, res) => {
 
     // Verify audit belongs to user
     const audit = await smartContractAuditService.getAuditById(auditId);
-    if (!audit || audit.customerId !== req.user!.id) {
+    if (!audit || audit.customerId !== (req.user as any)?.id) {
       return res.status(404).json({
         success: false,
         error: 'Audit not found or access denied',
@@ -150,7 +163,7 @@ router.post('/create-payment', isAuthenticated, async (req, res) => {
     // Create payment using existing payment integration service
     const paymentResult = await PaymentIntegrationService.createEscrowPayment({
       orderId: auditId,
-      customerId: (req.user as any).id,
+      customerId: (req.user as any)?.id,
       agentId: 'audit-service', // Use audit service as the "agent"
       amount: 1000, // $1,000 per audit
       currency: 'USD',
@@ -185,6 +198,84 @@ router.post('/create-payment', isAuthenticated, async (req, res) => {
 });
 
 /**
+ * 🌟 POST /api/audits/create-guest-payment
+ * Create payment intent for guest audit (using token instead of auth)
+ */
+router.post('/create-guest-payment', async (req, res) => {
+  try {
+    const { token, paymentMethod } = z.object({
+      token: z.string(),
+      paymentMethod: z.enum(['stripe', 'paypal', 'circle_usdc', 'crypto'])
+    }).parse(req.body);
+
+    // Verify guest payment token
+    let tokenData;
+    try {
+      tokenData = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+      if (tokenData.type !== 'guest_payment') {
+        throw new Error('Invalid token type');
+      }
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired payment token',
+      });
+    }
+
+    // Get audit by ID from token
+    const audit = await smartContractAuditService.getAuditById(tokenData.auditId);
+    if (!audit) {
+      return res.status(404).json({
+        success: false,
+        error: 'Audit not found',
+      });
+    }
+
+    if (audit.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        error: 'Audit is not in pending status',
+      });
+    }
+
+    // Create payment for guest (no customerId required)
+    const paymentResult = await PaymentIntegrationService.createEscrowPayment({
+      orderId: audit.id,
+      customerId: 'guest-' + tokenData.auditId, // Temporary guest customer ID
+      agentId: 'audit-service',
+      amount: 1000,
+      currency: 'USD',
+      paymentMethod: paymentMethod === 'circle_usdc' ? 'usdc' : paymentMethod as 'stripe' | 'paypal',
+      description: `Smart Contract Audit: ${audit.projectName || 'Guest Audit'}`
+    });
+
+    if (!paymentResult.success) {
+      return res.status(400).json({
+        success: false,
+        error: paymentResult.error || 'Payment creation failed',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Guest payment intent created successfully',
+      clientSecret: paymentResult.clientSecret,
+      auditId: audit.id,
+      amount: 1000,
+      currency: 'USD',
+    });
+
+  } catch (error) {
+    console.error('❌ Guest payment creation failed:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Failed to create payment intent',
+      details: error instanceof z.ZodError ? error.errors : error,
+    });
+  }
+});
+
+/**
  * 💳 POST /api/audits/confirm-payment
  * Confirm payment for audit request and start processing
  */
@@ -198,7 +289,7 @@ router.post('/confirm-payment', isAuthenticated, async (req, res) => {
 
     // Verify audit belongs to user
     const audit = await smartContractAuditService.getAuditById(auditId);
-    if (!audit || audit.customerId !== req.user!.id) {
+    if (!audit || audit.customerId !== (req.user as any)?.id) {
       return res.status(404).json({
         success: false,
         error: 'Audit not found or access denied',
@@ -237,7 +328,7 @@ router.post('/confirm-payment', isAuthenticated, async (req, res) => {
  */
 router.get('/my-audits', isAuthenticated, async (req, res) => {
   try {
-    const audits = await smartContractAuditService.getUserAudits(req.user!.id);
+    const audits = await smartContractAuditService.getUserAudits((req.user as any)?.id);
 
     res.json({
       success: true,
@@ -276,7 +367,7 @@ router.get('/:auditId/report', isAuthenticated, async (req, res) => {
     const auditId = req.params.auditId;
     const audit = await smartContractAuditService.getAuditById(auditId);
 
-    if (!audit || audit.customerId !== req.user!.id) {
+    if (!audit || audit.customerId !== (req.user as any)?.id) {
       return res.status(404).json({
         success: false,
         error: 'Audit not found or access denied',
@@ -328,7 +419,7 @@ router.get('/:auditId/certificate', isAuthenticated, async (req, res) => {
     const auditId = req.params.auditId;
     const audit = await smartContractAuditService.getAuditById(auditId);
 
-    if (!audit || audit.customerId !== req.user!.id) {
+    if (!audit || audit.customerId !== (req.user as any)?.id) {
       return res.status(404).json({
         success: false,
         error: 'Audit not found or access denied',
@@ -407,7 +498,7 @@ router.get('/status/:auditId', isAuthenticated, async (req, res) => {
     const auditId = req.params.auditId;
     const audit = await smartContractAuditService.getAuditById(auditId);
 
-    if (!audit || audit.customerId !== req.user!.id) {
+    if (!audit || audit.customerId !== (req.user as any)?.id) {
       return res.status(404).json({
         success: false,
         error: 'Audit not found or access denied',
@@ -455,7 +546,7 @@ router.post('/:auditId/start-chat', isAuthenticated, async (req, res) => {
     const auditId = req.params.auditId;
     const audit = await smartContractAuditService.getAuditById(auditId);
 
-    if (!audit || audit.customerId !== req.user!.id) {
+    if (!audit || audit.customerId !== (req.user as any)?.id) {
       return res.status(404).json({
         success: false,
         error: 'Audit not found or access denied',

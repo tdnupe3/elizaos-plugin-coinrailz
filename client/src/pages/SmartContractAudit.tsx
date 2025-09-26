@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
@@ -16,11 +17,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useForm } from 'react-hook-form';
 
 interface AuditSubmission {
-  projectName: string;
+  projectName?: string;
   contractType: string;
   blockchain: string;
   contractAddress?: string;
   contractCode?: string;
+  projectDescription?: string;
+  guestEmail?: string;
+  guestCompany?: string;
 }
 
 interface AuditResult {
@@ -41,6 +45,7 @@ interface AuditResult {
 export default function SmartContractAudit() {
   const [activeTab, setActiveTab] = useState('submit');
   const [auditInProgress, setAuditInProgress] = useState<string | null>(null);
+  const [isGuestMode, setIsGuestMode] = useState(true); // Default to guest mode for easier access
   const { toast } = useToast();
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<AuditSubmission>({
@@ -49,7 +54,10 @@ export default function SmartContractAudit() {
       contractType: 'token',
       blockchain: 'ethereum',
       contractAddress: '',
-      contractCode: ''
+      contractCode: '',
+      projectDescription: '',
+      guestEmail: '',
+      guestCompany: ''
     }
   });
 
@@ -67,11 +75,14 @@ export default function SmartContractAudit() {
 
   // Submit audit mutation
   const submitAuditMutation = useMutation({
-    mutationFn: (data: AuditSubmission) => 
-      apiRequest('/api/audits/submit', {
+    mutationFn: (data: AuditSubmission & { isGuestMode: boolean }) => {
+      const endpoint = data.isGuestMode ? '/api/audits/submit-guest' : '/api/audits/submit';
+      const { isGuestMode, ...submitData } = data;
+      return apiRequest(endpoint, {
         method: 'POST',
-        body: JSON.stringify(data)
-      }),
+        body: JSON.stringify(submitData)
+      });
+    },
     onSuccess: (data) => {
       toast({
         title: 'Audit Submitted Successfully!',
@@ -108,7 +119,19 @@ export default function SmartContractAudit() {
   });
 
   const onSubmitAudit = (data: AuditSubmission) => {
-    submitAuditMutation.mutate(data);
+    // Validate guest fields if in guest mode
+    if (isGuestMode) {
+      if (!data.guestEmail) {
+        toast({
+          title: "Email Required",
+          description: "Please provide your email address to submit as a guest.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
+    submitAuditMutation.mutate({ ...data, isGuestMode });
   };
 
   const handlePayment = (paymentMethod: string) => {
@@ -191,6 +214,59 @@ export default function SmartContractAudit() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(onSubmitAudit)} className="space-y-6">
+                  {/* Account Mode Toggle */}
+                  <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                    <div className="flex flex-col">
+                      <Label className="text-base font-medium">
+                        {isGuestMode ? '🌟 Guest Mode - No Account Required' : '🔒 Account Required'}
+                      </Label>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {isGuestMode 
+                          ? 'Submit audit with just your email. Create account automatically when you pay.'
+                          : 'Full account registration required before submission.'
+                        }
+                      </p>
+                    </div>
+                    <Switch 
+                      checked={!isGuestMode}
+                      onCheckedChange={(checked) => setIsGuestMode(!checked)}
+                      data-testid="switch-account-mode"
+                    />
+                  </div>
+
+                  {/* Guest Contact Information */}
+                  {isGuestMode && (
+                    <div className="p-4 border rounded-lg bg-green-50">
+                      <h3 className="font-medium mb-4">Contact Information</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="guestEmail">Email Address *</Label>
+                          <Input
+                            id="guestEmail"
+                            type="email"
+                            {...register('guestEmail', { 
+                              required: isGuestMode ? 'Email is required for guest submissions' : false 
+                            })}
+                            placeholder="your@email.com"
+                            data-testid="input-guest-email"
+                          />
+                          {errors.guestEmail && (
+                            <p className="text-red-500 text-sm mt-1">{errors.guestEmail.message}</p>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="guestCompany">Company (Optional)</Label>
+                          <Input
+                            id="guestCompany"
+                            {...register('guestCompany')}
+                            placeholder="Your Company"
+                            data-testid="input-guest-company"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Project Details */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>

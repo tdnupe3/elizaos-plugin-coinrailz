@@ -2718,7 +2718,10 @@ export const smartContractAudits = pgTable(
   "smart_contract_audits",
   {
     id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-    customerId: varchar("customer_id").notNull().references(() => users.id),
+    customerId: varchar("customer_id").references(() => users.id), // Optional for guest submissions
+    guestEmail: varchar("guest_email"), // For guest submissions
+    guestCompany: varchar("guest_company"), // Optional guest company name
+    submissionType: varchar("submission_type").default("authenticated"), // 'authenticated', 'guest'
     contractAddress: varchar("contract_address"), // Optional: for deployed contracts
     contractCode: text("contract_code"), // For code uploads
     contractType: varchar("contract_type").notNull(), // 'token', 'dapp', 'nft', 'defi', 'game', 'other'

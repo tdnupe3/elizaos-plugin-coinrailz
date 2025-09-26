@@ -21,6 +21,19 @@ const submitAuditSchema = insertSmartContractAuditSchema.extend({
   message: "Either contract address or contract code must be provided",
 });
 
+const guestSubmitAuditSchema = z.object({
+  projectName: z.string().optional(),
+  contractType: z.enum(['token', 'dapp', 'nft', 'defi', 'game', 'other']),
+  blockchain: z.enum(['ethereum', 'base', 'polygon', 'bsc', 'bnb', 'arbitrum']),
+  contractAddress: z.string().optional(),
+  contractCode: z.string().optional(),
+  projectDescription: z.string().optional(),
+  guestEmail: z.string().email("Valid email required"),
+  guestCompany: z.string().optional(),
+}).refine(data => data.contractAddress || data.contractCode, {
+  message: "Either contract address or contract code must be provided",
+});
+
 const paymentConfirmationSchema = z.object({
   auditId: z.string(),
   paymentMethod: z.enum(['stripe', 'paypal', 'circle_usdc', 'crypto']),
@@ -40,7 +53,7 @@ router.post('/submit', isAuthenticated, async (req, res) => {
     // Add customer ID from authenticated user
     const auditData = {
       ...validatedData,
-      customerId: req.user!.id,
+      customerId: (req.user as any).id,
     };
 
     const audit = await smartContractAuditService.submitAuditRequest(auditData);
@@ -62,6 +75,46 @@ router.post('/submit', isAuthenticated, async (req, res) => {
     res.status(400).json({
       success: false,
       error: 'Failed to submit audit request',
+      details: error instanceof z.ZodError ? error.errors : error,
+    });
+  }
+});
+
+/**
+ * 🌟 POST /api/audits/submit-guest  
+ * Submit audit request as guest (no authentication required)
+ */
+router.post('/submit-guest', async (req, res) => {
+  try {
+    const validatedData = guestSubmitAuditSchema.parse(req.body);
+    
+    // Mark as guest submission
+    const auditData = {
+      ...validatedData,
+      submissionType: 'guest' as const,
+      customerId: null, // No customer ID for guests
+    };
+
+    const audit = await smartContractAuditService.submitAuditRequest(auditData);
+
+    res.json({
+      success: true,
+      message: 'Guest audit request submitted successfully! We will contact you at the provided email.',
+      audit: {
+        id: audit.id,
+        certificateId: audit.certificateId,
+        status: audit.status,
+        amount: audit.amount,
+        estimatedDeliveryHours: audit.estimatedDeliveryHours,
+        guestEmail: audit.guestEmail,
+      },
+    });
+
+  } catch (error) {
+    console.error('❌ Guest audit submission failed:', error);
+    res.status(400).json({
+      success: false,
+      error: 'Failed to submit guest audit request',
       details: error instanceof z.ZodError ? error.errors : error,
     });
   }
@@ -97,7 +150,7 @@ router.post('/create-payment', isAuthenticated, async (req, res) => {
     // Create payment using existing payment integration service
     const paymentResult = await PaymentIntegrationService.createEscrowPayment({
       orderId: auditId,
-      customerId: req.user!.id,
+      customerId: (req.user as any).id,
       agentId: 'audit-service', // Use audit service as the "agent"
       amount: 1000, // $1,000 per audit
       currency: 'USD',

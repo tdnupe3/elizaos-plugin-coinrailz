@@ -25,6 +25,7 @@ import { eq } from "drizzle-orm";
 import p2pRoutes from "./routes/p2pRoutes";
 import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
 import aiAgentProductRoutesProduction from "./routes/aiAgentProductRoutesProduction";
+import smartContractAuditRoutes from './routes/smartContractAuditRoutes';
 import { registerAuthRoutes } from "./authRoutes";
 import { registerRoutes as registerMainRoutes } from "./routes";
 import gasStationRoutes from './routes/gasStationRoutes';
@@ -518,8 +519,6 @@ app.use('/api/blockchain', blockchainRoutes);
 app.use('/api/xrp', blockchainRoutes);
 app.use('/api/ai-marketplace', aiMarketplaceRoutes);
 app.use('/api/ai-agent-products', aiAgentProductRoutesProduction);
-// Smart Contract Audit Routes
-const smartContractAuditRoutes = require('./routes/smartContractAuditRoutes').default;
 app.use('/api/audits', smartContractAuditRoutes);
 console.log('🔍 Smart Contract Audit routes registered successfully');
 // 🚨 CRITICAL ENDPOINTS - Must come FIRST to avoid 404 middleware conflicts

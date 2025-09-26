@@ -55,7 +55,7 @@ export class SmartContractAuditService {
     
     // Automatically start audit processing if payment confirmed
     if (auditData.paymentTxHash || auditData.paymentMethod === 'stripe') {
-      setTimeout(() => this.processAudit(audit.id), 1000);
+      setTimeout(() => this.processAudit(audit.id), 50); // Reduced from 1000ms to 50ms
     }
 
     return audit;

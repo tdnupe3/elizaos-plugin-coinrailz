@@ -300,16 +300,16 @@ router.post('/confirm-payment', isAuthenticated, async (req, res) => {
     // For now, trust that payment was successful and start audit
     console.log(`💳 Payment confirmed for audit ${auditId} via ${paymentMethod}`);
     
-    // Start audit processing in background
+    // Start audit processing immediately for fast delivery
     setTimeout(() => {
       smartContractAuditService.processAudit(auditId).catch(console.error);
-    }, 2000);
+    }, 100); // Reduced from 2 seconds to 100ms
 
     res.json({
       success: true,
       message: 'Payment confirmed, audit processing started',
       auditId,
-      estimatedCompletion: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+      estimatedCompletion: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
     });
 
   } catch (error) {
@@ -467,7 +467,7 @@ router.get('/pricing', async (req, res) => {
       pricing: {
         basePrice: 1000,
         currency: 'USD',
-        estimatedDeliveryHours: 24,
+        estimatedDeliveryHours: 1, // Actually delivered in minutes
         paymentMethods: ['stripe', 'paypal', 'circle_usdc', 'crypto'],
         supportedBlockchains: ['ethereum', 'base', 'polygon', 'bsc', 'arbitrum'],
         contractTypes: ['token', 'dapp', 'nft', 'defi', 'game', 'other'],

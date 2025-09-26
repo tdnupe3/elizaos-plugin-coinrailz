@@ -182,7 +182,7 @@ export default function SmartContractAudit() {
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4" />
-                <strong>24-hour</strong> delivery
+                <strong>5-minute</strong> delivery
               </span>
               <span className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
@@ -368,7 +368,7 @@ export default function SmartContractAudit() {
                     disabled={submitAuditMutation.isPending}
                     data-testid="button-submit-audit"
                   >
-                    {submitAuditMutation.isPending ? 'Submitting...' : 'Submit for Audit - $1,000'}
+                    {submitAuditMutation.isPending ? 'Submitting...' : 'Get 5-Minute Audit - $1,000'}
                   </Button>
                 </form>
               </CardContent>

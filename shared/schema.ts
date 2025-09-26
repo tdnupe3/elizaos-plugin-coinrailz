@@ -2753,7 +2753,7 @@ export const smartContractAudits = pgTable(
     submittedAt: timestamp("submitted_at").defaultNow(),
     auditStartedAt: timestamp("audit_started_at"),
     auditCompletedAt: timestamp("audit_completed_at"),
-    estimatedDeliveryHours: integer("estimated_delivery_hours").default(24),
+    estimatedDeliveryHours: integer("estimated_delivery_hours").default(1), // Changed to 1 hour max, actual delivery in minutes
     
     // Communication
     chatSessionId: varchar("chat_session_id"), // Link to chat for delivery

@@ -349,6 +349,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   
   // 🎯 PILOT CAMPAIGN - Proof of Delivery for Sales Collateral
   app.use('/api/pilot-campaign', await import('./routes/pilotCampaignRoutes').then(m => m.default));
+  app.use('/api/delivery-analytics', await import('./routes/deliveryAnalyticsRoutes').then(m => m.default));
   
   // 🐋 Base Whale Targeting Routes
   app.use('/api/base-whales', await import('./routes/baseWhaleRoutes').then(m => m.default));

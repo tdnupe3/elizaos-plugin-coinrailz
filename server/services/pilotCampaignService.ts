@@ -9,14 +9,14 @@ import { ethers } from 'ethers';
 import { CoinbaseCDPService } from './coinbaseCDPService';
 import { db } from '../db';
 
-interface PilotTarget {
+export interface PilotTarget {
   id: number;
   address: string;
   domain_name: string;
   domain_type: '.cb.id' | '.base.eth';
 }
 
-interface DeliveryProof {
+export interface DeliveryProof {
   target: PilotTarget;
   transactionHash: string;
   blockNumber: number;
@@ -259,7 +259,7 @@ export class PilotCampaignService {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     // Store results in database for sales team (temporarily disabled)
-    // await this.storeCampaignResults();
+    await this.storeCampaignResults();
     console.log('📊 Campaign results ready for sales team (database storage temporarily disabled)');
   }
 
@@ -276,6 +276,21 @@ export class PilotCampaignService {
     }
     
     console.log('💾 Campaign results stored in database for sales team access');
+  }
+
+  /**
+   * 💾 Store massive campaign results in database
+   */
+  private async storeMassiveCampaignResults(proofs: DeliveryProof[]): Promise<void> {
+    for (const proof of proofs) {
+      await db.execute(sql`
+        INSERT INTO pilot_campaign_results 
+        (target_address, domain_name, transaction_hash, block_number, gas_used, status, error_message, campaign_date)
+        VALUES (${proof.target.address}, ${proof.target.domain_name}, ${proof.transactionHash || null}, ${proof.blockNumber || null}, ${proof.gasUsed || null}, ${proof.status}, ${proof.error || null}, ${proof.timestamp})
+      `);
+    }
+    
+    console.log(`💾 Massive campaign results stored: ${proofs.length} entries saved to database for analytics`);
   }
 
   /**
@@ -436,6 +451,10 @@ export class PilotCampaignService {
     }
 
     await this.generateMassiveEmergencyFundingReport(emergencyProofs);
+    
+    // Store campaign results in database for analytics
+    await this.storeMassiveCampaignResults(emergencyProofs);
+    
     return emergencyProofs;
   }
 

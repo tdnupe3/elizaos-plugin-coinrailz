@@ -190,6 +190,21 @@ export default function Landing() {
                 </Button>
               </div>
 
+              {/* Premium Smart Contract Audit Service - High Revenue */}
+              <div className="mb-4">
+                <Button 
+                  onClick={() => setLocation("/smart-contract-audit")}
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-4 sm:py-5 text-lg sm:text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+                  size="lg"
+                >
+                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
+                  🛡️ Smart Contract Audit - $1K • 5-Min Delivery
+                </Button>
+                <p className="text-center text-sm text-gray-600 mt-2">
+                  Professional security analysis • No signup required • Instant results
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <Button 
                   onClick={() => setLocation("/swap")}

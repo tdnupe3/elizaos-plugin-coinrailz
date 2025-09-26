@@ -2722,8 +2722,8 @@ export const smartContractAudits = pgTable(
     contractAddress: varchar("contract_address"), // Optional: for deployed contracts
     contractCode: text("contract_code"), // For code uploads
     contractType: varchar("contract_type").notNull(), // 'token', 'dapp', 'nft', 'defi', 'game', 'other'
-    blockchain: varchar("blockchain").notNull(), // 'ethereum', 'base', 'polygon', 'bsc', 'arbitrum'
-    projectName: varchar("project_name").notNull(),
+    blockchain: varchar("blockchain").notNull(), // 'ethereum', 'base', 'polygon', 'bsc', 'bnb', 'arbitrum'
+    projectName: varchar("project_name"), // Optional: users might only know ticker
     projectDescription: text("project_description"),
     
     // Payment and pricing

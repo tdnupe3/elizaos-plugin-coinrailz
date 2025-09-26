@@ -194,16 +194,16 @@ export default function SmartContractAudit() {
                   {/* Project Details */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <Label htmlFor="projectName">Project Name</Label>
+                      <Label htmlFor="projectName">Project Name (Optional)</Label>
                       <Input
                         id="projectName"
-                        {...register('projectName', { required: 'Project name is required' })}
-                        placeholder="My DeFi Protocol"
+                        {...register('projectName')}
+                        placeholder="My DeFi Protocol (or just the ticker)"
                         data-testid="input-project-name"
                       />
-                      {errors.projectName && (
-                        <p className="text-red-500 text-sm mt-1">{errors.projectName.message}</p>
-                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        Optional - you can just enter the ticker or leave blank
+                      </p>
                     </div>
 
                     <div>
@@ -234,6 +234,7 @@ export default function SmartContractAudit() {
                           <SelectItem value="base">Base</SelectItem>
                           <SelectItem value="polygon">Polygon</SelectItem>
                           <SelectItem value="bsc">BSC</SelectItem>
+                          <SelectItem value="bnb">BNB Chain</SelectItem>
                           <SelectItem value="arbitrum">Arbitrum</SelectItem>
                         </SelectContent>
                       </Select>

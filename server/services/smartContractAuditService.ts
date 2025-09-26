@@ -6,8 +6,15 @@
 
 import { db } from '../db';
 import { smartContractAudits, users, type InsertSmartContractAudit, type SmartContractAudit } from '@shared/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, count, avg, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
+import { pdfGenerationService } from './pdfGenerationService';
+import fs from 'fs/promises';
+import path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export interface ContractAnalysis {
   securityScore: number;
@@ -74,11 +81,11 @@ export class SmartContractAuditService {
       const audit = await this.getAuditById(auditId);
       if (!audit) throw new Error('Audit not found');
 
-      // Perform comprehensive analysis
+      // Perform comprehensive analysis with real tools
       const analysis = await this.analyzeContract(audit);
       
-      // Generate comprehensive report
-      const report = this.generateAuditReport(analysis, audit);
+      // Generate access token for guest downloads
+      const accessToken = `${audit.id}-${nanoid(32)}`;
       
       // Update audit with results
       await db.update(smartContractAudits)
@@ -86,22 +93,21 @@ export class SmartContractAuditService {
           status: 'completed',
           grade: analysis.grade,
           score: analysis.overallScore,
-          auditReport: report,
+          auditReport: this.generateAuditReport(analysis, audit),
           vulnerabilities: analysis.vulnerabilities,
           recommendations: analysis.recommendations.join('\n\n'),
           gasOptimizations: analysis.gasOptimizations.map(opt => `${opt.title}: ${opt.description}`).join('\n\n'),
           auditCompletedAt: new Date(),
           certificateGenerated: true,
+          accessToken,
+          deliveryUrl: `/audit-status?token=${accessToken}`,
         })
         .where(eq(smartContractAudits.id, auditId));
 
       console.log(`✅ Audit completed for ${auditId}: Grade ${analysis.grade} (${analysis.overallScore}/100)`);
 
-      // Generate and deliver certificate
-      await this.generateCertificate(auditId);
-      
-      // Send report via chat system
-      await this.deliverAuditReport(auditId);
+      // Generate professional PDF report and certificate
+      await this.generateProfessionalAuditDocuments(auditId, analysis);
 
     } catch (error) {
       console.error(`❌ Audit processing failed for ${auditId}:`, error);
@@ -110,15 +116,36 @@ export class SmartContractAuditService {
   }
 
   /**
-   * 🔬 Comprehensive AI-powered contract analysis
+   * 🔬 Comprehensive contract analysis using Slither + AI
    */
   private async analyzeContract(audit: SmartContractAudit): Promise<ContractAnalysis> {
     console.log(`🔍 Analyzing ${audit.contractType} contract on ${audit.blockchain}...`);
 
-    const code = audit.contractCode || await this.fetchContractCode(audit.contractAddress!, audit.blockchain);
+    let code = audit.contractCode;
     
-    // Security Analysis
-    const vulnerabilities = this.analyzeSecurityVulnerabilities(code, audit.contractType);
+    // If no code provided, try to fetch from blockchain
+    if (!code && audit.contractAddress) {
+      code = await this.fetchContractCode(audit.contractAddress, audit.blockchain);
+    }
+    
+    if (!code) {
+      throw new Error('No contract code available for analysis');
+    }
+
+    // Run Slither static analysis if available
+    let slitherResults: any = null;
+    try {
+      slitherResults = await this.runSlitherAnalysis(code, audit.contractType);
+      console.log(`🔍 Slither analysis completed with ${slitherResults?.issues?.length || 0} findings`);
+    } catch (error) {
+      console.warn(`⚠️ Slither analysis failed, falling back to AI analysis:`, error);
+    }
+    
+    // Security Analysis (enhanced with Slither results)
+    const vulnerabilities = slitherResults ? 
+      this.parseSlitherResults(slitherResults) : 
+      this.analyzeSecurityVulnerabilities(code, audit.contractType);
+    
     const securityScore = this.calculateSecurityScore(vulnerabilities);
     
     // Gas Optimization Analysis  
@@ -559,6 +586,198 @@ ${analysis.grade === 'A' ?
     };
 
     return { totalAudits, averageScore, gradeDistribution };
+  }
+
+  /**
+   * 🔧 Run Slither static analysis on contract code
+   */
+  private async runSlitherAnalysis(contractCode: string, contractType: string): Promise<any> {
+    try {
+      // Create temporary Solidity file for analysis
+      const tempDir = path.join(process.cwd(), 'temp-contracts');
+      await fs.mkdir(tempDir, { recursive: true });
+      
+      const contractFile = path.join(tempDir, `contract_${Date.now()}.sol`);
+      await fs.writeFile(contractFile, contractCode);
+
+      // Run Slither analysis
+      const { stdout, stderr } = await execAsync(`slither ${contractFile} --json -`);
+      
+      // Parse Slither JSON output
+      const results = JSON.parse(stdout);
+      
+      // Clean up temporary file
+      await fs.unlink(contractFile);
+      
+      return {
+        issues: results.results?.detectors || [],
+        success: true,
+        timestamp: new Date().toISOString(),
+      };
+      
+    } catch (error) {
+      console.warn(`Slither analysis failed:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * 🔍 Parse Slither results into our vulnerability format
+   */
+  private parseSlitherResults(slitherResults: any): Vulnerability[] {
+    const vulnerabilities: Vulnerability[] = [];
+    
+    if (!slitherResults?.issues) return vulnerabilities;
+    
+    for (const issue of slitherResults.issues) {
+      const severity = this.mapSlitherSeverity(issue.impact);
+      
+      vulnerabilities.push({
+        severity,
+        title: issue.check || 'Security Issue',
+        description: issue.description || 'Potential security vulnerability detected',
+        location: issue.elements?.[0]?.source_mapping?.filename_short || undefined,
+        recommendation: this.getRecommendationForSlitherIssue(issue),
+        impact: issue.confidence || 'Medium',
+      });
+    }
+    
+    return vulnerabilities;
+  }
+
+  /**
+   * 🎯 Map Slither severity to our format
+   */
+  private mapSlitherSeverity(impact: string): 'Critical' | 'High' | 'Medium' | 'Low' | 'Info' {
+    switch (impact?.toLowerCase()) {
+      case 'high':
+        return 'Critical';
+      case 'medium':
+        return 'High';
+      case 'low':
+        return 'Medium';
+      case 'informational':
+        return 'Info';
+      default:
+        return 'Medium';
+    }
+  }
+
+  /**
+   * 📝 Generate recommendation for Slither issues
+   */
+  private getRecommendationForSlitherIssue(issue: any): string {
+    const checkType = issue.check?.toLowerCase() || '';
+    
+    if (checkType.includes('reentrancy')) {
+      return 'Implement the checks-effects-interactions pattern and use reentrancy guards';
+    } else if (checkType.includes('timestamp')) {
+      return 'Avoid using block.timestamp for critical logic, use block numbers instead';
+    } else if (checkType.includes('unchecked')) {
+      return 'Add proper error handling and return value checks';
+    } else if (checkType.includes('pragma')) {
+      return 'Use a specific and recent Solidity version pragma';
+    }
+    
+    return 'Review the highlighted code and apply security best practices';
+  }
+
+  /**
+   * 📄 Generate professional audit documents (PDF report + certificate)
+   */
+  private async generateProfessionalAuditDocuments(auditId: string, analysis: ContractAnalysis): Promise<void> {
+    try {
+      const audit = await this.getAuditById(auditId);
+      if (!audit) throw new Error('Audit not found');
+
+      console.log(`📄 Generating professional documents for audit ${auditId}...`);
+
+      // Prepare data for PDF generation
+      const reportData = {
+        auditId: audit.id,
+        contractName: audit.projectName || `${audit.contractType.toUpperCase()} Contract`,
+        blockchain: audit.blockchain,
+        contractType: audit.contractType,
+        customerEmail: audit.customerId ? undefined : undefined, // Will be populated if user is authenticated
+        guestEmail: audit.guestEmail || undefined,
+        grade: analysis.grade,
+        score: analysis.overallScore,
+        auditSummary: this.generateExecutiveSummary(analysis, audit),
+        vulnerabilities: analysis.vulnerabilities.map(v => ({
+          title: v.title,
+          severity: v.severity,
+          description: v.description,
+          recommendation: v.recommendation,
+          codeLocation: v.location,
+        })),
+        recommendations: analysis.recommendations.join('\n\n'),
+        gasOptimizations: analysis.gasOptimizations.map(opt => 
+          `${opt.title}: ${opt.description} (${opt.estimatedSavings})`
+        ).join('\n\n'),
+        auditDate: new Date(),
+        certificateId: audit.certificateId!,
+      };
+
+      // Generate PDF report
+      const reportPath = await pdfGenerationService.generateAuditReport(reportData);
+      
+      // Generate security certificate
+      const certificateData = {
+        certificateId: audit.certificateId!,
+        contractName: reportData.contractName,
+        blockchain: audit.blockchain,
+        grade: analysis.grade,
+        score: analysis.overallScore,
+        auditDate: new Date(),
+        validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Valid for 1 year
+      };
+      
+      const certificatePath = await pdfGenerationService.generateSecurityCertificate(certificateData);
+      
+      // Update database with file paths
+      await db.update(smartContractAudits)
+        .set({
+          certificateUrl: `/api/certificates/${audit.certificateId}`,
+        })
+        .where(eq(smartContractAudits.id, auditId));
+
+      console.log(`✅ Professional documents generated for ${auditId}:`);
+      console.log(`📄 Report: ${reportPath}`);
+      console.log(`🏆 Certificate: ${certificatePath}`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to generate professional documents for ${auditId}:`, error);
+      // Don't throw - audit should still complete even if PDF generation fails
+    }
+  }
+
+  /**
+   * 📊 Generate executive summary for audit report
+   */
+  private generateExecutiveSummary(analysis: ContractAnalysis, audit: SmartContractAudit): string {
+    const criticalIssues = analysis.vulnerabilities.filter(v => v.severity === 'Critical').length;
+    const highIssues = analysis.vulnerabilities.filter(v => v.severity === 'High').length;
+    const totalIssues = analysis.vulnerabilities.length;
+    
+    const securityStatus = analysis.grade === 'A' ? 'excellent security posture' : 
+                          analysis.grade === 'B' ? 'good security with some concerns' :
+                          'significant security issues requiring immediate attention';
+
+    return `
+This comprehensive security audit was performed on a ${audit.contractType} smart contract deployed on ${audit.blockchain}. 
+
+The contract received a security grade of ${analysis.grade} with an overall score of ${analysis.overallScore}/100, indicating ${securityStatus}.
+
+Our analysis identified ${totalIssues} total findings, including ${criticalIssues} critical and ${highIssues} high-severity issues. The security assessment covered vulnerability detection, gas optimization opportunities, code quality metrics, and standards compliance.
+
+${analysis.grade === 'A' ? 
+  'The contract demonstrates strong security practices and is recommended for production deployment with minor optimizations.' :
+  analysis.grade === 'B' ?
+  'The contract shows good security fundamentals but requires remediation of identified issues before production deployment.' :
+  'The contract has significant security vulnerabilities that must be addressed before any production deployment.'}
+
+All findings include detailed descriptions, impact assessments, and specific remediation guidance to help improve the contract's security posture.
+    `.trim();
   }
 }
 

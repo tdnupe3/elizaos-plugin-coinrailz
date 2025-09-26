@@ -112,12 +112,20 @@ export default function MainMenu() {
               </h1>
               <p className="text-gray-600 mt-1">Your complete fintech platform - choose an action below</p>
             </div>
-            <Button 
-              variant="outline"
-              onClick={() => window.location.href = "/api/logout"}
-            >
-              Sign Out
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={() => setLocation("/")}
+              >
+                🏠 Home
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = "/api/logout"}
+              >
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </div>

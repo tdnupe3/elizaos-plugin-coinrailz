@@ -47,6 +47,7 @@ interface DashboardStats {
   monthlyVolume: number;
   activeAgents: number;
   referralEarnings: number;
+  totalRevenue?: number;
 }
 
 export default function Dashboard() {
@@ -79,15 +80,15 @@ export default function Dashboard() {
   });
 
   // Use real transaction data
-  const transactions = transactionHistory?.transactions || [];
+  const transactions = (transactionHistory as any)?.transactions || [];
   
   // Calculate real-time stats
   const realTimeStats = {
-    balance: usdcBalance?.total || stats?.balance || 0,
+    balance: (usdcBalance as any)?.total || (stats as any)?.balance || 0,
     totalTransactions: transactions.length,
-    monthlyVolume: stats?.monthlyVolume || 0,
-    activeAgents: stats?.activeAgents || 0,
-    referralEarnings: stats?.referralEarnings || 0
+    monthlyVolume: (stats as any)?.monthlyVolume || 0,
+    activeAgents: (stats as any)?.activeAgents || 0,
+    referralEarnings: (stats as any)?.referralEarnings || 0
   };
 
   const { data: portfolioData } = useQuery({
@@ -100,13 +101,13 @@ export default function Dashboard() {
   // Use actual user data from balance integration API
   const userStats: DashboardStats = (stats && typeof stats === 'object' && 'balance' in stats) 
     ? {
-        balance: stats.balance || 0,
-        totalTransactions: stats.totalTransactions || 0,
-        monthlyVolume: stats.monthlyVolume || 0,
-        activeAgents: stats.activeAgents || 0,
-        referralEarnings: stats.referralEarnings || 0,
-        totalRevenue: stats.totalRevenue || 0
-      } as DashboardStats
+        balance: (stats as any).balance || 0,
+        totalTransactions: (stats as any).totalTransactions || 0,
+        monthlyVolume: (stats as any).monthlyVolume || 0,
+        activeAgents: (stats as any).activeAgents || 0,
+        referralEarnings: (stats as any).referralEarnings || 0,
+        totalRevenue: (stats as any).totalRevenue || 0
+      }
     : {
         balance: 0.00,
         totalTransactions: 0,
@@ -327,17 +328,17 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                ${(usdcBalance?.balance || realTimeStats.balance).toFixed(2)}
+                ${((usdcBalance as any)?.balance || realTimeStats.balance).toFixed(2)}
                 {usdcBalanceLoading && <span className="text-sm ml-2 text-muted-foreground">updating...</span>}
               </div>
               <p className="text-xs text-muted-foreground">
-                Total across all wallets • Last updated: {usdcBalance?.lastUpdated ? new Date(usdcBalance.lastUpdated).toLocaleTimeString() : 'Never'}
+                Total across all wallets • Last updated: {(usdcBalance as any)?.lastUpdated ? new Date((usdcBalance as any).lastUpdated).toLocaleTimeString() : 'Never'}
               </p>
-              {usdcBalance?.breakdown && (
+              {(usdcBalance as any)?.breakdown && (
                 <div className="text-xs text-muted-foreground mt-1">
-                  Circle: ${usdcBalance.breakdown.circle.amount.toFixed(2)} • 
-                  Coinbase: ${usdcBalance.breakdown.coinbase.amount.toFixed(2)} • 
-                  Crypto: ${usdcBalance.breakdown.crypto.amount.toFixed(2)}
+                  Circle: ${(usdcBalance as any).breakdown.circle.amount.toFixed(2)} • 
+                  Coinbase: ${(usdcBalance as any).breakdown.coinbase.amount.toFixed(2)} • 
+                  Crypto: ${(usdcBalance as any).breakdown.crypto.amount.toFixed(2)}
                 </div>
               )}
             </CardContent>

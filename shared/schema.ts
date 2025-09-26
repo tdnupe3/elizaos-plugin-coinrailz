@@ -2713,6 +2713,83 @@ export const insertPaymentMethodSchema = createInsertSchema(paymentMethods).omit
   updatedAt: true,
 });
 
+// Smart Contract Audit Orders
+export const smartContractAudits = pgTable(
+  "smart_contract_audits",
+  {
+    id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+    customerId: varchar("customer_id").notNull().references(() => users.id),
+    contractAddress: varchar("contract_address"), // Optional: for deployed contracts
+    contractCode: text("contract_code"), // For code uploads
+    contractType: varchar("contract_type").notNull(), // 'token', 'dapp', 'nft', 'defi', 'game', 'other'
+    blockchain: varchar("blockchain").notNull(), // 'ethereum', 'base', 'polygon', 'bsc', 'arbitrum'
+    projectName: varchar("project_name").notNull(),
+    projectDescription: text("project_description"),
+    
+    // Payment and pricing
+    amount: decimal("amount", { precision: 10, scale: 2 }).default("1000.00"),
+    currency: varchar("currency").default("USD"),
+    paymentMethod: varchar("payment_method"), // 'stripe', 'paypal', 'circle_usdc', 'crypto'
+    paymentTxHash: varchar("payment_tx_hash"), // For crypto payments
+    
+    // Audit results
+    status: varchar("status").default("pending"), // 'pending', 'in_progress', 'completed', 'cancelled'
+    grade: varchar("grade"), // 'A', 'B', 'F' (80-100%, 70-79%, <70%)
+    score: integer("score"), // Numerical score 0-100
+    auditReport: text("audit_report"), // Complete audit analysis
+    vulnerabilities: jsonb("vulnerabilities"), // Detailed vulnerability findings
+    recommendations: text("recommendations"), // Improvement suggestions
+    gasOptimizations: text("gas_optimizations"), // Gas saving recommendations
+    
+    // Certificate generation
+    certificateId: varchar("certificate_id").unique(),
+    certificateGenerated: boolean("certificate_generated").default(false),
+    certificateUrl: varchar("certificate_url"), // Link to certificate PDF/image
+    
+    // Timing
+    submittedAt: timestamp("submitted_at").defaultNow(),
+    auditStartedAt: timestamp("audit_started_at"),
+    auditCompletedAt: timestamp("audit_completed_at"),
+    estimatedDeliveryHours: integer("estimated_delivery_hours").default(24),
+    
+    // Communication
+    chatSessionId: varchar("chat_session_id"), // Link to chat for delivery
+    deliveryMethod: varchar("delivery_method").default("chat"), // 'chat', 'email'
+    
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_smart_contract_audits_customer").on(table.customerId),
+    index("IDX_smart_contract_audits_status").on(table.status),
+    index("IDX_smart_contract_audits_blockchain").on(table.blockchain),
+    index("IDX_smart_contract_audits_grade").on(table.grade),
+    uniqueIndex("IDX_smart_contract_audits_certificate").on(table.certificateId),
+  ],
+);
+
+// Smart Contract Audit Relations
+export const smartContractAuditsRelations = relations(smartContractAudits, ({ one }) => ({
+  customer: one(users, {
+    fields: [smartContractAudits.customerId],
+    references: [users.id],
+  }),
+}));
+
+// Smart Contract Audit Schemas
+export const insertSmartContractAuditSchema = createInsertSchema(smartContractAudits).omit({
+  id: true,
+  submittedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const smartContractAuditSelectSchema = createSelectSchema(smartContractAudits);
+
+// Smart Contract Audit Types
+export type SmartContractAudit = typeof smartContractAudits.$inferSelect;
+export type InsertSmartContractAudit = z.infer<typeof insertSmartContractAuditSchema>;
+
 // AI Agent Product Types and Schemas
 export type AIAgentProduct = typeof aiAgentProducts.$inferSelect;
 export type InsertAIAgentProduct = typeof aiAgentProducts.$inferInsert;

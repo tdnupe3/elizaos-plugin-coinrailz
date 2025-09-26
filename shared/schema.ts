@@ -2755,9 +2755,11 @@ export const smartContractAudits = pgTable(
     auditCompletedAt: timestamp("audit_completed_at"),
     estimatedDeliveryHours: integer("estimated_delivery_hours").default(1), // Changed to 1 hour max, actual delivery in minutes
     
-    // Communication
+    // Communication & Access
     chatSessionId: varchar("chat_session_id"), // Link to chat for delivery
-    deliveryMethod: varchar("delivery_method").default("chat"), // 'chat', 'email'
+    deliveryMethod: varchar("delivery_method").default("download"), // 'download', 'email', 'chat'
+    accessToken: varchar("access_token"), // Secure token for guest access to results
+    deliveryUrl: varchar("delivery_url"), // Direct link to audit results
     
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),

@@ -8,9 +8,11 @@ import { Router } from 'express';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 import { smartContractAuditService } from '../services/smartContractAuditService';
-import { insertSmartContractAuditSchema, type SmartContractAudit } from '@shared/schema';
+import { insertSmartContractAuditSchema, type SmartContractAudit, smartContractAudits } from '@shared/schema';
 import { isAuthenticated } from '../replitAuth';
 import { PaymentIntegrationService } from '../services/paymentIntegration';
+import { db } from '../db';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
@@ -307,9 +309,11 @@ router.post('/confirm-payment', isAuthenticated, async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Payment confirmed, audit processing started',
+      message: 'Payment confirmed! Your audit will be ready in ~5 minutes.',
       auditId,
       estimatedCompletion: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+      statusCheckUrl: `/api/audits/status/${auditId}`,
+      instructions: 'We will provide you with a direct download link once your audit is complete. Check back in 5 minutes!',
     });
 
   } catch (error) {
@@ -398,6 +402,7 @@ router.get('/:auditId/report', isAuthenticated, async (req, res) => {
         certificateId: audit.certificateId,
         certificateUrl: audit.certificateUrl,
         auditCompletedAt: audit.auditCompletedAt,
+        deliveryUrl: audit.deliveryUrl, // Direct access URL
       },
     });
 
@@ -450,6 +455,68 @@ router.get('/:auditId/certificate', isAuthenticated, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch certificate',
+    });
+  }
+});
+
+/**
+ * 🔓 GET /api/audit-results/:accessToken
+ * Guest access to audit results using secure token (NO AUTH REQUIRED)
+ */
+router.get('/results/:accessToken', async (req, res) => {
+  try {
+    const accessToken = req.params.accessToken;
+    
+    // Find audit by access token
+    const [audit] = await db.select()
+      .from(smartContractAudits)
+      .where(eq(smartContractAudits.accessToken, accessToken))
+      .limit(1);
+
+    if (!audit) {
+      return res.status(404).json({
+        success: false,
+        error: 'Invalid access token or audit not found',
+      });
+    }
+
+    if (audit.status !== 'completed') {
+      return res.json({
+        success: true,
+        status: 'processing',
+        message: 'Your audit is still being processed. Please check back in a few minutes.',
+        auditId: audit.id,
+        estimatedCompletion: new Date(Date.now() + 5 * 60 * 1000),
+      });
+    }
+
+    // Return complete audit results for guest access
+    res.json({
+      success: true,
+      status: 'completed',
+      results: {
+        auditId: audit.id,
+        contractName: audit.projectName || 'Smart Contract',
+        blockchain: audit.blockchain,
+        contractType: audit.contractType,
+        submittedAt: audit.submittedAt,
+        completedAt: audit.auditCompletedAt,
+        grade: audit.grade,
+        score: audit.score,
+        summary: audit.auditReport,
+        vulnerabilities: audit.vulnerabilities,
+        recommendations: audit.recommendations,
+        gasOptimizations: audit.gasOptimizations,
+        certificateUrl: audit.certificateUrl,
+        certificateId: audit.certificateId,
+      },
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to fetch audit results:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch audit results',
     });
   }
 });
@@ -514,7 +581,7 @@ router.get('/status/:auditId', isAuthenticated, async (req, res) => {
       case 'cancelled': progress = 0; break;
     }
 
-    res.json({
+    const response: any = {
       success: true,
       status: {
         id: audit.id,
@@ -526,7 +593,19 @@ router.get('/status/:auditId', isAuthenticated, async (req, res) => {
         estimatedDeliveryHours: audit.estimatedDeliveryHours,
         certificateGenerated: audit.certificateGenerated,
       },
-    });
+    };
+
+    // Add download access for completed audits
+    if (audit.status === 'completed' && audit.accessToken) {
+      response.downloadAccess = {
+        directUrl: audit.deliveryUrl,
+        accessToken: audit.accessToken,
+        message: '🎉 Your audit is ready! Click the link below to view your results.',
+        instructions: 'Your complete audit report, certificate, and security analysis are now available.',
+      };
+    }
+
+    res.json(response);
 
   } catch (error) {
     console.error('❌ Failed to fetch audit status:', error);
@@ -601,6 +680,54 @@ router.get('/admin/stats', isAuthenticated, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch admin statistics',
+    });
+  }
+});
+
+/**
+ * 🏆 GET /api/certificates/:certificateId
+ * Serve certificate files directly (public access)
+ */
+router.get('/certificates/:certificateId', async (req, res) => {
+  try {
+    const certificateId = req.params.certificateId;
+    
+    // Find audit by certificate ID
+    const [audit] = await db.select()
+      .from(smartContractAudits)
+      .where(eq(smartContractAudits.certificateId, certificateId))
+      .limit(1);
+
+    if (!audit || !audit.certificateGenerated) {
+      return res.status(404).json({
+        success: false,
+        error: 'Certificate not found',
+      });
+    }
+
+    // In a real implementation, this would serve the actual PDF/image file
+    // For now, return certificate data as JSON
+    res.json({
+      success: true,
+      certificate: {
+        id: audit.certificateId,
+        projectName: audit.projectName || 'Smart Contract',
+        blockchain: audit.blockchain,
+        contractType: audit.contractType,
+        grade: audit.grade,
+        score: audit.score,
+        auditedBy: 'Coin Railz Security Team',
+        issuedDate: audit.auditCompletedAt,
+        platform: 'Coin Railz Professional Audit Platform',
+        verificationUrl: `https://coinrailz.com/verify/${audit.certificateId}`,
+      },
+    });
+
+  } catch (error) {
+    console.error('❌ Failed to serve certificate:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to serve certificate',
     });
   }
 });

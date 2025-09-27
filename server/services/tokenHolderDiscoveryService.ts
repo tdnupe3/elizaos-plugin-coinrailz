@@ -277,21 +277,70 @@ export class TokenHolderDiscoveryService {
 
   /**
    * 🎯 Get token holders that also trade on PumpFun (crossover audience)
+   * Enhanced with REAL balance checking to ensure wallets can receive messages
    */
   async getPumpFunTradingHolders(
     tokenMint: string,
     maxResults: number = 30
   ): Promise<TokenHolderTarget[]> {
-    const holders = await this.getTopTokenHolders(tokenMint, maxResults * 2);
+    const holders = await this.getTopTokenHolders(tokenMint, maxResults * 3); // Get more to filter
     
-    // Filter for holders with DeFi/DEX activity patterns
-    const pumpfunTraders = holders.filter(holder => 
-      holder.labels.includes('active') && 
-      parseFloat(holder.balanceSOL) >= 1.0 // Minimum SOL for trading
-    );
+    console.log(`🔍 Checking real wallet balances for ${holders.length} potential targets...`);
+    
+    // Check REAL wallet balances to ensure they can receive transactions
+    const fundedHolders: TokenHolderTarget[] = [];
+    
+    for (let i = 0; i < holders.length && fundedHolders.length < maxResults; i++) {
+      const holder = holders[i];
+      
+      try {
+        // Check actual SOL balance via RPC
+        const balance = await this.checkWalletBalance(holder.address);
+        const minRequiredBalance = 0.005; // 0.005 SOL minimum for rent + fees
+        
+        if (balance >= minRequiredBalance) {
+          console.log(`✅ Wallet ${holder.address.slice(0, 8)} has ${balance.toFixed(6)} SOL - FUNDED`);
+          
+          // Update holder with real balance
+          holder.balanceSOL = balance.toFixed(6);
+          holder.labels = [...holder.labels.filter(l => l !== 'unfunded'), 'funded', 'active'];
+          
+          fundedHolders.push(holder);
+        } else {
+          console.log(`❌ Wallet ${holder.address.slice(0, 8)} has ${balance.toFixed(6)} SOL - INSUFFICIENT (need ${minRequiredBalance})`);
+        }
+        
+        // Rate limiting to avoid RPC spam
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (error) {
+        console.log(`⚠️ Could not check balance for ${holder.address.slice(0, 8)}: ${error}`);
+      }
+    }
+    
+    console.log(`🎯 Found ${fundedHolders.length} FUNDED token holders who can receive messages`);
+    return fundedHolders;
+  }
 
-    console.log(`🎯 Found ${pumpfunTraders.length} token holders who are likely PumpFun traders`);
-    return pumpfunTraders.slice(0, maxResults);
+  /**
+   * 🔍 Check actual wallet balance via Solana RPC
+   */
+  private async checkWalletBalance(walletAddress: string): Promise<number> {
+    try {
+      const { Connection, PublicKey, LAMPORTS_PER_SOL } = await import('@solana/web3.js');
+      
+      // Use the proper Helius RPC URL with API key
+      const rpcUrl = `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`;
+      const connection = new Connection(rpcUrl, 'confirmed');
+      
+      const publicKey = new PublicKey(walletAddress);
+      const balance = await connection.getBalance(publicKey);
+      
+      return balance / LAMPORTS_PER_SOL; // Convert lamports to SOL
+    } catch (error) {
+      console.error(`❌ Failed to check balance for ${walletAddress}:`, error);
+      return 0; // Default to unfunded if we can't check
+    }
   }
 }
 

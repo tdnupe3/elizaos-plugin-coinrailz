@@ -434,16 +434,16 @@ export class RealWalletDiscoveryService {
       // Get activity metrics
       const activity = await this.getRecentActivity(address);
       
-      // STRICT: Must have recent activity (within 14 days for traders, 30 days for known entities)
+      // STRICT: Must have recent activity (within 7 days for active traders)
       const daysSinceActive = (Date.now() / 1000 - activity.lastActive) / (24 * 60 * 60);
-      const MAX_DAYS_INACTIVE = 14; // Strict requirement for real active wallets
+      const MAX_DAYS_INACTIVE = 7; // Strict requirement for real active wallets
       if (daysSinceActive > MAX_DAYS_INACTIVE) {
         console.log(`❌ ${address.slice(0, 8)}: No recent activity (${daysSinceActive.toFixed(1)} days > ${MAX_DAYS_INACTIVE} days)`);
         return { isReal: false, reason: `No recent activity (${daysSinceActive.toFixed(1)} days > ${MAX_DAYS_INACTIVE} days)`, ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };
       }
 
-      // STRICT: Must have reasonable transaction activity (at least 10 transactions in 30 days)
-      const MIN_TX_COUNT = 10;
+      // STRICT: Must have reasonable transaction activity (at least 5 transactions in 7 days)
+      const MIN_TX_COUNT = 5;
       if (activity.txCount < MIN_TX_COUNT) {
         console.log(`❌ ${address.slice(0, 8)}: Insufficient transaction history (${activity.txCount} < ${MIN_TX_COUNT})`);
         return { isReal: false, reason: `Insufficient transaction history (${activity.txCount} < ${MIN_TX_COUNT})`, ownerProgram: accountInfo.owner, isExecutable: accountInfo.executable, balanceSOL: balanceSOL.toString(), txCount30d: activity.txCount, dexSwaps30d: activity.dexSwaps, lastActive: new Date(activity.lastActive * 1000), signerRate: activity.signerRate.toString() };

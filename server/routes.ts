@@ -345,6 +345,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/solana-outreach', await import('./routes/solanaOutreachRoutes').then(m => m.solanaOutreachRoutes));
   app.use('/api/solana-premium', await import('./routes/solanaPremiumRoutes').then(m => m.solanaPremiumRoutes));
   app.use('/api/solana-messaging', solanaMessagingRoutes);
+  app.use('/api/emergency-funding', await import('./routes/emergencyFundingRoutes').then(m => m.default));
   
   // 🚀 $5K Coinbase Advertising Service - .cb.id & .base.eth outreach
   app.use('/api/coinbase-advertising', await import('./routes/coinbaseAdvertisingRoutes').then(m => m.default));

@@ -59,6 +59,12 @@ export default function AdminAnalytics() {
     refetchInterval: 5000, // Refresh every 5 seconds
   });
 
+  const { data: messagingAnalytics, isLoading: messagingLoading } = useQuery({
+    queryKey: ['/api/solana-messaging/campaigns/analytics'],
+    enabled: isAuthenticated,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
   const dashboardData: AnalyticsDashboard = analytics || {
     performance: { avgPageLoad: 0, avgAPIResponse: 0, totalPageViews: 0, totalAPIRequests: 0 },
     errors: { totalErrors: 0, criticalErrors: 0, errorsByComponent: {}, recentErrors: [] },
@@ -110,8 +116,9 @@ export default function AdminAnalytics() {
 
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="messaging">Messaging</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="errors">Errors</TabsTrigger>
             <TabsTrigger value="business">Business</TabsTrigger>
@@ -239,6 +246,187 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Messaging Campaigns Tab */}
+          <TabsContent value="messaging" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Solana Messaging Campaigns</h2>
+              <Badge className="bg-blue-100 text-blue-800">Active</Badge>
+            </div>
+
+            {/* Campaign Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
+                    <p className="text-3xl font-bold text-blue-600">
+                      {messagingAnalytics?.analytics?.overall?.totalCampaigns || 0}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Messages Sent</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {messagingAnalytics?.analytics?.overall?.totalMessages || 0}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Success Rate</p>
+                    <p className="text-3xl font-bold text-purple-600">
+                      {messagingAnalytics?.analytics?.overall?.successRate || 0}%
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-gray-600">Total Cost</p>
+                    <p className="text-3xl font-bold text-orange-600">
+                      {messagingAnalytics?.analytics?.overall?.totalCost || 0} SOL
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Campaign Details */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    🚨 Emergency Funding
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {messagingLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Messages Sent</span>
+                        <Badge className="bg-green-100 text-green-800">
+                          {messagingAnalytics?.analytics?.emergencyFunding?.totalMessages || 0}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Success Rate</span>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          {messagingAnalytics?.analytics?.emergencyFunding?.successRate || 0}%
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Total Cost</span>
+                        <Badge className="bg-purple-100 text-purple-800">
+                          {messagingAnalytics?.analytics?.emergencyFunding?.totalCost || 0} SOL
+                        </Badge>
+                      </div>
+                      {messagingAnalytics?.analytics?.emergencyFunding?.recentTransactions?.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium mb-2">Recent Transactions:</p>
+                          <div className="bg-gray-50 p-3 rounded text-xs font-mono">
+                            {messagingAnalytics.analytics.emergencyFunding.recentTransactions[0]?.slice(0, 32)}...
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    🤖 Service Marketing
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {messagingLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Messages Sent</span>
+                        <Badge className="bg-green-100 text-green-800">
+                          {messagingAnalytics?.analytics?.serviceMarketing?.totalMessages || 0}
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Success Rate</span>
+                        <Badge className="bg-blue-100 text-blue-800">
+                          {messagingAnalytics?.analytics?.serviceMarketing?.successRate || 0}%
+                        </Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm font-medium">Total Cost</span>
+                        <Badge className="bg-purple-100 text-purple-800">
+                          {messagingAnalytics?.analytics?.serviceMarketing?.totalCost || 0} SOL
+                        </Badge>
+                      </div>
+                      {messagingAnalytics?.analytics?.serviceMarketing?.recentTransactions?.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-sm font-medium mb-2">Recent Transactions:</p>
+                          <div className="space-y-1">
+                            {messagingAnalytics.analytics.serviceMarketing.recentTransactions.slice(0, 3).map((tx, i) => (
+                              <div key={i} className="bg-gray-50 p-2 rounded text-xs font-mono">
+                                {tx?.slice(0, 32)}...
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Wallet Status */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  💰 Platform Wallet Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <p className="text-sm font-medium text-gray-600">Current Balance</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {messagingAnalytics?.analytics?.overall?.walletBalance || 0} SOL
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <p className="text-sm font-medium text-gray-600">Campaign Types</p>
+                    <p className="text-lg font-bold text-blue-600">
+                      {messagingAnalytics?.analytics?.overall?.targetTypes?.length || 0} Types
+                    </p>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <p className="text-sm font-medium text-gray-600">Active Targets</p>
+                    <p className="text-lg font-bold text-purple-600">
+                      {messagingAnalytics?.analytics?.overall?.activeTargets?.length || 0} Labels
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Performance Tab */}

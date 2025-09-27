@@ -46,6 +46,7 @@ import { registerCircleStatusRoutes } from "./routes/circleStatus";
 import agentDiscoveryRoutes from "./routes/agentDiscoveryRoutes";
 import revolutionaryPaymentRoutes from "./routes/revolutionaryPaymentRoutes";
 import walletAccessRoutes from "./routes/walletAccessRoutes";
+import { solanaMessagingRoutes } from "./routes/solanaMessagingRoutes";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
@@ -343,6 +344,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/b2b-marketing', await import('./routes/b2bMarketingRoutes').then(m => m.default));
   app.use('/api/solana-outreach', await import('./routes/solanaOutreachRoutes').then(m => m.solanaOutreachRoutes));
   app.use('/api/solana-premium', await import('./routes/solanaPremiumRoutes').then(m => m.solanaPremiumRoutes));
+  app.use('/api/solana-messaging', solanaMessagingRoutes);
   
   // 🚀 $5K Coinbase Advertising Service - .cb.id & .base.eth outreach
   app.use('/api/coinbase-advertising', await import('./routes/coinbaseAdvertisingRoutes').then(m => m.default));

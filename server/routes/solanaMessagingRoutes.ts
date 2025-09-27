@@ -379,19 +379,91 @@ router.post('/market-to-token-holders', async (req, res) => {
       });
     }
     
-    // Create simple campaign targeting token holders
+    // Create REAL blockchain messaging campaign
     const campaign = {
       id: `token_marketing_${Date.now()}`,
       name: `Token Holder Marketing - ${tokenMint.slice(0, 8)}...`,
-      status: execute ? 'completed' : 'ready',
+      status: 'active',
       analytics: {
         targetedWallets: holders.length,
-        messagesSent: execute ? holders.length : 0,
-        messagesDelivered: execute ? holders.length : 0,
-        totalCost: execute ? holders.length * 0.0001 : 0,
-        successRate: execute ? 100 : 0
+        messagesSent: 0,
+        messagesDelivered: 0,
+        totalCost: 0,
+        successRate: 0
       }
     };
+
+    // Execute REAL blockchain transactions if requested
+    if (execute) {
+      console.log(`🚀 EXECUTING REAL BLOCKCHAIN MESSAGING TO ${holders.length} TOKEN HOLDERS`);
+      
+      let successfulMessages = 0;
+      let totalCost = 0;
+      const transactionHashes: string[] = [];
+      
+      for (let i = 0; i < holders.length; i++) {
+        const holder = holders[i];
+        console.log(`📤 Sending blockchain message ${i + 1}/${holders.length} to ${holder.address.slice(0, 8)}...`);
+        
+        try {
+          // Create blockchain message
+          const blockchainMessage = {
+            id: `msg_${Date.now()}_${i}`,
+            recipientAddress: holder.address,
+            messageType: 'service_marketing' as const,
+            content: message,
+            status: 'pending' as const,
+            timestamp: new Date(),
+            cost: 0.0001,
+            metadata: {
+              recipientType: 'token_holder',
+              labels: holder.labels,
+              balanceSOL: holder.balanceSOL,
+              lastActive: holder.lastActive
+            }
+          };
+          
+          // Send REAL blockchain transaction
+          const result = await solanaBlockchainMessaging.sendOnChainMessage(blockchainMessage);
+          
+          if (result.success && result.txHash) {
+            successfulMessages++;
+            totalCost += 0.0001;
+            transactionHashes.push(result.txHash);
+            console.log(`✅ REAL TRANSACTION SUCCESS ${i + 1}: ${result.txHash}`);
+            console.log(`🔍 Verify on Solscan: https://solscan.io/tx/${result.txHash}`);
+          } else {
+            console.log(`❌ Transaction failed for ${holder.address}: ${result.error}`);
+          }
+          
+          // Rate limiting between transactions
+          if (i < holders.length - 1) {
+            console.log(`⏳ Waiting 2 seconds before next transaction...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+          
+        } catch (error) {
+          console.error(`❌ Error sending to ${holder.address}:`, error);
+        }
+      }
+      
+      // Update campaign with REAL results
+      campaign.status = 'completed';
+      campaign.analytics = {
+        targetedWallets: holders.length,
+        messagesSent: successfulMessages,
+        messagesDelivered: successfulMessages,
+        totalCost: totalCost,
+        successRate: holders.length > 0 ? (successfulMessages / holders.length) * 100 : 0
+      };
+      
+      console.log(`🏁 CAMPAIGN COMPLETE: ${successfulMessages}/${holders.length} real blockchain transactions sent`);
+      console.log(`💰 Total cost: ${totalCost} SOL`);
+      console.log(`📊 Success rate: ${campaign.analytics.successRate.toFixed(1)}%`);
+      if (transactionHashes.length > 0) {
+        console.log(`🔗 Transaction hashes:`, transactionHashes);
+      }
+    }
     
     res.json({
       success: true,
@@ -403,6 +475,85 @@ router.post('/market-to-token-holders', async (req, res) => {
     
   } catch (error) {
     console.error('❌ Token holder marketing error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
+/**
+ * 🔍 GET /api/solana-messaging/check-wallet-status
+ * Check Solana wallet funding and connection status
+ */
+router.get('/check-wallet-status', async (req, res) => {
+  try {
+    const messaging = solanaBlockchainMessaging;
+    
+    // Check if wallet is initialized
+    const walletInitialized = messaging['platformWallet'] !== null;
+    const connectionActive = messaging['connection'] !== null;
+    
+    let walletInfo = {
+      initialized: walletInitialized,
+      connectionActive: connectionActive,
+      network: 'mainnet-beta',
+      balance: '0',
+      balanceUSD: '0',
+      publicKey: '',
+      canSendTransactions: false,
+      fundingRequired: true
+    };
+    
+    if (walletInitialized && messaging['platformWallet']) {
+      const publicKey = messaging['platformWallet'].publicKey.toString();
+      walletInfo.publicKey = publicKey;
+      
+      try {
+        // Check balance
+        const balance = await messaging['connection'].getBalance(messaging['platformWallet'].publicKey);
+        const balanceSOL = balance / 1000000000; // Convert lamports to SOL
+        const solPrice = 240; // Approximate SOL price in USD
+        
+        walletInfo.balance = balanceSOL.toFixed(6) + ' SOL';
+        walletInfo.balanceUSD = (balanceSOL * solPrice).toFixed(2) + ' USD';
+        walletInfo.canSendTransactions = balance > 5000; // Need at least 0.000005 SOL for tx fees
+        walletInfo.fundingRequired = balance === 0;
+        
+      } catch (error) {
+        console.error('❌ Failed to check wallet balance:', error);
+        walletInfo.balance = 'Error checking balance';
+      }
+    }
+    
+    const fundingInstructions = {
+      title: "How to Fund Your Solana Wallet for Real Transactions",
+      currentStatus: walletInfo.fundingRequired ? "⚠️ WALLET NEEDS FUNDING" : "✅ WALLET FUNDED",
+      steps: [
+        "1. Copy wallet address: " + walletInfo.publicKey,
+        "2. Send SOL to this address from any Solana wallet (Phantom, Solflare, etc.)",
+        "3. Minimum: 0.01 SOL (~$2.40) for testing",
+        "4. Recommended: 0.1 SOL (~$24) for full campaigns"
+      ],
+      exchanges: [
+        "Coinbase: Buy SOL, then withdraw to wallet address",
+        "Binance: Buy SOL, then withdraw to wallet address", 
+        "Jupiter Swap: Trade other tokens for SOL on-chain"
+      ]
+    };
+    
+    res.json({
+      success: true,
+      walletStatus: walletInfo,
+      funding: fundingInstructions,
+      secretsStatus: {
+        solanaPrivateKey: process.env.SOLANA_PRIVATE_KEY ? 'CONFIGURED ✅' : 'MISSING ❌',
+        helianAPIKey: process.env.HELIUS_API_KEY ? 'CONFIGURED ✅' : 'MISSING ❌'
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Wallet status check error:', error);
     res.status(500).json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 

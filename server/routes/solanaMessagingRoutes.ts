@@ -711,4 +711,167 @@ router.get('/how-to-check', async (req, res) => {
   }
 });
 
+// 🧪 Direct blockchain query test endpoint
+router.post('/direct-blockchain-test', async (req, res) => {
+  try {
+    const { tokenMint, maxHolders = 5 } = req.body;
+    
+    console.log(`🧪 DIRECT BLOCKCHAIN TEST: Testing token ${tokenMint.slice(0,8)}...`);
+    
+    const tokenHolderService = new TokenHolderDiscoveryService();
+    const results = await tokenHolderService.queryTokenHoldersDirectly(tokenMint, maxHolders);
+    
+    console.log(`🧪 DIRECT TEST RESULTS: Found ${results.length} holders`);
+    
+    const response = {
+      success: true,
+      tokenMint: tokenMint.slice(0,8),
+      holderCount: results.length,
+      holders: results.map(h => ({
+        address: `${h.address.slice(0,8)}...`,
+        tokenBalance: h.tokenBalance,
+        rank: h.rank,
+        percentage: h.percentage.toFixed(2) + '%'
+      })),
+      message: results.length > 0 ? 
+        `Successfully found ${results.length} token holders via direct blockchain query` :
+        'No token holders found with direct blockchain query'
+    };
+    
+    res.json(response);
+    
+  } catch (error) {
+    console.error('❌ Direct blockchain test failed:', error);
+    res.json({
+      success: false,
+      error: error.message,
+      message: 'Direct blockchain query failed'
+    });
+  }
+});
+
+// 🚀 Streamlined direct blockchain marketing endpoint (bypasses all API issues)
+router.post('/direct-blockchain-marketing', async (req, res) => {
+  try {
+    const { tokenMint, message, maxTargets = 10, execute = false } = req.body;
+    
+    console.log(`🚀 STREAMLINED MARKETING: Direct blockchain targeting for ${tokenMint.slice(0,8)}...`);
+    
+    // Use ONLY the working direct blockchain method
+    const tokenHolderService = new TokenHolderDiscoveryService();
+    const holders = await tokenHolderService.queryTokenHoldersDirectly(tokenMint, maxTargets);
+    
+    if (holders.length === 0) {
+      return res.json({
+        success: false,
+        message: "No token holders found for this token address"
+      });
+    }
+    
+    console.log(`✅ DIRECT SUCCESS: Found ${holders.length} real blockchain holders`);
+    
+    // Filter for funded wallets only
+    const fundedHolders = [];
+    for (const holder of holders) {
+      const balance = await tokenHolderService.checkWalletBalance(holder.address);
+      if (balance >= 0.005) { // Minimum SOL for transactions
+        fundedHolders.push({
+          ...holder,
+          balanceSOL: balance.toFixed(6)
+        });
+      }
+    }
+    
+    console.log(`💰 FUNDED HOLDERS: ${fundedHolders.length}/${holders.length} have sufficient SOL`);
+    
+    const campaign = {
+      id: `direct_${Date.now()}`,
+      tokenMint: tokenMint.slice(0, 8),
+      message,
+      targetedWallets: fundedHolders.length,
+      status: execute ? 'executing' : 'ready',
+      holders: fundedHolders.map(h => ({
+        address: `${h.address.slice(0,8)}...`,
+        tokenBalance: h.tokenBalance,
+        rank: h.rank,
+        percentage: `${h.percentage.toFixed(2)}%`,
+        solBalance: h.balanceSOL
+      }))
+    };
+    
+    if (execute && fundedHolders.length > 0) {
+      console.log(`🚀 EXECUTING REAL BLOCKCHAIN MESSAGES to ${fundedHolders.length} funded holders...`);
+      
+      let successCount = 0;
+      const transactions = [];
+      
+      for (let i = 0; i < Math.min(fundedHolders.length, 3); i++) { // Limit for testing
+        const holder = fundedHolders[i];
+        console.log(`📤 Sending to holder ${i + 1}: ${holder.address.slice(0,8)}... (${holder.balanceSOL} SOL)`);
+        
+        try {
+          const blockchainMessage = {
+            id: `msg_${Date.now()}_${i}`,
+            recipientAddress: holder.address,
+            messageType: 'service_marketing' as const,
+            content: message,
+            status: 'pending' as const,
+            timestamp: new Date(),
+            cost: 0.0001,
+            metadata: {
+              recipientType: 'token_holder',
+              tokenMint,
+              solBalance: holder.balanceSOL
+            }
+          };
+          
+          const result = await solanaBlockchainMessaging.sendOnChainMessage(blockchainMessage);
+          
+          if (result.success && result.txHash) {
+            successCount++;
+            transactions.push(result.txHash);
+            console.log(`✅ SUCCESS ${i + 1}: ${result.txHash}`);
+            console.log(`🔍 Verify: https://solscan.io/tx/${result.txHash}`);
+          } else {
+            console.log(`❌ FAILED ${i + 1}: ${result.error}`);
+          }
+          
+          // Rate limiting
+          if (i < fundedHolders.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          }
+          
+        } catch (error) {
+          console.error(`❌ Error sending to ${holder.address}:`, error);
+        }
+      }
+      
+      campaign.status = 'completed';
+      campaign.results = {
+        messagesSent: successCount,
+        transactionHashes: transactions,
+        totalCost: successCount * 0.0001,
+        successRate: fundedHolders.length > 0 ? (successCount / Math.min(fundedHolders.length, 3)) * 100 : 0
+      };
+      
+      console.log(`🏁 CAMPAIGN COMPLETE: ${successCount} messages sent with ${transactions.length} transaction hashes`);
+    }
+    
+    res.json({
+      success: true,
+      campaign,
+      message: execute 
+        ? `Direct blockchain marketing executed: ${campaign.results?.messagesSent || 0} messages sent`
+        : `Campaign ready targeting ${fundedHolders.length} funded token holders`
+    });
+    
+  } catch (error) {
+    console.error('❌ Direct blockchain marketing error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
 export { router as solanaMessagingRoutes };

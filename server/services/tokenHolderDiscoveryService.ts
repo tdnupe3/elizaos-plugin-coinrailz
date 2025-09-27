@@ -70,8 +70,21 @@ export class TokenHolderDiscoveryService {
           }
         } catch (error) {
           console.error('❌ Helius API error:', error);
-          console.log(`🔄 Fallback: Using representative holder addresses`);
-          realHolders = await this.getRepresentativeHolders(tokenMint, maxHolders);
+          console.log(`🔄 Trying direct blockchain query as fallback...`);
+          try {
+            const directResults = await this.queryTokenHoldersDirectly(tokenMint, maxHolders);
+            if (directResults.length > 0) {
+              realHolders = directResults;
+              console.log(`✅ Direct blockchain query found ${realHolders.length} holders`);
+            } else {
+              console.log(`🔄 Direct query also failed, using representative holder addresses`);
+              realHolders = await this.getRepresentativeHolders(tokenMint, maxHolders);
+            }
+          } catch (directError) {
+            console.error('❌ Direct blockchain query also failed:', directError);
+            console.log(`🔄 Final fallback: Using representative holder addresses`);
+            realHolders = await this.getRepresentativeHolders(tokenMint, maxHolders);
+          }
         }
       } else {
         console.log(`⚠️ HELIUS_API_KEY missing - using representative addresses`);
@@ -93,40 +106,62 @@ export class TokenHolderDiscoveryService {
   }
 
   /**
-   * 🔍 Query real token holders from Helius API
+   * 🔍 Query real token holders from Helius API (with blockchain fallback)
    */
   private async queryRealTokenHolders(tokenMint: string, maxHolders: number): Promise<TokenHolderTarget[]> {
     try {
+      console.log(`🔍 Trying Helius getTokenLargestAccounts first...`);
       const endpoint = `${this.heliusEndpoint}/?api-key=${this.heliusApiKey}`;
       
-      const response = await axios.post(endpoint, {
-        jsonrpc: '2.0',
-        id: 'token-holders-query',
-        method: 'getTokenLargestAccounts',
-        params: [tokenMint, { commitment: 'confirmed' }]
+      // Try the correct Helius API endpoint for PumpFun tokens  
+      const heliusTokenEndpoint = `https://api.helius.xyz/v0/addresses/${tokenMint}/token-accounts`;
+      const response = await axios.get(heliusTokenEndpoint, {
+        headers: {
+          'Authorization': `Bearer ${this.heliusApiKey}`
+        }
       });
 
-      if (!response.data?.result?.value) {
-        throw new Error('No holder data returned from Helius');
+      if (!response.data || !response.data.length || response.data.length === 0) {
+        console.log(`⚠️ Helius token accounts API returned no data, trying direct blockchain query...`);
+        return await this.queryTokenHoldersDirectly(tokenMint, maxHolders);
       }
 
-      const holders = response.data.result.value;
+      const tokenAccounts = response.data;
+      console.log(`✅ Found ${tokenAccounts.length} token accounts from Helius API`);
+      
+      // Aggregate holders by owner and sort by balance
+      const holderMap = new Map();
+      for (const account of tokenAccounts) {
+        const owner = account.owner;
+        const balance = parseFloat(account.amount || '0');
+        
+        if (balance > 0) {
+          const existing = holderMap.get(owner) || { balance: 0, owner };
+          existing.balance += balance;
+          holderMap.set(owner, existing);
+        }
+      }
+      
+      const holders = Array.from(holderMap.values())
+        .sort((a, b) => b.balance - a.balance)
+        .slice(0, maxHolders);
       const targets: TokenHolderTarget[] = [];
 
-      for (let i = 0; i < Math.min(maxHolders, holders.length); i++) {
+      const totalSupply = holders.reduce((sum: number, h: any) => sum + h.balance, 0);
+      
+      for (let i = 0; i < holders.length; i++) {
         const holder = holders[i];
         const rank = i + 1;
         
         // Calculate percentage and other metadata
-        const totalSupply = holders.reduce((sum: number, h: any) => sum + h.uiAmount, 0);
-        const percentage = totalSupply > 0 ? (holder.uiAmount / totalSupply) * 100 : 0;
+        const percentage = totalSupply > 0 ? (holder.balance / totalSupply) * 100 : 0;
         
         // Get SOL balance for this address
-        const solBalance = await this.getAddressSOLBalance(holder.address);
+        const solBalance = await this.getAddressSOLBalance(holder.owner);
         
         const target: TokenHolderTarget = {
-          address: holder.address,
-          tokenBalance: holder.uiAmount.toString(),
+          address: holder.owner,
+          tokenBalance: holder.balance.toString(),
           rank,
           percentage,
           entityType: 'token_holder',
@@ -147,6 +182,109 @@ export class TokenHolderDiscoveryService {
       return targets;
     } catch (error) {
       console.error('❌ Helius API query failed:', error);
+      // Don't handle the error here - let it bubble up to higher level
+      throw error;
+    }
+  }
+
+  /**
+   * 🔍 Query token holders directly from Solana blockchain using getProgramAccounts
+   */
+  private async queryTokenHoldersDirectly(tokenMint: string, maxHolders: number): Promise<TokenHolderTarget[]> {
+    try {
+      console.log(`🔍 DIRECT BLOCKCHAIN QUERY: Using getProgramAccounts for token ${tokenMint.slice(0,8)}...`);
+      
+      const { Connection, PublicKey } = await import('@solana/web3.js');
+      const { TOKEN_PROGRAM_ID } = await import('@solana/spl-token');
+      
+      // Use Helius RPC for the connection
+      const rpcUrl = `https://mainnet.helius-rpc.com/?api-key=${this.heliusApiKey}`;
+      const connection = new Connection(rpcUrl, 'confirmed');
+      
+      const mintPublicKey = new PublicKey(tokenMint);
+      
+      // Get all token accounts for this mint
+      console.log(`🔍 Getting all token accounts for mint ${tokenMint.slice(0,8)}...`);
+      const tokenAccounts = await connection.getParsedProgramAccounts(TOKEN_PROGRAM_ID, {
+        filters: [
+          {
+            dataSize: 165, // Size of token account
+          },
+          {
+            memcmp: {
+              offset: 0, // Mint address offset in token account  
+              bytes: mintPublicKey.toBase58(),
+            },
+          },
+        ],
+      });
+
+      console.log(`✅ Found ${tokenAccounts.length} token accounts`);
+
+      // Process token accounts to get holders with balances
+      const holders: any[] = [];
+      for (const accountInfo of tokenAccounts) {
+        const parsedInfo = accountInfo.account.data.parsed?.info;
+        if (parsedInfo && parsedInfo.tokenAmount && parseFloat(parsedInfo.tokenAmount.uiAmount) > 0) {
+          holders.push({
+            owner: parsedInfo.owner,
+            balance: parseFloat(parsedInfo.tokenAmount.uiAmount),
+            decimals: parsedInfo.tokenAmount.decimals,
+            address: parsedInfo.owner // The wallet address that owns the token account
+          });
+        }
+      }
+
+      // Sort by balance (highest first) and aggregate by owner (in case of multiple token accounts)
+      const aggregatedHolders = new Map();
+      holders.forEach(holder => {
+        const existing = aggregatedHolders.get(holder.owner) || { balance: 0, address: holder.owner };
+        existing.balance += holder.balance;
+        aggregatedHolders.set(holder.owner, existing);
+      });
+
+      const sortedHolders = Array.from(aggregatedHolders.values())
+        .sort((a, b) => b.balance - a.balance)
+        .slice(0, maxHolders);
+
+      console.log(`🏆 Top ${sortedHolders.length} holders found via direct blockchain query`);
+
+      // Convert to TokenHolderTarget format
+      const targets: TokenHolderTarget[] = [];
+      const totalSupply = sortedHolders.reduce((sum, h) => sum + h.balance, 0);
+
+      for (let i = 0; i < sortedHolders.length; i++) {
+        const holder = sortedHolders[i];
+        const rank = i + 1;
+        const percentage = totalSupply > 0 ? (holder.balance / totalSupply) * 100 : 0;
+        
+        // Get SOL balance for this address
+        const solBalance = await this.getAddressSOLBalance(holder.address);
+        
+        const target: TokenHolderTarget = {
+          address: holder.address,
+          tokenBalance: holder.balance.toString(),
+          rank,
+          percentage,
+          entityType: 'token_holder',
+          labels: this.generateHolderLabels(rank, percentage, solBalance),
+          balanceSOL: solBalance.toFixed(4),
+          lastActive: new Date(),
+          confidence: rank <= 10 ? 0.95 : 0.85,
+          metadata: {
+            tokenMint,
+            tokenSymbol: 'EARLY',
+            tokenName: 'Early Token',
+          }
+        };
+        
+        targets.push(target);
+      }
+
+      return targets;
+
+    } catch (error) {
+      console.error('❌ Direct blockchain query failed:', error);
       return [];
     }
   }

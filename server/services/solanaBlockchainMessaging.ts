@@ -5,7 +5,7 @@
  * Targets discovered wallets with emergency funding requests and service marketing
  */
 
-import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction, SystemProgram, sendAndConfirmTransaction } from '@solana/web3.js';
+import { Connection, PublicKey, Keypair, Transaction, TransactionInstruction, SystemProgram, sendAndConfirmTransaction, ComputeBudgetProgram, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { realWalletDiscoveryService } from './realWalletDiscoveryService.js';
 import { storage } from '../storage.js';
@@ -98,7 +98,7 @@ export class SolanaBlockchainMessaging {
         requiredLabels: ['dex_trader', 'active'], // Must be active DEX traders
         maxTargets: 50 // Start with 50 high-value targets
       },
-      messageTemplate: `🚨 URGENT FUNDING REQUEST\n\nPumpFun trader - Built AI marketplace with USDC payment processing\n\n💰 REQUEST: $2.5K-10K\n🔄 TERMS: 20% equity OR 2x return (60 days)\n📊 PROOF: coinrailz.com (live platform)\n\n🎯 PLATFORM:\n• 25+ Circle USDC wallets\n• $1K smart contract audits\n• Multi-chain payments\n• PumpFun copy trading\n\n📈 $0 current, $50K+ projected monthly\n⚡ USE: Scaling Solana ecosystem marketing\n\n📧 funding@coinrailz.com\nReal infrastructure, not concept`,
+      messageTemplate: `🚨 URGENT: $3K funding req\n💰 Live fintech platform\n🔄 20% equity OR 2x return\n📊 coinrailz.com\n📧 funding@coinrailz.com`,
       status: 'draft',
       messages: [],
       analytics: {
@@ -297,6 +297,12 @@ export class SolanaBlockchainMessaging {
       // Create transaction with memo instruction
       const transaction = new Transaction();
       
+      // Add compute budget for memo operations
+      const computeBudgetInstruction = ComputeBudgetProgram.setComputeUnitLimit({
+        units: 300_000 // Increase compute units for memo
+      });
+      transaction.add(computeBudgetInstruction);
+      
       // Add memo instruction with the message
       const memoInstruction = new TransactionInstruction({
         keys: [],
@@ -342,33 +348,71 @@ export class SolanaBlockchainMessaging {
    * 🚀 Execute messaging campaign
    */
   async executeCampaign(campaign: MessagingCampaign): Promise<MessagingCampaign> {
-    console.log(`🚀 Executing campaign: ${campaign.name} (${campaign.messages.length} messages)`);
+    console.log(`🚀 EXECUTING CAMPAIGN: ${campaign.name} (${campaign.messages.length} messages)`);
+    
+    // CRITICAL DEBUG: Check wallet and connection status
+    console.log(`🔍 WALLET STATUS: ${this.platformWallet ? 'INITIALIZED' : 'NOT INITIALIZED'}`);
+    console.log(`🔍 CONNECTION STATUS: ${this.connection ? 'CONNECTED' : 'NOT CONNECTED'}`);
+    
+    if (!this.platformWallet) {
+      console.error('❌ CRITICAL: Platform wallet not initialized');
+      campaign.status = 'failed';
+      return campaign;
+    }
+    
+    if (!this.connection) {
+      console.error('❌ CRITICAL: Solana connection not established');
+      campaign.status = 'failed';
+      return campaign;
+    }
+    
+    // Check wallet balance
+    try {
+      const balance = await this.connection.getBalance(this.platformWallet.publicKey);
+      console.log(`💰 WALLET BALANCE: ${(balance / LAMPORTS_PER_SOL).toFixed(6)} SOL`);
+      
+      if (balance === 0) {
+        console.error('❌ CRITICAL: Wallet has no SOL balance for transactions');
+        campaign.status = 'failed';
+        return campaign;
+      }
+    } catch (error) {
+      console.error('❌ FAILED to check wallet balance:', error);
+    }
     
     campaign.status = 'active';
     let successCount = 0;
     let totalCost = 0;
     
+    console.log(`🔍 CAMPAIGN DEBUG: Starting loop for ${campaign.messages.length} messages`);
+    
     for (let i = 0; i < campaign.messages.length; i++) {
       const message = campaign.messages[i];
       
-      console.log(`📤 Sending message ${i + 1}/${campaign.messages.length} to ${message.recipientAddress.slice(0, 8)}...`);
+      console.log(`📤 SENDING MESSAGE ${i + 1}/${campaign.messages.length}:`);
+      console.log(`  🎯 Recipient: ${message.recipientAddress}`);
+      console.log(`  📝 Content: ${message.content.slice(0, 100)}...`);
+      console.log(`  💰 Estimated Cost: ${message.cost} SOL`);
       
       const result = await this.sendOnChainMessage(message);
+      
+      console.log(`📊 MESSAGE ${i + 1} RESULT:`, JSON.stringify(result, null, 2));
       
       if (result.success) {
         message.status = 'sent';
         message.txHash = result.txHash;
         successCount++;
         totalCost += message.cost;
-        console.log(`✅ Message ${i + 1} sent successfully: ${result.txHash}`);
+        console.log(`✅ MESSAGE ${i + 1} SUCCESS: ${result.txHash}`);
       } else {
         message.status = 'failed';
-        console.log(`❌ Message ${i + 1} failed: ${result.error}`);
+        console.log(`❌ MESSAGE ${i + 1} FAILED: ${result.error}`);
       }
       
       // Rate limiting to avoid spam detection and RPC limits
       if (i < campaign.messages.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between messages
+        console.log(`⏳ WAITING 2 seconds before next message...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
     
@@ -376,11 +420,13 @@ export class SolanaBlockchainMessaging {
     campaign.analytics.messagesSent = successCount;
     campaign.analytics.messagesDelivered = successCount; // On Solana, sent = delivered
     campaign.analytics.totalCost = totalCost;
-    campaign.analytics.successRate = (successCount / campaign.messages.length) * 100;
+    campaign.analytics.successRate = campaign.messages.length > 0 ? (successCount / campaign.messages.length) * 100 : 0;
     campaign.status = 'completed';
     
-    console.log(`✅ Campaign completed: ${successCount}/${campaign.messages.length} messages sent (${campaign.analytics.successRate.toFixed(1)}% success rate)`);
-    console.log(`💰 Total cost: ${totalCost.toFixed(6)} SOL`);
+    console.log(`🏁 CAMPAIGN EXECUTION COMPLETE:`);
+    console.log(`  📊 Success: ${successCount}/${campaign.messages.length} messages`);
+    console.log(`  📈 Success Rate: ${campaign.analytics.successRate.toFixed(1)}%`);
+    console.log(`  💰 Total Cost: ${totalCost.toFixed(6)} SOL`);
     
     return campaign;
   }

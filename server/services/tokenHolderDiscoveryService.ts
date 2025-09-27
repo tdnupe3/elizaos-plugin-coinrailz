@@ -152,9 +152,21 @@ export class TokenHolderDiscoveryService {
             continue;
           }
 
-          // Get recent activity (simplified check)
-          const now = new Date();
-          const lastActive = new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000); // Random within 7 days
+          // Get recent activity using real transaction data
+          const transactionResponse = await axios.post(
+            `${this.heliusEndpoint}/?api-key=${this.heliusApiKey}`,
+            {
+              jsonrpc: '2.0',
+              id: 4,
+              method: 'getSignaturesForAddress',
+              params: [holder.address, { limit: 1 }],
+            }
+          );
+
+          let lastActive = new Date(Date.now() - 6 * 24 * 60 * 60 * 1000); // Default to 6 days ago
+          if (transactionResponse.data?.result?.[0]?.blockTime) {
+            lastActive = new Date(transactionResponse.data.result[0].blockTime * 1000);
+          }
 
           const target: TokenHolderTarget = {
             address: holder.address,

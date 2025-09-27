@@ -127,7 +127,7 @@ export class SolanaBlockchainMessaging {
       );
       
       const balanceCheck = parseFloat(target.balanceSOL) >= 0.5; // Lower balance requirement
-      const activityCheck = daysSinceActive <= 14; // More lenient activity window
+      const activityCheck = daysSinceActive <= 7; // Strict 7-day activity window
       
       console.log(`🔍 Target ${target.address.slice(0, 8)}: balance=${target.balanceSOL} (${balanceCheck}), days=${daysSinceActive.toFixed(1)} (${activityCheck}), labels=${target.labels.join(',')} (${hasRequiredLabels})`);
       

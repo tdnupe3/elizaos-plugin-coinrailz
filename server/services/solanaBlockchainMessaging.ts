@@ -428,7 +428,7 @@ export class SolanaBlockchainMessaging {
   /**
    * 🎯 Test messaging system with small batch
    */
-  async testMessagingSystem(targetCount: number = 3): Promise<{
+  async testMessagingSystem(targetCount: number = 3, customRecipient?: string): Promise<{
     success: boolean;
     messagesSent: number;
     totalCost: number;
@@ -463,9 +463,9 @@ export class SolanaBlockchainMessaging {
     // Use direct test targets (bypassing discovery service entirely)
     const testTargets = [
       {
-        address: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5', // Platform wallet (safe for testing)
-        entityType: 'test_wallet',
-        labels: ['test'],
+        address: customRecipient || '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5', // Use custom recipient or platform wallet
+        entityType: customRecipient ? 'early_token_holder' : 'test_wallet',
+        labels: customRecipient ? ['early_holder', 'target'] : ['test'],
         balanceSOL: '10.0',
         lastActive: new Date(),
         confidence: 1.0

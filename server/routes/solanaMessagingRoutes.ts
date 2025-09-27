@@ -148,11 +148,14 @@ router.post('/service-marketing', async (req, res) => {
  */
 router.post('/test', async (req, res) => {
   try {
-    const { targetCount = 3 } = req.body;
+    const { targetCount = 3, recipientAddress } = req.body;
     
     console.log(`🧪 Testing messaging system with ${targetCount} targets...`);
+    if (recipientAddress) {
+      console.log(`🎯 Custom recipient specified: ${recipientAddress}`);
+    }
     
-    const testResults = await solanaBlockchainMessaging.testMessagingSystem(targetCount);
+    const testResults = await solanaBlockchainMessaging.testMessagingSystem(targetCount, recipientAddress);
     
     res.json({
       success: true,

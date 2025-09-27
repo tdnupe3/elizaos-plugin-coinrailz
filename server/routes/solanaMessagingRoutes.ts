@@ -9,6 +9,37 @@ import { solanaBlockchainMessaging } from '../services/solanaBlockchainMessaging
 
 const router = Router();
 
+// Test PumpFun trader discovery  
+router.post('/test-pumpfun-discovery', async (req, res) => {
+  try {
+    console.log('🔍 Testing PumpFun trader discovery...');
+    const { RealWalletDiscoveryService } = await import('../services/realWalletDiscoveryService.js');
+    const realWalletDiscovery = new RealWalletDiscoveryService();
+    
+    const traders = await realWalletDiscovery.discoverPumpFunTraders(10);
+    
+    res.json({
+      success: true,
+      tradersFound: traders.length,
+      traders: traders.map(trader => ({
+        address: trader.address,
+        balanceSOL: trader.balanceSOL,
+        labels: trader.labels,
+        pumpfunTrades: trader.metadata?.pumpfun_trades,
+        dexInteractions: trader.metadata?.dex_interactions,
+        daysSinceActive: trader.metadata?.days_since_active,
+        confidence: trader.metadata?.confidence_score
+      }))
+    });
+  } catch (error) {
+    console.error('❌ PumpFun discovery test error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
 /**
  * 🚨 POST /api/solana-messaging/emergency-funding
  * Create and execute emergency funding request campaign

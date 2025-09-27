@@ -204,6 +204,188 @@ export class RealWalletDiscoveryService {
   }
 
   /**
+   * Discover real PumpFun traders by analyzing recent transactions
+   */
+  async discoverPumpFunTraders(maxResults: number = 50): Promise<InsertVerifiedSolanaWallet[]> {
+    console.log(`🎯 Starting PumpFun trader discovery (target: ${maxResults} traders)...`);
+    
+    const pumpFunProgramId = "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P";
+    const traders: InsertVerifiedSolanaWallet[] = [];
+    const seenAddresses = new Set<string>();
+    
+    try {
+      // Use Helius Enhanced API for better transaction parsing
+      const url = `https://api.helius.xyz/v0/addresses/${pumpFunProgramId}/transactions?api-key=${this.heliusApiKey}&limit=100&commitment=confirmed`;
+      
+      console.log('📡 Fetching recent PumpFun transactions via Helius...');
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        console.error(`❌ Helius API error: ${response.status}`);
+        return [];
+      }
+      
+      const transactions = await response.json() as HeliusTransaction[];
+      console.log(`📊 Analyzing ${transactions.length} recent PumpFun transactions...`);
+      
+      // Extract unique wallet addresses from transactions
+      const walletCandidates = new Set<string>();
+      
+      for (const tx of transactions) {
+        // Check native transfers to find real user wallets
+        if (tx.nativeTransfers) {
+          for (const transfer of tx.nativeTransfers) {
+            walletCandidates.add(transfer.fromUserAccount);
+            walletCandidates.add(transfer.toUserAccount);
+          }
+        }
+        
+        // Also check instruction accounts for signers
+        if (tx.instructions) {
+          for (const instruction of tx.instructions) {
+            if (instruction.programId === pumpFunProgramId) {
+              // First account is usually the signer/trader
+              if (instruction.accounts && instruction.accounts.length > 0) {
+                walletCandidates.add(instruction.accounts[0]);
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`🔍 Found ${walletCandidates.size} unique wallet candidates`);
+      
+      // Analyze each candidate wallet
+      let processed = 0;
+      for (const address of walletCandidates) {
+        processed++;
+        if (processed <= 5) {
+          console.log(`📋 Processing candidate ${processed}/${Math.min(5, walletCandidates.size)}: ${address.slice(0, 8)}...`);
+        }
+        if (traders.length >= maxResults) break;
+        
+        // Skip program addresses and known system accounts
+        if (address === pumpFunProgramId || 
+            address === '11111111111111111111111111111112' ||
+            seenAddresses.has(address)) {
+          continue;
+        }
+        
+        try {
+          // Get comprehensive wallet info using Helius
+          const walletUrl = `https://api.helius.xyz/v0/addresses/${address}?api-key=${this.heliusApiKey}`;
+          const walletResponse = await fetch(walletUrl);
+          
+          if (!walletResponse.ok) {
+            console.log(`⚠️ ${address.slice(0, 8)}: Helius API error ${walletResponse.status}`);
+            continue;
+          }
+          
+          const walletData = await walletResponse.json();
+          
+          // Check if it's a real user wallet (not a program)
+          if (walletData.executable) {
+            console.log(`❌ ${address.slice(0, 8)}: Executable account (program)`);
+            continue;
+          }
+          if (!walletData.lamports || walletData.lamports < 100000000) {
+            console.log(`❌ ${address.slice(0, 8)}: Insufficient balance ${(walletData.lamports || 0) / 1e9} SOL`);
+            continue;
+          }
+          
+          // Get recent activity for this specific wallet
+          const activityUrl = `https://api.helius.xyz/v0/addresses/${address}/transactions?api-key=${this.heliusApiKey}&limit=50&commitment=confirmed`;
+          const activityResponse = await fetch(activityUrl);
+          
+          if (!activityResponse.ok) {
+            console.log(`⚠️ ${address.slice(0, 8)}: Activity fetch failed ${activityResponse.status}`);
+            continue;
+          }
+          
+          const recentTxs = await activityResponse.json();
+          console.log(`🔍 ${address.slice(0, 8)}: Got ${recentTxs.length} recent transactions`);
+          
+          // Analyze trading patterns
+          let pumpFunTrades = 0;
+          let dexInteractions = 0;
+          let lastActiveTimestamp = 0;
+          
+          for (const recentTx of recentTxs) {
+            if (recentTx.timestamp > lastActiveTimestamp) {
+              lastActiveTimestamp = recentTx.timestamp;
+            }
+            
+            // Count PumpFun interactions
+            if (recentTx.instructions?.some((inst: any) => inst.programId === pumpFunProgramId)) {
+              pumpFunTrades++;
+            }
+            
+            // Count DEX interactions
+            if (recentTx.instructions?.some((inst: any) => 
+              DEX_PROGRAM_IDS.includes(inst.programId))) {
+              dexInteractions++;
+            }
+          }
+          
+          // Filter for active PumpFun traders (more realistic criteria)
+          const daysSinceActive = (Date.now() - (lastActiveTimestamp * 1000)) / (1000 * 60 * 60 * 24);
+          
+          console.log(`🔍 ${address.slice(0, 8)}: PumpFun trades=${pumpFunTrades}, DEX=${dexInteractions}, days=${daysSinceActive.toFixed(1)}, balance=${(walletData.lamports / 1e9).toFixed(3)} SOL`);
+          
+          const isActiveTrader = pumpFunTrades >= 1 && 
+                                dexInteractions >= 1 && 
+                                daysSinceActive <= 30 &&
+                                walletData.lamports >= 100000000; // At least 0.1 SOL
+          
+          if (isActiveTrader) {
+            const trader: InsertVerifiedSolanaWallet = {
+              address,
+              source: 'helius_pumpfun_analysis',
+              entityType: 'individual_trader',
+              verificationLevel: 'transaction_verified',
+              labels: ['pumpfun_trader', 'active', 'verified'],
+              ownerProgram: walletData.owner || '11111111111111111111111111111112',
+              isExecutable: false,
+              balanceSOL: (walletData.lamports / 1e9).toString(),
+              txCount30d: recentTxs.length,
+              dexSwaps30d: dexInteractions,
+              lastActive: new Date(lastActiveTimestamp * 1000),
+              isSignerRate: "1.0", // Individual wallets are always signers
+              reachable: true,
+              metadata: {
+                discovery_method: 'helius_pumpfun_scan',
+                pumpfun_trades: pumpFunTrades,
+                dex_interactions: dexInteractions,
+                days_since_active: daysSinceActive,
+                confidence_score: Math.min(0.95, 0.7 + (pumpFunTrades * 0.05))
+              }
+            };
+            
+            traders.push(trader);
+            seenAddresses.add(address);
+            
+            console.log(`✅ Found active PumpFun trader: ${address.slice(0, 8)}... (${(walletData.lamports / 1e9).toFixed(2)} SOL, ${pumpFunTrades} PumpFun trades, ${dexInteractions} DEX swaps)`);
+          }
+          
+        } catch (error) {
+          console.warn(`⚠️ Error analyzing wallet ${address.slice(0, 8)}:`, error);
+          continue;
+        }
+        
+        // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+    } catch (error) {
+      console.error('❌ PumpFun trader discovery error:', error);
+      return [];
+    }
+    
+    console.log(`🎯 PumpFun trader discovery complete: ${traders.length} verified active traders found`);
+    return traders;
+  }
+
+  /**
    * Verify that a wallet address represents a real user/entity
    * STRICT VERIFICATION - Only real wallets with proven activity pass
    */

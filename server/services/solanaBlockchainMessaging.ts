@@ -115,28 +115,7 @@ export class SolanaBlockchainMessaging {
       campaign.targetCriteria.maxTargets
     );
     
-    // Add fallback targets if discovery returns empty results
-    if (targets.length === 0) {
-      console.log('⚠️ No targets from discovery service - using fallback high-value wallets');
-      targets = [
-        {
-          address: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5', // Known PumpFun wallet
-          entityType: 'dex_trader',
-          labels: ['dex_trader', 'active', 'high_volume'],
-          balanceSOL: '10.5',
-          lastActive: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-          confidence: 0.85
-        },
-        {
-          address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH', // Known trading wallet
-          entityType: 'trading_bot',
-          labels: ['dex_trader', 'active', 'automated'],
-          balanceSOL: '25.2',
-          lastActive: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-          confidence: 0.92
-        }
-      ];
-    }
+    // Only use real discovered targets - no fallback wallets to avoid data corruption
     
     console.log(`🔍 Found ${targets.length} total targets before filtering`);
     
@@ -216,36 +195,7 @@ export class SolanaBlockchainMessaging {
     
     console.log(`🔍 DEBUG: Discovery service returned ${targets.length} initial targets`);
     
-    // Add fallback targets if discovery returns insufficient results
-    if (targets.length < 3) {
-      console.log('⚠️ Using fallback high-value wallets for service marketing (discovery returned insufficient targets)');
-      targets = [
-        {
-          address: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5', // Known PumpFun wallet
-          entityType: 'dex_trader',
-          labels: ['dex_trader', 'active', 'high_volume'],
-          balanceSOL: '10.5',
-          lastActive: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-          confidence: 0.85
-        },
-        {
-          address: 'HN7cABqLq46Es1jh92dQQisAq662SmxELLLsHHe4YWrH', // Known trading wallet
-          entityType: 'trading_bot',
-          labels: ['dex_trader', 'active', 'automated'],
-          balanceSOL: '25.2',
-          lastActive: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-          confidence: 0.92
-        },
-        {
-          address: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC token account (high activity)
-          entityType: 'protocol',
-          labels: ['dex_trader', 'protocol', 'high_volume'],
-          balanceSOL: '15.7',
-          lastActive: new Date(Date.now() - 0.5 * 24 * 60 * 60 * 1000), // 12 hours ago
-          confidence: 0.95
-        }
-      ];
-    }
+    // Only use real discovered targets - no fallback wallets to avoid data corruption
     
     console.log(`🔍 Found ${targets.length} total targets before filtering`);
     

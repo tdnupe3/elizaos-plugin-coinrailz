@@ -199,7 +199,7 @@ export class SolanaBlockchainMessaging {
         requiredLabels: ['dex_trader'], // Active traders
         maxTargets: 100 // Broader marketing reach
       },
-      messageTemplate: `🤖 EXCLUSIVE SERVICES - Trading Bots & AI Agents\n\nHigh-volume trader detected!\n\n🛡️ SMART CONTRACT AUDITS: $1K (5-min delivery)\n• Slither security analysis\n• Instant PDF reports\n\n💳 PAYMENT INFRASTRUCTURE:\n• Circle USDC wallets\n• Multi-chain processing\n• Agent communication\n\n📊 PUMPFUN MARKETING:\n• 10K+ verified wallets\n• On-chain campaigns\n• Trading signals\n\n💰 PRICING:\n• Audit: $1K each\n• Marketing: $500-5K\n• Custom: $2K-10K\n\n🎯 coinrailz.com\n📧 services@coinrailz.com\nVolume discounts available`,
+      messageTemplate: `🤖 EXCLUSIVE: $1K Smart Contract Audits\n🛡️ 5-min delivery + PDF reports\n💳 Circle USDC payments\n📊 PumpFun marketing available\n🎯 coinrailz.com\n📧 services@coinrailz.com`,
       status: 'draft',
       messages: [],
       analytics: {
@@ -214,9 +214,11 @@ export class SolanaBlockchainMessaging {
     // Get high-value targets for service marketing with fallback data
     let targets = await realWalletDiscoveryService.getVerifiedOutreachTargets(200); // Get larger pool
     
-    // Add fallback targets if discovery returns empty results
-    if (targets.length === 0) {
-      console.log('⚠️ No targets from discovery service - using fallback high-value wallets');
+    console.log(`🔍 DEBUG: Discovery service returned ${targets.length} initial targets`);
+    
+    // Add fallback targets if discovery returns insufficient results
+    if (targets.length < 3) {
+      console.log('⚠️ Using fallback high-value wallets for service marketing (discovery returned insufficient targets)');
       targets = [
         {
           address: '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5', // Known PumpFun wallet
@@ -245,12 +247,21 @@ export class SolanaBlockchainMessaging {
       ];
     }
     
-    // Filter for high-value, very active wallets (likely bots/protocols)
+    console.log(`🔍 Found ${targets.length} total targets before filtering`);
+    
+    // Filter for high-value, very active wallets (likely bots/protocols) - make more lenient
     const qualifiedTargets = targets.filter(target => {
       const daysSinceActive = (Date.now() - target.lastActive.getTime()) / (1000 * 60 * 60 * 24);
+      const hasRelevantLabels = target.labels.some(label => 
+        ['dex_trader', 'trading_bot', 'protocol', 'high_volume', 'automated', 'active'].includes(label)
+      );
       
-      return parseFloat(target.balanceSOL) >= campaign.targetCriteria.minBalanceSOL &&
-             daysSinceActive <= campaign.targetCriteria.maxDaysInactive;
+      const balanceCheck = parseFloat(target.balanceSOL) >= 1.0; // Lower balance requirement
+      const activityCheck = daysSinceActive <= 7; // More lenient activity window
+      
+      console.log(`🔍 Target ${target.address.slice(0, 8)}: balance=${target.balanceSOL} (${balanceCheck}), days=${daysSinceActive.toFixed(1)} (${activityCheck}), labels=${target.labels.join(',')} (${hasRelevantLabels})`);
+      
+      return balanceCheck && activityCheck && hasRelevantLabels;
     }).slice(0, campaign.targetCriteria.maxTargets);
 
     // Create messages for qualified targets  

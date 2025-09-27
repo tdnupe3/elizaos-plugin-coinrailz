@@ -98,7 +98,7 @@ export class SolanaBlockchainMessaging {
         requiredLabels: ['dex_trader', 'active'], // Must be active DEX traders
         maxTargets: 50 // Start with 50 high-value targets
       },
-      messageTemplate: `🚨 URGENT: $3K funding req\n💰 Live fintech platform\n🔄 20% equity OR 2x return\n📊 coinrailz.com\n📧 funding@coinrailz.com`,
+      messageTemplate: `🚨 PARTNERSHIP OPPORTUNITY\n💰 Share profitable trading signals\n🎯 Marketing boost for your projects\n📈 Revenue sharing available\n📧 Contact: partnerships@coinrailz.com`,
       status: 'draft',
       messages: [],
       analytics: {
@@ -199,7 +199,7 @@ export class SolanaBlockchainMessaging {
         requiredLabels: ['dex_trader'], // Active traders
         maxTargets: 100 // Broader marketing reach
       },
-      messageTemplate: `🤖 EXCLUSIVE: $1K Smart Contract Audits\n🛡️ 5-min delivery + PDF reports\n💳 Circle USDC payments\n📊 PumpFun marketing available\n🎯 coinrailz.com\n📧 services@coinrailz.com`,
+      messageTemplate: `🚀 EXCLUSIVE: PumpFun Trading Signals\n📊 Real-time alerts + project marketing\n💰 Boost your trades & visibility\n🎯 coinrailz.com\n📈 Join winning traders`,
       status: 'draft',
       messages: [],
       analytics: {

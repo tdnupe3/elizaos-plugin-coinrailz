@@ -237,9 +237,7 @@ router.get('/campaigns/analytics', async (req, res) => {
         successRate: 100,
         lastCampaign: new Date().toISOString(),
         recentTransactions: [
-          '5sVm2YAazs2uVyruYGJ4yovCrH8R5jAHP81o64BLUbJi6JSSoNwV7FKTyLWshNchd1guxrVgLRs5DdqA1WBjRnbW',
-          '5ZnVZfw3o6h71LtG6Cbu1XDn19Y4nKoNWXkQoTifEna5V6eB1rPfopvN21V5nFHMdtUHRKtqDUg2FosdLLhHBcZJ',
-          '1nR4RDnrVcdjDcgUkpKY5Sms913yXpGsi2CUimKLPysVbtHSTri8vnv7BtKyUarB6v5q4s12n8SWY8qunYnfuiF'
+          'cES2Ap3pUg5dyTof4XTBS6ZYhvsbGZJE9PJEVQjqpmFPaAuEKiAPy9zyMGCL5qxBLPEjV5T1xYxtQJKP43xtNxo'
         ]
       },
       overall: {

@@ -31,6 +31,10 @@ interface HighValueTarget {
 }
 
 export class TargetedAgentDiscovery extends BaseDiscoveryAdapter {
+  
+  extractAgentUrl(data: any): string {
+    return data.url || data.channels?.github || 'unknown';
+  }
   public name = 'Targeted High-Value Agent Discovery';
   public expectedYield = 20; // Quality over quantity
   public timeout = 60000; // 1 minute
@@ -43,11 +47,11 @@ export class TargetedAgentDiscovery extends BaseDiscoveryAdapter {
       platform: 'Twitter/Terminal-based',
       channels: {
         // These would need to be researched and found
-        discord: null, // Research needed
-        telegram: null, // Research needed  
+        discord: undefined, // Research needed
+        telegram: undefined, // Research needed  
         github: 'https://github.com/truth-terminal', // May exist
         reddit: 'u/truth_terminal', // May exist
-        wallet: null // XMTP contact possible
+        wallet: undefined // XMTP contact possible
       },
       approach: 'Payment infrastructure for revenue scaling',
       priority: 1
@@ -57,11 +61,11 @@ export class TargetedAgentDiscovery extends BaseDiscoveryAdapter {
       revenue: '$1.4B platform valuation',
       platform: 'GitHub/Discord community',
       channels: {
-        discord: null, // Research ai16z Discord
+        discord: undefined, // Research ai16z Discord
         telegram: '@ai16z', // Likely exists
         github: 'https://github.com/ai16z/eliza', // Known to exist
         reddit: 'r/ai16z', // Likely exists
-        wallet: null
+        wallet: undefined
       },
       approach: 'Enterprise payment infrastructure for AI platform',
       priority: 1
@@ -71,11 +75,11 @@ export class TargetedAgentDiscovery extends BaseDiscoveryAdapter {
       revenue: '$365K/year AI influencer',
       platform: 'Virtuals Protocol ecosystem',
       channels: {
-        discord: null, // Research Virtuals Discord
+        discord: undefined, // Research Virtuals Discord
         telegram: '@virtualprotocol', // Research needed
         github: 'https://github.com/Virtual-Protocol', // May exist
-        reddit: null,
-        wallet: null
+        reddit: undefined,
+        wallet: undefined
       },
       approach: 'Cross-platform payment solutions for AI influencers',
       priority: 2
@@ -85,11 +89,11 @@ export class TargetedAgentDiscovery extends BaseDiscoveryAdapter {
       revenue: 'Coinbase partnership',
       platform: 'Coinbase ecosystem',
       channels: {
-        discord: null, // Research needed
-        telegram: null,
+        discord: undefined, // Research needed
+        telegram: undefined,
         github: 'https://github.com/fereai', // Research needed
-        reddit: null,
-        wallet: null // Coinbase-connected wallet likely
+        reddit: undefined,
+        wallet: undefined // Coinbase-connected wallet likely
       },
       approach: 'Enhanced Coinbase payment integration',
       priority: 2

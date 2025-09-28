@@ -15,7 +15,7 @@ import CoinbaseConnectionSection from "@/components/coinbase-connection-section"
 import { useTranslation } from "react-i18next";
 import { useSEO, seoConfigs } from "@/hooks/useSEO";
 import { FAQSection, InternalLinkingSection, PerformanceOptimizer } from "@/components/SEOEnhancer";
-import { trackEvent } from "@/lib/analytics";
+import { trackEvent, trackBusinessEvent, trackConversion } from "@/lib/analytics";
 import { EnhanceImageSEO } from "@/components/ImageOptimizer";
 
 export default function Landing() {
@@ -29,18 +29,35 @@ export default function Landing() {
   const handleSignIn = () => {
     // Track conversion event for analytics
     trackEvent('click', 'landing_cta', 'sign_in_button');
+    // Track business conversion
+    trackBusinessEvent('user_login_attempt', {
+      service_type: 'authentication',
+      user_type: 'returning_customer'
+    });
     setLocation("/login");
   };
 
   const handleSignUp = () => {
     // Track conversion event for analytics
     trackEvent('click', 'landing_cta', 'sign_up_button');
+    // Track business conversion attempt
+    trackBusinessEvent('user_registration_attempt', {
+      service_type: 'authentication',
+      user_type: 'new_customer',
+      value: 0 // Signup initiation
+    });
     setLocation("/signup");
   };
 
   const handleCoinbaseSignIn = () => {
     // Track conversion event for analytics
     trackEvent('click', 'landing_cta', 'coinbase_auth');
+    // Track business conversion
+    trackBusinessEvent('coinbase_auth_attempt', {
+      service_type: 'coinbase_oauth',
+      user_type: 'enterprise_customer',
+      payment_method: 'coinbase'
+    });
     window.location.href = "/auth/coinbase/login";
   };
 
@@ -51,6 +68,12 @@ export default function Landing() {
   const handleSendMoney = () => {
     // Track conversion event for analytics
     trackEvent('click', 'landing_cta', 'send_money_button');
+    // Track business conversion
+    trackBusinessEvent('conversion_initiate', {
+      service_type: 'p2p_transfer',
+      user_type: 'prospective_customer',
+      payment_method: 'crypto'
+    });
     setLocation("/p2p-transfer");
   };
 
@@ -77,7 +100,7 @@ export default function Landing() {
             <div className="flex items-center space-x-2">
               <img 
                 src={coinRailzLogo} 
-                alt="Coin Railz Logo" 
+                alt="Coin Railz - AI-Powered Fintech Platform Logo" 
                 className="w-6 h-6 sm:w-8 sm:h-8"
               />
               <span className="text-lg sm:text-xl font-bold text-gray-900">Coin Railz</span>
@@ -117,7 +140,7 @@ export default function Landing() {
             <div className="flex justify-center mb-4 sm:mb-6">
               <img 
                 src={coinRailzLogo} 
-                alt="Coin Railz Logo" 
+                alt="Coin Railz - AI-Powered Fintech Platform Logo" 
                 className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24"
               />
             </div>
@@ -655,6 +678,12 @@ export default function Landing() {
         
       </div>
 
+      {/* FAQ Section - Integrated into main content for better SEO */}
+      <FAQSection />
+
+      {/* Internal Linking Section - SEO Enhancement */}
+      <InternalLinkingSection />
+
       {/* Footer */}
       <footer className="bg-gray-50 border-t border-gray-200 py-8 mt-16">
         <div className="container mx-auto px-4">
@@ -708,9 +737,7 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* SEO Enhancement Components */}
-      <FAQSection />
-      <InternalLinkingSection />
+      {/* SEO Enhancement Components - Properly placed within main content */}
       <PerformanceOptimizer />
       <EnhanceImageSEO />
     </div>

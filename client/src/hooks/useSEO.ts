@@ -83,14 +83,17 @@ export const useSEO = (config: SEOConfig) => {
       canonical.href = config.canonical;
     }
 
-    // Add structured data
+    // Add structured data with unique IDs to prevent conflicts
     if (config.structuredData) {
-      let script = document.querySelector('script[type="application/ld+json"]#page-structured-data') as HTMLScriptElement;
+      const pageIdentifier = window.location.pathname.replace(/\//g, '_').replace(/^_/, '') || 'home';
+      const scriptId = `structured-data-${pageIdentifier}`;
+      
+      let script = document.querySelector(`script[type="application/ld+json"]#${scriptId}`) as HTMLScriptElement;
       
       if (!script) {
         script = document.createElement('script');
         script.type = 'application/ld+json';
-        script.id = 'page-structured-data';
+        script.id = scriptId;
         document.head.appendChild(script);
       }
       

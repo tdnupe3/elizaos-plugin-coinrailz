@@ -108,7 +108,7 @@ export const seoConfigs = {
   home: {
     title: 'Coin Railz - Agentic AI Payments & Programmable Money Infrastructure | Agent-to-Agent Transactions',
     description: 'Cutting-edge agentic AI payments platform offering autonomous financial services, agent-to-agent transactions, programmable money infrastructure, and cross-platform settlement rails. Enterprise-grade atomic settlement with stablecoin rails supporting 16+ cryptocurrencies.',
-    keywords: 'agentic AI payments, agent-to-agent transactions, programmable money infrastructure, autonomous financial services, cross-platform settlement rails, atomic settlement, stablecoin rails, agentic commerce, intent mandates, multi-agent payment orchestration, purpose bound money, agentic tokens, fintech API, crypto payments, USDC payments, AI agent marketplace',
+    keywords: 'fintech API, crypto payments, USDC payments, AI agent marketplace, P2P payments, cryptocurrency exchange, cross-border payments, XRP payments, DeFi, blockchain payments, payment gateway, crypto API, agentic AI payments, agent-to-agent transactions, programmable money infrastructure, autonomous financial services, cross-platform settlement rails, atomic settlement, stablecoin rails, agentic commerce, intent mandates, multi-agent payment orchestration, purpose bound money, agentic tokens',
     canonical: 'https://coinrailz.com',
     structuredData: {
       "@context": "https://schema.org",
@@ -121,7 +121,7 @@ export const seoConfigs = {
   marketplace: {
     title: 'Agentic AI Marketplace - Autonomous Agents with Agent-to-Agent Payment Rails | Coin Railz',
     description: 'Revolutionary agentic commerce platform featuring autonomous AI agents with programmable money capabilities, agent-to-agent settlement, and intent mandates for seamless trading automation. 85% commission with atomic settlement.',
-    keywords: 'agentic AI marketplace, agentic commerce, autonomous agents, agent-to-agent payments, programmable money, agentic tokens, intent mandates, cart mandates, AI agent marketplace, hire AI agents, crypto trading bots, DeFi automation, multi-agent orchestration',
+    keywords: 'AI agent marketplace, hire AI agents, crypto trading bots, DeFi automation, AI trading signals, blockchain automation, automated trading, AI marketplace, agentic AI marketplace, agentic commerce, autonomous agents, agent-to-agent payments, programmable money, agentic tokens, intent mandates, cart mandates, multi-agent orchestration',
     canonical: 'https://coinrailz.com/marketplace',
     structuredData: {
       "@context": "https://schema.org",
@@ -134,7 +134,7 @@ export const seoConfigs = {
   payments: {
     title: 'Cross-Platform Settlement Rails & Atomic Settlement | Programmable Money Infrastructure',
     description: 'Advanced cross-platform settlement rails with atomic settlement, stablecoin rails, and programmable money infrastructure. Support for agent-to-agent transactions, purpose bound money (PBM), and instant multi-chain settlements.',
-    keywords: 'cross-platform settlement rails, atomic settlement, stablecoin rails, programmable money infrastructure, agent-to-agent transactions, purpose bound money, PBM, agentic payments, payment versus payment, PvP settlement, P2P payments, USDC transfers, enterprise payments',
+    keywords: 'P2P payments, USDC transfers, crypto payments, instant payments, cross-border payments, payment gateway, enterprise payments, cryptocurrency transfers, cross-platform settlement rails, atomic settlement, stablecoin rails, programmable money infrastructure, agent-to-agent transactions, purpose bound money, PBM, agentic payments, payment versus payment, PvP settlement',
     canonical: 'https://coinrailz.com/p2p-transfer',
     structuredData: {
       "@context": "https://schema.org",
@@ -173,7 +173,7 @@ export const seoConfigs = {
   enterprise: {
     title: 'Autonomous Financial Services & DLT Settlement Systems | Enterprise Agentic AI',
     description: 'Enterprise autonomous financial services with DLT settlement systems, agentic AI infrastructure, cross-chain atomic swaps, and interoperable payment infrastructure. Complete token-versus-token (TvT) arrangements for institutional clients.',
-    keywords: 'autonomous financial services, DLT settlement systems, agentic AI infrastructure, cross-chain atomic swaps, interoperable payment infrastructure, token-versus-token, TvT arrangements, hybrid settlement ecosystems, enterprise fintech, B2B payments, fintech API, agentic commerce infrastructure',
+    keywords: 'enterprise fintech, B2B payments, fintech API, white-label payments, compliance tools, enterprise crypto, payment infrastructure, fintech solutions, autonomous financial services, DLT settlement systems, agentic AI infrastructure, cross-chain atomic swaps, interoperable payment infrastructure, token-versus-token, TvT arrangements, hybrid settlement ecosystems, agentic commerce infrastructure',
     canonical: 'https://coinrailz.com/enterprise',
     structuredData: {
       "@context": "https://schema.org",
@@ -224,7 +224,7 @@ export const seoConfigs = {
   fintech: {
     title: 'Agentic AI Payment Protocol & Multi-Agent Orchestration API | Programmable Treasury',
     description: 'Advanced agentic AI payment protocol with multi-agent orchestration, programmable treasury infrastructure, and autonomous financial services API. Support for agent payment rails, intent mandates, and real-time transaction intelligence.',
-    keywords: 'agentic AI payment protocol, multi-agent payment orchestration, programmable treasury, agent payment rails, intent mandates, real-time transaction intelligence, autonomous finance infrastructure, agentic commerce API, fintech API, payment gateway API, programmable money',
+    keywords: 'fintech API, payment gateway API, cryptocurrency API, financial services API, payment processing, blockchain payments, enterprise fintech, agentic AI payment protocol, multi-agent payment orchestration, programmable treasury, agent payment rails, intent mandates, real-time transaction intelligence, autonomous finance infrastructure, agentic commerce API, programmable money',
     canonical: 'https://coinrailz.com/fintech-api',
     structuredData: {
       "@context": "https://schema.org",

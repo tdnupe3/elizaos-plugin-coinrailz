@@ -14,6 +14,9 @@ import { UserAuthMenu } from "@/components/UserAuthMenu";
 import CoinbaseConnectionSection from "@/components/coinbase-connection-section";
 import { useTranslation } from "react-i18next";
 import { useSEO, seoConfigs } from "@/hooks/useSEO";
+import { FAQSection, InternalLinkingSection, PerformanceOptimizer } from "@/components/SEOEnhancer";
+import { trackEvent } from "@/lib/analytics";
+import { EnhanceImageSEO } from "@/components/ImageOptimizer";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -24,17 +27,20 @@ export default function Landing() {
   useSEO(seoConfigs.home);
 
   const handleSignIn = () => {
-    // Show all sign-in options including email, Replit, and Coinbase
+    // Track conversion event for analytics
+    trackEvent('click', 'landing_cta', 'sign_in_button');
     setLocation("/login");
   };
 
   const handleSignUp = () => {
-    // Go to signup page with email/password option
+    // Track conversion event for analytics
+    trackEvent('click', 'landing_cta', 'sign_up_button');
     setLocation("/signup");
   };
 
   const handleCoinbaseSignIn = () => {
-    // Use Coinbase OAuth login
+    // Track conversion event for analytics
+    trackEvent('click', 'landing_cta', 'coinbase_auth');
     window.location.href = "/auth/coinbase/login";
   };
 
@@ -43,6 +49,8 @@ export default function Landing() {
   };
 
   const handleSendMoney = () => {
+    // Track conversion event for analytics
+    trackEvent('click', 'landing_cta', 'send_money_button');
     setLocation("/p2p-transfer");
   };
 
@@ -699,6 +707,12 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* SEO Enhancement Components */}
+      <FAQSection />
+      <InternalLinkingSection />
+      <PerformanceOptimizer />
+      <EnhanceImageSEO />
     </div>
   );
 }

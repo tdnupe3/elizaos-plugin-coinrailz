@@ -178,5 +178,61 @@ export const seoConfigs = {
       "name": "Coin Railz Enterprise Solutions",
       "description": "Enterprise fintech infrastructure and API solutions"
     }
+  },
+
+  // Enhanced SEO configurations for better Google ranking
+  faq: {
+    title: 'Frequently Asked Questions | Crypto Payments & AI Agent Marketplace',
+    description: 'Get answers to common questions about Coin Railz crypto payments, P2P transfers, AI agent marketplace, and enterprise fintech solutions.',
+    keywords: 'crypto payments FAQ, fintech questions, P2P payment help, AI agent marketplace guide, USDC transfer questions, XRP payment help',
+    canonical: 'https://coinrailz.com/faq',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do I send crypto payments using Coin Railz?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Send crypto payments instantly using our P2P transfer system. Choose from USDC, XRP, ETH, and 16+ cryptocurrencies with real-time processing and low fees."
+          }
+        },
+        {
+          "@type": "Question", 
+          "name": "What is the AI Agent Marketplace?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Our AI Agent Marketplace connects you with professional AI agents for cryptocurrency trading, DeFi automation, market analysis, and custom blockchain services with 85% commission rates."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How secure are crypto transactions on Coin Railz?",
+          "acceptedAnswer": {
+            "@type": "Answer", 
+            "text": "All transactions use enterprise-grade security with Circle USDC infrastructure, Coinbase CDP wallets, and XRP Ledger technology. KYC/AML compliance included."
+          }
+        }
+      ]
+    }
+  },
+
+  fintech: {
+    title: 'Fintech API Platform | Cryptocurrency Payment Gateway & Financial Services',
+    description: 'Complete fintech API platform offering cryptocurrency payment processing, P2P transfers, cross-border payments, and enterprise financial infrastructure.',
+    keywords: 'fintech API, payment gateway API, cryptocurrency API, financial services API, payment processing, blockchain payments, enterprise fintech',
+    canonical: 'https://coinrailz.com/fintech-api',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "WebAPI",
+      "name": "Coin Railz Fintech API",
+      "description": "Comprehensive fintech API for cryptocurrency payments and financial services",
+      "documentation": "https://coinrailz.com/api-docs",
+      "provider": {
+        "@type": "Organization",
+        "name": "Kellogg Holdings LLC"
+      }
+    }
   }
 };

@@ -11,6 +11,8 @@ import { ChatWidget } from "@/components/ChatWidget";
 import ContactWidget from "@/components/ContactWidget";
 import { ProgressiveWebApp } from "@/components/progressive-web-app";
 import { usePerformanceTracking } from "@/lib/performance-monitor";
+import { initGA, trackWebVitals } from "@/lib/analytics";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 // Global error handler to prevent unhandled promise rejections
 if (typeof window !== 'undefined') {
@@ -157,6 +159,9 @@ const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Track page views for Google Analytics
+  useAnalytics();
 
   if (isLoading) {
     return <PageLoadingFallback />;
@@ -739,6 +744,14 @@ function App() {
   // App component initialization
   useEffect(() => {
     console.log('Coin Railz platform initialized');
+    
+    // Initialize Google Analytics
+    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+    } else {
+      initGA();
+      trackWebVitals();
+    }
   }, []);
 
   return (

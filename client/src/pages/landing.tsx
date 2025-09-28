@@ -8,7 +8,6 @@ import { Separator } from "@/components/ui/separator";
 import { Activity, Users, DollarSign, TrendingUp, Bot, Network, Globe, Zap, Send, CreditCard, Repeat, Shield, Mail, USDCLogo, XRPLogo } from "@/lib/icons";
 import coinRailzLogo from "@assets/Coin Railz Logo No BG.png";
 import { CoinbaseWalletIntegration } from "@/components/CoinbaseWalletIntegration";
-import { SessionTestComponent } from "@/components/SessionTestComponent";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { UserAuthMenu } from "@/components/UserAuthMenu";
 import CoinbaseConnectionSection from "@/components/coinbase-connection-section";
@@ -668,11 +667,6 @@ export default function Landing() {
               </Button>
             </div>
           </div>
-        </div>
-
-        {/* Session Persistence Testing Component */}
-        <div className="mt-16">
-          <SessionTestComponent />
         </div>
 
         

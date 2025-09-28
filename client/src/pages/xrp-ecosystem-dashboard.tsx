@@ -18,6 +18,7 @@ import {
   ArrowRight,
   BarChart3
 } from "@/lib/icons";
+import { useSEO, seoConfigs } from "@/hooks/useSEO";
 
 interface XRPService {
   id: string;
@@ -34,6 +35,9 @@ export default function XRPEcosystemDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [xrpRate, setXrpRate] = useState<number>(0.5000);
+
+  // SEO optimization for XRP ecosystem page
+  useSEO(seoConfigs.xrp);
   const [platformStats, setPlatformStats] = useState({
     totalTransactions: 1247,
     totalVolume: 523847.50,

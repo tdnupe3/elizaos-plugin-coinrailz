@@ -1,0 +1,24 @@
+{
+  "name": "Coin Railz - AI-Powered Fintech Platform",
+  "short_name": "Coin Railz",
+  "description": "Enterprise fintech platform offering P2P payments, cryptocurrency exchange, USDC processing, AI agent marketplace, and cross-border payment solutions.",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#1e3a8a",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "start_url": "/",
+  "scope": "/",
+  "orientation": "portrait",
+  "categories": ["finance", "business", "productivity"]
+}

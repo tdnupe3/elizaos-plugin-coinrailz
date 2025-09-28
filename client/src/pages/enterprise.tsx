@@ -4,9 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Building2, Shield, Zap, Globe, Users, TrendingUp, ArrowRight, CheckCircle } from "lucide-react";
+import { useSEO, seoConfigs } from "@/hooks/useSEO";
 
 export default function EnterprisePage() {
   const [, setLocation] = useLocation();
+
+  // SEO optimization for enterprise page
+  useSEO(seoConfigs.enterprise);
 
   const enterpriseFeatures = [
     {

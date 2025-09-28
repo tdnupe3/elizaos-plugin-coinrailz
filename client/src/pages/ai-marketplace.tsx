@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserGuidanceModal, FeatureTooltip } from '@/components/user-guidance';
 import { NavigationHeader } from '@/components/navigation-header';
 import { MarketplaceErrorBoundary, useMarketplaceErrorHandler } from '@/components/MarketplaceErrorBoundary';
+import { useSEO, seoConfigs } from '@/hooks/useSEO';
 
 interface MarketplaceService {
   id: string;
@@ -40,6 +41,9 @@ export default function AIMarketplacePage() {
   const [, setLocation] = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { handleError, retryWithErrorHandler } = useMarketplaceErrorHandler();
+
+  // SEO optimization for AI marketplace page
+  useSEO(seoConfigs.marketplace);
 
   // Fetch marketplace statistics
   const { data: stats } = useQuery({

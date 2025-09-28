@@ -26,6 +26,7 @@ import { Link, useLocation } from "wouter";
 import { UserGuidanceModal, FeatureTooltip, USDCSavingsBadge } from "@/components/user-guidance";
 import { PaymentMethodSetup } from "@/components/payment-method-setup";
 import { NavigationHeader } from "@/components/navigation-header";
+import { useSEO, seoConfigs } from "@/hooks/useSEO";
 
 interface P2PTransferData {
   recipient: string;
@@ -40,6 +41,9 @@ export default function P2PTransfer() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+
+  // SEO optimization for P2P payments page
+  useSEO(seoConfigs.payments);
 
   // Fetch user's CASH balance (Circle USDC only - NOT total balance)
   const { data: cashBalance, isLoading: cashBalanceLoading } = useQuery({

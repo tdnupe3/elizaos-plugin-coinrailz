@@ -13,11 +13,15 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 import { UserAuthMenu } from "@/components/UserAuthMenu";
 import CoinbaseConnectionSection from "@/components/coinbase-connection-section";
 import { useTranslation } from "react-i18next";
+import { useSEO, seoConfigs } from "@/hooks/useSEO";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
   const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
+
+  // SEO optimization for landing page
+  useSEO(seoConfigs.home);
 
   const handleSignIn = () => {
     // Show all sign-in options including email, Replit, and Coinbase

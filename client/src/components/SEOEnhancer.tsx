@@ -8,12 +8,12 @@ export function FAQSection() {
 
   const faqs = [
     {
-      question: "How do I send crypto payments using Coin Railz?",
-      answer: "Send crypto payments instantly using our P2P transfer system. Choose from USDC, XRP, ETH, and 16+ cryptocurrencies with real-time processing and low fees. Simply connect your wallet, enter the recipient details, and confirm the transaction."
+      question: "How do I send agent-to-agent transactions using Coin Railz?",
+      answer: "Execute agent-to-agent transactions instantly using our cross-platform settlement rails with atomic settlement. Choose from USDC, XRP, ETH, and 16+ cryptocurrencies through programmable money infrastructure and stablecoin rails. Our platform supports purpose bound money (PBM) and multi-agent payment orchestration."
     },
     {
-      question: "What is the AI Agent Marketplace?",
-      answer: "Our AI Agent Marketplace connects you with professional AI agents for cryptocurrency trading, DeFi automation, market analysis, and custom blockchain services. Agents earn 85% commission on successful transactions."
+      question: "What is the Agentic AI Marketplace?",
+      answer: "Our revolutionary agentic commerce platform features autonomous AI agents with programmable money capabilities, agent-to-agent settlement, and intent mandates for seamless trading automation. Agents earn 85% commission through atomic settlement with cross-platform payment rails."
     },
     {
       question: "How secure are crypto transactions on Coin Railz?",
@@ -24,8 +24,8 @@ export function FAQSection() {
       answer: "We support USDC, XRP, ETH, BTC, SOL, and 16+ major cryptocurrencies. Payment methods include Circle USDC wallets, Coinbase Pay, MetaMask, Phantom wallet, and traditional banking via ACH transfers."
     },
     {
-      question: "How does the enterprise API work?",
-      answer: "Our enterprise API provides white-label fintech infrastructure with custom branding, dedicated support, and high-volume processing capabilities. Integration includes REST APIs, webhooks, and SDKs for major programming languages."
+      question: "How does the agentic AI payment protocol work?",
+      answer: "Our advanced agentic AI payment protocol features multi-agent orchestration, programmable treasury infrastructure, and autonomous financial services API. Integration includes agent payment rails, intent mandates, real-time transaction intelligence, and DLT settlement systems for enterprise clients."
     },
     {
       question: "What are the fees for crypto payments?",
@@ -41,7 +41,7 @@ export function FAQSection() {
             Frequently Asked Questions
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Get answers to common questions about crypto payments, AI agents, and enterprise fintech solutions
+            Get answers to common questions about agentic AI payments, agent-to-agent transactions, and autonomous financial services
           </p>
         </div>
         
@@ -83,16 +83,16 @@ export function FAQSection() {
 export function InternalLinkingSection() {
   const keyPages = [
     {
-      title: "P2P Crypto Payments",
-      description: "Send instant cryptocurrency payments with USDC, XRP, and 16+ digital assets",
+      title: "Cross-Platform Settlement Rails",
+      description: "Execute agent-to-agent transactions with atomic settlement and programmable money infrastructure",
       link: "/p2p-transfer",
-      keywords: "crypto payments, P2P transfers, USDC payments"
+      keywords: "agent-to-agent transactions, atomic settlement, stablecoin rails"
     },
     {
-      title: "AI Agent Marketplace", 
-      description: "Hire professional AI agents for trading, DeFi automation, and blockchain services",
+      title: "Agentic AI Marketplace", 
+      description: "Access autonomous agents with programmable money capabilities and intent mandates",
       link: "/ai-marketplace",
-      keywords: "AI agents, crypto trading bots, automated trading"
+      keywords: "agentic AI, autonomous agents, programmable money"
     },
     {
       title: "XRP Ecosystem Services",
@@ -101,10 +101,10 @@ export function InternalLinkingSection() {
       keywords: "XRP payments, cross-border transfers, RLUSD trading"
     },
     {
-      title: "Enterprise Solutions",
-      description: "White-label fintech infrastructure and custom API solutions for businesses",
+      title: "Autonomous Financial Services",
+      description: "DLT settlement systems with agentic AI infrastructure and cross-chain atomic swaps",
       link: "/enterprise",
-      keywords: "enterprise fintech, B2B payments, payment API"
+      keywords: "autonomous financial services, DLT settlement, agentic AI infrastructure"
     }
   ];
 
@@ -113,10 +113,10 @@ export function InternalLinkingSection() {
       <div className="container mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-            Explore Our Fintech Solutions
+            Explore Our Agentic AI Payment Infrastructure
           </h2>
           <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-            Discover comprehensive cryptocurrency and AI-powered financial services
+            Discover cutting-edge autonomous financial services with programmable money infrastructure
           </p>
         </div>
         

@@ -1,0 +1,74 @@
+✅ Official / Primary Resources
+
+These are the “primary sources” you should examine first — code, whitepapers, official docs.
+
+Name	Type	What it covers / why useful	Link
+Eternal AI (GitHub — core protocol)	Code / protocol	The main open source repo for the Eternal AI system (decentralized agents, inference, smart contract integration) 
+GitHub
+	https://github.com/eternalai-org/eternal-ai
+ 
+GitHub
+
+Eternal AI Whitepaper (“A Decentralized AI Network”)	Research / protocol spec	Describes the architecture, proof-of-compute, incentives (agents, verifiers, creators) 
+cdn.eternalai.org
+	https://cdn.eternalai.org/docs/whitepaper.pdf
+ 
+cdn.eternalai.org
+
+Eternal AI Developer Docs / Tutorials	Documentation / how-to	Guides for creating on-chain agents, usage of the decentralized inference API, etc. (e.g. “Build unstoppable Eliza agents”) 
+docs.eternalai.org
+	https://docs.eternalai.org/eternal-ai/decentralized-inference-api/tutorials/build-unstoppable-eliza-agents
+ 
+docs.eternalai.org
+
+Eternal AI — Org (GitHub org page, related repos)	Code / tooling / auxiliary components	Lists supporting repos (agent dev guides, EAI-721, etc.) 
+GitHub
+	https://github.com/eternalai-org
+ 
+GitHub
+
+EternalAI Agent Studio	UI / tooling	React / front end component for interacting with agents, likely part of their UI tooling stack 
+GitHub
+	https://github.com/TrustlessComputer/eternalai-agent-studio
+ 
+GitHub
+
+Eternal AI Protocol (official site / “online” site)	Marketing / overview / team	The project’s homepage / vision, team, high-level descriptions 
+Eternal AI
++2
+X (formerly Twitter)
++2
+	https://eternalai.online/
+ 
+Eternal AI
+ & X posts like “Eternal AI is … Kernel is …” 
+X (formerly Twitter)
+
+Eternal AI on DappBay / BNB chain listing	Platform integration, summary	Describes how Eternal AI is positioned on BNB Smart Chain, enablement of decentralized agents, etc. 
+DappBay
+	https://dappbay.bnbchain.org/detail/eternal-ai
+ 
+DappBay
+🔍 What to Focus On / What You Can Learn from Those Resources
+
+When you go through those, here are the critical pieces to evaluate:
+
+Architecture & decomposition: How do they slice agent, inference, verification, storage, state, smart contract coordination? The whitepaper is essential for seeing their proposed system.
+
+Proof-of-Compute / verification mechanisms: In decentralized AI, verifying that nodes are doing correct inference is nontrivial. Their whitepaper describes using a “verifier” mechanism to catch inconsistencies. 
+cdn.eternalai.org
+
+On-chain vs off-chain split: What parts of agent logic reside on-chain (smart contracts) vs off-chain (models, memory, prompt servers)? The docs / tutorials may show how they do minting of on-chain agents (e.g. “Mint an on-chain Eliza agent”) 
+docs.eternalai.org
+
+Supported models, scaling, multi-chain support: Which models (LLaMA, custom, etc.), which chains (Ethereum, Base, BNB), and how they plan to scale inference.
+
+Incentive & token economics: How creators, agents, verifiers are rewarded, how fees flow, how trust / collusion is prevented (staking, slashing) — again in the whitepaper. 
+cdn.eternalai.org
+
+Tooling & developer experience: The auxiliary repos (agent dev guide, EAI-721, UI tooling) show how easy or hard it would be to build atop it.
+
+Examples / sample agents: The tutorial “Build unstoppable Eliza agents” is a real example you can walk through. 
+docs.eternalai.org
+
+Audit / security assumptions: Any disclaimers or caveats in their docs or whitepaper; you should look critically at those.

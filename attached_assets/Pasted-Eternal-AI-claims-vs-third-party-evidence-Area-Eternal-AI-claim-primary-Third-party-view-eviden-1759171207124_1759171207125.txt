@@ -1,0 +1,111 @@
+Eternal AI: claims vs third-party evidence
+Area	Eternal AI claim (primary)	Third-party view / evidence	What this likely means (maturity)
+Core idea	“Open-source protocol for fully on-chain agents; permissionless, trustless.” 
+GitHub
+	Featured by BNB Chain’s DappBay as an “AI Agent Platform.” 
+DappBay
+	The project exists, is shipping code, and is recognized in Web3 listings. Early ecosystem, not yet broadly adopted.
+Architecture & security model	Whitepaper proposes Proof-of-Compute with agent/verifier roles for decentralized inference. 
+cdn.eternalai.org
+	Media discuss decentralized inference trend but don’t audit PoC robustness. 
+CoinDesk
++1
+	Design is ambitious; independent scrutiny of verification economics/robustness is limited. Treat as experimental.
+Open-source code	Public GitHub org with core repo and aux repos (EAI-721, agent examples/dev guides). 
+GitHub
++1
+	Repos show ongoing commits through 2025. No external audits linked in the repos. 
+GitHub
+	You can build on it today; security/audit posture appears immature for production-grade finance use.
+Decentralized storage of models	(Implied across materials)	Crypto press reports they preserve Hermes-4-70B on Filecoin; coverage amplified on Binance Square & X. 
+blockchainreporter
++2
+Binance
++2
+	Third-party writeups are bullish but light on technical proof (e.g., retrieval checks, redundancy metrics). Plausible but not independently verified.
+Running agents on Ethereum / multichain	“Deployed on-chain… seamlessly across any blockchain.” 
+GitHub
++1
+	Articles state “operational AI agents on Ethereum,” but lack usage metrics or benchmarks. 
+Binance
+	Likely basic on-chain bindings exist; real-time, scalable inference still depends on off-chain/decentralized compute.
+Developer experience	Docs/tutorials: “build unstoppable agents,” API keys from eternalai.org. 
+docs.eternalai.org
+	Docs exist; third-party tutorials beyond their ecosystem are sparse.	DX exists, but broader community examples are limited; expect DIY troubleshooting.
+Ecosystem & perception	—	CoinDesk positions Eternal AI as a leading decentralized-AI example in trend pieces. 
+CoinDesk
++1
+	Reputationally visible in the “decentralized AI” narrative, but still early in adoption and scrutiny.
+Risk signals	—	BNB Chain’s Red Alarm section lists many high-risk dapps in general and provides a scanner (not an Eternal-specific verdict, but a reminder to diligence any dapp). 
+DappBay
++2
+DappBay
++2
+	Treat any agent+contract project as high-risk until independently audited; use scanners and code reviews.
+Quick take
+
+What’s real: open repos, living docs, recognizable listings, active branding around decentralized agents. 
+GitHub
++2
+GitHub
++2
+
+What’s promising but unproven: scalable decentralized inference with verifiable correctness/economics; durable model storage guarantees; measurable production usage. 
+cdn.eternalai.org
++1
+
+What to watch: security audits, third-party benchmarks (latency, cost per prompt, verifier dispute stats), ecosystem adoption beyond marketing. 
+CoinDesk
++1
+
+If you want to build a similar “AI NFT / agent” product
+
+Start with their OSS + your own robust off-chain stack (then progressively decentralize). Repos to study/borrow from: core protocol, EAI-721, agent examples/dev guide. 
+GitHub
++1
+
+Prove the boring parts:
+
+Benchmarks: latency & cost per chat; fallbacks; persistence scheme.
+
+Attacker model: who can spoof inference? how do you slash bad nodes? (Whitepaper gives ideas; you’ll need practical safeguards.) 
+cdn.eternalai.org
+
+Document what’s on-chain vs off-chain. If traits “evolve,” specify which state is verifiably on-chain and which is off-chain/mutable.
+
+Publish audits and telemetry. Third-party trust is the gap you can fill first.
+
+Use risk scanners and chain listings (e.g., DappBay) to pre-empt concerns and show diligence. 
+DappBay
++1
+
+Sources (key ones)
+
+Eternal AI whitepaper (Proof-of-Compute), PDF. 
+cdn.eternalai.org
+
+Eternal AI core GitHub repo; org repos (EAI-721, examples, dev guide). 
+GitHub
++1
+
+Tutorials/API keys (developer docs). 
+docs.eternalai.org
+
+DappBay listing (BNB Chain). 
+DappBay
+
+Media coverage on decentralized inference trend (CoinDesk). 
+CoinDesk
++1
+
+Reports about Filecoin model preservation (BlockchainReporter; Binance Square; X). 
+blockchainreporter
++2
+Binance
++2
+
+Risk-awareness tools (BNB Red Alarm). 
+DappBay
++2
+DappBay
++2

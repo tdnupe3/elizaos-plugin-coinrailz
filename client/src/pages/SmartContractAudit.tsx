@@ -333,6 +333,10 @@ export default function SmartContractAudit() {
                           <SelectItem value="bsc">BSC</SelectItem>
                           <SelectItem value="bnb">BNB Chain</SelectItem>
                           <SelectItem value="arbitrum">Arbitrum</SelectItem>
+                          <SelectItem value="avalanche">Avalanche</SelectItem>
+                          <SelectItem value="optimism">Optimism</SelectItem>
+                          <SelectItem value="pulsechain">PulseChain</SelectItem>
+                          <SelectItem value="solana">Solana</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

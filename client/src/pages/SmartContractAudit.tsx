@@ -46,6 +46,7 @@ export default function SmartContractAudit() {
   const [activeTab, setActiveTab] = useState('submit');
   const [auditInProgress, setAuditInProgress] = useState<string | null>(null);
   const [isGuestMode, setIsGuestMode] = useState(true); // Default to guest mode for easier access
+  const [guestPaymentToken, setGuestPaymentToken] = useState<string | null>(null);
   const { toast } = useToast();
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<AuditSubmission>({
@@ -89,6 +90,10 @@ export default function SmartContractAudit() {
         description: `Your audit request ${data.audit.certificateId} has been submitted. Please proceed with payment.`,
       });
       setAuditInProgress(data.audit.id);
+      // Store guest payment token if available
+      if (data.audit.guestPaymentToken) {
+        setGuestPaymentToken(data.audit.guestPaymentToken);
+      }
       setActiveTab('payment');
       queryClient.invalidateQueries({ queryKey: ['/api/audits/my-audits'] });
     },
@@ -103,11 +108,27 @@ export default function SmartContractAudit() {
 
   // Confirm payment mutation
   const confirmPaymentMutation = useMutation({
-    mutationFn: (data: { auditId: string; paymentMethod: string }) => 
-      apiRequest('/api/audits/confirm-payment', {
+    mutationFn: (data: { auditId: string; paymentMethod: string }) => {
+      // Use guest endpoint if we have a guest payment token
+      if (guestPaymentToken) {
+        return apiRequest('/api/audits/confirm-guest-payment', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...data,
+            token: guestPaymentToken,
+            paymentIntentId: 'mock-payment-' + Date.now() // TODO: Replace with actual payment intent from Stripe
+          })
+        });
+      }
+      // Otherwise use authenticated endpoint
+      return apiRequest('/api/audits/confirm-payment', {
         method: 'POST',
-        body: JSON.stringify(data)
-      }),
+        body: JSON.stringify({
+          ...data,
+          paymentIntentId: 'mock-payment-' + Date.now() // TODO: Replace with actual payment intent from Stripe
+        })
+      });
+    },
     onSuccess: () => {
       toast({
         title: 'Payment Confirmed!',

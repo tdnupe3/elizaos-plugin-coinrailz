@@ -27,7 +27,7 @@ const submitAuditSchema = insertSmartContractAuditSchema.extend({
 const guestSubmitAuditSchema = z.object({
   projectName: z.string().optional(),
   contractType: z.enum(['token', 'dapp', 'nft', 'defi', 'game', 'other']),
-  blockchain: z.enum(['ethereum', 'base', 'polygon', 'bsc', 'bnb', 'arbitrum']),
+  blockchain: z.enum(['ethereum', 'base', 'polygon', 'bsc', 'bnb', 'arbitrum', 'avalanche', 'optimism', 'pulsechain', 'solana']),
   contractAddress: z.string().optional(),
   contractCode: z.string().optional(),
   projectDescription: z.string().optional(),

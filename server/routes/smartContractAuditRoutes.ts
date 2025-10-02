@@ -420,7 +420,13 @@ router.post('/confirm-guest-payment', async (req, res) => {
       auditId,
       estimatedCompletion: new Date(Date.now() + 5 * 60 * 1000),
       statusCheckUrl: `/api/audits/status/${auditId}`,
-      instructions: 'We will email you a direct download link when your audit is complete!',
+      resultsPortalUrl: `/audit-status`,
+      instructions: [
+        '📋 Save your Audit ID: ' + auditId,
+        '⏰ Wait 5 minutes for processing to complete',
+        '🔍 Visit the Audit Status Portal to view your results',
+        '💾 Download your audit report and certificate'
+      ].join('\n'),
       guestEmail: audit.guestEmail,
     });
 
@@ -717,6 +723,63 @@ router.get('/status/:auditId', isAuthenticated, async (req, res) => {
 
   } catch (error) {
     console.error('❌ Failed to fetch audit status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch audit status',
+    });
+  }
+});
+
+/**
+ * 🔓 GET /api/audits/guest-status/:auditId
+ * PUBLIC: Get audit status for guest users (NO AUTH REQUIRED)
+ */
+router.get('/guest-status/:auditId', async (req, res) => {
+  try {
+    const auditId = req.params.auditId;
+    const audit = await smartContractAuditService.getAuditById(auditId);
+
+    if (!audit) {
+      return res.status(404).json({
+        success: false,
+        error: 'Audit not found',
+      });
+    }
+
+    // Calculate progress percentage
+    let progress = 0;
+    if (audit.status === 'pending') progress = 10;
+    else if (audit.status === 'in_progress') progress = 50;
+    else if (audit.status === 'completed') progress = 100;
+    else if (audit.status === 'cancelled') progress = 0;
+
+    const response: any = {
+      success: true,
+      status: {
+        status: audit.status,
+        progress,
+        submittedAt: audit.submittedAt,
+        auditStartedAt: audit.auditStartedAt,
+        auditCompletedAt: audit.auditCompletedAt,
+        estimatedDeliveryHours: audit.estimatedDeliveryHours,
+        certificateGenerated: audit.certificateGenerated,
+      },
+    };
+
+    // Add download access for completed audits with access token
+    if (audit.status === 'completed' && audit.accessToken) {
+      response.downloadAccess = {
+        directUrl: `/audit-status?token=${audit.accessToken}`,
+        accessToken: audit.accessToken,
+        message: '🎉 Your audit is complete! Use your access token to view results.',
+        instructions: 'Copy the access token below and paste it in the "Search by Access Token" field on the Audit Status page.',
+      };
+    }
+
+    res.json(response);
+
+  } catch (error) {
+    console.error('❌ Failed to fetch guest audit status:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch audit status',

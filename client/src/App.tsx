@@ -126,6 +126,7 @@ const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const AgentOrderManagement = lazy(() => import("@/pages/agent-order-management"));
 const CustomerOrderDashboard = lazy(() => import("@/pages/customer-order-dashboard"));
 const SmartContractAudit = lazy(() => import("@/pages/SmartContractAudit"));
+const AuditStatus = lazy(() => import("@/pages/AuditStatus"));
 const MarketplaceCheckout = lazy(() => import("@/pages/marketplace-checkout"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
@@ -723,6 +724,9 @@ function Router() {
       </Route>
       <Route path="/smart-contract-audit">
         {() => <LazyLoadWrapper><SmartContractAudit /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/audit-status">
+        {() => <LazyLoadWrapper><AuditStatus /></LazyLoadWrapper>}
       </Route>
 
       <Route component={NotFound} />

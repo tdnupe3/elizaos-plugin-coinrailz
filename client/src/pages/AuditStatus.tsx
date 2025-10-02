@@ -43,9 +43,9 @@ export default function AuditStatus() {
   const [accessToken, setAccessToken] = useState('');
   const [searchMode, setSearchMode] = useState<'id' | 'token'>('id');
 
-  // Query for audit status (when using audit ID)
+  // Query for audit status (when using audit ID) - PUBLIC endpoint for guests
   const { data: statusData, isLoading: statusLoading, error: statusError, refetch: refetchStatus } = useQuery({
-    queryKey: ['/api/audits/status', auditId],
+    queryKey: ['/api/audits/guest-status', auditId],
     enabled: searchMode === 'id' && !!auditId,
   });
 

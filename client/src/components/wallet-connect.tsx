@@ -73,10 +73,23 @@ export function WalletConnect({ className = '', onWalletChange }: WalletConnectP
             </div>
           </Button>
           
-          <Alert className="bg-green-50 border-green-200">
+          <Alert className="bg-green-50 border-green-200 mb-3">
             <Info className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-sm text-green-800">
               <strong>Guest Access:</strong> No Coin Railz account required. Connect any wallet and start trading immediately.
+            </AlertDescription>
+          </Alert>
+
+          <Alert className="bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-sm text-blue-800">
+              <strong>Need funds?</strong> After connecting, buy crypto directly in your wallet:
+              <ul className="mt-2 ml-4 list-disc text-xs space-y-1">
+                <li><strong>MetaMask:</strong> Click "Buy" → Choose Transak/MoonPay → Credit/debit card</li>
+                <li><strong>Coinbase Wallet:</strong> Click "Buy" → Coinbase Onramp → Instant purchase</li>
+                <li><strong>Rainbow:</strong> Tap "+" → Buy with card → Crypto goes to your wallet</li>
+              </ul>
+              <div className="mt-2 text-xs text-blue-600">Crypto purchased in your wallet appears here automatically!</div>
             </AlertDescription>
           </Alert>
         </CardHeader>

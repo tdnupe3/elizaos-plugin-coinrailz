@@ -116,20 +116,29 @@ export default function OnrampPage() {
 
               {/* Onramp Button */}
               <Button 
-                onClick={handleOnramp}
+                onClick={() => window.open('https://metamask.io/buy-crypto', '_blank')}
                 className="w-full h-12 text-lg bg-blue-600 hover:bg-blue-700"
-                disabled={!amount || parseFloat(amount) <= 0}
               >
-                Add ${amount || "0"} & Start Trading
+                Buy Crypto in Your Wallet
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
 
-              {/* Security Notice */}
-              <Alert className="bg-green-50 border-green-200">
+              {/* Wallet Instructions */}
+              <Alert className="bg-blue-50 border-blue-200">
                 <Shield className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Secure & Instant:</strong> Your funds are protected by bank-level security. 
-                  Start trading immediately after funding.
+                  <div className="space-y-2">
+                    <div><strong>How It Works:</strong></div>
+                    <div className="text-sm space-y-1">
+                      <div>1. Connect your wallet (MetaMask, Coinbase, etc.)</div>
+                      <div>2. Click "Buy" in your wallet app</div>
+                      <div>3. Purchase crypto with credit/debit card</div>
+                      <div>4. Return here and start trading!</div>
+                    </div>
+                    <div className="text-xs text-blue-600 mt-2">
+                      💡 Your wallet already has built-in onramp providers like Transak, MoonPay, or Coinbase Onramp
+                    </div>
+                  </div>
                 </AlertDescription>
               </Alert>
             </CardContent>

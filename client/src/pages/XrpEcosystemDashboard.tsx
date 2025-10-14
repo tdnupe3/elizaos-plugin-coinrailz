@@ -91,73 +91,24 @@ export default function XrpEcosystemDashboard() {
     price: ''
   });
 
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to access XRP ecosystem features.",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 2000);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
+  // No forced redirect - allow public viewing
 
   // Fetch user's XRP wallets
   const { data: walletsData, isLoading: walletsLoading } = useQuery({
     queryKey: ['/api/xrp/wallets'],
-    enabled: isAuthenticated,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Session Expired",
-          description: "Please log in again to continue.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 1500);
-      }
-    }
+    enabled: isAuthenticated
   });
 
   // Fetch transaction history
   const { data: transactionsData, isLoading: transactionsLoading } = useQuery({
     queryKey: ['/api/xrp/transactions'],
-    enabled: isAuthenticated && selectedWallet !== null,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Session Expired",
-          description: "Please log in again to continue.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 1500);
-      }
-    }
+    enabled: isAuthenticated && selectedWallet !== null
   });
 
   // Fetch trading orders
   const { data: ordersData, isLoading: ordersLoading } = useQuery({
     queryKey: ['/api/xrp/trading/orders'],
-    enabled: isAuthenticated && selectedWallet !== null,
-    onError: (error: Error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Session Expired",
-          description: "Please log in again to continue.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 1500);
-      }
-    }
+    enabled: isAuthenticated && selectedWallet !== null
   });
 
   // Create wallet mutation
@@ -334,20 +285,127 @@ export default function XrpEcosystemDashboard() {
     );
   }
 
+  // Public view with sign-in CTA for authenticated features
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="max-w-md">
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">XRP Ecosystem Dashboard</h1>
+            <p className="text-gray-600 mt-2">
+              Complete XRP Ledger financial services platform
+            </p>
+          </div>
+          <Button onClick={() => window.location.href = "/api/login"}>
+            Sign In to Access
+          </Button>
+        </div>
+
+        {/* Public Information Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">XRP Wallet Management</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Create and manage XRP Ledger wallets with instant access
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Cross-Border Payments</CardTitle>
+              <Send className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Send XRP globally with near-instant settlement
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">DEX Trading</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Trade XRP and XRPL tokens on the decentralized exchange
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Feature Overview */}
+        <Card>
           <CardHeader>
-            <CardTitle>Authentication Required</CardTitle>
+            <CardTitle>XRP Ledger Financial Services</CardTitle>
             <CardDescription>
-              Please log in to access the XRP Ecosystem dashboard.
+              7 comprehensive services for XRP ecosystem
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => window.location.href = "/api/login"} className="w-full">
-              Log In
-            </Button>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-start space-x-3">
+                <Wallet className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">Wallet Creation & Management</h3>
+                  <p className="text-sm text-muted-foreground">Secure XRP Ledger wallet creation with multi-signature support</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <DollarSign className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">XRP Buy/Sell with Fiat</h3>
+                  <p className="text-sm text-muted-foreground">Fiat onramps for XRP purchases (USD, EUR, GBP)</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <TrendingUp className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">RLUSD Stablecoin Trading</h3>
+                  <p className="text-sm text-muted-foreground">Trade Ripple's RLUSD stablecoin on XRPL</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <Globe className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">Native Token Explorer</h3>
+                  <p className="text-sm text-muted-foreground">Discover and trade XRPL native tokens</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <ArrowUpDown className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">Advanced DEX Trading</h3>
+                  <p className="text-sm text-muted-foreground">Professional DEX interface with limit orders</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <Send className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">Cross-Border Payments</h3>
+                  <p className="text-sm text-muted-foreground">Instant international payments with low fees</p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3">
+                <Droplets className="h-5 w-5 text-primary mt-0.5" />
+                <div>
+                  <h3 className="font-semibold">Liquidity Provision</h3>
+                  <p className="text-sm text-muted-foreground">Earn yields by providing liquidity to XRPL DEX</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <Button onClick={() => window.location.href = "/api/login"} size="lg" className="w-full">
+                Sign In to Access XRP Ecosystem
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

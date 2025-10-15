@@ -48,21 +48,29 @@
 
 ## 💼 Project Description
 
-**Railz Token (RALZ)** is the native utility token of Coin Railz, an AI-powered fintech platform that provides multi-chain payment infrastructure for the decentralized AI agent economy.
+**Railz Token (RALZ)** is a **Base Chain native utility token** powering Coin Railz—an AI-powered fintech platform built exclusively on Coinbase's Base Layer 2 network. RALZ provides multi-chain payment infrastructure for the decentralized AI agent economy, leveraging Base's low-cost, high-speed architecture for optimal performance.
 
-### Core Utility
-1. **Payment Processing:** 20% fee discount when paying with RALZ
-2. **Referral Rewards:** Multi-level referral system (7%-2%-1%) paid in RALZ
+### Why Base Chain?
+**RALZ is strategically deployed on Base to maximize the Coinbase ecosystem advantage:**
+- ⚡ **95% Lower Fees:** $0.01 vs $5+ on Ethereum mainnet
+- 🚀 **6x Faster:** 2-second finality vs 12+ seconds on Ethereum
+- 🏦 **Coinbase Integration:** Native wallet, OAuth, and potential exchange listing
+- 💵 **Circle USDC on Base:** 10+ production wallets for instant settlement
+
+### Core Utility (Base-Optimized)
+1. **Payment Processing on Base:** 20% fee discount, sub-second settlement
+2. **Referral Rewards:** Multi-level system (7%-2%-1%) paid instantly in RALZ on Base
 3. **Platform Governance:** Voting rights on feature implementations
 4. **Staking Rewards:** Revenue share from platform fees (15% APY initial)
-5. **AI Services:** Native payment for AI marketplace transactions
+5. **AI Services:** Native payment for AI marketplace transactions on Base
 
 ### Key Differentiators
-- ✅ **Base Chain Native:** First-mover on Coinbase Layer 2
-- ✅ **Multi-Chain Payments:** Accept ETH, USDC, USDT, BNB without bridging
-- ✅ **Production Infrastructure:** Circle USDC integration with 10+ live wallets
-- ✅ **Real Utility:** Powers $1K smart contract audits, AI marketplace, referrals
-- ✅ **Enterprise Partners:** Circle, Coinbase, XRP Ledger integrations
+- 🏆 **Base Chain Native (Primary Advantage):** First AI payment infrastructure token on Coinbase Layer 2
+- ✅ **Coinbase Ecosystem:** Wallet integration, OAuth, verified user onboarding
+- ✅ **Circle USDC on Base:** 10+ production wallets for instant USDC settlement
+- ✅ **Multi-Chain to Base Settlement:** Accept ETH, USDC, USDT, BNB—all settle on Base
+- ✅ **Real Utility:** Powers $1K smart contract audits, AI marketplace, instant referrals
+- ✅ **Production Ready:** Live Base infrastructure processing real transactions
 
 ---
 

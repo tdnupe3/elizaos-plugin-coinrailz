@@ -135,13 +135,13 @@ export default function Whitepaper() {
           <h2>4. Tokenomics</h2>
           
           <h3>4.1 Token Distribution</h3>
-          <p><strong>Total Supply:</strong> 1,000,000,000 RALZ (1 Billion)</p>
+          <p><strong>Total Supply:</strong> 100,000,000,000 RALZ (100 Billion)</p>
           <ul>
-            <li><strong>Public Sale (40%):</strong> 400,000,000 RALZ</li>
-            <li><strong>Referral Rewards (25%):</strong> 250,000,000 RALZ</li>
-            <li><strong>Team & Advisors (15%):</strong> 150,000,000 RALZ (2-year cliff, 4-year vesting)</li>
-            <li><strong>Treasury (10%):</strong> 100,000,000 RALZ</li>
-            <li><strong>Liquidity (10%):</strong> 100,000,000 RALZ (DEX pools on Base)</li>
+            <li><strong>Public Sale (40%):</strong> 40,000,000,000 RALZ</li>
+            <li><strong>Referral Rewards (25%):</strong> 25,000,000,000 RALZ</li>
+            <li><strong>Team & Advisors (15%):</strong> 15,000,000,000 RALZ (2-year cliff, 4-year vesting)</li>
+            <li><strong>Treasury (10%):</strong> 10,000,000,000 RALZ</li>
+            <li><strong>Liquidity (10%):</strong> 10,000,000,000 RALZ (DEX pools on Base)</li>
           </ul>
 
           <h3>4.2 Economic Model</h3>
@@ -233,7 +233,7 @@ export default function Whitepaper() {
               <li><strong>Block Explorer:</strong> <a href="https://basescan.org/token/0x2D45A4E7B3a89FbA480051c972c3A461d886aE28" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 underline">BaseScan</a></li>
               <li><strong>Token Standard:</strong> ERC-20 (Base-compatible)</li>
               <li><strong>Decimals:</strong> 18</li>
-              <li><strong>Total Supply:</strong> 1,000,000,000 RALZ</li>
+              <li><strong>Total Supply:</strong> 100,000,000,000 RALZ</li>
               <li><strong>Network Type:</strong> Optimistic Rollup (OP Stack)</li>
             </ul>
 

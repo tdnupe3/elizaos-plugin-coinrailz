@@ -202,13 +202,13 @@ All referral rewards are automatically distributed in RALZ tokens upon transacti
 
 ### 5.1 Token Distribution
 
-**Total Supply:** 1,000,000,000 RALZ (1 Billion)
+**Total Supply:** 100,000,000,000 RALZ (100 Billion)
 
-- **Public Sale (40%):** 400,000,000 RALZ
-- **Platform Rewards (25%):** 250,000,000 RALZ (vested over 4 years)
-- **Team & Advisors (15%):** 150,000,000 RALZ (2-year cliff, 4-year vesting)
-- **Treasury (10%):** 100,000,000 RALZ (platform development & marketing)
-- **Liquidity (10%):** 100,000,000 RALZ (DEX liquidity pools)
+- **Public Sale (40%):** 40,000,000,000 RALZ
+- **Platform Rewards (25%):** 25,000,000,000 RALZ (vested over 4 years)
+- **Team & Advisors (15%):** 15,000,000,000 RALZ (2-year cliff, 4-year vesting)
+- **Treasury (10%):** 10,000,000,000 RALZ (platform development & marketing)
+- **Liquidity (10%):** 10,000,000,000 RALZ (DEX liquidity pools)
 
 ### 5.2 Vesting Schedule
 
@@ -543,7 +543,7 @@ RALZ isn't just another token—it's the financial infrastructure layer for AI a
 - **Block Explorer:** https://basescan.org/token/0x2D45A4E7B3a89FbA480051c972c3A461d886aE28
 - **Token Standard:** ERC-20 (Base-compatible)
 - **Decimals:** 18
-- **Total Supply:** 1,000,000,000 RALZ
+- **Total Supply:** 100,000,000,000 RALZ
 - **Network Type:** Optimistic Rollup (OP Stack)
 
 **Base Chain Infrastructure:**

@@ -87,6 +87,16 @@ export const PRODUCTION_TOKENS = {
     name: 'PEEZY Token',
     decimals: 18,
     coingeckoId: 'peezy'
+  },
+  // RAILZ Token - Coin Railz Platform Token (Base Chain)
+  RALZ: {
+    address: '0x2D45A4E7B3a89FbA480051c972c3A461d886aE28',
+    symbol: 'RALZ',
+    name: 'Railz Token',
+    decimals: 18,
+    coingeckoId: 'railz-token',
+    chain: 'base',
+    description: 'Native utility token for Coin Railz platform - AI-powered fintech infrastructure'
   }
 };
 

@@ -136,12 +136,13 @@ export default function Whitepaper() {
           
           <h3>4.1 Token Distribution</h3>
           <p><strong>Total Supply:</strong> 100,000,000,000 RALZ (100 Billion)</p>
+          <p><strong>Circulating at Launch:</strong> 75,000,000,000 RALZ (75%)</p>
           <ul>
-            <li><strong>Public Sale (40%):</strong> 40,000,000,000 RALZ</li>
-            <li><strong>Referral Rewards (25%):</strong> 25,000,000,000 RALZ</li>
-            <li><strong>Team & Advisors (15%):</strong> 15,000,000,000 RALZ (2-year cliff, 4-year vesting)</li>
-            <li><strong>Treasury (10%):</strong> 10,000,000,000 RALZ</li>
-            <li><strong>Liquidity (10%):</strong> 10,000,000,000 RALZ (DEX pools on Base)</li>
+            <li><strong>Public Sale (60%):</strong> 60,000,000,000 RALZ - Circulating ✅</li>
+            <li><strong>Liquidity Pools (15%):</strong> 15,000,000,000 RALZ - Circulating ✅</li>
+            <li><strong>Platform Rewards (10%):</strong> 10,000,000,000 RALZ (vested over 4 years)</li>
+            <li><strong>Team & Advisors (10%):</strong> 10,000,000,000 RALZ (2-year cliff, 4-year vesting)</li>
+            <li><strong>Treasury (5%):</strong> 5,000,000,000 RALZ (multi-sig controlled, locked)</li>
           </ul>
 
           <h3>4.2 Economic Model</h3>

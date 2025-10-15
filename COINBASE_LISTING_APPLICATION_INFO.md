@@ -13,17 +13,17 @@
 
 ### Supply & Economics
 - **Total Supply:** 100,000,000,000 RALZ (100 Billion)
-- **Circulating Supply:** 40,000,000,000 RALZ (Public Sale allocation)
+- **Circulating Supply at Launch:** 75,000,000,000 RALZ (75%)
 - **Max Supply:** 100,000,000,000 RALZ (Fixed, deflationary via burns)
 
 ### Token Distribution
-| Allocation | Amount | Percentage | Vesting |
-|------------|--------|------------|---------|
-| Public Sale | 40B RALZ | 40% | No vesting |
-| Platform Rewards | 25B RALZ | 25% | 4-year linear |
-| Team & Advisors | 15B RALZ | 15% | 2yr cliff, 4yr vesting |
-| Treasury | 10B RALZ | 10% | Multi-sig controlled |
-| Liquidity | 10B RALZ | 10% | DEX pools |
+| Allocation | Amount | Percentage | Status | Vesting |
+|------------|--------|------------|--------|---------|
+| Public Sale | 60B RALZ | 60% | Circulating ✅ | None |
+| Liquidity Pools | 15B RALZ | 15% | Circulating ✅ | DEX pools |
+| Platform Rewards | 10B RALZ | 10% | Vested | 4-year linear |
+| Team & Advisors | 10B RALZ | 10% | Locked | 2yr cliff, 4yr vest |
+| Treasury | 5B RALZ | 5% | Locked | Multi-sig controlled |
 
 ---
 

@@ -157,6 +157,7 @@ const CryptoJoinerPro = lazy(() => import("@/pages/CryptoJoinerPro"));
 const SubscriptionSuccess = lazy(() => import("@/pages/SubscriptionSuccess"));
 const FreelanceDeveloperServices = lazy(() => import("@/pages/FreelanceDeveloperServices"));
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
+const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -538,6 +539,9 @@ function Router() {
       </Route>
       <Route path="/privacy-policy">
         {() => <LazyLoadWrapper><PrivacyPolicyPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/whitepaper">
+        {() => <LazyLoadWrapper><Whitepaper /></LazyLoadWrapper>}
       </Route>
       <Route path="/docs">
         {() => <LazyLoadWrapper><Documentation /></LazyLoadWrapper>}

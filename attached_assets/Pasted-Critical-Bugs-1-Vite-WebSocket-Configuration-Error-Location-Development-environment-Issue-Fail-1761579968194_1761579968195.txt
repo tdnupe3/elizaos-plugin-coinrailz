@@ -1,0 +1,46 @@
+Critical Bugs
+1. Vite WebSocket Configuration Error
+Location: Development environment
+Issue: Failed to construct 'WebSocket': The URL 'wss://localhost:undefined/?token=...' is invalid
+Impact: Hot Module Replacement (HMR) not working properly in development
+Severity: Medium (development only)
+
+This is caused by an undefined port in the Vite WebSocket configuration. The platform is functional but HMR is broken.
+
+2. Service Worker Registration Failing
+Location: Client-side PWA implementation
+Issue: Service Worker registration failed
+Impact: PWA features (offline support, caching) not working
+Severity: Medium
+
+3. Missing Google Analytics Configuration
+Location: Analytics tracking
+Issue: "Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID"
+Impact: No user tracking/analytics data being collected
+Severity: Low (non-blocking)
+
+4. Circle Wallet Creation Method Missing (from audit reports)
+Location: server/services/circleService.ts
+Issue: Individual wallet creation uses development fallbacks due to missing SDK method
+Impact: Cannot create new user wallets in production
+Severity: CRITICAL for production
+
+5. Database Connection Instability (from audit reports)
+Location: Database connection pool
+Issue: Connection termination errors (Error 57P01) not properly handled
+Impact: Platform crashes on database disconnection
+Severity: CRITICAL for production
+
+6. TypeScript Compilation Errors (from audit reports)
+Location: Multiple files including client/src/pages/swap.tsx
+Issue: Import/export mismatches, duplicate type definitions
+Impact: Build may fail in production
+Severity: HIGH
+
+Most Critical Issues to Fix Immediately
+The top priority bugs blocking production deployment are:
+
+Circle wallet creation - Users cannot onboard
+Database connection stability - Platform crashes
+TypeScript errors - Build failures
+The development environment issues (Vite WebSocket, Service Worker) are non-blocking for production but should be addressed for better developer experience.

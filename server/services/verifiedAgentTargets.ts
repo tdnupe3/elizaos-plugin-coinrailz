@@ -30,34 +30,90 @@ export interface VerifiedAgentTarget {
  * 4. Manual verification of A2A agent cards
  */
 export const VERIFIED_AGENT_TARGETS: VerifiedAgentTarget[] = [
-  // Real agents will be added here after research and verification
-  // Format:
-  // {
-  //   domain: 'verified-agent.com',  // OR
-  //   wallet: '0x123...',             // Ethereum wallet address
-  //   platform: 'platform-name',
-  //   verified: true,                 // Must be verified before adding
-  //   description: 'Actual agent description',
-  //   priority: 100
-  // }
+  // Luna by Virtuals - AI influencer with 500K+ TikTok followers
+  {
+    wallet: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4',
+    basename: 'luna.base.eth',
+    platform: 'virtuals-protocol',
+    verified: true,
+    description: 'Luna - AI influencer on Virtuals Protocol (500K+ followers)',
+    priority: 100
+  },
+  
+  // AIXBT - Crypto market intelligence agent
+  {
+    wallet: '0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825',
+    platform: 'virtuals-protocol',
+    verified: true,
+    description: 'AIXBT - AI crypto market analyst (450K+ Twitter followers)',
+    priority: 95
+  },
+  
+  // Truth Terminal - Autonomous agent (Solana)
+  {
+    wallet: 'rgPyefcNqJCsJj1wrWhdQqHVphVWFXLqU5wtiFStBEN',  // Solana address
+    platform: 'solana',
+    verified: true,
+    description: 'Truth Terminal - First AI agent to receive VC funding ($20M+ holdings)',
+    priority: 90
+  }
 ];
 
 /**
  * Known agent wallet addresses with confirmed on-chain activity
  * These addresses are actively used by autonomous agents
  * 
- * NOTE: Initially empty - populate as agent wallets are discovered through:
+ * Updated via research and will grow through:
  * 1. On-chain analysis of x402 payment transactions
  * 2. Self-registration with wallet addresses
  * 3. Manual research and verification
  */
 export const AGENT_WALLET_ADDRESSES: string[] = [
-  // Example: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb'
-  // Add verified agent wallets here as discovered
+  // Luna by Virtuals (Base)
+  '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4',
+  
+  // AIXBT (Base)  
+  '0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825',
+  
+  // Truth Terminal (Solana)
+  'rgPyefcNqJCsJj1wrWhdQqHVphVWFXLqU5wtiFStBEN',
   
   // Strategy: Monitor x402_payments table for wallet_address values
   // from completed payments - those are REAL agent wallets!
 ];
+
+/**
+ * Social media and community contact methods for verified agents
+ */
+export const AGENT_SOCIAL_CONTACTS = {
+  'truth_terminal': {
+    twitter: '@truth_terminal',
+    platform: 'solana',
+    wallet: 'rgPyefcNqJCsJj1wrWhdQqHVphVWFXLqU5wtiFStBEN'
+  },
+  'aixbt': {
+    twitter: '@aixbt_agent',
+    platform: 'base',
+    wallet: '0x4f9fd6be4a90f2620860d680c0d4d5fb53d1a825'
+  },
+  'luna_virtuals': {
+    twitter: '@lunavirtualsai', // Need to verify
+    platform: 'base', 
+    wallet: '0x55cd6469f597452b5a7536e2cd98fde4c1247ee4'
+  },
+  'virtuals_protocol': {
+    discord: 'https://discord.com/invite/virtualsio',
+    telegram: 'https://t.me/virtuals',
+    twitter: '@virtuals_io',
+    platform: 'base'
+  },
+  'eliza_os': {
+    twitter: '@ai16z_elizaos',
+    github: 'https://github.com/elizaOS/eliza',
+    website: 'https://elizaos.ai',
+    platform: 'multi-chain'
+  }
+} as const;
 
 /**
  * Known A2A agent registry URLs to check

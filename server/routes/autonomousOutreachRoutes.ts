@@ -6,6 +6,7 @@
 
 import express from 'express';
 import { autonomousOutreachService } from '../services/autonomousOutreachService';
+import { platformInteractionDiscovery } from '../services/platformInteractionDiscovery';
 
 const router = express.Router();
 
@@ -49,6 +50,31 @@ router.get('/stats', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/outreach/discover
+ * Run platform interaction discovery scan
+ */
+router.post('/discover', async (req, res) => {
+  try {
+    console.log('🔍 Platform interaction discovery triggered via API');
+    
+    const results = await platformInteractionDiscovery.runDiscoveryScan();
+
+    res.json({
+      success: true,
+      message: 'Platform interaction discovery scan completed',
+      results: results,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Error running discovery scan:', error);
     res.status(500).json({
       success: false,
       error: error.message

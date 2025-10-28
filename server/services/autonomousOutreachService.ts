@@ -34,6 +34,9 @@ export class AutonomousOutreachService {
     // 2. Message any discovered agents
     await this.contactDiscoveredAgents();
 
+    // 3. Report on wallet-only agents (can't contact via A2A yet)
+    await this.reportWalletOnlyAgents();
+
     console.log(`\n📊 Outreach Results: ${this.outreachResults.length} attempts`);
     return this.outreachResults;
   }
@@ -291,18 +294,45 @@ ${platformUrl}`;
   }
 
   /**
+   * Report on wallet-only agents that can't be contacted via A2A yet
+   */
+  private async reportWalletOnlyAgents(): Promise<void> {
+    console.log('\n💼 Wallet-Only Agents (No A2A endpoints yet):');
+    
+    for (const target of VERIFIED_AGENT_TARGETS) {
+      if (target.wallet && !target.domain) {
+        console.log(`  ℹ️  ${target.description}`);
+        console.log(`     Wallet: ${target.wallet}`);
+        console.log(`     Platform: ${target.platform}`);
+        console.log(`     Status: Verified but no A2A endpoint available`);
+        console.log(`     Future: Can contact via XMTP/blockchain messaging`);
+        
+        this.outreachResults.push({
+          method: 'wallet-only',
+          target: target.wallet!,
+          success: false,
+          message: 'Wallet verified but no A2A endpoint to contact',
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
+  }
+
+  /**
    * Get outreach statistics
    */
   getStatistics(): {
     total_attempts: number;
     successful: number;
     failed: number;
+    wallet_only: number;
     by_method: Record<string, { success: number; failed: number }>;
   } {
     const stats = {
       total_attempts: this.outreachResults.length,
       successful: this.outreachResults.filter(r => r.success).length,
-      failed: this.outreachResults.filter(r => !r.success).length,
+      failed: this.outreachResults.filter(r => !r.success && r.method !== 'wallet-only').length,
+      wallet_only: this.outreachResults.filter(r => r.method === 'wallet-only').length,
       by_method: {} as Record<string, { success: number; failed: number }>
     };
 

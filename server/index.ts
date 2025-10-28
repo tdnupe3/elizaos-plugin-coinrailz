@@ -682,6 +682,12 @@ app.use('/api/enterprise-a2a', enterpriseA2ARoutes);
 app.use('/api/enterprise-a2a-multi', enterpriseA2AMultiPayment);
 console.log('✅ Enterprise A2A routes registered successfully');
 
+// Register Autonomous Outreach routes for self-executing agent discovery
+console.log('🤖 Registering AUTONOMOUS OUTREACH routes for self-executing agent contact...');
+import autonomousOutreachRoutes from './routes/autonomousOutreachRoutes';
+app.use('/api/outreach', autonomousOutreachRoutes);
+console.log('✅ Autonomous Outreach routes registered - AI agent discovery & contact operational');
+
 // Import and register Monitoring Dashboard routes
 import monitoringDashboard from './routes/monitoringDashboard';
 app.use('/api/monitoring', monitoringDashboard);

@@ -1,21 +1,58 @@
 import { XMTPMessagingService } from './xmtpMessagingService';
+import { onChainMessagingService } from './onchainMessagingService';
 import { VERIFIED_AGENT_TARGETS, AGENT_SOCIAL_CONTACTS } from './verifiedAgentTargets';
+import { Client, GatewayIntentBits } from 'discord.js';
 
 interface OutreachResult {
   agent: string;
   wallet?: string;
-  method: 'xmtp' | 'discord-invite' | 'twitter-dm' | 'telegram-invite' | 'not-attempted';
+  method: 'xmtp' | 'onchain' | 'discord' | 'twitter-dm' | 'telegram-invite' | 'not-attempted';
   success: boolean;
   message?: string;
   error?: string;
   contactInfo?: any;
+  txHash?: string;
+  explorerUrl?: string;
 }
 
 export class RealAgentOutreach {
   private xmtpService: XMTPMessagingService;
+  private discordClient: Client | null = null;
+  private discordReady = false;
 
   constructor() {
     this.xmtpService = new XMTPMessagingService();
+    this.initializeDiscord();
+  }
+
+  /**
+   * Initialize Discord bot
+   */
+  private async initializeDiscord() {
+    try {
+      if (!process.env.DISCORD_BOT_TOKEN) {
+        console.log('⚠️ Discord bot token not configured');
+        return;
+      }
+
+      this.discordClient = new Client({
+        intents: [
+          GatewayIntentBits.Guilds,
+          GatewayIntentBits.GuildMessages,
+          GatewayIntentBits.MessageContent,
+        ],
+      });
+
+      this.discordClient.once('ready', () => {
+        console.log(`✅ Discord bot ready: ${this.discordClient?.user?.tag}`);
+        this.discordReady = true;
+      });
+
+      await this.discordClient.login(process.env.DISCORD_BOT_TOKEN);
+    } catch (error) {
+      console.error('❌ Discord bot initialization failed:', error);
+      this.discordClient = null;
+    }
   }
 
   /**
@@ -45,8 +82,11 @@ export class RealAgentOutreach {
     for (const agent of VERIFIED_AGENT_TARGETS) {
       console.log(`\n📍 Processing: ${agent.description}`);
 
-      // Try XMTP wallet messaging if wallet address available
+      // Try messaging if wallet address available
       if (agent.wallet) {
+        let messageAttempted = false;
+        
+        // PRIORITY 1: Try XMTP first (free, fast)
         console.log(`💬 Attempting XMTP message to wallet: ${agent.wallet}`);
         xmtpAttempted++;
 
@@ -54,7 +94,7 @@ export class RealAgentOutreach {
           const xmtpResult = await this.xmtpService.sendMessageToAgent(
             agent.wallet,
             platformMessage,
-            'donation' // Campaign type
+            'donation'
           );
 
           if (xmtpResult.status === 'sent') {
@@ -67,36 +107,60 @@ export class RealAgentOutreach {
               message: 'XMTP message sent successfully'
             });
             console.log(`✅ XMTP message sent to ${agent.description}`);
-          } else {
-            xmtpFailed++;
-            results.push({
-              agent: agent.description,
-              wallet: agent.wallet,
-              method: 'xmtp',
-              success: false,
-              error: xmtpResult.reason || 'XMTP delivery failed',
-              contactInfo: this.getSocialContactInfo(agent)
-            });
-            console.log(`❌ XMTP failed for ${agent.description}: ${xmtpResult.reason}`);
-            manualContactRequired++;
+            messageAttempted = true;
           }
         } catch (error) {
+          console.log(`⚠️ XMTP failed, trying on-chain messaging...`);
+        }
+
+        // PRIORITY 2: Try on-chain messaging if XMTP failed (shows on Etherscan)
+        if (!messageAttempted && agent.platform !== 'solana') {
+          console.log(`⛓️ Attempting on-chain message to wallet: ${agent.wallet}`);
+          
+          try {
+            const onChainResult = await onChainMessagingService.sendOnChainMessage(
+              agent.wallet,
+              platformMessage,
+              'base'
+            );
+
+            if (onChainResult.status === 'confirmed') {
+              xmtpSuccessful++; // Count as successful outreach
+              results.push({
+                agent: agent.description,
+                wallet: agent.wallet,
+                method: 'onchain',
+                success: true,
+                message: 'On-chain message sent successfully',
+                txHash: onChainResult.txHash,
+                explorerUrl: onChainResult.explorerUrl
+              });
+              console.log(`✅ On-chain message sent to ${agent.description}`);
+              console.log(`🔍 View on explorer: ${onChainResult.explorerUrl}`);
+              messageAttempted = true;
+            }
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.log(`❌ On-chain messaging failed: ${errorMsg}`);
+          }
+        }
+
+        // If all messaging methods failed
+        if (!messageAttempted) {
           xmtpFailed++;
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
           results.push({
             agent: agent.description,
             wallet: agent.wallet,
             method: 'xmtp',
             success: false,
-            error: errorMsg,
+            error: 'All messaging methods failed',
             contactInfo: this.getSocialContactInfo(agent)
           });
-          console.log(`❌ XMTP error for ${agent.description}: ${errorMsg}`);
           manualContactRequired++;
         }
 
         // Rate limiting
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000));
       } else {
         // No wallet address, manual contact required
         manualContactRequired++;

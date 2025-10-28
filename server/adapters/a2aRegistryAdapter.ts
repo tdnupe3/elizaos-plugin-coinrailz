@@ -141,48 +141,88 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
   }
 
   /**
-   * Discover agents from public A2A registries (if they exist)
+   * Discover agents from public A2A registries (REAL LIVE REGISTRIES)
    */
   private async discoverFromA2ARegistries(): Promise<DiscoveredAgentRaw[]> {
     const agents: DiscoveredAgentRaw[] = [];
     
     for (const registryUrl of A2A_REGISTRY_URLS) {
       try {
+        console.log(`🔍 Checking A2A registry: ${registryUrl}`);
+        
         const response = await this.safeFetch(registryUrl, {
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'CoinRailz-A2A-Platform/1.0'
           }
-        }, 10000);
+        }, 15000);
         
         if (response.ok) {
           const data = await this.safeJsonParse(response);
           
-          // Registry should return array of agent records
-          if (Array.isArray(data)) {
-            for (const agentRecord of data) {
-              if (agentRecord.url || agentRecord.domain) {
+          // Handle different registry formats
+          if (data && typeof data === 'object') {
+            let agentList: any[] = [];
+            
+            // Format 1: Direct array of agents
+            if (Array.isArray(data)) {
+              agentList = data;
+            }
+            // Format 2: Object with 'agents' or 'data' key
+            else if (data.agents && Array.isArray(data.agents)) {
+              agentList = data.agents;
+            }
+            else if (data.data && Array.isArray(data.data)) {
+              agentList = data.data;
+            }
+            // Format 3: Object with 'registry' key
+            else if (data.registry && Array.isArray(data.registry)) {
+              agentList = data.registry;
+            }
+            
+            // Process discovered agents
+            for (const agentRecord of agentList) {
+              // Extract agent URL from various formats
+              const agentUrl = agentRecord.url || 
+                              agentRecord.wellKnownURI?.replace('/.well-known/agent-card.json', '') ||
+                              agentRecord.endpoint ||
+                              (agentRecord.domain ? `https://${agentRecord.domain}` : null);
+              
+              if (agentUrl) {
                 agents.push({
-                  url: agentRecord.url || `https://${agentRecord.domain}`,
+                  url: agentUrl,
                   source: 'a2a-public-registry',
-                  channels: agentRecord.channels || {},
-                  wallet: agentRecord.wallet,
-                  capabilities: agentRecord.capabilities || {},
+                  channels: {
+                    webhook: agentRecord.endpoint || agentUrl
+                  },
+                  wallet: agentRecord.wallet || agentRecord.address,
+                  capabilities: agentRecord.capabilities || agentRecord.skills || {},
                   metadata: {
-                    ...agentRecord,
+                    name: agentRecord.name,
+                    description: agentRecord.description,
+                    author: agentRecord.author,
+                    version: agentRecord.version,
+                    protocolVersion: agentRecord.protocolVersion,
                     platform: 'a2a-registry',
-                    verified: true
+                    verified: true,
+                    registryUrl: registryUrl
                   }
                 });
               }
             }
+            
+            console.log(`✅ Found ${agentList.length} agents from ${registryUrl}`);
           }
         }
       } catch (error) {
         console.log(`⚠️ Registry ${registryUrl} not available:`, (error as Error).message);
       }
+      
+      // Rate limit between registries
+      await this.sleep(1000);
     }
     
+    console.log(`📊 Total agents from registries: ${agents.length}`);
     return agents;
   }
 

@@ -116,12 +116,13 @@ export const AGENT_SOCIAL_CONTACTS = {
 } as const;
 
 /**
- * Known A2A agent registry URLs to check
+ * Known A2A agent registry URLs to check (VERIFIED LIVE - October 2025)
  */
 export const A2A_REGISTRY_URLS: string[] = [
-  'https://registry.a2a.google.com/agents', // Google A2A official registry (if exists)
-  'https://agent-registry.coinbase.com/agents', // Coinbase agent registry (if exists)
-  'https://agents.base.org/registry', // Base chain agent registry (if exists)
+  'https://www.a2aregistry.org/registry.json', // PRIMARY: Community-driven production registry
+  'https://api.a2a-registry.dev/jsonrpc', // Alternative registry with JSON-RPC API
+  'https://www.a2acards.com/index.html', // A2A Cards directory
+  'https://raw.githubusercontent.com/sing1ee/a2a-directory/main/agents.json', // GitHub community directory
 ];
 
 /**

@@ -306,6 +306,13 @@ export class X402PaymentService {
   }
 
   /**
+   * Public method for wallet generation (used by transaction-wrapped routes)
+   */
+  async generatePaymentWalletPublic(network: string): Promise<string> {
+    return this.generatePaymentWallet(network);
+  }
+
+  /**
    * Generate REAL payment wallet address using Coinbase CDP
    */
   private async generatePaymentWallet(network: string): Promise<string> {

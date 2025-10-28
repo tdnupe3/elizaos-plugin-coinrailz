@@ -13,7 +13,7 @@
 import express from 'express';
 import { x402PaymentService } from '../services/x402PaymentService';
 import { db } from '../db';
-import { aiMarketplaceOrders, globalAIAgents } from '../../shared/schema';
+import { aiMarketplaceOrders, globalAIAgents, x402Payments } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
@@ -207,7 +207,7 @@ router.post('/agent-service-payment', async (req, res) => {
       });
     }
 
-    // REAL DATABASE TRANSACTION for atomic order + payment creation
+    // REAL ATOMIC TRANSACTION for order + payment creation
     const orderId = nanoid();
     const agentCommission = amount * 0.85;
     const platformFee = amount * 0.15;
@@ -215,9 +215,9 @@ router.post('/agent-service-payment', async (req, res) => {
     let paymentResult;
 
     try {
-      // Create marketplace order in transaction
+      // Execute BOTH operations in a single transaction for true atomicity
       await db.transaction(async (tx) => {
-        // Insert order
+        // 1. Insert marketplace order
         await tx.insert(aiMarketplaceOrders).values({
           id: orderId,
           agentId,
@@ -235,40 +235,56 @@ router.post('/agent-service-payment', async (req, res) => {
           }),
         });
 
-        // Order created successfully - create payment outside transaction
-        // (payment service has its own database operations)
-      });
+        // 2. Create payment wallet and insert payment record
+        // NOTE: Wallet creation happens BEFORE database insert
+        // If wallet creation fails, entire transaction rolls back
+        const paymentId = nanoid();
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min expiry
 
-      // Create x402 payment (after order successfully committed)
-      paymentResult = await x402PaymentService.createPaymentRequest({
-        amount,
-        agentId,
-        serviceDescription: serviceDescription || 'AI Agent Service',
-        orderId,
-        network: network || 'base',
-        currency: currency || 'USDC',
-        metadata: {
-          marketplaceOrder: true,
-          orderCreated: new Date().toISOString(),
-        },
-      });
+        // Generate REAL Coinbase CDP wallet (may throw error)
+        const walletAddress = await x402PaymentService.generatePaymentWalletPublic(network || 'base');
 
-      if (!paymentResult.success) {
-        // Payment creation failed - rollback order
-        await db
-          .delete(aiMarketplaceOrders)
-          .where(eq(aiMarketplaceOrders.id, orderId));
-
-        return res.status(400).json({
-          success: false,
-          error: 'Failed to create x402 payment',
-          details: paymentResult.error,
+        // Insert payment record
+        await tx.insert(x402Payments).values({
+          id: paymentId,
+          orderId,
+          agentId,
+          customerId: null,
+          amount: amount.toString(),
+          currency: currency || 'USDC',
+          status: 'pending',
+          network: network || 'base',
+          walletAddress,
+          expiresAt,
+          metadata: {
+            serviceDescription: serviceDescription || 'AI Agent Service',
+            protocol: 'x402',
+            autonomousPayment: true,
+            marketplaceOrder: true,
+          } as any,
         });
-      }
+
+        // Store payment result for response
+        paymentResult = {
+          success: true,
+          paymentId,
+          amount,
+          currency: currency || 'USDC',
+          network: network || 'base',
+          status: 'pending' as const,
+          walletAddress,
+          paymentUrl: `https://pay.x402.io/${paymentId}`,
+          expiresAt: expiresAt.toISOString(),
+        };
+      });
+
+      // Transaction succeeded - both order and payment committed atomically
     } catch (error: any) {
+      // Any failure (wallet creation, DB insert, etc) rolls back EVERYTHING
+      console.error('❌ Atomic transaction failed:', error);
       return res.status(500).json({
         success: false,
-        error: 'Database transaction failed',
+        error: 'Failed to create order and payment atomically',
         details: error.message,
       });
     }

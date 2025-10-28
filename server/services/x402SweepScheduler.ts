@@ -48,8 +48,13 @@ export class X402SweepScheduler {
         } else {
           console.log('📭 No payments to sweep');
         }
-      } catch (error) {
-        console.error('❌ Automated sweep failed:', error);
+      } catch (error: any) {
+        // Expected error until USDC transfer is implemented
+        if (error.message?.includes('USDC transfer not implemented')) {
+          console.log('⏸️ Sweep skipped: USDC transfer implementation pending');
+        } else {
+          console.error('❌ Automated sweep failed:', error.message);
+        }
       } finally {
         this.isRunning = false;
       }

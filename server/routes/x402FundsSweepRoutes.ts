@@ -10,25 +10,31 @@ import { requireAuth } from '../middleware/authMiddleware';
 
 const router = express.Router();
 
-// Admin authentication middleware
+// Admin authentication middleware - works with JWT auth
 const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  if (!req.isAuthenticated || !req.isAuthenticated()) {
+  // requireAuth middleware already checked authentication
+  // Now verify the user has admin permissions
+  const user = req.user as any;
+  
+  if (!user) {
     return res.status(401).json({
       success: false,
       error: 'Authentication required',
     });
   }
-
-  const user = req.user as any;
   
-  // Check if user is admin (you can customize this logic)
-  // For now, require specific admin email or role
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+  // Check if user is admin
+  // Option 1: Check against admin emails list
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim()).filter(e => e);
   
-  if (!adminEmails.includes(user.email) && user.role !== 'admin') {
+  // Option 2: Check for admin role
+  const isAdmin = adminEmails.includes(user.email) || user.role === 'admin' || user.tier === 'admin';
+  
+  if (!isAdmin) {
     return res.status(403).json({
       success: false,
       error: 'Admin access required',
+      message: 'Only administrators can access funds sweep endpoints',
     });
   }
 

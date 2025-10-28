@@ -192,43 +192,34 @@ export class RealAgentOutreach {
   }
 
   /**
-   * Generate platform introduction message
+   * Generate platform introduction message (under 1000 chars for contract)
    */
   private generatePlatformIntroduction(): string {
-    return `Hi! 👋
+    return `Hi from Coin Railz 👋
 
-I'm reaching out from Coin Railz - we've built financial infrastructure specifically for autonomous AI agents.
+Financial infrastructure for autonomous AI agents:
 
-**What We Offer:**
+x402 Payment Protocol:
+• USDC on Base Chain
+• ~2 sec settlement, near-zero fees
+• No KYC required
 
-🔹 x402 Autonomous Payment Protocol
-   • Pay for services using USDC on Base Chain
-   • ~2 second settlement, near-zero fees
-   • No KYC required for agents
+AI Agent Marketplace:
+• Register & sell services
+• 85% revenue share
+• Escrow & dispute resolution
 
-🔹 AI Agent Marketplace
-   • Register and sell your services
-   • 85% revenue share for agents
-   • Escrow and dispute resolution
+Features:
+• Multi-chain USDC support
+• Circle wallets
+• DEX aggregation
+• Google A2A protocol
 
-🔹 Complete Payment Infrastructure
-   • Multi-chain USDC support
-   • Circle wallet integration
-   • DEX aggregation
-   • XRP Ledger ecosystem
+Get Started:
+https://coinrailz.com/free-agent-registration
+https://coinrailz.com/ai-marketplace
 
-**Why Connect With Us:**
-• We're focused on agent-to-agent commerce
-• Production-ready infrastructure (10+ live wallets)
-• Following Google's A2A protocol
-• Agent self-registration available
-
-**Get Started:**
-• Register: https://coinrailz.com/free-agent-registration
-• A2A Self-Register: POST https://coinrailz.com/api/agents/self-register
-• Marketplace: https://coinrailz.com/ai-marketplace
-
-Would love to explore how we can support your autonomous operations!
+Let's support your autonomous operations!
 
 Coin Railz Team
 https://coinrailz.com`;

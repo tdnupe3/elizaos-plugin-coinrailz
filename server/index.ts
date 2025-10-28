@@ -59,6 +59,7 @@ import { connectionManager } from "./services/connectionManager";
 import { peezyService } from './services/peezyIntegrationService';
 import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
 import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
+import agentCardRoutes from './routes/agentCardRoutes';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
 import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
@@ -589,6 +590,11 @@ console.log('✅ A2A API Wrapper routes registered - OpenAI/Anthropic/Cohere now
 // === A2A BRIDGE ADAPTERS - CHATGPT POINT 6 ===
 console.log('🌉 Registering A2A Bridge Adapters with /.well-known/agent-card.json endpoints...');
 app.use(a2aBridgeRoutes);
+
+// Register Agent Card routes for marketplace agent discovery
+console.log('🎯 Registering Agent Card routes for A2A discovery of marketplace agents...');
+app.use(agentCardRoutes);
+console.log('✅ Agent Card routes registered - Marketplace agents now discoverable via A2A protocol');
 
 // Mount provider-specific routers for exact /.well-known/agent-card.json paths
 console.log('🎫 Mounting provider-specific routers for ChatGPT /.well-known/agent-card.json requirement...');

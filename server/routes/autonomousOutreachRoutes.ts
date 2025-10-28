@@ -7,6 +7,7 @@
 import express from 'express';
 import { autonomousOutreachService } from '../services/autonomousOutreachService';
 import { platformInteractionDiscovery } from '../services/platformInteractionDiscovery';
+import { realAgentOutreach } from '../services/realAgentOutreach';
 
 const router = express.Router();
 
@@ -75,6 +76,31 @@ router.post('/discover', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Error running discovery scan:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/outreach/message-agents
+ * Actually message discovered agents via XMTP wallet messaging
+ */
+router.post('/message-agents', async (req, res) => {
+  try {
+    console.log('💬 Real agent messaging triggered via API');
+    
+    const outreachResults = await realAgentOutreach.messageDiscoveredAgents();
+
+    res.json({
+      success: true,
+      message: 'Real agent outreach completed',
+      ...outreachResults,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('Error messaging agents:', error);
     res.status(500).json({
       success: false,
       error: error.message

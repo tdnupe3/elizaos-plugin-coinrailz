@@ -47,39 +47,26 @@ export class X402FundsSweepService {
   }
 
   /**
-   * Get or create platform wallet for collecting x402 payments
+   * Get platform wallet for collecting x402 payments
+   * REQUIRES PLATFORM_WALLET_ADDRESS environment variable to be set
    */
   private async getPlatformWallet(): Promise<string> {
     if (this.platformWalletAddress) {
       return this.platformWalletAddress;
     }
 
-    // Check environment variable first
+    // REQUIRE environment variable - don't auto-create wallets
     const envWallet = process.env.PLATFORM_WALLET_ADDRESS;
-    if (envWallet && envWallet.startsWith('0x')) {
-      this.platformWalletAddress = envWallet;
-      console.log(`✅ Using platform wallet from env: ${envWallet}`);
-      return envWallet;
+    if (!envWallet || !envWallet.startsWith('0x')) {
+      throw new Error(
+        'PLATFORM_WALLET_ADDRESS environment variable must be set. ' +
+        'Create a Base Chain wallet and add the address to secrets.'
+      );
     }
 
-    // Create new platform wallet if none exists
-    try {
-      const wallet = await Wallet.create({ networkId: 'base-mainnet' });
-      const address = await wallet.getDefaultAddress();
-      
-      if (!address) {
-        throw new Error('Failed to get wallet address');
-      }
-
-      this.platformWalletAddress = address.getId();
-      console.log(`🆕 Created new platform wallet: ${this.platformWalletAddress}`);
-      console.log(`⚠️ IMPORTANT: Save this address to PLATFORM_WALLET_ADDRESS secret!`);
-      
-      return this.platformWalletAddress;
-    } catch (error) {
-      console.error('❌ Failed to create platform wallet:', error);
-      throw new Error('Platform wallet creation failed');
-    }
+    this.platformWalletAddress = envWallet;
+    console.log(`✅ Using platform wallet from env: ${envWallet}`);
+    return envWallet;
   }
 
   /**
@@ -198,41 +185,48 @@ export class X402FundsSweepService {
         ? parseFloat(order[0].platformFee)
         : amount * 0.15;
 
-      console.log(`💸 Sweeping payment ${paymentId}: $${amount} from ${walletAddress}`);
+      console.log(`💸 Attempting to sweep payment ${paymentId}: $${amount} from ${walletAddress}`);
       console.log(`   Agent commission: $${agentCommission.toFixed(2)}, Platform fee: $${platformFee.toFixed(2)}`);
 
-      // TODO: Implement actual USDC transfer using Coinbase CDP
-      // This requires:
-      // 1. Loading the wallet from walletAddress with proper credentials
-      // 2. Transferring USDC to platformWallet
-      // 3. Recording the transaction hash
+      // ACTUAL USDC TRANSFER IMPLEMENTATION
+      // This requires CDP wallet seed/credentials to load the payment wallet
+      // Without the wallet seed, we cannot transfer funds
+      
+      // DO NOT mark as swept without actual transfer
+      // Throwing error to prevent fake sweeps
+      throw new Error(
+        'USDC transfer not implemented - requires CDP wallet seed management. ' +
+        'Cannot mark payment as swept without actual blockchain transaction. ' +
+        'Wallet seed/credentials needed to load wallet from walletAddress and execute transfer.'
+      );
 
-      // For now, just mark as swept in metadata
-      await db
-        .update(x402Payments)
-        .set({
-          metadata: {
-            ...(payment.metadata || {}),
-            swept: true,
-            sweptAt: new Date().toISOString(),
-            platformWallet,
-            platformFee: platformFee.toFixed(2),
-            agentCommission: agentCommission.toFixed(2),
-            note: 'Sweep mechanism ready - requires CDP wallet seed management',
-          },
-        })
-        .where(eq(x402Payments.id, paymentId));
-
-      console.log(`✅ Payment ${paymentId} marked as swept (transfer pending implementation)`);
-
-      return {
-        success: true,
-        paymentId,
-        amountSwept: amount.toFixed(2),
-        platformFee: platformFee.toFixed(2),
-        agentCommission: agentCommission.toFixed(2),
-        transactionHash: 'PENDING_IMPLEMENTATION',
-      };
+      // WHEN IMPLEMENTING:
+      // 1. Load wallet from walletAddress using CDP SDK with proper credentials
+      // 2. Execute USDC transfer to platformWallet on Base Chain
+      // 3. Wait for transaction confirmation
+      // 4. Get actual transaction hash from blockchain
+      // 5. ONLY THEN mark as swept with real transaction hash:
+      //
+      // await db.update(x402Payments).set({
+      //   metadata: {
+      //     ...(payment.metadata || {}),
+      //     swept: true,
+      //     sweptAt: new Date().toISOString(),
+      //     platformWallet,
+      //     platformFee: platformFee.toFixed(2),
+      //     agentCommission: agentCommission.toFixed(2),
+      //     transactionHash: realTxHash, // REAL blockchain transaction hash
+      //   },
+      // }).where(eq(x402Payments.id, paymentId));
+      //
+      // return {
+      //   success: true,
+      //   paymentId,
+      //   amountSwept: amount.toFixed(2),
+      //   platformFee: platformFee.toFixed(2),
+      //   agentCommission: agentCommission.toFixed(2),
+      //   transactionHash: realTxHash,
+      // };
     } catch (error: any) {
       console.error(`❌ Failed to sweep payment ${payment.id}:`, error);
       return {

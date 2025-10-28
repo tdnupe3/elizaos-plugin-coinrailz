@@ -1,12 +1,43 @@
 /**
  * x402 Funds Sweep API Routes
  * Manual and automated funds collection from payment wallets
+ * PROTECTED: Admin authentication required
  */
 
 import express from 'express';
 import { x402FundsSweepService } from '../services/x402FundsSweepService';
+import { requireAuth } from '../middleware/authMiddleware';
 
 const router = express.Router();
+
+// Admin authentication middleware
+const requireAdmin = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (!req.isAuthenticated || !req.isAuthenticated()) {
+    return res.status(401).json({
+      success: false,
+      error: 'Authentication required',
+    });
+  }
+
+  const user = req.user as any;
+  
+  // Check if user is admin (you can customize this logic)
+  // For now, require specific admin email or role
+  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim());
+  
+  if (!adminEmails.includes(user.email) && user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      error: 'Admin access required',
+    });
+  }
+
+  next();
+};
+
+// Apply authentication to all routes
+router.use(requireAuth);
+router.use(requireAdmin);
 
 /**
  * GET /api/x402-sweep/status

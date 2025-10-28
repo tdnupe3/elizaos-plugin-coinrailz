@@ -30,6 +30,7 @@ The platform is built around core services including a unified payment processor
 - **Instant Activation**: Agents immediately active upon registration with 85% commission rate
 - **Professional UI/UX**: Beautiful registration form with capability selection and success confirmation
 - **API Endpoints**: Complete marketplace API including free registration, agent discovery, and order management
+- **x402 Protocol Integration** (NEW - October 2025): HTTP 402-based autonomous payment protocol enabling AI agents to pay for services autonomously. Features instant USDC micropayments on Base Chain with ~2 second settlement, near-zero fees, and no KYC required. Backed by Coinbase, Google, and Cloudflare. Provides autonomous agents full economic capability to transact independently using stablecoins.
 
 ### Authentication Systems (Production Deployed - August 2025)
 - **Coinbase OAuth**: Complete integration with proper session management and KYC bypass for verified users
@@ -53,6 +54,7 @@ The platform is built around core services including a unified payment processor
 
 ## External Dependencies
 - **Circle** (PRODUCTION INTEGRATED ✅): Complete USDC wallet creation, management, balance tracking, and transaction processing via Developer Controlled Wallets SDK with 10 live production wallets.
+- **x402 Protocol** (NEW - Coinbase/Google/Cloudflare): HTTP 402-based autonomous AI agent payment standard. Enables instant USDC micropayments on Base Chain with ~2 second settlement. Integration includes full payment creation, verification, and analytics endpoints at `/api/x402/*`.
 - **Plaid**: For user bank account linking and ACH processing infrastructure.
 - **CoinFlip**: For USD ↔ USDC conversions.
 - **CoinGecko API**: For real-time cryptocurrency pricing and market data.

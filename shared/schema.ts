@@ -3777,6 +3777,45 @@ export type InsertOutreachCampaign = z.infer<typeof outreachCampaignsInsertSchem
 export type OutreachMessage = typeof outreachMessages.$inferSelect;
 export type InsertOutreachMessage = z.infer<typeof outreachMessagesInsertSchema>;
 
+// x402 Protocol Payments - AI Agent Autonomous Payments
+export const x402Payments = pgTable(
+  "x402_payments",
+  {
+    id: varchar("id").primaryKey(), // x402 payment ID
+    orderId: varchar("order_id"), // Link to aiMarketplaceOrders if applicable
+    agentId: varchar("agent_id").notNull(),
+    customerId: varchar("customer_id"),
+    amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+    currency: varchar("currency").default("USDC"),
+    status: varchar("status").notNull(), // pending, completed, failed, expired
+    x402TransactionId: varchar("x402_transaction_id"),
+    walletAddress: varchar("wallet_address"),
+    network: varchar("network").default("base"), // base, polygon, ethereum, near
+    paymentProof: text("payment_proof"), // Blockchain transaction hash or payment proof
+    facilitatorResponse: jsonb("facilitator_response"), // Response from Coinbase x402 Facilitator
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at").defaultNow(),
+    completedAt: timestamp("completed_at"),
+    expiresAt: timestamp("expires_at"),
+    errorMessage: text("error_message"),
+  },
+  (table) => [
+    index("IDX_x402_payments_agent").on(table.agentId),
+    index("IDX_x402_payments_status").on(table.status),
+    index("IDX_x402_payments_network").on(table.network),
+    index("IDX_x402_payments_created").on(table.createdAt),
+  ],
+);
+
+export const x402PaymentsInsertSchema = createInsertSchema(x402Payments).omit({
+  createdAt: true,
+});
+
+export const x402PaymentsSelectSchema = createSelectSchema(x402Payments);
+
+export type X402Payment = typeof x402Payments.$inferSelect;
+export type InsertX402Payment = z.infer<typeof x402PaymentsInsertSchema>;
+
 // Coinbase Address Database schemas and types
 export const coinbaseAddressDatabaseInsertSchema = createInsertSchema(coinbaseAddressDatabase).omit({
   id: true,

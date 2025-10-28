@@ -1,0 +1,499 @@
+Skip to content
+Chat history
+
+You said:
+i'm looking for ai agents that are discoverable via A2A protocol or something similar. I'd also like to know if there some list or database of contactable ai agents. I don't want to contact them via email. I'd like to contact them via blockchain or some other form of contact that is agent to agent.
+ChatGPT said:
+
+Thought for a few seconds
+Great question, and you're asking it at exactly the right moment. The whole “agent-to-agent economy” is getting real fast — people are starting to publish agents as if they were companies, with their own endpoints, payment rails, and on-chain identity. Let me walk you through what exists right now and how you can actually reach these agents without email. I'll split it into 4 parts:
+
+1. What A2A actually gives you
+The Agent-to-Agent (A2A) protocol (pushed by Google and now under the Linux Foundation as of June 23, 2025) is basically a standard way for autonomous AI agents to talk to each other, pass tasks, and coordinate — without a human in the loop. 
+developers.googleblog.com
+
+Core pieces you care about:
+
+Agent Card
+Every agent exposes a machine-readable “Agent Card” (JSON). Think of it like a wallet+LinkedIn page for an AI agent. It includes:
+
+Name / description / skills
+
+Auth requirements
+
+How to message it (HTTP / JSON-RPC / SSE stream, etc.)
+
+Optional payment terms (“this task costs X”)
+The Agent Card is what other agents look up to decide: “Can I call you? What can you do? How do I pay you?” 
+Aisera: Best Agentic AI For Enterprise
+
+Direct agent-to-agent messaging
+Instead of emailing a human, you POST to the agent’s advertised endpoint using the A2A schema. It's peer-to-peer in the sense that agents exchange structured tasks and results, not chat text. 
+developers.googleblog.com
+
+No vendor lock-in
+A2A is supposed to let your agent talk to someone else’s agent even if it runs on a different stack (CopilotKit, LangChain, custom infra, etc.). 
+copilotkit.ai
+
+So A2A solves: discovery (who can I talk to?), capability (what can you do?), and invocation (how do I call you programmatically?).
+
+Where it’s still weak today: global discovery and payments.
+
+That’s where people are bolting on directories, registries, and on-chain identity.
+
+2. Is there a “phone book of agents” right now?
+Short version: there are a few emerging directories, but nothing is “the one true registry” yet. You have 3 buckets to look at:
+
+(A) Centralized / curated A2A directories
+There are public-facing “A2A agent directories” whose entire job is to list live agents, their capabilities, and their contact endpoints — similar to an API marketplace but for autonomous agents. You’ll see them marketed literally as “A2A Agent Directory,” “A2A Protocol Directory,” or “A2A Agents.” These describe themselves as searchable catalogs where you can browse agents by skill (finops agent, procurement agent, travel agent, etc.) and grab their Agent Cards. 
+A2A Protocol
++1
+
+What you get from those directories:
+
+Agent name
+
+What problem they solve
+
+Their callable endpoint (HTTP / JSON-RPC / SSE stream)
+
+Auth model (API key, OAuth, signature)
+
+Sometimes pricing info if they’ve implemented monetization
+
+This is the closest thing right now to “I want to ping other agents without talking to a human.”
+
+Where it's limited:
+
+Most of these directories are still focused on enterprise/ops agents (procurement assistant, expense auditor, inventory forecaster), not degen crypto agents.
+
+Many entries are private or gated unless you’re a partner, because companies don’t want random bots hammering their internal finance agent.
+
+But: they DO exist, and they’re growing, because companies want their agents to be discoverable by other agents, not just by humans. 
+developers.googleblog.com
++1
+
+(B) On-chain / decentralized registries (this is probably what you want)
+There’s active work to push agent identity and capability metadata on-chain so agents can discover each other permissionlessly.
+
+Two efforts matter here:
+
+Ledger-anchored Agent Cards / Agent Smart Contracts
+Researchers proposed publishing each agent’s “Agent Card” as a smart contract.
+
+The contract stores: name, description, contact endpoint, skills, payment terms.
+
+Any other agent can query the chain, pull that data, and know how to talk to you.
+
+This turns discovery into: “look up the registry contract, list all registered agents.”
+This is described as a decentralized identity registry for A2A agents, and it’s positioned specifically for multi-agent economies. 
+arXiv
++1
+
+Why that matters for you:
+• You don’t need email.
+• You don’t need a website.
+• Your agent becomes discoverable by address.
+• Another agent can confirm you’re legit by verifying the on-chain record.
+
+x402 / AP2-style payment hooks
+There’s also an extension called x402 (referencing HTTP 402 “Payment Required”) and, more broadly, Google’s Agent Payments Protocol (AP2).
+
+Goal: let one agent pay another agent automatically in crypto (Sui is explicitly mentioned as one of the first settlement layers) after/before invoking a task.
+
+This is meant for “I call your agent, you do work, I stream you funds,” machine-to-machine. 
+Google Cloud
++1
+
+Why you care:
+If you’re building Coin Railz as an on/off ramp + compliance layer, this is the bridge between “agent discovered me via A2A” and “agent actually sent money without a human.”
+
+So, yes: there is movement toward a blockchain-backed agent registry. It’s not fully standardized across chains yet, but it’s real and being actively implemented.
+
+(C) Distributed resolution layers (think DNS for agents)
+People are also working on things like:
+
+Agent Name Service (ANS) – basically DNS for AI agents. The idea is: resolve agentname → verified public key → capabilities → protocol endpoints (A2A, MCP, etc.). It uses PKI-style signing so that agents can trust each other. 
+arXiv
+
+AGNTCY / Agent Directory Service (ADS) – a DHT-backed (Kademlia-style) lookup layer, where agents advertise what they can do, with signed metadata and provenance. It’s meant to be multi-protocol (A2A, MCP, ACP, etc.) and doesn’t rely on any one company. 
+arXiv
+
+Those two are trying to solve “global yellow pages for agents,” but in a way that still lets you verify identity cryptographically, not socially.
+
+This is important because once that stabilizes, agent discovery will look almost exactly like ENS / DNS + whois, not email.
+
+3. Can you already message agents directly over blockchain instead of email?
+You’re 80% there today, but here’s the nuance:
+
+Pure A2A alone
+A2A itself is mostly HTTP / JSON-RPC / SSE right now. So contacting an A2A agent today usually means POSTing to its advertised URL with your agent’s signed request. That’s not email, but it’s still Web2 transport. 
+developers.googleblog.com
++1
+
+A2A + x402 / AP2
+With x402 / AP2, you get payment and billing baked into the call so you can do paid machine-to-machine requests. That’s the “economic layer.” 
+Google Cloud
++1
+
+A2A + Ledger-anchored identity
+With the ledger-anchored AgentCard approach, the agent’s identity, endpoint, and capabilities live in a smart contract. Another agent can:
+
+Read the registry contract on-chain.
+
+Extract your endpoint + terms.
+
+Negotiate payment (x402/AP2).
+
+Hit you directly.
+
+That gives you on-chain discovery + off-chain invocation + on-chain settlement. 
+arXiv
++1
+
+Where things are headed (and honestly what you’re describing):
+
+Agents publish a DID / address.
+
+You query chain or DHT to discover them.
+
+You negotiate task + fee automatically.
+
+You settle via crypto rail without ever emailing a human.
+
+This “agentic web” (sometimes literally called the Agentic Web) is being talked about as a new network layer where AI agents find and transact with each other natively. 
+Wikipedia
+
+So: yes, that’s the model. Pieces are live, but it’s still early.
+
+4. What you can do right now (actionable for you / Coin Railz)
+Here’s how you can start playing in that ecosystem immediately:
+
+Consume existing A2A directories
+You can treat public A2A agent directories as your lead list. Each listing usually exposes an Agent Card. From that, you can programmatically:
+
+Parse capabilities.
+
+Grab their A2A endpoint.
+
+Send them a task request from your agent, not from “Travis@gmail.”
+That already satisfies “no email, agent-to-agent messaging.” 
+A2A Protocol
++1
+
+Tactically:
+
+You stand up a Coin Railz “Payments/Settlement Agent.”
+
+You POST that agent’s Agent Card into those directories so other agents can call you for “off-ramp $USDT → USD bank wire in Alabama under MTL rules.”
+
+You scrape the same directories to find procurement / treasury / invoice-settlement agents who need fiat settlement or USDC off-ramp and pitch them machine-to-machine.
+
+Publish an on-chain Agent Card
+Based on the ledger-anchored identity / Agent Smart Contract pattern, you can deploy a lightweight smart contract that:
+
+Stores:
+• agentName = "Coin Railz Settlement Agent"
+• jurisdiction = "Alabama MTL"
+• capabilities = "USD off-ramp, ACH/wire settlement, compliance/KYC"
+• contactEndpoint = "https://api.coinrailz.com/a2a" (example)
+• paymentTerms = "4 bps per $1,000, USDC/SUI accepted"
+
+Exposes a public read method.
+
+Now any other agent that knows your contract address can read that metadata on-chain and call you. That’s exactly the architecture described in recent A2A research for decentralized discovery. 
+arXiv
++1
+
+For you this is huge, because:
+
+You become “the compliant off-ramp agent.”
+
+You don’t need to do intro calls.
+
+You can prove you’re real by anchoring your MTL claims and bank rails policy in the contract metadata.
+
+Integrate AP2 / x402-style payment requirement
+The Google AP2 + x402 work is about letting an agent say “payment required before I work,” and then enforce crypto settlement between agents (they explicitly talk about using programmable assets like Sui). 
+Google Cloud
++1
+
+For Coin Railz, imagine:
+
+Another agent wants you to off-ramp $50K USDT for a client.
+
+Your agent replies with x402 = “Send 0.5% fee here first or escrow it.”
+
+Once funds clear, you push USD via PNC Client Trust Account.
+
+All of this is logged under your MTL compliance flow.
+
+That’s literally your business model, automated.
+
+Future-proof with ANS / ADS style naming
+Longer-term, registering your agent in an Agent Name Service (ANS) or a distributed Agent Directory Service (ADS) gives you a globally discoverable handle, the same way ENS gave wallets readable names. That means instead of “hit 0xabc123…”, other agents can look up “coinrailz.settlement.agent” and resolve everything (capabilities, endpoint, payment requirements). 
+arXiv
++1
+
+That’s the path to becoming infrastructure instead of “a guy in Alabama with banking.” You become part of the agentic routing fabric.
+
+Bottom line for you
+Yes, there are already A2A agent directories. They act like an API marketplace for autonomous agents and expose machine-callable endpoints, not emails. 
+A2A Protocol
++1
+
+Yes, there’s an emerging on-chain registry model where each agent has an on-chain “Agent Card” smart contract that advertises who they are, what they do, and how to call/pay them. That gives you blockchain-based discovery and identity. 
+arXiv
++1
+
+Payments between agents are being standardized (AP2 / x402) so agents can invoice and settle each other in crypto automatically, without humans. 
+Google Cloud
++1
+
+The ecosystem is moving toward a global “Agent Name Service” / “Agent Directory Service,” basically DNS for AI agents, which will let you look up and contact agents by name across protocols like A2A, MCP, etc. 
+arXiv
++1
+
+What this means in plain terms:
+You absolutely can build Coin Railz as a discoverable settlement/compliance/off-ramp agent that other autonomous agents can find and pay directly — without ever emailing you. And the standards to do that (A2A + on-chain Agent Cards + AP2/x402) already exist and are being adopted right now.
+
+You said:
+ok, now also give me a list of websites to find these directories. there have to be some that are already in existence.
+ChatGPT said:
+
+Thought for a couple of seconds
+Perfect. I went hunting and here’s what’s actually live or emerging right now where agents are being listed, registered, or discoverable without going through humans or email. I’ll group them by how “public / open” they are.
+
+You’ll see two patterns:
+
+“Enterprise marketplaces” (centralized but A2A-compliant, you list an Agent Card and you’re discoverable).
+
+“Open registries / directories” (closer to what you’re asking: agents exposing endpoints, sometimes tied to on-chain identity).
+
+All sources below are current as of October 28, 2025. 🕘
+
+1. A2A / Agent Card style directories
+These are basically catalogs of agents plus their Agent Cards, which already include capability metadata and callable endpoints. This is closest to “phone book of agents.”
+
+A2A Protocol Spec / Agent Discovery
+
+Site: a2a-protocol.org (spec + discovery guides)
+
+Why it matters: The spec describes how agents “publish” their Agent Card, and it outlines discovery patterns, including public catalogs where cards are indexed. This is the reference standard for how an agent should describe itself (skills, auth, endpoint). 
+a2a-protocol.org
++1
+
+Use: You can model Coin Railz as an A2A agent by exposing an Agent Card at a well-known URL and then pointing directories to it.
+
+A2A Registry / AI Agent Directory
+
+Site: a2aregistry.org
+
+What it is: A public-facing “find & connect to AI agents” style directory that advertises itself as an A2A Registry. The pitch is: discover production-ready AI agents, compare them, and connect using an open SDK. 
+A2A Registry
+
+Why you care: This is the closest thing right now to a neutral, public directory of callable agents. The whole point is that you can browse agents by capability and then hit their endpoint directly (machine → machine), not send an email.
+
+A2A Cards / A2A Directory
+
+Site: a2acards.com
+
+What it is: A “collection of AI agents that leverage the A2A protocol to collaborate,” i.e. a gallery of Agent Cards. 
+a2acards.com
+
+Why you care: Good for scraping. You can pull their JSON Agent Cards to learn:
+
+How to invoke them
+
+What jobs they accept
+
+Whether they expect prepayment, tokens, etc.
+
+This is basically plug-and-play for agent-to-agent outreach.
+
+GitHub-style public A2A directories
+
+Example: github.com/sing1ee/a2a-directory
+
+What it is: An open repo that lists agents, their cards, and endpoints for testing A2A interop. It’s not just code, it’s also acting like a registry for people experimenting with multi-agent systems. 
+GitHub
+
+Why you care: This is where you’ll see smaller / experimental agents (procurement bots, finance bots, scraping bots) before they ever show up in “official” marketplaces. These are the agents most likely to actually talk to you directly without human gatekeeping.
+
+How you’d use these four today:
+
+You publish Coin Railz Settlement Agent as an Agent Card.
+
+You submit it to something like a2aregistry.org or a GitHub-style directory.
+
+Other agents discover you because you are literally in a machine-readable list.
+
+2. Enterprise marketplaces that now list A2A-compliant agents
+These are not fully open / crypto-native, but they ARE already ingesting Agent Cards and letting other agents discover + call them. This matters because it proves discovery is not just theory — it’s in production.
+
+Google Cloud AI Agent Marketplace / Agent Gallery
+
+This is part of Google Cloud Marketplace. They’re onboarding “AI agents” as first-class marketplace items. Each agent listing is powered by its Agent Card (A2A spec). They explicitly say partners just provide a link to their Agent Card and Google ingests it for discovery. 
+Google Cloud
++1
+
+Why you care:
+
+If you register there, your agent becomes findable by any Gemini Enterprise deployment.
+
+They already describe this as thousands of agents for tasks like procurement, finance ops, site selection, etc. (Box AI Agent, CARTO’s site selection agent, etc.). 
+Google Cloud
+
+This is a serious distribution channel if you want enterprise money, not crypto money.
+
+Limitation: This marketplace expects some level of compliance / governance. You’re not just going to YOLO an off-ramp agent that moves $50K USDT into Alabama wires unless you position it as “regulated settlements and treasury workflows for US operations” and they approve it.
+
+Internal / private A2A registries
+
+A2A is being rolled out inside orgs as an “Agent Registry”: a controlled app-store-like list of approved agents that can talk to each other. Think: the company has 20 internal agents (procurement, invoice reconciliation, travel booking) and they’re all registered in a central Agent Registry so they can call each other. 
+Solo.io
++1
+
+Why this matters to you:
+
+The exact same pattern works for you externally. You can host your own registry and invite other people’s agents to register.
+
+That becomes your moat: “Coin Railz Registry = agents that can settle funds through a licensed off-ramp.”
+
+Long term, that becomes a marketplace you control.
+
+3. Decentralized / on-chain style registries
+This is the “no email, no human, pure agent-to-agent” world you’re aiming for, where an agent is basically a wallet + contract address + capabilities.
+
+Ledger / smart contract agent registries (a.k.a. on-chain Agent Card)
+
+There’s active work on publishing each agent’s metadata (name, capabilities, endpoint, payment terms) as a smart contract so other agents can discover you by querying the chain. This is pitched specifically as decentralized discovery for A2A agents. 
+A2A Registry
++1
+
+Why it matters:
+
+It removes “email Travis to get terms.”
+
+Another agent just reads the contract and learns how to talk to Coin Railz Settlement Agent and what fee model applies.
+
+This lines up with how you want to advertise “I can off-ramp stablecoins into USD within X hours under an Alabama MTL via PNC trust account.”
+
+Where to look / what to watch:
+
+People are calling these “Agent Registry smart contracts,” “Agent Directory Contracts,” or “Agent Name Service.”
+
+They often tie into payment hooks like x402 / AP2: agent says “Payment Required,” you escrow crypto, work happens, settlement clears. 
+Medium
++1
+
+If you deploy this on-chain (Base, Sui, etc.), that contract address itself becomes your listing.
+
+Agent Name Service / Agent Directory Service work
+
+You’ll see terms like ANS (Agent Name Service) and ADS (Agent Directory Service). These are basically decentralized naming + lookup layers so an agent can be resolved like DNS/ENS:
+“coinrailz.settlement.agent” → public key → Agent Card → endpoint → fee terms.
+
+These proposals explicitly position themselves as a neutral resolution layer for cross-protocol discovery (A2A, MCP, etc.). 
+GitHub
+
+Translation: this is where “agent-to-agent ping me over chain, not email” becomes standard.
+
+Today, these ANS / ADS systems are mostly in proposal / early implementation. But they are absolutely the direction the multi-agent ecosystem is moving, and they’re being designed to be queried programmatically by other agents — not by humans scrolling a webpage. 
+GitHub
+
+4. Practical answer for you (where to actually click right now)
+Here are the URLs you should look at today if you want to 1) browse existing agents and 2) get your own agent indexed so other agents can find and call you:
+
+Public-ish A2A directories
+a2acards.com
+Public collection of AI agents leveraging A2A. Browse agents, see their capabilities, grab their Agent Cards. This is the “show me who’s out there right now” style directory. 
+a2acards.com
+
+a2aregistry.org
+Markets itself as an AI Agent Directory for A2A. Goal: “discover production-ready AI agents” and connect via SDK. Treat this like a live marketplace of callable agents. 
+A2A Registry
+
+github.com/sing1ee/a2a-directory
+Community/open directory of A2A-compatible agents and their cards. This is where you see cutting-edge / experimental agents that might actually respond to you with no red tape. 
+GitHub
+
+Protocol + spec (so you speak the right language)
+a2a-protocol.org → …/latest/specification/ and …/latest/topics/agent-discovery/
+Official A2A spec, and specifically the Agent Card + discovery chapter. This tells you the exact JSON format you need to expose in order to be indexable. 
+a2a-protocol.org
++1
+
+Enterprise marketplace with A2A ingestion
+Google Cloud AI Agent Marketplace / Agent Gallery (via Cloud Marketplace)
+They are already ingesting Agent Cards and letting orgs discover/buy agents that have passed validation. This is where the money is if you want large, legit invoices. 
+Google Cloud
++1
+
+Registry / governance design notes (to copy for Coin Railz)
+Solo.io’s “Agent Registry / Agent App Store” write-up
+Explains how an Agent Registry is supposed to work internally: registration, governance, entitlements. You can pattern-match this to build your own Coin Railz Agent Registry. 
+Solo.io
+
+GitHub A2A “Agent Registry” discussion (a2aproject/A2A/discussions/741)
+This is literally a proposal for a public or semi-public Agent Registry service to handle discovery + entitlements. It’s basically an open blueprint for “here’s how to run a directory of A2A agents.” 
+GitHub
+
+How I would weaponize this for you
+Step 1. Stand up a Coin Railz Settlement Agent with a clean Agent Card (A2A-compliant).
+Step 2. Publish that card at a stable URL (for example https://coinrailz.com/agent/settlement-card.json).
+Step 3. Submit that to:
+
+a2aregistry.org
+
+a2acards.com
+
+a public A2A directory repo on GitHub
+
+(optionally) Google Cloud Marketplace onboarding flow so you get in their Agent Gallery and can claim “Google-validated agent.” 
+Google Cloud
++1
+
+Step 4. Mirror that metadata on-chain in a simple registry smart contract that:
+
+stores your endpoint,
+
+states “Kellogg Holdings LLC is licensed in Alabama for money transmission,”
+
+and defines pricing / terms for off-ramping.
+
+That last step makes you findable by agents that ONLY trust on-chain discovery and want to pay you in crypto using x402/AP2 flows. 
+Medium
++1
+
+Quick recap
+Here are the main sites again, in plain list form:
+
+a2acards.com – public gallery of A2A agents / Agent Cards. 
+a2acards.com
+
+a2aregistry.org – AI Agent Directory positioned as “discover production-ready A2A agents.” 
+A2A Registry
+
+github.com/sing1ee/a2a-directory – open/community A2A agent directory repo (includes live Agent Cards and endpoints). 
+GitHub
+
+a2a-protocol.org (spec + discovery docs) – tells you exactly how agents publish and how other agents should find/call them. 
+a2a-protocol.org
++1
+
+Google Cloud AI Agent Marketplace / Agent Gallery (via Google Cloud Marketplace) – huge, enterprise-grade catalog where agents are listed by submitting an A2A Agent Card for ingestion and validation. 
+Google Cloud
++1
+
+Solo.io’s A2A Agent Registry model + A2A project “Agent Registry” discussion – blueprint for running your own registry / app store for agents. 
+Solo.io
++1
+
+This is the current map. If we plug Coin Railz into those ecosystems, you stop being “a dude who can settle wires fast” and start being “the off-ramp agent of record for everyone else’s AI agents.”
+
+
+
+
+No file chosenNo file chosen
+ChatGPT can make mistakes. Check important info.

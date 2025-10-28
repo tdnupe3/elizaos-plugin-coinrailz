@@ -47,7 +47,7 @@ export class X402PaymentService {
   private readonly DEFAULT_NETWORK = 'base';
   private readonly DEFAULT_CURRENCY = 'USDC';
   private readonly PAYMENT_TIMEOUT_MINUTES = 15;
-  private coinbaseClient: Coinbase | null = null;
+  private coinbaseClient: typeof Coinbase | null = null;
   
   constructor() {
     // Initialize Coinbase SDK with existing CDP credentials
@@ -56,26 +56,26 @@ export class X402PaymentService {
 
   private initializeCoinbaseClient() {
     try {
-      // Coinbase SDK automatically reads CDP_API_KEY_NAME and CDP_PRIVATE_KEY from env
-      // Just configure directly - SDK handles credentials internally
-      Coinbase.configure({
-        apiKeyName: process.env.CDP_API_KEY_ID || '',
-        privateKey: process.env.CDP_PRIVATE_KEY || '',
-      });
-
       // Check if credentials are available
       if (!process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY) {
-        console.warn('⚠️ CDP credentials not found - x402 will operate in fallback mode');
+        console.warn('⚠️ CDP credentials not found - x402 payments will not work');
         this.coinbaseClient = null;
         return;
       }
 
-      // Store a reference (SDK is now globally configured)
-      this.coinbaseClient = {} as any; // Marker that SDK is configured
+      // Configure Coinbase SDK globally
+      Coinbase.configure({
+        apiKeyName: process.env.CDP_API_KEY_ID,
+        privateKey: process.env.CDP_PRIVATE_KEY,
+      });
+
+      // Verify configuration by creating a marker instance
+      // The SDK is now globally configured and ready for Wallet.create() calls
+      this.coinbaseClient = Coinbase; // Store reference to configured SDK
       
-      console.log('✅ Coinbase x402 client initialized successfully');
+      console.log('✅ Coinbase CDP initialized for x402 payments');
     } catch (error) {
-      console.error('Failed to initialize Coinbase x402 client:', error);
+      console.error('❌ Failed to initialize Coinbase CDP:', error);
       this.coinbaseClient = null;
     }
   }

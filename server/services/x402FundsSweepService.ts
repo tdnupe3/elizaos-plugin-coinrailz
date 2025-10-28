@@ -188,45 +188,101 @@ export class X402FundsSweepService {
       console.log(`💸 Attempting to sweep payment ${paymentId}: $${amount} from ${walletAddress}`);
       console.log(`   Agent commission: $${agentCommission.toFixed(2)}, Platform fee: $${platformFee.toFixed(2)}`);
 
-      // ACTUAL USDC TRANSFER IMPLEMENTATION
-      // This requires CDP wallet seed/credentials to load the payment wallet
-      // Without the wallet seed, we cannot transfer funds
+      // Initialize Coinbase SDK
+      const { Coinbase, Wallet } = await import('@coinbase/coinbase-sdk');
       
-      // DO NOT mark as swept without actual transfer
-      // Throwing error to prevent fake sweeps
-      throw new Error(
-        'USDC transfer not implemented - requires CDP wallet seed management. ' +
-        'Cannot mark payment as swept without actual blockchain transaction. ' +
-        'Wallet seed/credentials needed to load wallet from walletAddress and execute transfer.'
-      );
+      if (!process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY) {
+        throw new Error('CDP credentials not found - cannot sweep funds');
+      }
 
-      // WHEN IMPLEMENTING:
-      // 1. Load wallet from walletAddress using CDP SDK with proper credentials
-      // 2. Execute USDC transfer to platformWallet on Base Chain
-      // 3. Wait for transaction confirmation
-      // 4. Get actual transaction hash from blockchain
-      // 5. ONLY THEN mark as swept with real transaction hash:
-      //
-      // await db.update(x402Payments).set({
-      //   metadata: {
-      //     ...(payment.metadata || {}),
-      //     swept: true,
-      //     sweptAt: new Date().toISOString(),
-      //     platformWallet,
-      //     platformFee: platformFee.toFixed(2),
-      //     agentCommission: agentCommission.toFixed(2),
-      //     transactionHash: realTxHash, // REAL blockchain transaction hash
-      //   },
-      // }).where(eq(x402Payments.id, paymentId));
-      //
-      // return {
-      //   success: true,
-      //   paymentId,
-      //   amountSwept: amount.toFixed(2),
-      //   platformFee: platformFee.toFixed(2),
-      //   agentCommission: agentCommission.toFixed(2),
-      //   transactionHash: realTxHash,
-      // };
+      // Configure CDP
+      Coinbase.configure({
+        apiKeyName: process.env.CDP_API_KEY_ID!,
+        privateKey: process.env.CDP_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+      });
+
+      console.log(`🔍 Fetching wallet: ${walletAddress}`);
+      
+      // List all wallets from CDP account using proper pagination
+      const allWallets: any[] = [];
+      let walletsPage = await Wallet.listWallets();
+      
+      // Iterate through pagination using SDK's async iterator
+      for await (const wallet of walletsPage) {
+        allWallets.push(wallet);
+      }
+      
+      console.log(`📋 Found ${allWallets.length} wallets in CDP account`);
+      
+      // Find the wallet matching our payment address
+      let paymentWallet: any = null;
+      for (const wallet of allWallets) {
+        const defaultAddress = await wallet.getDefaultAddress();
+        const addr = defaultAddress?.getId()?.toLowerCase();
+        if (addr === walletAddress.toLowerCase()) {
+          paymentWallet = wallet;
+          break;
+        }
+      }
+
+      if (!paymentWallet) {
+        throw new Error(
+          `Wallet ${walletAddress} not found in CDP account. ` +
+          `This wallet may have been created with different credentials or the wallet data was not persisted.`
+        );
+      }
+
+      console.log(`✅ Found payment wallet, checking balance...`);
+      
+      // Get wallet balance to confirm funds available
+      const balance = await paymentWallet.getBalance('usdc');
+      const balanceAmount = parseFloat(balance.toString());
+      
+      console.log(`💰 Wallet balance: ${balanceAmount} USDC (need ${amount} USDC)`);
+      
+      if (balanceAmount < amount) {
+        throw new Error(
+          `Insufficient balance: wallet has ${balanceAmount} USDC but payment requires ${amount} USDC`
+        );
+      }
+
+      console.log(`📤 Transferring ${amount} USDC to platform wallet ${platformWallet}...`);
+      
+      // Execute USDC transfer on Base Chain
+      const transfer = await paymentWallet.createTransfer({
+        amount: amount,
+        assetId: 'usdc',
+        destination: platformWallet,
+        gasless: false, // Pay gas from wallet
+      });
+      
+      // Wait for transaction to complete
+      await transfer.wait();
+      
+      const txHash = transfer.getTransactionHash();
+      console.log(`✅ Transfer complete! Transaction: ${txHash}`);
+
+      // Mark payment as swept with REAL transaction hash
+      await db.update(x402Payments).set({
+        metadata: {
+          ...(payment.metadata || {}),
+          swept: true,
+          sweptAt: new Date().toISOString(),
+          platformWallet,
+          platformFee: platformFee.toFixed(2),
+          agentCommission: agentCommission.toFixed(2),
+          transactionHash: txHash,
+        },
+      }).where(eq(x402Payments.id, paymentId));
+
+      return {
+        success: true,
+        paymentId,
+        amountSwept: amount.toFixed(2),
+        platformFee: platformFee.toFixed(2),
+        agentCommission: agentCommission.toFixed(2),
+        transactionHash: txHash,
+      };
     } catch (error: any) {
       console.error(`❌ Failed to sweep payment ${payment.id}:`, error);
       return {

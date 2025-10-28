@@ -355,6 +355,7 @@ app.set('trust proxy', 1);
 
 // CRITICAL: Register ALL marketplace routes BEFORE Vite middleware
 import agentRegistration from './routes/agentRegistration';
+import agentSelfRegistration from './routes/agentSelfRegistration';
 import paymentIntegration from './routes/paymentIntegration';
 import messagingSystem from './routes/messagingSystem';
 import disputeResolution from './routes/disputeResolution';
@@ -507,6 +508,7 @@ app.post('/api/referrals/process-signup', express.json(), (req, res) => {
 // await registerRoutes(app); // Moved later to prevent Gas Station 404 conflicts
 
 app.use('/api/agents', agentRegistration);
+app.use('/api/agents', agentSelfRegistration); // Agent self-registration for A2A bootstrapping
 app.use('/api/payments', paymentIntegration);
 app.use('/api/messaging', messagingSystem);
 app.use('/api/disputes', disputeResolution);

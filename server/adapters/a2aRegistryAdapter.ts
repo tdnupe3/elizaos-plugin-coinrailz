@@ -1,61 +1,56 @@
 /**
- * A2A REGISTRY DISCOVERY ADAPTER - FIXED
+ * A2A REGISTRY DISCOVERY ADAPTER - REAL A2A PROTOCOL IMPLEMENTATION
  * 
- * Discovers AI agents from REAL working A2A protocol registries and directories.
+ * Discovers AI agents from REAL A2A protocol endpoints following Google's A2A specification.
+ * Checks .well-known/agent-card.json and .well-known/agent.json paths.
+ * 
+ * Updated: October 2025
  */
 
 import { BaseDiscoveryAdapter } from './baseAdapter';
 import { DiscoveredAgentRaw } from '../services/agentDiscoveryService';
+import { 
+  VERIFIED_AGENT_TARGETS, 
+  getTargetsByPriority, 
+  A2A_REGISTRY_URLS 
+} from '../services/verifiedAgentTargets';
 
 export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
   public name = 'A2A Registry Adapter';
-  public expectedYield = 500;
+  public expectedYield = 50; // Realistic yield from verified agents
   public timeout = 60000;
   public rateLimit = 100;
 
-  // REAL working endpoints only
-  private a2aRegistries = [
-    {
-      name: 'GitHub Agent Registry',
-      url: 'https://api.github.com/repos/microsoft/autogen/contents/samples/apps',
-      auth: null,
-      network: 'api'
-    },
-    {
-      name: 'Hugging Face Models',
-      url: 'https://huggingface.co/api/models?filter=conversational&limit=50',
-      auth: null,
-      network: 'api'
-    }
+  // A2A Protocol Standard Paths (per Google A2A spec)
+  private agentCardPaths = [
+    '/.well-known/agent-card.json',  // Primary A2A protocol path
+    '/.well-known/agent.json'         // Alternative A2A path
   ];
 
   async discover(options: { registries?: string[] } = {}): Promise<DiscoveredAgentRaw[]> {
-    console.log(`🔍 Starting A2A registry discovery across ${this.a2aRegistries.length} registries...`);
+    console.log(`🔍 Starting REAL A2A protocol discovery from verified agent targets...`);
     
-    const { registries = this.a2aRegistries.map(r => r.name) } = options;
     const discoveredAgents: DiscoveredAgentRaw[] = [];
 
-    for (const registry of this.a2aRegistries) {
-      if (!registries.includes(registry.name)) {
-        continue;
-      }
-
-      try {
-        console.log(`📡 Discovering agents from ${registry.name}...`);
-        
-        const agents = await this.discoverFromRegistry(registry);
-        discoveredAgents.push(...agents);
-        
-        console.log(`✅ Found ${agents.length} agents from ${registry.name}`);
-        
-        await this.sleep(1000);
-        
-      } catch (error) {
-        console.error(`❌ Failed to discover from ${registry.name}:`, error.message);
-      }
+    // Method 1: Check verified agent targets with .well-known/agent-card.json
+    try {
+      const verifiedAgents = await this.discoverFromVerifiedTargets();
+      discoveredAgents.push(...verifiedAgents);
+      console.log(`✅ Found ${verifiedAgents.length} agents from verified targets`);
+    } catch (error) {
+      console.error(`❌ Verified targets discovery failed:`, (error as Error).message);
     }
 
-    console.log(`🎯 A2A discovery complete: ${discoveredAgents.length} total agents`);
+    // Method 2: Check A2A registries (if they exist)
+    try {
+      const registryAgents = await this.discoverFromA2ARegistries();
+      discoveredAgents.push(...registryAgents);
+      console.log(`✅ Found ${registryAgents.length} agents from A2A registries`);
+    } catch (error) {
+      console.error(`❌ A2A registry discovery failed:`, (error as Error).message);
+    }
+
+    console.log(`🎯 A2A discovery complete: ${discoveredAgents.length} total REAL agents`);
     return discoveredAgents;
   }
 
@@ -72,118 +67,129 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
     }
   }
 
-  private async discoverFromRegistry(registry: any): Promise<DiscoveredAgentRaw[]> {
-    try {
-      switch (registry.name) {
-        case 'GitHub Agent Registry':
-          return await this.discoverGitHubAgents(registry);
-        case 'Hugging Face Models':
-          return await this.discoverHuggingFaceAgents(registry);
-        default:
-          return [];
-      }
-    } catch (error) {
-      console.error(`❌ Registry discovery failed for ${registry.name}:`, error);
-      return [];
-    }
-  }
-
-  private async discoverGitHubAgents(registry: any): Promise<DiscoveredAgentRaw[]> {
+  /**
+   * Discover agents from verified targets by checking .well-known/agent-card.json
+   */
+  private async discoverFromVerifiedTargets(): Promise<DiscoveredAgentRaw[]> {
     const agents: DiscoveredAgentRaw[] = [];
+    const targets = getTargetsByPriority(); // Sorted by priority
     
-    try {
-      const response = await this.safeFetch(registry.url, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'CoinRailz-A2A-Platform/1.0'
+    console.log(`📡 Checking ${targets.length} verified agent targets for A2A protocol compliance...`);
+    
+    for (const target of targets) {
+      try {
+        // Try both domain and basename
+        const domainToCheck = target.domain || (target.basename ? `${target.basename}.limo` : null);
+        
+        if (!domainToCheck) {
+          continue; // Skip if no domain to check
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await this.safeJsonParse(response);
-      
-      // GitHub API returns array of file objects
-      for (const item of data || []) {
-        if (item.type === 'file' && (item.name.endsWith('.py') || item.name.endsWith('.json'))) {
-          const agent: DiscoveredAgentRaw = {
-            url: item.download_url || item.html_url,
-            source: 'github-agent-registry',
-            channels: {
-              webhook: item.download_url
-            },
-            capabilities: {
-              content_creation: true,
-              analytics: true
-            },
-            metadata: {
-              platform: 'github',
-              network: 'api',
-              verified: true,
-              name: item.name
-            }
-          };
+        
+        // Try both A2A protocol paths
+        for (const cardPath of this.agentCardPaths) {
+          const url = `https://${domainToCheck}${cardPath}`;
           
-          agents.push(agent);
+          try {
+            const response = await this.safeFetch(url, {
+              headers: {
+                'Accept': 'application/json',
+                'User-Agent': 'CoinRailz-A2A-Platform/1.0'
+              }
+            }, 10000);
+            
+            if (response.ok) {
+              const agentCard = await this.safeJsonParse(response);
+              
+              if (agentCard && agentCard.name) {
+                // Found a valid A2A agent card!
+                agents.push({
+                  url: `https://${domainToCheck}`,
+                  source: 'verified-a2a-targets',
+                  channels: {
+                    webhook: agentCard.endpoints?.['message/send'] || url
+                  },
+                  wallet: target.wallet,
+                  capabilities: agentCard.capabilities || {},
+                  metadata: {
+                    platform: target.platform,
+                    verified: target.verified,
+                    name: agentCard.name,
+                    description: agentCard.description || target.description,
+                    protocolVersion: agentCard.protocolVersion,
+                    agentCardUrl: url
+                  }
+                });
+                
+                console.log(`✅ Discovered REAL A2A agent: ${agentCard.name} at ${domainToCheck}`);
+                break; // Found agent card, no need to try other path
+              }
+            }
+          } catch (error) {
+            // Continue to next path
+          }
         }
+        
+        // Rate limit: wait between requests
+        await this.sleep(500);
+        
+      } catch (error) {
+        console.log(`⚠️ Could not reach ${target.domain || target.basename}:`, (error as Error).message);
       }
-    } catch (error) {
-      console.error(`❌ GitHub agent discovery error:`, error);
     }
     
     return agents;
   }
 
-  private async discoverHuggingFaceAgents(registry: any): Promise<DiscoveredAgentRaw[]> {
+  /**
+   * Discover agents from public A2A registries (if they exist)
+   */
+  private async discoverFromA2ARegistries(): Promise<DiscoveredAgentRaw[]> {
     const agents: DiscoveredAgentRaw[] = [];
     
-    try {
-      const response = await this.safeFetch(registry.url, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'CoinRailz-A2A-Platform/1.0'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      const data = await this.safeJsonParse(response);
-      
-      // Hugging Face returns array of models
-      for (const model of data || []) {
-        if (model.id && (model.pipeline_tag === 'conversational' || model.pipeline_tag === 'text-generation' || model.tags?.includes('conversational'))) {
-          const agent: DiscoveredAgentRaw = {
-            url: `https://huggingface.co/${model.id}`,
-            source: 'huggingface-models',
-            channels: {
-              webhook: `https://huggingface.co/api/models/${model.id}`
-            },
-            capabilities: {
-              content_creation: true,
-              social_media: true
-            },
-            metadata: {
-              platform: 'huggingface',
-              network: 'api',
-              verified: true,
-              name: model.id,
-              downloads: model.downloads,
-              likes: model.likes
-            }
-          };
+    for (const registryUrl of A2A_REGISTRY_URLS) {
+      try {
+        const response = await this.safeFetch(registryUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'CoinRailz-A2A-Platform/1.0'
+          }
+        }, 10000);
+        
+        if (response.ok) {
+          const data = await this.safeJsonParse(response);
           
-          agents.push(agent);
-          console.log(`✅ Added Hugging Face agent: ${model.id}`);
+          // Registry should return array of agent records
+          if (Array.isArray(data)) {
+            for (const agentRecord of data) {
+              if (agentRecord.url || agentRecord.domain) {
+                agents.push({
+                  url: agentRecord.url || `https://${agentRecord.domain}`,
+                  source: 'a2a-public-registry',
+                  channels: agentRecord.channels || {},
+                  wallet: agentRecord.wallet,
+                  capabilities: agentRecord.capabilities || {},
+                  metadata: {
+                    ...agentRecord,
+                    platform: 'a2a-registry',
+                    verified: true
+                  }
+                });
+              }
+            }
+          }
         }
+      } catch (error) {
+        console.log(`⚠️ Registry ${registryUrl} not available:`, (error as Error).message);
       }
-    } catch (error) {
-      console.error(`❌ Hugging Face agent discovery error:`, error);
     }
     
     return agents;
+  }
+
+  /**
+   * Extract agent URL from raw data (required by BaseDiscoveryAdapter)
+   */
+  protected extractAgentUrl(rawData: any): string {
+    return rawData.url || rawData.domain || rawData.id || 'unknown';
   }
 }

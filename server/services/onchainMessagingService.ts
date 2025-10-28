@@ -1,13 +1,15 @@
 /**
  * On-Chain Wallet-to-Wallet Messaging Service
  * 
- * Sends messages as blockchain transactions with data payload.
+ * Uses deployed smart contract to store messages on-chain.
  * Messages are permanently recorded on-chain and visible on block explorers
  * like Etherscan, Basescan, etc.
  */
 
 import { ethers } from 'ethers';
 import { CoinbaseCDPService } from './coinbaseCDPService';
+import fs from 'fs';
+import path from 'path';
 
 export interface OnChainMessage {
   txHash: string;
@@ -19,11 +21,14 @@ export interface OnChainMessage {
   gasUsed?: string;
   status: 'pending' | 'confirmed' | 'failed';
   timestamp: string;
+  messageId?: number;
 }
 
 export class OnChainMessagingService {
   private cdpService: CoinbaseCDPService;
   private provider: ethers.JsonRpcProvider;
+  private contractAddress: string;
+  private contractABI: any[];
 
   constructor() {
     this.cdpService = CoinbaseCDPService.getInstance();
@@ -31,11 +36,23 @@ export class OnChainMessagingService {
     // Use FREE public Base mainnet RPC (no API key required)
     const rpcUrl = 'https://mainnet.base.org';
     this.provider = new ethers.JsonRpcProvider(rpcUrl);
-    console.log(`🌐 On-chain messaging using public Base RPC: ${rpcUrl}`);
+    
+    // Load deployed contract config
+    const configPath = path.join(process.cwd(), 'messaging-contract-config.json');
+    if (!fs.existsSync(configPath)) {
+      throw new Error('Messaging contract not deployed. Run deployment script first.');
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    this.contractAddress = config.address;
+    this.contractABI = config.abi;
+    
+    console.log(`🌐 On-chain messaging using smart contract: ${this.contractAddress}`);
+    console.log(`🔍 View contract: https://basescan.org/address/${this.contractAddress}`);
   }
 
   /**
-   * Send on-chain message to wallet address
+   * Send on-chain message to wallet address using smart contract
    * Message will be visible on block explorer (Etherscan/Basescan)
    */
   async sendOnChainMessage(
@@ -44,16 +61,10 @@ export class OnChainMessagingService {
     network: 'base' | 'ethereum' = 'base'
   ): Promise<OnChainMessage> {
     try {
-      console.log(`📨 Sending on-chain message to ${toAddress} on ${network}`);
+      console.log(`📨 Sending on-chain message to ${toAddress} via smart contract`);
       console.log(`📝 Message: ${message.substring(0, 100)}...`);
 
-      // Get platform wallet signer
-      const platformWallet = await this.cdpService.getOrCreatePlatformWallet();
-      
-      // Convert message to hex data
-      const messageHex = ethers.hexlify(ethers.toUtf8Bytes(message));
-      
-      // Get private key for signing (from CDP or environment)
+      // Get private key for signing
       const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
       if (!privateKey) {
         throw new Error('Private key not available for on-chain messaging');
@@ -63,67 +74,54 @@ export class OnChainMessagingService {
       const wallet = new ethers.Wallet(privateKey, this.provider);
       console.log(`📤 Sending from wallet: ${wallet.address}`);
 
-      // Prepare transaction
-      const tx = {
-        to: toAddress,
-        value: ethers.parseEther('0'), // Send 0 ETH, just the message
-        data: messageHex,
-        // Gas settings will be estimated automatically
-      };
+      // Create contract instance
+      const contract = new ethers.Contract(
+        this.contractAddress,
+        this.contractABI,
+        wallet
+      );
 
-      console.log(`⛽ Estimating gas...`);
+      // Send message via contract
+      console.log(`📝 Calling contract.sendMessage()...`);
+      const tx = await contract.sendMessage(toAddress, message);
       
-      // Estimate gas
-      let gasLimit;
-      try {
-        gasLimit = await wallet.estimateGas(tx);
-        console.log(`⛽ Estimated gas: ${gasLimit.toString()}`);
-      } catch (gasError) {
-        console.log('⚠️ Gas estimation failed, using default gas limit');
-        gasLimit = BigInt(100000); // Default gas limit
-      }
+      console.log(`✅ Transaction sent! Hash: ${tx.hash}`);
+      console.log(`🔍 View on Basescan: https://basescan.org/tx/${tx.hash}`);
 
-      // Get current gas price
-      const feeData = await this.provider.getFeeData();
-      console.log(`💰 Gas price: ${feeData.gasPrice?.toString() || 'auto'}`);
+      // Wait for confirmation
+      console.log(`⏳ Waiting for confirmation...`);
+      const receipt = await tx.wait();
 
-      // Check wallet balance
-      const balance = await this.provider.getBalance(wallet.address);
-      console.log(`💰 Wallet balance: ${ethers.formatEther(balance)} ETH`);
+      console.log(`✅ Transaction confirmed in block ${receipt.blockNumber}`);
 
-      const estimatedCost = gasLimit * (feeData.gasPrice || BigInt(0));
-      console.log(`💰 Estimated cost: ${ethers.formatEther(estimatedCost)} ETH`);
-
-      if (balance < estimatedCost) {
-        throw new Error(`Insufficient balance. Need ${ethers.formatEther(estimatedCost)} ETH, have ${ethers.formatEther(balance)} ETH`);
-      }
-
-      // Send transaction
-      console.log(`🚀 Sending transaction...`);
-      const txResponse = await wallet.sendTransaction({
-        ...tx,
-        gasLimit,
+      // Get message ID from event logs
+      let messageId = 0;
+      const event = receipt.logs.find((log: any) => {
+        try {
+          const parsedLog = contract.interface.parseLog(log);
+          return parsedLog?.name === 'MessageSent';
+        } catch {
+          return false;
+        }
       });
 
-      console.log(`✅ Transaction sent! Hash: ${txResponse.hash}`);
-      console.log(`🔍 View on explorer: ${this.getExplorerUrl(txResponse.hash, network)}`);
-
-      // Wait for confirmation (optional, can return immediately)
-      console.log(`⏳ Waiting for confirmation...`);
-      const receipt = await txResponse.wait(1);
-
-      console.log(`✅ Transaction confirmed in block ${receipt?.blockNumber}`);
+      if (event) {
+        const parsedLog = contract.interface.parseLog(event);
+        messageId = Number(parsedLog?.args[0] || 0);
+        console.log(`📬 Message ID: ${messageId}`);
+      }
 
       return {
-        txHash: txResponse.hash,
+        txHash: tx.hash,
         from: wallet.address,
         to: toAddress,
         message: message,
         network: network,
-        explorerUrl: this.getExplorerUrl(txResponse.hash, network),
-        gasUsed: receipt?.gasUsed?.toString(),
-        status: receipt?.status === 1 ? 'confirmed' : 'failed',
-        timestamp: new Date().toISOString()
+        explorerUrl: `https://basescan.org/tx/${tx.hash}`,
+        gasUsed: receipt.gasUsed?.toString(),
+        status: receipt.status === 1 ? 'confirmed' : 'failed',
+        timestamp: new Date().toISOString(),
+        messageId: messageId
       };
     } catch (error) {
       console.error(`❌ On-chain messaging error:`, error);

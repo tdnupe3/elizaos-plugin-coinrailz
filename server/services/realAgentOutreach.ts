@@ -38,8 +38,7 @@ export class RealAgentOutreach {
       this.discordClient = new Client({
         intents: [
           GatewayIntentBits.Guilds,
-          GatewayIntentBits.GuildMessages,
-          GatewayIntentBits.MessageContent,
+          GatewayIntentBits.DirectMessages,
         ],
       });
 

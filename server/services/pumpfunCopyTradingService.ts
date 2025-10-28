@@ -215,7 +215,7 @@ export class PumpFunCopyTradingService {
       const tokenHolderService = new TokenHolderDiscoveryService();
       
       // Use the proven working direct blockchain method
-      const holders = await tokenHolderService.discoverTokenHolders(mintAddress);
+      const holders = await tokenHolderService.getTopTokenHolders(mintAddress, 200);
       
       if (holders.length === 0) {
         console.log(`⚠️ No holders found for ${mintAddress.slice(0,8)} via direct blockchain query`);

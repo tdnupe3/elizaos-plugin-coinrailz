@@ -32,6 +32,7 @@ import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import x402Routes from './routes/x402Routes';
+import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
 import customerPortalRoutes from './routes/customerPortalRoutes';
@@ -620,6 +621,7 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 // === x402 PROTOCOL AUTONOMOUS PAYMENTS ===
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
+app.use('/api/x402-sweep', x402FundsSweepRoutes);
 console.log('✅ x402 Protocol routes registered successfully');
 
 console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
@@ -3209,6 +3211,16 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     initializeBillingCronJobs();
   } catch (error) {
     console.error('❌ Failed to initialize billing automation:', error);
+  }
+
+  // Initialize x402 funds sweep scheduler
+  try {
+    console.log('💰 Initializing x402 funds sweep scheduler...');
+    const { x402SweepScheduler } = await import('./services/x402SweepScheduler');
+    x402SweepScheduler.start();
+    console.log('✅ x402 funds sweep scheduler started (runs every 30 minutes)');
+  } catch (error) {
+    console.error('❌ Failed to initialize x402 sweep scheduler:', error);
   }
 
   // Agent Discovery System initialization moved to service level to prevent duplicate scheduling

@@ -19,59 +19,27 @@ export interface VerifiedAgentTarget {
 
 /**
  * High-priority verified agents with confirmed A2A endpoints
+ * 
+ * CRITICAL: Only add agents here with VERIFIED contact information.
+ * No guesses, no theoretical endpoints. Real agents only.
+ * 
+ * Populate via:
+ * 1. Web research with confirmed wallet addresses
+ * 2. Self-registration via /api/agents/self-register
+ * 3. x402 payment tracking (agents who pay us)
+ * 4. Manual verification of A2A agent cards
  */
 export const VERIFIED_AGENT_TARGETS: VerifiedAgentTarget[] = [
-  // ENS-based Agents with proper .limo gateway (High Priority)
-  {
-    domain: 'agent.eth.limo',
-    wallet: undefined,
-    platform: 'ethereum',
-    verified: false,
-    description: 'Ethereum ENS agent endpoint',
-    priority: 100
-  },
-  {
-    domain: 'ai.eth.limo',
-    wallet: undefined,
-    platform: 'ethereum',
-    verified: false,
-    description: 'AI agent on Ethereum',
-    priority: 95
-  },
-  {
-    domain: 'truth.eth.limo',
-    wallet: undefined,
-    platform: 'ethereum',
-    verified: false,
-    description: 'Truth Terminal agent endpoint',
-    priority: 90
-  },
-  
-  // Known AI Agent Projects (Medium-High Priority)
-  {
-    domain: 'api.virtuals.io',
-    wallet: undefined,
-    platform: 'virtuals',
-    verified: false,
-    description: 'Virtuals Protocol AI agents',
-    priority: 85
-  },
-  {
-    domain: 'eliza.ai',
-    wallet: undefined,
-    platform: 'eliza',
-    verified: false,
-    description: 'ElizaOS / ai16z autonomous agents',
-    priority: 80
-  },
-  
-  // Note: Real agent discovery will happen via:
-  // 1. Self-registration endpoint (agents register themselves)
-  // 2. Blockchain wallet discovery (once wallet addresses are known)
-  // 3. A2A registry APIs (once they become available)
-  // 
-  // The domains above are BEST GUESSES for where A2A agents might exist.
-  // Most real discovery will come from self-registration and wallet tracking.
+  // Real agents will be added here after research and verification
+  // Format:
+  // {
+  //   domain: 'verified-agent.com',  // OR
+  //   wallet: '0x123...',             // Ethereum wallet address
+  //   platform: 'platform-name',
+  //   verified: true,                 // Must be verified before adding
+  //   description: 'Actual agent description',
+  //   priority: 100
+  // }
 ];
 
 /**

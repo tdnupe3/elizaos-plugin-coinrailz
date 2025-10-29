@@ -47,6 +47,12 @@ const SERVICE_PRICING = {
 function generateX402Response(serviceId: string, resourcePath: string) {
   const pricing = SERVICE_PRICING[serviceId as keyof typeof SERVICE_PRICING];
   
+  // x402scan requires FULL URL, not just path
+  const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
+    ? 'https://coinrailz.com' 
+    : 'http://localhost:5000';
+  const fullResourceUrl = `${baseUrl}${resourcePath}`;
+  
   return {
     x402Version: 1,
     accepts: [
@@ -54,7 +60,7 @@ function generateX402Response(serviceId: string, resourcePath: string) {
         scheme: 'exact' as const,
         network: 'base' as const,
         maxAmountRequired: pricing.amount,
-        resource: resourcePath,
+        resource: fullResourceUrl,
         description: pricing.description,
         mimeType: pricing.mimeType,
         payTo: PLATFORM_WALLET,

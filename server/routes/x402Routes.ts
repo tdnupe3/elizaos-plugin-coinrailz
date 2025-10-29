@@ -310,12 +310,12 @@ router.post('/agent-service-payment', async (req, res) => {
         }).then(async (auditResult) => {
           console.log('✅ x402 Audit completed for order:', orderId);
           
-          // Update order status and store results
+          // Update order status (results stored in customerRequirements as workaround)
           await db
             .update(aiMarketplaceOrders)
             .set({
               status: 'completed',
-              deliveryData: JSON.stringify(auditResult),
+              customerRequirements: JSON.stringify({ auditResult }),
               updatedAt: new Date(),
             })
             .where(eq(aiMarketplaceOrders.id, orderId));

@@ -126,6 +126,7 @@ export interface IStorage {
   getMarketplaceAgents(filters?: any): Promise<any[]>;
   getMarketplaceOrder(orderId: string): Promise<any>;
   updateMarketplaceOrder(orderId: string, updates: any): Promise<any>;
+  getAgentById(agentId: string): Promise<any>;
   // User operations
   // (IMPORTANT) these user operations are mandatory for Replit Auth.
   getUser(id: string): Promise<User | undefined>;
@@ -1894,6 +1895,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getAgentById(agentId: string): Promise<any> {
+    try {
+      const [agent] = await db
+        .select()
+        .from(globalAIAgents)
+        .where(eq(globalAIAgents.id, agentId))
+        .limit(1);
+      
+      return agent || null;
+    } catch (error) {
+      console.error('Failed to get agent by ID:', error);
+      return null;
+    }
+  }
 
   // XRP Ledger ecosystem implementation methods
   async createXrpWallet(walletData: InsertXrpWallet): Promise<XrpWallet> {

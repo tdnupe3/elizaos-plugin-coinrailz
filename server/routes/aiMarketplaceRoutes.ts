@@ -18,6 +18,7 @@ import DOMPurify from 'isomorphic-dompurify';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import Stripe from 'stripe';
+import { nanoid } from 'nanoid';
 import { conversations, messages, deliveries, insertConversationSchema, insertMessageSchema, insertDeliverySchema } from '../../shared/messagingSchema';
 
 // Initialize Stripe
@@ -2911,11 +2912,11 @@ router.post('/order', async (req, res) => {
       const { x402PaymentService } = await import('../services/x402PaymentService');
       const paymentStatus = await x402PaymentService.getPaymentStatus(validatedData.paymentId);
       
-      if (!paymentStatus.success || paymentStatus.data?.status !== 'completed') {
+      if (!paymentStatus.success || (paymentStatus as any).data?.status !== 'completed') {
         return res.status(400).json({
           success: false,
           error: 'Payment not completed. Please complete payment first.',
-          paymentStatus: paymentStatus.data?.status || 'unknown',
+          paymentStatus: (paymentStatus as any).data?.status || 'unknown',
         });
       }
     }
@@ -2961,12 +2962,9 @@ router.post('/order', async (req, res) => {
         }).then(async (auditResult) => {
           console.log('✅ Audit completed for order:', orderId);
           
-          // Update order with delivery
-          await storage.updateOrderStatus(orderId, 'completed');
-          
-          // Store audit result in order metadata
+          // Update order with delivery (store in customerRequirements as workaround)
           await storage.updateMarketplaceOrder(orderId, {
-            deliveryData: JSON.stringify(auditResult),
+            customerRequirements: JSON.stringify({ auditResult }),
             status: 'completed',
           });
         }).catch(error => {

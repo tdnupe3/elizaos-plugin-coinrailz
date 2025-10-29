@@ -69,6 +69,7 @@ import { ProviderCapabilityService } from './services/providerCapabilityService.
 import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from './paypal.js';
 import rateLimitImport from 'express-rate-limit';
+import { initializeServiceHandlers } from './services/handlers';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
@@ -78,6 +79,11 @@ app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/jso
 
 // Apply JSON parsing middleware AFTER Stripe webhook
 app.use(express.json({ limit: '50mb' }));
+
+// INITIALIZE SERVICE DELIVERY FRAMEWORK - CRITICAL FOR AI AGENT MARKETPLACE
+console.log('🔧 Initializing Service Delivery Framework...');
+initializeServiceHandlers();
+console.log('✅ Service Delivery Framework initialized with handlers for all AI agents');
 
 // IMMEDIATE ORDER CREATION - REGISTER BEFORE ALL MIDDLEWARE TO BYPASS CONFLICTS
 console.log('🚀 REGISTERING ORDER CREATION AT SERVER STARTUP - HIGHEST PRIORITY');

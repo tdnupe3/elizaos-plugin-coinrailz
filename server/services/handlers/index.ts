@@ -34,5 +34,5 @@ export function initializeServiceHandlers(): void {
   console.log(`   Registered agents: ${serviceDeliveryFramework.getRegisteredAgents().join(', ')}`);
 }
 
-// Auto-initialize on import
-initializeServiceHandlers();
+// Export initialization function for explicit server startup
+// DO NOT auto-initialize on import - must be called explicitly from server/index.ts

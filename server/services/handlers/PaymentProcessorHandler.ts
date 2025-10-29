@@ -16,17 +16,19 @@ import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 
 export class PaymentProcessorHandler implements ServiceHandler {
   private coinbaseClient: typeof Coinbase | null = null;
-  private platformWalletId: string | null = null;
+  private platformWalletAddress: string | null = null;
   
   constructor() {
     this.initializeCoinbase();
-    this.platformWalletId = process.env.PLATFORM_CDP_WALLET_ID || null;
+    // Use existing platform wallet address from environment
+    this.platformWalletAddress = process.env.PLATFORM_WALLET_ADDRESS || null;
     
-    if (!this.platformWalletId) {
-      console.warn('⚠️ PLATFORM_CDP_WALLET_ID not set - using payment request mode');
-      console.warn('   For direct transfers, set PLATFORM_CDP_WALLET_ID to a funded CDP wallet ID');
+    if (!this.platformWalletAddress) {
+      console.warn('⚠️ PLATFORM_WALLET_ADDRESS not set - using payment request mode');
+      console.warn('   For direct transfers, configure PLATFORM_WALLET_ADDRESS');
     } else {
-      console.log('✅ Platform CDP wallet configured for direct transfers');
+      console.log(`✅ Platform wallet configured: ${this.platformWalletAddress}`);
+      console.log('   Note: Payment processor will create payment requests - direct transfers require CDP wallet integration');
     }
   }
 
@@ -84,12 +86,10 @@ export class PaymentProcessorHandler implements ServiceHandler {
 
       console.log(`💰 Processing payment: ${paymentDetails.amount} ${currency} to ${paymentDetails.recipientAddress}`);
 
-      // Check if we have a platform wallet for direct transfers
-      if (this.platformWalletId) {
-        return await this.executeDirectTransfer(request, transactionId, network, currency);
-      } else {
-        return await this.createPaymentRequest(request, transactionId, network, currency);
-      }
+      // Currently using payment request mode
+      // TODO: Integrate with existing platform wallet for direct transfers
+      console.log(`📝 Creating payment request for USDC transfer`);
+      return await this.createPaymentRequest(request, transactionId, network, currency);
 
     } catch (error: any) {
       console.error(`❌ Payment processing failed:`, error);
@@ -105,7 +105,10 @@ export class PaymentProcessorHandler implements ServiceHandler {
   }
 
   /**
-   * Execute direct USDC transfer using platform wallet (requires funded wallet)
+   * Execute direct USDC transfer using platform wallet
+   * 
+   * TODO: This is currently disabled - payment processor uses payment request mode
+   * To enable direct transfers, need to integrate with platform wallet service
    */
   private async executeDirectTransfer(
     request: ServiceDeliveryRequest,
@@ -113,89 +116,8 @@ export class PaymentProcessorHandler implements ServiceHandler {
     network: string,
     currency: string
   ): Promise<ServiceDeliveryResult> {
-    const { paymentDetails } = request;
-
-    try {
-      console.log(`🔐 Loading platform wallet: ${this.platformWalletId}`);
-      
-      // Import existing platform wallet
-      const wallet = await Wallet.fetch(this.platformWalletId!);
-      const defaultAddress = await wallet.getDefaultAddress();
-      const walletAddress = defaultAddress?.getId() || 'unknown';
-
-      console.log(`📍 Platform wallet address: ${walletAddress}`);
-
-      // Check wallet balance before attempting transfer
-      const balance = await wallet.getBalance('usdc');
-      const balanceAmount = parseFloat(balance.toString());
-      
-      console.log(`💵 Wallet USDC balance: ${balanceAmount}`);
-
-      if (balanceAmount < paymentDetails.amount) {
-        throw new Error(
-          `Insufficient funds: wallet has ${balanceAmount} USDC but transfer requires ${paymentDetails.amount} USDC`
-        );
-      }
-
-      // Execute USDC transfer
-      console.log(`🔄 Initiating USDC transfer from platform wallet...`);
-      
-      const transfer = await wallet.createTransfer({
-        amount: paymentDetails.amount,
-        assetId: 'usdc',
-        destination: paymentDetails.recipientAddress,
-        gasless: false,
-      });
-
-      // Wait for confirmation
-      console.log(`⏳ Waiting for transaction confirmation...`);
-      await transfer.wait();
-
-      const txHash = transfer.getTransactionHash();
-      const txLink = transfer.getTransactionLink();
-
-      console.log(`✅ Direct transfer completed successfully!`);
-      console.log(`   Transaction Hash: ${txHash}`);
-      console.log(`   Transaction Link: ${txLink}`);
-
-      return {
-        success: true,
-        orderId: request.orderId,
-        agentId: request.agentId,
-        deliveryData: {
-          paymentResult: {
-            transactionId,
-            transactionHash: txHash,
-            transactionLink: txLink,
-            method: 'direct_transfer',
-            status: 'completed',
-            fromAddress: walletAddress,
-            toAddress: paymentDetails.recipientAddress,
-            amount: paymentDetails.amount,
-            currency,
-            network,
-            timestamp: new Date().toISOString(),
-          },
-          serviceType: 'payment_processing',
-          completedAt: new Date().toISOString(),
-          message: 'USDC transfer completed successfully via platform wallet',
-        },
-        status: 'completed',
-        metadata: {
-          transactionId,
-          transactionHash: txHash,
-          network,
-          method: 'direct_transfer',
-        },
-      };
-
-    } catch (error: any) {
-      console.error(`❌ Direct transfer failed:`, error);
-      
-      // Fall back to payment request mode if direct transfer fails
-      console.log('🔄 Falling back to payment request mode...');
-      return await this.createPaymentRequest(request, transactionId, network, currency);
-    }
+    console.warn('Direct transfer not yet implemented - using payment request mode');
+    return await this.createPaymentRequest(request, transactionId, network, currency);
   }
 
   /**

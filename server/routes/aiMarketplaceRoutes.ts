@@ -2963,36 +2963,41 @@ router.post('/order', async (req, res) => {
 
     console.log('✅ Autonomous order created:', orderId);
 
-    // Trigger service delivery if contract code provided
+    // Trigger service delivery using universal framework
     let serviceDeliveryInitiated = false;
-    if (validatedData.contractCode && validatedData.agentId === 'smart-contract-auditor') {
-      try {
-        // Import and execute smart contract audit
-        const { auditSmartContract } = await import('../services/smartContractAuditor');
+    try {
+      // Initialize service handlers (ensures they're loaded)
+      await import('../services/handlers');
+      const { serviceDeliveryFramework } = await import('../services/serviceDeliveryFramework');
+      
+      // Check if handler exists for this agent
+      if (serviceDeliveryFramework.hasHandler(validatedData.agentId)) {
+        console.log(`🚀 Service delivery framework found handler for: ${validatedData.agentId}`);
         
-        // Run audit asynchronously
-        auditSmartContract({
-          contractCode: validatedData.contractCode,
-          contractName: validatedData.contractName || 'Contract',
-          userId: validatedData.customerEmail || validatedData.customerWallet || 'autonomous',
-          orderId: orderId,
-        }).then(async (auditResult) => {
-          console.log('✅ Audit completed for order:', orderId);
+        // Execute service asynchronously using framework
+        serviceDeliveryFramework.executeService({
+          orderId,
+          agentId: validatedData.agentId,
+          serviceType: validatedData.serviceType || 'default',
+          customerId: validatedData.customerEmail || validatedData.customerWallet || 'autonomous-agent',
+          amount: validatedData.amount,
+          metadata: validatedData.metadata || {},
           
-          // Update order with delivery (store in customerRequirements as workaround)
-          await storage.updateMarketplaceOrder(orderId, {
-            customerRequirements: JSON.stringify({ auditResult }),
-            status: 'completed',
-          });
+          // Include all service-specific data
+          contractCode: validatedData.contractCode,
+          contractName: validatedData.contractName,
+          paymentDetails: validatedData.metadata?.paymentDetails,
+          complianceRequirements: validatedData.metadata?.complianceRequirements,
         }).catch(error => {
-          console.error('❌ Audit failed for order:', orderId, error);
-          storage.updateOrderStatus(orderId, 'failed');
+          console.error('❌ Service delivery failed:', error);
         });
         
         serviceDeliveryInitiated = true;
-      } catch (error) {
-        console.error('Failed to initiate service delivery:', error);
+      } else {
+        console.warn(`⚠️ No service handler available for agent: ${validatedData.agentId}`);
       }
+    } catch (error) {
+      console.error('Failed to initiate service delivery:', error);
     }
 
     res.status(201).json({

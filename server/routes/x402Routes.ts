@@ -295,38 +295,41 @@ router.post('/agent-service-payment', async (req, res) => {
       });
     }
 
-    // If Smart Contract Auditor and contract code provided, trigger audit
+    // Trigger service delivery using universal framework
     let serviceDeliveryInitiated = false;
-    if (agentId === 'smart-contract-auditor' && contractCode) {
-      try {
-        const { auditSmartContract } = await import('../services/smartContractAuditor');
+    try {
+      // Initialize service handlers
+      await import('../services/handlers');
+      const { serviceDeliveryFramework } = await import('../services/serviceDeliveryFramework');
+      
+      // Check if handler exists for this agent
+      if (serviceDeliveryFramework.hasHandler(agentId)) {
+        console.log(`🚀 x402 Service delivery framework found handler for: ${agentId}`);
         
-        // Run audit asynchronously (don't block response)
-        auditSmartContract({
+        // Execute service asynchronously using framework
+        serviceDeliveryFramework.executeService({
+          orderId,
+          agentId,
+          serviceType: 'x402_autonomous',
+          customerId: 'x402-autonomous',
+          amount,
+          metadata: { protocol: 'x402', autonomousPayment: true },
+          
+          // Include all service-specific data
           contractCode,
           contractName: contractName || 'Contract',
-          userId: 'x402-autonomous',
-          orderId,
-        }).then(async (auditResult) => {
-          console.log('✅ x402 Audit completed for order:', orderId);
-          
-          // Update order status (results stored in customerRequirements as workaround)
-          await db
-            .update(aiMarketplaceOrders)
-            .set({
-              status: 'completed',
-              customerRequirements: JSON.stringify({ auditResult }),
-              updatedAt: new Date(),
-            })
-            .where(eq(aiMarketplaceOrders.id, orderId));
+          paymentDetails: req.body.paymentDetails,
+          complianceRequirements: req.body.complianceRequirements,
         }).catch(error => {
-          console.error('❌ x402 Audit failed for order:', orderId, error);
+          console.error('❌ x402 Service delivery failed:', error);
         });
         
         serviceDeliveryInitiated = true;
-      } catch (error) {
-        console.error('Failed to initiate service delivery:', error);
+      } else {
+        console.warn(`⚠️ No service handler available for agent: ${agentId}`);
       }
+    } catch (error) {
+      console.error('Failed to initiate service delivery:', error);
     }
 
     res.json({

@@ -32,6 +32,7 @@ import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import x402Routes from './routes/x402Routes';
+import x402GatedRoutes from './routes/x402GatedRoutes';
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
@@ -642,8 +643,10 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 // === x402 PROTOCOL AUTONOMOUS PAYMENTS ===
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
+app.use('/x402', x402GatedRoutes); // x402-gated service endpoints (return 402 Payment Required)
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 console.log('✅ x402 Protocol routes registered successfully');
+console.log('✅ x402-gated service endpoints registered for x402scan discovery');
 
 console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
 app.use('/api/sdk-licensing', sdkLicensingRoutes);

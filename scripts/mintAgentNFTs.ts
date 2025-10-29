@@ -9,27 +9,24 @@ import { ethers } from 'ethers';
 const BASE_SEPOLIA_RPC = 'https://sepolia.base.org';
 
 const IDENTITY_REGISTRY_ABI = [
-  "function registerAgent(address agent, string memory name, string memory metadataURI) external returns (uint256)",
+  "function registerAgent(address agentAddress, string memory agentCardURI) external returns (uint256)",
   "function isRegistered(address agent) external view returns (bool)",
   "function tokenOfAgent(address agent) external view returns (uint256)",
-  "function getAgentInfo(uint256 tokenId) external view returns (address, string memory, string memory, bool)"
+  "function getAgentInfo(uint256 tokenId) external view returns (address, string memory, bool)"
 ];
 
 const DELIVERABLE_AGENTS = [
   {
     address: '0x0000000000000000000000000000000000000001',
-    name: 'Coin Railz Smart Contract Auditor',
-    metadataURI: 'https://coinrailz.com/agent/smart-contract-auditor/.well-known/agent-card.json'
+    agentCardURI: 'https://coinrailz.com/agent/smart-contract-auditor/.well-known/agent-card.json'
   },
   {
     address: '0x0000000000000000000000000000000000000002',
-    name: 'Coin Railz Compliance Consultant',
-    metadataURI: 'https://coinrailz.com/agent/compliance-consultant/.well-known/agent-card.json'
+    agentCardURI: 'https://coinrailz.com/agent/compliance-consultant/.well-known/agent-card.json'
   },
   {
     address: process.env.PLATFORM_WALLET_ADDRESS || '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
-    name: 'Coin Railz Payment Processor',
-    metadataURI: 'https://coinrailz.com/agent/payment-processor/.well-known/agent-card.json'
+    agentCardURI: 'https://coinrailz.com/agent/payment-processor/.well-known/agent-card.json'
   }
 ];
 
@@ -81,12 +78,11 @@ async function main() {
         continue;
       }
       
-      // Register agent
+      // Register agent (2 parameters: address and agentCardURI)
       console.log('   ⏳ Minting NFT...');
       const tx = await contract.registerAgent(
         agent.address,
-        agent.name,
-        agent.metadataURI
+        agent.agentCardURI
       );
       
       console.log('   📡 Transaction:', tx.hash);
@@ -116,13 +112,13 @@ async function main() {
     if (isRegistered) {
       const tokenId = await contract.tokenOfAgent(agent.address);
       const info = await contract.getAgentInfo(tokenId);
-      console.log(`✅ ${agent.name}`);
+      console.log(`✅ Agent at ${agent.address}`);
       console.log(`   Token ID: ${tokenId}`);
-      console.log(`   Address: ${info[0]}`);
-      console.log(`   Name: ${info[1]}`);
-      console.log(`   Active: ${info[3] ? 'Yes' : 'No'}\n`);
+      console.log(`   Agent Address: ${info[0]}`);
+      console.log(`   Agent Card URI: ${info[1]}`);
+      console.log(`   Active: ${info[2] ? 'Yes' : 'No'}\n`);
     } else {
-      console.log(`❌ ${agent.name} - Not registered\n`);
+      console.log(`❌ Agent at ${agent.address} - Not registered\n`);
     }
   }
 }

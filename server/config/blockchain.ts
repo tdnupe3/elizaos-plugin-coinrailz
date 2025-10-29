@@ -16,11 +16,11 @@ export const ERC8004_CONTRACTS = {
   deploymentDate: '2025-10-29'
 };
 
-// Contract ABIs (minimal for interaction)
+// Contract ABIs (matches actual deployed contract on Base mainnet)
 export const IDENTITY_REGISTRY_ABI = [
-  "function registerAgent(address agent, string memory name, string memory metadataURI) external returns (uint256)",
+  "function registerAgent(address agentAddress, string memory agentCardURI) external returns (uint256)",
   "function revokeAgent(uint256 tokenId) external",
-  "function getAgentInfo(uint256 tokenId) external view returns (address, string memory, string memory, bool)",
+  "function getAgentInfo(uint256 tokenId) external view returns (address, string memory, bool)",
   "function isRegistered(address agent) external view returns (bool)",
   "function tokenOfAgent(address agent) external view returns (uint256)",
   "function name() external view returns (string memory)",

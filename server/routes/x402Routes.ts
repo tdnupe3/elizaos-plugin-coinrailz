@@ -173,12 +173,18 @@ router.get('/analytics', async (req, res) => {
 
 /**
  * POST /api/x402/agent-service-payment
- * Integrated endpoint: Create marketplace order + x402 payment with REAL database transactions
+ * INTEGRATED ENDPOINT: Create payment + order + trigger service delivery
+ * For AI agents to complete full workflow in one request
  */
 router.post('/agent-service-payment', async (req, res) => {
   try {
-    // Validate request body
-    const validation = createPaymentSchema.safeParse({
+    // Extended validation schema including contract code for audits
+    const extendedPaymentSchema = createPaymentSchema.extend({
+      contractCode: z.string().optional(),
+      contractName: z.string().optional(),
+    });
+    
+    const validation = extendedPaymentSchema.safeParse({
       ...req.body,
       serviceDescription: req.body.serviceDescription || 'AI Agent Service',
     });
@@ -191,7 +197,7 @@ router.post('/agent-service-payment', async (req, res) => {
       });
     }
 
-    const { amount, agentId, serviceDescription, network, currency } = validation.data;
+    const { amount, agentId, serviceDescription, network, currency, contractCode, contractName } = validation.data;
 
     // Verify agent exists (NO auto-registration for security)
     const existingAgent = await db
@@ -289,12 +295,51 @@ router.post('/agent-service-payment', async (req, res) => {
       });
     }
 
+    // If Smart Contract Auditor and contract code provided, trigger audit
+    let serviceDeliveryInitiated = false;
+    if (agentId === 'smart-contract-auditor' && contractCode) {
+      try {
+        const { auditSmartContract } = await import('../services/smartContractAuditor');
+        
+        // Run audit asynchronously (don't block response)
+        auditSmartContract({
+          contractCode,
+          contractName: contractName || 'Contract',
+          userId: 'x402-autonomous',
+          orderId,
+        }).then(async (auditResult) => {
+          console.log('✅ x402 Audit completed for order:', orderId);
+          
+          // Update order status and store results
+          await db
+            .update(aiMarketplaceOrders)
+            .set({
+              status: 'completed',
+              deliveryData: JSON.stringify(auditResult),
+              updatedAt: new Date(),
+            })
+            .where(eq(aiMarketplaceOrders.id, orderId));
+        }).catch(error => {
+          console.error('❌ x402 Audit failed for order:', orderId, error);
+        });
+        
+        serviceDeliveryInitiated = true;
+      } catch (error) {
+        console.error('Failed to initiate service delivery:', error);
+      }
+    }
+
     res.json({
       success: true,
       orderId,
       payment: paymentResult,
       agentCommission: parseFloat(agentCommission.toFixed(2)),
       platformFee: parseFloat(platformFee.toFixed(2)),
+      serviceDeliveryInitiated,
+      statusEndpoint: `https://coinrailz.com/api/marketplace/order/${orderId}/status`,
+      message: serviceDeliveryInitiated
+        ? 'Payment created and service delivery initiated. Check status endpoint for results.'
+        : 'Payment created. Complete payment to receive service.',
     });
   } catch (error: any) {
     console.error('x402 agent service payment failed:', error);

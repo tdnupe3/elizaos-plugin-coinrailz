@@ -2873,4 +2873,193 @@ router.get('/orders/:customerId', async (req, res) => {
   }
 });
 
+/**
+ * AUTONOMOUS ORDER ENDPOINT - No Authentication Required
+ * For AI agents to place orders and receive services
+ * POST /api/marketplace/order
+ */
+router.post('/order', async (req, res) => {
+  try {
+    console.log('🤖 Autonomous order request received:', req.body);
+    
+    const orderSchema = z.object({
+      agentId: z.string().min(1),
+      serviceType: z.string().optional(),
+      amount: z.number().min(1),
+      paymentId: z.string().optional(), // x402 payment ID
+      paymentMethod: z.enum(['x402', 'crypto', 'usdc']).optional(),
+      contractCode: z.string().optional(), // For smart contract audits
+      contractName: z.string().optional(),
+      customerEmail: z.string().email().optional(),
+      customerWallet: z.string().optional(),
+      metadata: z.record(z.any()).optional(),
+    });
+
+    const validatedData = orderSchema.parse(req.body);
+    
+    // Verify agent exists
+    const agent = await storage.getAgentById(validatedData.agentId);
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        error: `Agent ${validatedData.agentId} not found`,
+      });
+    }
+
+    // If x402 payment ID provided, verify payment first
+    if (validatedData.paymentId) {
+      const { x402PaymentService } = await import('../services/x402PaymentService');
+      const paymentStatus = await x402PaymentService.getPaymentStatus(validatedData.paymentId);
+      
+      if (!paymentStatus.success || paymentStatus.data?.status !== 'completed') {
+        return res.status(400).json({
+          success: false,
+          error: 'Payment not completed. Please complete payment first.',
+          paymentStatus: paymentStatus.data?.status || 'unknown',
+        });
+      }
+    }
+
+    // Generate order ID
+    const orderId = nanoid();
+    
+    // Calculate commission (15% platform, 85% agent)
+    const platformFee = validatedData.amount * 0.15;
+    const agentCommission = validatedData.amount * 0.85;
+
+    // Create order in database
+    const order = await storage.createMarketplaceOrder({
+      id: orderId,
+      agentId: validatedData.agentId,
+      customerId: validatedData.customerEmail || validatedData.customerWallet || 'autonomous-agent',
+      serviceType: validatedData.serviceType || 'smart_contract_audit',
+      amount: validatedData.amount.toString(),
+      agentCommission: agentCommission.toString(),
+      platformFee: platformFee.toString(),
+      status: 'pending',
+      paymentMethod: validatedData.paymentMethod || 'x402',
+      serviceDescription: `Autonomous order for ${validatedData.agentId}`,
+      customerRequirements: JSON.stringify(validatedData.metadata || {}),
+      estimatedDeliveryHours: 24,
+    });
+
+    console.log('✅ Autonomous order created:', orderId);
+
+    // Trigger service delivery if contract code provided
+    let serviceDeliveryInitiated = false;
+    if (validatedData.contractCode && validatedData.agentId === 'smart-contract-auditor') {
+      try {
+        // Import and execute smart contract audit
+        const { auditSmartContract } = await import('../services/smartContractAuditor');
+        
+        // Run audit asynchronously
+        auditSmartContract({
+          contractCode: validatedData.contractCode,
+          contractName: validatedData.contractName || 'Contract',
+          userId: validatedData.customerEmail || validatedData.customerWallet || 'autonomous',
+          orderId: orderId,
+        }).then(async (auditResult) => {
+          console.log('✅ Audit completed for order:', orderId);
+          
+          // Update order with delivery
+          await storage.updateOrderStatus(orderId, 'completed');
+          
+          // Store audit result in order metadata
+          await storage.updateMarketplaceOrder(orderId, {
+            deliveryData: JSON.stringify(auditResult),
+            status: 'completed',
+          });
+        }).catch(error => {
+          console.error('❌ Audit failed for order:', orderId, error);
+          storage.updateOrderStatus(orderId, 'failed');
+        });
+        
+        serviceDeliveryInitiated = true;
+      } catch (error) {
+        console.error('Failed to initiate service delivery:', error);
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      orderId,
+      status: 'pending',
+      serviceDeliveryInitiated,
+      amount: validatedData.amount,
+      platformFee,
+      agentCommission,
+      estimatedDeliveryHours: 24,
+      message: serviceDeliveryInitiated 
+        ? 'Order created and service delivery initiated. Results will be available at /api/marketplace/order/{orderId}/status'
+        : 'Order created successfully. Agent will process manually.',
+      statusEndpoint: `https://coinrailz.com/api/marketplace/order/${orderId}/status`,
+    });
+  } catch (error: any) {
+    console.error('Autonomous order creation failed:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: error.errors,
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Order creation failed',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * GET ORDER STATUS - No Authentication Required
+ * For AI agents to check order status and retrieve results
+ */
+router.get('/order/:orderId/status', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await storage.getMarketplaceOrder(orderId);
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found',
+      });
+    }
+
+    // Parse delivery data if available
+    let deliveryData = null;
+    if (order.deliveryData) {
+      try {
+        deliveryData = JSON.parse(order.deliveryData);
+      } catch (e) {
+        deliveryData = order.deliveryData;
+      }
+    }
+
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        agentId: order.agentId,
+        status: order.status,
+        amount: order.amount,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        estimatedDelivery: order.estimatedDelivery,
+        deliveryData,
+      },
+    });
+  } catch (error: any) {
+    console.error('Order status fetch failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch order status',
+    });
+  }
+});
+
 export default router;

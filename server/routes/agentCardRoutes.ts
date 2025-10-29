@@ -87,8 +87,22 @@ router.get('/agent/:id/.well-known/agent-card.json', async (req: Request, res: R
         wallet_address: agent.primaryWalletAddress,
         supported_currencies: Array.isArray(agent.preferredCurrencies) 
           ? agent.preferredCurrencies 
-          : ['USDC', 'USDT', 'ETH'],
-        payment_networks: agent.walletNetwork || 'ethereum'
+          : ['USDC', 'USDT', 'ETH', 'DAI', 'WBTC'],
+        payment_networks: agent.walletNetwork === 'multi-chain' 
+          ? ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'avalanche', 'binance-smart-chain']
+          : (agent.walletNetwork || 'base'),
+        stablecoins: Array.isArray(agent.acceptedStablecoins)
+          ? agent.acceptedStablecoins
+          : ['USDC', 'USDT', 'DAI'],
+        network_details: {
+          base: ['USDC', 'USDT', 'ETH', 'DAI'],
+          ethereum: ['USDC', 'USDT', 'ETH', 'DAI', 'WBTC'],
+          polygon: ['USDC', 'USDT', 'MATIC', 'DAI'],
+          arbitrum: ['USDC', 'USDT', 'ETH', 'DAI'],
+          optimism: ['USDC', 'USDT', 'ETH', 'DAI'],
+          avalanche: ['USDC', 'USDT', 'AVAX', 'DAI'],
+          'binance-smart-chain': ['USDC', 'USDT', 'BNB', 'DAI']
+        }
       },
       
       endpoints: {

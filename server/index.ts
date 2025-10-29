@@ -61,6 +61,7 @@ import { peezyService } from './services/peezyIntegrationService';
 import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
 import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
 import agentCardRoutes from './routes/agentCardRoutes';
+import discoveryRoutes from './routes/discoveryRoutes';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
 import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
@@ -596,6 +597,11 @@ app.use(a2aBridgeRoutes);
 console.log('🎯 Registering Agent Card routes for A2A discovery of marketplace agents...');
 app.use(agentCardRoutes);
 console.log('✅ Agent Card routes registered - Marketplace agents now discoverable via A2A protocol');
+
+// Register Autonomous Discovery routes for crawler/search engine discovery
+console.log('🔍 Registering Autonomous Discovery routes (sitemap, robots.txt, search engine pings)...');
+app.use(discoveryRoutes);
+console.log('✅ Discovery routes registered - Platform now discoverable by web crawlers and search engines');
 
 // Mount provider-specific routers for exact /.well-known/agent-card.json paths
 console.log('🎫 Mounting provider-specific routers for ChatGPT /.well-known/agent-card.json requirement...');

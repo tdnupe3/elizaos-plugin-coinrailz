@@ -19,23 +19,23 @@ contract ERC8004ReputationRegistry {
         bytes32 paymentProof; // x402 payment transaction hash
         uint256 timestamp;
     }
-    
+
     // All feedback submissions
     Feedback[] public feedbacks;
-    
+
     // Agent ID => feedback indices
     mapping(uint256 => uint256[]) public agentFeedbacks;
-    
+
     // Agent ID => client => authorized
     mapping(uint256 => mapping(address => bool)) public clientAuthorized;
-    
+
     // Events
     event FeedbackAuthorized(
         uint256 indexed agentId,
         address indexed clientAddress,
         uint256 timestamp
     );
-    
+
     event FeedbackSubmitted(
         uint256 indexed feedbackId,
         uint256 indexed agentId,
@@ -48,13 +48,13 @@ contract ERC8004ReputationRegistry {
         bytes32 paymentProof,
         uint256 timestamp
     );
-    
+
     event FeedbackRevoked(
         uint256 indexed agentId,
         address indexed clientAddress,
         uint256 timestamp
     );
-    
+
     /**
      * @dev Agent pre-authorizes client to submit feedback
      * Prevents spam and fake reviews
@@ -66,12 +66,12 @@ contract ERC8004ReputationRegistry {
         address clientAddress
     ) external {
         require(clientAddress != address(0), "Invalid client");
-        
+
         clientAuthorized[agentId][clientAddress] = true;
-        
+
         emit FeedbackAuthorized(agentId, clientAddress, block.timestamp);
     }
-    
+
     /**
      * @dev Submit feedback for an agent
      * @param agentId Agent NFT token ID
@@ -98,9 +98,9 @@ contract ERC8004ReputationRegistry {
         require(score <= 100, "Score must be 0-100");
         require(bytes(fileURI).length > 0, "Empty file URI");
         require(paymentProof != bytes32(0), "Payment proof required");
-        
+
         uint256 feedbackId = feedbacks.length;
-        
+
         Feedback memory newFeedback = Feedback({
             agentId: agentId,
             clientAddress: msg.sender,
@@ -112,13 +112,13 @@ contract ERC8004ReputationRegistry {
             paymentProof: paymentProof,
             timestamp: block.timestamp
         });
-        
+
         feedbacks.push(newFeedback);
         agentFeedbacks[agentId].push(feedbackId);
-        
+
         // Revoke authorization after use (one-time feedback)
         clientAuthorized[agentId][msg.sender] = false;
-        
+
         emit FeedbackSubmitted(
             feedbackId,
             agentId,
@@ -132,7 +132,7 @@ contract ERC8004ReputationRegistry {
             block.timestamp
         );
     }
-    
+
     /**
      * @dev Get all feedback for an agent
      * @param agentId Agent NFT token ID
@@ -143,7 +143,7 @@ contract ERC8004ReputationRegistry {
     ) external view returns (uint256[] memory) {
         return agentFeedbacks[agentId];
     }
-    
+
     /**
      * @dev Get feedback details
      * @param feedbackId Feedback ID
@@ -155,7 +155,7 @@ contract ERC8004ReputationRegistry {
         require(feedbackId < feedbacks.length, "Invalid feedback ID");
         return feedbacks[feedbackId];
     }
-    
+
     /**
      * @dev Calculate average rating for agent
      * @param agentId Agent NFT token ID
@@ -167,22 +167,22 @@ contract ERC8004ReputationRegistry {
     ) external view returns (uint256 averageScore, uint256 feedbackCount) {
         uint256[] memory feedbackIds = agentFeedbacks[agentId];
         feedbackCount = feedbackIds.length;
-        
+
         if (feedbackCount == 0) {
             return (0, 0);
         }
-        
+
         uint256 totalScore = 0;
-        
+
         for (uint256 i = 0; i < feedbackCount; i++) {
             totalScore += feedbacks[feedbackIds[i]].score;
         }
-        
+
         averageScore = totalScore / feedbackCount;
-        
+
         return (averageScore, feedbackCount);
     }
-    
+
     /**
      * @dev Get total feedback count
      * @return Total feedbacks in registry
@@ -190,7 +190,7 @@ contract ERC8004ReputationRegistry {
     function totalFeedbacks() external view returns (uint256) {
         return feedbacks.length;
     }
-    
+
     /**
      * @dev Check if client is authorized to submit feedback
      * @param agentId Agent NFT token ID
@@ -203,7 +203,7 @@ contract ERC8004ReputationRegistry {
     ) external view returns (bool) {
         return clientAuthorized[agentId][clientAddress];
     }
-    
+
     /**
      * @dev Revoke client authorization (in case of dispute)
      * @param agentId Agent NFT token ID
@@ -214,7 +214,7 @@ contract ERC8004ReputationRegistry {
         address clientAddress
     ) external {
         clientAuthorized[agentId][clientAddress] = false;
-        
+
         emit FeedbackRevoked(agentId, clientAddress, block.timestamp);
     }
 }

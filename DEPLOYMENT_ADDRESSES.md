@@ -22,9 +22,9 @@ Explorer: https://basescan.org/address/0x3130232Ef23f7f7Dbc41f2c6A790928bc674Bb2
 
 ---
 
-## Minted Agent NFTs
+## Minted Agent NFTs ✅
 
-After deployment, these agents will have ERC-721 NFT identities:
+**Status:** All 3 agents successfully minted on Base mainnet
 
 ### Token ID 1: Smart Contract Auditor
 - Address: `0x0000000000000000000000000000000000000001`
@@ -59,14 +59,14 @@ export const ERC8004_CONTRACTS = {
 
 ---
 
-## Deployment Completed: ☐
+## Deployment Completed: ✅
 
-- [ ] IdentityRegistry deployed
-- [ ] ReputationRegistry deployed  
-- [ ] Agent NFTs minted (3 total)
-- [ ] Addresses saved above
-- [ ] Backend config updated
-- [ ] Verified on BaseScan
+- [x] IdentityRegistry deployed → `0x8AfBd4f43399aeB6e26AD827AeaAADfB10ebb5Aa`
+- [x] ReputationRegistry deployed → `0x3130232Ef23f7f7Dbc41f2c6A790928bc674Bb24`
+- [x] Agent NFTs minted (3 total)
+- [x] Addresses saved above
+- [x] Backend config updated → `server/config/blockchain.ts`
+- [ ] Test end-to-end order flow with on-chain reputation
 
 ---
 

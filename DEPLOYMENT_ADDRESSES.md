@@ -1,8 +1,8 @@
 # ERC-8004 Deployed Contract Addresses
 
-**Network:** Base Sepolia Testnet  
-**Chain ID:** 84532  
-**Deployment Date:** _Pending_
+**Network:** Base Mainnet  
+**Chain ID:** 8453  
+**Deployment Date:** October 29, 2025
 
 ---
 
@@ -10,14 +10,14 @@
 
 ### IdentityRegistry (ERC-721 NFT for Agent Identity)
 ```
-Address: <PASTE_HERE_AFTER_DEPLOYMENT>
-Explorer: https://sepolia.basescan.org/address/<ADDRESS>
+Address: 0x8AfBd4f43399aeB6e26AD827AeaAADfB10ebb5Aa
+Explorer: https://basescan.org/address/0x8AfBd4f43399aeB6e26AD827AeaAADfB10ebb5Aa
 ```
 
 ### ReputationRegistry (On-chain Reputation Tracking)
 ```
-Address: <PASTE_HERE_AFTER_DEPLOYMENT>
-Explorer: https://sepolia.basescan.org/address/<ADDRESS>
+Address: 0x3130232Ef23f7f7Dbc41f2c6A790928bc674Bb24
+Explorer: https://basescan.org/address/0x3130232Ef23f7f7Dbc41f2c6A790928bc674Bb24
 ```
 
 ---

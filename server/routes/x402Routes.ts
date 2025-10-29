@@ -215,8 +215,14 @@ router.post('/agent-service-payment', async (req, res) => {
 
     // REAL ATOMIC TRANSACTION for order + payment creation
     const orderId = nanoid();
-    const agentCommission = amount * 0.85;
-    const platformFee = amount * 0.15;
+    
+    // Platform-owned agents (is_human_registered = false): 100% platform fee, 0% agent commission
+    // External agents (is_human_registered = true): 85% agent, 15% platform
+    const isPlatformOwned = existingAgent[0].isHumanRegistered === false;
+    const agentCommission = isPlatformOwned ? 0 : amount * 0.85;
+    const platformFee = isPlatformOwned ? amount : amount * 0.15;
+    
+    console.log(`💰 Commission split for ${agentId}: Platform-owned=${isPlatformOwned}, Agent=$${agentCommission}, Platform=$${platformFee}`);
 
     let paymentResult;
 

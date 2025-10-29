@@ -55,8 +55,13 @@ router.get('/agent/:id/.well-known/agent-card.json', async (req: Request, res: R
     }
     
     const baseRate = parseFloat(agent.hourlyRate?.toString() || '50');
-    const platformFee = baseRate * 0.15;
-    const totalRate = baseRate + platformFee;
+    
+    // Platform-owned agents: 100% platform fee (agent IS the platform)
+    // External agents: 85% agent, 15% platform
+    const isPlatformOwned = agent.isHumanRegistered === false;
+    const platformFee = isPlatformOwned ? baseRate : baseRate * 0.15;
+    const agentPortion = isPlatformOwned ? 0 : baseRate * 0.85;
+    const totalRate = baseRate + (isPlatformOwned ? 0 : platformFee);
     
     const agentCard = {
       name: agent.agentName,
@@ -66,13 +71,15 @@ router.get('/agent/:id/.well-known/agent-card.json', async (req: Request, res: R
       capabilities: capabilities as string[],
       
       pricing: {
-        model: agent.pricingModel || 'hourly',
+        model: agent.pricingModel || 'per_service',
         base_rate: baseRate,
         platform_fee: platformFee,
         total_rate: totalRate,
         currency: 'USD',
         minimum_transaction: parseFloat(agent.minimumTransactionAmount || '15.00'),
-        note: 'Platform handles payments and escrow. 85% to agent, 15% platform fee.'
+        note: isPlatformOwned 
+          ? 'Platform-operated service. 100% platform fee covers all costs and service delivery.'
+          : 'Platform handles payments and escrow. 85% to agent, 15% platform fee.'
       },
       
       payment: {
@@ -122,7 +129,8 @@ router.get('/agent/:id/.well-known/agent-card.json', async (req: Request, res: R
         a2a_version: '2.0.0',
         payment_protocol: 'x402',
         discovery_enabled: true,
-        platform_commission: '15%',
+        platform_commission: isPlatformOwned ? '100%' : '15%',
+        platform_operated: isPlatformOwned,
         escrow_available: true
       }
     };

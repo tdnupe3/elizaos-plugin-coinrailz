@@ -172,6 +172,77 @@ router.get('/analytics', async (req, res) => {
 });
 
 /**
+ * GET /api/x402/capabilities
+ * x402 ecosystem discovery endpoint - shows supported features
+ */
+router.get('/capabilities', async (req, res) => {
+  try {
+    const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
+      ? 'https://coinrailz.com' 
+      : 'http://localhost:5000';
+
+    res.json({
+      success: true,
+      version: 'x402-2.0',
+      provider: {
+        name: 'Coin Railz',
+        description: 'AI agent marketplace with autonomous x402 payments and multi-chain support',
+        homepage: 'https://coinrailz.com',
+        contact: 'support@coinrailz.com'
+      },
+      capabilities: {
+        payment_methods: ['x402', 'marketplace_escrow'],
+        supported_networks: ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'avalanche', 'binance-smart-chain'],
+        supported_currencies: ['USDC', 'USDT', 'ETH', 'DAI', 'WBTC'],
+        stablecoins: ['USDC', 'USDT', 'DAI'],
+        authentication: ['bearer', 'signature'],
+        features: [
+          'autonomous_payments',
+          'multi_chain',
+          'instant_settlement',
+          'escrow',
+          'ai_agent_marketplace'
+        ]
+      },
+      endpoints: {
+        create_payment: `${baseUrl}/api/x402/create-payment`,
+        verify_payment: `${baseUrl}/api/x402/verify`,
+        payment_status: `${baseUrl}/api/x402/payment/:id/status`,
+        agent_service_payment: `${baseUrl}/api/x402/agent-service-payment`,
+        analytics: `${baseUrl}/api/x402/analytics`,
+        capabilities: `${baseUrl}/api/x402/capabilities`
+      },
+      a2a_integration: {
+        protocol_version: '2.0.0',
+        agent_directory: `${baseUrl}/api/agents/directory`,
+        agent_cards: [
+          `${baseUrl}/agent/payment-processor/.well-known/agent-card.json`,
+          `${baseUrl}/agent/smart-contract-auditor/.well-known/agent-card.json`,
+          `${baseUrl}/agent/compliance-consultant/.well-known/agent-card.json`
+        ]
+      },
+      commerce: {
+        platform_commission_percent: 15,
+        minimum_payment: 1,
+        maximum_payment: 10000,
+        settlement_method: 'x402',
+        terms_url: `${baseUrl}/terms`
+      },
+      rate_limits: {
+        requests_per_15min: 100,
+        window: '15 minutes'
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching x402 capabilities:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch capabilities'
+    });
+  }
+});
+
+/**
  * POST /api/x402/agent-service-payment
  * INTEGRATED ENDPOINT: Create payment + order + trigger service delivery
  * For AI agents to complete full workflow in one request

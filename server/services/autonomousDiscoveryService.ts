@@ -87,6 +87,21 @@ class AutonomousDiscoveryService {
       sitemap += `    <priority>0.9</priority>\n`;
       sitemap += `  </url>\n`;
 
+      // x402 endpoints
+      const x402Endpoints = [
+        '/api/x402/capabilities',
+        '/api/x402/create-payment',
+        '/.well-known/x402.json'
+      ];
+      
+      for (const endpoint of x402Endpoints) {
+        sitemap += `  <url>\n`;
+        sitemap += `    <loc>${baseUrl}${endpoint}</loc>\n`;
+        sitemap += `    <lastmod>${now}</lastmod>\n`;
+        sitemap += `    <priority>0.9</priority>\n`;
+        sitemap += `  </url>\n`;
+      }
+
       // Individual agent cards
       for (const agent of agents) {
         sitemap += `  <url>\n`;
@@ -166,13 +181,15 @@ class AutonomousDiscoveryService {
 Allow: /
 Allow: /api/agents/directory
 Allow: /agent/*/\.well-known/agent-card.json
+Allow: /.well-known/
+Allow: /api/x402/
 
 Sitemap: ${baseUrl}/sitemap.xml
 
 # AI Agent Marketplace
 # x402 Payment Protocol Support
 # A2A 2.0 Discoverable Agents
-# Contact: [Platform Email]
+# Contact: support@coinrailz.com
 `;
   }
 

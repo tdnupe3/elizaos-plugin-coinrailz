@@ -67,8 +67,8 @@ async function main() {
   
   for (const agent of DELIVERABLE_AGENTS) {
     try {
-      console.log(`\n📝 Agent: ${agent.name}`);
-      console.log(`   Address: ${agent.address}`);
+      console.log(`\n📝 Agent Address: ${agent.address}`);
+      console.log(`   Agent Card: ${agent.agentCardURI}`);
       
       // Check if already registered
       const isRegistered = await contract.isRegistered(agent.address);

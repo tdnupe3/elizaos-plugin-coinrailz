@@ -23,9 +23,21 @@ interface DiscoveryTarget {
 }
 
 class AutonomousDiscoveryService {
-  private baseUrl = process.env.REPLIT_DEV_DOMAIN 
-    ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-    : 'https://coinrailz.com';
+  private getBaseUrl(hostname?: string): string {
+    // Production deployment detection (same as agent card routes)
+    if (process.env.REPLIT_DEPLOYMENT === '1') {
+      return 'https://coinrailz.com';
+    }
+    
+    // Development: Use provided hostname or fallback
+    if (hostname) {
+      return `https://${hostname}`;
+    }
+    
+    return process.env.REPLIT_DEV_DOMAIN 
+      ? `https://${process.env.REPLIT_DEV_DOMAIN}`
+      : 'http://localhost:5000';
+  }
 
   private discoveryTargets: DiscoveryTarget[] = [
     {
@@ -49,27 +61,28 @@ class AutonomousDiscoveryService {
    * Generate XML sitemap for our agent cards
    * Makes us discoverable by web crawlers
    */
-  async generateAgentSitemap(): Promise<string> {
+  async generateAgentSitemap(hostname?: string): Promise<string> {
     try {
       const agents = await db
         .select()
         .from(globalAIAgents);
 
       const now = new Date().toISOString();
+      const baseUrl = this.getBaseUrl(hostname);
 
       let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
       sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
 
       // Homepage
       sitemap += `  <url>\n`;
-      sitemap += `    <loc>${this.baseUrl}</loc>\n`;
+      sitemap += `    <loc>${baseUrl}</loc>\n`;
       sitemap += `    <lastmod>${now}</lastmod>\n`;
       sitemap += `    <priority>1.0</priority>\n`;
       sitemap += `  </url>\n`;
 
       // Agent directory
       sitemap += `  <url>\n`;
-      sitemap += `    <loc>${this.baseUrl}/api/agents/directory</loc>\n`;
+      sitemap += `    <loc>${baseUrl}/api/agents/directory</loc>\n`;
       sitemap += `    <lastmod>${now}</lastmod>\n`;
       sitemap += `    <priority>0.9</priority>\n`;
       sitemap += `  </url>\n`;
@@ -77,7 +90,7 @@ class AutonomousDiscoveryService {
       // Individual agent cards
       for (const agent of agents) {
         sitemap += `  <url>\n`;
-        sitemap += `    <loc>${this.baseUrl}/agent/${agent.id}/.well-known/agent-card.json</loc>\n`;
+        sitemap += `    <loc>${baseUrl}/agent/${agent.id}/.well-known/agent-card.json</loc>\n`;
         sitemap += `    <lastmod>${now}</lastmod>\n`;
         sitemap += `    <priority>0.8</priority>\n`;
         sitemap += `  </url>\n`;
@@ -96,8 +109,9 @@ class AutonomousDiscoveryService {
    * Ping search engines about our sitemap
    * Helps with crawler discovery
    */
-  async pingSearchEngines(): Promise<{ success: boolean; results: any[] }> {
-    const sitemapUrl = `${this.baseUrl}/sitemap.xml`;
+  async pingSearchEngines(hostname?: string): Promise<{ success: boolean; results: any[] }> {
+    const baseUrl = this.getBaseUrl(hostname);
+    const sitemapUrl = `${baseUrl}/sitemap.xml`;
     const results = [];
 
     for (const target of this.discoveryTargets.filter(t => t.type === 'ping' && t.enabled)) {
@@ -146,13 +160,14 @@ class AutonomousDiscoveryService {
   /**
    * Create robots.txt content for better crawler access
    */
-  generateRobotsTxt(): string {
+  generateRobotsTxt(hostname?: string): string {
+    const baseUrl = this.getBaseUrl(hostname);
     return `User-agent: *
 Allow: /
 Allow: /api/agents/directory
 Allow: /agent/*/\.well-known/agent-card.json
 
-Sitemap: ${this.baseUrl}/sitemap.xml
+Sitemap: ${baseUrl}/sitemap.xml
 
 # AI Agent Marketplace
 # x402 Payment Protocol Support
@@ -165,7 +180,7 @@ Sitemap: ${this.baseUrl}/sitemap.xml
    * Execute full discovery campaign
    * Run this periodically to maintain discoverability
    */
-  async executeDiscoveryCampaign(): Promise<{
+  async executeDiscoveryCampaign(hostname?: string): Promise<{
     success: boolean;
     sitemap: boolean;
     searchEnginePings: number;
@@ -178,7 +193,7 @@ Sitemap: ${this.baseUrl}/sitemap.xml
     try {
       // Generate sitemap
       console.log('📍 Generating agent sitemap...');
-      await this.generateAgentSitemap();
+      await this.generateAgentSitemap(hostname);
       sitemapGenerated = true;
       console.log('✅ Sitemap generated');
     } catch (error) {
@@ -188,7 +203,7 @@ Sitemap: ${this.baseUrl}/sitemap.xml
     try {
       // Ping search engines
       console.log('🔔 Pinging search engines...');
-      const pingResults = await this.pingSearchEngines();
+      const pingResults = await this.pingSearchEngines(hostname);
       successfulPings = pingResults.results.filter(r => r.success).length;
       console.log(`✅ ${successfulPings} search engines pinged successfully`);
     } catch (error) {

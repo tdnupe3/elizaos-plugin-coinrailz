@@ -14,7 +14,8 @@ const router = express.Router();
  */
 router.get('/sitemap.xml', async (req, res) => {
   try {
-    const sitemap = await autonomousDiscoveryService.generateAgentSitemap();
+    const hostname = req.hostname || req.get('host') || undefined;
+    const sitemap = await autonomousDiscoveryService.generateAgentSitemap(hostname);
     
     res.setHeader('Content-Type', 'application/xml');
     res.send(sitemap);
@@ -30,7 +31,8 @@ router.get('/sitemap.xml', async (req, res) => {
  */
 router.get('/robots.txt', (req, res) => {
   try {
-    const robotsTxt = autonomousDiscoveryService.generateRobotsTxt();
+    const hostname = req.hostname || req.get('host') || undefined;
+    const robotsTxt = autonomousDiscoveryService.generateRobotsTxt(hostname);
     
     res.setHeader('Content-Type', 'text/plain');
     res.send(robotsTxt);
@@ -46,7 +48,8 @@ router.get('/robots.txt', (req, res) => {
  */
 router.post('/api/discovery/ping', async (req, res) => {
   try {
-    const result = await autonomousDiscoveryService.pingSearchEngines();
+    const hostname = req.hostname || req.get('host') || undefined;
+    const result = await autonomousDiscoveryService.pingSearchEngines(hostname);
     
     res.json(result);
   } catch (error) {
@@ -64,7 +67,8 @@ router.post('/api/discovery/ping', async (req, res) => {
  */
 router.post('/api/discovery/campaign', async (req, res) => {
   try {
-    const result = await autonomousDiscoveryService.executeDiscoveryCampaign();
+    const hostname = req.hostname || req.get('host') || undefined;
+    const result = await autonomousDiscoveryService.executeDiscoveryCampaign(hostname);
     
     res.json({
       success: result.success,

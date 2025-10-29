@@ -2919,6 +2919,23 @@ router.post('/order', async (req, res) => {
           paymentStatus: (paymentStatus as any).data?.status || 'unknown',
         });
       }
+
+      // CRITICAL: Verify payment amount matches order amount
+      const paymentAmount = (paymentStatus as any).data?.amount || (paymentStatus as any).amount || 0;
+      if (Math.abs(paymentAmount - validatedData.amount) > 0.01) {
+        console.error(`❌ PAYMENT AMOUNT MISMATCH: Payment ${validatedData.paymentId} is for $${paymentAmount} but order is for $${validatedData.amount}`);
+        return res.status(400).json({
+          success: false,
+          error: 'Payment amount does not match order amount',
+          details: {
+            paymentAmount,
+            orderAmount: validatedData.amount,
+            paymentId: validatedData.paymentId,
+          },
+        });
+      }
+      
+      console.log(`✅ Payment amount verified: $${paymentAmount} matches order amount $${validatedData.amount}`);
     }
 
     // Generate order ID
@@ -3028,13 +3045,15 @@ router.get('/order/:orderId/status', async (req, res) => {
       });
     }
 
-    // Parse delivery data if available
+    // Parse delivery data from customerRequirements field (workaround)
     let deliveryData = null;
-    if (order.deliveryData) {
+    if (order.customerRequirements) {
       try {
-        deliveryData = JSON.parse(order.deliveryData);
+        const parsed = JSON.parse(order.customerRequirements);
+        // If it contains auditResult, extract it
+        deliveryData = parsed.auditResult || parsed;
       } catch (e) {
-        deliveryData = order.deliveryData;
+        deliveryData = null;
       }
     }
 
@@ -3048,7 +3067,11 @@ router.get('/order/:orderId/status', async (req, res) => {
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
         estimatedDelivery: order.estimatedDelivery,
+        serviceDescription: order.serviceDescription,
+        // Return audit results in deliveryData field for consistency
         deliveryData,
+        // Also include raw data for debugging
+        customerRequirements: order.customerRequirements,
       },
     });
   } catch (error: any) {

@@ -19,15 +19,6 @@ const router = Router();
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321";
 
-// Pricing configuration (in USDC)
-const SERVICE_PRICING = {
-  "multi-chain-balance": 0.01,
-  "gas-price-oracle": 0.01,
-  "token-price": 0.05,
-  "contract-scan": 2.0,
-  "wallet-risk": 0.5,
-};
-
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 

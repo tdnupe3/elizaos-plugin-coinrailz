@@ -360,6 +360,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 🐋 Base Whale Targeting Routes
   app.use('/api/base-whales', await import('./routes/baseWhaleRoutes').then(m => m.default));
   
+  // 🤖 x402 Active Agent Outreach (wallet messaging to x402 ecosystem participants)
+  app.use('/api/x402-outreach', await import('./routes/x402OutreachRoutes').then(m => m.default));
+  
   // 💰 Real-time Crypto Pricing Routes (CoinGecko)
   app.use('/api/prices', await import('./routes/pricingRoutes').then(m => m.default));
 

@@ -195,10 +195,10 @@ async function verifyPaymentProof(paymentHeader: string, expectedAmount: string)
 }
 
 /**
- * POST /x402/service/smart-contract-audit
+ * ALL /x402/service/smart-contract-audit
  * x402-gated smart contract security audit service
  */
-router.post('/service/smart-contract-audit', async (req, res) => {
+router.all('/service/smart-contract-audit', async (req, res) => {
   const paymentHeader = req.headers['x-payment'] as string;
   const serviceId = 'smart-contract-audit';
   const pricing = SERVICE_PRICING[serviceId];
@@ -268,10 +268,10 @@ router.post('/service/smart-contract-audit', async (req, res) => {
 });
 
 /**
- * POST /x402/service/payment-processing
+ * ALL /x402/service/payment-processing
  * x402-gated multi-chain payment processing service
  */
-router.post('/service/payment-processing', async (req, res) => {
+router.all('/service/payment-processing', async (req, res) => {
   const paymentHeader = req.headers['x-payment'] as string;
   const serviceId = 'payment-processing';
   const pricing = SERVICE_PRICING[serviceId];
@@ -345,10 +345,10 @@ router.post('/service/payment-processing', async (req, res) => {
 });
 
 /**
- * POST /x402/service/compliance-consultation
+ * ALL /x402/service/compliance-consultation
  * x402-gated AML/KYC compliance consultation service
  */
-router.post('/service/compliance-consultation', async (req, res) => {
+router.all('/service/compliance-consultation', async (req, res) => {
   const paymentHeader = req.headers['x-payment'] as string;
   const serviceId = 'compliance-consultation';
   const pricing = SERVICE_PRICING[serviceId];

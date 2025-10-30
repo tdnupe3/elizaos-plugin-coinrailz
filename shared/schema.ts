@@ -3777,6 +3777,69 @@ export type InsertOutreachCampaign = z.infer<typeof outreachCampaignsInsertSchem
 export type OutreachMessage = typeof outreachMessages.$inferSelect;
 export type InsertOutreachMessage = z.infer<typeof outreachMessagesInsertSchema>;
 
+// Microservice Requests - Track all micropayment service requests
+export const microserviceRequests = pgTable(
+  "microservice_requests",
+  {
+    id: varchar("id").primaryKey(),
+    serviceId: varchar("service_id").notNull(), // multi-chain-balance, gas-price-oracle, etc
+    requestInput: jsonb("request_input").notNull(),
+    responseData: jsonb("response_data"),
+    responseTime: integer("response_time"), // milliseconds
+    paymentAmount: numeric("payment_amount", { precision: 20, scale: 6 }),
+    paymentStatus: varchar("payment_status", { length: 50 }),
+    x402PaymentId: varchar("x402_payment_id"),
+    walletAddress: varchar("wallet_address"),
+    createdAt: timestamp("created_at").defaultNow(),
+    error: text("error"),
+  },
+  (table) => [
+    index("IDX_microservice_requests_service").on(table.serviceId),
+    index("IDX_microservice_requests_payment_status").on(table.paymentStatus),
+    index("IDX_microservice_requests_created").on(table.createdAt),
+    index("IDX_microservice_requests_wallet").on(table.walletAddress),
+  ],
+);
+
+// Microservice Metrics - Daily aggregated performance metrics
+export const microserviceMetrics = pgTable(
+  "microservice_metrics",
+  {
+    id: serial("id").primaryKey(),
+    serviceId: varchar("service_id").notNull(),
+    date: date("date").notNull(),
+    totalRequests: integer("total_requests").default(0),
+    successfulRequests: integer("successful_requests").default(0),
+    failedRequests: integer("failed_requests").default(0),
+    totalRevenue: numeric("total_revenue", { precision: 20, scale: 6 }).default("0"),
+    avgResponseTime: integer("avg_response_time"), // milliseconds
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_microservice_metrics_service_date").on(table.serviceId, table.date),
+    index("IDX_microservice_metrics_date").on(table.date),
+  ],
+);
+
+export const microserviceRequestsInsertSchema = createInsertSchema(microserviceRequests).omit({
+  createdAt: true,
+});
+
+export const microserviceRequestsSelectSchema = createSelectSchema(microserviceRequests);
+
+export type MicroserviceRequest = typeof microserviceRequests.$inferSelect;
+export type InsertMicroserviceRequest = z.infer<typeof microserviceRequestsInsertSchema>;
+
+export const microserviceMetricsInsertSchema = createInsertSchema(microserviceMetrics).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const microserviceMetricsSelectSchema = createSelectSchema(microserviceMetrics);
+
+export type MicroserviceMetric = typeof microserviceMetrics.$inferSelect;
+export type InsertMicroserviceMetric = z.infer<typeof microserviceMetricsInsertSchema>;
+
 // x402 Protocol Payments - AI Agent Autonomous Payments
 export const x402Payments = pgTable(
   "x402_payments",

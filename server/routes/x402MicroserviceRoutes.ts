@@ -40,6 +40,39 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
   return true;
 }
 
+// Helper: Get input schema for each service
+function getServiceInputSchema(serviceId: string): Record<string, any> {
+  switch (serviceId) {
+    case "multi-chain-balance":
+      return {
+        walletAddress: { type: "string", required: true, description: "Wallet address to check" },
+        chains: { type: "array", required: false, description: "Chains to check (default: all)" },
+        includeTokens: { type: "boolean", required: false, description: "Include token balances" },
+      };
+    case "gas-price-oracle":
+      return {
+        chains: { type: "array", required: false, description: "Chains to check (default: all)" },
+      };
+    case "token-price":
+      return {
+        tokenAddress: { type: "string", required: true, description: "Token contract address" },
+        chain: { type: "string", required: true, description: "Blockchain network" },
+      };
+    case "contract-scan":
+      return {
+        contractAddress: { type: "string", required: true, description: "Contract address to scan" },
+        chain: { type: "string", required: true, description: "Blockchain network" },
+      };
+    case "wallet-risk":
+      return {
+        walletAddress: { type: "string", required: true, description: "Wallet address to analyze" },
+        chain: { type: "string", required: true, description: "Blockchain network" },
+      };
+    default:
+      return {};
+  }
+}
+
 // x402 Payment Wrapper for each service
 router.all("/service/:serviceId", async (req: Request, res: Response) => {
   const { serviceId } = req.params;
@@ -60,7 +93,7 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
   const paymentId = req.headers["x-payment-id"] as string;
 
   if (!paymentProof || !paymentId) {
-    // No payment, return 402 Payment Required with x402 protocol compliant format
+    // No payment, return 402 with x402scan-compliant format
     const paymentRequest = await x402Service.createPaymentRequest({
       amount: price,
       agentId: serviceId,
@@ -69,27 +102,38 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       currency: "USDC",
     });
 
-    // Set x402 protocol headers
-    res.setHeader("Accept-Payment", "coinbase-commerce, crypto-address");
-    res.setHeader("Content-Type", "application/json");
+    const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
+      ? 'https://coinrailz.com' 
+      : 'http://localhost:5000';
     
     return res.status(402).json({
-      type: "https://x402.org/errors/payment-required",
-      title: "Payment Required",
-      status: 402,
-      detail: `Payment of ${price} USDC required to access ${serviceId} service`,
-      paymentMethods: [
+      x402Version: 1,
+      accepts: [
         {
-          type: "crypto-address",
-          network: "base",
-          currency: "USDC",
-          address: paymentRequest.walletAddress,
-          amount: price.toString(),
-          paymentId: paymentRequest.paymentId,
-          expiresAt: paymentRequest.expiresAt,
-        }
+          scheme: "exact" as const,
+          network: "base" as const,
+          maxAmountRequired: price.toString(),
+          resource: `${baseUrl}/x402/service/${serviceId}`,
+          description: `${serviceId} micropayment service`,
+          mimeType: "application/json",
+          payTo: paymentRequest.walletAddress,
+          maxTimeoutSeconds: 900,
+          asset: "USDC",
+          outputSchema: {
+            input: {
+              type: "http" as const,
+              method: "POST" as const,
+              bodyType: "json" as const,
+              bodyFields: getServiceInputSchema(serviceId),
+            },
+            output: {
+              success: { type: "boolean" },
+              result: { type: "object" },
+              serviceId: { type: "string" },
+            },
+          },
+        },
       ],
-      instructions: `Send ${price} USDC to ${paymentRequest.walletAddress} on Base chain, then retry with X-Payment-Proof (tx hash) and X-Payment-ID (${paymentRequest.paymentId}) headers`
     });
   }
 

@@ -33,6 +33,7 @@ The platform is built around core services including a unified payment processor
 - **Professional UI/UX**: Registration form with capability selection.
 - **API Endpoints**: Complete marketplace API for registration, discovery, and order management.
 - **x402 Protocol Integration**: HTTP 402-based autonomous payment protocol enabling AI agents to pay using real Coinbase CDP wallet creation on Base Chain, Alchemy RPC verification, and instant USDC micropayments. Includes rate limiting, Zod validation, database transactions, and automated funds sweeping.
+- **ERC-8004 Blockchain Identity**: Deployed on Base mainnet October 29, 2025. IdentityRegistry (0x8AfBd4f43399aeB6e26AD827AeaAADfB10ebb5Aa) provides ERC-721 NFT identities for AI agents. ReputationRegistry (0x3130232Ef23f7f7Dbc41f2c6A790928bc674Bb24) tracks on-chain reputation. Three agent NFTs minted: Smart Contract Auditor (Token #1), Compliance Consultant (Token #2), Payment Processor (Token #3).
 
 ### Authentication Systems
 - **Coinbase OAuth**: Integration with session management.

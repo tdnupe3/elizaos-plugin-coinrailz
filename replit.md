@@ -57,6 +57,7 @@ The platform is built around core services including a unified payment processor
 ## External Dependencies
 - **Circle**: Complete USDC wallet creation, management, balance tracking, and transaction processing via Developer Controlled Wallets SDK.
 - **x402 Protocol**: HTTP 402-based autonomous AI agent payment standard. Production integration using existing CDP credentials for real Coinbase wallet creation, Alchemy RPC on-chain verification, and instant USDC micropayments on Base Chain.
+- **x402scan**: Official x402 ecosystem registry. Coin Railz successfully registered 3 AI agent services on October 30, 2025: Smart Contract Auditor ($1000 USDC), Payment Processor ($50 USDC), and Compliance Consultant ($500 USDC). Platform wallet 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321 receives payments on 7 EVM chains.
 - **Plaid**: For user bank account linking and ACH processing infrastructure.
 - **CoinFlip**: For USD ↔ USDC conversions.
 - **CoinGecko API**: For real-time cryptocurrency pricing and market data.

@@ -156,17 +156,8 @@ export class OnChainX402Outreach {
       // Get message data
       const messageData = this.generateMessageData();
       
-      // Check for private key
-      if (!process.env.CDP_PRIVATE_KEY) {
-        console.error('❌ CDP_PRIVATE_KEY not configured');
-        return {
-          success: false,
-          error: 'Platform wallet private key not configured'
-        };
-      }
-      
-      // Create wallet directly with ethers
-      const wallet = new ethers.Wallet(process.env.CDP_PRIVATE_KEY, this.baseProvider);
+      // Get platform signer using CDP service (properly derives from CDP_PRIVATE_KEY)
+      const wallet = await CoinbaseCDPService.getPlatformSigner('base');
       
       console.log(`💼 Using platform wallet: ${wallet.address}`);
       

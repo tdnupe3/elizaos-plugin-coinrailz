@@ -113,10 +113,13 @@ export class OnChainX402Outreach {
    * OPTIMIZED: Max 1000 chars, maximum information density
    */
   private generateMessageData(): string {
-    // Optimized message: 998 characters (fits within 1000 limit)
+    // Platform wallet from environment
+    const platformWallet = process.env.PLATFORM_WALLET_ADDRESS || '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+    
+    // Optimized message: fits within 1000 character limit
     const message = 
-      '🤖 Coin Railz x402 Services - USDC on Base\n\n' +
-      '8 LIVE SERVICES (x402scan listed):\n' +
+      '🤖 Coin Railz - 8 x402 Services Live\n\n' +
+      'PRODUCTION APIs (x402scan listed):\n' +
       '1. Balance ($0.01) coinrailz.com/x402/service/multi-chain-balance\n' +
       '2. Gas ($0.05) coinrailz.com/x402/service/gas-price-oracle\n' +
       '3. Price ($0.50) coinrailz.com/x402/service/token-price\n' +
@@ -125,16 +128,14 @@ export class OnChainX402Outreach {
       '6. Payment ($50) coinrailz.com/x402/service/payment-processing\n' +
       '7. Compliance ($500) coinrailz.com/x402/service/compliance-consultation\n' +
       '8. Audit ($1000) coinrailz.com/x402/service/smart-contract-audit\n\n' +
-      'QUICK START:\n' +
-      'curl coinrailz.com/x402/service/gas-price-oracle\n' +
-      '→402 response→Send USDC→Get data\n\n' +
-      'PAY TO: 0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62\n' +
-      'NETWORK: Base mainnet\n' +
-      'CURRENCY: USDC only\n\n' +
-      'No signup|Instant delivery|Production ready\n' +
-      'Full docs+examples: coinrailz.com/x402\n\n' +
-      'All URLs copy-paste ready at landing page.\n' +
-      'Listed on x402scan. Start using now.';
+      'TRY NOW:\n' +
+      'Request→coinrailz.com/x402/service/gas-price-oracle\n' +
+      'Get 402→Send payment→Receive data instantly\n\n' +
+      `PAYMENT: ${platformWallet}\n` +
+      'BASE mainnet | USDC, ETH, USDT accepted\n\n' +
+      'Zero signup|Instant delivery|Production ready\n' +
+      'Docs+examples: coinrailz.com/x402\n\n' +
+      'Copy URLs at landing page. Start earning.';
     
     console.log(`📏 Message length: ${message.length} characters (limit: 1000)`);
     

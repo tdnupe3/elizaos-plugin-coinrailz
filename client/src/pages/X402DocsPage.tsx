@@ -250,7 +250,7 @@ export default function X402DocsPage() {
               <div>
                 <p className="text-sm font-semibold">Platform Wallet</p>
                 <code className="text-xs bg-gray-100 dark:bg-gray-800 p-1 rounded">
-                  0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62
+                  0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
                 </code>
               </div>
               <div>
@@ -310,7 +310,7 @@ curl https://coinrailz.com/x402/service/gas-price-oracle
     "network": "base",
     "maxAmountRequired": "50000",  // 0.05 USDC
     "asset": "USDC",
-    "payTo": "0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62"
+    "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
   }]
 }
 

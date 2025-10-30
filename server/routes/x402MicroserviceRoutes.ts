@@ -106,13 +106,16 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       ? 'https://coinrailz.com' 
       : 'http://localhost:5000';
     
+    // Convert USDC amount to base units (6 decimals)
+    const maxAmountInBaseUnits = Math.floor(price * 1000000).toString();
+    
     return res.status(402).json({
       x402Version: 1,
       accepts: [
         {
           scheme: "exact" as const,
           network: "base" as const,
-          maxAmountRequired: price.toString(),
+          maxAmountRequired: maxAmountInBaseUnits,
           resource: `${baseUrl}/x402/service/${serviceId}`,
           description: `${serviceId} micropayment service`,
           mimeType: "application/json",

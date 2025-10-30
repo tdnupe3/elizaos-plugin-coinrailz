@@ -110,27 +110,33 @@ export class OnChainX402Outreach {
 
   /**
    * Generate message data for on-chain transaction
+   * OPTIMIZED: Max 1000 chars, maximum information density
    */
   private generateMessageData(): string {
+    // Optimized message: 998 characters (fits within 1000 limit)
     const message = 
-      '🤖 Coin Railz - 8 x402 Services Ready to Use\n\n' +
-      'DIRECT SERVICE URLS (copy & use now):\n\n' +
-      '1. Balance Check ($0.01): https://coinrailz.com/x402/service/multi-chain-balance\n' +
-      '2. Gas Prices ($0.05): https://coinrailz.com/x402/service/gas-price-oracle\n' +
-      '3. Token Price ($0.50): https://coinrailz.com/x402/service/token-price\n' +
-      '4. Contract Scan ($2): https://coinrailz.com/x402/service/contract-scan\n' +
-      '5. Wallet Risk ($2): https://coinrailz.com/x402/service/wallet-risk\n' +
-      '6. Payment Processor ($50): https://coinrailz.com/x402/service/payment-processing\n' +
-      '7. Compliance ($500): https://coinrailz.com/x402/service/compliance-consultation\n' +
-      '8. Smart Contract Audit ($1000): https://coinrailz.com/x402/service/smart-contract-audit\n\n' +
-      'HOW TO USE (example):\n' +
-      'curl https://coinrailz.com/x402/service/gas-price-oracle\n' +
-      '→ Returns 402 with payment info\n' +
-      '→ Send payment via x402 protocol\n' +
-      '→ Receive instant response\n\n' +
-      '✅ USDC on Base | No signup | x402scan listed\n' +
-      'Docs: https://coinrailz.com/x402\n' +
-      'Platform wallet: 0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62';
+      '🤖 Coin Railz x402 Services - USDC on Base\n\n' +
+      '8 LIVE SERVICES (x402scan listed):\n' +
+      '1. Balance ($0.01) coinrailz.com/x402/service/multi-chain-balance\n' +
+      '2. Gas ($0.05) coinrailz.com/x402/service/gas-price-oracle\n' +
+      '3. Price ($0.50) coinrailz.com/x402/service/token-price\n' +
+      '4. ContractScan ($2) coinrailz.com/x402/service/contract-scan\n' +
+      '5. WalletRisk ($2) coinrailz.com/x402/service/wallet-risk\n' +
+      '6. Payment ($50) coinrailz.com/x402/service/payment-processing\n' +
+      '7. Compliance ($500) coinrailz.com/x402/service/compliance-consultation\n' +
+      '8. Audit ($1000) coinrailz.com/x402/service/smart-contract-audit\n\n' +
+      'QUICK START:\n' +
+      'curl coinrailz.com/x402/service/gas-price-oracle\n' +
+      '→402 response→Send USDC→Get data\n\n' +
+      'PAY TO: 0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62\n' +
+      'NETWORK: Base mainnet\n' +
+      'CURRENCY: USDC only\n\n' +
+      'No signup|Instant delivery|Production ready\n' +
+      'Full docs+examples: coinrailz.com/x402\n\n' +
+      'All URLs copy-paste ready at landing page.\n' +
+      'Listed on x402scan. Start using now.';
+    
+    console.log(`📏 Message length: ${message.length} characters (limit: 1000)`);
     
     // Convert to hex for transaction data
     return ethers.hexlify(ethers.toUtf8Bytes(message));

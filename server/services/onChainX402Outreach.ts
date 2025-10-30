@@ -144,41 +144,67 @@ export class OnChainX402Outreach {
   }
 
   /**
-   * Send on-chain message to a wallet (tiny USDC transfer with data)
+   * Send on-chain message to a wallet (tiny ETH transfer with embedded message data)
    */
   async sendOnChainMessage(
     recipientAddress: string,
-    amountUSDC: number = 0.01 // Tiny amount to ensure delivery
+    amountETH: number = 0.0001 // Tiny amount ~$0.30 to cover gas + delivery
   ): Promise<{ success: boolean; txHash?: string; error?: string; cost?: string }> {
     try {
-      await this.initializeWallet();
-      
       console.log(`📤 Sending on-chain message to ${recipientAddress}...`);
       
-      // Send tiny USDC transfer with message data
+      // Get message data
       const messageData = this.generateMessageData();
       
-      // Use CDP to send USDC with data
-      const transfer = await this.platformWallet.createTransfer({
-        amount: amountUSDC,
-        assetId: 'usdc',
-        destination: recipientAddress,
-        network: 'base-mainnet'
-      });
+      // Check for private key
+      if (!process.env.CDP_PRIVATE_KEY) {
+        console.error('❌ CDP_PRIVATE_KEY not configured');
+        return {
+          success: false,
+          error: 'Platform wallet private key not configured'
+        };
+      }
       
-      await transfer.wait();
+      // Create wallet directly with ethers
+      const wallet = new ethers.Wallet(process.env.CDP_PRIVATE_KEY, this.baseProvider);
       
-      const txHash = transfer.getTransactionHash();
+      console.log(`💼 Using platform wallet: ${wallet.address}`);
       
-      console.log(`✅ Message sent to ${recipientAddress}: ${txHash}`);
+      // Check balance
+      const balance = await this.baseProvider.getBalance(wallet.address);
+      const valueWei = ethers.parseEther(amountETH.toString());
+      const gasEstimate = ethers.parseEther('0.0001'); // Conservative gas estimate
       
-      // Estimate cost (Base is ~$0.001-0.01 per transaction)
-      const estimatedCost = '$0.01'; // Base + USDC transfer cost
+      if (balance < valueWei + gasEstimate) {
+        console.error(`❌ Insufficient balance: ${ethers.formatEther(balance)} ETH`);
+        return {
+          success: false,
+          error: `Insufficient funds: ${ethers.formatEther(balance)} ETH available`
+        };
+      }
+      
+      // Prepare transaction with message embedded in data field
+      const tx = {
+        to: recipientAddress,
+        value: valueWei,
+        data: messageData, // Hex-encoded message
+        gasLimit: 100000, // Generous limit for data
+      };
+      
+      console.log(`💰 Sending ${amountETH} ETH to ${recipientAddress} with embedded message`);
+      
+      // Send transaction
+      const txResponse = await wallet.sendTransaction(tx);
+      console.log(`⏳ Transaction sent: ${txResponse.hash}`);
+      
+      // Wait for confirmation
+      await txResponse.wait();
+      console.log(`✅ Message delivered to ${recipientAddress}: ${txResponse.hash}`);
       
       return {
         success: true,
-        txHash,
-        cost: estimatedCost
+        txHash: txResponse.hash,
+        cost: '$0.01' // Approximate Base chain cost
       };
       
     } catch (error: any) {
@@ -233,7 +259,7 @@ export class OnChainX402Outreach {
       console.log(`📦 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(wallets.length / batchSize)}`);
       
       for (const wallet of batch) {
-        const result = await this.sendOnChainMessage(wallet, 0.01);
+        const result = await this.sendOnChainMessage(wallet, 0.0001);
         
         if (result.success) {
           successCount++;

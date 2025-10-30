@@ -22,20 +22,20 @@ const router = express.Router();
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
 
-// Service pricing configuration
+// Service pricing configuration (in USDC base units - 6 decimals)
 const SERVICE_PRICING = {
   'smart-contract-audit': {
-    amount: '1000',
+    amount: '1000000000', // 1000 USDC in base units
     description: 'Comprehensive smart contract security audit with vulnerability detection',
     mimeType: 'application/json',
   },
   'payment-processing': {
-    amount: '50',
+    amount: '50000000', // 50 USDC in base units
     description: 'Multi-chain payment processing service (hourly rate)',
     mimeType: 'application/json',
   },
   'compliance-consultation': {
-    amount: '500',
+    amount: '500000000', // 500 USDC in base units
     description: 'AML/KYC compliance consultation and risk assessment',
     mimeType: 'application/json',
   },

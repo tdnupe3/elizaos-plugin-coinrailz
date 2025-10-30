@@ -257,20 +257,12 @@ export class OnChainX402Outreach {
           successCount++;
           results.push({ wallet, txHash: result.txHash });
           
-          // Log to database
+          // Log to database (map to existing schema fields)
           await db.insert(outreachLogs).values({
-            id: nanoid(),
-            campaignType: 'x402_onchain_outreach',
-            targetAddress: wallet,
             platform: 'base_blockchain',
-            status: 'sent',
-            messageContent: 'On-chain x402 service promotion',
-            metadata: {
-              txHash: result.txHash,
-              network: 'base',
-              cost: result.cost
-            },
-            createdAt: new Date()
+            target: wallet,
+            url: `https://basescan.org/tx/${result.txHash}`,
+            status: 'sent'
           });
           
         } else {

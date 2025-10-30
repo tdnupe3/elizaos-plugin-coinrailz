@@ -106,35 +106,66 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       ? 'https://coinrailz.com' 
       : 'http://localhost:5000';
     
-    // Convert USDC amount to base units (6 decimals)
-    const maxAmountInBaseUnits = Math.floor(price * 1000000).toString();
+    // Multi-currency support: USDC, ETH, USDT on Base chain
+    const usdcAmount = Math.floor(price * 1000000).toString(); // 6 decimals
+    const ethAmount = Math.floor(price * 1e18 / 3000).toString(); // Estimate: ~$3000/ETH, 18 decimals
+    const usdtAmount = Math.floor(price * 1000000).toString(); // 6 decimals
+    
+    const outputSchema = {
+      input: {
+        type: "http" as const,
+        method: "POST" as const,
+        bodyType: "json" as const,
+        bodyFields: getServiceInputSchema(serviceId),
+      },
+      output: {
+        success: { type: "boolean" },
+        result: { type: "object" },
+        serviceId: { type: "string" },
+      },
+    };
     
     return res.status(402).json({
       x402Version: 1,
       accepts: [
+        // USDC (Base) - Primary
         {
           scheme: "exact" as const,
           network: "base" as const,
-          maxAmountRequired: maxAmountInBaseUnits,
+          maxAmountRequired: usdcAmount,
           resource: `${baseUrl}/x402/service/${serviceId}`,
-          description: `${serviceId} micropayment service`,
+          description: `${serviceId} micropayment service (USDC)`,
           mimeType: "application/json",
-          payTo: paymentRequest.walletAddress,
+          payTo: PLATFORM_WALLET,
           maxTimeoutSeconds: 900,
           asset: "USDC",
-          outputSchema: {
-            input: {
-              type: "http" as const,
-              method: "POST" as const,
-              bodyType: "json" as const,
-              bodyFields: getServiceInputSchema(serviceId),
-            },
-            output: {
-              success: { type: "boolean" },
-              result: { type: "object" },
-              serviceId: { type: "string" },
-            },
-          },
+          outputSchema,
+        },
+        // ETH (Base)
+        {
+          scheme: "exact" as const,
+          network: "base" as const,
+          maxAmountRequired: ethAmount,
+          resource: `${baseUrl}/x402/service/${serviceId}`,
+          description: `${serviceId} micropayment service (ETH)`,
+          mimeType: "application/json",
+          payTo: PLATFORM_WALLET,
+          maxTimeoutSeconds: 900,
+          asset: "ETH",
+          outputSchema,
+        },
+        // USDT (Base)
+        {
+          scheme: "exact" as const,
+          network: "base" as const,
+          maxAmountRequired: usdtAmount,
+          resource: `${baseUrl}/x402/service/${serviceId}`,
+          description: `${serviceId} micropayment service (USDT)`,
+          mimeType: "application/json",
+          payTo: PLATFORM_WALLET,
+          maxTimeoutSeconds: 900,
+          asset: "USDT",
+          outputSchema,
         },
       ],
     });

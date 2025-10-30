@@ -244,8 +244,8 @@ export default function X402DocsPage() {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Base Chain (Mainnet)</p>
               </div>
               <div>
-                <p className="text-sm font-semibold">Currency</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">USDC</p>
+                <p className="text-sm font-semibold">Accepted Currencies</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">USDC, ETH, USDT</p>
               </div>
               <div>
                 <p className="text-sm font-semibold">Platform Wallet</p>
@@ -305,13 +305,29 @@ curl https://coinrailz.com/x402/service/gas-price-oracle
 # Response: 402 Payment Required
 {
   "x402Version": 1,
-  "accepts": [{
-    "scheme": "exact",
-    "network": "base",
-    "maxAmountRequired": "50000",  // 0.05 USDC
-    "asset": "USDC",
-    "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
-  }]
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "50000",  // 0.05 USDC
+      "asset": "USDC",
+      "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+    },
+    {
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "16666666666667",  // ~0.05 USD in ETH
+      "asset": "ETH",
+      "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+    },
+    {
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "50000",  // 0.05 USDT
+      "asset": "USDT",
+      "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+    }
+  ]
 }
 
 # Step 2: Send payment via x402 facilitator

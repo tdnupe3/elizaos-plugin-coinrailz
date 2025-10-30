@@ -132,7 +132,8 @@ export class OnChainX402Outreach {
       'Request→coinrailz.com/x402/service/gas-price-oracle\n' +
       'Get 402→Send payment→Receive data instantly\n\n' +
       `PAYMENT: ${platformWallet}\n` +
-      'BASE mainnet | USDC, ETH, USDT accepted\n\n' +
+      'BASE mainnet | USDC, ETH, USDT accepted\n' +
+      'Multi-chain: Base, Ethereum, Polygon, Arbitrum, BNB supported\n\n' +
       'Zero signup|Instant delivery|Production ready\n' +
       'Docs+examples: coinrailz.com/x402\n\n' +
       'Copy URLs at landing page. Start earning.';

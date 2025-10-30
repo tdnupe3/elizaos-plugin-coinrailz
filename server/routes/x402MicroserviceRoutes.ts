@@ -1,6 +1,15 @@
 import { Router, Request, Response } from "express";
 import { X402PaymentService } from "../services/x402PaymentService";
 import { nanoid } from "nanoid";
+import {
+  multiChainBalanceService,
+  gasPriceOracleService,
+  tokenPriceFeedService,
+  contractQuickScanService,
+  walletRiskScoreService,
+  trackRequest,
+  SERVICE_PRICING,
+} from "./microservices";
 
 // Initialize x402 payment service
 const x402Service = new X402PaymentService();
@@ -104,8 +113,11 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       });
     }
 
-    // Payment verified - apply rate limiting
-    const walletKey = `wallet:${paymentProof.slice(0, 42)}`;
+    // Extract payer wallet address from verification
+    const payerWallet = verification.walletAddress || paymentProof.slice(0, 42);
+
+    // Payment verified - apply rate limiting based on actual payer wallet
+    const walletKey = `wallet:${payerWallet}`;
     if (!checkRateLimit(walletKey, 100, 3600000)) {
       // 100 requests per hour
       return res.status(429).json({
@@ -114,34 +126,68 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       });
     }
 
-    // Forward to actual service implementation
-    const microservicesRouter = await import("./microservices");
-    
-    // Map service ID to microservice endpoint
-    const endpointMap: { [key: string]: string } = {
-      "multi-chain-balance": "/multi-chain-balance",
-      "gas-price-oracle": "/gas-price-oracle",
-      "token-price": "/token-price",
-      "contract-scan": "/contract-scan",
-      "wallet-risk": "/wallet-risk",
-    };
+    // Call the service function directly (in-process, no HTTP call needed)
+    const startTime = Date.now();
+    let result: any;
 
-    const endpoint = endpointMap[serviceId];
-    if (!endpoint) {
-      return res.status(500).json({ error: "Service implementation not found" });
+    try {
+      switch (serviceId) {
+        case "multi-chain-balance":
+          const { walletAddress, chains, includeTokens } = req.body;
+          if (!walletAddress) {
+            return res.status(400).json({ success: false, error: "walletAddress is required" });
+          }
+          result = await multiChainBalanceService(
+            walletAddress,
+            chains || ["ethereum", "base", "polygon"],
+            includeTokens !== false
+          );
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
+        case "gas-price-oracle":
+          result = await gasPriceOracleService(req.body.chains || ["ethereum", "base", "polygon"]);
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
+        case "token-price":
+          const { tokenAddress, chain } = req.body;
+          if (!tokenAddress || !chain) {
+            return res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+          }
+          result = await tokenPriceFeedService(tokenAddress, chain);
+          break;
+
+        case "contract-scan":
+          const { contractAddress: contractAddr, chain: contractChain } = req.body;
+          if (!contractAddr || !contractChain) {
+            return res.status(400).json({ success: false, error: "contractAddress and chain are required" });
+          }
+          result = await contractQuickScanService(contractAddr, contractChain);
+          break;
+
+        case "wallet-risk":
+          const { walletAddress: riskWallet, chain: riskChain } = req.body;
+          if (!riskWallet || !riskChain) {
+            return res.status(400).json({ success: false, error: "walletAddress and chain are required" });
+          }
+          result = await walletRiskScoreService(riskWallet, riskChain);
+          break;
+
+        default:
+          return res.status(404).json({ error: "Service not found" });
+      }
+
+      // Track the successful request
+      const responseTime = Date.now() - startTime;
+      await trackRequest(serviceId, req.body, result, responseTime, price, payerWallet);
+
+      return res.json({ success: true, data: result });
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest(serviceId, req.body, null, responseTime, price, payerWallet, error.message);
+      return res.status(500).json({ success: false, error: error.message });
     }
-
-    // Call the microservice
-    const response = await fetch(`http://localhost:5000/api/microservices${endpoint}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(req.body),
-    });
-
-    const data = await response.json();
-    return res.json(data);
   } catch (error: any) {
     console.error("Payment verification error:", error);
     return res.status(500).json({

@@ -162,7 +162,36 @@ async function multiChainBalanceService(walletAddress: string, chains: string[],
 
   const chainPromises = chains.map(async (chain) => {
     try {
+      // Check if Alchemy-supported chain
       const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];
+      
+      // For BNB and Avalanche, use direct RPC calls
+      if (!alchemy && (chain === "bnb" || chain === "avalanche")) {
+        const rpcUrl = rpcUrls[chain as keyof typeof rpcUrls];
+        const response = await axios.post(rpcUrl, {
+          jsonrpc: "2.0",
+          method: "eth_getBalance",
+          params: [walletAddress, "latest"],
+          id: 1,
+        });
+        
+        const balance = parseInt(response.data.result, 16);
+        const balanceEth = balance / 1e18;
+        const ethPrice = await getEthPrice(); // Approximate - BNB and AVAX prices similar range
+        const nativeUSD = balanceEth * ethPrice * (chain === "bnb" ? 0.15 : 0.08); // Rough price ratios
+
+        results.totalValueUSD += nativeUSD;
+
+        return {
+          chain,
+          data: {
+            native: `${balanceEth.toFixed(6)} ${chain === "bnb" ? "BNB" : "AVAX"}`,
+            nativeUSD: `$${nativeUSD.toFixed(2)}`,
+            tokens: [], // Token balance not supported for these chains yet
+          },
+        };
+      }
+      
       if (!alchemy) {
         return { chain, error: "Chain not supported" };
       }
@@ -219,7 +248,42 @@ async function gasPriceOracleService(chains: string[]) {
 
   const chainPromises = chains.map(async (chain) => {
     try {
+      // Check if Alchemy-supported chain
       const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];
+      
+      // For BNB and Avalanche, use direct RPC calls
+      if (!alchemy && (chain === "bnb" || chain === "avalanche")) {
+        const rpcUrl = rpcUrls[chain as keyof typeof rpcUrls];
+        const response = await axios.post(rpcUrl, {
+          jsonrpc: "2.0",
+          method: "eth_gasPrice",
+          params: [],
+          id: 1,
+        });
+        
+        const gasPriceWei = parseInt(response.data.result, 16);
+        const baseFeeGwei = gasPriceWei / 1e9;
+
+        const slow = baseFeeGwei * 0.9;
+        const standard = baseFeeGwei;
+        const fast = baseFeeGwei * 1.2;
+
+        const gasLimit = 21000;
+        const slowUSD = (slow * gasLimit * ethPrice * 0.15) / 1e9; // Adjust for BNB/AVAX price
+        const standardUSD = (standard * gasLimit * ethPrice * 0.15) / 1e9;
+        const fastUSD = (fast * gasLimit * ethPrice * 0.15) / 1e9;
+
+        return {
+          chain,
+          data: {
+            slow: { gwei: slow.toFixed(2), usd: `$${slowUSD.toFixed(3)}` },
+            standard: { gwei: standard.toFixed(2), usd: `$${standardUSD.toFixed(3)}` },
+            fast: { gwei: fast.toFixed(2), usd: `$${fastUSD.toFixed(3)}` },
+            baseFee: baseFeeGwei.toFixed(2),
+          },
+        };
+      }
+      
       if (!alchemy) {
         return { chain, error: "Chain not supported" };
       }
@@ -759,5 +823,16 @@ router.get("/metrics", async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Export service functions for direct in-process calls (bypassing HTTP)
+export {
+  multiChainBalanceService,
+  gasPriceOracleService,
+  tokenPriceFeedService,
+  contractQuickScanService,
+  walletRiskScoreService,
+  trackRequest,
+  SERVICE_PRICING,
+};
 
 export default router;

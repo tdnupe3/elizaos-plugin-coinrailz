@@ -95,10 +95,7 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
 
   // Verify payment
   try {
-    const verification = await x402Service.verifyPayment(paymentId, {
-      transactionHash: paymentProof,
-      verificationMethod: "alchemy_rpc",
-    });
+    const verification = await x402Service.verifyPayment(paymentId, paymentProof);
 
     if (!verification.success || verification.status !== "completed") {
       return res.status(402).json({

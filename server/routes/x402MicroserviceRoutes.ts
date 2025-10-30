@@ -60,7 +60,7 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
   const paymentId = req.headers["x-payment-id"] as string;
 
   if (!paymentProof || !paymentId) {
-    // No payment, return 402 Payment Required with payment details
+    // No payment, return 402 Payment Required with x402 protocol compliant format
     const paymentRequest = await x402Service.createPaymentRequest({
       amount: price,
       agentId: serviceId,
@@ -69,24 +69,27 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       currency: "USDC",
     });
 
+    // Set x402 protocol headers
+    res.setHeader("Accept-Payment", "coinbase-commerce, crypto-address");
+    res.setHeader("Content-Type", "application/json");
+    
     return res.status(402).json({
-      error: "Payment Required",
-      service: serviceId,
-      price: `${price} USDC`,
-      paymentDetails: {
-        paymentId: paymentRequest.paymentId,
-        address: paymentRequest.walletAddress,
-        amount: price,
-        currency: "USDC",
-        chain: "base",
-        expiresAt: paymentRequest.expiresAt,
-      },
-      instructions: {
-        step1: "Send exactly " + price + " USDC to " + paymentRequest.walletAddress + " on Base chain",
-        step2: "Include transaction hash in X-Payment-Proof header",
-        step3: "Include payment ID (" + paymentRequest.paymentId + ") in X-Payment-ID header",
-        step4: "Retry this request with payment headers",
-      },
+      type: "https://x402.org/errors/payment-required",
+      title: "Payment Required",
+      status: 402,
+      detail: `Payment of ${price} USDC required to access ${serviceId} service`,
+      paymentMethods: [
+        {
+          type: "crypto-address",
+          network: "base",
+          currency: "USDC",
+          address: paymentRequest.walletAddress,
+          amount: price.toString(),
+          paymentId: paymentRequest.paymentId,
+          expiresAt: paymentRequest.expiresAt,
+        }
+      ],
+      instructions: `Send ${price} USDC to ${paymentRequest.walletAddress} on Base chain, then retry with X-Payment-Proof (tx hash) and X-Payment-ID (${paymentRequest.paymentId}) headers`
     });
   }
 

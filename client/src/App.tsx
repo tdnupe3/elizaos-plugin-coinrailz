@@ -31,6 +31,7 @@ import Dashboard from "@/pages/dashboard";
 import AuthPage from "@/pages/auth";
 import MainMenu from "@/pages/main-menu";
 import P2PTransfer from "@/pages/p2p-transfer";
+import X402DocsPage from "@/pages/X402DocsPage";
 
 // Lazy-loaded components for performance optimization
 import {
@@ -258,6 +259,11 @@ function Router() {
       {/* Streamlined onramp flow */}
       <Route path="/onramp">
         {() => <LazyLoadWrapper><OnrampPage /></LazyLoadWrapper>}
+      </Route>
+      
+      {/* x402 Service Documentation */}
+      <Route path="/x402">
+        {() => <X402DocsPage />}
       </Route>
       
       {/* Enterprise section - separate from consumer platform */}

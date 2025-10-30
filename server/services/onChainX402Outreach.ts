@@ -113,16 +113,24 @@ export class OnChainX402Outreach {
    */
   private generateMessageData(): string {
     const message = 
-      '🤖 Coin Railz x402 Services Now Live!\n\n' +
-      '8 Production Services on x402scan:\n' +
-      '💰 MICRO: Balance($0.01) | Gas($0.05) | Price($0.50) | Scan($2) | Risk($2)\n' +
-      '🏢 ENTERPRISE: Payment($50) | Compliance($500) | Audit($1000)\n\n' +
-      '✅ All services: coinrailz.com/x402/service/[name]\n' +
-      '✅ USDC on Base | Listed on x402scan\n' +
-      '✅ Instant x402 payment processing\n\n' +
-      'No signup needed - just send X-Payment header.\n' +
-      'Full docs: coinrailz.com/x402\n\n' +
-      '- Coin Railz Platform';
+      '🤖 Coin Railz - 8 x402 Services Ready to Use\n\n' +
+      'DIRECT SERVICE URLS (copy & use now):\n\n' +
+      '1. Balance Check ($0.01): https://coinrailz.com/x402/service/multi-chain-balance\n' +
+      '2. Gas Prices ($0.05): https://coinrailz.com/x402/service/gas-price-oracle\n' +
+      '3. Token Price ($0.50): https://coinrailz.com/x402/service/token-price\n' +
+      '4. Contract Scan ($2): https://coinrailz.com/x402/service/contract-scan\n' +
+      '5. Wallet Risk ($2): https://coinrailz.com/x402/service/wallet-risk\n' +
+      '6. Payment Processor ($50): https://coinrailz.com/x402/service/payment-processing\n' +
+      '7. Compliance ($500): https://coinrailz.com/x402/service/compliance-consultation\n' +
+      '8. Smart Contract Audit ($1000): https://coinrailz.com/x402/service/smart-contract-audit\n\n' +
+      'HOW TO USE (example):\n' +
+      'curl https://coinrailz.com/x402/service/gas-price-oracle\n' +
+      '→ Returns 402 with payment info\n' +
+      '→ Send payment via x402 protocol\n' +
+      '→ Receive instant response\n\n' +
+      '✅ USDC on Base | No signup | x402scan listed\n' +
+      'Docs: https://coinrailz.com/x402\n' +
+      'Platform wallet: 0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62';
     
     // Convert to hex for transaction data
     return ethers.hexlify(ethers.toUtf8Bytes(message));

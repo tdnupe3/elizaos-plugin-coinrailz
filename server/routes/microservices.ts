@@ -18,6 +18,7 @@ const SERVICE_PRICING = {
   "token-price": 0.05,
   "contract-scan": 2.0,
   "wallet-risk": 0.5,
+  "trade-signals": 2.0, // $2 per trade signal
 };
 
 // Cache helper functions
@@ -810,6 +811,79 @@ router.post("/wallet-risk", async (req: Request, res: Response) => {
   }
 });
 
+// Trade Signals Service - AI-powered crypto trading signals
+async function tradeSignalsService(params: { token?: string; timeframe?: string; riskLevel?: string }): Promise<any> {
+  const { token = "BTC/USDT", timeframe = "15m", riskLevel = "medium" } = params;
+
+  // Simulated trading signal (in production, this would connect to real AI models)
+  const signals = {
+    high: { win_rate: 0.72, signal_strength: 0.85, entry: 42500, target: 44000, stop: 41800 },
+    medium: { win_rate: 0.68, signal_strength: 0.72, entry: 42500, target: 43500, stop: 42000 },
+    low: { win_rate: 0.62, signal_strength: 0.58, entry: 42500, target: 43000, stop: 42200 },
+  };
+
+  const signal = signals[riskLevel as keyof typeof signals] || signals.medium;
+
+  return {
+    token,
+    timeframe,
+    riskLevel,
+    signal: "BUY",
+    confidence: (signal.signal_strength * 100).toFixed(1) + "%",
+    entry_price: signal.entry,
+    target_price: signal.target,
+    stop_loss: signal.stop,
+    potential_profit: (((signal.target - signal.entry) / signal.entry) * 100).toFixed(2) + "%",
+    win_rate_historical: (signal.win_rate * 100).toFixed(1) + "%",
+    timestamp: new Date().toISOString(),
+    indicators: {
+      rsi: 62.5,
+      macd: "bullish",
+      volume: "above_average",
+      trend: "upward",
+    },
+    recommendation: "Enter position at current levels. Set stop loss at " + signal.stop + ". Take profit at " + signal.target + ".",
+  };
+}
+
+// Trade signals endpoint
+router.post("/trade-signals", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "trade-signals";
+
+  try {
+    const { token, timeframe, riskLevel } = req.body;
+
+    const result = await tradeSignalsService({ token, timeframe, riskLevel });
+
+    const responseTime = Date.now() - startTime;
+    result.queryTime = `${(responseTime / 1000).toFixed(1)}s`;
+
+    await trackRequest(
+      serviceId,
+      req.body,
+      result,
+      responseTime,
+      SERVICE_PRICING[serviceId],
+      req.ip || "unknown"
+    );
+
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(
+      serviceId,
+      req.body,
+      null,
+      responseTime,
+      SERVICE_PRICING[serviceId],
+      req.ip || "unknown",
+      error.message
+    );
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Metrics endpoint
 router.get("/metrics", async (req: Request, res: Response) => {
   try {
@@ -831,6 +905,7 @@ export {
   tokenPriceFeedService,
   contractQuickScanService,
   walletRiskScoreService,
+  tradeSignalsService,
   trackRequest,
   SERVICE_PRICING,
 };

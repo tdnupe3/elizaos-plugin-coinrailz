@@ -3,6 +3,11 @@ import { db } from '../db';
 import { users, creditsTransactions, platformTestimonials, guestCredits, guestCreditsTransactions } from '../../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { AntiAbuseService } from '../services/antiAbuseService';
+import Stripe from 'stripe';
+
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+}) : null;
 
 export function registerCreditsRoutes(app: Express) {
   app.get('/api/credits/balance', async (req: any, res: Response) => {
@@ -306,6 +311,280 @@ export function registerCreditsRoutes(app: Express) {
     } catch (error) {
       console.error('Error fetching abuse stats:', error);
       res.status(500).json({ error: 'Failed to fetch abuse statistics' });
+    }
+  });
+
+  // Guest crypto credit purchase (Option 2: Zero-friction crypto conversion)
+  app.post('/api/credits/purchase-crypto', async (req: any, res: Response) => {
+    try {
+      const { amount, currency = 'USDC', network = 'base' } = req.body;
+      
+      // Validate amount
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+
+      // Get guest IP for tracking
+      const ipAddress = AntiAbuseService.getClientIP(req);
+      
+      // Create x402 payment request using existing service
+      const { X402PaymentService } = await import('../services/x402PaymentService');
+      const paymentService = new X402PaymentService();
+      
+      const paymentRequest = await paymentService.createPaymentRequest({
+        amount,
+        agentId: 'guest',
+        serviceDescription: `Guest credit purchase: $${amount}`,
+        network,
+        currency,
+        metadata: {
+          purchaseType: 'guest_credits',
+          guestIP: ipAddress,
+          creditsAmount: amount * 10, // $1 = 10 credits
+        },
+      });
+
+      if (!paymentRequest.success) {
+        return res.status(500).json({ error: paymentRequest.error || 'Failed to create payment request' });
+      }
+
+      res.json({
+        success: true,
+        paymentId: paymentRequest.paymentId,
+        walletAddress: paymentRequest.walletAddress,
+        amount: paymentRequest.amount,
+        currency: paymentRequest.currency,
+        network: paymentRequest.network,
+        expiresAt: paymentRequest.expiresAt,
+        message: `Send ${amount} ${currency} on ${network} to ${paymentRequest.walletAddress}`,
+      });
+    } catch (error) {
+      console.error('Error creating crypto purchase:', error);
+      res.status(500).json({ error: 'Failed to create purchase request' });
+    }
+  });
+
+  // Guest Stripe credit purchase (Option 3: Credit card conversion)
+  app.post('/api/credits/purchase-stripe', async (req: any, res: Response) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ error: 'Stripe not configured' });
+      }
+
+      const { amount } = req.body;
+      
+      // Validate amount
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ error: 'Invalid amount' });
+      }
+
+      // Get guest IP for tracking
+      const ipAddress = AntiAbuseService.getClientIP(req);
+      
+      // Create Stripe checkout session for guest credit purchase
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: `${amount * 10} Credits`,
+              description: `Add $${amount} worth of credits to your account`,
+            },
+            unit_amount: Math.round(amount * 100), // Convert to cents
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        metadata: {
+          purchaseType: 'guest_credits',
+          guestIP: ipAddress,
+          dollarAmount: amount.toString(),
+          creditsAmount: (amount * 10).toString(),
+        },
+        success_url: `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.app` : 'http://localhost:5000'}/credits?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.replit.app` : 'http://localhost:5000'}/credits?payment=cancelled`,
+      });
+
+      res.json({
+        success: true,
+        checkoutUrl: session.url,
+        sessionId: session.id,
+      });
+    } catch (error) {
+      console.error('Error creating Stripe checkout:', error);
+      res.status(500).json({ error: 'Failed to create checkout session' });
+    }
+  });
+
+  // Verify Stripe payment and credit guest account
+  app.post('/api/credits/verify-stripe-purchase', async (req: any, res: Response) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ error: 'Stripe not configured' });
+      }
+
+      const { sessionId } = req.body;
+      
+      if (!sessionId) {
+        return res.status(400).json({ error: 'Missing sessionId' });
+      }
+
+      // Get guest IP
+      const ipAddress = AntiAbuseService.getClientIP(req);
+
+      // Retrieve session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ 
+          error: 'Payment not completed',
+          paymentStatus: session.payment_status,
+        });
+      }
+
+      // Extract metadata
+      const dollarAmount = parseFloat(session.metadata?.dollarAmount || '0');
+      const creditsToAdd = parseFloat(session.metadata?.creditsAmount || '0');
+
+      if (!dollarAmount || !creditsToAdd) {
+        return res.status(400).json({ error: 'Invalid payment metadata' });
+      }
+
+      // Get or create guest account
+      const [guestAccount] = await db
+        .select()
+        .from(guestCredits)
+        .where(eq(guestCredits.ipAddress, ipAddress));
+
+      if (!guestAccount) {
+        return res.status(404).json({ error: 'Guest account not found. Please claim free credits first.' });
+      }
+
+      // Update guest credits atomically
+      const newBalance = parseFloat(guestAccount.creditsBalance) + creditsToAdd;
+      const newTotalEarned = parseFloat(guestAccount.totalEarned) + creditsToAdd;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Extend expiration 7 days
+
+      await db
+        .update(guestCredits)
+        .set({
+          creditsBalance: newBalance.toString(),
+          totalEarned: newTotalEarned.toString(),
+          lastActivity: new Date(),
+          expiresAt,
+        })
+        .where(eq(guestCredits.id, guestAccount.id));
+
+      // Record transaction
+      await db.insert(guestCreditsTransactions).values({
+        guestId: guestAccount.id,
+        type: 'purchase',
+        amount: creditsToAdd.toString(),
+        dollarValue: dollarAmount.toString(),
+        description: `Stripe purchase: $${dollarAmount} via credit card`,
+        balanceAfter: newBalance.toString(),
+        metadata: {
+          sessionId,
+          paymentMethod: 'stripe',
+          paymentStatus: session.payment_status,
+        } as any,
+      });
+
+      res.json({
+        success: true,
+        creditsAdded: creditsToAdd,
+        newBalance,
+        dollarAmount,
+        message: `Successfully added ${creditsToAdd} credits ($${dollarAmount})`,
+      });
+    } catch (error) {
+      console.error('Error verifying Stripe purchase:', error);
+      res.status(500).json({ error: 'Failed to verify purchase' });
+    }
+  });
+
+  // Verify crypto payment and credit guest account
+  app.post('/api/credits/verify-purchase', async (req: any, res: Response) => {
+    try {
+      const { paymentId, transactionHash } = req.body;
+      
+      if (!paymentId || !transactionHash) {
+        return res.status(400).json({ error: 'Missing paymentId or transactionHash' });
+      }
+
+      // Get guest IP
+      const ipAddress = AntiAbuseService.getClientIP(req);
+
+      // Verify payment using existing x402 service
+      const { X402PaymentService } = await import('../services/x402PaymentService');
+      const paymentService = new X402PaymentService();
+      
+      const verification = await paymentService.verifyPayment(paymentId, transactionHash);
+
+      if (!verification.success) {
+        return res.status(400).json({ 
+          error: verification.error || 'Payment verification failed',
+          status: verification.status,
+        });
+      }
+
+      // Payment verified! Credit the guest account atomically
+      const creditsToAdd = verification.amount * 10; // $1 = 10 credits
+      
+      // Get or create guest account
+      const [guestAccount] = await db
+        .select()
+        .from(guestCredits)
+        .where(eq(guestCredits.ipAddress, ipAddress));
+
+      if (!guestAccount) {
+        return res.status(404).json({ error: 'Guest account not found. Please claim free credits first.' });
+      }
+
+      // Update guest credits atomically
+      const newBalance = parseFloat(guestAccount.creditsBalance) + creditsToAdd;
+      const newTotalEarned = parseFloat(guestAccount.totalEarned) + creditsToAdd;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // Extend expiration 7 days
+
+      await db
+        .update(guestCredits)
+        .set({
+          creditsBalance: newBalance.toString(),
+          totalEarned: newTotalEarned.toString(),
+          lastActivity: new Date(),
+          expiresAt,
+        })
+        .where(eq(guestCredits.id, guestAccount.id));
+
+      // Record transaction
+      await db.insert(guestCreditsTransactions).values({
+        guestId: guestAccount.id,
+        type: 'purchase',
+        amount: creditsToAdd.toString(),
+        dollarValue: verification.amount.toString(),
+        description: `Crypto purchase: ${verification.amount} ${verification.currency} on ${verification.network}`,
+        balanceAfter: newBalance.toString(),
+        metadata: {
+          paymentId,
+          transactionHash,
+          network: verification.network,
+          currency: verification.currency,
+        } as any,
+      });
+
+      res.json({
+        success: true,
+        creditsAdded: creditsToAdd,
+        newBalance,
+        dollarAmount: verification.amount,
+        currency: verification.currency,
+        network: verification.network,
+        message: `Successfully added ${creditsToAdd} credits ($${verification.amount})`,
+      });
+    } catch (error) {
+      console.error('Error verifying crypto purchase:', error);
+      res.status(500).json({ error: 'Failed to verify purchase' });
     }
   });
 }

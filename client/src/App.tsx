@@ -123,6 +123,7 @@ const ContactUs = lazy(() => import("@/pages/contact-us"));
 const WalletAccess = lazy(() => import("@/pages/WalletAccess"));
 
 const AgentDashboard = lazy(() => import("@/pages/agent-dashboard"));
+const CreditsPage = lazy(() => import("@/pages/credits"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const AgentOrderManagement = lazy(() => import("@/pages/agent-order-management"));
 const CustomerOrderDashboard = lazy(() => import("@/pages/customer-order-dashboard"));
@@ -570,6 +571,9 @@ function Router() {
       </Route>
       <Route path="/agent-dashboard">
         {() => <LazyLoadWrapper><AgentDashboard /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/credits">
+        {() => <LazyLoadWrapper><CreditsPage /></LazyLoadWrapper>}
       </Route>
       <Route path="/my-orders">
         {() => <LazyLoadWrapper><CustomerOrderDashboard /></LazyLoadWrapper>}

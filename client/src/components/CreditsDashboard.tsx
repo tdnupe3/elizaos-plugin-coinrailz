@@ -128,36 +128,6 @@ export function CreditsDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-8" data-testid="credits-dashboard">
-      {/* Signup Overlay for Unauthenticated Users */}
-      {!isAuthenticated && (
-        <div className="relative">
-          <div className="absolute inset-0 bg-background/60 backdrop-blur-sm z-10 rounded-xl flex items-center justify-center">
-            <Card className="p-8 max-w-md mx-4 shadow-2xl border-2 border-blue-500">
-              <div className="text-center space-y-4">
-                <Award className="w-16 h-16 mx-auto text-blue-600" />
-                <h3 className="text-2xl font-bold font-[Space_Grotesk]">Get Started with $1 Free</h3>
-                <p className="text-muted-foreground">
-                  Sign up now to claim your free credits and access premium AI services instantly.
-                </p>
-                <div className="space-y-3">
-                  <Button 
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                    size="lg"
-                    onClick={() => window.location.href = '/ai-agent-registration'}
-                    data-testid="button-signup-overlay"
-                  >
-                    Sign Up Free
-                  </Button>
-                  <p className="text-xs text-muted-foreground">
-                    • $1 welcome bonus • Auto-approval under $100 • $1100/month limit
-                  </p>
-                </div>
-              </div>
-            </Card>
-          </div>
-        </div>
-      )}
-
       {/* Main Balance Card */}
       <Card className="p-8 lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
@@ -183,8 +153,8 @@ export function CreditsDashboard() {
               </span>
             </div>
 
-            {/* Free Credits CTA - Only for authenticated users */}
-            {isAuthenticated && !credits.freeCreditsGranted && (
+            {/* Free Credits CTA - Available for all users */}
+            {!credits.freeCreditsGranted && (
               <Button
                 onClick={() => claimFreeCredits.mutate()}
                 disabled={claimFreeCredits.isPending}
@@ -203,7 +173,7 @@ export function CreditsDashboard() {
               size="lg" 
               className="bg-blue-600 hover:bg-blue-700"
               data-testid="button-add-credits"
-              onClick={() => isAuthenticated ? setIsPurchaseModalOpen(true) : window.location.href = '/ai-agent-registration'}
+              onClick={() => setIsPurchaseModalOpen(true)}
             >
               <CreditCard className="w-4 h-4 mr-2" />
               Add Credits

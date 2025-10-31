@@ -7,6 +7,7 @@ import {
   tokenPriceFeedService,
   contractQuickScanService,
   walletRiskScoreService,
+  tradeSignalsService,
   trackRequest,
   SERVICE_PRICING,
 } from "./microservices";
@@ -67,6 +68,12 @@ function getServiceInputSchema(serviceId: string): Record<string, any> {
       return {
         walletAddress: { type: "string", required: true, description: "Wallet address to analyze" },
         chain: { type: "string", required: true, description: "Blockchain network" },
+      };
+    case "trade-signals":
+      return {
+        token: { type: "string", required: false, description: "Trading pair (default: BTC/USDT)" },
+        timeframe: { type: "string", required: false, description: "Timeframe (5m, 15m, 1h, 4h, 1d)" },
+        riskLevel: { type: "string", required: false, description: "Risk level: low, medium, high" },
       };
     default:
       return {};
@@ -243,6 +250,12 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
           result = await walletRiskScoreService(riskWallet, riskChain);
           break;
 
+        case "trade-signals":
+          const { token, timeframe, riskLevel } = req.body;
+          result = await tradeSignalsService({ token, timeframe, riskLevel });
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
         default:
           return res.status(404).json({ error: "Service not found" });
       }
@@ -275,6 +288,7 @@ router.get("/catalog", (req: Request, res: Response) => {
       "token-price": "Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener",
       "contract-scan": "Basic smart contract security scan with safety score and vulnerability checks",
       "wallet-risk": "Wallet risk analysis with compliance flags and transaction pattern detection",
+      "trade-signals": "AI-powered crypto trading signals with entry/exit points and risk analysis",
     };
 
     const responseTimes: { [key: string]: string } = {
@@ -283,6 +297,7 @@ router.get("/catalog", (req: Request, res: Response) => {
       "token-price": "<1s",
       "contract-scan": "<10s",
       "wallet-risk": "<2s",
+      "trade-signals": "<1s",
     };
 
     return {

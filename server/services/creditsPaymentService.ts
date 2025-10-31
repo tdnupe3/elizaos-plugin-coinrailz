@@ -83,21 +83,49 @@ export class CreditsPaymentService {
         };
       }
 
-      // AUTO-APPROVE: Deduct credits and process payment
+      // AUTO-APPROVE: Deduct credits and process payment using atomic transaction
+      // Use atomic UPDATE with WHERE clause to prevent race conditions
       const newCreditsBalance = currentCredits - creditsNeeded;
       const newMonthlySpend = monthlySpend + amount;
       const newTransactionCount = (user.successfulTransactions || 0) + 1;
 
-      // Update user balance and stats
-      await db
+      // Atomic update: only succeeds if balance is still sufficient
+      const updateResult = await db
         .update(users)
         .set({
-          creditsBalance: newCreditsBalance.toString(),
-          monthlySpendTotal: newMonthlySpend.toString(),
-          successfulTransactions: newTransactionCount,
+          creditsBalance: sql`CASE 
+            WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+            THEN CAST((CAST(credits_balance AS DECIMAL) - ${creditsNeeded}) AS VARCHAR)
+            ELSE credits_balance 
+          END`,
+          monthlySpendTotal: sql`CASE 
+            WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+            THEN CAST((CAST(monthly_spend_total AS DECIMAL) + ${amount}) AS VARCHAR)
+            ELSE monthly_spend_total 
+          END`,
+          successfulTransactions: sql`CASE 
+            WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+            THEN successful_transactions + 1
+            ELSE successful_transactions 
+          END`,
           updatedAt: new Date(),
         })
-        .where(eq(users.id, userId));
+        .where(
+          sql`${users.id} = ${userId} AND CAST(${users.creditsBalance} AS DECIMAL) >= ${creditsNeeded}`
+        )
+        .returning();
+
+      // If no rows updated, balance was insufficient (race condition occurred)
+      if (!updateResult || updateResult.length === 0) {
+        return {
+          success: false,
+          approved: false,
+          requiresManualApproval: false,
+          message: `Insufficient credits due to concurrent transaction. Please retry.`,
+        };
+      }
+
+      const finalBalance = parseFloat(updateResult[0].creditsBalance || '0');
 
       // Record transaction
       const [transaction] = await db
@@ -109,7 +137,7 @@ export class CreditsPaymentService {
           dollarValue: amount.toString(),
           description,
           relatedOrderId: orderId,
-          balanceAfter: newCreditsBalance.toString(),
+          balanceAfter: finalBalance.toString(),
         })
         .returning();
 
@@ -119,7 +147,7 @@ export class CreditsPaymentService {
         requiresManualApproval: false,
         message: `Payment approved! Charged ${creditsNeeded} credits ($${amount})`,
         transactionId: transaction.id,
-        remainingCredits: newCreditsBalance,
+        remainingCredits: finalBalance,
         monthlySpendRemaining: monthlyLimit - newMonthlySpend,
       };
     } catch (error) {

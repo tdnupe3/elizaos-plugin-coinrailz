@@ -3978,6 +3978,35 @@ export const creditsTransactionsSelectSchema = createSelectSchema(creditsTransac
 export type CreditsTransaction = typeof creditsTransactions.$inferSelect;
 export type InsertCreditsTransaction = z.infer<typeof creditsTransactionsInsertSchema>;
 
+// Free Credits Claim Log - Anti-abuse tracking for guest free credit claims
+export const freeCreditsClaimLog = pgTable(
+  "free_credits_claim_log",
+  {
+    id: serial("id").primaryKey(),
+    ipAddress: varchar("ip_address").notNull(),
+    fingerprint: varchar("fingerprint").notNull(), // Browser fingerprint hash
+    userId: varchar("user_id"), // NULL for guest claims
+    sessionId: varchar("session_id"), // Session identifier
+    userAgent: text("user_agent"),
+    claimedAt: timestamp("claimed_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_free_credits_ip").on(table.ipAddress),
+    index("IDX_free_credits_fingerprint").on(table.fingerprint),
+    index("IDX_free_credits_claimed_at").on(table.claimedAt),
+  ],
+);
+
+export const freeCreditsClaimLogInsertSchema = createInsertSchema(freeCreditsClaimLog).omit({
+  id: true,
+  claimedAt: true,
+});
+
+export const freeCreditsClaimLogSelectSchema = createSelectSchema(freeCreditsClaimLog);
+
+export type FreeCreditsClaimLog = typeof freeCreditsClaimLog.$inferSelect;
+export type InsertFreeCreditsClaimLog = z.infer<typeof freeCreditsClaimLogInsertSchema>;
+
 // Coinbase Address Database schemas and types
 export const coinbaseAddressDatabaseInsertSchema = createInsertSchema(coinbaseAddressDatabase).omit({
   id: true,

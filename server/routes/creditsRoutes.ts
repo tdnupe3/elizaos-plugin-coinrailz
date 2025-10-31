@@ -2,6 +2,7 @@ import type { Express, Request, Response } from 'express';
 import { db } from '../db';
 import { users, creditsTransactions, platformTestimonials } from '../../shared/schema';
 import { eq, desc } from 'drizzle-orm';
+import { AntiAbuseService } from '../services/antiAbuseService';
 
 export function registerCreditsRoutes(app: Express) {
   app.get('/api/credits/balance', async (req: any, res: Response) => {
@@ -30,31 +31,73 @@ export function registerCreditsRoutes(app: Express) {
 
   app.post('/api/credits/claim-free', async (req: any, res: Response) => {
     try {
-      if (!req.user?.id) return res.status(401).json({ error: 'Unauthorized' });
+      // Get IP and fingerprint for anti-abuse
+      const ipAddress = AntiAbuseService.getClientIP(req);
+      const clientFingerprint = req.body.fingerprint; // Optional client-side fingerprint
+      const fingerprint = AntiAbuseService.generateFingerprint(req, clientFingerprint);
+      const userAgent = req.headers['user-agent'] || null;
+      const sessionId = req.session?.id || null;
 
-      const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
-      if (!user) return res.status(404).json({ error: 'User not found' });
-      if (user.freeCreditsGranted) return res.status(400).json({ error: 'Free credits already claimed' });
+      // Check anti-abuse before allowing claim
+      const { allowed, reason } = await AntiAbuseService.canClaimFreeCredits(ipAddress, fingerprint);
+      if (!allowed) {
+        return res.status(429).json({ 
+          error: 'Rate limit exceeded', 
+          message: reason || 'Please try again later'
+        });
+      }
 
+      // For authenticated users
+      if (req.user?.id) {
+        const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
+        if (!user) return res.status(404).json({ error: 'User not found' });
+        if (user.freeCreditsGranted) {
+          return res.status(400).json({ error: 'Free credits already claimed for this account' });
+        }
+
+        const freeCreditsAmount = 10.00;
+        const newBalance = parseFloat(user.creditsBalance || '0') + freeCreditsAmount;
+
+        await db.update(users).set({
+          creditsBalance: newBalance.toString(),
+          freeCreditsGranted: true,
+          updatedAt: new Date(),
+        }).where(eq(users.id, req.user.id));
+
+        await db.insert(creditsTransactions).values({
+          userId: req.user.id,
+          type: 'bonus',
+          amount: freeCreditsAmount.toString(),
+          dollarValue: '1.00',
+          description: 'Welcome bonus - $1 free credits',
+          balanceAfter: newBalance.toString(),
+        });
+
+        // Log the claim
+        await AntiAbuseService.logClaim(ipAddress, fingerprint, req.user.id, sessionId, userAgent);
+
+        return res.json({ 
+          success: true, 
+          message: 'Free credits claimed!', 
+          creditsAdded: freeCreditsAmount, 
+          newBalance 
+        });
+      }
+
+      // For guest users - allow them to claim but track via IP/fingerprint only
+      // In production, you'd store this in session or a temporary guest account
       const freeCreditsAmount = 10.00;
-      const newBalance = parseFloat(user.creditsBalance || '0') + freeCreditsAmount;
 
-      await db.update(users).set({
-        creditsBalance: newBalance.toString(),
-        freeCreditsGranted: true,
-        updatedAt: new Date(),
-      }).where(eq(users.id, req.user.id));
+      // Log the guest claim
+      await AntiAbuseService.logClaim(ipAddress, fingerprint, null, sessionId, userAgent);
 
-      await db.insert(creditsTransactions).values({
-        userId: req.user.id,
-        type: 'bonus',
-        amount: freeCreditsAmount.toString(),
-        dollarValue: '1.00',
-        description: 'Welcome bonus - $1 free credits',
-        balanceAfter: newBalance.toString(),
+      return res.json({ 
+        success: true, 
+        message: 'Free credits reserved! Sign up to claim them.', 
+        creditsAdded: freeCreditsAmount,
+        guestMode: true,
+        requiresSignup: true
       });
-
-      res.json({ success: true, message: 'Free credits claimed!', creditsAdded: freeCreditsAmount, newBalance });
     } catch (error) {
       console.error('Error claiming free credits:', error);
       res.status(500).json({ error: 'Failed to claim free credits' });
@@ -148,6 +191,23 @@ export function registerCreditsRoutes(app: Express) {
     } catch (error) {
       console.error('Error fetching platform stats:', error);
       res.status(500).json({ error: 'Failed to fetch platform stats' });
+    }
+  });
+
+  // Anti-abuse monitoring endpoint (admin only in production)
+  app.get('/api/credits/abuse-stats', async (req: any, res: Response) => {
+    try {
+      const hours = parseInt(req.query.hours as string) || 24;
+      const stats = await AntiAbuseService.getClaimStats(hours);
+      
+      res.json({
+        success: true,
+        stats,
+        period: `${hours} hours`,
+      });
+    } catch (error) {
+      console.error('Error fetching abuse stats:', error);
+      res.status(500).json({ error: 'Failed to fetch abuse statistics' });
     }
   });
 }

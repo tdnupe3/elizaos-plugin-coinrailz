@@ -4017,6 +4017,7 @@ export const guestCredits = pgTable(
     creditsBalance: decimal("credits_balance", { precision: 10, scale: 2 }).notNull().default("0"),
     totalEarned: decimal("total_earned", { precision: 10, scale: 2 }).notNull().default("0"),
     totalSpent: decimal("total_spent", { precision: 10, scale: 2 }).notNull().default("0"),
+    freeCreditsGranted: boolean("free_credits_granted").notNull().default(false),
     lastActivity: timestamp("last_activity").defaultNow(),
     createdAt: timestamp("created_at").defaultNow(),
     expiresAt: timestamp("expires_at"), // Credits expire after 7 days of inactivity

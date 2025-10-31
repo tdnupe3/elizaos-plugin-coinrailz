@@ -43,12 +43,15 @@ export function registerCreditsRoutes(app: Express) {
 
       const isExpired = guestAccount.expiresAt && new Date(guestAccount.expiresAt) < new Date();
 
+      // If expired, zero out the balance before returning
+      const creditsBalance = isExpired ? 0 : parseFloat(guestAccount.creditsBalance || '0');
+
       res.json({
         success: true,
-        creditsBalance: parseFloat(guestAccount.creditsBalance || '0'),
+        creditsBalance,
         totalEarned: parseFloat(guestAccount.totalEarned || '0'),
         totalSpent: parseFloat(guestAccount.totalSpent || '0'),
-        freeCreditsGranted: true,
+        freeCreditsGranted: guestAccount.freeCreditsGranted,
         userType: 'guest',
         expiresAt: guestAccount.expiresAt?.toISOString(),
         isExpired,
@@ -114,7 +117,7 @@ export function registerCreditsRoutes(app: Express) {
         });
       }
 
-      // For guest users - create/update guest credits account (IP-based)
+      // For guest users - create guest credits account (IP-based)
       const freeCreditsAmount = 10.00;
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
 
@@ -124,27 +127,31 @@ export function registerCreditsRoutes(app: Express) {
         .from(guestCredits)
         .where(eq(guestCredits.ipAddress, ipAddress));
 
-      let guestId: number;
-      let newBalance: number;
-
+      // Prevent multiple free credit claims
       if (existingGuest) {
-        // Guest already has account, just add credits
-        newBalance = parseFloat(existingGuest.creditsBalance) + freeCreditsAmount;
-        const newTotalEarned = parseFloat(existingGuest.totalEarned) + freeCreditsAmount;
-
+        if (existingGuest.freeCreditsGranted) {
+          return res.status(400).json({
+            error: 'Free credits already claimed',
+            message: 'You have already claimed your free $1 credits. Sign up for more credits.'
+          });
+        }
+        
+        // Should never happen, but if guest account exists without free credits granted, update it
         await db
           .update(guestCredits)
           .set({
-            creditsBalance: newBalance.toString(),
-            totalEarned: newTotalEarned.toString(),
+            creditsBalance: (parseFloat(existingGuest.creditsBalance) + freeCreditsAmount).toString(),
+            totalEarned: (parseFloat(existingGuest.totalEarned) + freeCreditsAmount).toString(),
+            freeCreditsGranted: true,
             lastActivity: new Date(),
             expiresAt,
           })
           .where(eq(guestCredits.id, existingGuest.id));
 
-        guestId = existingGuest.id;
+        var guestId = existingGuest.id;
+        var newBalance = parseFloat(existingGuest.creditsBalance) + freeCreditsAmount;
       } else {
-        // Create new guest credits account
+        // Create new guest credits account with free credits
         const [newGuest] = await db
           .insert(guestCredits)
           .values({
@@ -153,12 +160,13 @@ export function registerCreditsRoutes(app: Express) {
             creditsBalance: freeCreditsAmount.toString(),
             totalEarned: freeCreditsAmount.toString(),
             totalSpent: '0',
+            freeCreditsGranted: true,
             expiresAt,
           })
           .returning();
 
-        guestId = newGuest.id;
-        newBalance = freeCreditsAmount;
+        var guestId = newGuest.id;
+        var newBalance = freeCreditsAmount;
       }
 
       // Record the transaction

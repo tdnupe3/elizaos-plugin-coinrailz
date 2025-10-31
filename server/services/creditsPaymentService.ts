@@ -106,40 +106,60 @@ export class CreditsPaymentService {
       const newMonthlySpend = monthlySpend + amount;
       const newTransactionCount = (user.successfulTransactions || 0) + 1;
 
-      // Atomic update: only succeeds if balance is still sufficient
+      // Atomic update: only succeeds if balance is still sufficient AND monthly limit not exceeded
+      // This prevents race conditions where concurrent requests exceed the monthly limit
       const updateResult = await db
         .update(users)
         .set({
           creditsBalance: sql`CASE 
             WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+              AND CAST(monthly_spend_total AS DECIMAL) + ${amount} <= ${monthlyLimit}
             THEN CAST((CAST(credits_balance AS DECIMAL) - ${creditsNeeded}) AS VARCHAR)
             ELSE credits_balance 
           END`,
           monthlySpendTotal: sql`CASE 
             WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+              AND CAST(monthly_spend_total AS DECIMAL) + ${amount} <= ${monthlyLimit}
             THEN CAST((CAST(monthly_spend_total AS DECIMAL) + ${amount}) AS VARCHAR)
             ELSE monthly_spend_total 
           END`,
           successfulTransactions: sql`CASE 
             WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+              AND CAST(monthly_spend_total AS DECIMAL) + ${amount} <= ${monthlyLimit}
             THEN successful_transactions + 1
             ELSE successful_transactions 
           END`,
           updatedAt: new Date(),
         })
         .where(
-          sql`${users.id} = ${userId} AND CAST(${users.creditsBalance} AS DECIMAL) >= ${creditsNeeded}`
+          sql`${users.id} = ${userId} 
+            AND CAST(${users.creditsBalance} AS DECIMAL) >= ${creditsNeeded}
+            AND CAST(${users.monthlySpendTotal} AS DECIMAL) + ${amount} <= ${monthlyLimit}`
         )
         .returning();
 
-      // If no rows updated, balance was insufficient (race condition occurred)
+      // If no rows updated, either balance was insufficient or monthly limit exceeded (race condition)
       if (!updateResult || updateResult.length === 0) {
-        return {
-          success: false,
-          approved: false,
-          requiresManualApproval: false,
-          message: `Insufficient credits due to concurrent transaction. Please retry.`,
-        };
+        // Re-check current state to provide accurate error message
+        const [currentUser] = await db.select().from(users).where(eq(users.id, userId));
+        const currentBalance = parseFloat(currentUser?.creditsBalance || '0');
+        const currentMonthlySpend = parseFloat(currentUser?.monthlySpendTotal || '0');
+        
+        if (currentBalance < creditsNeeded) {
+          return {
+            success: false,
+            approved: false,
+            requiresManualApproval: false,
+            message: `Insufficient credits due to concurrent transaction. Current balance: ${currentBalance} credits, needed: ${creditsNeeded} credits`,
+          };
+        } else {
+          return {
+            success: false,
+            approved: false,
+            requiresManualApproval: false,
+            message: `Monthly spending limit exceeded due to concurrent transaction. Current monthly spend: $${currentMonthlySpend}, limit: $${monthlyLimit}`,
+          };
+        }
       }
 
       const finalBalance = parseFloat(updateResult[0].creditsBalance || '0');

@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface CreditsBalance {
   creditsBalance: number;
@@ -43,6 +44,8 @@ export function CreditsDashboard() {
   const [purchaseAmount, setPurchaseAmount] = useState('10');
   const [paymentMethod, setPaymentMethod] = useState<'crypto' | 'stripe'>('crypto');
   const [cryptoPaymentData, setCryptoPaymentData] = useState<any>(null);
+  const [selectedCurrency, setSelectedCurrency] = useState('USDC');
+  const [selectedNetwork, setSelectedNetwork] = useState('base');
 
   const { data: balance, isLoading, isError: balanceError } = useQuery<{ success: boolean; data?: CreditsBalance }>({
     queryKey: ['/api/credits/balance'],
@@ -114,7 +117,11 @@ export function CreditsDashboard() {
   // Crypto purchase mutation
   const createCryptoPayment = useMutation({
     mutationFn: async (amount: number) => {
-      return await apiRequest('/api/credits/purchase-crypto', 'POST', { amount, currency: 'USDC', network: 'base' });
+      return await apiRequest('/api/credits/purchase-crypto', 'POST', { 
+        amount, 
+        currency: selectedCurrency, 
+        network: selectedNetwork 
+      });
     },
     onSuccess: (data: any) => {
       setCryptoPaymentData(data);
@@ -385,6 +392,37 @@ export function CreditsDashboard() {
             <TabsContent value="crypto" className="space-y-4">
               {!cryptoPaymentData ? (
                 <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="crypto-currency">Currency</Label>
+                      <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                        <SelectTrigger id="crypto-currency" data-testid="select-currency">
+                          <SelectValue placeholder="Select currency" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USDC">USDC</SelectItem>
+                          <SelectItem value="USDT">USDT</SelectItem>
+                          <SelectItem value="ETH">ETH</SelectItem>
+                          <SelectItem value="BNB">BNB</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="crypto-network">Network</Label>
+                      <Select value={selectedNetwork} onValueChange={setSelectedNetwork}>
+                        <SelectTrigger id="crypto-network" data-testid="select-network">
+                          <SelectValue placeholder="Select network" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="base">Base</SelectItem>
+                          <SelectItem value="ethereum">Ethereum</SelectItem>
+                          <SelectItem value="polygon">Polygon</SelectItem>
+                          <SelectItem value="arbitrum">Arbitrum</SelectItem>
+                          <SelectItem value="bnb">BNB Chain</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="crypto-amount">Amount (USD)</Label>
                     <Input
@@ -434,11 +472,11 @@ export function CreditsDashboard() {
                     <div>
                       <h4 className="font-semibold text-lg mb-2">Autonomous Payment Instructions</h4>
                       <p className="text-sm text-muted-foreground mb-2">
-                        Send payment to our platform wallet on Base Chain
+                        Send payment to our platform wallet on {cryptoPaymentData.network} network
                       </p>
                       <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-4">
                         <p className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
-                          ⚠️ CRITICAL: Send exact amount {cryptoPaymentData.amount} USDC
+                          ⚠️ CRITICAL: Send exact amount {cryptoPaymentData.amount} {cryptoPaymentData.currency}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Not ${cryptoPaymentData.requestedAmount || Math.floor(cryptoPaymentData.amount)}.00 - the precise amount is required for automatic matching
@@ -448,7 +486,7 @@ export function CreditsDashboard() {
                     
                     <div className="space-y-3">
                       <div>
-                        <Label className="text-xs">Platform Wallet (Base Chain)</Label>
+                        <Label className="text-xs">Platform Wallet ({cryptoPaymentData.network.charAt(0).toUpperCase() + cryptoPaymentData.network.slice(1)})</Label>
                         <div className="flex items-center gap-2">
                           <Input
                             value={cryptoPaymentData.walletAddress}
@@ -468,7 +506,7 @@ export function CreditsDashboard() {
                       </div>
 
                       <div>
-                        <Label className="text-xs">Exact Payment Amount (USDC)</Label>
+                        <Label className="text-xs">Exact Payment Amount ({cryptoPaymentData.currency})</Label>
                         <div className="flex items-center gap-2">
                           <Input
                             value={cryptoPaymentData.amount}
@@ -499,7 +537,7 @@ export function CreditsDashboard() {
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Network</p>
-                        <p className="font-semibold">Base Chain</p>
+                        <p className="font-semibold capitalize">{cryptoPaymentData.network}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground text-xs">Expires In</p>

@@ -648,6 +648,12 @@ app.use('/api/x402-sweep', x402FundsSweepRoutes);
 console.log('✅ x402 Protocol routes registered successfully');
 console.log('✅ x402-gated service endpoints registered for x402scan discovery');
 
+// === PREPAID CREDITS SYSTEM & CONVERSION OPTIMIZATION ===
+console.log('💳 Registering Prepaid Credits system for conversion optimization...');
+import { registerCreditsRoutes } from './routes/creditsRoutes';
+registerCreditsRoutes(app);
+console.log('✅ Credits system routes registered successfully');
+
 console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
 app.use('/api/sdk-licensing', sdkLicensingRoutes);
 console.log('✅ SDK Licensing routes registered successfully');

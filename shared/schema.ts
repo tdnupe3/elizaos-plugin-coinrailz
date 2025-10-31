@@ -161,6 +161,15 @@ export const users = pgTable("users", {
   dexSubscriptionTier: varchar("dex_subscription_tier").default("basic"), // basic, pro, enterprise
   dexSubscriptionActive: boolean("dex_subscription_active").default(false),
   dexSubscriptionExpiresAt: timestamp("dex_subscription_expires_at"),
+  
+  // Prepaid Credits System
+  creditsBalance: decimal("credits_balance", { precision: 10, scale: 2 }).default("0.00"), // Prepaid credits ($10 = 100 credits)
+  freeCreditsGranted: boolean("free_credits_granted").default(false), // $1 free credits for new users
+  monthlySpendingLimit: decimal("monthly_spending_limit", { precision: 10, scale: 2 }).default("1100.00"), // $1100/month default
+  monthlySpendTotal: decimal("monthly_spend_total", { precision: 10, scale: 2 }).default("0.00"), // Current month spend
+  lastSpendReset: timestamp("last_spend_reset").defaultNow(), // Track monthly reset
+  successfulTransactions: integer("successful_transactions").default(0), // Count for badge
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -3908,6 +3917,66 @@ export const x402DiscoveryMetricsSelectSchema = createSelectSchema(x402Discovery
 
 export type X402DiscoveryMetric = typeof x402DiscoveryMetrics.$inferSelect;
 export type InsertX402DiscoveryMetric = z.infer<typeof x402DiscoveryMetricsInsertSchema>;
+
+// Platform Testimonials - Community feedback and social proof
+export const platformTestimonials = pgTable(
+  "platform_testimonials",
+  {
+    id: serial("id").primaryKey(),
+    authorName: varchar("author_name").notNull(),
+    authorHandle: varchar("author_handle"), // @username for Twitter/Telegram
+    platform: varchar("platform").notNull(), // twitter, telegram, discord
+    rating: integer("rating").notNull().default(5), // 1-5 stars
+    testimonial: text("testimonial").notNull(),
+    featured: boolean("featured").default(false), // Show on homepage
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_testimonials_featured").on(table.featured),
+    index("IDX_testimonials_platform").on(table.platform),
+  ],
+);
+
+export const platformTestimonialsInsertSchema = createInsertSchema(platformTestimonials).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const platformTestimonialsSelectSchema = createSelectSchema(platformTestimonials);
+
+export type PlatformTestimonial = typeof platformTestimonials.$inferSelect;
+export type InsertPlatformTestimonial = z.infer<typeof platformTestimonialsInsertSchema>;
+
+// Credits Transactions - Track prepaid credits purchases and usage
+export const creditsTransactions = pgTable(
+  "credits_transactions",
+  {
+    id: serial("id").primaryKey(),
+    userId: varchar("user_id").notNull(),
+    type: varchar("type").notNull(), // purchase, usage, refund, bonus
+    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(), // Credit amount
+    dollarValue: decimal("dollar_value", { precision: 10, scale: 2 }).notNull(), // USD equivalent
+    description: text("description"), // What the credits were used for
+    relatedOrderId: varchar("related_order_id"), // Link to order if applicable
+    balanceAfter: decimal("balance_after", { precision: 10, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_credits_transactions_user").on(table.userId),
+    index("IDX_credits_transactions_type").on(table.type),
+    index("IDX_credits_transactions_created").on(table.createdAt),
+  ],
+);
+
+export const creditsTransactionsInsertSchema = createInsertSchema(creditsTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const creditsTransactionsSelectSchema = createSelectSchema(creditsTransactions);
+
+export type CreditsTransaction = typeof creditsTransactions.$inferSelect;
+export type InsertCreditsTransaction = z.infer<typeof creditsTransactionsInsertSchema>;
 
 // Coinbase Address Database schemas and types
 export const coinbaseAddressDatabaseInsertSchema = createInsertSchema(coinbaseAddressDatabase).omit({

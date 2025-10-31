@@ -33,6 +33,7 @@ import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import x402Routes from './routes/x402Routes';
 import x402GatedRoutes from './routes/x402GatedRoutes';
+import x402MicroserviceRoutes from './routes/x402MicroserviceRoutes';
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
@@ -644,9 +645,11 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
 app.use('/x402', x402GatedRoutes); // x402-gated service endpoints (return 402 Payment Required)
+app.use('/x402', x402MicroserviceRoutes); // x402 micropayment services (multi-chain-balance, trade-signals, etc.)
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 console.log('✅ x402 Protocol routes registered successfully');
 console.log('✅ x402-gated service endpoints registered for x402scan discovery');
+console.log('✅ x402 micropayment services registered (trade-signals, wallet-risk, etc.)');
 
 // === PREPAID CREDITS SYSTEM & CONVERSION OPTIMIZATION ===
 console.log('💳 Registering Prepaid Credits system for conversion optimization...');

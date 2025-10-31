@@ -3879,6 +3879,36 @@ export const x402PaymentsSelectSchema = createSelectSchema(x402Payments);
 export type X402Payment = typeof x402Payments.$inferSelect;
 export type InsertX402Payment = z.infer<typeof x402PaymentsInsertSchema>;
 
+// x402 Discovery Metrics - Daily aggregated discovery analytics
+export const x402DiscoveryMetrics = pgTable(
+  "x402_discovery_metrics",
+  {
+    id: serial("id").primaryKey(),
+    date: date("date").notNull(),
+    totalPaymentRequests: integer("total_payment_requests").default(0),
+    uniqueWallets: integer("unique_wallets").default(0),
+    completedPayments: integer("completed_payments").default(0),
+    expiredPayments: integer("expired_payments").default(0),
+    totalRevenue: numeric("total_revenue", { precision: 18, scale: 6 }).default("0"),
+    byService: jsonb("by_service"), // { "gas-price-oracle": 235, "contract-scan": 233, ... }
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_x402_discovery_metrics_date").on(table.date),
+    index("IDX_x402_discovery_metrics_updated").on(table.updatedAt),
+  ],
+);
+
+export const x402DiscoveryMetricsInsertSchema = createInsertSchema(x402DiscoveryMetrics).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export const x402DiscoveryMetricsSelectSchema = createSelectSchema(x402DiscoveryMetrics);
+
+export type X402DiscoveryMetric = typeof x402DiscoveryMetrics.$inferSelect;
+export type InsertX402DiscoveryMetric = z.infer<typeof x402DiscoveryMetricsInsertSchema>;
+
 // Coinbase Address Database schemas and types
 export const coinbaseAddressDatabaseInsertSchema = createInsertSchema(coinbaseAddressDatabase).omit({
   id: true,

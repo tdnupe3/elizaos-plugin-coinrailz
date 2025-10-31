@@ -3254,6 +3254,16 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.error('❌ Failed to initialize x402 sweep scheduler:', error);
   }
 
+  // Initialize x402 cleanup scheduler (daily at 3 AM)
+  try {
+    console.log('🧹 Initializing x402 cleanup scheduler...');
+    const { x402CleanupService } = await import('./services/x402CleanupService');
+    x402CleanupService.start();
+    console.log('✅ x402 cleanup scheduler started (runs daily at 3:00 AM)');
+  } catch (error) {
+    console.error('❌ Failed to initialize x402 cleanup scheduler:', error);
+  }
+
   // Agent Discovery System initialization moved to service level to prevent duplicate scheduling
   console.log('✅ Agent Discovery System will auto-initialize via service imports - preventing duplicate initialization');
   

@@ -5,7 +5,6 @@
 
 import { FeeCalculator } from './feeCalculator';
 import { apiHealthMonitor } from './apiHealthMonitor';
-import { productionOptimizer } from './productionOptimizer';
 
 interface LoadTestResult {
   testName: string;

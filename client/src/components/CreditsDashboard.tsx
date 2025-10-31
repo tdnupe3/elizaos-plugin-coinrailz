@@ -432,54 +432,87 @@ export function CreditsDashboard() {
                 <Card className="p-6 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-semibold text-lg mb-2">Send USDC on Base Chain</h4>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Send exactly {cryptoPaymentData.amount} USDC to the address below
+                      <h4 className="font-semibold text-lg mb-2">Autonomous Payment Instructions</h4>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Send payment to our platform wallet on Base Chain
                       </p>
+                      <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg mb-4">
+                        <p className="text-xs font-semibold text-yellow-600 dark:text-yellow-400">
+                          ⚠️ CRITICAL: Send exact amount {cryptoPaymentData.amount} USDC
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Not ${cryptoPaymentData.requestedAmount || Math.floor(cryptoPaymentData.amount)}.00 - the precise amount is required for automatic matching
+                        </p>
+                      </div>
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label className="text-xs">Wallet Address</Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          value={cryptoPaymentData.walletAddress}
-                          readOnly
-                          className="font-mono text-sm"
-                          data-testid="input-wallet-address"
-                        />
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => copyToClipboard(cryptoPaymentData.walletAddress)}
-                          data-testid="button-copy-address"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
+                    <div className="space-y-3">
+                      <div>
+                        <Label className="text-xs">Platform Wallet (Base Chain)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={cryptoPaymentData.walletAddress}
+                            readOnly
+                            className="font-mono text-xs"
+                            data-testid="input-wallet-address"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(cryptoPaymentData.walletAddress)}
+                            data-testid="button-copy-address"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-xs">Exact Payment Amount (USDC)</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={cryptoPaymentData.amount}
+                            readOnly
+                            className="font-mono text-sm font-bold"
+                            data-testid="input-payment-amount"
+                          />
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => copyToClipboard(cryptoPaymentData.amount.toString())}
+                            data-testid="button-copy-amount"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
                       <div>
-                        <p className="text-muted-foreground">Amount</p>
-                        <p className="font-semibold">{cryptoPaymentData.amount} USDC</p>
+                        <p className="text-muted-foreground text-xs">Requested</p>
+                        <p className="font-semibold">${cryptoPaymentData.requestedAmount || Math.floor(cryptoPaymentData.amount)}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Network</p>
-                        <p className="font-semibold capitalize">{cryptoPaymentData.network}</p>
+                        <p className="text-muted-foreground text-xs">Credits</p>
+                        <p className="font-semibold">{(cryptoPaymentData.requestedAmount || Math.floor(cryptoPaymentData.amount)) * 10} credits</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Credits</p>
-                        <p className="font-semibold">{cryptoPaymentData.amount * 10} credits</p>
+                        <p className="text-muted-foreground text-xs">Network</p>
+                        <p className="font-semibold">Base Chain</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Expires In</p>
+                        <p className="text-muted-foreground text-xs">Expires In</p>
                         <p className="font-semibold">15 minutes</p>
                       </div>
                     </div>
 
-                    <div className="pt-4 border-t">
-                      <p className="text-xs text-muted-foreground mb-2">
-                        ✓ Credits will be added automatically once payment is confirmed on-chain
+                    <div className="pt-4 border-t space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        ✓ Automatic verification via Alchemy RPC
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        ✓ Credits added instantly on confirmation
                       </p>
                       <p className="text-xs text-muted-foreground">
                         ✓ Payment ID: {cryptoPaymentData.paymentId}

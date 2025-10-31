@@ -98,11 +98,11 @@ export function TestimonialsSection() {
               {/* Profile Section */}
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
-                  {testimonial.agentName.charAt(0)}
+                  {testimonial.agentName?.charAt(0) || 'A'}
                 </div>
                 <div>
-                  <div className="font-semibold text-sm">{testimonial.agentName}</div>
-                  <div className="text-xs text-muted-foreground">{testimonial.agentType}</div>
+                  <div className="font-semibold text-sm">{testimonial.agentName || 'Anonymous'}</div>
+                  <div className="text-xs text-muted-foreground">{testimonial.agentType || 'AI Agent'}</div>
                 </div>
                 {testimonial.verified && (
                   <div className="ml-auto bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs font-medium">

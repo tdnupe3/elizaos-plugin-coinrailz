@@ -4070,6 +4070,41 @@ export const guestCreditsTransactionsSelectSchema = createSelectSchema(guestCred
 export type GuestCreditsTransaction = typeof guestCreditsTransactions.$inferSelect;
 export type InsertGuestCreditsTransaction = z.infer<typeof guestCreditsTransactionsInsertSchema>;
 
+// Pending Crypto Payment Requests - Track autonomous crypto payments to platform wallet
+export const pendingCryptoPaymentRequests = pgTable(
+  "pending_crypto_payment_requests",
+  {
+    id: varchar("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    guestIP: varchar("guest_ip").notNull(),
+    fingerprint: varchar("fingerprint"),
+    requestedAmountUSD: decimal("requested_amount_usd", { precision: 10, scale: 2 }).notNull(),
+    uniquePaymentAmount: decimal("unique_payment_amount", { precision: 18, scale: 6 }).notNull(), // High precision for matching
+    platformWalletAddress: varchar("platform_wallet_address").notNull(),
+    network: varchar("network").notNull().default("base"),
+    currency: varchar("currency").notNull().default("USDC"),
+    status: varchar("status").notNull().default("pending"), // pending, completed, expired, failed
+    txHash: varchar("tx_hash"), // Transaction hash once verified
+    createdAt: timestamp("created_at").defaultNow(),
+    expiresAt: timestamp("expires_at").notNull(), // 15 minute expiry
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    index("IDX_pending_crypto_payments_guest_ip").on(table.guestIP),
+    index("IDX_pending_crypto_payments_status").on(table.status),
+    index("IDX_pending_crypto_payments_expires").on(table.expiresAt),
+    index("IDX_pending_crypto_payments_unique_amount").on(table.uniquePaymentAmount),
+  ],
+);
+
+export const pendingCryptoPaymentRequestsInsertSchema = createInsertSchema(pendingCryptoPaymentRequests).omit({
+  createdAt: true,
+});
+
+export const pendingCryptoPaymentRequestsSelectSchema = createSelectSchema(pendingCryptoPaymentRequests);
+
+export type PendingCryptoPaymentRequest = typeof pendingCryptoPaymentRequests.$inferSelect;
+export type InsertPendingCryptoPaymentRequest = z.infer<typeof pendingCryptoPaymentRequestsInsertSchema>;
+
 // Coinbase Address Database schemas and types
 export const coinbaseAddressDatabaseInsertSchema = createInsertSchema(coinbaseAddressDatabase).omit({
   id: true,

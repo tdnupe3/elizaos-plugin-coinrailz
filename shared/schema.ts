@@ -4007,6 +4007,68 @@ export const freeCreditsClaimLogSelectSchema = createSelectSchema(freeCreditsCla
 export type FreeCreditsClaimLog = typeof freeCreditsClaimLog.$inferSelect;
 export type InsertFreeCreditsClaimLog = z.infer<typeof freeCreditsClaimLogInsertSchema>;
 
+// Guest Credits - Track credits for unauthenticated users (IP-based)
+export const guestCredits = pgTable(
+  "guest_credits",
+  {
+    id: serial("id").primaryKey(),
+    ipAddress: varchar("ip_address").notNull().unique(),
+    fingerprint: varchar("fingerprint").notNull(),
+    creditsBalance: decimal("credits_balance", { precision: 10, scale: 2 }).notNull().default("0"),
+    totalEarned: decimal("total_earned", { precision: 10, scale: 2 }).notNull().default("0"),
+    totalSpent: decimal("total_spent", { precision: 10, scale: 2 }).notNull().default("0"),
+    lastActivity: timestamp("last_activity").defaultNow(),
+    createdAt: timestamp("created_at").defaultNow(),
+    expiresAt: timestamp("expires_at"), // Credits expire after 7 days of inactivity
+  },
+  (table) => [
+    index("IDX_guest_credits_ip").on(table.ipAddress),
+    index("IDX_guest_credits_fingerprint").on(table.fingerprint),
+    index("IDX_guest_credits_expires").on(table.expiresAt),
+  ],
+);
+
+export const guestCreditsInsertSchema = createInsertSchema(guestCredits).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const guestCreditsSelectSchema = createSelectSchema(guestCredits);
+
+export type GuestCredits = typeof guestCredits.$inferSelect;
+export type InsertGuestCredits = z.infer<typeof guestCreditsInsertSchema>;
+
+// Guest Credits Transactions - Track guest credit usage
+export const guestCreditsTransactions = pgTable(
+  "guest_credits_transactions",
+  {
+    id: serial("id").primaryKey(),
+    guestId: integer("guest_id").notNull(), // References guest_credits.id
+    ipAddress: varchar("ip_address").notNull(),
+    type: varchar("type").notNull(), // bonus, usage
+    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+    dollarValue: decimal("dollar_value", { precision: 10, scale: 2 }).notNull(),
+    description: text("description"),
+    balanceAfter: decimal("balance_after", { precision: 10, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_guest_transactions_guest").on(table.guestId),
+    index("IDX_guest_transactions_ip").on(table.ipAddress),
+    index("IDX_guest_transactions_created").on(table.createdAt),
+  ],
+);
+
+export const guestCreditsTransactionsInsertSchema = createInsertSchema(guestCreditsTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const guestCreditsTransactionsSelectSchema = createSelectSchema(guestCreditsTransactions);
+
+export type GuestCreditsTransaction = typeof guestCreditsTransactions.$inferSelect;
+export type InsertGuestCreditsTransaction = z.infer<typeof guestCreditsTransactionsInsertSchema>;
+
 // Coinbase Address Database schemas and types
 export const coinbaseAddressDatabaseInsertSchema = createInsertSchema(coinbaseAddressDatabase).omit({
   id: true,

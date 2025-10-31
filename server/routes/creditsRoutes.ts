@@ -479,16 +479,12 @@ export function registerCreditsRoutes(app: Express) {
       // Record transaction
       await db.insert(guestCreditsTransactions).values({
         guestId: guestAccount.id,
+        ipAddress,
         type: 'purchase',
         amount: creditsToAdd.toString(),
         dollarValue: dollarAmount.toString(),
         description: `Stripe purchase: $${dollarAmount} via credit card`,
         balanceAfter: newBalance.toString(),
-        metadata: {
-          sessionId,
-          paymentMethod: 'stripe',
-          paymentStatus: session.payment_status,
-        } as any,
       });
 
       res.json({
@@ -560,17 +556,12 @@ export function registerCreditsRoutes(app: Express) {
       // Record transaction
       await db.insert(guestCreditsTransactions).values({
         guestId: guestAccount.id,
+        ipAddress,
         type: 'purchase',
         amount: creditsToAdd.toString(),
         dollarValue: verification.amount.toString(),
         description: `Crypto purchase: ${verification.amount} ${verification.currency} on ${verification.network}`,
         balanceAfter: newBalance.toString(),
-        metadata: {
-          paymentId,
-          transactionHash,
-          network: verification.network,
-          currency: verification.currency,
-        } as any,
       });
 
       res.json({

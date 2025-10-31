@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { CheckCircle, TrendingUp, TrendingDown, DollarSign, CreditCard, Award, AlertCircle } from 'lucide-react';
+import { CheckCircle, TrendingUp, TrendingDown, DollarSign, CreditCard, Award, AlertCircle, Wallet, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface CreditsBalance {
   creditsBalance: number;
@@ -40,6 +41,8 @@ export function CreditsDashboard() {
   const { toast } = useToast();
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [purchaseAmount, setPurchaseAmount] = useState('10');
+  const [paymentMethod, setPaymentMethod] = useState<'crypto' | 'stripe'>('crypto');
+  const [cryptoPaymentData, setCryptoPaymentData] = useState<any>(null);
 
   const { data: balance, isLoading, isError: balanceError } = useQuery<{ success: boolean; data?: CreditsBalance }>({
     queryKey: ['/api/credits/balance'],
@@ -107,6 +110,55 @@ export function CreditsDashboard() {
       });
     },
   });
+
+  // Crypto purchase mutation
+  const createCryptoPayment = useMutation({
+    mutationFn: async (amount: number) => {
+      return await apiRequest('/api/credits/purchase-crypto', 'POST', { amount, currency: 'USDC', network: 'base' });
+    },
+    onSuccess: (data: any) => {
+      setCryptoPaymentData(data);
+      toast({
+        title: "Payment Request Created",
+        description: `Send ${data.amount} USDC on Base to the wallet address below`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to Create Payment",
+        description: error?.message || "Unable to create crypto payment. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Stripe purchase mutation
+  const createStripeCheckout = useMutation({
+    mutationFn: async (amount: number) => {
+      return await apiRequest('/api/credits/purchase-stripe', 'POST', { amount });
+    },
+    onSuccess: (data: any) => {
+      // Redirect to Stripe Checkout
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Checkout Failed",
+        description: error?.message || "Unable to create checkout session. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: "Wallet address copied to clipboard",
+    });
+  };
 
   if (isLoading) {
     return (
@@ -302,63 +354,200 @@ export function CreditsDashboard() {
         </Card>
       )}
 
-      {/* Purchase Credits Modal */}
-      <Dialog open={isPurchaseModalOpen} onOpenChange={setIsPurchaseModalOpen}>
-        <DialogContent data-testid="modal-purchase-credits">
+      {/* Purchase Credits Modal - Zero Friction Conversion */}
+      <Dialog open={isPurchaseModalOpen} onOpenChange={(open) => {
+        setIsPurchaseModalOpen(open);
+        if (!open) {
+          setCryptoPaymentData(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl" data-testid="modal-purchase-credits">
           <DialogHeader>
-            <DialogTitle>Purchase Credits</DialogTitle>
+            <DialogTitle>Add Credits</DialogTitle>
             <DialogDescription>
-              Add credits to your account. Minimum purchase is $10 (100 credits).
+              Choose your preferred payment method. No signup required!
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount (USD)</Label>
-              <Input
-                id="amount"
-                type="number"
-                min="10"
-                step="10"
-                value={purchaseAmount}
-                onChange={(e) => setPurchaseAmount(e.target.value)}
-                placeholder="10"
-                data-testid="input-purchase-amount"
-              />
-              <p className="text-sm text-muted-foreground">
-                = {(parseFloat(purchaseAmount) * 10 || 0).toFixed(0)} credits
-              </p>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsPurchaseModalOpen(false)}
-                data-testid="button-cancel-purchase"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => {
-                  const amount = parseFloat(purchaseAmount);
-                  if (isFinite(amount) && amount >= 10) {
-                    purchaseCredits.mutate(amount);
+
+          <Tabs defaultValue="crypto" value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as 'crypto' | 'stripe')}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="crypto" data-testid="tab-crypto">
+                <Wallet className="w-4 h-4 mr-2" />
+                Crypto (USDC)
+              </TabsTrigger>
+              <TabsTrigger value="stripe" data-testid="tab-stripe">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Credit Card
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Crypto Payment */}
+            <TabsContent value="crypto" className="space-y-4">
+              {!cryptoPaymentData ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="crypto-amount">Amount (USD)</Label>
+                    <Input
+                      id="crypto-amount"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={purchaseAmount}
+                      onChange={(e) => setPurchaseAmount(e.target.value)}
+                      placeholder="50"
+                      data-testid="input-crypto-amount"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      = {(parseFloat(purchaseAmount) * 10 || 0).toFixed(0)} credits
+                    </p>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsPurchaseModalOpen(false)}
+                      data-testid="button-cancel-crypto"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        const amount = parseFloat(purchaseAmount);
+                        if (isFinite(amount) && amount > 0) {
+                          createCryptoPayment.mutate(amount);
+                        }
+                      }}
+                      disabled={
+                        createCryptoPayment.isPending || 
+                        !isFinite(parseFloat(purchaseAmount)) || 
+                        parseFloat(purchaseAmount) <= 0
+                      }
+                      data-testid="button-create-crypto-payment"
+                    >
+                      <Wallet className="w-4 h-4 mr-2" />
+                      {createCryptoPayment.isPending ? 'Creating...' : 'Continue with Crypto'}
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <Card className="p-6 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-lg mb-2">Send USDC on Base Chain</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Send exactly {cryptoPaymentData.amount} USDC to the address below
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-xs">Wallet Address</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={cryptoPaymentData.walletAddress}
+                          readOnly
+                          className="font-mono text-sm"
+                          data-testid="input-wallet-address"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyToClipboard(cryptoPaymentData.walletAddress)}
+                          data-testid="button-copy-address"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-muted-foreground">Amount</p>
+                        <p className="font-semibold">{cryptoPaymentData.amount} USDC</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Network</p>
+                        <p className="font-semibold capitalize">{cryptoPaymentData.network}</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Credits</p>
+                        <p className="font-semibold">{cryptoPaymentData.amount * 10} credits</p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Expires In</p>
+                        <p className="font-semibold">15 minutes</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <p className="text-xs text-muted-foreground mb-2">
+                        ✓ Credits will be added automatically once payment is confirmed on-chain
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        ✓ Payment ID: {cryptoPaymentData.paymentId}
+                      </p>
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setCryptoPaymentData(null);
+                        setIsPurchaseModalOpen(false);
+                      }}
+                      data-testid="button-close-crypto-payment"
+                    >
+                      Done
+                    </Button>
+                  </div>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Stripe Payment */}
+            <TabsContent value="stripe" className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="stripe-amount">Amount (USD)</Label>
+                <Input
+                  id="stripe-amount"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={purchaseAmount}
+                  onChange={(e) => setPurchaseAmount(e.target.value)}
+                  placeholder="50"
+                  data-testid="input-stripe-amount"
+                />
+                <p className="text-sm text-muted-foreground">
+                  = {(parseFloat(purchaseAmount) * 10 || 0).toFixed(0)} credits
+                </p>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsPurchaseModalOpen(false)}
+                  data-testid="button-cancel-stripe"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    const amount = parseFloat(purchaseAmount);
+                    if (isFinite(amount) && amount > 0) {
+                      createStripeCheckout.mutate(amount);
+                    }
+                  }}
+                  disabled={
+                    createStripeCheckout.isPending || 
+                    !isFinite(parseFloat(purchaseAmount)) || 
+                    parseFloat(purchaseAmount) <= 0
                   }
-                }}
-                disabled={
-                  purchaseCredits.isPending || 
-                  !isFinite(parseFloat(purchaseAmount)) || 
-                  parseFloat(purchaseAmount) < 10
-                }
-                data-testid="button-confirm-purchase"
-              >
-                {purchaseCredits.isPending ? 'Processing...' : 'Purchase'}
-              </Button>
-            </div>
-            {(!isFinite(parseFloat(purchaseAmount)) || parseFloat(purchaseAmount) < 10) && (
-              <p className="text-xs text-red-600 dark:text-red-400">
-                Please enter a valid amount of $10 or more
-              </p>
-            )}
-          </div>
+                  data-testid="button-create-stripe-checkout"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  {createStripeCheckout.isPending ? 'Processing...' : 'Pay with Card'}
+                </Button>
+              </div>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
     </div>

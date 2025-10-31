@@ -242,22 +242,14 @@ export class CreditsPaymentService {
           success: false,
           approved: false,
           requiresManualApproval: false,
-          message: `Insufficient credits. Need ${creditsNeeded} credits ($${amount}), have ${currentCredits} credits`,
+          message: `Insufficient credits. Need ${creditsNeeded} credits ($${amount}), have ${currentCredits} credits. Add more credits to continue.`,
           remainingCredits: currentCredits,
         };
       }
 
-      // Guests auto-approved for small amounts only (up to $2)
-      if (amount > 2.00) {
-        return {
-          success: false,
-          approved: false,
-          requiresManualApproval: true,
-          message: `Guest payments limited to $2. Amount: $${amount}. Sign up for higher limits.`,
-          remainingCredits: currentCredits,
-        };
-      }
-
+      // No payment limit for guests - let them spend as much as they want!
+      // Abuse is already prevented by one-time $1 free grant (freeCreditsGranted flag)
+      
       // Deduct credits atomically
       const newCreditsBalance = currentCredits - creditsNeeded;
       const newTotalSpent = parseFloat(guestAccount.totalSpent) + amount;

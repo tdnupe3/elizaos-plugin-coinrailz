@@ -487,6 +487,46 @@ export class X402PaymentService {
       };
     }
   }
+
+  /**
+   * Verify payment to platform wallet (for guest credit purchases)
+   * Uses Alchemy RPC to verify on-chain transaction
+   */
+  async verifyPlatformWalletPayment(
+    platformWalletAddress: string,
+    expectedAmount: number,
+    network: string,
+    transactionHash?: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!transactionHash) {
+        return { success: false, error: 'Transaction hash required for verification' };
+      }
+
+      // Verify transaction on-chain using Alchemy
+      const verified = await this.verifyOnChainPayment(
+        platformWalletAddress,
+        expectedAmount,
+        network,
+        transactionHash
+      );
+
+      if (!verified) {
+        return { 
+          success: false, 
+          error: 'Payment verification failed. Transaction not found or invalid.' 
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Platform wallet payment verification error:', error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Verification failed' 
+      };
+    }
+  }
 }
 
 export const x402PaymentService = new X402PaymentService();

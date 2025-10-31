@@ -1,13 +1,17 @@
 import type { Express, Request, Response } from 'express';
 import { db } from '../db';
-import { users, creditsTransactions, platformTestimonials, guestCredits, guestCreditsTransactions } from '../../shared/schema';
+import { users, creditsTransactions, platformTestimonials, guestCredits, guestCreditsTransactions, pendingCryptoPaymentRequests } from '../../shared/schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { AntiAbuseService } from '../services/antiAbuseService';
 import Stripe from 'stripe';
+import crypto from 'crypto';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2023-10-16",
 }) : null;
+
+// Platform wallet for receiving autonomous payments
+const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321";
 
 export function registerCreditsRoutes(app: Express) {
   app.get('/api/credits/balance', async (req: any, res: Response) => {
@@ -314,7 +318,7 @@ export function registerCreditsRoutes(app: Express) {
     }
   });
 
-  // Guest crypto credit purchase (Option 2: Zero-friction crypto conversion)
+  // Guest crypto credit purchase (Option 2: Zero-friction crypto conversion via platform wallet)
   app.post('/api/credits/purchase-crypto', async (req: any, res: Response) => {
     try {
       const { amount, currency = 'USDC', network = 'base' } = req.body;
@@ -324,39 +328,48 @@ export function registerCreditsRoutes(app: Express) {
         return res.status(400).json({ error: 'Invalid amount' });
       }
 
-      // Get guest IP for tracking
+      // Get guest IP and fingerprint for tracking
       const ipAddress = AntiAbuseService.getClientIP(req);
+      const clientFingerprint = req.body.fingerprint;
+      const fingerprint = AntiAbuseService.generateFingerprint(req, clientFingerprint);
       
-      // Create x402 payment request using existing service
-      const { X402PaymentService } = await import('../services/x402PaymentService');
-      const paymentService = new X402PaymentService();
+      // Generate unique payment amount with high precision for on-chain matching
+      // Example: $50.00 becomes $50.001234 (unique per request)
+      const randomPrecision = Math.random() * 0.999999; // 0.000000 to 0.999999
+      const uniqueAmount = parseFloat((amount + randomPrecision).toFixed(6));
       
-      const paymentRequest = await paymentService.createPaymentRequest({
-        amount,
-        agentId: 'guest',
-        serviceDescription: `Guest credit purchase: $${amount}`,
+      // Payment expires in 15 minutes
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      
+      // Store payment request in database
+      const [paymentRequest] = await db.insert(pendingCryptoPaymentRequests).values({
+        guestIP: ipAddress,
+        fingerprint,
+        requestedAmountUSD: amount.toString(),
+        uniquePaymentAmount: uniqueAmount.toString(),
+        platformWalletAddress: PLATFORM_WALLET,
         network,
         currency,
-        metadata: {
-          purchaseType: 'guest_credits',
-          guestIP: ipAddress,
-          creditsAmount: amount * 10, // $1 = 10 credits
-        },
-      });
-
-      if (!paymentRequest.success) {
-        return res.status(500).json({ error: paymentRequest.error || 'Failed to create payment request' });
-      }
+        status: 'pending',
+        expiresAt,
+      }).returning();
 
       res.json({
         success: true,
-        paymentId: paymentRequest.paymentId,
-        walletAddress: paymentRequest.walletAddress,
-        amount: paymentRequest.amount,
-        currency: paymentRequest.currency,
-        network: paymentRequest.network,
-        expiresAt: paymentRequest.expiresAt,
-        message: `Send ${amount} ${currency} on ${network} to ${paymentRequest.walletAddress}`,
+        paymentId: paymentRequest.id,
+        walletAddress: PLATFORM_WALLET,
+        amount: uniqueAmount, // Send exact unique amount for matching
+        requestedAmount: amount, // Original requested amount
+        currency,
+        network,
+        expiresAt: expiresAt.toISOString(),
+        message: `Send exactly ${uniqueAmount} ${currency} on ${network.toUpperCase()} to ${PLATFORM_WALLET}`,
+        instructions: [
+          `1. Send exactly ${uniqueAmount} USDC (not ${amount})`,
+          `2. Use ${network.toUpperCase()} network only`,
+          `3. Payment expires in 15 minutes`,
+          `4. Credits will be added automatically when payment is detected on-chain`,
+        ],
       });
     } catch (error) {
       console.error('Error creating crypto purchase:', error);
@@ -500,33 +513,64 @@ export function registerCreditsRoutes(app: Express) {
     }
   });
 
-  // Verify crypto payment and credit guest account
+  // Verify crypto payment via Alchemy on-chain verification (autonomous flow)
   app.post('/api/credits/verify-purchase', async (req: any, res: Response) => {
     try {
       const { paymentId, transactionHash } = req.body;
       
-      if (!paymentId || !transactionHash) {
-        return res.status(400).json({ error: 'Missing paymentId or transactionHash' });
+      if (!paymentId) {
+        return res.status(400).json({ error: 'Missing paymentId' });
       }
 
       // Get guest IP
       const ipAddress = AntiAbuseService.getClientIP(req);
 
-      // Verify payment using existing x402 service
+      // Get pending payment request from database
+      const [paymentRequest] = await db
+        .select()
+        .from(pendingCryptoPaymentRequests)
+        .where(sql`${pendingCryptoPaymentRequests.id} = ${paymentId} AND ${pendingCryptoPaymentRequests.guestIP} = ${ipAddress}`);
+
+      if (!paymentRequest) {
+        return res.status(404).json({ error: 'Payment request not found or does not belong to this account' });
+      }
+
+      // Check if already completed
+      if (paymentRequest.status === 'completed') {
+        return res.status(400).json({ error: 'Payment already processed' });
+      }
+
+      // Check if expired
+      if (new Date(paymentRequest.expiresAt) < new Date()) {
+        await db
+          .update(pendingCryptoPaymentRequests)
+          .set({ status: 'expired' })
+          .where(eq(pendingCryptoPaymentRequests.id, paymentId));
+        return res.status(400).json({ error: 'Payment request expired. Please create a new payment request.' });
+      }
+
+      // Verify payment on-chain using Alchemy
       const { X402PaymentService } = await import('../services/x402PaymentService');
       const paymentService = new X402PaymentService();
       
-      const verification = await paymentService.verifyPayment(paymentId, transactionHash);
+      // Verify the transaction sent to platform wallet with the unique amount
+      const verification = await paymentService.verifyPlatformWalletPayment(
+        PLATFORM_WALLET,
+        parseFloat(paymentRequest.uniquePaymentAmount),
+        paymentRequest.network,
+        transactionHash
+      );
 
       if (!verification.success) {
         return res.status(400).json({ 
-          error: verification.error || 'Payment verification failed',
-          status: verification.status,
+          error: verification.error || 'Payment verification failed. Please ensure you sent the exact amount to the correct address.',
+          details: `Expected ${paymentRequest.uniquePaymentAmount} USDC to ${PLATFORM_WALLET} on ${paymentRequest.network}`,
         });
       }
 
       // Payment verified! Credit the guest account atomically
-      const creditsToAdd = verification.amount * 10; // $1 = 10 credits
+      const requestedAmountUSD = parseFloat(paymentRequest.requestedAmountUSD);
+      const creditsToAdd = requestedAmountUSD * 10; // $1 = 10 credits
       
       // Get or create guest account
       const [guestAccount] = await db
@@ -537,6 +581,16 @@ export function registerCreditsRoutes(app: Express) {
       if (!guestAccount) {
         return res.status(404).json({ error: 'Guest account not found. Please claim free credits first.' });
       }
+
+      // Update payment request as completed
+      await db
+        .update(pendingCryptoPaymentRequests)
+        .set({
+          status: 'completed',
+          txHash: transactionHash,
+          completedAt: new Date(),
+        })
+        .where(eq(pendingCryptoPaymentRequests.id, paymentId));
 
       // Update guest credits atomically
       const newBalance = parseFloat(guestAccount.creditsBalance) + creditsToAdd;
@@ -559,8 +613,8 @@ export function registerCreditsRoutes(app: Express) {
         ipAddress,
         type: 'purchase',
         amount: creditsToAdd.toString(),
-        dollarValue: verification.amount.toString(),
-        description: `Crypto purchase: ${verification.amount} ${verification.currency} on ${verification.network}`,
+        dollarValue: requestedAmountUSD.toString(),
+        description: `Crypto purchase: ${requestedAmountUSD} USDC on ${paymentRequest.network} (tx: ${transactionHash.substring(0, 10)}...)`,
         balanceAfter: newBalance.toString(),
       });
 
@@ -568,10 +622,11 @@ export function registerCreditsRoutes(app: Express) {
         success: true,
         creditsAdded: creditsToAdd,
         newBalance,
-        dollarAmount: verification.amount,
-        currency: verification.currency,
-        network: verification.network,
-        message: `Successfully added ${creditsToAdd} credits ($${verification.amount})`,
+        dollarAmount: requestedAmountUSD,
+        currency: 'USDC',
+        network: paymentRequest.network,
+        transactionHash,
+        message: `Successfully added ${creditsToAdd} credits ($${requestedAmountUSD})`,
       });
     } catch (error) {
       console.error('Error verifying crypto purchase:', error);

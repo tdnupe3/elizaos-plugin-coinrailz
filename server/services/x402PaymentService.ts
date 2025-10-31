@@ -341,12 +341,14 @@ export class X402PaymentService {
 
   /**
    * Verify REAL on-chain payment using Alchemy RPC
+   * Supports: USDC, USDT, ETH on Base, Ethereum, Polygon, Arbitrum, BNB Chain
    */
   private async verifyOnChainPayment(
     walletAddress: string,
     expectedAmount: number,
     network: string,
-    transactionHash: string
+    transactionHash: string,
+    currency: string = 'USDC'
   ): Promise<boolean> {
     const alchemyKey = process.env.ALCHEMY_API_KEY;
     if (!alchemyKey) {
@@ -354,8 +356,20 @@ export class X402PaymentService {
     }
 
     try {
-      // Construct Alchemy RPC URL for Base Chain
-      const rpcUrl = `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`;
+      // Get RPC URL for the network
+      const RPC_URLS: Record<string, string> = {
+        'base': `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+        'ethereum': `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+        'polygon': `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+        'arbitrum': `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+        // BNB Chain doesn't have Alchemy support, using public RPC
+        'bnb': 'https://bsc-dataseed1.binance.org/',
+      };
+
+      const rpcUrl = RPC_URLS[network.toLowerCase()];
+      if (!rpcUrl) {
+        throw new Error(`Unsupported network: ${network}`);
+      }
       
       // Query blockchain for transaction receipt
       const response = await fetch(rpcUrl, {
@@ -370,7 +384,7 @@ export class X402PaymentService {
       });
 
       if (!response.ok) {
-        throw new Error(`Alchemy RPC failed: ${response.status} ${response.statusText}`);
+        throw new Error(`RPC failed: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -380,7 +394,7 @@ export class X402PaymentService {
       }
 
       if (!data.result) {
-        console.warn(`❌ Transaction not found on Base Chain: ${transactionHash}`);
+        console.warn(`❌ Transaction not found on ${network}: ${transactionHash}`);
         return false;
       }
 
@@ -392,81 +406,125 @@ export class X402PaymentService {
         return false;
       }
 
-      // For USDC transfers, the 'to' address is the USDC contract, not the recipient
-      // We need to parse the logs to find the Transfer event
-      
-      // USDC contract addresses by network
-      const USDC_CONTRACTS: Record<string, string> = {
-        'base': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase(), // Base mainnet USDC
-        'ethereum': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'.toLowerCase(),
-        'polygon': '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'.toLowerCase(),
-      };
+      // Handle native currency (ETH, BNB) vs ERC-20 tokens (USDC, USDT)
+      const isNativeCurrency = currency.toUpperCase() === 'ETH' || currency.toUpperCase() === 'BNB';
 
-      const usdcContract = USDC_CONTRACTS[network.toLowerCase()];
-      if (!usdcContract) {
-        console.warn(`❌ Unsupported network for USDC verification: ${network}`);
-        return false;
+      if (isNativeCurrency) {
+        // For native ETH/BNB transfers, verify recipient and value directly from receipt
+        const recipientAddress = receipt.to?.toLowerCase();
+        const expectedAddress = walletAddress.toLowerCase();
+
+        if (recipientAddress !== expectedAddress) {
+          console.warn(`❌ Recipient mismatch: expected ${expectedAddress}, got ${recipientAddress}`);
+          return false;
+        }
+
+        // Convert hex value to decimal and adjust for 18 decimals
+        const valueHex = receipt.value || '0x0';
+        const valueWei = BigInt(valueHex);
+        const actualAmount = Number(valueWei) / 1e18; // ETH has 18 decimals
+
+        // Allow small precision difference due to gas and floating point
+        const tolerance = 0.001; // 0.001 ETH tolerance
+        const amountDiff = Math.abs(actualAmount - expectedAmount);
+
+        if (amountDiff > tolerance) {
+          console.warn(`❌ Amount mismatch: expected ${expectedAmount} ${currency}, got ${actualAmount} ${currency} (diff: ${amountDiff})`);
+          return false;
+        }
+
+        console.log(`✅ Native currency verification passed: ${transactionHash} - ${actualAmount} ${currency} to ${recipientAddress}`);
+        return true;
+
+      } else {
+        // For ERC-20 tokens (USDC, USDT), parse Transfer event from logs
+        
+        // Token contract addresses by network and currency
+        const TOKEN_CONTRACTS: Record<string, Record<string, string>> = {
+          'usdc': {
+            'base': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase(),
+            'ethereum': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'.toLowerCase(),
+            'polygon': '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'.toLowerCase(),
+            'arbitrum': '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'.toLowerCase(),
+            'bnb': '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'.toLowerCase(),
+          },
+          'usdt': {
+            'base': '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2'.toLowerCase(),
+            'ethereum': '0xdAC17F958D2ee523a2206206994597C13D831ec7'.toLowerCase(),
+            'polygon': '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'.toLowerCase(),
+            'arbitrum': '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'.toLowerCase(),
+            'bnb': '0x55d398326f99059fF775485246999027B3197955'.toLowerCase(),
+          },
+        };
+
+        const tokenContract = TOKEN_CONTRACTS[currency.toLowerCase()]?.[network.toLowerCase()];
+        if (!tokenContract) {
+          console.warn(`❌ Unsupported currency/network combination: ${currency} on ${network}`);
+          return false;
+        }
+
+        // Verify transaction was sent to token contract
+        const contractAddress = receipt.to?.toLowerCase();
+        if (contractAddress !== tokenContract) {
+          console.warn(`❌ Transaction not sent to ${currency} contract: expected ${tokenContract}, got ${contractAddress}`);
+          return false;
+        }
+
+        // Parse Transfer event logs to verify recipient and amount
+        // Transfer event signature: Transfer(address indexed from, address indexed to, uint256 value)
+        const TRANSFER_EVENT_SIGNATURE = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+        
+        const transferLog = receipt.logs?.find((log: any) => 
+          log.topics?.[0]?.toLowerCase() === TRANSFER_EVENT_SIGNATURE.toLowerCase() &&
+          log.address?.toLowerCase() === tokenContract
+        );
+
+        if (!transferLog) {
+          console.warn(`❌ No ${currency} Transfer event found in transaction ${transactionHash}`);
+          return false;
+        }
+
+        // Extract recipient from topic[2] (to address is the 3rd topic)
+        const recipientAddress = transferLog.topics?.[2];
+        if (!recipientAddress) {
+          console.warn(`❌ Cannot extract recipient from Transfer event`);
+          return false;
+        }
+
+        // Remove leading zeros from address (topic is 32 bytes, address is 20 bytes)
+        const actualRecipient = '0x' + recipientAddress.slice(-40).toLowerCase();
+        const expectedAddress = walletAddress.toLowerCase();
+
+        if (actualRecipient !== expectedAddress) {
+          console.warn(`❌ Recipient mismatch: expected ${expectedAddress}, got ${actualRecipient}`);
+          return false;
+        }
+
+        // Extract amount from log data (uint256)
+        const amountHex = transferLog.data;
+        if (!amountHex) {
+          console.warn(`❌ Cannot extract amount from Transfer event`);
+          return false;
+        }
+
+        // Convert hex to decimal and adjust for token decimals
+        // USDC and USDT both use 6 decimals
+        const decimals = 6;
+        const amountRaw = BigInt(amountHex);
+        const actualAmount = Number(amountRaw) / Math.pow(10, decimals);
+        
+        // Allow small precision difference (1 cent = 0.01) due to floating point
+        const tolerance = 0.01;
+        const amountDiff = Math.abs(actualAmount - expectedAmount);
+
+        if (amountDiff > tolerance) {
+          console.warn(`❌ Amount mismatch: expected ${expectedAmount} ${currency}, got ${actualAmount} ${currency} (diff: ${amountDiff})`);
+          return false;
+        }
+        
+        console.log(`✅ ERC-20 verification passed: ${transactionHash} - ${actualAmount} ${currency} to ${actualRecipient}`);
+        return true;
       }
-
-      // Verify transaction was sent to USDC contract
-      const contractAddress = receipt.to?.toLowerCase();
-      if (contractAddress !== usdcContract) {
-        console.warn(`❌ Transaction not sent to USDC contract: expected ${usdcContract}, got ${contractAddress}`);
-        return false;
-      }
-
-      // Parse Transfer event logs to verify recipient and amount
-      // Transfer event signature: Transfer(address indexed from, address indexed to, uint256 value)
-      const TRANSFER_EVENT_SIGNATURE = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-      
-      const transferLog = receipt.logs?.find((log: any) => 
-        log.topics?.[0]?.toLowerCase() === TRANSFER_EVENT_SIGNATURE.toLowerCase() &&
-        log.address?.toLowerCase() === usdcContract
-      );
-
-      if (!transferLog) {
-        console.warn(`❌ No USDC Transfer event found in transaction ${transactionHash}`);
-        return false;
-      }
-
-      // Extract recipient from topic[2] (to address is the 3rd topic)
-      const recipientAddress = transferLog.topics?.[2];
-      if (!recipientAddress) {
-        console.warn(`❌ Cannot extract recipient from Transfer event`);
-        return false;
-      }
-
-      // Remove leading zeros from address (topic is 32 bytes, address is 20 bytes)
-      const actualRecipient = '0x' + recipientAddress.slice(-40).toLowerCase();
-      const expectedAddress = walletAddress.toLowerCase();
-
-      if (actualRecipient !== expectedAddress) {
-        console.warn(`❌ Recipient mismatch: expected ${expectedAddress}, got ${actualRecipient}`);
-        return false;
-      }
-
-      // Extract amount from log data (uint256, 6 decimals for USDC)
-      const amountHex = transferLog.data;
-      if (!amountHex) {
-        console.warn(`❌ Cannot extract amount from Transfer event`);
-        return false;
-      }
-
-      // Convert hex to decimal and adjust for 6 decimals (USDC has 6 decimals)
-      const amountRaw = BigInt(amountHex);
-      const actualAmount = Number(amountRaw) / 1e6; // USDC has 6 decimals
-      
-      // Allow small precision difference (1 cent = 0.01 USDC) due to floating point
-      const tolerance = 0.01;
-      const amountDiff = Math.abs(actualAmount - expectedAmount);
-
-      if (amountDiff > tolerance) {
-        console.warn(`❌ Amount mismatch: expected ${expectedAmount} USDC, got ${actualAmount} USDC (diff: ${amountDiff})`);
-        return false;
-      }
-      
-      console.log(`✅ REAL on-chain verification passed: ${transactionHash} - ${actualAmount} USDC to ${actualRecipient}`);
-      return true;
     } catch (error) {
       console.error('❌ On-chain verification failed:', error);
       throw error;
@@ -552,12 +610,14 @@ export class X402PaymentService {
   /**
    * Verify payment to platform wallet (for guest credit purchases)
    * Uses Alchemy RPC to verify on-chain transaction
+   * Supports: USDC, USDT, ETH on Base, Ethereum, Polygon, Arbitrum, BNB Chain
    */
   async verifyPlatformWalletPayment(
     platformWalletAddress: string,
     expectedAmount: number,
     network: string,
-    transactionHash?: string
+    transactionHash?: string,
+    currency: string = 'USDC'
   ): Promise<{ success: boolean; error?: string }> {
     try {
       if (!transactionHash) {
@@ -569,7 +629,8 @@ export class X402PaymentService {
         platformWalletAddress,
         expectedAmount,
         network,
-        transactionHash
+        transactionHash,
+        currency
       );
 
       if (!verified) {

@@ -328,6 +328,22 @@ export function registerCreditsRoutes(app: Express) {
         return res.status(400).json({ error: 'Invalid amount' });
       }
 
+      // Validate currency
+      const SUPPORTED_CURRENCIES = ['USDC', 'USDT', 'ETH', 'BNB'];
+      if (!SUPPORTED_CURRENCIES.includes(currency.toUpperCase())) {
+        return res.status(400).json({ 
+          error: `Unsupported currency. Supported currencies: ${SUPPORTED_CURRENCIES.join(', ')}` 
+        });
+      }
+
+      // Validate network
+      const SUPPORTED_NETWORKS = ['base', 'ethereum', 'polygon', 'arbitrum', 'bnb'];
+      if (!SUPPORTED_NETWORKS.includes(network.toLowerCase())) {
+        return res.status(400).json({ 
+          error: `Unsupported network. Supported networks: ${SUPPORTED_NETWORKS.join(', ')}` 
+        });
+      }
+
       // Get guest IP and fingerprint for tracking
       const ipAddress = AntiAbuseService.getClientIP(req);
       const clientFingerprint = req.body.fingerprint;
@@ -558,7 +574,8 @@ export function registerCreditsRoutes(app: Express) {
         PLATFORM_WALLET,
         parseFloat(paymentRequest.uniquePaymentAmount),
         paymentRequest.network,
-        transactionHash
+        transactionHash,
+        paymentRequest.currency // Pass currency for proper verification
       );
 
       if (!verification.success) {

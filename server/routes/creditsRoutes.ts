@@ -1,27 +1,57 @@
 import type { Express, Request, Response } from 'express';
 import { db } from '../db';
-import { users, creditsTransactions, platformTestimonials } from '../../shared/schema';
-import { eq, desc } from 'drizzle-orm';
+import { users, creditsTransactions, platformTestimonials, guestCredits, guestCreditsTransactions } from '../../shared/schema';
+import { eq, desc, sql } from 'drizzle-orm';
 import { AntiAbuseService } from '../services/antiAbuseService';
 
 export function registerCreditsRoutes(app: Express) {
   app.get('/api/credits/balance', async (req: any, res: Response) => {
     try {
-      if (!req.user?.id) {
-        return res.status(401).json({ error: 'Unauthorized' });
+      // For authenticated users
+      if (req.user?.id) {
+        const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
+        if (!user) return res.status(404).json({ error: 'User not found' });
+
+        return res.json({
+          success: true,
+          creditsBalance: parseFloat(user.creditsBalance || '0'),
+          monthlySpendingLimit: parseFloat(user.monthlySpendingLimit || '1100'),
+          monthlySpendTotal: parseFloat(user.monthlySpendTotal || '0'),
+          remainingMonthlyBudget: parseFloat(user.monthlySpendingLimit || '1100') - parseFloat(user.monthlySpendTotal || '0'),
+          successfulTransactions: user.successfulTransactions || 0,
+          freeCreditsGranted: user.freeCreditsGranted || false,
+          userType: 'authenticated',
+        });
       }
 
-      const [user] = await db.select().from(users).where(eq(users.id, req.user.id));
-      if (!user) return res.status(404).json({ error: 'User not found' });
+      // For guest users - get IP and check guest credits
+      const ipAddress = AntiAbuseService.getClientIP(req);
+      const [guestAccount] = await db
+        .select()
+        .from(guestCredits)
+        .where(eq(guestCredits.ipAddress, ipAddress));
+
+      if (!guestAccount) {
+        return res.json({
+          success: true,
+          creditsBalance: 0,
+          freeCreditsGranted: false,
+          userType: 'guest',
+          message: 'Claim your free $1 credits to get started',
+        });
+      }
+
+      const isExpired = guestAccount.expiresAt && new Date(guestAccount.expiresAt) < new Date();
 
       res.json({
         success: true,
-        creditsBalance: parseFloat(user.creditsBalance || '0'),
-        monthlySpendingLimit: parseFloat(user.monthlySpendingLimit || '1100'),
-        monthlySpendTotal: parseFloat(user.monthlySpendTotal || '0'),
-        remainingMonthlyBudget: parseFloat(user.monthlySpendingLimit || '1100') - parseFloat(user.monthlySpendTotal || '0'),
-        successfulTransactions: user.successfulTransactions || 0,
-        freeCreditsGranted: user.freeCreditsGranted || false,
+        creditsBalance: parseFloat(guestAccount.creditsBalance || '0'),
+        totalEarned: parseFloat(guestAccount.totalEarned || '0'),
+        totalSpent: parseFloat(guestAccount.totalSpent || '0'),
+        freeCreditsGranted: true,
+        userType: 'guest',
+        expiresAt: guestAccount.expiresAt?.toISOString(),
+        isExpired,
       });
     } catch (error) {
       console.error('Error fetching credits balance:', error);
@@ -84,19 +114,74 @@ export function registerCreditsRoutes(app: Express) {
         });
       }
 
-      // For guest users - allow them to claim but track via IP/fingerprint only
-      // In production, you'd store this in session or a temporary guest account
+      // For guest users - create/update guest credits account (IP-based)
       const freeCreditsAmount = 10.00;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
 
-      // Log the guest claim
+      // Check if guest already has credits account
+      const [existingGuest] = await db
+        .select()
+        .from(guestCredits)
+        .where(eq(guestCredits.ipAddress, ipAddress));
+
+      let guestId: number;
+      let newBalance: number;
+
+      if (existingGuest) {
+        // Guest already has account, just add credits
+        newBalance = parseFloat(existingGuest.creditsBalance) + freeCreditsAmount;
+        const newTotalEarned = parseFloat(existingGuest.totalEarned) + freeCreditsAmount;
+
+        await db
+          .update(guestCredits)
+          .set({
+            creditsBalance: newBalance.toString(),
+            totalEarned: newTotalEarned.toString(),
+            lastActivity: new Date(),
+            expiresAt,
+          })
+          .where(eq(guestCredits.id, existingGuest.id));
+
+        guestId = existingGuest.id;
+      } else {
+        // Create new guest credits account
+        const [newGuest] = await db
+          .insert(guestCredits)
+          .values({
+            ipAddress,
+            fingerprint,
+            creditsBalance: freeCreditsAmount.toString(),
+            totalEarned: freeCreditsAmount.toString(),
+            totalSpent: '0',
+            expiresAt,
+          })
+          .returning();
+
+        guestId = newGuest.id;
+        newBalance = freeCreditsAmount;
+      }
+
+      // Record the transaction
+      await db.insert(guestCreditsTransactions).values({
+        guestId,
+        ipAddress,
+        type: 'bonus',
+        amount: freeCreditsAmount.toString(),
+        dollarValue: '1.00',
+        description: 'Welcome bonus - $1 free credits',
+        balanceAfter: newBalance.toString(),
+      });
+
+      // Log the claim
       await AntiAbuseService.logClaim(ipAddress, fingerprint, null, sessionId, userAgent);
 
       return res.json({ 
         success: true, 
-        message: 'Free credits reserved! Sign up to claim them.', 
+        message: 'Free credits claimed! You can now use services.', 
         creditsAdded: freeCreditsAmount,
+        newBalance,
         guestMode: true,
-        requiresSignup: true
+        expiresAt: expiresAt.toISOString(),
       });
     } catch (error) {
       console.error('Error claiming free credits:', error);

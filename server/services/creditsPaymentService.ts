@@ -1,9 +1,10 @@
 import { db } from '../db';
-import { users, creditsTransactions } from '../../shared/schema';
+import { users, creditsTransactions, guestCredits, guestCreditsTransactions } from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 interface PaymentRequest {
-  userId: string;
+  userId?: string; // Optional for guest payments
+  guestIP?: string; // IP address for guest payments
   amount: number; // Amount in USD
   description: string;
   orderId?: string;
@@ -25,11 +26,27 @@ export class CreditsPaymentService {
 
   /**
    * Process payment using credits with auto-approval for amounts < $100
+   * Supports both authenticated users and guest payments (IP-based)
    */
   static async processPayment(request: PaymentRequest): Promise<PaymentResult> {
-    const { userId, amount, description, orderId } = request;
+    const { userId, guestIP, amount, description, orderId } = request;
 
     try {
+      // Handle guest payments (IP-based)
+      if (!userId && guestIP) {
+        return await this.processGuestPayment(guestIP, amount, description, orderId);
+      }
+
+      // Handle authenticated user payments
+      if (!userId) {
+        return {
+          success: false,
+          approved: false,
+          requiresManualApproval: false,
+          message: 'User ID or guest IP required',
+        };
+      }
+
       // Get user's current credits and monthly spend
       const [user] = await db
         .select()
@@ -157,6 +174,130 @@ export class CreditsPaymentService {
         approved: false,
         requiresManualApproval: false,
         message: 'Payment processing failed',
+      };
+    }
+  }
+
+  /**
+   * Process guest payment (IP-based)
+   */
+  private static async processGuestPayment(
+    guestIP: string,
+    amount: number,
+    description: string,
+    orderId?: string
+  ): Promise<PaymentResult> {
+    try {
+      // Get guest credits account
+      const [guestAccount] = await db
+        .select()
+        .from(guestCredits)
+        .where(eq(guestCredits.ipAddress, guestIP));
+
+      if (!guestAccount) {
+        return {
+          success: false,
+          approved: false,
+          requiresManualApproval: false,
+          message: 'Guest account not found. Claim free credits first.',
+        };
+      }
+
+      // Check if credits expired
+      if (guestAccount.expiresAt && new Date(guestAccount.expiresAt) < new Date()) {
+        return {
+          success: false,
+          approved: false,
+          requiresManualApproval: false,
+          message: 'Guest credits have expired. Claim new credits to continue.',
+        };
+      }
+
+      const currentCredits = parseFloat(guestAccount.creditsBalance);
+      const creditsNeeded = amount * 10; // $1 = 10 credits
+
+      // Check if guest has enough credits
+      if (currentCredits < creditsNeeded) {
+        return {
+          success: false,
+          approved: false,
+          requiresManualApproval: false,
+          message: `Insufficient credits. Need ${creditsNeeded} credits ($${amount}), have ${currentCredits} credits`,
+          remainingCredits: currentCredits,
+        };
+      }
+
+      // Guests auto-approved for small amounts only (up to $2)
+      if (amount > 2.00) {
+        return {
+          success: false,
+          approved: false,
+          requiresManualApproval: true,
+          message: `Guest payments limited to $2. Amount: $${amount}. Sign up for higher limits.`,
+          remainingCredits: currentCredits,
+        };
+      }
+
+      // Deduct credits atomically
+      const newCreditsBalance = currentCredits - creditsNeeded;
+      const newTotalSpent = parseFloat(guestAccount.totalSpent) + amount;
+
+      const updateResult = await db
+        .update(guestCredits)
+        .set({
+          creditsBalance: sql`CASE 
+            WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+            THEN CAST((CAST(credits_balance AS DECIMAL) - ${creditsNeeded}) AS VARCHAR)
+            ELSE credits_balance 
+          END`,
+          totalSpent: sql`CASE 
+            WHEN CAST(credits_balance AS DECIMAL) >= ${creditsNeeded} 
+            THEN CAST((CAST(total_spent AS DECIMAL) + ${amount}) AS VARCHAR)
+            ELSE total_spent 
+          END`,
+          lastActivity: new Date(),
+        })
+        .where(
+          sql`${guestCredits.id} = ${guestAccount.id} AND CAST(${guestCredits.creditsBalance} AS DECIMAL) >= ${creditsNeeded}`
+        )
+        .returning();
+
+      if (!updateResult || updateResult.length === 0) {
+        return {
+          success: false,
+          approved: false,
+          requiresManualApproval: false,
+          message: 'Insufficient credits due to concurrent transaction. Please retry.',
+        };
+      }
+
+      const finalBalance = parseFloat(updateResult[0].creditsBalance || '0');
+
+      // Record transaction
+      await db.insert(guestCreditsTransactions).values({
+        guestId: guestAccount.id,
+        ipAddress: guestIP,
+        type: 'usage',
+        amount: (-creditsNeeded).toString(),
+        dollarValue: amount.toString(),
+        description,
+        balanceAfter: finalBalance.toString(),
+      });
+
+      return {
+        success: true,
+        approved: true,
+        requiresManualApproval: false,
+        message: `Payment approved! Charged ${creditsNeeded} credits ($${amount})`,
+        remainingCredits: finalBalance,
+      };
+    } catch (error) {
+      console.error('Error processing guest payment:', error);
+      return {
+        success: false,
+        approved: false,
+        requiresManualApproval: false,
+        message: 'Guest payment processing failed',
       };
     }
   }

@@ -15,6 +15,7 @@ import { x402Payments, aiMarketplaceOrders } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
+import { getTokenConfig, getRpcUrl } from '../config/currencyNetworkConfig';
 
 export interface X402PaymentRequest {
   amount: number;
@@ -350,23 +351,16 @@ export class X402PaymentService {
     transactionHash: string,
     currency: string = 'USDC'
   ): Promise<boolean> {
-    const alchemyKey = process.env.ALCHEMY_API_KEY;
-    if (!alchemyKey) {
-      throw new Error('ALCHEMY_API_KEY not configured - cannot verify payments');
-    }
-
     try {
-      // Get RPC URL for the network
-      const RPC_URLS: Record<string, string> = {
-        'base': `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`,
-        'ethereum': `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`,
-        'polygon': `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`,
-        'arbitrum': `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`,
-        // BNB Chain doesn't have Alchemy support, using public RPC
-        'bnb': 'https://bsc-dataseed1.binance.org/',
-      };
+      // Get token configuration from centralized config
+      const tokenConfig = getTokenConfig(currency, network);
+      if (!tokenConfig) {
+        console.warn(`❌ Unsupported currency/network combination: ${currency} on ${network}`);
+        return false;
+      }
 
-      const rpcUrl = RPC_URLS[network.toLowerCase()];
+      // Get RPC URL from centralized config
+      const rpcUrl = getRpcUrl(network);
       if (!rpcUrl) {
         throw new Error(`Unsupported network: ${network}`);
       }
@@ -407,9 +401,7 @@ export class X402PaymentService {
       }
 
       // Handle native currency (ETH, BNB) vs ERC-20 tokens (USDC, USDT)
-      const isNativeCurrency = currency.toUpperCase() === 'ETH' || currency.toUpperCase() === 'BNB';
-
-      if (isNativeCurrency) {
+      if (tokenConfig.type === 'native') {
         // For native ETH/BNB transfers, verify recipient and value directly from receipt
         const recipientAddress = receipt.to?.toLowerCase();
         const expectedAddress = walletAddress.toLowerCase();
@@ -419,13 +411,13 @@ export class X402PaymentService {
           return false;
         }
 
-        // Convert hex value to decimal and adjust for 18 decimals
+        // Convert hex value to decimal and adjust for token decimals (18 for native)
         const valueHex = receipt.value || '0x0';
         const valueWei = BigInt(valueHex);
-        const actualAmount = Number(valueWei) / 1e18; // ETH has 18 decimals
+        const actualAmount = Number(valueWei) / Math.pow(10, tokenConfig.decimals);
 
         // Allow small precision difference due to gas and floating point
-        const tolerance = 0.001; // 0.001 ETH tolerance
+        const tolerance = 0.01; // $0.01 tolerance
         const amountDiff = Math.abs(actualAmount - expectedAmount);
 
         if (amountDiff > tolerance) {
@@ -438,28 +430,9 @@ export class X402PaymentService {
 
       } else {
         // For ERC-20 tokens (USDC, USDT), parse Transfer event from logs
-        
-        // Token contract addresses by network and currency
-        const TOKEN_CONTRACTS: Record<string, Record<string, string>> = {
-          'usdc': {
-            'base': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase(),
-            'ethereum': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'.toLowerCase(),
-            'polygon': '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'.toLowerCase(),
-            'arbitrum': '0xaf88d065e77c8cC2239327C5EDb3A432268e5831'.toLowerCase(),
-            'bnb': '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d'.toLowerCase(),
-          },
-          'usdt': {
-            'base': '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2'.toLowerCase(),
-            'ethereum': '0xdAC17F958D2ee523a2206206994597C13D831ec7'.toLowerCase(),
-            'polygon': '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'.toLowerCase(),
-            'arbitrum': '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'.toLowerCase(),
-            'bnb': '0x55d398326f99059fF775485246999027B3197955'.toLowerCase(),
-          },
-        };
-
-        const tokenContract = TOKEN_CONTRACTS[currency.toLowerCase()]?.[network.toLowerCase()];
+        const tokenContract = tokenConfig.contractAddress?.toLowerCase();
         if (!tokenContract) {
-          console.warn(`❌ Unsupported currency/network combination: ${currency} on ${network}`);
+          console.warn(`❌ No contract address configured for ${currency} on ${network}`);
           return false;
         }
 
@@ -507,11 +480,9 @@ export class X402PaymentService {
           return false;
         }
 
-        // Convert hex to decimal and adjust for token decimals
-        // USDC and USDT both use 6 decimals
-        const decimals = 6;
+        // Convert hex to decimal and adjust for token decimals from config
         const amountRaw = BigInt(amountHex);
-        const actualAmount = Number(amountRaw) / Math.pow(10, decimals);
+        const actualAmount = Number(amountRaw) / Math.pow(10, tokenConfig.decimals);
         
         // Allow small precision difference (1 cent = 0.01) due to floating point
         const tolerance = 0.01;

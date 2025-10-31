@@ -5,6 +5,7 @@ import { eq, desc, sql } from 'drizzle-orm';
 import { AntiAbuseService } from '../services/antiAbuseService';
 import Stripe from 'stripe';
 import crypto from 'crypto';
+import { CURRENCY_NETWORK_MATRIX, isValidCurrencyNetworkCombination, getTokenConfig } from '../config/currencyNetworkConfig';
 
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: "2025-08-27.basil",
@@ -344,15 +345,36 @@ export function registerCreditsRoutes(app: Express) {
         });
       }
 
+      // Validate currency-network compatibility
+      const normalizedCurrency = currency.toUpperCase();
+      const normalizedNetwork = network.toLowerCase();
+      
+      if (!isValidCurrencyNetworkCombination(normalizedCurrency, normalizedNetwork)) {
+        const allowedNetworks = CURRENCY_NETWORK_MATRIX[normalizedCurrency];
+        return res.status(400).json({ 
+          error: `Invalid currency-network combination. ${normalizedCurrency} is not supported on ${normalizedNetwork}. Supported networks for ${normalizedCurrency}: ${allowedNetworks?.join(', ') || 'none'}` 
+        });
+      }
+
+      // Get token configuration for decimal precision
+      const tokenConfig = getTokenConfig(normalizedCurrency, normalizedNetwork);
+      if (!tokenConfig) {
+        return res.status(400).json({ 
+          error: `Token configuration not found for ${normalizedCurrency} on ${normalizedNetwork}` 
+        });
+      }
+
       // Get guest IP and fingerprint for tracking
       const ipAddress = AntiAbuseService.getClientIP(req);
       const clientFingerprint = req.body.fingerprint;
       const fingerprint = AntiAbuseService.generateFingerprint(req, clientFingerprint);
       
-      // Generate unique payment amount with high precision for on-chain matching
-      // Example: $50.00 becomes $50.001234 (unique per request)
-      const randomPrecision = Math.random() * 0.999999; // 0.000000 to 0.999999
-      const uniqueAmount = parseFloat((amount + randomPrecision).toFixed(6));
+      // Generate unique payment amount with appropriate decimal precision based on token type
+      // ERC-20 stablecoins (6 decimals): $50.00 becomes $50.001234
+      // Native currencies (18 decimals): $50.00 becomes $50.000000000000001234
+      const maxPrecision = tokenConfig.decimals === 6 ? 0.999999 : 0.999999999999999999;
+      const randomPrecision = Math.random() * maxPrecision;
+      const uniqueAmount = parseFloat((amount + randomPrecision).toFixed(tokenConfig.decimals));
       
       // Payment expires in 15 minutes
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);

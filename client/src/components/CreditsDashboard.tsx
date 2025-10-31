@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getAvailableNetworks } from '@shared/currencyNetworkConfig';
 
 interface CreditsBalance {
   creditsBalance: number;
@@ -46,6 +47,18 @@ export function CreditsDashboard() {
   const [cryptoPaymentData, setCryptoPaymentData] = useState<any>(null);
   const [selectedCurrency, setSelectedCurrency] = useState('USDC');
   const [selectedNetwork, setSelectedNetwork] = useState('base');
+
+  // Get available networks for selected currency from shared config
+  const availableNetworks = getAvailableNetworks(selectedCurrency);
+
+  // Auto-select first available network when currency changes
+  const handleCurrencyChange = (currency: string) => {
+    setSelectedCurrency(currency);
+    const networks = getAvailableNetworks(currency);
+    if (networks.length > 0 && !networks.includes(selectedNetwork)) {
+      setSelectedNetwork(networks[0]);
+    }
+  };
 
   const { data: balance, isLoading, isError: balanceError } = useQuery<{ success: boolean; data?: CreditsBalance }>({
     queryKey: ['/api/credits/balance'],
@@ -125,9 +138,10 @@ export function CreditsDashboard() {
     },
     onSuccess: (data: any) => {
       setCryptoPaymentData(data);
+      const networkName = data.network.charAt(0).toUpperCase() + data.network.slice(1);
       toast({
         title: "Payment Request Created",
-        description: `Send ${data.amount} USDC on Base to the wallet address below`,
+        description: `Send ${data.amount} ${data.currency} on ${networkName} to the wallet address below`,
       });
     },
     onError: (error: any) => {
@@ -380,7 +394,7 @@ export function CreditsDashboard() {
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="crypto" data-testid="tab-crypto">
                 <Wallet className="w-4 h-4 mr-2" />
-                Crypto (USDC)
+                Crypto
               </TabsTrigger>
               <TabsTrigger value="stripe" data-testid="tab-stripe">
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -395,7 +409,7 @@ export function CreditsDashboard() {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="crypto-currency">Currency</Label>
-                      <Select value={selectedCurrency} onValueChange={setSelectedCurrency}>
+                      <Select value={selectedCurrency} onValueChange={handleCurrencyChange}>
                         <SelectTrigger id="crypto-currency" data-testid="select-currency">
                           <SelectValue placeholder="Select currency" />
                         </SelectTrigger>
@@ -414,11 +428,16 @@ export function CreditsDashboard() {
                           <SelectValue placeholder="Select network" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="base">Base</SelectItem>
-                          <SelectItem value="ethereum">Ethereum</SelectItem>
-                          <SelectItem value="polygon">Polygon</SelectItem>
-                          <SelectItem value="arbitrum">Arbitrum</SelectItem>
-                          <SelectItem value="bnb">BNB Chain</SelectItem>
+                          {availableNetworks.map(network => {
+                            // Capitalize network name for display
+                            const displayName = network === 'bnb' ? 'BNB Chain' 
+                              : network.charAt(0).toUpperCase() + network.slice(1);
+                            return (
+                              <SelectItem key={network} value={network}>
+                                {displayName}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                     </div>

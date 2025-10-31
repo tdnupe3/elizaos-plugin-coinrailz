@@ -194,9 +194,14 @@ export function registerCreditsRoutes(app: Express) {
     }
   });
 
-  // Anti-abuse monitoring endpoint (admin only in production)
+  // Anti-abuse monitoring endpoint (admin only)
   app.get('/api/credits/abuse-stats', async (req: any, res: Response) => {
     try {
+      // Only allow in development or for authenticated admin users
+      if (process.env.NODE_ENV === 'production' && !req.user?.isAdmin) {
+        return res.status(403).json({ error: 'Forbidden - Admin access required' });
+      }
+
       const hours = parseInt(req.query.hours as string) || 24;
       const stats = await AntiAbuseService.getClaimStats(hours);
       

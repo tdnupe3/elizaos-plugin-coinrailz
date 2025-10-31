@@ -43,11 +43,50 @@ export function CreditsDashboard() {
 
   const { data: balance, isLoading, isError: balanceError } = useQuery<{ success: boolean; data?: CreditsBalance }>({
     queryKey: ['/api/credits/balance'],
+    retry: false,
   });
 
   const { data: transactions, isError: transactionsError } = useQuery<{ success: boolean; data?: CreditTransaction[] }>({
     queryKey: ['/api/credits/transactions'],
+    retry: false,
   });
+
+  // Demo data for non-authenticated users
+  const demoBalance: CreditsBalance = {
+    creditsBalance: 0,
+    dollarValue: '0.00',
+    monthlySpendTotal: 0,
+    monthlySpendingLimit: 1100,
+    monthlyRemaining: 1100,
+    maxAutoApprovePayment: 100,
+    successfulTransactions: 0,
+    freeCreditsGranted: false,
+  };
+
+  const demoTransactions: CreditTransaction[] = [
+    {
+      id: 1,
+      type: 'bonus',
+      amount: 10,
+      dollarValue: 1.00,
+      description: 'Welcome Bonus - Free Credits',
+      balanceAfter: 10,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 2,
+      type: 'usage',
+      amount: -2,
+      dollarValue: 0.20,
+      description: 'Trade Signals Service',
+      balanceAfter: 8,
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  const isAuthenticated = balance?.success && !balanceError;
+  const displayBalance = isAuthenticated ? balance.data : demoBalance;
+  const displayTransactions = isAuthenticated ? transactions?.data : demoTransactions;
 
   const claimFreeCredits = useMutation({
     mutationFn: async () => {
@@ -92,7 +131,8 @@ export function CreditsDashboard() {
     },
   });
 
-  if (isLoading) {
+  // Show loading only for authenticated users
+  if (isLoading && !balanceError) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="animate-pulse space-y-6">
@@ -107,32 +147,23 @@ export function CreditsDashboard() {
     );
   }
 
-  // Error state
-  if (balanceError) {
-    return (
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <Card className="p-8 border-red-200 dark:border-red-800">
-          <div className="flex items-center gap-4 text-red-600 dark:text-red-400">
-            <AlertCircle className="w-8 h-8" />
-            <div>
-              <h3 className="text-lg font-semibold">Unable to Load Credits Data</h3>
-              <p className="text-sm text-muted-foreground">
-                Please refresh the page or contact support if the issue persists.
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  const credits = balance?.data;
-  if (!credits) return null;
-
+  const credits = displayBalance!;
   const percentSpent = (credits.monthlySpendTotal / credits.monthlySpendingLimit) * 100;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8 space-y-8" data-testid="credits-dashboard">
+      {/* Demo Mode Banner */}
+      {!isAuthenticated && (
+        <Card className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            <p className="text-sm text-yellow-800 dark:text-yellow-200">
+              <strong>Demo Mode:</strong> Sign up to claim your free $1 credit and start using services instantly.
+            </p>
+          </div>
+        </Card>
+      )}
+
       {/* Main Balance Card */}
       <Card className="p-8 lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-200 dark:border-blue-800">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
@@ -159,7 +190,7 @@ export function CreditsDashboard() {
             </div>
 
             {/* Free Credits CTA */}
-            {!credits.freeCreditsGranted && (
+            {!credits.freeCreditsGranted && isAuthenticated && (
               <Button
                 onClick={() => claimFreeCredits.mutate()}
                 disabled={claimFreeCredits.isPending}
@@ -179,9 +210,10 @@ export function CreditsDashboard() {
               className="bg-blue-600 hover:bg-blue-700"
               data-testid="button-add-credits"
               onClick={() => setIsPurchaseModalOpen(true)}
+              disabled={!isAuthenticated}
             >
               <CreditCard className="w-4 h-4 mr-2" />
-              Add Credits
+              {isAuthenticated ? 'Add Credits' : 'Sign Up to Add Credits'}
             </Button>
             <div className="text-xs text-muted-foreground">
               Min. $10 (100 credits)
@@ -270,23 +302,13 @@ export function CreditsDashboard() {
       </div>
 
       {/* Recent Transactions */}
-      {transactionsError ? (
-        <Card className="p-6 border-yellow-200 dark:border-yellow-800">
-          <div className="flex items-center gap-3 text-yellow-600 dark:text-yellow-400">
-            <AlertCircle className="w-6 h-6" />
-            <div>
-              <h3 className="font-semibold">Unable to Load Transactions</h3>
-              <p className="text-sm text-muted-foreground">
-                Your credit balance is available, but transaction history could not be loaded.
-              </p>
-            </div>
-          </div>
-        </Card>
-      ) : transactions?.data && transactions.data.length > 0 ? (
+      {displayTransactions && displayTransactions.length > 0 && (
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Recent Transactions</h3>
+          <h3 className="text-lg font-semibold mb-4">
+            {isAuthenticated ? 'Recent Transactions' : 'Example Transactions'}
+          </h3>
           <div className="space-y-2">
-            {transactions.data.slice(0, 10).map((tx) => (
+            {displayTransactions.slice(0, 10).map((tx) => (
               <div
                 key={tx.id}
                 className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors"
@@ -317,7 +339,7 @@ export function CreditsDashboard() {
             ))}
           </div>
         </Card>
-      ) : null}
+      )}
 
       {/* Purchase Credits Modal */}
       <Dialog open={isPurchaseModalOpen} onOpenChange={setIsPurchaseModalOpen}>

@@ -392,19 +392,80 @@ export class X402PaymentService {
         return false;
       }
 
-      // Verify recipient matches expected wallet
-      const recipientAddress = receipt.to?.toLowerCase();
-      const expectedAddress = walletAddress.toLowerCase();
+      // For USDC transfers, the 'to' address is the USDC contract, not the recipient
+      // We need to parse the logs to find the Transfer event
       
-      if (recipientAddress !== expectedAddress) {
-        console.warn(`❌ Recipient mismatch: expected ${expectedAddress}, got ${recipientAddress}`);
+      // USDC contract addresses by network
+      const USDC_CONTRACTS: Record<string, string> = {
+        'base': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase(), // Base mainnet USDC
+        'ethereum': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'.toLowerCase(),
+        'polygon': '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174'.toLowerCase(),
+      };
+
+      const usdcContract = USDC_CONTRACTS[network.toLowerCase()];
+      if (!usdcContract) {
+        console.warn(`❌ Unsupported network for USDC verification: ${network}`);
         return false;
       }
 
-      // TODO: Verify amount matches (requires parsing logs for USDC transfer)
-      // For now, we verify transaction exists, succeeded, and went to correct address
+      // Verify transaction was sent to USDC contract
+      const contractAddress = receipt.to?.toLowerCase();
+      if (contractAddress !== usdcContract) {
+        console.warn(`❌ Transaction not sent to USDC contract: expected ${usdcContract}, got ${contractAddress}`);
+        return false;
+      }
+
+      // Parse Transfer event logs to verify recipient and amount
+      // Transfer event signature: Transfer(address indexed from, address indexed to, uint256 value)
+      const TRANSFER_EVENT_SIGNATURE = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
       
-      console.log(`✅ REAL on-chain verification passed: ${transactionHash}`);
+      const transferLog = receipt.logs?.find((log: any) => 
+        log.topics?.[0]?.toLowerCase() === TRANSFER_EVENT_SIGNATURE.toLowerCase() &&
+        log.address?.toLowerCase() === usdcContract
+      );
+
+      if (!transferLog) {
+        console.warn(`❌ No USDC Transfer event found in transaction ${transactionHash}`);
+        return false;
+      }
+
+      // Extract recipient from topic[2] (to address is the 3rd topic)
+      const recipientAddress = transferLog.topics?.[2];
+      if (!recipientAddress) {
+        console.warn(`❌ Cannot extract recipient from Transfer event`);
+        return false;
+      }
+
+      // Remove leading zeros from address (topic is 32 bytes, address is 20 bytes)
+      const actualRecipient = '0x' + recipientAddress.slice(-40).toLowerCase();
+      const expectedAddress = walletAddress.toLowerCase();
+
+      if (actualRecipient !== expectedAddress) {
+        console.warn(`❌ Recipient mismatch: expected ${expectedAddress}, got ${actualRecipient}`);
+        return false;
+      }
+
+      // Extract amount from log data (uint256, 6 decimals for USDC)
+      const amountHex = transferLog.data;
+      if (!amountHex) {
+        console.warn(`❌ Cannot extract amount from Transfer event`);
+        return false;
+      }
+
+      // Convert hex to decimal and adjust for 6 decimals (USDC has 6 decimals)
+      const amountRaw = BigInt(amountHex);
+      const actualAmount = Number(amountRaw) / 1e6; // USDC has 6 decimals
+      
+      // Allow small precision difference (1 cent = 0.01 USDC) due to floating point
+      const tolerance = 0.01;
+      const amountDiff = Math.abs(actualAmount - expectedAmount);
+
+      if (amountDiff > tolerance) {
+        console.warn(`❌ Amount mismatch: expected ${expectedAmount} USDC, got ${actualAmount} USDC (diff: ${amountDiff})`);
+        return false;
+      }
+      
+      console.log(`✅ REAL on-chain verification passed: ${transactionHash} - ${actualAmount} USDC to ${actualRecipient}`);
       return true;
     } catch (error) {
       console.error('❌ On-chain verification failed:', error);

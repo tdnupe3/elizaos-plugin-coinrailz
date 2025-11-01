@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import axios from "axios";
 import {
   multiChainBalanceService,
   gasPriceOracleService,
@@ -15,7 +16,6 @@ import {
   approvalManagerService,
   batchQuoteService,
   portfolioTrackerService,
-  getEthPrice,
   trackRequest,
   SERVICE_PRICING,
 } from "./microservices";
@@ -242,35 +242,26 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
     
     const paymentPayload = JSON.parse(paymentProof);
     
-    const verifyResponse = await fetch(facilitatorUrl, {
-      method: 'POST',
+    const verifyResponse = await axios.post(facilitatorUrl, {
+      paymentPayload,
+      paymentRequirements: [{
+        type: "erc20-transfer",
+        network: "base",
+        tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        amount: Math.floor(price * 1000000).toString(),
+        recipient: PLATFORM_WALLET,
+      }]
+    }, {
       headers: {
         'Content-Type': 'application/json',
         ...(process.env.CDP_API_KEY_ID && {
           'X-CDP-Api-Key': process.env.CDP_API_KEY_ID,
           'X-CDP-Private-Key': process.env.CDP_PRIVATE_KEY || ''
         })
-      },
-      body: JSON.stringify({
-        paymentPayload,
-        paymentRequirements: [{
-          type: "erc20-transfer",
-          network: "base",
-          tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-          amount: Math.floor(price * 1000000).toString(),
-          recipient: PLATFORM_WALLET,
-        }]
-      })
+      }
     });
 
-    if (!verifyResponse.ok) {
-      return res.status(402).json({
-        error: "Payment verification failed",
-        message: "Payment could not be verified via facilitator",
-      });
-    }
-
-    const verificationResult = await verifyResponse.json();
+    const verificationResult = verifyResponse.data;
 
     // Extract payer wallet address from verification
     const payerWallet = verificationResult.from || paymentPayload.from || "unknown";
@@ -449,9 +440,9 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     console.error("Payment verification error:", error);
-    return res.status(500).json({
-      error: "Payment processing error",
-      message: error.message,
+    return res.status(402).json({
+      error: "Payment verification failed",
+      message: error.response?.data?.message || error.message || "Failed to verify payment with CDP facilitator",
     });
   }
 });

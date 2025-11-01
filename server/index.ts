@@ -3361,8 +3361,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
 } else {
   // Development: Setup Vite AFTER all API routes are registered
-  setupVite(app, httpServer).then(() => {
-    console.log('Frontend serving ready');
+  // CRITICAL FIX: Add timeout to prevent Vite setup from blocking server startup
+  const viteSetupPromise = setupVite(app, httpServer);
+  const timeoutPromise = new Promise((resolve) => setTimeout(() => {
+    console.warn('⚠️ Vite setup timeout - starting server without Vite');
+    resolve(null);
+  }, 10000)); // 10 second timeout
+  
+  Promise.race([viteSetupPromise, timeoutPromise]).then(() => {
+    console.log('Frontend serving ready (or timed out)');
     httpServer.listen(port, '0.0.0.0', async () => {
       console.log(`Development server running on 0.0.0.0:${port}`);
       

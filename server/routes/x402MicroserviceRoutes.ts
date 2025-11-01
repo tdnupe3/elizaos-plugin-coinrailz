@@ -237,8 +237,9 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       },
     };
     
-    // Return CDP facilitator-compatible payment requirements
+    // Return CDP facilitator-compatible payment requirements (x402 protocol v1)
     return res.status(402).json({
+      x402Version: "1",
       paymentRequirements: [
         {
           type: "erc20-transfer",

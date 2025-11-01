@@ -57,7 +57,7 @@ The platform is built around core services including a unified payment processor
 
 ## External Dependencies
 - **Circle**: Complete USDC wallet creation, management, balance tracking, and transaction processing via Developer Controlled Wallets SDK.
-- **x402 Protocol**: HTTP 402-based autonomous AI agent payment standard. Production integration using existing CDP credentials for real Coinbase wallet creation, Alchemy RPC on-chain verification, and instant USDC micropayments on Base Chain.
+- **x402 Protocol**: HTTP 402-based autonomous AI agent payment standard. **CDP Facilitator Integration (November 1, 2025)**: All x402 services now use Coinbase CDP facilitator for payment verification and settlement. HTTP 402 responses include CDP-compliant `paymentRequirements` array with Base USDC transfer descriptor and facilitator URL (`https://facilitator.cdp.coinbase.com`). Payment verification routed through CDP facilitator `/verify` endpoint with `X-CDP-Api-Key` and `X-CDP-Private-Key` headers. This enables AI agents using CDP SDK to complete payments autonomously without additional integration work.
 - **x402scan**: Official x402 ecosystem registry. Coin Railz has 15 registered micropayment services (November 1, 2025):
   - **Original 10 services** (trader-focused): multi-chain-balance ($0.50), gas-price-oracle ($0.10), token-price ($0.15), contract-scan ($2.00), wallet-risk ($1.00), trade-signals ($0.75), token-sentiment ($0.25), trending-tokens ($0.50), whale-alerts ($0.35), dex-liquidity ($0.20)
   - **New 5 B2B2C infrastructure services** (agent builder-focused): transaction-builder ($0.30), token-metadata ($0.10), approval-manager ($0.20), batch-quote ($0.40), portfolio-tracker ($0.50)

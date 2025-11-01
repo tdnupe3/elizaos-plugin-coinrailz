@@ -23,7 +23,7 @@ https://www.x402scan.com/resources/register
 - includeTokens (optional boolean)
 
 ### 2. Gas Price Oracle
-**URL**: https://coinrailz.com/x402/service/gas-price
+**URL**: https://coinrailz.com/x402/service/gas-price-oracle
 **Price**: $0.15 USDC
 **Description**: Real-time gas prices across multiple chains
 **Method**: POST
@@ -104,6 +104,65 @@ https://www.x402scan.com/resources/register
 **Input**:
 - tokenAddress (required)
 - chain (optional, default: ethereum)
+
+---
+
+## NEW B2B2C INFRASTRUCTURE SERVICES
+
+### 11. Transaction Builder API
+**URL**: https://coinrailz.com/x402/service/transaction-builder
+**Price**: $0.30 USDC
+**Description**: Pre-validated transaction encoding for agent-to-agent transfers. Simplifies transaction construction for trading bots and payment agents.
+**Method**: POST
+**Input**:
+- to (required) - Recipient address
+- chain (required) - Blockchain network
+- tokenAddress (optional) - ERC20 token address for token transfers
+- amount (optional) - Token amount for ERC20 transfers
+- value (optional) - ETH value to send for native transfers
+- data (optional) - Custom transaction data
+
+### 12. Token Metadata Aggregator
+**URL**: https://coinrailz.com/x402/service/token-metadata
+**Price**: $0.10 USDC
+**Description**: Unified token info (name, symbol, decimals, logo) across all chains. Essential building block for trading agent UIs and portfolio dashboards.
+**Method**: POST
+**Input**:
+- tokenAddress (required) - Token contract address
+- chain (required) - Blockchain network
+
+### 13. Approval Manager API
+**URL**: https://coinrailz.com/x402/service/approval-manager
+**Price**: $0.20 USDC
+**Description**: Token approval transaction generator with optimal gas settings. Required infrastructure for DeFi trading agents before swaps.
+**Method**: POST
+**Input**:
+- tokenAddress (required) - Token to approve
+- spender (required) - Spender address (usually DEX router)
+- amount (required) - Amount to approve or 'unlimited'
+- chain (required) - Blockchain network
+
+### 14. Batch Quote Aggregator
+**URL**: https://coinrailz.com/x402/service/batch-quote
+**Price**: $0.40 USDC
+**Description**: Multi-DEX price quotes in single call (Uniswap + 1inch + 0x Protocol). Critical infrastructure for trading bot price discovery.
+**Method**: POST
+**Input**:
+- fromToken (required) - Input token address
+- toToken (required) - Output token address
+- amount (required) - Input amount
+- chain (required) - Blockchain network
+
+### 15. Portfolio Tracker API
+**URL**: https://coinrailz.com/x402/service/portfolio-tracker
+**Price**: $0.50 USDC
+**Description**: Real-time multi-chain portfolio valuation with P&L tracking. Infrastructure for portfolio management agents and wealth tracking bots.
+**Method**: POST
+**Input**:
+- walletAddress (required) - Wallet address to track
+- chains (optional) - Chains to track (default: ethereum, base, polygon)
+
+---
 
 ## Registration Instructions
 

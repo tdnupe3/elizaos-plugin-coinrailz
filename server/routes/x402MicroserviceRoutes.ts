@@ -12,6 +12,11 @@ import {
   trendingTokensFeedService,
   whaleWalletAlertsService,
   dexLiquidityMonitorService,
+  transactionBuilderService,
+  tokenMetadataService,
+  approvalManagerService,
+  batchQuoteService,
+  portfolioTrackerService,
   getEthPrice,
   trackRequest,
   SERVICE_PRICING,
@@ -101,6 +106,39 @@ function getServiceInputSchema(serviceId: string): Record<string, any> {
       return {
         tokenAddress: { type: "string", required: true, description: "Token contract address" },
         chain: { type: "string", required: false, description: "Blockchain network (default: ethereum)" },
+      };
+    case "transaction-builder":
+      return {
+        to: { type: "string", required: true, description: "Recipient address" },
+        value: { type: "string", required: false, description: "ETH value to send" },
+        data: { type: "string", required: false, description: "Transaction data" },
+        chain: { type: "string", required: true, description: "Blockchain network" },
+        tokenAddress: { type: "string", required: false, description: "ERC20 token address for token transfers" },
+        amount: { type: "string", required: false, description: "Token amount for ERC20 transfers" },
+      };
+    case "token-metadata":
+      return {
+        tokenAddress: { type: "string", required: true, description: "Token contract address" },
+        chain: { type: "string", required: true, description: "Blockchain network" },
+      };
+    case "approval-manager":
+      return {
+        tokenAddress: { type: "string", required: true, description: "Token to approve" },
+        spender: { type: "string", required: true, description: "Spender address (usually DEX router)" },
+        amount: { type: "string", required: true, description: "Amount to approve or 'unlimited'" },
+        chain: { type: "string", required: true, description: "Blockchain network" },
+      };
+    case "batch-quote":
+      return {
+        fromToken: { type: "string", required: true, description: "Input token address" },
+        toToken: { type: "string", required: true, description: "Output token address" },
+        amount: { type: "string", required: true, description: "Input amount" },
+        chain: { type: "string", required: true, description: "Blockchain network" },
+      };
+    case "portfolio-tracker":
+      return {
+        walletAddress: { type: "string", required: true, description: "Wallet address to track" },
+        chains: { type: "array", required: false, description: "Chains to track (default: ethereum, base, polygon)" },
       };
     default:
       return {};

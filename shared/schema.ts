@@ -4116,3 +4116,53 @@ export const coinbaseAddressDatabaseSelectSchema = createSelectSchema(coinbaseAd
 export type CoinbaseAddressRecord = typeof coinbaseAddressDatabase.$inferSelect;
 export type InsertCoinbaseAddressRecord = z.infer<typeof coinbaseAddressDatabaseInsertSchema>;
 
+// x402 Microservice Input Validation Schemas
+// Transaction Builder Service - Pre-validated transaction encoding for agent-to-agent transfers
+export const transactionBuilderInputSchema = z.object({
+  to: z.string().min(1, "Recipient address is required").regex(/^0x[a-fA-F0-9]{40}$/, "Invalid Ethereum address format"),
+  value: z.string().optional(),
+  data: z.string().optional(),
+  chain: z.string().min(1, "Blockchain network is required"),
+  tokenAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, "Invalid token address format").optional(),
+  amount: z.string().optional(),
+}).refine(
+  (data) => {
+    if (data.tokenAddress && !data.amount) {
+      return false;
+    }
+    return true;
+  },
+  {
+    message: "amount is required when tokenAddress is provided",
+    path: ["amount"],
+  }
+);
+
+export type TransactionBuilderInput = z.infer<typeof transactionBuilderInputSchema>;
+
+// Approval Manager Service - Token approval transaction generator for DeFi agents
+export const approvalManagerInputSchema = z.object({
+  tokenAddress: z.string().min(1, "Token address is required").regex(/^0x[a-fA-F0-9]{40}$/, "Invalid token address format"),
+  spender: z.string().min(1, "Spender address is required").regex(/^0x[a-fA-F0-9]{40}$/, "Invalid spender address format"),
+  amount: z.string().min(1, "Amount is required").refine(
+    (val) => val === "unlimited" || !isNaN(Number(val)),
+    "Amount must be 'unlimited' or a valid number"
+  ),
+  chain: z.string().min(1, "Blockchain network is required"),
+});
+
+export type ApprovalManagerInput = z.infer<typeof approvalManagerInputSchema>;
+
+// Batch Quote Service - Multi-DEX price quotes for trading bot price discovery
+export const batchQuoteInputSchema = z.object({
+  fromToken: z.string().min(1, "Input token address is required").regex(/^0x[a-fA-F0-9]{40}$/, "Invalid input token address format"),
+  toToken: z.string().min(1, "Output token address is required").regex(/^0x[a-fA-F0-9]{40}$/, "Invalid output token address format"),
+  amount: z.string().min(1, "Input amount is required").refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    "Amount must be a valid positive number"
+  ),
+  chain: z.string().min(1, "Blockchain network is required"),
+});
+
+export type BatchQuoteInput = z.infer<typeof batchQuoteInputSchema>;
+

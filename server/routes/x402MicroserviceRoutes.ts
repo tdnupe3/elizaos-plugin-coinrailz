@@ -354,6 +354,34 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
           result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
           break;
 
+        case "transaction-builder":
+          result = await transactionBuilderService(req.body);
+          break;
+
+        case "token-metadata":
+          const { tokenAddress: metadataToken, chain: metadataChain } = req.body;
+          if (!metadataToken || !metadataChain) {
+            return res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+          }
+          result = await tokenMetadataService(metadataToken, metadataChain);
+          break;
+
+        case "approval-manager":
+          result = await approvalManagerService(req.body);
+          break;
+
+        case "batch-quote":
+          result = await batchQuoteService(req.body);
+          break;
+
+        case "portfolio-tracker":
+          const { walletAddress: portfolioWallet, chains: portfolioChains } = req.body;
+          if (!portfolioWallet) {
+            return res.status(400).json({ success: false, error: "walletAddress is required" });
+          }
+          result = await portfolioTrackerService(portfolioWallet, portfolioChains || ["ethereum", "base", "polygon"]);
+          break;
+
         default:
           return res.status(404).json({ error: "Service not found" });
       }
@@ -391,6 +419,11 @@ router.get("/catalog", (req: Request, res: Response) => {
       "trending-tokens": "Top gaining and losing tokens across DEXs with real-time market data",
       "whale-alerts": "Track large wallet movements (whales) with on-chain transaction monitoring",
       "dex-liquidity": "Real-time DEX liquidity pool monitoring across multiple exchanges",
+      "transaction-builder": "Pre-validated transaction encoding for agent-to-agent transfers (B2B2C infrastructure)",
+      "token-metadata": "Unified token info across all chains - essential building block for trading agent UIs (B2B2C infrastructure)",
+      "approval-manager": "Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)",
+      "batch-quote": "Multi-DEX price quotes in single call - critical infrastructure for trading bot price discovery (B2B2C infrastructure)",
+      "portfolio-tracker": "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)",
     };
 
     const responseTimes: { [key: string]: string } = {
@@ -404,6 +437,11 @@ router.get("/catalog", (req: Request, res: Response) => {
       "trending-tokens": "<5s",
       "whale-alerts": "<3s",
       "dex-liquidity": "<2s",
+      "transaction-builder": "<1s",
+      "token-metadata": "<1s",
+      "approval-manager": "<1s",
+      "batch-quote": "<1s",
+      "portfolio-tracker": "<2s",
     };
 
     return {

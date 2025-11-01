@@ -58,7 +58,11 @@ The platform is built around core services including a unified payment processor
 ## External Dependencies
 - **Circle**: Complete USDC wallet creation, management, balance tracking, and transaction processing via Developer Controlled Wallets SDK.
 - **x402 Protocol**: HTTP 402-based autonomous AI agent payment standard. Production integration using existing CDP credentials for real Coinbase wallet creation, Alchemy RPC on-chain verification, and instant USDC micropayments on Base Chain.
-- **x402scan**: Official x402 ecosystem registry. Coin Railz successfully registered 3 AI agent services on October 30, 2025: Smart Contract Auditor ($1000 USDC), Payment Processor ($50 USDC), and Compliance Consultant ($500 USDC). Platform wallet 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321 receives payments on 7 EVM chains.
+- **x402scan**: Official x402 ecosystem registry. Coin Railz has 15 registered micropayment services (November 1, 2025):
+  - **Original 10 services** (trader-focused): multi-chain-balance ($0.50), gas-price-oracle ($0.10), token-price ($0.15), contract-scan ($2.00), wallet-risk ($1.00), trade-signals ($0.75), token-sentiment ($0.25), trending-tokens ($0.50), whale-alerts ($0.35), dex-liquidity ($0.20)
+  - **New 5 B2B2C infrastructure services** (agent builder-focused): transaction-builder ($0.30), token-metadata ($0.10), approval-manager ($0.20), batch-quote ($0.40), portfolio-tracker ($0.50)
+  - Platform wallet 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321 receives payments on Base Chain (USDC, ETH, USDT)
+  - **Future Enhancement**: transaction-builder, approval-manager, and batch-quote services could benefit from runtime Zod validation (currently rely on TypeScript types with basic inline checks)
 - **Plaid**: For user bank account linking and ACH processing infrastructure.
 - **CoinFlip**: For USD ↔ USDC conversions.
 - **CoinGecko API**: For real-time cryptocurrency pricing and market data.

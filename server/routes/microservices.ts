@@ -150,6 +150,7 @@ async function getEthPrice(): Promise<number> {
         headers: process.env.COINGECKO_API_KEY
           ? { "x-cg-pro-api-key": process.env.COINGECKO_API_KEY }
           : {},
+        timeout: 3000, // 3 second timeout to prevent hanging
       }
     );
     const price = response.data.ethereum.usd;

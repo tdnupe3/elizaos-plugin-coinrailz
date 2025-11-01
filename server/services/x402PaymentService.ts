@@ -116,9 +116,8 @@ export class X402PaymentService {
       const expiresAt = new Date();
       expiresAt.setMinutes(expiresAt.getMinutes() + this.PAYMENT_TIMEOUT_MINUTES);
 
-      // Generate payment wallet address (for Base Chain USDC)
-      // In production, this would come from Coinbase x402 Facilitator
-      const walletAddress = await this.generatePaymentWallet(network);
+      // Use platform wallet address - ALL payments go to the same address
+      const walletAddress = process.env.PLATFORM_WALLET_ADDRESS || '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
 
       // Store payment in database (metadata as JSONB, not stringified)
       await db.insert(x402Payments).values({

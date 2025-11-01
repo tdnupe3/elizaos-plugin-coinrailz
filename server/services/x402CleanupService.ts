@@ -28,7 +28,7 @@ export class X402CleanupService {
 
   /**
    * Start automated cleanup scheduler
-   * Runs daily at 3:00 AM
+   * Runs every hour to mark expired payments as failed and delete old failed records
    */
   start() {
     if (this.cronJob) {
@@ -36,8 +36,8 @@ export class X402CleanupService {
       return;
     }
 
-    // Run daily at 3:00 AM: 0 3 * * *
-    this.cronJob = cron.schedule('0 3 * * *', async () => {
+    // Run every hour: 0 * * * *
+    this.cronJob = cron.schedule('0 * * * *', async () => {
       if (this.isRunning) {
         console.log('⏭️ Skipping x402 cleanup - previous run still in progress');
         return;
@@ -57,7 +57,14 @@ export class X402CleanupService {
       }
     });
 
-    console.log('✅ x402 cleanup scheduler started (runs daily at 3:00 AM)');
+    console.log('✅ x402 cleanup scheduler started (runs hourly)');
+    
+    // Run cleanup immediately on start
+    setTimeout(() => {
+      this.aggregateAndCleanup().catch(err => 
+        console.error('❌ Initial cleanup failed:', err)
+      );
+    }, 5000); // 5 second delay to allow server to fully start
   }
 
   /**
@@ -68,13 +75,26 @@ export class X402CleanupService {
     metricsUpdated: boolean;
   }> {
     try {
-      // Get yesterday's date for aggregation
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      const dateStr = yesterday.toISOString().split('T')[0];
+      // Step 1: Mark all expired pending payments as failed
+      const expiredUpdateResult = await db
+        .update(x402Payments)
+        .set({ 
+          status: 'failed',
+          errorMessage: 'Payment expired - no proof provided'
+        })
+        .where(
+          and(
+            lt(x402Payments.expiresAt, sql`NOW()`),
+            eq(x402Payments.status, 'pending')
+          )
+        );
 
-      // Aggregate metrics from expired payments
-      const expiredPayments = await db
+      if (expiredUpdateResult) {
+        console.log(`⏰ Marked expired pending payments as failed`);
+      }
+
+      // Step 2: Get failed payments older than 24 hours for deletion
+      const oldFailedPayments = await db
         .select({
           agentId: x402Payments.agentId,
           status: x402Payments.status,
@@ -84,63 +104,68 @@ export class X402CleanupService {
         .from(x402Payments)
         .where(
           and(
-            lt(x402Payments.expiresAt, sql`NOW() - INTERVAL '24 hours'`),
-            eq(x402Payments.status, 'pending')
+            lt(x402Payments.createdAt, sql`NOW() - INTERVAL '24 hours'`),
+            eq(x402Payments.status, 'failed')
           )
         );
 
-      if (expiredPayments.length === 0) {
-        console.log('📭 No expired payments to clean up');
+      if (oldFailedPayments.length === 0) {
+        console.log('📭 No old failed payments to clean up');
         return { deleted: 0, metricsUpdated: false };
       }
 
       // Calculate metrics
       const uniqueWallets = new Set(
-        expiredPayments
+        oldFailedPayments
           .map(p => p.walletAddress)
           .filter(w => w !== null && w !== undefined)
       ).size;
 
       const byService: Record<string, number> = {};
-      expiredPayments.forEach(payment => {
+      oldFailedPayments.forEach(payment => {
         byService[payment.agentId] = (byService[payment.agentId] || 0) + 1;
       });
+
+      // Get yesterday's date for aggregation
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const dateStr = yesterday.toISOString().split('T')[0];
 
       // Upsert metrics for yesterday
       await db
         .insert(x402DiscoveryMetrics)
         .values({
           date: dateStr,
-          totalPaymentRequests: expiredPayments.length,
+          totalPaymentRequests: oldFailedPayments.length,
           uniqueWallets,
           completedPayments: 0,
-          expiredPayments: expiredPayments.length,
+          expiredPayments: oldFailedPayments.length,
           totalRevenue: '0',
           byService,
         })
         .onConflictDoUpdate({
           target: x402DiscoveryMetrics.date,
           set: {
-            totalPaymentRequests: sql`${x402DiscoveryMetrics.totalPaymentRequests} + ${expiredPayments.length}`,
-            expiredPayments: sql`${x402DiscoveryMetrics.expiredPayments} + ${expiredPayments.length}`,
+            totalPaymentRequests: sql`${x402DiscoveryMetrics.totalPaymentRequests} + ${oldFailedPayments.length}`,
+            expiredPayments: sql`${x402DiscoveryMetrics.expiredPayments} + ${oldFailedPayments.length}`,
             updatedAt: sql`NOW()`,
           },
         });
 
-      console.log(`📊 Aggregated metrics: ${expiredPayments.length} requests, ${uniqueWallets} unique wallets`);
+      console.log(`📊 Aggregated metrics: ${oldFailedPayments.length} requests, ${uniqueWallets} unique wallets`);
 
-      // Delete expired payments
+      // Delete old failed payments
       const deleteResult = await db
         .delete(x402Payments)
         .where(
           and(
-            lt(x402Payments.expiresAt, sql`NOW() - INTERVAL '24 hours'`),
-            eq(x402Payments.status, 'pending')
+            lt(x402Payments.createdAt, sql`NOW() - INTERVAL '24 hours'`),
+            eq(x402Payments.status, 'failed')
           )
         );
 
       return {
-        deleted: expiredPayments.length,
+        deleted: oldFailedPayments.length,
         metricsUpdated: true,
       };
     } catch (error: any) {

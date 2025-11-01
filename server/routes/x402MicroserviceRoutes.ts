@@ -16,6 +16,9 @@ import {
   approvalManagerService,
   batchQuoteService,
   portfolioTrackerService,
+  instantAgentWalletService,
+  verifiedAgentIdentityService,
+  seamlessChainBridgeService,
   trackRequest,
   SERVICE_PRICING,
 } from "./microservices";
@@ -70,6 +73,9 @@ function getServiceDescription(serviceId: string): string {
     "approval-manager": "Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)",
     "batch-quote": "Multi-DEX price quotes in single call - critical infrastructure for trading bot price discovery (B2B2C infrastructure)",
     "portfolio-tracker": "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)",
+    "instant-agent-wallet": "Create MPC-secured USDC wallets instantly - Circle Developer-Controlled Wallets for AI agents (Premium B2B2C Infrastructure)",
+    "verified-agent-identity": "KYA (Know-Your-Agent) identity verification - On-chain reputation & compliance scoring using ERC-8004 standard (Premium B2B2C Infrastructure)",
+    "seamless-chain-bridge": "Cross-chain USDC routing via Circle CCTP - Pay on Ethereum, receive on Base/Polygon/Arbitrum instantly (Premium B2B2C Infrastructure)",
   };
   return descriptions[serviceId] || `${serviceId} micropayment service`;
 }
@@ -162,6 +168,28 @@ function getServiceInputSchema(serviceId: string): Record<string, any> {
       return {
         walletAddress: { type: "string", required: true, description: "Wallet address to track" },
         chains: { type: "array", required: false, description: "Chains to track (default: ethereum, base, polygon)" },
+      };
+    case "instant-agent-wallet":
+      return {
+        agentId: { type: "string", required: true, description: "Unique AI agent identifier" },
+        description: { type: "string", required: false, description: "Wallet description/label" },
+        initialFundingAmount: { type: "string", required: false, description: "Optional initial USDC funding amount" },
+      };
+    case "verified-agent-identity":
+      return {
+        agentId: { type: "string", required: true, description: "AI agent identifier" },
+        walletAddress: { type: "string", required: true, description: "Wallet address to verify ownership" },
+        signature: { type: "string", required: false, description: "Optional signature for enhanced verification" },
+        metadata: { type: "object", required: false, description: "Optional agent metadata for reputation scoring" },
+      };
+    case "seamless-chain-bridge":
+      return {
+        fromChain: { type: "string", required: true, description: "Source blockchain (ethereum, polygon, base, arbitrum, optimism)" },
+        toChain: { type: "string", required: true, description: "Destination blockchain" },
+        amount: { type: "string", required: true, description: "USDC amount to bridge" },
+        fromAddress: { type: "string", required: true, description: "Sender wallet address" },
+        toAddress: { type: "string", required: true, description: "Recipient wallet address on destination chain" },
+        currency: { type: "string", required: false, description: "Currency to bridge (default: USDC)" },
       };
     default:
       return {};
@@ -422,6 +450,48 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, error: "walletAddress is required" });
           }
           result = await portfolioTrackerService(portfolioWallet, portfolioChains || ["ethereum", "base", "polygon"]);
+          break;
+
+        case "instant-agent-wallet":
+          const { agentId: walletAgentId, description: walletDesc, initialFundingAmount } = req.body;
+          if (!walletAgentId) {
+            return res.status(400).json({ success: false, error: "agentId is required" });
+          }
+          result = await instantAgentWalletService({ agentId: walletAgentId, description: walletDesc, initialFundingAmount });
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
+        case "verified-agent-identity":
+          const { agentId: identityAgentId, walletAddress: identityWallet, signature, metadata: identityMetadata } = req.body;
+          if (!identityAgentId || !identityWallet) {
+            return res.status(400).json({ success: false, error: "agentId and walletAddress are required" });
+          }
+          result = await verifiedAgentIdentityService({ 
+            agentId: identityAgentId, 
+            walletAddress: identityWallet, 
+            signature, 
+            metadata: identityMetadata 
+          });
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
+        case "seamless-chain-bridge":
+          const { fromChain, toChain, amount: bridgeAmount, fromAddress, toAddress, currency: bridgeCurrency } = req.body;
+          if (!fromChain || !toChain || !bridgeAmount || !fromAddress || !toAddress) {
+            return res.status(400).json({ 
+              success: false, 
+              error: "fromChain, toChain, amount, fromAddress, and toAddress are required" 
+            });
+          }
+          result = await seamlessChainBridgeService({ 
+            fromChain, 
+            toChain, 
+            amount: bridgeAmount, 
+            fromAddress, 
+            toAddress, 
+            currency: bridgeCurrency 
+          });
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
           break;
 
         default:

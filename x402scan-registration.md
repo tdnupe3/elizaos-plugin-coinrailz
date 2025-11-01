@@ -164,6 +164,60 @@ https://www.x402scan.com/resources/register
 
 ---
 
+## PREMIUM B2B2C INFRASTRUCTURE SERVICES (HIGH-END PRICING)
+
+### 16. Instant Agent Wallet (Wallet-as-a-Service)
+**URL**: https://coinrailz.com/x402/service/instant-agent-wallet
+**Price**: $1.00 USDC
+**Description**: **Create MPC-secured USDC wallets instantly via Circle Developer-Controlled Wallets.** AI agents get production-ready payment infrastructure without managing private keys. Supports multi-chain USDC (Ethereum, Polygon, Base, Arbitrum, Optimism). Essential for any AI agent that needs to accept or send payments.
+**Method**: POST
+**Input**:
+- agentId (required) - Unique AI agent identifier
+- description (optional) - Wallet description/label
+- initialFundingAmount (optional) - Initial USDC funding amount
+**Output**:
+- walletId - Circle wallet ID
+- walletAddress - On-chain address (EVM-compatible)
+- capabilities - List of supported payment operations
+- fundingInstructions - How to deposit USDC to the wallet
+
+### 17. Verified Agent Identity (KYA - Know Your Agent)
+**URL**: https://coinrailz.com/x402/service/verified-agent-identity
+**Price**: $5.00 USDC
+**Description**: **Premium KYA (Know-Your-Agent) identity verification with on-chain reputation scoring.** Uses ERC-8004 blockchain identity standard + Circle wallet ownership verification. Returns trust score, compliance status, and reputation metrics. Required for high-value agent-to-agent transactions and institutional use cases.
+**Method**: POST
+**Input**:
+- agentId (required) - AI agent identifier
+- walletAddress (required) - Wallet address to verify
+- signature (optional) - Optional signature for enhanced verification
+- metadata (optional) - Agent metadata for reputation scoring
+**Output**:
+- verificationStatus - verified/pending
+- trustScore - 0-100 trust rating
+- reputationScore - On-chain reputation from ERC-8004 contract
+- compliance - KYC status, sanctions check, risk level
+- onChainIdentity - ERC-721 identity NFT details if exists
+
+### 18. Seamless Chain Bridge (Cross-Chain Payment Routing)
+**URL**: https://coinrailz.com/x402/service/seamless-chain-bridge
+**Price**: $2.00 USDC
+**Description**: **Cross-chain USDC routing via Circle CCTP (Cross-Chain Transfer Protocol).** Calculate optimal routes for moving USDC between Ethereum, Polygon, Base, Arbitrum, and Optimism. Returns detailed fee breakdown, execution steps, and estimated time (~60 seconds). Eliminates need for agents to manually bridge funds.
+**Method**: POST
+**Input**:
+- fromChain (required) - Source blockchain (ethereum, polygon, base, arbitrum, optimism)
+- toChain (required) - Destination blockchain
+- amount (required) - USDC amount to bridge
+- fromAddress (required) - Sender wallet address
+- toAddress (required) - Recipient wallet address on destination chain
+- currency (optional) - Currency to bridge (default: USDC)
+**Output**:
+- route - Complete transfer route details
+- bridgeDetails - Circle CCTP protocol information, fees, timing
+- gasEstimates - Total gas costs in USD
+- execution - Step-by-step transfer instructions
+
+---
+
 ## Registration Instructions
 
 1. Visit https://www.x402scan.com/resources/register

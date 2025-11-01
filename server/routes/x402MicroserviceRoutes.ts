@@ -21,6 +21,11 @@ import {
   trackRequest,
   SERVICE_PRICING,
 } from "./microservices";
+import {
+  transactionBuilderInputSchema,
+  approvalManagerInputSchema,
+  batchQuoteInputSchema,
+} from "@shared/schema";
 
 // Initialize x402 payment service
 const x402Service = new X402PaymentService();
@@ -355,7 +360,18 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
           break;
 
         case "transaction-builder":
-          result = await transactionBuilderService(req.body);
+          const txBuilderValidation = transactionBuilderInputSchema.safeParse(req.body);
+          if (!txBuilderValidation.success) {
+            return res.status(400).json({
+              success: false,
+              error: "Invalid input",
+              details: txBuilderValidation.error.errors.map(e => ({
+                field: e.path.join('.'),
+                message: e.message,
+              })),
+            });
+          }
+          result = await transactionBuilderService(txBuilderValidation.data);
           break;
 
         case "token-metadata":
@@ -367,11 +383,33 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
           break;
 
         case "approval-manager":
-          result = await approvalManagerService(req.body);
+          const approvalValidation = approvalManagerInputSchema.safeParse(req.body);
+          if (!approvalValidation.success) {
+            return res.status(400).json({
+              success: false,
+              error: "Invalid input",
+              details: approvalValidation.error.errors.map(e => ({
+                field: e.path.join('.'),
+                message: e.message,
+              })),
+            });
+          }
+          result = await approvalManagerService(approvalValidation.data);
           break;
 
         case "batch-quote":
-          result = await batchQuoteService(req.body);
+          const batchQuoteValidation = batchQuoteInputSchema.safeParse(req.body);
+          if (!batchQuoteValidation.success) {
+            return res.status(400).json({
+              success: false,
+              error: "Invalid input",
+              details: batchQuoteValidation.error.errors.map(e => ({
+                field: e.path.join('.'),
+                message: e.message,
+              })),
+            });
+          }
+          result = await batchQuoteService(batchQuoteValidation.data);
           break;
 
         case "portfolio-tracker":

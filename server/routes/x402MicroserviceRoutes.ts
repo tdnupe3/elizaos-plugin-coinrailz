@@ -1,6 +1,4 @@
 import { Router, Request, Response } from "express";
-import { X402PaymentService } from "../services/x402PaymentService";
-import { nanoid } from "nanoid";
 import {
   multiChainBalanceService,
   gasPriceOracleService,
@@ -26,9 +24,7 @@ import {
   approvalManagerInputSchema,
   batchQuoteInputSchema,
 } from "@shared/schema";
-
-// Initialize x402 payment service
-const x402Service = new X402PaymentService();
+// CDP x402 SDK is installed but facilitator is accessed via direct API calls
 
 const router = Router();
 
@@ -54,6 +50,28 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
 
   record.count++;
   return true;
+}
+
+// Helper: Get service description
+function getServiceDescription(serviceId: string): string {
+  const descriptions: { [key: string]: string } = {
+    "multi-chain-balance": "Query wallet balances across 7+ EVM chains in a single API call",
+    "gas-price-oracle": "Real-time gas prices for multiple chains with USD cost estimates",
+    "token-price": "Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener",
+    "contract-scan": "Basic smart contract security scan with safety score and vulnerability checks",
+    "wallet-risk": "Wallet risk analysis with compliance flags and transaction pattern detection",
+    "trade-signals": "AI-powered crypto trading signals with entry/exit points and risk analysis",
+    "token-sentiment": "Social sentiment analysis for tokens with momentum indicators and activity levels",
+    "trending-tokens": "Top gaining and losing tokens across DEXs with real-time market data",
+    "whale-alerts": "Track large wallet movements (whales) with on-chain transaction monitoring",
+    "dex-liquidity": "Real-time DEX liquidity pool monitoring across multiple exchanges",
+    "transaction-builder": "Pre-validated transaction encoding for agent-to-agent transfers (B2B2C infrastructure)",
+    "token-metadata": "Unified token info across all chains - essential building block for trading agent UIs (B2B2C infrastructure)",
+    "approval-manager": "Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)",
+    "batch-quote": "Multi-DEX price quotes in single call - critical infrastructure for trading bot price discovery (B2B2C infrastructure)",
+    "portfolio-tracker": "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)",
+  };
+  return descriptions[serviceId] || `${serviceId} micropayment service`;
 }
 
 // Helper: Get input schema for each service
@@ -170,24 +188,13 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
   const paymentId = req.headers["x-payment-id"] as string;
 
   if (!paymentProof || !paymentId) {
-    // No payment, return 402 with x402scan-compliant format
-    const paymentRequest = await x402Service.createPaymentRequest({
-      amount: price,
-      agentId: serviceId,
-      serviceDescription: `Micropayment service: ${serviceId}`,
-      network: "base",
-      currency: "USDC",
-    });
-
+    // No payment, return 402 with CDP facilitator integration
     const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
       ? 'https://coinrailz.com' 
       : 'http://localhost:5000';
     
-    // Multi-currency support: USDC, ETH, USDT on Base chain
-    const ethPrice = await getEthPrice();
+    // USDC amount in proper format for CDP facilitator
     const usdcAmount = Math.floor(price * 1000000).toString(); // 6 decimals
-    const ethAmount = Math.floor(price * 1e18 / ethPrice).toString(); // Live ETH price, 18 decimals
-    const usdtAmount = Math.floor(price * 1000000).toString(); // 6 decimals
     
     const outputSchema = {
       input: {
@@ -202,65 +209,71 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       },
     };
     
+    // Return CDP facilitator-compatible payment requirements
     return res.status(402).json({
-      x402Version: 1,
-      accepts: [
-        // USDC (Base) - Primary
+      paymentRequirements: [
         {
-          scheme: "exact" as const,
-          network: "base" as const,
-          maxAmountRequired: usdcAmount,
-          resource: `${baseUrl}/x402/service/${serviceId}`,
-          description: `${serviceId} micropayment service (USDC)`,
-          mimeType: "application/json",
-          payTo: PLATFORM_WALLET,
-          maxTimeoutSeconds: 900,
-          asset: "USDC",
-          outputSchema,
-        },
-        // ETH (Base)
-        {
-          scheme: "exact" as const,
-          network: "base" as const,
-          maxAmountRequired: ethAmount,
-          resource: `${baseUrl}/x402/service/${serviceId}`,
-          description: `${serviceId} micropayment service (ETH)`,
-          mimeType: "application/json",
-          payTo: PLATFORM_WALLET,
-          maxTimeoutSeconds: 900,
-          asset: "ETH",
-          outputSchema,
-        },
-        // USDT (Base)
-        {
-          scheme: "exact" as const,
-          network: "base" as const,
-          maxAmountRequired: usdtAmount,
-          resource: `${baseUrl}/x402/service/${serviceId}`,
-          description: `${serviceId} micropayment service (USDT)`,
-          mimeType: "application/json",
-          payTo: PLATFORM_WALLET,
-          maxTimeoutSeconds: 900,
-          asset: "USDT",
-          outputSchema,
-        },
-      ],
+          type: "erc20-transfer",
+          network: "base",
+          tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+          amount: usdcAmount,
+          recipient: PLATFORM_WALLET,
+          facilitatorUrl: process.env.CDP_API_KEY_ID 
+            ? "https://facilitator.cdp.coinbase.com" 
+            : "https://x402.org/facilitator", // Use CDP facilitator for production or fallback for testnet
+          description: `${serviceId} micropayment service - ${getServiceDescription(serviceId)}`,
+          metadata: {
+            serviceId,
+            resource: `${baseUrl}/x402/service/${serviceId}`,
+            mimeType: "application/json",
+            outputSchema,
+          }
+        }
+      ]
     });
   }
 
-  // Verify payment
+  // Verify payment using CDP facilitator
   try {
-    const verification = await x402Service.verifyPayment(paymentId, paymentProof);
+    // Use CDP facilitator to verify payment
+    const facilitatorUrl = process.env.CDP_API_KEY_ID 
+      ? "https://facilitator.cdp.coinbase.com/verify" 
+      : "https://x402.org/facilitator/verify";
+    
+    const paymentPayload = JSON.parse(paymentProof);
+    
+    const verifyResponse = await fetch(facilitatorUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(process.env.CDP_API_KEY_ID && {
+          'X-CDP-Api-Key': process.env.CDP_API_KEY_ID,
+          'X-CDP-Private-Key': process.env.CDP_PRIVATE_KEY || ''
+        })
+      },
+      body: JSON.stringify({
+        paymentPayload,
+        paymentRequirements: [{
+          type: "erc20-transfer",
+          network: "base",
+          tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          amount: Math.floor(price * 1000000).toString(),
+          recipient: PLATFORM_WALLET,
+        }]
+      })
+    });
 
-    if (!verification.success || verification.status !== "completed") {
+    if (!verifyResponse.ok) {
       return res.status(402).json({
         error: "Payment verification failed",
-        message: verification.error || "Payment proof could not be verified on-chain",
+        message: "Payment could not be verified via facilitator",
       });
     }
 
+    const verificationResult = await verifyResponse.json();
+
     // Extract payer wallet address from verification
-    const payerWallet = verification.walletAddress || paymentProof.slice(0, 42);
+    const payerWallet = verificationResult.from || paymentPayload.from || "unknown";
 
     // Payment verified - apply rate limiting based on actual payer wallet
     const walletKey = `wallet:${payerWallet}`;

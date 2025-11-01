@@ -8,6 +8,11 @@ import {
   contractQuickScanService,
   walletRiskScoreService,
   tradeSignalsService,
+  tokenSocialSentimentService,
+  trendingTokensFeedService,
+  whaleWalletAlertsService,
+  dexLiquidityMonitorService,
+  getEthPrice,
   trackRequest,
   SERVICE_PRICING,
 } from "./microservices";
@@ -75,6 +80,28 @@ function getServiceInputSchema(serviceId: string): Record<string, any> {
         timeframe: { type: "string", required: false, description: "Timeframe (5m, 15m, 1h, 4h, 1d)" },
         riskLevel: { type: "string", required: false, description: "Risk level: low, medium, high" },
       };
+    case "token-sentiment":
+      return {
+        tokenSymbol: { type: "string", required: true, description: "Token symbol (e.g., BTC, ETH, PEPE)" },
+        chain: { type: "string", required: false, description: "Blockchain network (default: ethereum)" },
+      };
+    case "trending-tokens":
+      return {
+        timeframe: { type: "string", required: false, description: "Timeframe (default: 24h)" },
+        chain: { type: "string", required: false, description: "Chain filter (default: all)" },
+        limit: { type: "number", required: false, description: "Number of tokens to return (max: 50)" },
+      };
+    case "whale-alerts":
+      return {
+        tokenAddress: { type: "string", required: true, description: "Token contract address to monitor" },
+        chain: { type: "string", required: false, description: "Blockchain network (default: ethereum)" },
+        threshold: { type: "number", required: false, description: "Minimum USD value for whale detection (default: $100k)" },
+      };
+    case "dex-liquidity":
+      return {
+        tokenAddress: { type: "string", required: true, description: "Token contract address" },
+        chain: { type: "string", required: false, description: "Blockchain network (default: ethereum)" },
+      };
     default:
       return {};
   }
@@ -114,8 +141,9 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       : 'http://localhost:5000';
     
     // Multi-currency support: USDC, ETH, USDT on Base chain
+    const ethPrice = await getEthPrice();
     const usdcAmount = Math.floor(price * 1000000).toString(); // 6 decimals
-    const ethAmount = Math.floor(price * 1e18 / 3000).toString(); // Estimate: ~$3000/ETH, 18 decimals
+    const ethAmount = Math.floor(price * 1e18 / ethPrice).toString(); // Live ETH price, 18 decimals
     const usdtAmount = Math.floor(price * 1000000).toString(); // 6 decimals
     
     const outputSchema = {
@@ -127,8 +155,7 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
       },
       output: {
         success: { type: "boolean" },
-        result: { type: "object" },
-        serviceId: { type: "string" },
+        data: { type: "object" },
       },
     };
     
@@ -256,6 +283,39 @@ router.all("/service/:serviceId", async (req: Request, res: Response) => {
           result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
           break;
 
+        case "token-sentiment":
+          const { tokenSymbol, chain: sentimentChain } = req.body;
+          if (!tokenSymbol) {
+            return res.status(400).json({ success: false, error: "tokenSymbol is required" });
+          }
+          result = await tokenSocialSentimentService(tokenSymbol, sentimentChain);
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
+        case "trending-tokens":
+          const { timeframe: trendTimeframe, chain: trendChain, limit: trendLimit } = req.body;
+          result = await trendingTokensFeedService(trendTimeframe, trendChain, trendLimit);
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
+        case "whale-alerts":
+          const { tokenAddress: whaleToken, chain: whaleChain, threshold } = req.body;
+          if (!whaleToken) {
+            return res.status(400).json({ success: false, error: "tokenAddress is required" });
+          }
+          result = await whaleWalletAlertsService(whaleToken, whaleChain, threshold);
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
+        case "dex-liquidity":
+          const { tokenAddress: liquidityToken, chain: liquidityChain } = req.body;
+          if (!liquidityToken) {
+            return res.status(400).json({ success: false, error: "tokenAddress is required" });
+          }
+          result = await dexLiquidityMonitorService(liquidityToken, liquidityChain);
+          result.queryTime = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+          break;
+
         default:
           return res.status(404).json({ error: "Service not found" });
       }
@@ -289,6 +349,10 @@ router.get("/catalog", (req: Request, res: Response) => {
       "contract-scan": "Basic smart contract security scan with safety score and vulnerability checks",
       "wallet-risk": "Wallet risk analysis with compliance flags and transaction pattern detection",
       "trade-signals": "AI-powered crypto trading signals with entry/exit points and risk analysis",
+      "token-sentiment": "Social sentiment analysis for tokens with momentum indicators and activity levels",
+      "trending-tokens": "Top gaining and losing tokens across DEXs with real-time market data",
+      "whale-alerts": "Track large wallet movements (whales) with on-chain transaction monitoring",
+      "dex-liquidity": "Real-time DEX liquidity pool monitoring across multiple exchanges",
     };
 
     const responseTimes: { [key: string]: string } = {
@@ -298,6 +362,10 @@ router.get("/catalog", (req: Request, res: Response) => {
       "contract-scan": "<10s",
       "wallet-risk": "<2s",
       "trade-signals": "<1s",
+      "token-sentiment": "<2s",
+      "trending-tokens": "<5s",
+      "whale-alerts": "<3s",
+      "dex-liquidity": "<2s",
     };
 
     return {

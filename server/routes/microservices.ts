@@ -18,7 +18,11 @@ const SERVICE_PRICING = {
   "token-price": 0.05,
   "contract-scan": 2.0,
   "wallet-risk": 0.5,
-  "trade-signals": 2.0, // $2 per trade signal
+  "trade-signals": 2.0,
+  "token-sentiment": 0.10,
+  "trending-tokens": 0.25,
+  "whale-alerts": 0.50,
+  "dex-liquidity": 0.15,
 };
 
 // Cache helper functions
@@ -605,6 +609,286 @@ async function walletRiskScoreService(walletAddress: string, chain: string) {
   }
 }
 
+// Service 6: Token Social Sentiment
+async function tokenSocialSentimentService(tokenSymbol: string, chain: string = "ethereum") {
+  const cacheKey = `token-sentiment-${chain}-${tokenSymbol}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await axios.get(
+      `https://api.dexscreener.com/latest/dex/search?q=${tokenSymbol}`,
+      { timeout: 5000 }
+    );
+
+    const pairs = response.data.pairs || [];
+    if (pairs.length === 0) {
+      throw new Error("Token not found");
+    }
+
+    const filteredPairs = pairs.filter((p: any) => p.chainId?.toLowerCase() === chain.toLowerCase());
+    const topPair = filteredPairs.length > 0 ? filteredPairs[0] : pairs[0];
+    
+    const priceChange24h = parseFloat(topPair.priceChange?.h24 || "0");
+    const volume24h = parseFloat(topPair.volume?.h24 || "0");
+    const txns24h = topPair.txns?.h24?.buys + topPair.txns?.h24?.sells || 0;
+    const liquidity = parseFloat(topPair.liquidity?.usd || "0");
+
+    let sentimentScore = 50;
+    if (priceChange24h > 20) sentimentScore += 30;
+    else if (priceChange24h > 10) sentimentScore += 20;
+    else if (priceChange24h > 5) sentimentScore += 10;
+    else if (priceChange24h < -20) sentimentScore -= 30;
+    else if (priceChange24h < -10) sentimentScore -= 20;
+    else if (priceChange24h < -5) sentimentScore -= 10;
+
+    if (volume24h > 1000000) sentimentScore += 15;
+    else if (volume24h > 500000) sentimentScore += 10;
+    else if (volume24h > 100000) sentimentScore += 5;
+
+    if (txns24h > 1000) sentimentScore += 10;
+    else if (txns24h > 500) sentimentScore += 5;
+
+    sentimentScore = Math.max(0, Math.min(100, sentimentScore));
+
+    let sentiment = "NEUTRAL";
+    if (sentimentScore >= 70) sentiment = "VERY_BULLISH";
+    else if (sentimentScore >= 60) sentiment = "BULLISH";
+    else if (sentimentScore <= 30) sentiment = "VERY_BEARISH";
+    else if (sentimentScore <= 40) sentiment = "BEARISH";
+
+    const result = {
+      token: tokenSymbol.toUpperCase(),
+      chain: topPair.chainId || chain,
+      sentimentScore,
+      sentiment,
+      metrics: {
+        priceChange24h: `${priceChange24h.toFixed(2)}%`,
+        volume24h: `$${volume24h.toLocaleString()}`,
+        transactions24h: txns24h,
+        liquidity: `$${liquidity.toLocaleString()}`,
+        marketCap: `$${parseFloat(topPair.fdv || "0").toLocaleString()}`,
+      },
+      indicators: {
+        momentum: priceChange24h > 5 ? "STRONG" : priceChange24h > 0 ? "POSITIVE" : "NEGATIVE",
+        volumeTrend: volume24h > 500000 ? "HIGH" : volume24h > 100000 ? "MODERATE" : "LOW",
+        activityLevel: txns24h > 500 ? "VERY_ACTIVE" : txns24h > 100 ? "ACTIVE" : "LOW",
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    setCachedData(cacheKey, result, 120000); // 2 min cache
+    return result;
+  } catch (error) {
+    console.error("Token sentiment error:", error);
+    throw new Error("Failed to analyze token sentiment");
+  }
+}
+
+// Service 7: Trending Tokens Feed
+async function trendingTokensFeedService(timeframe: string = "24h", chain: string = "all", limit: number = 20) {
+  const cacheKey = `trending-tokens-${timeframe}-${chain}-${limit}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await axios.get(
+      `https://api.dexscreener.com/token-profiles/latest/v1`,
+      { timeout: 10000 }
+    );
+
+    let tokens = response.data || [];
+
+    if (chain !== "all") {
+      tokens = tokens.filter((t: any) => t.chainId?.toLowerCase() === chain.toLowerCase());
+    }
+
+    tokens = tokens.slice(0, Math.min(limit, 50));
+
+    const gainers: any[] = [];
+    const losers: any[] = [];
+
+    for (const token of tokens) {
+      try {
+        const pairResponse = await axios.get(
+          `https://api.dexscreener.com/latest/dex/tokens/${token.tokenAddress}`
+        );
+
+        const pair = pairResponse.data.pairs?.[0];
+        if (!pair) continue;
+
+        const priceChange = parseFloat(pair.priceChange?.h24 || "0");
+        const tokenData = {
+          symbol: pair.baseToken?.symbol || "UNKNOWN",
+          name: pair.baseToken?.name || "Unknown",
+          address: token.tokenAddress,
+          chain: pair.chainId || "unknown",
+          price: `$${parseFloat(pair.priceUsd || "0").toFixed(6)}`,
+          priceChange24h: `${priceChange.toFixed(2)}%`,
+          volume24h: `$${parseFloat(pair.volume?.h24 || "0").toLocaleString()}`,
+          liquidity: `$${parseFloat(pair.liquidity?.usd || "0").toLocaleString()}`,
+          marketCap: `$${parseFloat(pair.fdv || "0").toLocaleString()}`,
+          txns24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
+        };
+
+        if (priceChange > 0) gainers.push(tokenData);
+        else if (priceChange < 0) losers.push(tokenData);
+      } catch (err) {
+        continue;
+      }
+    }
+
+    gainers.sort((a, b) => parseFloat(b.priceChange24h) - parseFloat(a.priceChange24h));
+    losers.sort((a, b) => parseFloat(a.priceChange24h) - parseFloat(b.priceChange24h));
+
+    const result = {
+      timeframe,
+      chain: chain === "all" ? "multi-chain" : chain,
+      topGainers: gainers.slice(0, 10),
+      topLosers: losers.slice(0, 10),
+      totalAnalyzed: tokens.length,
+      timestamp: new Date().toISOString(),
+    };
+
+    setCachedData(cacheKey, result, 300000); // 5 min cache
+    return result;
+  } catch (error) {
+    console.error("Trending tokens error:", error);
+    throw new Error("Failed to fetch trending tokens");
+  }
+}
+
+// Service 8: Whale Wallet Alerts
+async function whaleWalletAlertsService(tokenAddress: string, chain: string = "ethereum", threshold: number = 100000) {
+  const cacheKey = `whale-alerts-${chain}-${tokenAddress}-${threshold}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];
+    if (!alchemy) {
+      throw new Error("Chain not supported for whale tracking");
+    }
+
+    const transfers = await alchemy.core.getAssetTransfers({
+      contractAddresses: [tokenAddress],
+      category: ["erc20" as any],
+      maxCount: 100,
+    });
+
+    const ethPrice = await getEthPrice();
+    const whaleMovements: any[] = [];
+
+    for (const transfer of transfers.transfers) {
+      const value = parseFloat(transfer.value?.toString() || "0");
+      const valueUSD = value * ethPrice;
+
+      if (valueUSD >= threshold) {
+        whaleMovements.push({
+          from: transfer.from,
+          to: transfer.to || "Unknown",
+          value: value.toFixed(4),
+          valueUSD: `$${valueUSD.toLocaleString()}`,
+          blockNumber: transfer.blockNum,
+          hash: transfer.hash,
+          timestamp: new Date().toISOString(),
+          type: transfer.to === "0x0000000000000000000000000000000000000000" ? "BURN" : "TRANSFER",
+        });
+      }
+    }
+
+    whaleMovements.sort((a, b) => parseFloat(b.valueUSD.replace(/[$,]/g, "")) - parseFloat(a.valueUSD.replace(/[$,]/g, "")));
+
+    const result = {
+      token: tokenAddress,
+      chain,
+      threshold: `$${threshold.toLocaleString()}`,
+      whaleMovements: whaleMovements.slice(0, 20),
+      totalMovements: whaleMovements.length,
+      largestMovement: whaleMovements[0] || null,
+      summary: {
+        totalValueMoved: `$${whaleMovements.reduce((sum, m) => sum + parseFloat(m.valueUSD.replace(/[$,]/g, "")), 0).toLocaleString()}`,
+        averageTransactionSize: whaleMovements.length > 0 
+          ? `$${(whaleMovements.reduce((sum, m) => sum + parseFloat(m.valueUSD.replace(/[$,]/g, "")), 0) / whaleMovements.length).toLocaleString()}`
+          : "$0",
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    setCachedData(cacheKey, result, 120000); // 2 min cache
+    return result;
+  } catch (error) {
+    console.error("Whale alerts error:", error);
+    throw new Error("Failed to track whale movements");
+  }
+}
+
+// Service 9: DEX Liquidity Monitor
+async function dexLiquidityMonitorService(tokenAddress: string, chain: string = "ethereum") {
+  const cacheKey = `dex-liquidity-${chain}-${tokenAddress}`;
+  const cached = getCachedData(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await axios.get(
+      `https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`,
+      { timeout: 5000 }
+    );
+
+    const pairs = response.data.pairs || [];
+    if (pairs.length === 0) {
+      throw new Error("No liquidity pools found for this token");
+    }
+
+    const filteredPairs = chain === "all" 
+      ? pairs 
+      : pairs.filter((p: any) => p.chainId?.toLowerCase() === chain.toLowerCase());
+
+    const liquidityPools = filteredPairs.map((pair: any) => ({
+      dex: pair.dexId || "Unknown",
+      pairAddress: pair.pairAddress,
+      baseToken: pair.baseToken?.symbol || "UNKNOWN",
+      quoteToken: pair.quoteToken?.symbol || "UNKNOWN",
+      liquidity: parseFloat(pair.liquidity?.usd || "0"),
+      liquidityUSD: `$${parseFloat(pair.liquidity?.usd || "0").toLocaleString()}`,
+      volume24h: `$${parseFloat(pair.volume?.h24 || "0").toLocaleString()}`,
+      priceUSD: `$${parseFloat(pair.priceUsd || "0").toFixed(6)}`,
+      priceChange24h: `${parseFloat(pair.priceChange?.h24 || "0").toFixed(2)}%`,
+      txns24h: (pair.txns?.h24?.buys || 0) + (pair.txns?.h24?.sells || 0),
+      chain: pair.chainId || chain,
+    }));
+
+    liquidityPools.sort((a: any, b: any) => b.liquidity - a.liquidity);
+
+    const totalLiquidity = liquidityPools.reduce((sum: number, pool: any) => sum + pool.liquidity, 0);
+    const totalVolume24h = liquidityPools.reduce((sum: number, pool: any) => {
+      return sum + parseFloat(pool.volume24h.replace(/[$,]/g, ""));
+    }, 0);
+
+    const result = {
+      token: tokenAddress,
+      chain: chain === "all" ? "multi-chain" : chain,
+      totalPools: liquidityPools.length,
+      totalLiquidity: `$${totalLiquidity.toLocaleString()}`,
+      totalVolume24h: `$${totalVolume24h.toLocaleString()}`,
+      pools: liquidityPools.slice(0, 10),
+      topPool: liquidityPools[0] || null,
+      metrics: {
+        averagePoolSize: `$${(totalLiquidity / Math.max(liquidityPools.length, 1)).toLocaleString()}`,
+        volumeToLiquidityRatio: (totalVolume24h / Math.max(totalLiquidity, 1)).toFixed(3),
+        mostActiveDEX: liquidityPools[0]?.dex || "Unknown",
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    setCachedData(cacheKey, result, 60000); // 1 min cache
+    return result;
+  } catch (error) {
+    console.error("DEX liquidity error:", error);
+    throw new Error("Failed to monitor DEX liquidity");
+  }
+}
+
 // API Endpoints
 router.post("/multi-chain-balance", async (req: Request, res: Response) => {
   const startTime = Date.now();
@@ -906,6 +1190,11 @@ export {
   contractQuickScanService,
   walletRiskScoreService,
   tradeSignalsService,
+  tokenSocialSentimentService,
+  trendingTokensFeedService,
+  whaleWalletAlertsService,
+  dexLiquidityMonitorService,
+  getEthPrice,
   trackRequest,
   SERVICE_PRICING,
 };

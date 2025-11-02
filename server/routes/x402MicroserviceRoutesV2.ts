@@ -31,6 +31,11 @@ import {
 
 const router = Router();
 
+// Ensure CDP facilitator credentials are available (x402-express expects CDP_API_KEY_SECRET)
+if (process.env.CDP_PRIVATE_KEY && !process.env.CDP_API_KEY_SECRET) {
+  process.env.CDP_API_KEY_SECRET = process.env.CDP_PRIVATE_KEY;
+}
+
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321") as `0x${string}`;
 
@@ -354,7 +359,7 @@ router.post("/x402/service/trade-signals", async (req: Request, res: Response) =
   const startTime = Date.now();
   try {
     const { token, timeframe, riskLevel } = req.body;
-    const result = await tradeSignalsService(token, timeframe, riskLevel);
+    const result = await tradeSignalsService({ token, timeframe, riskLevel });
     const responseTime = Date.now() - startTime;
     
     await trackRequest("trade-signals", req.body, result, responseTime, SERVICE_PRICING["trade-signals"], req.ip || "unknown");
@@ -426,13 +431,13 @@ router.post("/x402/service/whale-alerts", async (req: Request, res: Response) =>
 router.post("/x402/service/dex-liquidity", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
-    const { tokenAddress, chain, dexes } = req.body;
+    const { tokenAddress, chain } = req.body;
     
     if (!tokenAddress || !chain) {
       return res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
     }
 
-    const result = await dexLiquidityMonitorService(tokenAddress, chain, dexes);
+    const result = await dexLiquidityMonitorService(tokenAddress, chain);
     const responseTime = Date.now() - startTime;
     
     await trackRequest("dex-liquidity", req.body, result, responseTime, SERVICE_PRICING["dex-liquidity"], req.ip || "unknown");

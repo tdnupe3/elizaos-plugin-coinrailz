@@ -1,0 +1,87 @@
+Awesome progress. With inputSchema fixed and all routes re-announced, you’ve basically satisfied everything Coinbase says is needed for Bazaar auto-ingestion (CDP facilitator + discoverable:true + publicly reachable service) 
+docs.cdp.coinbase.com
++1
+. While you wait out this last window, here’s a laser-focused pass on your questions + a couple final knobs to check.
+
+Answers to your questions
+
+1) Anything else in config that could block indexing?
+Two small things to verify (they’ve tripped others):
+
+Content-Type of the 402: make sure the 402 challenge replies with Content-Type: application/json (not text/html).
+
+curl -i https://coinrailz.com/x402/service/gas-price-oracle | sed -n '1,10p'
+
+
+Stable, crawlable verbs: you already confirmed GET and HEAD return 402 (perfect). Bazaar/facilitator discovery depends on a reachable, public 402 challenge; there’s no need for a separate list endpoint on your domain 
+docs.cdp.coinbase.com
+.
+
+(You’ve already added name, description, inputSchema, outputSchema in the route config; those are the “discovery metadata” docs reference. They don’t have to appear in the 402 body; the facilitator ingests them from your config when it sees the first 402. So your observation that name/description aren’t in the 402 JSON is normal.) 
+docs.cdp.coinbase.com
+
+2) Should indexing happen within 30–60 minutes now?
+Per Coinbase’s Bazaar docs + quickstarts, ingestion is automatic when using the CDP facilitator with discoverable:true; timelines aren’t hard-promised, but examples imply near-real-time once the first 402 is observed 
+docs.cdp.coinbase.com
++1
+. Practically: I’d expect to see it within an hour if the indexer is healthy.
+
+3) Is there a public Bazaar crawler log?
+No public crawler log. The only public view is the Discovery API:
+
+curl -s 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources' \
+| jq '.resources[] | select(.resource|contains("coinrailz.com"))'
+
+
+That endpoint is the official machine-readable catalog (Coinbase’s docs position Bazaar as the index agents consume) 
+Coinbase
+.
+
+4) Any other metadata to help discovery?
+You’ve hit the important ones (name, description, mimeType, inputSchema, outputSchema, stable resource). There isn’t a documented “tags/category” field today; the core requirement remains “public 402 + facilitator + discoverable” 
+docs.cdp.coinbase.com
+.
+
+Two last verifications (5 min)
+
+Confirm 402 body shape matches what indexers expect (field names vary by SDK version, but either paymentRequirements or accepts arrays are fine as long as they include network/token/amount/recipient + facilitatorUrl). Coinbase’s protocol/facilitator docs emphasize those fields as the contract for verification/settlement 
+docs.cdp.coinbase.com
++1
+.
+
+Uptime / cold-start: keep the process “always on” so the crawler never times out (Coinbase quickstarts recommend standard public cloud hosting; sleeping hosts can cause silent misses) 
+Medium
+.
+
+What to do while you wait ~1 hour
+
+Run the discovery query above every 10–15 minutes to spot first appearance.
+
+If still 0 after ~60–90 minutes, post the re-ingestion request (brief + actionable) in Coinbase’s dev Discord or GitHub, including:
+
+timestamp you re-announced all routes,
+
+one full GET 402 (raw headers + JSON) showing Content-Type: application/json,
+
+the route config for one service (with discoverable, name, description, inputSchema, outputSchema),
+
+confirmation that GET/HEAD both return 402,
+
+your wallet 0x4dB56…C321, facilitator URL, and domain.
+(Bazaar is specifically the discovery layer for “services registered with the CDP facilitator,” so this is squarely in their lane to recheck/replay ingestion) 
+Coinbase
+.
+
+Nice-to-have (not required)
+
+/healthz JSON (no x402) so Coinbase can quickly confirm the host is up when they attempt a re-crawl.
+
+Keep x402scan polished (you already did this) — it’s a separate ecosystem explorer with manual submit; useful for human discovery and credibility 
+GitHub
+.
+
+ERC-8004 is a trust layer, not required for Bazaar indexing (good future-proofing; you’re already set) 
+Ethereum Improvement Proposals
+.
+
+If you want, paste one representative GET 402 (headers + body) here and I’ll sanity-diff it against the facilitator/Bazaar expectations and give you a copy-paste Discord follow-up.

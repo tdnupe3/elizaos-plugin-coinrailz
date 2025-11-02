@@ -393,6 +393,63 @@ const x402Routes = {
   },
 };
 
+// HYPOTHESIS TEST: Add discoverable:true to actual HTTP 402 response body
+// (Bazaar crawler may be looking for this field in the response, not just in config)
+// This middleware MUST run BEFORE paymentMiddleware to intercept the response
+router.use((req: Request, res: Response, next) => {
+  const originalEnd = res.end.bind(res);
+  
+  // Intercept at the lowest level - res.end() which all response methods ultimately call
+  res.end = function(chunk: any, encoding?: any, callback?: any) {
+    console.log(`🔍 res.end intercepted! Status: ${res.statusCode}, Has chunk: ${!!chunk}`);
+    
+    // Only modify if status is 402 and chunk looks like JSON
+    if (res.statusCode === 402 && chunk) {
+      console.log('✅ 402 response detected with chunk');
+      try {
+        const chunkStr = typeof chunk === 'string' ? chunk : chunk.toString();
+        const body = JSON.parse(chunkStr);
+        console.log(`📦 Parsed body, has x402Version: ${!!body?.x402Version}, has paymentRequirements: ${!!body?.paymentRequirements}`);
+        
+        // Check if this is a 402 response with paymentRequirements
+        if (body?.x402Version && body?.paymentRequirements && Array.isArray(body.paymentRequirements)) {
+          console.log('🎯 Modifying paymentRequirements to add discoverable:true');
+          // Modify the response to add discoverable:true
+          body.paymentRequirements = body.paymentRequirements.map((req: any) => {
+            const modifiedReq = {
+              ...req,
+              discoverable: true, // Add at top level
+            };
+            
+            // Also add to metadata.outputSchema.input (matching arvos.xyz format)
+            if (modifiedReq.metadata?.outputSchema?.input) {
+              modifiedReq.metadata.outputSchema.input = {
+                ...modifiedReq.metadata.outputSchema.input,
+                discoverable: true
+              };
+            }
+            
+            return modifiedReq;
+          });
+          
+          // Send the modified body
+          const modifiedChunk = JSON.stringify(body);
+          console.log('✅ MODIFIED RESPONSE BEING SENT WITH DISCOVERABLE:TRUE');
+          return originalEnd.call(this, modifiedChunk, encoding, callback);
+        }
+      } catch (e) {
+        console.error('❌ Error in res.end interception:', e);
+      }
+    }
+    
+    // Pass through unmodified
+    console.log('➡️ Passing through unmodified response');
+    return originalEnd.call(this, chunk, encoding, callback);
+  };
+  
+  next();
+});
+
 // Apply official x402-express middleware to all routes
 router.use(paymentMiddleware(
   PLATFORM_WALLET,

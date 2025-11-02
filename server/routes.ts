@@ -380,6 +380,10 @@ Questions? Reply to this message or contact support@coinrailz.com
   const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutesV2').then(m => m.default);
   app.use(x402MicroserviceRoutes);
 
+  // 🔍 MCP Service Discovery - AI agent service directory (Model Context Protocol compatible)
+  const mcpServiceDiscovery = await import('./routes/mcpServiceDiscovery').then(m => m.default);
+  app.use('/api', mcpServiceDiscovery);
+
   // 💎 Micropayment Services - INTERNAL ONLY (called from x402 after payment verification)
   // These routes are NOT public - they're called internally by x402 routes after payment
   const microservicesRoutes = await import('./routes/microservices').then(m => m.default);

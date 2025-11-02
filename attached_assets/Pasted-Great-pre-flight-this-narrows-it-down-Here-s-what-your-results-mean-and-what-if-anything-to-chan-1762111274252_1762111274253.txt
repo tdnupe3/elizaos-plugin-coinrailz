@@ -1,0 +1,78 @@
+Great pre-flight—this narrows it down.
+
+Here’s what your results mean and what (if anything) to change:
+
+What’s “normal” vs. “required”
+
+Missing name/description in the 402 JSON is normal.
+The x402 paywall response isn’t required to echo those fields. Coinbase’s docs show description, inputSchema, outputSchema as recommended config to improve Bazaar discovery, not as guaranteed keys in each 402 JSON. Bazaar reads this metadata from your middleware config during facilitator ingestion; it doesn’t need to appear in every 402 body. 
+docs.cdp.coinbase.com
+
+Bazaar indexing is automatic when you use the CDP facilitator + discoverable:true.
+That’s the documented behavior; there’s no separate “list endpoint” you must host. 
+docs.cdp.coinbase.com
+
+Your own /x402/list doesn’t need to return JSON.
+Bazaar queries Coinbase’s discovery API, not your domain. Having your own catalog endpoint is optional (useful for humans/devs), but it’s not part of Bazaar ingestion. 
+docs.cdp.coinbase.com
+
+Small tweaks worth doing (safe to ship right now)
+
+These won’t break anything and align you 1:1 with the docs’ “discovery metadata”:
+
+Add inputSchema alongside your outputSchema in config.
+(Docs show both are used to help agents understand/rank usage in Bazaar.) Example: 
+docs.cdp.coinbase.com
+
+config: {
+  discoverable: true,
+  name: "Gas Price Oracle",            // harmless; some UIs show it
+  description: "Real-time gas prices…",
+  mimeType: "application/json",
+  maxTimeoutSeconds: 60,
+  inputSchema: {
+    type: "object",
+    properties: {
+      chains: { type: "array", items: { type: "string" }, description: "Chains to check" }
+    }
+  },
+  outputSchema: { /* your existing schema */ }
+}
+
+
+Keep resource stable (you already have it) and ensure GET/HEAD hit the 402 (you verified ✅).
+
+Re-trigger one GET per route after you deploy the metadata tweak (this is when the facilitator “sees” routes and can forward metadata to Bazaar).
+
+No need to “republish” beyond a normal deploy—just update config, redeploy, and hit each route once to refresh facilitator ingestion.
+
+So, to your specific questions
+
+“Is it normal for name/description not to appear in the 402?”
+Yes. They’re recommended config for discovery, not required output of the paywall JSON. 
+docs.cdp.coinbase.com
+
+“Are those fields only sent to Bazaar during crawling?”
+Effectively yes: Bazaar learns them from your middleware config via the facilitator’s ingestion path (triggered when it first observes your 402). They don’t have to be in every 402 response body. 
+docs.cdp.coinbase.com
+
+“Should we republish?”
+Just deploy the config tweak (add inputSchema) and re-touch each route with a GET. No other republish step is required.
+
+“Do we need a separate /list JSON endpoint?”
+No. Bazaar uses Coinbase’s /platform/v2/x402/discovery/resources. Your local /x402/list can be anything (HTML is fine) and isn’t used for indexing. 
+docs.cdp.coinbase.com
+
+If Bazaar still doesn’t index after this
+
+You’ve now satisfied all documented preconditions (CDP facilitator, discoverable:true, public/always-on host, GET/HEAD→402, discovery metadata present). At that point it’s reasonable to post your re-ingestion request in Discord/GitHub with:
+
+timestamp when you re-triggered all 18 routes,
+
+one full 402 body (GET) for a representative route,
+
+your route config snippet (showing discoverable, description, inputSchema/outputSchema),
+
+confirmation that HEAD/GET both return 402.
+
+This is exactly what the docs promise should auto-list you; if it doesn’t, it’s likely an indexer/facilitator issue on their side.

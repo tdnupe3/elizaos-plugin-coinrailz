@@ -75,6 +75,13 @@ const x402Routes = {
       description: "Query wallet balances across 7+ EVM chains in a single API call",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          walletAddress: { type: "string", description: "Wallet address to check", required: true },
+          chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional)" },
+          includeTokens: { type: "boolean", description: "Include token balances (optional)" }
+        }
+      }
     }
   },
   "/x402/service/gas-price-oracle": {
@@ -86,6 +93,11 @@ const x402Routes = {
       description: "Real-time gas prices for multiple chains with USD cost estimates",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional, default: all)" }
+        }
+      }
     }
   },
   "/x402/service/token-price": {
@@ -97,6 +109,12 @@ const x402Routes = {
       description: "Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      }
     }
   },
   "/x402/service/contract-scan": {
@@ -108,6 +126,12 @@ const x402Routes = {
       description: "Basic smart contract security scan with safety score and vulnerability checks",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          contractAddress: { type: "string", description: "Smart contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      }
     }
   },
   "/x402/service/wallet-risk": {
@@ -119,6 +143,12 @@ const x402Routes = {
       description: "Wallet risk analysis with compliance flags and transaction pattern detection",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
+      inputSchema: {
+        bodyFields: {
+          walletAddress: { type: "string", description: "Wallet address to analyze", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      }
     }
   },
   "/x402/service/trade-signals": {
@@ -130,6 +160,13 @@ const x402Routes = {
       description: "AI-powered crypto trading signals with entry/exit points and risk analysis",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          token: { type: "string", description: "Token symbol (optional, default: BTC/USDT)" },
+          timeframe: { type: "string", enum: ["5m", "15m", "1h", "4h", "1d"], description: "Chart timeframe" },
+          riskLevel: { type: "string", enum: ["low", "medium", "high"], description: "Risk tolerance level" }
+        }
+      }
     }
   },
   "/x402/service/token-sentiment": {
@@ -141,6 +178,12 @@ const x402Routes = {
       description: "Social sentiment analysis for tokens with momentum indicators and activity levels",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
+      inputSchema: {
+        bodyFields: {
+          tokenSymbol: { type: "string", description: "Token symbol (e.g., BTC, ETH, PEPE)", required: true },
+          chain: { type: "string", description: "Blockchain network (optional, default: ethereum)" }
+        }
+      }
     }
   },
   "/x402/service/trending-tokens": {
@@ -152,6 +195,12 @@ const x402Routes = {
       description: "Top gaining and losing tokens across DEXs with real-time market data",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
+      inputSchema: {
+        bodyFields: {
+          timeframe: { type: "string", description: "Time period (optional, default: 24h)" },
+          chain: { type: "string", description: "Blockchain network (optional, default: all)" }
+        }
+      }
     }
   },
   "/x402/service/whale-alerts": {
@@ -163,6 +212,13 @@ const x402Routes = {
       description: "Track large wallet movements (whales) with on-chain transaction monitoring",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
+      inputSchema: {
+        bodyFields: {
+          chains: { type: "array", items: { type: "string" }, description: "Chains to monitor (optional)" },
+          minValueUsd: { type: "number", description: "Minimum transaction value in USD (optional)" },
+          tokenAddresses: { type: "array", items: { type: "string" }, description: "Specific tokens to watch (optional)" }
+        }
+      }
     }
   },
   "/x402/service/dex-liquidity": {
@@ -174,6 +230,12 @@ const x402Routes = {
       description: "Real-time DEX liquidity pool monitoring across multiple exchanges",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
+      inputSchema: {
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      }
     }
   },
   // 5 B2B2C infrastructure services
@@ -186,6 +248,16 @@ const x402Routes = {
       description: "Pre-validated transaction encoding for agent-to-agent transfers (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          to: { type: "string", description: "Recipient address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true },
+          tokenAddress: { type: "string", description: "ERC20 token address (optional)" },
+          amount: { type: "string", description: "Token amount (optional)" },
+          value: { type: "string", description: "ETH value (optional)" },
+          data: { type: "string", description: "Custom transaction data (optional)" }
+        }
+      }
     }
   },
   "/x402/service/token-metadata": {
@@ -197,6 +269,12 @@ const x402Routes = {
       description: "Unified token info across all chains - essential building block for trading agent UIs (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      }
     }
   },
   "/x402/service/approval-manager": {
@@ -208,6 +286,14 @@ const x402Routes = {
       description: "Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token to approve", required: true },
+          spender: { type: "string", description: "Spender address (DEX router)", required: true },
+          amount: { type: "string", description: "Amount to approve or 'unlimited'", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      }
     }
   },
   "/x402/service/batch-quote": {
@@ -219,6 +305,14 @@ const x402Routes = {
       description: "Multi-DEX price quotes in single call - critical infrastructure for trading bot price discovery (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
+      inputSchema: {
+        bodyFields: {
+          fromToken: { type: "string", description: "Input token address", required: true },
+          toToken: { type: "string", description: "Output token address", required: true },
+          amount: { type: "string", description: "Input amount", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      }
     }
   },
   "/x402/service/portfolio-tracker": {
@@ -230,6 +324,12 @@ const x402Routes = {
       description: "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          walletAddress: { type: "string", description: "Wallet address to track", required: true },
+          chains: { type: "array", items: { type: "string" }, description: "Chains to track (default: ethereum, base, polygon)" }
+        }
+      }
     }
   },
   // 3 Premium B2B2C services
@@ -242,6 +342,13 @@ const x402Routes = {
       description: "Create MPC-secured USDC wallets instantly - Circle Developer-Controlled Wallets for AI agents (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
+      inputSchema: {
+        bodyFields: {
+          agentId: { type: "string", description: "Unique AI agent identifier", required: true },
+          description: { type: "string", description: "Wallet description/label (optional)" },
+          initialFundingAmount: { type: "number", description: "Initial USDC funding amount (optional)" }
+        }
+      }
     }
   },
   "/x402/service/verified-agent-identity": {
@@ -253,6 +360,14 @@ const x402Routes = {
       description: "KYA (Know-Your-Agent) identity verification - On-chain reputation & compliance scoring using ERC-8004 standard (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
+      inputSchema: {
+        bodyFields: {
+          agentId: { type: "string", description: "AI agent identifier", required: true },
+          walletAddress: { type: "string", description: "Wallet address to verify", required: true },
+          signature: { type: "string", description: "Optional signature for enhanced verification" },
+          metadata: { type: "object", description: "Agent metadata for reputation scoring" }
+        }
+      }
     }
   },
   "/x402/service/seamless-chain-bridge": {
@@ -264,6 +379,16 @@ const x402Routes = {
       description: "Cross-chain USDC routing via Circle CCTP - Pay on Ethereum, receive on Base/Polygon/Arbitrum instantly (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 240,
+      inputSchema: {
+        bodyFields: {
+          fromChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Source blockchain", required: true },
+          toChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Destination blockchain", required: true },
+          amount: { type: "string", description: "USDC amount to bridge", required: true },
+          fromAddress: { type: "string", description: "Sender wallet address", required: true },
+          toAddress: { type: "string", description: "Recipient wallet address on destination chain", required: true },
+          currency: { type: "string", description: "Currency to bridge (default: USDC)" }
+        }
+      }
     }
   },
 };

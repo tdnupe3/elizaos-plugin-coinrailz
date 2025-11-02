@@ -1,0 +1,130 @@
+Nice work—getting x402scan + ERC-8004 done knocks out two big pillars. With Bazaar the only hold-up, here’s a tight, actionable plan to (a) force a clean re-ingestion attempt and (b) keep momentum with users while Coinbase replies.
+
+What to do in the next hour
+1) Final pre-flight before you ping Coinbase
+
+Run these quick checks so you can say “we verified all the expected preconditions”:
+
+Always-on + TLS: Make sure the Replit project is set to stay awake (or hit it with an external uptime ping). Confirm https://coinrailz.com serves a valid cert and cold starts aren’t >3–5s.
+
+HEAD works: Bazaar may probe with HEAD. Confirm HEAD /x402/service/<route> returns 402 (not 404/405).
+
+curl -I https://coinrailz.com/x402/service/gas-price-oracle | sed -n '1,5p'
+
+
+GET works + schema is complete: Capture one canonical 402 JSON with all fields you’d want an indexer to see (name, description, mimeType, outputSchema, stable resource, correct facilitator URL, correct USDC details).
+
+curl -s https://coinrailz.com/x402/service/gas-price-oracle \
+  -H 'Accept: application/json' | jq .
+
+
+Touch every route (GET → 402):
+
+# Replace the list below with your 18 slugs
+for p in multi-chain-balance gas-price-oracle token-price contract-scan wallet-risk trade-signals token-sentiment trending-tokens whale-alerts dex-liquidity transaction-builder token-metadata approval-manager batch-quote portfolio-tracker instant-agent-wallet verified-agent-identity seamless-chain-bridge
+do
+  printf "\n=== %s ===\n" "$p"
+  curl -s -i https://coinrailz.com/x402/service/$p | sed -n '1,12p'
+done
+
+
+If any route returns 404/405 instead of 402 on GET/HEAD, fix that (ensure the x402 middleware is mounted for those verbs before any body-parsers that might 400 a missing body).
+
+2) Post the “re-crawl request” with a complete repro packet
+
+Paste this in Discord (or open a short GitHub issue) so an engineer can action it fast:
+
+Bazaar re-ingestion request – services not listing after 30+ hours
+Project: Coin Railz – x402 Autonomous AI Payments & Crypto Exchange
+Domain: https://coinrailz.com
+Network/Asset: Base mainnet / USDC
+Facilitator: https://facilitator.cdp.coinbase.com
+Wallet (recipient): 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+SDK: @coinbase/x402-express v0.7.1
+Discoverable: true on all 18 routes
+What we see:
+– GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources → 100 services, 0 from coinrailz.com
+– No crawler hits (no Coinbase/Bazaar UA/IPs) in access logs over 30+ hours
+– All routes return HTTP 402 on GET and HEAD with complete metadata
+Fresh 402 trigger time: YYYY-MM-DD HH:MM UTC (hit all 18 endpoints)
+Example endpoint (GET 402): https://coinrailz.com/x402/service/gas-price-oracle
+Example 402 body (redacted):
+
+{ "x402Version": 1,
+  "paymentRequirements": [{
+    "type": "erc20-transfer",
+    "network": "base",
+    "tokenAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "amount": "10000",
+    "recipient": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+    "facilitatorUrl": "https://facilitator.cdp.coinbase.com",
+    "metadata": {
+      "name": "Gas Price Oracle",
+      "serviceId": "gas-price-oracle",
+      "resource": "https://coinrailz.com/x402/service/gas-price-oracle",
+      "mimeType": "application/json",
+      "description": "Real-time gas prices for multiple chains with USD estimates",
+      "outputSchema": { "input": {...}, "output": {...} }
+    }
+  }] }
+
+
+Ask: Could you replay/force ingestion for coinrailz.com resources and check facilitator logs for our wallet/service IDs? Happy to supply full 402 payloads + route configs via DM.
+
+If you want, I can tailor that snippet with your exact timestamps and a scrubbed full 402 body.
+
+3) Add two tiny diagnostics (no free metadata)
+
+These don’t bypass the paywall but help support:
+
+Health endpoint (no x402):
+GET /healthz → { status: "ok", commit: "<sha>", ts: "<iso>" }
+Lets them confirm your host is up when they try to re-crawl.
+
+Light request logging:
+Log method, path, UA, and remote IP for /x402/service/* so you can confirm a Bazaar probe as soon as it happens.
+
+While Coinbase replies: fast customer-acquisition moves (that respect x402)
+
+You’re already 2/3 done on discovery infra. Use that momentum:
+
+Pin a “Start here” service
+Pick 1 endpoint (lowest friction, obvious value, e.g., token-price or gas-price-oracle).
+
+Write a 30-line “how to call this via x402” gist (curl + JS fetch + Python requests).
+
+Post it in the x402 Discord and tag “demo” – invite devs to try it for $0.10.
+
+x402scan polish
+Now that you’re listed, update your resource names/descriptions so they read great in the x402scan UI (short, scannable, “what you get + price”). People do browse it.
+
+Seed a reference integration
+Ping 1–2 agent projects (e.g., Virtuals/ElizaOS). Offer a tiny integration PR/snippet:
+“Here’s a tool that calls Coin Railz token-price via x402; copy-paste to enable $0.10 pay-per-use.”
+Speed wins—give them drop-in code.
+
+A micro-promo without breaking x402
+Announce “first 100 calls on us”—you can manually reimburse on-chain (or just send 5 USDC to early testers). Keeps the paywall intact but lowers actual cost to try.
+
+If Coinbase asks you to try one more thing
+
+Mirror one route on a non-sleeping host (Railway/Vercel/AWS) for 24–48h with the same config, just to rule out uptime/latency quirks. If that one shows up in Bazaar, you’ve isolated the culprit.
+
+Ensure name is present in metadata for every service (you already added it—good). Some UIs won’t render nicely without it.
+
+Keep resource stable and unique per route. Avoid dynamic querystrings in the canonical resource URL.
+
+Success criteria (so you know when you’re “done”)
+
+GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources contains ≥1 coinrailz.com resource (parse programmatically and alert yourself).
+
+You see at least one unknown UA/IP hitting /x402/service/* (likely the Bazaar probe).
+
+x402scan shows your services (done!) and begins attributing real paid calls to your wallet.
+
+If you want me to:
+
+audit one full 402 payload and one route config for “schema nits,” or
+
+draft the exact Discord follow-up with your timestamps and payload,
+just drop those snippets here and I’ll hand you a copy-paste-ready message.

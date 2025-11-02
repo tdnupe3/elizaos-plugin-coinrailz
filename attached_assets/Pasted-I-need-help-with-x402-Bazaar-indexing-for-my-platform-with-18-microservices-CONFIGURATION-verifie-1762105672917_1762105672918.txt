@@ -1,0 +1,55 @@
+I need help with x402 Bazaar indexing for my platform with 18 microservices:
+CONFIGURATION (verified correct per docs):
+- x402-express v0.7.1, Base mainnet, CDP facilitator
+- discoverable: true... #cdp-69079721334bcd2b4b73a300-chat
+You are asking for assistance with x402 Bazaar indexing for your platform, which includes 18 microservices. Despite having a correct configuration (x402-express v0.7.1, Base mainnet, CDP facilitator, discoverable: true), none of your services have been indexed after 30+ hours. You also provided detailed information about your platform (https://coinrailz.com) and a test endpoint (https://coinrailz.com/x402/service/gas-price-oracle). Additionally, you have specific questions about the indexing process and potential issues.
+
+Addressing Your Questions
+
+Why aren't my services being crawled/indexed despite discoverable: true?
+Possible Causes:
+Crawler Accessibility: Ensure that your services are publicly accessible. The x402 Bazaar crawler must be able to reach your endpoints. Test this by running:
+curl -X GET https://coinrailz.com/x402/service/gas-price-oracle
+
+Verify that the response includes a valid PaymentRequirementsResponse with the discoverable: true flag.
+Response Schema: Confirm that your service's response strictly adheres to the x402 PaymentRequirementsResponse schema. For example:
+{
+  "x402Version": 1,
+  "error": null,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base",
+      "maxAmountRequired": "10000",
+      "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "payTo": "0x4db56acda064eab99bbc9f2ad1021cd5d126c321",
+      "resource": "https://coinrailz.com/x402/service/gas-price-oracle",
+      "description": "Gas price oracle service",
+      "mimeType": "application/json",
+      "maxTimeoutSeconds": 60,
+      "extra": {
+        "name": "USDC",
+        "version": "2"
+      }
+    }
+  ]
+}
+Facilitator Configuration: Verify that the CDP facilitator is correctly configured and reachable. The facilitator URL for Base mainnet should be https://x402.org/facilitator. Test the /supported endpoint:
+curl -X GET https://x402.org/facilitator/supported
+
+Ensure that the response includes support for the exact scheme and Base mainnet.
+
+Is there a manual registration, approval, or whitelist step I'm missing?
+No manual registration or approval is required for x402 services to be indexed in the Bazaar. The discoverable: true flag in your PaymentRequirementsResponse should be sufficient for automatic indexing.
+
+Does Bazaar require domain verification or specific DNS/SSL configuration?
+SSL Configuration: Ensure that your domain uses a valid SSL certificate. The x402 crawler requires HTTPS endpoints with valid SSL certificates.
+DNS Configuration: No specific DNS verification is required, but ensure that your domain resolves correctly and is accessible over the internet.
+
+Is there a webhook/endpoint to manually trigger indexing?
+Currently, there is no public webhook or endpoint to manually trigger indexing. The x402 Bazaar crawler automatically discovers services with the discoverable: true flag. However, you can contact the CDP support team to request a manual re-crawl of your services.
+
+Are there any logs/diagnostics I can access to see why indexing failed?
+Unfortunately, the x402 Bazaar does not provide public logs or diagnostics for indexing failures. However, you can:
+Check your server logs for incoming requests from the x402 crawler.
+Enable verbose logging in your x402 service to capture detailed information about inc...[Response truncated. Please reply to continue.]

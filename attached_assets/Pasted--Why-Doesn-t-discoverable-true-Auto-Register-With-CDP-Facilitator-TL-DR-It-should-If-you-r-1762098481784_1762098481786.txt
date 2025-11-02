@@ -1,0 +1,68 @@
+🔍 Why Doesn’t discoverable: true Auto-Register With CDP Facilitator?
+🧠 TL;DR:
+
+It should. If you’re using the latest @coinbase/x402-express package with discoverable: true set and using the official CDP facilitator endpoint, the service should automatically be registered and visible to the Bazaar index.
+
+🛠️ How It Should Work:
+
+When you use the x402-express middleware:
+
+Each route's config is passed to the middleware.
+
+If discoverable: true is set and you're using the official facilitator (https://facilitator.cdp.coinbase.com), the middleware prepares the metadata payload.
+
+On first 402 response from any endpoint, the facilitator learns about the service — it’s implicitly registered when it sees that 402 challenge for the first time.
+
+The facilitator (internally) submits the metadata to the Bazaar crawler/indexer.
+
+Coinbase Docs: "If you're using the CDP facilitator, your service is automatically ingested into the Bazaar once you include the discoverable flag."
+
+🔧 Is There a Manual CDP Facilitator Registration Step?
+
+No, not officially. The x402 ecosystem is designed to be autonomous. You don't submit a form or call a registration endpoint.
+
+However, this automation relies on the following working correctly:
+
+✅ You're running the latest version of @coinbase/x402-express
+
+✅ Your discoverable: true flag is within each route config
+
+✅ You're using the hosted facilitator URL
+
+✅ Your app successfully returns at least one 402 response per route (this is the trigger for metadata ingestion)
+
+If any of these are missing or malformed (e.g., out-of-date package, wrong facilitator, missing description/schema), the auto-registration won't happen.
+
+🔄 Should Middleware Sync Services to Bazaar on Startup?
+❌ Not exactly — not on startup alone.
+
+The facilitator learns about your service when:
+
+A request triggers a 402 challenge (with a valid paymentRequirements object)
+
+The 402 includes all required metadata: serviceId, mimeType, outputSchema, description, etc.
+
+Startup itself doesn't push a registration event. There's no heartbeat or ping to the facilitator unless a route is called and a 402 is generated.
+
+This design prevents unused or misconfigured routes from being listed.
+
+✅ Recommendations to Ensure Registration Works:
+
+Trigger 402 Responses Manually: Send one GET/POST request to each service endpoint (no payment). This will generate a 402, which is the facilitator’s registration signal.
+
+Log 402 Responses: Ensure they include complete metadata (serviceId, description, outputSchema, etc.).
+
+Use Latest SDK: Upgrade to the latest @coinbase/x402-express to ensure compatibility with the Bazaar and facilitator.
+
+Validate Facilitator URL: Double-check you’re using https://facilitator.cdp.coinbase.com and not a testnet or local copy.
+
+Wait ~10–30 mins after 402s: Sometimes indexing isn’t instant — the CDP might batch new listings.
+
+🚨 If After All That It’s Still Not Registering:
+
+Try running just one minimal route with discoverable: true and confirm it registers
+
+Look in the output of GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources for your service URL
+
+Join the Coinbase CDP Discord
+ and ask in #x402 — they may tell you if there's a bug or if something changed in the discovery backend

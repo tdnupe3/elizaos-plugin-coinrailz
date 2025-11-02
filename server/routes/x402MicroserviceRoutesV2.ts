@@ -76,19 +76,28 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
       inputSchema: {
-        type: "object",
-        properties: {
-          walletAddress: { type: "string", description: "Wallet address to check" },
+        bodyFields: {
+          walletAddress: { type: "string", description: "Wallet address to check", required: true },
           chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional)" },
           includeTokens: { type: "boolean", description: "Include token balances (optional)" }
-        },
-        required: ["walletAddress"]
+        }
       },
-      outputSchema: {
-        type: "object",
-        properties: {
-          balances: { type: "array", description: "Wallet balances across chains" },
-          totalValueUsd: { type: "number", description: "Total portfolio value in USD" }
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "Wallet address to check" },
+            chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional)" },
+            includeTokens: { type: "boolean", description: "Include token balances (optional)" }
+          },
+          required: ["walletAddress"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            balances: { type: "array", description: "Wallet balances across chains" },
+            totalValueUsd: { type: "number", description: "Total portfolio value in USD" }
+          }
         }
       }
     }
@@ -103,15 +112,22 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
       inputSchema: {
-        type: "object",
-        properties: {
+        bodyFields: {
           chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional, default: all)" }
         }
       },
-      outputSchema: {
-        type: "object",
-        properties: {
-          gasPrices: { type: "array", description: "Gas prices across requested chains" }
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional, default: all)" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            gasPrices: { type: "array", description: "Gas prices across requested chains" }
+          }
         }
       }
     }
@@ -126,19 +142,27 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
       inputSchema: {
-        type: "object",
-        properties: {
-          tokenAddress: { type: "string", description: "Token contract address" },
-          chain: { type: "string", description: "Blockchain network" }
-        },
-        required: ["tokenAddress", "chain"]
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
       },
-      outputSchema: {
-        type: "object",
-        properties: {
-          price: { type: "number", description: "Current token price in USD" },
-          change24h: { type: "number", description: "24-hour price change percentage" },
-          volume24h: { type: "number", description: "24-hour trading volume" }
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "chain"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            price: { type: "number", description: "Current token price in USD" },
+            change24h: { type: "number", description: "24-hour price change percentage" },
+            volume24h: { type: "number", description: "24-hour trading volume" }
+          }
         }
       }
     }
@@ -153,18 +177,26 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
       inputSchema: {
-        type: "object",
-        properties: {
-          contractAddress: { type: "string", description: "Smart contract address" },
-          chain: { type: "string", description: "Blockchain network" }
-        },
-        required: ["contractAddress", "chain"]
+        bodyFields: {
+          contractAddress: { type: "string", description: "Smart contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
       },
-      outputSchema: {
-        type: "object",
-        properties: {
-          safetyScore: { type: "number", description: "Security score 0-100" },
-          vulnerabilities: { type: "array", description: "List of detected vulnerabilities" }
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            contractAddress: { type: "string", description: "Smart contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["contractAddress", "chain"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            safetyScore: { type: "number", description: "Security score 0-100" },
+            vulnerabilities: { type: "array", description: "List of detected vulnerabilities" }
+          }
         }
       }
     }
@@ -179,18 +211,26 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
       inputSchema: {
-        type: "object",
-        properties: {
-          walletAddress: { type: "string", description: "Wallet address to analyze" },
-          chain: { type: "string", description: "Blockchain network" }
-        },
-        required: ["walletAddress", "chain"]
+        bodyFields: {
+          walletAddress: { type: "string", description: "Wallet address to analyze", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
       },
-      outputSchema: {
-        type: "object",
-        properties: {
-          riskScore: { type: "number", description: "Risk score 0-100" },
-          complianceFlags: { type: "array", description: "Compliance issues detected" }
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "Wallet address to analyze" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["walletAddress", "chain"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            riskScore: { type: "number", description: "Risk score 0-100" },
+            complianceFlags: { type: "array", description: "Compliance issues detected" }
+          }
         }
       }
     }
@@ -205,11 +245,29 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
       inputSchema: {
-        type: "object",
-        properties: {
+        bodyFields: {
           token: { type: "string", description: "Token symbol (optional, default: BTC/USDT)" },
           timeframe: { type: "string", enum: ["5m", "15m", "1h", "4h", "1d"], description: "Chart timeframe" },
           riskLevel: { type: "string", enum: ["low", "medium", "high"], description: "Risk tolerance level" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            token: { type: "string", description: "Token symbol (optional, default: BTC/USDT)" },
+            timeframe: { type: "string", enum: ["5m", "15m", "1h", "4h", "1d"], description: "Chart timeframe" },
+            riskLevel: { type: "string", enum: ["low", "medium", "high"], description: "Risk tolerance level" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            signal: { type: "string", description: "Buy/Sell/Hold signal" },
+            entry: { type: "number", description: "Suggested entry price" },
+            target: { type: "number", description: "Price target" },
+            stopLoss: { type: "number", description: "Stop loss price" }
+          }
         }
       },
       outputSchema: {
@@ -233,12 +291,28 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
       inputSchema: {
-        type: "object",
-        properties: {
-          tokenSymbol: { type: "string", description: "Token symbol (e.g., BTC, ETH, PEPE)" },
+        bodyFields: {
+          tokenSymbol: { type: "string", description: "Token symbol (e.g., BTC, ETH, PEPE)", required: true },
           chain: { type: "string", description: "Blockchain network (optional, default: ethereum)" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            tokenSymbol: { type: "string", description: "Token symbol (e.g., BTC, ETH, PEPE)" },
+            chain: { type: "string", description: "Blockchain network (optional, default: ethereum)" }
+          },
+          required: ["tokenSymbol"]
         },
-        required: ["tokenSymbol"]
+        output: {
+          type: "object",
+          properties: {
+            sentiment: { type: "string", description: "Bullish/Bearish/Neutral" },
+            score: { type: "number", description: "Sentiment score -100 to 100" },
+            momentum: { type: "string", description: "Trending momentum indicator" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -260,10 +334,25 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
       inputSchema: {
-        type: "object",
-        properties: {
+        bodyFields: {
           timeframe: { type: "string", description: "Time period (optional, default: 24h)" },
           chain: { type: "string", description: "Blockchain network (optional, default: all)" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            timeframe: { type: "string", description: "Time period (optional, default: 24h)" },
+            chain: { type: "string", description: "Blockchain network (optional, default: all)" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            gainers: { type: "array", description: "Top gaining tokens" },
+            losers: { type: "array", description: "Top losing tokens" }
+          }
         }
       },
       outputSchema: {
@@ -285,11 +374,26 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
       inputSchema: {
-        type: "object",
-        properties: {
+        bodyFields: {
           chains: { type: "array", items: { type: "string" }, description: "Chains to monitor (optional)" },
           minValueUsd: { type: "number", description: "Minimum transaction value in USD (optional)" },
           tokenAddresses: { type: "array", items: { type: "string" }, description: "Specific tokens to watch (optional)" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            chains: { type: "array", items: { type: "string" }, description: "Chains to monitor (optional)" },
+            minValueUsd: { type: "number", description: "Minimum transaction value in USD (optional)" },
+            tokenAddresses: { type: "array", items: { type: "string" }, description: "Specific tokens to watch (optional)" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            transactions: { type: "array", description: "Recent whale movements" }
+          }
         }
       },
       outputSchema: {
@@ -310,12 +414,27 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
       inputSchema: {
-        type: "object",
-        properties: {
-          tokenAddress: { type: "string", description: "Token contract address" },
-          chain: { type: "string", description: "Blockchain network" }
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "chain"]
         },
-        required: ["tokenAddress", "chain"]
+        output: {
+          type: "object",
+          properties: {
+            liquidityPools: { type: "array", description: "DEX liquidity data" },
+            totalLiquidity: { type: "number", description: "Total liquidity in USD" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -337,16 +456,34 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
       inputSchema: {
-        type: "object",
-        properties: {
-          to: { type: "string", description: "Recipient address" },
-          chain: { type: "string", description: "Blockchain network" },
+        bodyFields: {
+          to: { type: "string", description: "Recipient address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true },
           tokenAddress: { type: "string", description: "ERC20 token address (optional)" },
           amount: { type: "string", description: "Token amount (optional)" },
           value: { type: "string", description: "ETH value (optional)" },
           data: { type: "string", description: "Custom transaction data (optional)" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            to: { type: "string", description: "Recipient address" },
+            chain: { type: "string", description: "Blockchain network" },
+            tokenAddress: { type: "string", description: "ERC20 token address (optional)" },
+            amount: { type: "string", description: "Token amount (optional)" },
+            value: { type: "string", description: "ETH value (optional)" },
+            data: { type: "string", description: "Custom transaction data (optional)" }
+          },
+          required: ["to", "chain"]
         },
-        required: ["to", "chain"]
+        output: {
+          type: "object",
+          properties: {
+            transaction: { type: "object", description: "Encoded transaction object ready to sign" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -366,12 +503,29 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
       inputSchema: {
-        type: "object",
-        properties: {
-          tokenAddress: { type: "string", description: "Token contract address" },
-          chain: { type: "string", description: "Blockchain network" }
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token contract address", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "chain"]
         },
-        required: ["tokenAddress", "chain"]
+        output: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Token name" },
+            symbol: { type: "string", description: "Token symbol" },
+            decimals: { type: "number", description: "Token decimals" },
+            totalSupply: { type: "string", description: "Total supply" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -394,14 +548,30 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
       inputSchema: {
-        type: "object",
-        properties: {
-          tokenAddress: { type: "string", description: "Token to approve" },
-          spender: { type: "string", description: "Spender address (DEX router)" },
-          amount: { type: "string", description: "Amount to approve or 'unlimited'" },
-          chain: { type: "string", description: "Blockchain network" }
+        bodyFields: {
+          tokenAddress: { type: "string", description: "Token to approve", required: true },
+          spender: { type: "string", description: "Spender address (DEX router)", required: true },
+          amount: { type: "string", description: "Amount to approve or 'unlimited'", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token to approve" },
+            spender: { type: "string", description: "Spender address (DEX router)" },
+            amount: { type: "string", description: "Amount to approve or 'unlimited'" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "spender", "amount", "chain"]
         },
-        required: ["tokenAddress", "spender", "amount", "chain"]
+        output: {
+          type: "object",
+          properties: {
+            approvalTransaction: { type: "object", description: "Approval transaction data" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -421,14 +591,31 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
       inputSchema: {
-        type: "object",
-        properties: {
-          fromToken: { type: "string", description: "Input token address" },
-          toToken: { type: "string", description: "Output token address" },
-          amount: { type: "string", description: "Input amount" },
-          chain: { type: "string", description: "Blockchain network" }
+        bodyFields: {
+          fromToken: { type: "string", description: "Input token address", required: true },
+          toToken: { type: "string", description: "Output token address", required: true },
+          amount: { type: "string", description: "Input amount", required: true },
+          chain: { type: "string", description: "Blockchain network", required: true }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            fromToken: { type: "string", description: "Input token address" },
+            toToken: { type: "string", description: "Output token address" },
+            amount: { type: "string", description: "Input amount" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["fromToken", "toToken", "amount", "chain"]
         },
-        required: ["fromToken", "toToken", "amount", "chain"]
+        output: {
+          type: "object",
+          properties: {
+            quotes: { type: "array", description: "Price quotes from multiple DEXs" },
+            bestPrice: { type: "string", description: "Best available price" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -449,12 +636,27 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
       inputSchema: {
-        type: "object",
-        properties: {
-          walletAddress: { type: "string", description: "Wallet address to track" },
+        bodyFields: {
+          walletAddress: { type: "string", description: "Wallet address to track", required: true },
           chains: { type: "array", items: { type: "string" }, description: "Chains to track (default: ethereum, base, polygon)" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "Wallet address to track" },
+            chains: { type: "array", items: { type: "string" }, description: "Chains to track (default: ethereum, base, polygon)" }
+          },
+          required: ["walletAddress"]
         },
-        required: ["walletAddress"]
+        output: {
+          type: "object",
+          properties: {
+            totalValueUsd: { type: "number", description: "Total portfolio value in USD" },
+            holdings: { type: "array", description: "Token holdings across chains" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -476,13 +678,30 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
       inputSchema: {
-        type: "object",
-        properties: {
-          agentId: { type: "string", description: "Unique AI agent identifier" },
+        bodyFields: {
+          agentId: { type: "string", description: "Unique AI agent identifier", required: true },
           description: { type: "string", description: "Wallet description/label (optional)" },
           initialFundingAmount: { type: "number", description: "Initial USDC funding amount (optional)" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            agentId: { type: "string", description: "Unique AI agent identifier" },
+            description: { type: "string", description: "Wallet description/label (optional)" },
+            initialFundingAmount: { type: "number", description: "Initial USDC funding amount (optional)" }
+          },
+          required: ["agentId"]
         },
-        required: ["agentId"]
+        output: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "New wallet address" },
+            walletId: { type: "string", description: "Circle wallet ID" },
+            network: { type: "string", description: "Blockchain network" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -504,14 +723,32 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
       inputSchema: {
-        type: "object",
-        properties: {
-          agentId: { type: "string", description: "AI agent identifier" },
-          walletAddress: { type: "string", description: "Wallet address to verify" },
+        bodyFields: {
+          agentId: { type: "string", description: "AI agent identifier", required: true },
+          walletAddress: { type: "string", description: "Wallet address to verify", required: true },
           signature: { type: "string", description: "Optional signature for enhanced verification" },
           metadata: { type: "object", description: "Agent metadata for reputation scoring" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            agentId: { type: "string", description: "AI agent identifier" },
+            walletAddress: { type: "string", description: "Wallet address to verify" },
+            signature: { type: "string", description: "Optional signature for enhanced verification" },
+            metadata: { type: "object", description: "Agent metadata for reputation scoring" }
+          },
+          required: ["agentId", "walletAddress"]
         },
-        required: ["agentId", "walletAddress"]
+        output: {
+          type: "object",
+          properties: {
+            verified: { type: "boolean", description: "Verification status" },
+            reputationScore: { type: "number", description: "On-chain reputation score" },
+            identityNFT: { type: "string", description: "ERC-8004 identity NFT address" }
+          }
+        }
       },
       outputSchema: {
         type: "object",
@@ -533,16 +770,35 @@ const x402Routes = {
       mimeType: "application/json",
       maxTimeoutSeconds: 240,
       inputSchema: {
-        type: "object",
-        properties: {
-          fromChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Source blockchain" },
-          toChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Destination blockchain" },
-          amount: { type: "string", description: "USDC amount to bridge" },
-          fromAddress: { type: "string", description: "Sender wallet address" },
-          toAddress: { type: "string", description: "Recipient wallet address on destination chain" },
+        bodyFields: {
+          fromChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Source blockchain", required: true },
+          toChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Destination blockchain", required: true },
+          amount: { type: "string", description: "USDC amount to bridge", required: true },
+          fromAddress: { type: "string", description: "Sender wallet address", required: true },
+          toAddress: { type: "string", description: "Recipient wallet address on destination chain", required: true },
           currency: { type: "string", description: "Currency to bridge (default: USDC)" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            fromChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Source blockchain" },
+            toChain: { type: "string", enum: ["ethereum", "polygon", "base", "arbitrum", "optimism"], description: "Destination blockchain" },
+            amount: { type: "string", description: "USDC amount to bridge" },
+            fromAddress: { type: "string", description: "Sender wallet address" },
+            toAddress: { type: "string", description: "Recipient wallet address on destination chain" },
+            currency: { type: "string", description: "Currency to bridge (default: USDC)" }
+          },
+          required: ["fromChain", "toChain", "amount", "fromAddress", "toAddress"]
         },
-        required: ["fromChain", "toChain", "amount", "fromAddress", "toAddress"]
+        output: {
+          type: "object",
+          properties: {
+            bridgeTransaction: { type: "object", description: "Cross-chain bridge transaction details" },
+            estimatedTime: { type: "number", description: "Estimated completion time in seconds" }
+          }
+        }
       },
       outputSchema: {
         type: "object",

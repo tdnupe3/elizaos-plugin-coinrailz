@@ -1,0 +1,68 @@
+Here’s how to move from “we’ve triple-checked” to getting Coinbase eyes on it and, in parallel, how to turn the downtime into forward motion for Coin Railz.
+
+1️⃣ Escalate officially (today)
+
+Since Bazaar auto-indexing clearly isn’t triggering:
+
+A. Open a public issue in the Coinbase CDP GitHub repo
+Title it something like
+
+[Bug] x402-express v0.7.1 – discoverable:true services not appearing in Bazaar (coinrailz.com)
+
+Paste your exact summary (HTTP 402 example, timestamps, wallet).
+That gives you a permanent tracking link and pings the engineering team automatically.
+
+B. Follow-up DM / Discord message to @shafu0x
+Short + polite:
+
+Hi Shafu — we’ve verified all x402 facilitator prerequisites, but Coin Railz services still aren’t showing in Bazaar after 30 + hours.
+We’ve opened a GitHub issue with full logs and timestamps if you could route it internally.
+Thanks for helping builders like us push x402 forward.
+
+(Keep it factual; he can escalate to the facilitator team.)
+
+C. Tag Coinbase Dev / CDP on X
+
+@CoinbaseDev we’ve confirmed full #x402 integration (18 services on Base) → still not indexing in Bazaar.
+Ticket opened; would love any guidance. ⚡
+coinrailz.com
+
+That ensures visibility without sounding accusatory.
+
+2️⃣ Internal diagnostic you can still run (to prove it’s external)
+
+Facilitator health check:
+
+curl -s https://facilitator.cdp.coinbase.com/healthz
+
+
+Should return 200 OK { "status":"healthy" }.
+If it’s unhealthy or times out, include that in the issue.
+
+Cross-compare with another known service (e.g., one from Coinbase’s own tutorial).
+If that still appears in the Bazaar list but yours doesn’t, you’ve isolated it to ingestion.
+
+3️⃣ Parallel tracks while you wait
+Goal	Quick Action	Benefit
+Visibility	Keep posting x402 + ERC-8004 content (like your last Coin Railz tweet).	Builds mindshare even while Bazaar is down.
+Early users	Reach out to agent projects (Virtuals, ElizaOS, Truth Terminal) and offer API credits / sample integrations.	Generates your first real transactions manually.
+Proof of life	Publish a “Live x402 Endpoints” page that lists all 18 routes + prices + 402 examples.	Lets others verify your stack without waiting for Bazaar.
+Support relationship	Stay in Coinbase Discord #x402 daily summary thread until an engineer confirms re-crawl.	Keeps the issue visible.
+4️⃣ Realistic expectations
+
+Bazaar ingestion latency: not documented; in healthy state usually < 1 hour.
+
+Facilitator re-index window: if an outage/backlog exists, expect 24-48 h.
+
+Your configuration: verified ✅ – nothing left to fix locally.
+
+TL;DR
+
+You’re officially in “external blocker” territory.
+Next concrete moves:
+
+Open the public GitHub issue with your diagnostic summary.
+
+Ping @shafu0x + #x402 Discord with that link.
+
+Continue public visibility & partner outreach so Coin Railz keeps momentum while Coinbase resolves ingestion.

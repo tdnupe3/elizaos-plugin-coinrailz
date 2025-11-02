@@ -376,9 +376,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   // DEX Trading routes - Guest & User Support (No Auth Required)
   app.use('/api/dex', dexRoutes);
 
-  // 🔐 x402 Protocol Micropayment Gateway - Payment-gated microservices
-  const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutes').then(m => m.default);
-  app.use('/x402', x402MicroserviceRoutes);
+  // 🔐 x402 Protocol Micropayment Gateway - Payment-gated microservices (Official x402-express middleware)
+  const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutesV2').then(m => m.default);
+  app.use(x402MicroserviceRoutes);
 
   // 💎 Micropayment Services - INTERNAL ONLY (called from x402 after payment verification)
   // These routes are NOT public - they're called internally by x402 routes after payment

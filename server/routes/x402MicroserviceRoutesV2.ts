@@ -71,6 +71,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Multi-Chain Balance Checker",
       description: "Query wallet balances across 7+ EVM chains in a single API call",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -81,6 +82,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Gas Price Oracle",
       description: "Real-time gas prices for multiple chains with USD cost estimates",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -91,6 +93,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Token Price Feed",
       description: "Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -101,6 +104,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Contract Security Scanner",
       description: "Basic smart contract security scan with safety score and vulnerability checks",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -111,6 +115,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Wallet Risk Analyzer",
       description: "Wallet risk analysis with compliance flags and transaction pattern detection",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -121,6 +126,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "AI Trade Signals",
       description: "AI-powered crypto trading signals with entry/exit points and risk analysis",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -131,6 +137,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Token Sentiment Analyzer",
       description: "Social sentiment analysis for tokens with momentum indicators and activity levels",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -141,6 +148,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Trending Tokens Feed",
       description: "Top gaining and losing tokens across DEXs with real-time market data",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -151,6 +159,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Whale Movement Tracker",
       description: "Track large wallet movements (whales) with on-chain transaction monitoring",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -161,6 +170,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "DEX Liquidity Monitor",
       description: "Real-time DEX liquidity pool monitoring across multiple exchanges",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -172,6 +182,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Transaction Builder API",
       description: "Pre-validated transaction encoding for agent-to-agent transfers (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -182,6 +193,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Token Metadata Service",
       description: "Unified token info across all chains - essential building block for trading agent UIs (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -192,6 +204,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Token Approval Manager",
       description: "Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -202,6 +215,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Multi-DEX Quote Engine",
       description: "Multi-DEX price quotes in single call - critical infrastructure for trading bot price discovery (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -212,6 +226,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Portfolio Tracker API",
       description: "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -223,6 +238,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Instant Agent Wallet Creator",
       description: "Create MPC-secured USDC wallets instantly - Circle Developer-Controlled Wallets for AI agents (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
@@ -233,6 +249,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Agent Identity Verification",
       description: "KYA (Know-Your-Agent) identity verification - On-chain reputation & compliance scoring using ERC-8004 standard (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
@@ -243,6 +260,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      name: "Cross-Chain USDC Bridge",
       description: "Cross-chain USDC routing via Circle CCTP - Pay on Ethereum, receive on Base/Polygon/Arbitrum instantly (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 240,

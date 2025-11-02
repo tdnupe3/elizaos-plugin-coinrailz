@@ -1,0 +1,120 @@
+Fix-first checklist (15–20 min)
+
+Confirm the exact discovery preconditions Coinbase states
+
+Using CDP facilitator + discoverable: true ⇒ service is auto-ingested into Bazaar. 
+docs.cdp.coinbase.com
++1
+
+Service must be publicly reachable on a cloud host (no sleep, valid TLS). 
+Medium
+
+Hit every route once to “announce” it
+Bazaar learns about a route on the first 402. Fire one request per route (GET and POST if you support both):
+
+# one-liner to touch each route and log status + a hash of body
+for p in gas-price-oracle token-price ...; do
+  curl -s -X GET https://coinrailz.com/x402/service/$p -i | head -n 20
+  curl -s -X POST https://coinrailz.com/x402/service/$p -H 'Content-Type: application/json' -d '{}' -i | head -n 20
+done
+
+
+(You’ve already done this for gas-price; do it for all 18 so the facilitator sees each route.)
+
+Validate your 402 payload matches spec fields the indexer expects
+Common gotchas are tiny but fatal. Your 402 should include (names/placements matter):
+
+x402Version
+
+an accepts (or equivalent) array describing the ERC-20 payment (network, token, amount, recipient)
+
+facilitator URL (Coinbase CDP)
+
+Bazaar metadata inside the schema block: name (human label), description, mimeType, outputSchema (and input if applicable)
+
+consistent resource URL per route
+(These elements are what the docs/examples show Bazaar reading to render a listing. 
+docs.cdp.coinbase.com
++1
+)
+
+Quick spot-check with curl:
+
+curl -s https://coinrailz.com/x402/service/gas-price-oracle \
+  -H 'Accept: application/json' | jq '{
+    x402Version, accepts, paymentRequirements, 
+    facilitator: (.paymentRequirements[0].facilitatorUrl // .accepts[0].facilitatorUrl),
+    meta: (.paymentRequirements[0].metadata // .accepts[0].metadata)
+  }'
+
+
+Make sure meta contains name (optional in some examples but helps discovery UIs), description, mimeType, outputSchema, and that resource is your exact URL. (You already have serviceId/outputSchema, great.)
+
+Allow HEAD/GET to reach the 402
+Some crawlers probe with HEAD or GET. Ensure neither returns 404/405 before the middleware. If Express is mounted like app.use(paymentMiddleware(routes)), define any static or health routes before it, but don’t block HEAD to /x402/service/*. (Public cloud/always-on is also recommended. 
+Medium
+)
+
+Make sure pricing is parsable
+If you’re using price: "$0.10", confirm the middleware converts that to atomic units for Base USDC (the Coinbase examples do). If you hand-set amount, ensure it’s a stringified integer in token decimals and not floating. (Mis-parsed prices are a sneaky cause of silent rejects.)
+
+Re-query Bazaar programmatically
+
+curl -s 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources' \
+| jq '.resources[] | select(.resource|contains("coinrailz.com")) | {name, resource, maxAmountRequired, network}'
+
+
+Docs: the discovery list returns all resources registered with the CDP facilitator; with discoverable:true you should be in here. 
+docs.cdp.coinbase.com
++1
+
+Parallel: list yourself on x402scan (5–10 min)
+
+x402scan won’t auto-crawl Bazaar; you must submit each resource URL. Use their Register Resource page and feed a direct endpoint that returns a 402 on GET. If your route only accepts POST and returns 400 before the 402, x402scan will fail validation—so make sure GET triggers the 402 challenge. 
+GitHub
++1
+
+Likeliest root causes (from similar cases)
+
+Sleeping/ephemeral host (Replit) so the crawler saw a timeout when it tried. Coinbase guidance explicitly says “deploy to a public cloud (Railway/AWS/etc.) and ensure public access” for Bazaar indexing. If you can, keep the Replit project “always on” or temporarily mirror one endpoint on Railway to test ingestion. 
+Medium
+
+Schema field mismatch (e.g., missing name/description alongside outputSchema, or metadata nested differently than examples). Small JSON shape differences have broken ingestion for others.
+
+Method handling (GET/HEAD not reaching 402) so the crawler never saw your metadata.
+
+Price/amount formatting that the facilitator can’t parse (e.g., non-integer atomic amounts).
+
+What to send Coinbase if you reply again (copy/paste)
+
+One exact 402 JSON (from GET /x402/service/gas-price-oracle)
+
+Your middleware snippet for that route (showing discoverable:true, name, description, mimeType, outputSchema)
+
+A note confirming:
+
+host is public/always-on and TLS valid
+
+GET and HEAD both yield 402 (not 404/405)
+
+you triggered fresh 402s at YYYY-MM-DD HH:MM UTC
+
+discovery API still returns no matches for coinrailz.com
+
+Ask if they can replay ingestion or check facilitator logs for your wallet 0x4dB56…C321.
+
+If you want, I can draft that message with your real payloads.
+
+Bonus: sanity links you can cite
+
+“If your API uses the CDP facilitator and discoverable: true, it’s ingested in the Bazaar.” (Coinbase docs) 
+docs.cdp.coinbase.com
++1
+
+Public deployment requirement called out in a Bazaar quickstart (“deploy to Railway/AWS and ensure public access”). 
+Medium
+
+x402scan registration is manual via /resources/register and auto-lists on valid 402 schema. 
+GitHub
+
+If you share one full 402 body + the route config for, say, gas-price-oracle, I’ll pinpoint any schema nits and hand you a ready-to-send Discord follow-up plus a one-shot curl script that touches all 18 routes cleanly.

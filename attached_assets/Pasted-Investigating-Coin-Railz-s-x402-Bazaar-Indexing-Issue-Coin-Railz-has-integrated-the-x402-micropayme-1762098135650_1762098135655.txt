@@ -1,0 +1,214 @@
+Investigating Coin Railz’s x402 Bazaar Indexing Issue
+
+Coin Railz has integrated the x402 micropayment protocol for 18 API services but found that none appear in the Coinbase x402 Bazaar discovery index. Despite proper setup (x402scan registration, valid HTTP 402 responses with paymentRequirements, official x402 middleware with discoverable: true, a .well-known/x402.json manifest, and using Coinbase’s CDP facilitator), the services remain unlisted. The key suspicion is that the Bazaar crawler may be unable to retrieve service metadata due to immediate 402 Payment Required responses on GET. Below, we address each point of investigation and outline steps to ensure these services become discoverable in the Bazaar index.
+
+1. Bazaar Crawler Requirements for GET Metadata
+
+Does the Bazaar discovery crawler need a free GET to fetch metadata? In the x402 flow, a client’s first request to a protected endpoint is expected to return HTTP 402 Payment Required with a JSON “payment challenge.” This challenge includes details like price, accepted token, network, and optionally input/output schemas or descriptions
+iq.wiki
+docs.cdp.coinbase.com
+. Ideally, the Bazaar indexer should parse this 402 response to gather metadata, without having to pay.
+
+However, it’s possible the crawler does not attempt a full payment flow, and instead expects to retrieve service info (description, price, output schema, etc.) from a publicly accessible source. Official Coinbase docs emphasize that simply using the latest CDP facilitator with discoverable: true should auto-list the service
+docs.cdp.coinbase.com
+. In practice, that likely means the facilitator or indexer already has metadata from your integration and doesn’t need a free GET. If your endpoints return a 402 challenge with all required fields (price, serviceId, outputSchema, etc.), the crawler should parse those. Thus, a 402 on GET is not inherently wrong – it’s the intended handshake.
+
+However, ensure the 402 payload is complete. For discovery, include all metadata in the paymentRequirements or config: a human-readable description, input/output schema, accepted payment assets, and price
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. If any of these (especially outputSchema or serviceId) are missing or malformed, the crawler might ignore the service. Coin Railz reports these are present, so the 402 challenge itself likely isn’t the sole issue.
+
+That said, making some metadata accessible without payment can help. Best practice is to host a .well-known/x402.json manifest with your service listings
+iq.wiki
+. Ensure this manifest is publicly reachable (no 402 on it) and up-to-date with all endpoints (paths, prices, schemas). While Coinbase’s current Bazaar might not yet actively crawl .well-known files (its early version indexes only CDP-facilitated endpoints
+cryptoslate.com
+), having this file open means any discovery agent (or future indexer versions) can fetch your service info without paying.
+
+Actionable: Double-check that the .well-known/x402.json on your domain is not protected by the x402 paywall. If your payment middleware is applied globally, exclude the .well-known directory from requiring payment. This file should list each service’s endpoint, price, accepted token/network, and schema. By providing an open manifest, you guarantee that any crawler (Coinbase’s or third-party) can access the metadata freely.
+
+2. x402scan Registration vs. Bazaar Indexing
+
+Are x402scan and Bazaar indexing connected? They are separate systems. x402scan is an independent explorer for the x402 ecosystem (tracking transactions, sellers, resources, etc.)
+bitget.com
+. Having your services show up on x402scan (likely after some test transactions or on-chain activity) does not automatically list them on Coinbase’s Bazaar. According to Coinbase, Bazaar currently indexes only services that use Coinbase’s hosted facilitator (the CDP facilitator)
+cryptoslate.com
+. In other words, the Bazaar index is populated from the facilitator’s registry of discoverable services, not from x402scan’s data.
+
+Your steps to “register” with x402scan (perhaps by making a payment or adding a manifest there) are good for community visibility, but the official Bazaar pulls from a different source. The Coinbase facilitator knows about your service only if you’ve integrated their middleware properly. The discoverable flag in the middleware config is crucial: “If your API uses the latest version of the CDP facilitator for x402 and discoverable: true, it’s ingested in the Bazaar”
+docs.cdp.coinbase.com
+. Ensure you’re using the latest @coinbase/x402 library or related middleware (Express/Next/Hono versions) where this flag is implemented. Older versions might not register the service for discovery.
+
+In summary, x402scan is not sufficient for Bazaar listing – you must rely on the Coinbase CDP integration. The good news is no separate manual submission is needed for Bazaar: once properly configured, your service should automatically appear in the index (see Coinbase’s FAQ: “If you’re using the CDP facilitator, your service is listed once you include the discoverable flag”
+docs.cdp.coinbase.com
+).
+
+Actionable: Verify that each service is indeed using the CDP facilitator endpoint (https://facilitator.cdp.coinbase.com) in production mode, not pointing to a testnet facilitator or a custom one. Also, confirm you have the discoverable: true flag set in the middleware configuration for each route, and update to the latest x402 middleware package. After these changes, restart your service so it can register with the facilitator.
+
+3. Role of the .well-known/x402.json Manifest
+
+Coin Railz is hosting a .well-known/x402.json manifest – is this sufficient for indexing? Not on its own. The concept behind this manifest is to provide a decentralized discovery mechanism: servers advertise their x402 services via a standard JSON file under .well-known
+iq.wiki
+. In a truly open network, any agent or crawler can retrieve this file to learn about available paid endpoints and their pricing/capabilities. In fact, x402’s design envisions a “marketplace for AI agents to autonomously discover and pay for APIs” via such manifests
+iq.wiki
+.
+
+However, Coinbase’s current Bazaar implementation is somewhat centralized. As noted, “today, [Bazaar] indexes endpoints that settle through its hosted facilitator”
+cryptoslate.com
+. Nowhere do the Coinbase docs explicitly say that the Bazaar crawler scans the web for .well-known/x402.json files, and the developer documentation doesn’t mention uploading or pointing to your manifest. This implies that the manifest alone does not trigger inclusion – it’s likely used by third-party explorers (and is future-proofing for open discovery), but Coinbase’s index relies on facilitator registrations for now.
+
+That said, having a correct manifest is still valuable. It ensures your service info is machine-readable and accessible. Coinbase’s own blog post describes Bazaar as an “open network where servers advertise their paid services by hosting a machine-readable x402.json”
+iq.wiki
+. So, keep it in place and accurate. It might be that Coinbase’s indexer will use it down the line or cross-verify data from it. Just remember that you must also use the CDP facilitator+flag method, as it is the immediate trigger for indexing
+docs.cdp.coinbase.com
+.
+
+Actionable: Review your .well-known/x402.json. Ensure it lists all 18 services with the correct endpoints, pricing (likely in a “paymentRequired” or similar field), serviceId (if applicable), and schemas. This file should be valid JSON. Consider validating its format against any examples from the community or docs. Keeping this manifest updated will benefit other discovery tools even if Coinbase’s crawler isn’t actively using it yet.
+
+4. Domain and Certificate Constraints for Indexing
+
+Could Coin Railz’s domain or deployment be a factor? Potentially, yes. The x402 Bazaar is meant to index internet-accessible services, so certain domain constraints apply:
+
+Public HTTPS Endpoint: Your services must be reachable at a public URL with a valid SSL/TLS certificate. If you’re testing on localhost or an IP or using a self-signed cert, the Bazaar crawler will not be able to reach or trust it. Use a domain name with a CA-signed certificate (Let’s Encrypt or similar is fine). This wasn’t explicitly stated in docs, but it’s a reasonable requirement for any public API listing.
+
+Stable Domain/Path: The endpoints you register should be at stable, routable addresses. For example, api.coinrailz.com/serviceX with proper DNS resolution. If you used an uncommon TLD or a subdomain that isn’t accessible, that could be an issue. Generally, any internet TLD is fine as long as DNS works. There’s no evidence Coinbase limits by TLD, but ensure your domain doesn’t have unusual restrictions.
+
+Proper Ports: Stick to standard ports (80 redirecting to 443 for HTTPS). If your service runs on a non-standard port, the crawler might not handle that. Best practice is to expose services on the default HTTPS port.
+
+No IP Whitelisting blocking the crawler: If your server or cloud provider has a firewall, ensure it isn’t blocking inbound traffic except from known sources. The Bazaar crawler could come from Coinbase IP ranges. If you restrict by IP, you might need to allow Coinbase’s servers. (Coinbase hasn’t published specific IPs for the crawler publicly; if you have access logs, look for requests around the time you expected indexing.)
+
+User-Agent Handling: Do not inadvertently block or challenge “bot” user-agents. Some security setups or CDNs (like Cloudflare) might present captchas or block unknown crawlers. If you have such protections, consider allowing the Coinbase crawler. While the exact user-agent isn’t documented, it may contain terms like “Coinbase” or “x402”. Check your server logs for any hits from Coinbase or unusual user-agents around the time you registered – if they all got HTTP 402 or were blocked, that’s a clue.
+
+In short, any factor preventing the indexer from freely reaching your service’s metadata will prevent listing. The CDP facilitator registration suggests the service info is fed from your middleware to Coinbase’s systems, but it’s still possible the crawler verifies by actually hitting your endpoint or .well-known URL. Thus, treat your service like a public API: secure but accessible.
+
+Actionable: Ensure your domain has a valid SSL certificate and the endpoint URL in the manifest is correct (test it in a browser – you should see the 402 JSON challenge or the manifest JSON without certificate warnings). If using any WAF or DDoS protection, temporarily disable strict bot filters or create an exception rule for likely Coinbase crawler identifiers. Essentially, allow unauthenticated GET/HEAD requests to reach the 402 challenge and manifest.
+
+5. HTTP Headers or Crawler-Detection Signals
+
+Are special HTTP headers or signals needed for the Bazaar crawler? There’s no official indication that developers must handle the crawler differently than any client. The x402 protocol was designed to use standard HTTP status and headers for payment (e.g. X-PAYMENT on paid retries)
+github.com
+, but nothing about special headers for discovery. The Coinbase facilitator and index presumably gather needed info from your normal 402 response or manifest.
+
+In other words, you should not need to implement any custom “crawler mode.” The discoverable: true flag is the switch that tells Coinbase “list this service.” Internally, that might cause your service’s metadata to be sent to or pulled by Coinbase’s systems. The middleware or facilitator likely handles it behind the scenes (possibly when your service first starts or first 402s, the facilitator notes the new service ID and fetches details).
+
+That said, it’s wise to ensure your service responds correctly to all standard request methods in a benign way:
+
+If the indexer does a HEAD request (to check if the endpoint is up), your server should not choke on it. By default, Express will respond to HEAD like GET without a body. If using a framework, test that HEAD /yourEndpoint returns headers (and probably a 402 as well, but with no body). It should at least return HTTP 402 with appropriate headers, not a 404 or 500.
+
+If the indexer uses a custom User-Agent, as mentioned, don’t block it. You might log the User-Agent in your 402 responses to see if something like CoinbaseCDP shows up.
+
+No specific HTTP header from your side is required beyond what x402 requires (for example, ensure your 402 response includes Content-Type: application/json so the crawler knows it’s JSON). The facilitator URL is already known (you’re using the Coinbase one), so you don’t need to signal that explicitly — your 402 payload likely includes a field indicating the facilitator or a default is assumed.
+
+In summary, focus on not hindering the crawler rather than trying to hand-hold it. If your implementation follows the protocol, you shouldn’t need to whitelist IPs or set custom headers. The mention of IP whitelisting or user-agent sniffing in the question likely stems from trying to debug why the crawler isn’t seeing the service. Ideally, your service should treat the Coinbase crawler as just another client requesting the resource (and thus getting a 402 + details).
+
+Actionable: Check server logs around the times you expected indexing. If you see any request from an unfamiliar agent and an unusual pattern, ensure it wasn’t blocked or misrouted. If you find none at all, it suggests the issue lies in registration rather than crawling – meaning the facilitator never advertised your service (pointing back to the discoverable flag or version mismatch).
+
+6. Validation or Approval Process for New Services
+
+One concern was whether Coinbase requires a manual review or private validation before listing new x402 services on Bazaar. Currently, there is no indication of a manual approval process. The ethos of x402 is open and permissionless: “open protocol, allowing any developer to integrate without needing a merchant account or approval”
+iq.wiki
+. Coinbase’s own FAQ states that listing is free and automatic for x402-enabled endpoints, and they are even planning an opt-out feature for those who don’t want to be listed
+docs.cdp.coinbase.com
+. This implies no gatekeeping – if the tech integration is correct, your service should appear.
+
+Keep in mind the Bazaar is in early development
+docs.cdp.coinbase.com
+. Coinbase may be monitoring the quality of listings and could quietly filter out entries that are clearly broken or malicious, but there’s no evidence of a formal vetting process for genuine services. Some early adopter projects (e.g. Prixe API) were listed immediately at launch
+coinbase.com
+coindesk.com
+, likely without case-by-case approval. So, the main hurdle is technical integration, not Coinbase’s permission.
+
+If you suspect something else (like a bug on Coinbase’s side), you can reach out via the CDP Discord or GitHub. They have a Discord channel (#x402) and the x402 GitHub where issues can be raised
+docs.cdp.coinbase.com
+. It’s possible other developers faced similar issues; checking those communities might yield insight if this is a known problem (e.g. “discoverable flag not working in version X” or “Bazaar index delay of N hours”). Coinbase’s support or devrel team can also confirm if any background queue or validation step exists.
+
+Actionable: Treat it as an automation issue. Double-check everything on your end first (as outlined in other sections). If after fixing you still see no result, consider posting in the Coinbase Developer Discord or opening a GitHub issue to ask if there’s a known indexing delay or if someone can manually verify your services. Since no public manual process exists, this dev support route is your fallback.
+
+7. Verifying Visibility to the Bazaar Crawler
+
+Before your services appear on the public Bazaar index, how can you confirm the crawler “sees” them? There are a few ways to verify:
+
+Use the Bazaar List API: Coinbase provides a discovery listing endpoint: GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources 
+docs.cdp.coinbase.com
+. This returns all known x402 services in the index (in JSON). You can programmatically call this (no auth required) to see if your services are in the list. Each entry will include fields like the resource URL, accepted asset, price (as maxAmountRequired in atomic units), network, etc.
+cryptoslate.com
+. Check for your service’s URL or domain in that JSON. If it’s not present, the indexer hasn’t picked it up. (Tip: You might filter by your domain or service name in the JSON output.)
+
+Inspect x402scan Marketplace: While x402scan is separate, it has a “Marketplace” or resources view that might list discoverable services it knows of. If your services show there (which they likely do since you mentioned x402scan registration), it’s a good sign the manifest or transaction was recognized by someone – but remember, Bazaar might be lagging or separate. So this is secondary.
+
+Monitor Facilitator Logs/Responses: If possible, observe what happens when your service encounters a 402. The facilitator might log that a new service is registered (for instance, it could issue a serviceId). If you see that in logs, the service at least hit the facilitator. The serviceId you mentioned in paymentRequirements is likely an identifier the facilitator assigns – ensure it’s consistent (e.g., not changing on each restart – if it is, maybe the facilitator treats each run as a new service, which could confuse indexing).
+
+Test with a client library: Use Coinbase’s client SDK or a tool like x402-fetch to simulate an agent discovering and calling your service. For example, use the list API to get the catalog (as shown in the Medium tutorial
+medium.com
+) and see if your service appears in the catalog.items. If it does, the issue might simply be that Bazaar UI or index takes time to update; if it doesn’t, then it’s not in the underlying index.
+
+If you want to be extra sure the crawler can access metadata, you could temporarily configure one of your endpoints to allow GET without payment for testing (perhaps a duplicate “free info” endpoint). For instance, create a route like /api/yourService/metadata that returns the price, description, and schema openly. Then manually submit that info to Coinbase or check if their crawler picks it – however, this is likely unnecessary if the above steps are done, because officially the crawler expects the standard x402 flow.
+
+Actionable: Call the Bazaar discovery API and search for your services. This is the most direct way to verify. For example, in a Node.js or Python script, fetch the URL and parse JSON for your service domain. If not found, proceed with the fixes; once you believe you’ve fixed configuration, call it again. Only when you see your service listed there can you expect the Coinbase Bazaar UI (or any agent using the index) to see it too.
+
+Recommendations and Changes for Coin Railz
+
+Finally, here’s a summary of actionable technical steps to enable indexing for Coin Railz’s x402 services:
+
+Upgrade and Configure x402 Middleware: Ensure you’re using the latest @coinbase/x402 middleware (Express, Next.js, etc. as appropriate). In your integration code, set discoverable: true for each endpoint’s config. Also include a short description, and the inputSchema/outputSchema definitions
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. For example, in an Express setup:
+
+app.use(paymentMiddleware({
+  routes: {
+    "/api/yourService": {
+      price: "$0.005",  // price per request
+      network: "base",  // using Base network for USDC
+      config: {
+        discoverable: true,  // enable Bazaar discovery
+        description: "Brief description of what this service does",
+        inputSchema: { /* ...parameters... */ },
+        outputSchema: { /* ...result structure... */ }
+      }
+    }
+  }
+}));
+
+
+This aligns with Coinbase’s recommended pattern
+docs.cdp.coinbase.com
+. After updating, redeploy/restart the services so they register with the facilitator.
+
+Ensure Public Accessibility: Double-check that your APIs are reachable at their public URLs. Fix any certificate issues or firewall rules. The Coinbase crawler (and users) must reach your service’s 402 response. Use HTTPS and a valid domain.
+
+Expose the Manifest Publicly: Verify that https://<your-domain>/.well-known/x402.json is accessible without payment (and without auth). If your global payment middleware was catching it, add a bypass (e.g., in Express, define a route for .well-known/x402.json before paymentMiddleware so it’s served as static JSON directly). The manifest should list all 18 services with correct metadata. This isn’t explicitly required by Coinbase’s current system, but it’s good practice for the open ecosystem
+iq.wiki
+ and ensures any discovery tool can get your info.
+
+Monitor and Test Discovery: After changes, use the Bazaar API to confirm your services appear. It might take a little time after service startup for the facilitator to ingest the data. If not immediate, give it an hour and check again. You can also simulate a discovery via the SDK as a sanity check.
+
+Adjust Endpoint Behavior if Needed: If you suspect the crawler isn’t parsing the 402 response, consider providing minimal open-access info. For example, you might allow an HTTP OPTIONS request or a specific query param to return metadata without requiring payment (this is not standard, but could be a debugging aid). Only do this if necessary, as the official approach should suffice. Generally, do not alter the fundamental 402 flow – the goal is to have the standard handshake work with the crawler.
+
+Engage with Coinbase Dev Support: If after all adjustments your services still don’t show up, reach out on official channels. Share that you’ve set discoverable:true and verify if there’s any known bug or delay. Since Bazaar is new, Coinbase might appreciate feedback and can possibly force a re-crawl or identify an issue on their end.
+
+Keep Iterating Safely: Once listed, you might want to test changes like adding more descriptive metadata. The Bazaar listing can include ratings or latency in the future
+medium.com
+, so having clear descriptions and efficient endpoints will help. Also, monitor if multiple service instances cause multiple IDs – consistency in serviceId (perhaps tied to your endpoint path) would be ideal.
+
+By following these steps, Coin Railz should transform its x402 services into fully discoverable entries in the Coinbase Bazaar. In essence, the fix comes down to proper use of the official integration points and making sure nothing unintentionally blocks discovery. With discoverable metadata properly exposed and the Coinbase facilitator in the loop, your services should begin appearing in the Bazaar index – allowing AI agents and developers to find and use them via pay-per-request as intended.
+
+Sources:
+
+Coinbase Developer Docs – x402 Bazaar (Discovery Layer)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+
+Coinbase Developer Docs – Quickstart for Sellers (Discoverable flag)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+
+CryptoSlate News – Bazaar indexes services using Coinbase’s facilitator
+cryptoslate.com
+cryptoslate.com
+
+IQ.wiki – x402 Bazaar and .well-known manifest description
+iq.wiki
+
+Coinbase Blog – Introducing x402 Bazaar (context and examples)
+coinbase.com

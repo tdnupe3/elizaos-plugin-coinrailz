@@ -1,0 +1,65 @@
+Why aren't my x402 services appearing in Bazaar? Config is correct (v0.7.1, Base mainnet, discoverable:true, CDP facilitator) but 0/18 services indexed after 30+ hours. Test endpoint: https://coinr/... #cdp-69079655334bcd2b4b73a292-chat
+You are asking why your x402 services are not appearing in the Bazaar, despite having a correct configuration (v0.7.1, Base mainnet, discoverable: true, and using the CDP facilitator), and no services have been indexed after 30+ hours.
+
+Possible Causes and Troubleshooting Steps
+
+Discovery Configuration Validation:
+Ensure that your service's discoverable flag is correctly set to true in the configuration.
+Verify that the x402Version in your service's response matches the expected version (e.g., 1).
+Confirm that your service is returning a valid PaymentRequirementsResponse schema when queried. The response should include all required fields, such as accepts, scheme, network, payTo, and resource.
+
+Example of a valid PaymentRequirementsResponse:
+   {
+     "x402Version": 1,
+     "error": null,
+     "accepts": [
+       {
+         "scheme": "exact",
+         "network": "base",
+         "maxAmountRequired": "10000",
+         "asset": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+         "payTo": "0xYourWalletAddress",
+         "resource": "https://coinrailz.com/x402/service/gas-price-oracle",
+         "description": "Gas price oracle service",
+         "mimeType": "application/json",
+         "maxTimeoutSeconds": 60,
+         "extra": {
+           "name": "USDC",
+           "version": "2"
+         }
+       }
+     ]
+   }
+   
+
+
+Facilitator and Network Issues:
+Verify that the CDP facilitator is correctly configured and reachable. The facilitator URL for Base mainnet should be https://x402.org/facilitator.
+Ensure that your service is correctly registered on the Base mainnet and that the network ID matches the facilitator's supported networks.
+Check if the facilitator supports the exact scheme and Base mainnet. You can query the /supported endpoint of the facilitator to confirm:
+curl -X GET https://x402.org/facilitator/supported
+
+Bazaar Indexing Delays:
+The Bazaar indexing process may experience delays due to high load or other operational issues. While 30+ hours is longer than expected, it is worth confirming if the indexing service is operational.
+Check the status of the Bazaar or contact the CDP support team to confirm if there are any known issues with the indexing process.
+
+Service Health and Accessibility:
+Ensure that your service endpoint (https://coinrailz.com/x402/service/gas-price-oracle) is publicly accessible and responds correctly to HTTP requests.
+Test your endpoint using tools like curl or Postman to confirm that it returns the expected PaymentRequirementsResponse when queried.
+
+Example test command:
+   curl -X GET https://coinrailz.com/x402/service/gas-price-oracle
+   
+
+
+Discovery API Debugging:
+Use the Discovery API to check if your service is listed. Query the /discovery/resources endpoint with appropriate filters to see if your service is indexed:
+curl -X GET "https://x402.org/discovery/resources?type=http&limit=20"
+If your service is not listed, it may indicate an issue with the indexing process or your service's configuration.
+
+Error Logs and Debugging:
+Check your service's logs for any errors or warnings related to x402 integration or facilitator communication.
+If you are using the x402 SDK, enable verbose logging to capture detailed information about the requests and responses.
+
+Version Compatibility:
+Ensure that your service is using the latest stable version of the x402 SDK (v0.7.1 is mentioned, but confirm it is compatible with the current facilitator and Bazaar versions...[Response truncated. Please reply to continue.]

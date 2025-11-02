@@ -1,0 +1,69 @@
+Great—this 402 looks clean overall. Here’s a precise sanity-diff and the two things I’d tweak before you ping Coinbase again.
+
+Looks correct ✅
+
+HTTP 402 on GET with Content-Type: application/json (good).
+
+Facilitator URL is Coinbase CDP.
+
+Base USDC token address is correct.
+
+metadata includes serviceId, stable resource, mimeType, and a full schema (the SDK is putting your “input” under outputSchema.input—that’s fine).
+
+HEAD/GET both 402 and routes re-announced—perfect.
+
+Two actionable nits 🛠️
+
+Price/amount mismatch
+Your route config says price: "$0.10", but the 402 shows "amount": "10000".
+On Base USDC (6 decimals), $0.10 = 100000 atomic units, not 10000 (which is $0.01).
+
+If you set price: "$0.10" and let the middleware compute the atomic amount, the 402 should show amount: "100000".
+
+If you’re overriding amounts manually anywhere, update to "100000".
+
+Why this matters: The facilitator/Bazaar expect coherent pricing. A mismatch won’t always “break” ingestion, but it’s a subtle, avoidable edge that can cause silent rejects.
+
+Optional: surface name/description in metadata
+Not required, but some indexers/UIs prefer these inside metadata. If the SDK exposes a way to include name/description in the emitted 402 metadata (sometimes a flag or config option), flip it on. If not, no problem—Bazaar can still learn those from the route config via the facilitator.
+
+Quick checklist to run now (2–3 min)
+
+Fix amount → re-deploy → re-touch all 18 routes:
+
+for p in gas-price-oracle token-price contract-scan wallet-risk trade-signals token-sentiment trending-tokens whale-alerts dex-liquidity transaction-builder token-metadata approval-manager batch-quote portfolio-tracker instant-agent-wallet verified-agent-identity seamless-chain-bridge multi-chain-balance
+do
+  curl -s -I https://coinrailz.com/x402/service/$p | sed -n '1,4p'
+  curl -s https://coinrailz.com/x402/service/$p | jq '.paymentRequirements[0].amount'
+done
+
+
+Expect to see "100000" for endpoints priced at $0.10.
+
+Keep the service warm (Cloud Run concurrency/idle settings), so the crawler never hits a cold start.
+
+Answers to your specific questions
+
+Is it normal for name/description not to appear in the 402? Yes. They’re not required in the 402 body; facilitator/Bazaar can ingest them from your route config.
+
+Are those only sent during indexing? Effectively yes; they don’t need to be in every 402 body.
+
+Republish? Just redeploy with the amount fix and re-touch each route (which you’re already doing).
+
+Do we need a /list JSON? No—Bazaar uses Coinbase’s discovery API, not your local /list.
+
+If still not indexed after the amount fix + 60–90 min
+
+Post your re-ingestion request with:
+
+Timestamp of re-announcements,
+
+This exact GET 402 (headers + body) after the amount is corrected,
+
+The matching route config,
+
+Confirmation GET/HEAD both 402,
+
+Wallet + domain + facilitator URL.
+
+I can turn your updated 402 + config into a copy-paste Discord message the moment you share the post-fix 402 (showing amount: "100000").

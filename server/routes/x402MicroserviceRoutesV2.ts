@@ -70,6 +70,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["multi-chain-balance"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Query wallet balances across 7+ EVM chains in a single API call",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -79,6 +80,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["gas-price-oracle"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Real-time gas prices for multiple chains with USD cost estimates",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -88,6 +90,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["token-price"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -97,6 +100,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["contract-scan"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Basic smart contract security scan with safety score and vulnerability checks",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -106,6 +110,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["wallet-risk"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Wallet risk analysis with compliance flags and transaction pattern detection",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -115,6 +120,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["trade-signals"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "AI-powered crypto trading signals with entry/exit points and risk analysis",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -124,6 +130,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["token-sentiment"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Social sentiment analysis for tokens with momentum indicators and activity levels",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -133,6 +140,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["trending-tokens"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Top gaining and losing tokens across DEXs with real-time market data",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -142,6 +150,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["whale-alerts"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Track large wallet movements (whales) with on-chain transaction monitoring",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -151,6 +160,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["dex-liquidity"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Real-time DEX liquidity pool monitoring across multiple exchanges",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -161,6 +171,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["transaction-builder"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Pre-validated transaction encoding for agent-to-agent transfers (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -170,6 +181,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["token-metadata"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Unified token info across all chains - essential building block for trading agent UIs (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -179,6 +191,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["approval-manager"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 60,
@@ -188,6 +201,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["batch-quote"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Multi-DEX price quotes in single call - critical infrastructure for trading bot price discovery (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 90,
@@ -197,6 +211,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["portfolio-tracker"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 120,
@@ -207,6 +222,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["instant-agent-wallet"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Create MPC-secured USDC wallets instantly - Circle Developer-Controlled Wallets for AI agents (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
@@ -216,6 +232,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["verified-agent-identity"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "KYA (Know-Your-Agent) identity verification - On-chain reputation & compliance scoring using ERC-8004 standard (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 180,
@@ -225,6 +242,7 @@ const x402Routes = {
     price: `$${SERVICE_PRICING["seamless-chain-bridge"]}`,
     network: NETWORK,
     config: {
+      discoverable: true,
       description: "Cross-chain USDC routing via Circle CCTP - Pay on Ethereum, receive on Base/Polygon/Arbitrum instantly (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
       maxTimeoutSeconds: 240,

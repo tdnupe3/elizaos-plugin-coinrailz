@@ -1,0 +1,80 @@
+
+coinrailz.com 15 resources
+Coin Railz - x402 Autonomous AI Payments & Crypto Exchange
+First platform enabling autonomous AI agents to pay for services using x402 protocol on Base Chain. Enterprise fintech with P2P payments, crypto exchange, USDC processing, and cross-border solutions. Backed by Coinbase.
+
+Coin Railz - x402 Autonomous AI Payments & Crypto Exchange
+POST
+https://coinrailz.com/x402/service/trade-signals
+Trading
+AI-powered crypto trading signals with entry/exit points and risk analysis
+
+POST
+https://coinrailz.com/x402/service/dex-liquidity
+Trading
+Real-time DEX liquidity pool monitoring across multiple exchanges
+
+POST
+https://coinrailz.com/x402/service/token-metadata
+Crypto
+Unified token info across all chains - essential building block for trading agent UIs (B2B2C infrastructure)
+
+POST
+https://coinrailz.com/x402/service/multi-chain-balance
+Utility
+Query wallet balances across 7+ EVM chains in a single API call
+
+POST
+https://coinrailz.com/x402/service/transaction-builder
+Trading
+Pre-validated transaction encoding for agent-to-agent transfers (B2B2C infrastructure)
+
+POST
+https://coinrailz.com/x402/service/gas-price-oracle
+Utility
+Real-time gas prices for multiple chains with USD cost estimates
+
+POST
+https://coinrailz.com/x402/service/approval-manager
+Trading
+Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)
+
+POST
+https://coinrailz.com/x402/service/token-price
+Crypto
+Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener
+
+POST
+https://coinrailz.com/x402/service/contract-scan
+Utility
+Basic smart contract security scan with safety score and vulnerability checks
+
+POST
+https://coinrailz.com/x402/service/batch-quote
+Trading
+Multi-DEX price quotes in single call - critical infrastructure for trading bot price discovery (B2B2C infrastructure)
+
+POST
+https://coinrailz.com/x402/service/wallet-risk
+Crypto
+Wallet risk analysis with compliance flags and transaction pattern detection
+
+POST
+https://coinrailz.com/x402/service/portfolio-tracker
+Trading
+Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)
+
+POST
+https://coinrailz.com/x402/service/instant-agent-wallet
+Crypto
+Create MPC-secured USDC wallets instantly - Circle Developer-Controlled Wallets for AI agents (Premium B2B2C Infrastructure)
+
+POST
+https://coinrailz.com/x402/service/verified-agent-identity
+AI
+KYA (Know-Your-Agent) identity verification - On-chain reputation & compliance scoring using ERC-8004 standard (Premium B2B2C Infrastructure)
+
+POST
+https://coinrailz.com/x402/service/seamless-chain-bridge
+Trading
+Cross-chain USDC routing via Circle CCTP - Pay on Ethereum, receive on Base/Polygon/Arbitrum instantly (Premium B2B2C Infrastructure)

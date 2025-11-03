@@ -57,7 +57,8 @@ export class PumpFunCopyTradingService {
   
   constructor() {
     this.connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
-    this.initialize();
+    // DISABLED: Auto-initialization was crashing production server with API calls
+    // this.initialize();
   }
 
   /**

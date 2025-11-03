@@ -1,3 +1,9 @@
+// CRITICAL: Set CDP credentials BEFORE any imports
+// The @coinbase/x402 facilitator initializes on import and needs CDP_API_KEY_SECRET
+if (process.env.CDP_PRIVATE_KEY && !process.env.CDP_API_KEY_SECRET) {
+  process.env.CDP_API_KEY_SECRET = process.env.CDP_PRIVATE_KEY;
+}
+
 import express from "express";
 import path from "path";
 import { setupVite } from "./vite";
@@ -644,8 +650,8 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 // === x402 PROTOCOL AUTONOMOUS PAYMENTS ===
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
-app.use('/x402', x402GatedRoutes); // x402-gated service endpoints (return 402 Payment Required)
-app.use('/x402', x402MicroserviceRoutes); // x402 micropayment services (multi-chain-balance, trade-signals, etc.)
+// REMOVED: app.use('/x402', x402GatedRoutes); - Conflicted with V2 implementation below
+app.use('/x402', x402MicroserviceRoutes); // x402 micropayment services with official Coinbase CDP facilitator (V2)
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 console.log('✅ x402 Protocol routes registered successfully');
 console.log('✅ x402-gated service endpoints registered for x402scan discovery');

@@ -65,9 +65,10 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
 }
 
 // Configure all x402 routes with official middleware
+// NOTE: Paths do NOT include /x402 prefix because router is mounted at /x402 in server/index.ts
 const x402Routes = {
   // Original 10 trader-focused services
-  "/x402/service/multi-chain-balance": {
+  "/service/multi-chain-balance": {
     price: `$${SERVICE_PRICING["multi-chain-balance"]}`,
     network: NETWORK,
     config: {
@@ -103,7 +104,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/gas-price-oracle": {
+  "/service/gas-price-oracle": {
     price: `$${SERVICE_PRICING["gas-price-oracle"]}`,
     network: NETWORK,
     config: {
@@ -133,7 +134,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/token-price": {
+  "/service/token-price": {
     price: `$${SERVICE_PRICING["token-price"]}`,
     network: NETWORK,
     config: {
@@ -168,7 +169,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/contract-scan": {
+  "/service/contract-scan": {
     price: `$${SERVICE_PRICING["contract-scan"]}`,
     network: NETWORK,
     config: {
@@ -202,7 +203,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/wallet-risk": {
+  "/service/wallet-risk": {
     price: `$${SERVICE_PRICING["wallet-risk"]}`,
     network: NETWORK,
     config: {
@@ -236,7 +237,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/trade-signals": {
+  "/service/trade-signals": {
     price: `$${SERVICE_PRICING["trade-signals"]}`,
     network: NETWORK,
     config: {
@@ -282,7 +283,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/token-sentiment": {
+  "/service/token-sentiment": {
     price: `$${SERVICE_PRICING["token-sentiment"]}`,
     network: NETWORK,
     config: {
@@ -325,7 +326,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/trending-tokens": {
+  "/service/trending-tokens": {
     price: `$${SERVICE_PRICING["trending-tokens"]}`,
     network: NETWORK,
     config: {
@@ -365,7 +366,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/whale-alerts": {
+  "/service/whale-alerts": {
     price: `$${SERVICE_PRICING["whale-alerts"]}`,
     network: NETWORK,
     config: {
@@ -405,7 +406,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/dex-liquidity": {
+  "/service/dex-liquidity": {
     price: `$${SERVICE_PRICING["dex-liquidity"]}`,
     network: NETWORK,
     config: {
@@ -447,7 +448,7 @@ const x402Routes = {
     }
   },
   // 5 B2B2C infrastructure services
-  "/x402/service/transaction-builder": {
+  "/service/transaction-builder": {
     price: `$${SERVICE_PRICING["transaction-builder"]}`,
     network: NETWORK,
     config: {
@@ -494,7 +495,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/token-metadata": {
+  "/service/token-metadata": {
     price: `$${SERVICE_PRICING["token-metadata"]}`,
     network: NETWORK,
     config: {
@@ -539,7 +540,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/approval-manager": {
+  "/service/approval-manager": {
     price: `$${SERVICE_PRICING["approval-manager"]}`,
     network: NETWORK,
     config: {
@@ -582,7 +583,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/batch-quote": {
+  "/service/batch-quote": {
     price: `$${SERVICE_PRICING["batch-quote"]}`,
     network: NETWORK,
     config: {
@@ -627,7 +628,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/portfolio-tracker": {
+  "/service/portfolio-tracker": {
     price: `$${SERVICE_PRICING["portfolio-tracker"]}`,
     network: NETWORK,
     config: {
@@ -669,7 +670,7 @@ const x402Routes = {
     }
   },
   // 3 Premium B2B2C services
-  "/x402/service/instant-agent-wallet": {
+  "/service/instant-agent-wallet": {
     price: `$${SERVICE_PRICING["instant-agent-wallet"]}`,
     network: NETWORK,
     config: {
@@ -714,7 +715,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/verified-agent-identity": {
+  "/service/verified-agent-identity": {
     price: `$${SERVICE_PRICING["verified-agent-identity"]}`,
     network: NETWORK,
     config: {
@@ -761,7 +762,7 @@ const x402Routes = {
       }
     }
   },
-  "/x402/service/seamless-chain-bridge": {
+  "/service/seamless-chain-bridge": {
     price: `$${SERVICE_PRICING["seamless-chain-bridge"]}`,
     network: NETWORK,
     config: {
@@ -872,7 +873,7 @@ router.use((req: Request, res: Response, next) => {
 // Apply official x402-express middleware to all routes
 // Configure CDP facilitator with proper auth headers
 const facilitatorConfig = {
-  url: "https://facilitator.cdp.coinbase.com",
+  url: "https://facilitator.cdp.coinbase.com" as `${string}://${string}`,
   createAuthHeaders: () => {
     if (!process.env.CDP_API_KEY_ID || !process.env.CDP_API_KEY_SECRET) {
       throw new Error("CDP credentials not found! CDP_API_KEY_ID and CDP_API_KEY_SECRET are required");
@@ -891,7 +892,7 @@ router.use(paymentMiddleware(
 ));
 
 // Service handler implementations (called AFTER payment is verified by middleware)
-router.post("/x402/service/multi-chain-balance", async (req: Request, res: Response) => {
+router.post("/service/multi-chain-balance", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     // Payment already verified by middleware
@@ -923,7 +924,7 @@ router.post("/x402/service/multi-chain-balance", async (req: Request, res: Respo
   }
 });
 
-router.post("/x402/service/gas-price-oracle", async (req: Request, res: Response) => {
+router.post("/service/gas-price-oracle", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { chains } = req.body;
@@ -940,7 +941,7 @@ router.post("/x402/service/gas-price-oracle", async (req: Request, res: Response
   }
 });
 
-router.post("/x402/service/token-price", async (req: Request, res: Response) => {
+router.post("/service/token-price", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenAddress, chain } = req.body;
@@ -962,7 +963,7 @@ router.post("/x402/service/token-price", async (req: Request, res: Response) => 
   }
 });
 
-router.post("/x402/service/contract-scan", async (req: Request, res: Response) => {
+router.post("/service/contract-scan", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { contractAddress, chain } = req.body;
@@ -984,7 +985,7 @@ router.post("/x402/service/contract-scan", async (req: Request, res: Response) =
   }
 });
 
-router.post("/x402/service/wallet-risk", async (req: Request, res: Response) => {
+router.post("/service/wallet-risk", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { walletAddress, chain } = req.body;
@@ -1006,7 +1007,7 @@ router.post("/x402/service/wallet-risk", async (req: Request, res: Response) => 
   }
 });
 
-router.post("/x402/service/trade-signals", async (req: Request, res: Response) => {
+router.post("/service/trade-signals", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { token, timeframe, riskLevel } = req.body;
@@ -1023,7 +1024,7 @@ router.post("/x402/service/trade-signals", async (req: Request, res: Response) =
   }
 });
 
-router.post("/x402/service/token-sentiment", async (req: Request, res: Response) => {
+router.post("/service/token-sentiment", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenSymbol, chain } = req.body;
@@ -1045,7 +1046,7 @@ router.post("/x402/service/token-sentiment", async (req: Request, res: Response)
   }
 });
 
-router.post("/x402/service/trending-tokens", async (req: Request, res: Response) => {
+router.post("/service/trending-tokens", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { timeframe, chain } = req.body;
@@ -1062,7 +1063,7 @@ router.post("/x402/service/trending-tokens", async (req: Request, res: Response)
   }
 });
 
-router.post("/x402/service/whale-alerts", async (req: Request, res: Response) => {
+router.post("/service/whale-alerts", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { chains, minValueUsd, tokenAddresses } = req.body;
@@ -1079,7 +1080,7 @@ router.post("/x402/service/whale-alerts", async (req: Request, res: Response) =>
   }
 });
 
-router.post("/x402/service/dex-liquidity", async (req: Request, res: Response) => {
+router.post("/service/dex-liquidity", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenAddress, chain } = req.body;
@@ -1101,7 +1102,7 @@ router.post("/x402/service/dex-liquidity", async (req: Request, res: Response) =
   }
 });
 
-router.post("/x402/service/transaction-builder", async (req: Request, res: Response) => {
+router.post("/service/transaction-builder", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const validationResult = transactionBuilderInputSchema.safeParse(req.body);
@@ -1122,7 +1123,7 @@ router.post("/x402/service/transaction-builder", async (req: Request, res: Respo
   }
 });
 
-router.post("/x402/service/token-metadata", async (req: Request, res: Response) => {
+router.post("/service/token-metadata", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenAddress, chain } = req.body;
@@ -1144,7 +1145,7 @@ router.post("/x402/service/token-metadata", async (req: Request, res: Response) 
   }
 });
 
-router.post("/x402/service/approval-manager", async (req: Request, res: Response) => {
+router.post("/service/approval-manager", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const validationResult = approvalManagerInputSchema.safeParse(req.body);
@@ -1165,7 +1166,7 @@ router.post("/x402/service/approval-manager", async (req: Request, res: Response
   }
 });
 
-router.post("/x402/service/batch-quote", async (req: Request, res: Response) => {
+router.post("/service/batch-quote", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const validationResult = batchQuoteInputSchema.safeParse(req.body);
@@ -1186,7 +1187,7 @@ router.post("/x402/service/batch-quote", async (req: Request, res: Response) => 
   }
 });
 
-router.post("/x402/service/portfolio-tracker", async (req: Request, res: Response) => {
+router.post("/service/portfolio-tracker", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { walletAddress, chains } = req.body;
@@ -1208,7 +1209,7 @@ router.post("/x402/service/portfolio-tracker", async (req: Request, res: Respons
   }
 });
 
-router.post("/x402/service/instant-agent-wallet", async (req: Request, res: Response) => {
+router.post("/service/instant-agent-wallet", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { agentId, description, initialFundingAmount } = req.body;
@@ -1230,7 +1231,7 @@ router.post("/x402/service/instant-agent-wallet", async (req: Request, res: Resp
   }
 });
 
-router.post("/x402/service/verified-agent-identity", async (req: Request, res: Response) => {
+router.post("/service/verified-agent-identity", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { agentId, walletAddress, signature, metadata } = req.body;
@@ -1252,7 +1253,7 @@ router.post("/x402/service/verified-agent-identity", async (req: Request, res: R
   }
 });
 
-router.post("/x402/service/seamless-chain-bridge", async (req: Request, res: Response) => {
+router.post("/service/seamless-chain-bridge", async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { fromChain, toChain, amount, fromAddress, toAddress, currency } = req.body;

@@ -872,15 +872,19 @@ router.use((req: Request, res: Response, next) => {
 
 // Apply official x402-express middleware to all routes
 // Configure CDP facilitator with proper auth headers
+// CRITICAL: createAuthHeaders MUST return { verify: headers } not just headers!
 const facilitatorConfig = {
   url: "https://facilitator.cdp.coinbase.com" as `${string}://${string}`,
   createAuthHeaders: () => {
     if (!process.env.CDP_API_KEY_ID || !process.env.CDP_API_KEY_SECRET) {
       throw new Error("CDP credentials not found! CDP_API_KEY_ID and CDP_API_KEY_SECRET are required");
     }
+    // Return object with 'verify' property containing the headers
     return {
-      "X-CDP-Api-Key": process.env.CDP_API_KEY_ID,
-      "X-CDP-Private-Key": process.env.CDP_API_KEY_SECRET,
+      verify: {
+        "X-CDP-Api-Key": process.env.CDP_API_KEY_ID,
+        "X-CDP-Private-Key": process.env.CDP_API_KEY_SECRET,
+      }
     };
   }
 };

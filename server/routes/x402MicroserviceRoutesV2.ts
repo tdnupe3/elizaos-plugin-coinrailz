@@ -34,8 +34,12 @@ import {
   approvalManagerInputSchema,
   batchQuoteInputSchema,
 } from "@shared/schema";
+import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 
 const router = Router();
+
+// Apply interaction tracking to all x402 routes
+router.use(x402TrackingMiddleware);
 
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321") as `0x${string}`;

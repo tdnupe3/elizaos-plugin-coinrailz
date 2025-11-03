@@ -42,6 +42,10 @@ import x402GatedRoutes from './routes/x402GatedRoutes';
 import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2'; // FIXED: Use V2 with proper paymentMiddleware
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
 import x402scanScraperRoutes from './routes/x402scanScraperRoutes';
+import x402AnalyticsRoutes from './routes/x402AnalyticsRoutes';
+import automatedCampaignRoutes from './routes/automatedCampaignRoutes';
+import revenueAttributionRoutes from './routes/revenueAttributionRoutes';
+import automatedFollowUpRoutes from './routes/automatedFollowUpRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
 import customerPortalRoutes from './routes/customerPortalRoutes';
@@ -667,6 +671,10 @@ app.use('/api/x402', x402Routes);
 app.use('/x402', x402MicroserviceRoutes); // x402 micropayment services with official Coinbase CDP facilitator (V2)
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 app.use('/api/x402scan-scraper', x402scanScraperRoutes);
+app.use('/api/x402-analytics', x402AnalyticsRoutes);
+app.use('/api/automated-campaigns', automatedCampaignRoutes);
+app.use('/api/revenue-attribution', revenueAttributionRoutes);
+app.use('/api/automated-followup', automatedFollowUpRoutes);
 console.log('✅ x402 Protocol routes registered successfully');
 console.log('✅ x402-gated service endpoints registered for x402scan discovery');
 console.log('✅ x402 micropayment services registered (trade-signals, wallet-risk, etc.)');

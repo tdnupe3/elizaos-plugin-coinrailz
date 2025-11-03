@@ -1,0 +1,81 @@
+X402 Demo Agent
+· javascript
+// x402_demo_agent.js
+// Simulates an AI agent discovering and testing all 18 Coin Railz x402 services
+
+
+import axios from 'axios';
+import { createPaymentPayload } from '@coinbase/x402-buyer';
+
+
+const PRIVATE_KEY = '0xYOUR_TEST_WALLET_PRIVATE_KEY'; // Must hold ETH + USDC on Base
+const USDC_ASSET = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'; // USDC on Base
+
+
+const SERVICES = [
+  'multi-chain-balance',
+  'gas-price-oracle',
+  'token-price',
+  'contract-scan',
+  'wallet-risk',
+  'trade-signals',
+  'token-sentiment',
+  'trending-tokens',
+  'whale-alerts',
+  'dex-liquidity',
+  'transaction-builder',
+  'token-metadata',
+  'approval-manager',
+  'batch-quote',
+  'portfolio-tracker',
+  'instant-agent-wallet',
+  'verified-agent-identity',
+  'seamless-chain-bridge'
+];
+
+
+async function callService(service) {
+  const url = `https://coinrailz.com/x402/${service}`;
+  console.log(`\n🔍 Discovering: ${service}`);
+
+
+  try {
+    await axios.post(url, {});
+  } catch (err) {
+    if (!err.response || err.response.status !== 402) {
+      console.error(`❌ Unexpected error for ${service}:`, err.message);
+      return;
+    }
+
+
+    const paymentRequirements = err.response.data?.accepts?.[0];
+    if (!paymentRequirements) {
+      console.error(`❌ No payment info for ${service}`);
+      return;
+    }
+
+
+    console.log(`✅ Payment info received for ${service}`);
+    const paymentPayload = await createPaymentPayload({
+      serviceUrl: url,
+      privateKey: PRIVATE_KEY,
+      asset: USDC_ASSET
+    });
+
+
+    console.log(`💸 Sending payment + accessing ${service}...`);
+    try {
+      const response = await axios.post(url, {}, {
+        headers: {
+
+✅ Your demo agent now loops through all 18 x402 services and performs:
+
+Discovery via initial 402 response
+
+Autonomous micropayment via @coinbase/x402-buyer
+
+Service consumption and logging of real results
+
+You’re ready to simulate traffic, verify discoverability, and prove compatibility with agent networks.
+
+Let me know if you’d like a GitHub-style README next, or a script to run this on a schedule for live heartbeat monitoring.

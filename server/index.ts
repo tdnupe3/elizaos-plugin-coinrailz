@@ -1,21 +1,3 @@
-// CRITICAL: Set CDP credentials BEFORE any imports
-// The @coinbase/x402 facilitator initializes on import and needs CDP_API_KEY_SECRET
-console.log('🔐 PRE-IMPORT CDP SETUP:');
-console.log('   CDP_API_KEY_ID:', process.env.CDP_API_KEY_ID ? '✅ SET' : '❌ MISSING');
-console.log('   CDP_PRIVATE_KEY:', process.env.CDP_PRIVATE_KEY ? '✅ SET' : '❌ MISSING');
-console.log('   CDP_API_KEY_SECRET (before):', process.env.CDP_API_KEY_SECRET ? '✅ SET' : '❌ MISSING');
-
-if (process.env.CDP_PRIVATE_KEY && !process.env.CDP_API_KEY_SECRET) {
-  process.env.CDP_API_KEY_SECRET = process.env.CDP_PRIVATE_KEY;
-  console.log('✅ CDP_API_KEY_SECRET set from CDP_PRIVATE_KEY for Bazaar registration');
-} else if (process.env.CDP_API_KEY_SECRET) {
-  console.log('✅ CDP_API_KEY_SECRET already set');
-} else {
-  console.log('⚠️  No CDP credentials available for Bazaar registration');
-}
-
-console.log('   CDP_API_KEY_SECRET (after):', process.env.CDP_API_KEY_SECRET ? '✅ SET' : '❌ MISSING');
-
 import express from "express";
 import path from "path";
 import { setupVite } from "./vite";

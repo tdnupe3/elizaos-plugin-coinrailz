@@ -1,0 +1,279 @@
+Registering x402 Services in Coinbase’s Bazaar Discovery API
+Automatic vs. Manual Registration in x402 Bazaar
+
+Registration is automatic when using Coinbase’s CDP facilitator with the proper config – no separate manual submission API is needed. The x402 Bazaar is a machine-readable index of all x402-compatible endpoints that have registered via the Coinbase Developer Platform (CDP) facilitator
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. If your service is integrated with the latest x402 facilitator and configured correctly, it will automatically be ingested into the Bazaar listing. In other words, you do not need to manually POST a manifest or call a special registration endpoint – the facilitator handles it for you when your service starts up (or when it first advertises its presence).
+
+“If your API uses the latest version of the CDP facilitator for x402 payments, it’s ingested in the Bazaar once you include the discoverable flag true in the input schema.”
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+
+Other services like x402-secure-api.t54.ai and nut402.codenut.xyz appear in the Bazaar because they have enabled discovery via the facilitator and provided the required metadata (pricing, schemas, etc.). Your Coin Railz services will likewise show up once properly configured for discovery.
+
+Enabling Discoverability in Your x402 Service Config
+
+The critical step to getting listed is setting the discoverable: true flag in your service’s x402 configuration. This flag explicitly opts your endpoint into the public Bazaar index. In a Node.js Express app using the x402-express middleware, you add this flag in the route’s config object, alongside other metadata like description and schemas. For example:
+
+import { paymentMiddleware } from 'x402-express';
+import { facilitator } from '@coinbase/x402';  // mainnet facilitator from CDP
+
+app.use(paymentMiddleware(
+  "0xYourReceivingWalletAddress",   // address to receive payments (USDC on Base)
+  {
+    "GET /api/weather": {
+      price: "$0.001",             // price per call (in USDC)
+      network: "base",             // network for payments (Base mainnet)
+      config: {
+        discoverable: true,        // **make your endpoint discoverable in Bazaar**
+        name: "WeatherInfo",       // (optional) human-friendly name for your service
+        description: "Get current weather data for a given location.",  
+        inputSchema: {            // define expected input (query params, body, etc.)
+          queryParams: {
+            location: {
+              type: "string",
+              description: "City name or coordinates",
+              required: true
+            }
+          }
+        },
+        outputSchema: {           // define the JSON structure of your response
+          type: "object",
+          properties: {
+            temperature: { type: "number", description: "Degrees in Fahrenheit" },
+            conditions:  { type: "string", description: "Weather summary (sunny, etc.)" },
+            humidity:    { type: "number", description: "Humidity percentage" }
+          }
+        },
+        mimeType: "application/json"   // (optional) MIME type of response
+      }
+    },
+    // ... you can list all 18 routes here similarly ...
+  },
+  facilitator  // use Coinbase’s mainnet facilitator (with your API keys set)
+));
+
+
+In this configuration snippet, discoverable: true is the key addition – it flags the /api/weather endpoint to be included in the Bazaar index
+docs.cdp.coinbase.com
+. We also provide a description, an inputSchema and outputSchema for clarity, and even a name for the service. Including rich metadata isn’t strictly required to get listed, but it is strongly recommended for discoverability and proper listing details
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. According to Coinbase’s documentation, adding a clear description and JSON schemas for inputs/outputs will help AI agents and developers understand and use your API, and may improve its ranking in search results
+docs.cdp.coinbase.com
+.
+
+Where to set discoverable: true: Always set this flag inside the config for each route when calling paymentMiddleware. In Express/Next.js/Hono, this is part of the middleware setup (as shown above). If this flag is omitted or false (the default), the service will NOT appear in the Bazaar listing
+docs.cdp.coinbase.com
+. Coin Railz likely missed this flag initially, which is why your services remain “hidden stalls in the market.”
+
+Example Bazaar Listing JSON (Manifest)
+
+When configured correctly, each service will appear in the Bazaar’s /resources list with a JSON entry describing its payment parameters and metadata. Here’s an example of how a service would be represented (based on Coinbase’s schema):
+
+{
+  "accepts": [
+    {
+      "asset": "0x8...13",               // USDC contract on Base:contentReference[oaicite:9]{index=9}
+      "description": "",                // description of accepted payment asset (if provided):contentReference[oaicite:10]{index=10}
+      "extra": {
+        "name": "USD Coin",             // human-readable asset name:contentReference[oaicite:11]{index=11}
+        "version": "2"
+      },
+      "maxAmountRequired": "1000000",   // max fee in smallest unit (e.g. 1 USDC = 1,000,000 base units)
+      "maxTimeoutSeconds": 60,          // payment window before the request times out
+      "mimeType": "application/json",   // expected MIME type of the response (if set)
+      "network": "base",                // network for payment (Base mainnet):contentReference[oaicite:12]{index=12}
+      "outputSchema": {
+        "input": {
+          "method": "GET",
+          "type": "http",
+          "discoverable": true          // indicates this endpoint is publicly discoverable
+        },
+        "output": null                  // (or JSON schema of output if provided)
+      },
+      "payTo": "0xYourReceivingWalletAddress", // address where payment is sent:contentReference[oaicite:13]{index=13}
+      "resource": "https://coinrailz.com/api/x402/services/weather", // full URL of the API endpoint:contentReference[oaicite:14]{index=14}
+      "scheme": "exact"                // payment scheme (exact amount required):contentReference[oaicite:15]{index=15}
+    }
+  ],
+  "lastUpdated": "2025-11-03T12:00:00.000Z",   // timestamp of last update/registration
+  "metadata": {
+    "name": "WeatherInfo",
+    "description": "Get current weather data for a given location."
+  },
+  "resource": "https://coinrailz.com/api/x402/services/weather",  // primary resource URL (same as above)
+  "type": "http",
+  "x402Version": 1
+}
+
+
+Above, the accepts array describes the payment requirements for the service (asset, network, price, etc.), including the USDC contract address on Base and the payTo address (your wallet)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. The outputSchema.input section reflects your input config, and here you can see the discoverable: true flag confirming the service is indexed. The top-level metadata contains the friendly name and description you provided. In actual Bazaar results, if you omit certain fields (like name or mimeType), those will simply be empty or null – but including them makes the listing more useful.
+
+Note: You do not have to manually craft or submit this JSON – it’s shown here so you know what Coinbase expects. The x402-express middleware and facilitator will generate and register this information on your behalf, using the data from your config.
+
+Step-by-Step Implementation Checklist (Node.js + Express)
+
+Follow these steps to ensure all 18 Coin Railz services are properly registered and discoverable in the x402 Bazaar:
+
+Sign up for Coinbase Developer Platform (if not done) and get API keys: Since you’re running on Base mainnet, you must use Coinbase’s hosted facilitator which requires API credentials. Go to the Coinbase Developer Platform, create a project, and generate an API Key ID and API Key Secret
+docs.cdp.coinbase.com
+. These keys will be used by the @coinbase/x402 facilitator library for authenticating your service with the CDP. Set the keys as environment variables in your Node environment (e.g. in your .env or deployment config):
+
+CDP_API_KEY_ID=<your-key-id>
+CDP_API_KEY_SECRET=<your-key-secret>
+
+
+Why: These credentials let your server interact with Coinbase’s facilitator on mainnet (for payment verification and Bazaar registration).
+
+Ensure you have a receiving wallet on Base and USDC support: Decide which wallet address will collect the USDC payments from your services. This should be an EVM address (0x...) on the Base network that you control (it can be a Coinbase Server Wallet, MetaMask wallet, etc.). Make sure this wallet is set up to receive USDC on Base. You’ll use this address in the middleware config (as payTo). If you used a testnet address during development, update it to a real mainnet address now
+docs.cdp.coinbase.com
+. (Also double-check that each service’s price is set appropriately in USD – e.g. $0.001 means 0.001 USDC per call.)
+
+Install the x402 libraries (or update to latest version): In your Node.js project, install the required packages if not already:
+
+npm install x402-express @coinbase/x402
+
+
+Ensure you’re on the latest versions so that the discoverable flag is supported. The x402-express package provides the Express middleware, and @coinbase/x402 is the Coinbase facilitator SDK for mainnet
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+.
+
+Integrate the x402 payment middleware in your Express app: Import the middleware and the facilitator, then wrap your routes with paymentMiddleware. For example:
+
+import { paymentMiddleware } from "x402-express";
+import { facilitator } from "@coinbase/x402";  // use CDP mainnet facilitator
+
+const payToAddress = "0xYourBaseWallet";      // update with your USDC receiving address
+
+app.use(paymentMiddleware(
+  payToAddress,
+  {
+    // List each x402-enabled route and its payment config:
+    "GET /api/service1": { price: "$0.005", network: "base", config: { /* ... */ } },
+    "POST /api/service2": { price: "$0.002", network: "base", config: { /* ... */ } },
+    // ... include all 18 endpoints here ...
+  },
+  facilitator   // connects to Coinbase CDP using your API keys (for Base mainnet)
+));
+
+
+In the routes object above, each key is the HTTP method and path of your service, and the value specifies the price and network. For testnet you would use { url: "https://x402.org/facilitator" } instead of facilitator, but for mainnet we pass the facilitator object from @coinbase/x402 (which reads your API keys)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. This tells your app to use Coinbase’s hosted facilitator for payment verification and Bazaar registration.
+
+Provide full metadata for each service in the config: Inside each route’s config block, include at minimum:
+
+discoverable: true – required to list the service in the Bazaar
+docs.cdp.coinbase.com
+.
+
+description – a short human-readable explanation of what the service does (e.g. “Converts text to speech with a celebrity voice”).
+
+inputSchema – a JSON Schema (or a simplified object) describing the expected input parameters (query params or JSON body). Include types, which are typically strings, numbers, etc., and mark required fields. This helps agents know how to call your API
+docs.cdp.coinbase.com
+.
+
+outputSchema – a JSON Schema describing your response format (fields and types). This can be as detailed as you like; if your response is complex, define its properties. If you prefer, you can set it to a simple type or even omit it (the Bazaar will list outputSchema.output: null if not provided
+docs.cdp.coinbase.com
+), but including it is better for clarity.
+
+(Optional but recommended:) name – a short name for the service (e.g. "CoinRailz FX Rate"). If provided, this may appear in the Bazaar listing (often under the metadata field).
+
+(Optional:) mimeType – the content type of your response. If your endpoint returns JSON (which is most likely), you can set "mimeType": "application/json". This field can be left empty, but it’s part of the schema and will show up as blank if not set
+docs.cdp.coinbase.com
+.
+
+Here’s a template example for one route’s config with metadata:
+
+"POST /api/convert": {
+  price: "$0.50",  // e.g. $0.50 USD per request
+  network: "base",
+  config: {
+    discoverable: true,
+    name: "RailzCurrencyConvert",
+    description: "Convert an amount from one currency to another at current rates.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        fromCurrency: { type: "string", description: "Source currency code (e.g. USD)", minLength: 3, maxLength: 3 },
+        toCurrency:   { type: "string", description: "Target currency code (e.g. EUR)", minLength: 3, maxLength: 3 },
+        amount:       { type: "number", description: "Amount in source currency" }
+      },
+      required: ["fromCurrency", "toCurrency", "amount"]
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        convertedAmount: { type: "number", description: "Equivalent amount in target currency" },
+        rate:            { type: "number", description: "Conversion rate applied" },
+        timestamp:       { type: "string", description: "Time of rate lookup (ISO 8601)" }
+      }
+    },
+    mimeType: "application/json"
+  }
+}
+
+
+Repeat this kind of config for each of your 18 services. Ensure discoverable: true is present every time. With this metadata in place, Coinbase confirms that “your endpoints are automatically listed in the x402 Bazaar” and well-described for potential buyers
+docs.cdp.coinbase.com
+.
+
+Deploy or restart your service with the new settings: Once you’ve added the middleware and metadata, start your Node.js server (on your production environment or localhost for testing). When the app initializes and the paymentMiddleware is set up, it will register the routes with the facilitator. The Coinbase CDP facilitator back-end should pick up your discoverable endpoints and add them to the Bazaar index. There is no further action required on your part beyond running the service with the updated config. (Under the hood, the facilitator communicates your service info and pricing to Coinbase’s platform.)
+
+Verify the services appear in the Bazaar: The Bazaar discovery API endpoint is GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources. After your services are running with discoverable: true, give the system a little time to update (usually it’s fairly quick – on the order of minutes, though in some cases it might take a bit longer). Then, you can check for your services:
+
+Direct API check: You can GET that URL (e.g. via curl, Postman, or a simple Node/Python script) and search for your service URLs or names in the JSON response. The response is an array of service entries. Make sure you find https://coinrailz.com/api/x402/services/<your-service> in there. Each entry should show your provided description, schemas, etc. as illustrated above.
+
+Third-party tools: Alternatively, use community dashboards like APINow’s API Market Cap or similar x402 listing viewers, which present the Bazaar data in a friendly format. These tools consume the same discovery API and might allow searching by provider or keyword.
+
+CDP Dashboard: Currently, the Coinbase Developer Portal itself doesn’t have a GUI listing of Bazaar services (it’s primarily via API), so rely on the API or community sites for verification.
+
+How long does it take? In practice, services that are properly flagged as discoverable have appeared in the index quite quickly (often within a few minutes once running). Coinbase hasn’t published an exact SLA for the indexing delay, but 24–48 hours is a very safe window. If your services do not show up after a day or two, something is likely misconfigured. Common issues would be missing the discoverable flag, not actually using the CDP facilitator on mainnet, or an authentication issue with your API keys. Double-check your server logs as well – the @coinbase/x402 facilitator might log errors if, for example, the API key is invalid or the facilitator can’t reach Coinbase.
+
+Additional Tips
+
+Ensure correct pricing format: In the config, the price is specified as a string with a $ (USD) amount. E.g. "$0.001" means 0.001 USDC. Make sure these prices match what you intend to charge. The facilitator will convert this to the appropriate atomic units (e.g., “1000” for $0.001 if USDC has 6 decimals) in the payment request. If a price is too high or too low, adjust accordingly before deployment.
+
+Test on testnet first (optional): If you want to experiment before risking real USDC, you can test on Base Sepolia (the testnet) using the open facilitator. Use network: "base-sepolia" and url: "https://x402.org/facilitator" in the middleware options for test mode
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. Your services will then list in a test Bazaar (separate from mainnet). Once comfortable, switch back to mainnet (network: "base", facilitator object, and real API keys) and redeploy. Remember to update your receiving wallet to one on mainnet and fund it with a bit of ETH for gas if needed (though as a receiver you pay no gas, the sender does).
+
+Authentication and Facilitator keys: Since you indicated you’re using the CDP facilitator, you likely have already set up your API keys. Just ensure they are correctly loaded in your environment so that @coinbase/x402 can utilize them. The code will automatically pick up CDP_API_KEY_ID and CDP_API_KEY_SECRET from env variables. If running in a service like Heroku, Vercel, or your own server, make sure those are defined. This enables the secure connection to Coinbase’s systems for payment verification and service registration
+docs.cdp.coinbase.com
+.
+
+Monitor and troubleshoot: After deploying, monitor the output of your service. On startup, the facilitator may log something like “Connected to CDP facilitator” or similar. If there are errors (e.g., unauthorized, or schema issues), those should appear in logs. Fix any such errors if they arise. Also, when an agent/user hits your endpoints, the expected behavior is: an initial request returns HTTP 402 with a payment requirement, and after payment, a retried request with X-Payment header succeeds. Test one of your endpoints manually or with the Coinbase buyer SDK to ensure the payment flow works end-to-end. A successfully verified payment response indicates your facilitator integration is working, which correlates with Bazaar registration working as well
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+.
+
+By following this checklist and replicating the configuration across all 18 endpoints, Coin Railz’s services should appear in the Bazaar index usually within the same day of deployment. Each service’s entry will show its resource URL, accepted asset (USDC on Base), pricing, and the metadata you provided (description, schemas, etc.), just like the other examples currently listed. This will allow autonomous AI agents and developers to discover your APIs programmatically via the Bazaar and interact with them using the x402 payment protocol.
+
+Sources:
+
+Coinbase Developer Docs – x402 Bazaar (Discovery Layer)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+
+Coinbase Developer Docs – Quickstart for Sellers (x402)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+
+Coinbase Developer Docs – Payment Middleware Example (Node.js Express)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+
+Medium (HeimLabs) – Ship an x402-Powered API with Bazaar (example of enabling discoverable and metadata in code)
+medium.com
+medium.com
+
+Coinbase API Reference – Bazaar Resource Listing Schema

@@ -719,6 +719,45 @@ import autonomousOutreachRoutes from './routes/autonomousOutreachRoutes';
 app.use('/api/outreach', autonomousOutreachRoutes);
 console.log('✅ Autonomous Outreach routes registered - AI agent discovery & contact operational');
 
+// === x402SCAN AGENT DISCOVERY ===
+console.log('🔍 Registering x402scan Agent Discovery routes for intelligent agent targeting...');
+import { x402ScanDiscovery } from './services/x402scanAgentDiscovery';
+app.post('/api/agent-discovery/x402scan/run', async (req, res) => {
+  try {
+    const { transactionLimit = 200 } = req.body;
+    const results = await x402ScanDiscovery.discoverAndSaveAgents(transactionLimit);
+    res.json({
+      success: true,
+      message: `Discovered ${results.discovered} new AI agents from x402scan`,
+      data: {
+        newAgents: results.discovered,
+        totalTransactions: results.totalTransactions,
+        topAgents: results.topAgents.map(agent => ({
+          wallet: agent.walletAddress,
+          totalSpent: agent.totalSpent,
+          transactions: agent.transactionCount,
+          avgTransaction: agent.averageTransactionSize.toFixed(2),
+          services: agent.preferredServices.length
+        }))
+      }
+    });
+  } catch (error: any) {
+    console.error('❌ Agent discovery error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+app.get('/api/agent-discovery/stats', async (req, res) => {
+  try {
+    const stats = await x402ScanDiscovery.getDiscoveredAgentStats();
+    res.json({ success: true, stats });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+console.log('✅ x402scan Agent Discovery routes registered - intelligent agent targeting operational');
+
 // Import and register Monitoring Dashboard routes
 import monitoringDashboard from './routes/monitoringDashboard';
 app.use('/api/monitoring', monitoringDashboard);

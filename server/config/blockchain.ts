@@ -24,7 +24,10 @@ export const IDENTITY_REGISTRY_ABI = [
   "function isRegistered(address agent) external view returns (bool)",
   "function tokenOfAgent(address agent) external view returns (uint256)",
   "function name() external view returns (string memory)",
-  "function symbol() external view returns (string memory)"
+  "function symbol() external view returns (string memory)",
+  "function totalSupply() external view returns (uint256)",
+  "function ownerOf(uint256 tokenId) external view returns (address)",
+  "event Transfer(address indexed from, address indexed to, uint256 indexed tokenId)"
 ];
 
 export const REPUTATION_REGISTRY_ABI = [

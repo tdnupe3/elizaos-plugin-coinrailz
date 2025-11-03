@@ -70,6 +70,7 @@ import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
 import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
 import agentCardRoutes from './routes/agentCardRoutes';
 import discoveryRoutes from './routes/discoveryRoutes';
+import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
 import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
@@ -616,6 +617,11 @@ console.log('✅ Agent Card routes registered - Marketplace agents now discovera
 console.log('🔍 Registering Autonomous Discovery routes (sitemap, robots.txt, search engine pings)...');
 app.use(discoveryRoutes);
 console.log('✅ Discovery routes registered - Platform now discoverable by web crawlers and search engines');
+
+// Register ERC-8004 On-Chain Agent Discovery
+console.log('⛓️ Registering ERC-8004 on-chain agent discovery routes...');
+app.use(erc8004DiscoveryRoutes);
+console.log('✅ ERC-8004 discovery routes registered - Can query IdentityRegistry for registered agents');
 
 // Mount provider-specific routers for exact /.well-known/agent-card.json paths
 console.log('🎫 Mounting provider-specific routers for ChatGPT /.well-known/agent-card.json requirement...');

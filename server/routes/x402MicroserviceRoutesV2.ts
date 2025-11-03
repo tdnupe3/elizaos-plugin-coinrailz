@@ -2,6 +2,17 @@
 // The facilitator initializes during import, so credentials must be available first
 if (process.env.CDP_PRIVATE_KEY && !process.env.CDP_API_KEY_SECRET) {
   process.env.CDP_API_KEY_SECRET = process.env.CDP_PRIVATE_KEY;
+  console.log('✅ CDP_API_KEY_SECRET set from CDP_PRIVATE_KEY');
+}
+
+// Verify CDP credentials are present
+if (!process.env.CDP_API_KEY_ID || !process.env.CDP_API_KEY_SECRET) {
+  console.error('❌ CRITICAL: CDP credentials missing!');
+  console.error('   CDP_API_KEY_ID:', process.env.CDP_API_KEY_ID ? 'SET' : 'MISSING');
+  console.error('   CDP_API_KEY_SECRET:', process.env.CDP_API_KEY_SECRET ? 'SET' : 'MISSING');
+  console.error('   CDP_PRIVATE_KEY:', process.env.CDP_PRIVATE_KEY ? 'SET' : 'MISSING');
+} else {
+  console.log('✅ CDP credentials verified for Bazaar registration');
 }
 
 import { Router, Request, Response } from "express";
@@ -45,7 +56,8 @@ router.use(x402TrackingMiddleware);
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321") as `0x${string}`;
 
 // Network selection based on environment
-const NETWORK: Network = process.env.REPLIT_DEPLOYMENT === '1' ? "base" : "base-sepolia";
+// CRITICAL FIX: Force BASE MAINNET for Bazaar discovery (testnet services don't appear in Bazaar)
+const NETWORK: Network = "base"; // Always use mainnet for production discoverability
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();

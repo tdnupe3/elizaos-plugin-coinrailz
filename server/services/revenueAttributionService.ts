@@ -38,40 +38,26 @@ export class RevenueAttributionService {
 
   private async getTotalRevenueMetrics(daysBack: number): Promise<Omit<AttributionMetrics, 'revenueByChannel' | 'topPerformingCampaigns'>> {
     const result = await db.execute(sql`
-      WITH attributed_revenue AS (
-        SELECT 
-          om.prospect_wallet_id,
-          SUM(xi.amount) as total_spent,
-          MIN(xi.created_at) as first_payment,
-          om.sent_at,
-          EXTRACT(EPOCH FROM (MIN(xi.created_at) - om.sent_at)) / 3600 as hours_to_conversion
-        FROM outreach_messages om
-        INNER JOIN discovered_agents da ON da.id = om.prospect_wallet_id
-        INNER JOIN x402_interactions xi 
-          ON xi.wallet_address = da.wallet
-          AND xi.paid = true
-          AND xi.created_at > om.sent_at
-        WHERE om.sent_at > NOW() - INTERVAL '${daysBack} days'
-        GROUP BY om.prospect_wallet_id, om.sent_at
-      ),
-      all_outreach AS (
-        SELECT COUNT(DISTINCT prospect_wallet_id) as total_contacted
-        FROM outreach_messages
-        WHERE sent_at > NOW() - INTERVAL '${daysBack} days'
-      )
       SELECT 
-        COALESCE(SUM(ar.total_spent), 0) as total_revenue,
-        COUNT(DISTINCT ar.prospect_wallet_id) as converted_agents,
-        COALESCE(AVG(ar.hours_to_conversion), 0) as avg_hours_to_conversion,
-        ao.total_contacted,
+        COALESCE(SUM(xi.amount), 0) as total_revenue,
+        COUNT(DISTINCT xi.wallet_address) FILTER (WHERE xi.paid = true) as converted_agents,
+        COALESCE(AVG(
+          EXTRACT(EPOCH FROM (xi.created_at - om.sent_at)) / 3600
+        ) FILTER (WHERE xi.paid = true AND om.sent_at IS NOT NULL), 0) as avg_hours_to_conversion,
+        COUNT(DISTINCT om.prospect_wallet_id) as total_contacted,
         CASE 
-          WHEN ao.total_contacted > 0 
-          THEN ROUND(100.0 * COUNT(DISTINCT ar.prospect_wallet_id) / ao.total_contacted, 2)
+          WHEN COUNT(DISTINCT om.prospect_wallet_id) > 0 
+          THEN ROUND(100.0 * COUNT(DISTINCT xi.wallet_address) FILTER (WHERE xi.paid = true) / COUNT(DISTINCT om.prospect_wallet_id), 2)
           ELSE 0 
         END as conversion_rate
-      FROM all_outreach ao
-      LEFT JOIN attributed_revenue ar ON true
-      GROUP BY ao.total_contacted
+      FROM x402_interactions xi
+      FULL OUTER JOIN outreach_messages om 
+        ON om.sent_at > NOW() - INTERVAL '${sql.raw(daysBack.toString())} days'
+      LEFT JOIN discovered_agents da ON da.id = om.prospect_wallet_id AND da.wallet = xi.wallet_address
+      WHERE 
+        xi.created_at > NOW() - INTERVAL '${sql.raw(daysBack.toString())} days' 
+        OR om.sent_at > NOW() - INTERVAL '${sql.raw(daysBack.toString())} days'
+        OR (xi.created_at IS NULL AND om.sent_at IS NULL)
     `);
 
     const row = result.rows[0] as any;
@@ -87,24 +73,28 @@ export class RevenueAttributionService {
   private async getRevenueByChannel(daysBack: number): Promise<{ channel: string; revenue: number; conversions: number }[]> {
     const result = await db.execute(sql`
       SELECT 
-        om.protocol as channel,
-        COALESCE(SUM(xi.amount), 0) as revenue,
-        COUNT(DISTINCT om.prospect_wallet_id) as conversions
+        COALESCE(om.protocol, 'unknown') as channel,
+        COALESCE(SUM(xi.amount) FILTER (WHERE xi.paid = true), 0) as revenue,
+        COUNT(DISTINCT xi.wallet_address) FILTER (WHERE xi.paid = true) as conversions
       FROM outreach_messages om
-      INNER JOIN discovered_agents da ON da.id = om.prospect_wallet_id
+      LEFT JOIN discovered_agents da ON da.id = om.prospect_wallet_id
       LEFT JOIN x402_interactions xi 
         ON xi.wallet_address = da.wallet
         AND xi.paid = true
         AND xi.created_at > om.sent_at
-      WHERE om.sent_at > NOW() - INTERVAL '${daysBack} days'
+      WHERE om.sent_at > NOW() - INTERVAL '${sql.raw(daysBack.toString())} days'
       GROUP BY om.protocol
       ORDER BY revenue DESC
     `);
 
+    if (result.rows.length === 0) {
+      return [];
+    }
+
     return result.rows.map((row: any) => ({
       channel: row.channel,
-      revenue: parseFloat(row.revenue),
-      conversions: parseInt(row.conversions),
+      revenue: parseFloat(row.revenue || '0'),
+      conversions: parseInt(row.conversions || '0'),
     }));
   }
 

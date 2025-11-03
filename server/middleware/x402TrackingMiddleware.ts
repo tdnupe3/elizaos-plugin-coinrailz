@@ -62,11 +62,11 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
 }
 
 function extractServiceId(path: string): string | null {
-  // Path might be /service/... (from req.path) or /x402/service/... (from req.originalUrl)
-  // Try both patterns to handle router mounting
+  // FIX: Updated for new path structure without /service/ prefix
+  // Path patterns: /multi-chain-balance (req.path) or /x402/multi-chain-balance (req.originalUrl)
   const patterns = [
-    /\/service\/([^\/\?]+)/, // When mounted at /x402
-    /\/x402\/service\/([^\/\?]+)/, // Full path
+    /\/x402\/([^\/\?]+)/, // Full path: /x402/multi-chain-balance
+    /^\/([^\/\?]+)$/, // Relative path: /multi-chain-balance
   ];
   
   for (const pattern of patterns) {

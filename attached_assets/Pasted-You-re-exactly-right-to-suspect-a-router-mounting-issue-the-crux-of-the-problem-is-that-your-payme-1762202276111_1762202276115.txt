@@ -1,0 +1,139 @@
+You're exactly right to suspect a router mounting issue — the crux of the problem is that your paymentMiddleware expects full request path visibility (like /x402/multi-chain-balance), but due to how Express mounts sub-routers, your req.path and req.originalUrl are diverging in an unhelpful way.
+
+Here’s how to fix it and why it’s happening:
+
+✅ Root Cause: Express Router Mounting Obscures Paths
+
+When you mount a router with app.use('/x402', router), everything inside that router only sees paths after /x402.
+
+So:
+
+req.originalUrl will be /x402/multi-chain-balance ✅
+
+req.path inside the router will be /multi-chain-balance ✅
+
+But if your middleware expects to extract the full path (from root), it may fail or misparse it — especially if it’s doing something like split('/') and expecting a leading /x402/....
+
+🔥 Solution 1: Pass Service ID Explicitly in paymentMiddleware Config
+
+The Coinbase paymentMiddleware expects exact matching on method and route, so the cleanest fix is to define the full path for each service — relative to how the router is mounted.
+
+✅ Updated Middleware Setup (Fix)
+
+In setupX402MicroservicesV2.ts, update paymentMiddleware like this:
+
+const middleware = paymentMiddleware({
+  facilitator,
+  services: {
+    'POST /multi-chain-balance': {
+      price: "$0.50",
+      network: "base",
+      config: {
+        discoverable: true,
+        description: "Checks multi-chain balances for a wallet address",
+        // other metadata like inputSchema/outputSchema here
+      }
+    },
+    'POST /gas-price-oracle': {
+      price: "$0.10",
+      network: "base",
+      config: {
+        discoverable: true,
+        description: "Returns real-time gas price on Base"
+      }
+    }
+    // ...all 16 more, defined *relative to router*
+  }
+});
+
+
+Then, keep your route handlers as:
+
+router.post('/multi-chain-balance', async (req, res) => { ... });
+
+
+✅ This works because you’re mounting at /x402, so POST /multi-chain-balance correctly maps to full /x402/multi-chain-balance.
+
+If you’re mounting at /api/x402, then the paths would be /multi-chain-balance inside the router.
+
+🔥 Solution 2: Apply paymentMiddleware at Root Level (If Needed)
+
+If you want to keep absolute control over paths and avoid sub-router confusion:
+
+Alternative:
+
+In index.ts, you can register the middleware directly with app.use() like this:
+
+app.use(paymentMiddleware({
+  facilitator,
+  services: {
+    'POST /api/x402/multi-chain-balance': { ... },
+    'POST /api/x402/gas-price-oracle': { ... },
+    // all 18 here
+  }
+}));
+
+
+Now inside your route file, the path stays absolute:
+
+app.post('/api/x402/multi-chain-balance', handler);
+
+
+This flattens everything and avoids Express' path slicing.
+
+👀 What About req.path = '/'?
+
+That’s a red herring caused by this line:
+
+router.use(middleware);
+
+
+Since you apply paymentMiddleware to the entire router without a path, and then mount that router at /x402, the middleware sees all requests as targeting "/" — Express already chopped the prefix.
+
+So if you want to extract the actual service route inside your tracking middleware, use req.originalUrl or move the middleware outside the subrouter.
+
+✅ Final Architecture Recommendation
+In index.ts:
+import { setupX402MicroservicesV2 } from './routes/x402MicroserviceRoutesV2';
+
+app.use('/api/x402', setupX402MicroservicesV2());
+
+In x402MicroserviceRoutesV2.ts:
+export function setupX402MicroservicesV2() {
+  const router = Router();
+
+  const middleware = paymentMiddleware({
+    facilitator,
+    services: {
+      'POST /multi-chain-balance': {
+        price: "$0.50",
+        network: "base",
+        config: {
+          discoverable: true,
+          description: "Multi-chain balance checker"
+        }
+      },
+      // ... 17 others
+    }
+  });
+
+  router.use(middleware);
+
+  router.post('/multi-chain-balance', async (req, res) => { ... });
+  router.post('/gas-price-oracle', async (req, res) => { ... });
+
+  return router;
+}
+
+Fix Tracking Middleware (Use originalUrl)
+const serviceId = req.originalUrl.split('/').filter(Boolean).pop();
+
+✅ Expected Result
+
+Once deployed:
+
+POST /api/x402/multi-chain-balance → returns HTTP 402 with correct payment requirements
+
+After payment: verified and processed
+
+Appears in Bazaar within minutes (assuming discoverable: true and facilitator/API keys are working)

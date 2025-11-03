@@ -1,3 +1,9 @@
+// CRITICAL: Set CDP credentials BEFORE importing facilitator
+// The facilitator initializes during import, so credentials must be available first
+if (process.env.CDP_PRIVATE_KEY && !process.env.CDP_API_KEY_SECRET) {
+  process.env.CDP_API_KEY_SECRET = process.env.CDP_PRIVATE_KEY;
+}
+
 import { Router, Request, Response } from "express";
 import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
@@ -30,11 +36,6 @@ import {
 } from "@shared/schema";
 
 const router = Router();
-
-// Ensure CDP facilitator credentials are available (x402-express expects CDP_API_KEY_SECRET)
-if (process.env.CDP_PRIVATE_KEY && !process.env.CDP_API_KEY_SECRET) {
-  process.env.CDP_API_KEY_SECRET = process.env.CDP_PRIVATE_KEY;
-}
 
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321") as `0x${string}`;

@@ -33,7 +33,7 @@ import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import x402Routes from './routes/x402Routes';
 import x402GatedRoutes from './routes/x402GatedRoutes';
-import x402MicroserviceRoutes from './routes/x402MicroserviceRoutes';
+import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2'; // FIXED: Use V2 with proper paymentMiddleware
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';

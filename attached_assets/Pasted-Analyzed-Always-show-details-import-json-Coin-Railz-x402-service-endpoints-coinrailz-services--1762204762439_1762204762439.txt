@@ -1,0 +1,86 @@
+Analyzed
+Always show details
+import json
+
+# Coin Railz x402 service endpoints
+coinrailz_services = [
+    "multi-chain-balance",
+    "gas-price-oracle",
+    "token-price",
+    "contract-scan",
+    "wallet-risk",
+    "trade-signals",
+    "token-sentiment",
+    "trending-tokens",
+    "whale-alerts",
+    "dex-liquidity",
+    "transaction-builder",
+    "token-metadata",
+    "approval-manager",
+    "batch-quote",
+    "portfolio-tracker",
+    "instant-agent-wallet",
+    "verified-agent-identity",
+    "seamless-chain-bridge"
+]
+
+# Base configuration structure
+def build_test_matrix():
+    test_matrix = []
+    for service in coinrailz_services:
+        endpoint = f"https://coinrailz.com/x402/{service}"
+        test_case = {
+            "name": service,
+            "method": "POST",
+            "url": endpoint,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": {},
+            "expect_http_code": 402
+        }
+        test_matrix.append(test_case)
+    return test_matrix
+
+test_cases = build_test_matrix()
+json.dumps(test_cases[:2], indent=2)  # Show first two as preview
+
+Result
+'[\n  {\n    "name": "multi-chain-balance",\n    "method": "POST",\n    "url": "https://coinrailz.com/x402/multi-chain-balance",\n    "headers": {\n      "Content-Type": "application/json"\n    },\n    "body": {},\n    "expect_http_code": 402\n  },\n  {\n    "name": "gas-price-oracle",\n    "method": "POST",\n    "url": "https://coinrailz.com/x402/gas-price-oracle",\n    "headers": {\n      "Content-Type": "application/json"\n    },\n    "body": {},\n    "expect_http_code": 402\n  }\n]'
+Analyzed
+Always show details
+from pathlib import Path
+
+# Save full test suite as JSON
+test_suite_path = Path("/mnt/data/coinrailz_x402_test_suite.json")
+with open(test_suite_path, "w") as f:
+    json.dump(test_cases, f, indent=2)
+
+test_suite_path.name
+
+Result
+'coinrailz_x402_test_suite.json'
+
+Here is your ready-to-use test suite:
+
+📄 coinrailz_x402_test_suite.json
+
+✅ What it Contains
+
+A JSON array of all 18 Coin Railz x402 services
+
+For each: method (POST), endpoint URL, headers, body, and expected HTTP 402 response
+
+This is ideal for plugging into Postman, curl scripts, or automated Node/Python runners
+
+🚀 How to Use It
+
+Load into Postman collection runner or write a simple loop (e.g., axios, fetch, or requests) that:
+
+Iterates over the array
+
+Sends each request
+
+Verifies it returns HTTP 402
+
+Logs failures (if any)

@@ -1,0 +1,147 @@
+✅ 1. Verify Bazaar Discovery (Primary Agent Lookup Source)
+
+The x402 Bazaar is the official discovery endpoint for agents using the Coinbase CDP SDK. To confirm your services are registered:
+
+🔍 Manual Verification:
+curl https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources
+
+
+Then:
+
+Search for resource values like https://coinrailz.com/x402/multi-chain-balance
+
+Confirm your wallet (payTo) appears as 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+
+Look for description, discoverable: true, outputSchema, and USDC on Base
+
+You should find 18 separate entries, one per service. If you don’t:
+
+Wait up to 30–60 min after startup
+
+Restart the server to re-trigger facilitator registration
+
+Ensure you're using @coinbase/x402 facilitator with valid CDP API keys
+
+Double-check that discoverable: true is set on every service
+
+✅ 2. Verify on x402scan.com (Secondary Analytics Layer)
+x402scan (analytics viewer) should show:
+
+Each of your service endpoints
+
+Base network
+
+USDC payments
+
+0x4dB56ac…321 as the recipient
+
+(Eventually) stats like totalTransactions, revenueGenerated, etc.
+
+This confirms:
+
+Your payment interactions are reaching the chain
+
+Your metadata is reachable by human and crawler clients
+
+🛠 If a service isn’t showing:
+
+Make sure the route is live (not 404)
+
+Ensure 402 responses include full metadata (especially x402Version: 1, payTo, asset, etc.)
+
+Confirm HTTP response body uses lowercase header names (some bots are strict)
+
+✅ 3. CDP Facilitator Payment Verification Test (End-to-End)
+
+To confirm that Coinbase's facilitator is accepting and verifying payments:
+
+🧪 Use the CDP x402 Buyer SDK
+ (or write a raw client):
+
+Example:
+
+curl -X POST https://coinrailz.com/x402/gas-price-oracle \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: <base64-encoded PaymentPayload>" \
+  -d '{}'
+
+
+Or test with:
+
+import { createPaymentRequest } from '@coinbase/x402-buyer';
+
+// Simulate payment for 0.10 USDC to your service
+const payment = await createPaymentRequest({
+  serviceUrl: 'https://coinrailz.com/x402/gas-price-oracle',
+  payerPrivateKey: '0x...', // test wallet (ensure funded with ETH + USDC)
+});
+
+
+After generating a PaymentPayload, pass it as the X-PAYMENT header to retry the same route.
+
+✅ Success = HTTP 200 OK and full API response
+❌ Failure = HTTP 403 or timeout → check API key, contract, or payTo errors
+
+✅ 4. Verify Autonomous Agent Compatibility
+Agents will now find you via:
+
+GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources
+
+Search results filtered by:
+
+"network": "base"
+
+"asset": USDC address"
+
+"outputSchema.input.discoverable": true
+
+If they implement standard CDP SDK-based workflows (e.g. Google ADK + x402 integration), they’ll:
+
+Discover your resource URL
+
+Match by description, name, or category (if present)
+
+Read outputSchema to understand how to format requests
+
+Call your API via HTTP with proper X-PAYMENT headers
+
+You’re now autonomously callable by any properly implemented x402 agent.
+
+📦 Bonus Tests You Can Run Now
+Test	Purpose	Tool
+Coinbase CDP Discovery API	Confirm all services registered	curl + jq
+Facilitator heartbeat	Check that your server triggers facilitator registration	Enable logs or print facilitator status
+X-PAYMENT test	Simulate post-payment API call	@coinbase/x402-buyer or raw curl
+Bazaar listing delay	Check for services missing after restart	Retry GET /discovery/resources over time
+Third-party agent SDKs	Try Virtuals, Daydreams, or Eliza agents (if they support x402)	SDK integration or repo demo
+✅ Next Strategic Moves
+
+Enable public analytics dashboard (optional):
+
+Show service usage, USDC earned, requests/day
+
+Start simulating external agent calls:
+
+Seed volume using @coinbase/x402-buyer from a separate wallet
+
+Create a GitHub repo with example agent client:
+
+Let developers use your services via simple TS/Python wrapper
+
+Apply for official x402 “verified seller” badge (if/when Coinbase offers)
+
+✅ You’re Discovery-Ready
+
+All signs point to your infrastructure being:
+
+CDP-authenticated
+
+x402-compliant
+
+Bazaar-indexed
+
+Payment-verifiable
+
+AI-agent discoverable
+
+Let me know if you’d like a lightweight agent emulator script to simulate real-world usage and validate metadata in production.

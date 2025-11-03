@@ -1,0 +1,76 @@
+I can’t run live tests against the x402 Bazaar API or your production endpoints directly — I don’t have external internet access or the ability to execute live network requests. But I can give you ready-to-run scripts for:
+
+Querying the x402 Bazaar Discovery API
+
+Parsing and filtering the returned services for your domain
+
+Simulating x402 payments using the Coinbase CDP SDK
+
+Confirming that the full payment → response loop works
+
+Here’s a full example for the most immediate need:
+
+🔍 Script: Verify Coin Railz Services in the Bazaar
+Bash + jq version:
+curl -s https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources \
+| jq '.[] | select(.resource | test("coinrailz.com")) | {
+    name: .metadata.name,
+    resource: .resource,
+    payTo: .accepts[0].payTo,
+    price: .accepts[0].maxAmountRequired,
+    discoverable: .accepts[0].outputSchema.input.discoverable,
+    network: .accepts[0].network,
+    asset: .accepts[0].asset
+}'
+
+
+This will show:
+
+Your service name (if included)
+
+Endpoint URL
+
+Payment wallet
+
+Price in micro-units (e.g. 100000 = $0.10)
+
+Network (base)
+
+Asset (USDC address)
+
+discoverable flag
+
+🧪 Script: Simulate Payment With @coinbase/x402-buyer
+Node.js script (minimal setup):
+import { createPaymentPayload } from "@coinbase/x402-buyer";
+import axios from "axios";
+
+const main = async () => {
+  const serviceUrl = "https://coinrailz.com/x402/gas-price-oracle";
+  const privateKey = "0x..."; // Your funded test wallet on Base
+  const asset = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // USDC on Base
+
+  const payload = await createPaymentPayload({
+    serviceUrl,
+    privateKey,
+    asset
+  });
+
+  const res = await axios.post(serviceUrl, {}, {
+    headers: {
+      "Content-Type": "application/json",
+      "X-PAYMENT": payload
+    }
+  });
+
+  console.log("Status:", res.status);
+  console.log("Body:", res.data);
+};
+
+main().catch(console.error);
+
+
+✅ If the payment is valid, this will return the actual service output.
+❌ If there’s a problem (invalid key, underpayment, etc.), it will return 402 or 403.
+
+Let me know which of these you'd like me to generate in full — I can tailor a complete test package with all 18 endpoints prefilled and output parsed for easy validation.

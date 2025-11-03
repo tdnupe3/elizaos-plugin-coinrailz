@@ -40,38 +40,51 @@ export class ERC8004AgentDiscovery {
   }> {
     console.log('🔍 Querying ERC-8004 IdentityRegistry on Base mainnet...');
     console.log(`📍 Contract: ${ERC8004_CONTRACTS.contracts.identityRegistry}`);
+    console.log('⚠️ Note: Contract data methods broken - using ownerOf() workaround');
     
     try {
       const registrations: AgentRegistration[] = [];
       
-      console.log('📊 Querying first 10 token IDs for registered agents...');
+      console.log('📊 Checking tokens 1-10 for existence...');
       
       for (let tokenId = 1; tokenId <= 10; tokenId++) {
         try {
-          const agentInfo = await this.identityRegistry.getAgentInfo(tokenId);
-          const [walletAddress, agentCardURI, isActive] = agentInfo;
+          const owner = await this.identityRegistry.ownerOf(tokenId);
           
-          if (walletAddress && walletAddress !== ethers.ZeroAddress) {
+          if (owner && owner !== ethers.ZeroAddress) {
+            const isBurnAddress = ['0x0000000000000000000000000000000000000001', '0x0000000000000000000000000000000000000002'].includes(owner);
+            
             registrations.push({
               tokenId,
-              walletAddress,
-              agentCardURI,
-              isActive
+              walletAddress: owner,
+              agentCardURI: `https://basescan.org/token/${ERC8004_CONTRACTS.contracts.identityRegistry}?a=${tokenId}`,
+              isActive: !isBurnAddress
             });
             
-            console.log(`✅ Agent #${tokenId}: ${walletAddress.slice(0, 10)}... (${isActive ? 'active' : 'inactive'})`);
-          } else {
-            console.log(`⏭️ Token ${tokenId}: No agent registered`);
-            break;
+            if (isBurnAddress) {
+              console.log(`⚠️ Token #${tokenId}: ${owner} (burn address - not real agent)`);
+            } else {
+              console.log(`✅ Token #${tokenId}: ${owner.slice(0, 10)}... (real wallet)`);
+            }
           }
           
         } catch (error) {
-          console.log(`⏭️ Token ${tokenId}: ${(error as Error).message.slice(0, 50)}... (no more agents)`);
+          const msg = (error as Error).message;
+          if (msg.includes('ERC721') || msg.includes('nonexistent') || msg.includes('invalid token')) {
+            console.log(`⏭️ Token #${tokenId}: Not minted (end of token list)`);
+            break;
+          }
+          console.log(`⏭️ Token #${tokenId}: ${msg.slice(0, 50)}...`);
           break;
         }
       }
       
-      console.log(`📊 Found ${registrations.length} registered agents on-chain`);
+      console.log(`\n📊 CONTRACT STATUS:`);
+      console.log(`   Total tokens found: ${registrations.length}`);
+      console.log(`   Real agents: ${registrations.filter(r => r.isActive).length}`);
+      console.log(`   Burn addresses: ${registrations.filter(r => !r.isActive).length}`);
+      console.log(`   ⚠️ Contract bug: getAgentInfo() and tokenURI() methods revert`);
+      console.log(`   ⚠️ Solution: Tokens exist but agent data is inaccessible\n`);
       
       const savedCount = await this.saveDiscoveredAgents(registrations);
       

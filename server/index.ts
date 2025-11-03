@@ -41,6 +41,7 @@ import x402Routes from './routes/x402Routes';
 import x402GatedRoutes from './routes/x402GatedRoutes';
 import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2'; // FIXED: Use V2 with proper paymentMiddleware
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
+import x402scanScraperRoutes from './routes/x402scanScraperRoutes';
 import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
 import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
 import customerPortalRoutes from './routes/customerPortalRoutes';
@@ -665,9 +666,11 @@ app.use('/api/x402', x402Routes);
 // REMOVED: app.use('/x402', x402GatedRoutes); - Conflicted with V2 implementation below
 app.use('/x402', x402MicroserviceRoutes); // x402 micropayment services with official Coinbase CDP facilitator (V2)
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
+app.use('/api/x402scan-scraper', x402scanScraperRoutes);
 console.log('✅ x402 Protocol routes registered successfully');
 console.log('✅ x402-gated service endpoints registered for x402scan discovery');
 console.log('✅ x402 micropayment services registered (trade-signals, wallet-risk, etc.)');
+console.log('✅ x402scan agent scraper routes registered');
 
 // === PREPAID CREDITS SYSTEM & CONVERSION OPTIMIZATION ===
 console.log('💳 Registering Prepaid Credits system for conversion optimization...');

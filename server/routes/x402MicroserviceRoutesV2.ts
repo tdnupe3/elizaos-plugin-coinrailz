@@ -29,6 +29,7 @@ import {
   batchQuoteInputSchema,
 } from "@shared/schema";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
+import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
 
 const router = Router();
 
@@ -869,6 +870,12 @@ router.use((req: Request, res: Response, next) => {
   
   next();
 });
+
+// Apply hybrid payment middleware BEFORE x402-express
+// This intercepts raw transaction hashes and verifies them on-chain
+// EIP-712 signatures pass through to x402-express (preserves Bazaar compliance)
+console.log('🔄 Applying hybrid payment middleware for both EIP-712 and raw transaction support...');
+router.use(hybridPaymentMiddleware);
 
 // Apply official x402-express middleware to all routes
 // Use the imported CDP facilitator which handles auth automatically via env vars

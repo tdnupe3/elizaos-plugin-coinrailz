@@ -83,6 +83,26 @@ export const transactionProofs = pgTable(
   ],
 );
 
+// x402 used transaction hashes for replay attack prevention
+export const usedTransactionHashes = pgTable(
+  "used_transaction_hashes",
+  {
+    id: serial("id").primaryKey(),
+    txHash: varchar("tx_hash", { length: 66 }).notNull(), // Ethereum tx hash (0x + 64 chars)
+    network: varchar("network").notNull(), // base, ethereum, polygon, etc
+    serviceName: varchar("service_name").notNull(), // Which service was accessed
+    amount: varchar("amount").notNull(), // Amount paid in smallest unit
+    paidBy: varchar("paid_by"), // Sender address
+    usedAt: timestamp("used_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_used_tx_hash_unique").on(table.txHash),
+    index("IDX_used_tx_network").on(table.network),
+    index("IDX_used_tx_service").on(table.serviceName),
+    index("IDX_used_tx_timestamp").on(table.usedAt),
+  ],
+);
+
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 export const users = pgTable("users", {

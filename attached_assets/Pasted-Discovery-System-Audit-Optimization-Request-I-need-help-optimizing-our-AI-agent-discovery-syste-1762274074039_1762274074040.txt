@@ -1,0 +1,58 @@
+Discovery System Audit & Optimization Request
+
+I need help optimizing our AI agent discovery system. Current status:
+
+Problem: Finding 0 new agents despite running discovery every hour
+
+Total discovered: 105 agents (102 from A2A registries, 3 from platform adapter)
+All discoveries are duplicates
+Social scraper hitting rate limits and timing out
+Only 3 verified agent targets configured
+System Status:
+✅ Working: A2A registry discovery (102 agents found consistently)
+✅ Working: Platform adapter (3 curated agents)
+⚠️ Rate Limited: Social scraper (Reddit OAuth failing, Discord/Telegram throttled)
+❌ Not Finding New Agents: All sources returning same agents
+
+What I Need:
+
+Expand Verified Agent Targets (server/services/verifiedAgentTargets.ts)
+
+Currently only 3 agents: Luna (Virtuals), AIXBT, Truth Terminal
+Need 20-30+ real discoverable AI agent domains/wallets
+Focus on: ElizaOS agents, Virtuals Protocol agents, Coinbase CDP agents, Base ecosystem agents
+Fix Discovery Source Rotation
+
+System checks same registries every run
+Need intelligent rotation to avoid duplicates
+Prioritize sources that haven't run recently
+Add New Discovery Sources
+
+GitHub agent repositories (elizaOS, ai16z, etc.)
+Twitter/X AI agent accounts (if API available)
+Agent marketplace directories
+Blockchain wallet tracking (active agent wallets)
+Rate Limit Strategy
+
+Reddit OAuth repeatedly failing (401 errors)
+Social scraper timing out after 30 seconds
+Need exponential backoff and graceful degradation
+Desired Outcome:
+
+Discover 50-100+ new unique AI agents per run
+Diverse sources (not just A2A registries)
+Stable discovery without rate limit failures
+Automatic rotation to prevent duplicate discoveries
+Technical Context:
+
+Platform: Coin Railz x402 autonomous AI payment system
+Tech Stack: Node.js, TypeScript, PostgreSQL
+Current Adapters: a2a-registry, platform-adapter, social-scraper, onchain-lookups
+Discovery runs: Twice daily (8am/8pm) + immediate test on startup
+Please implement:
+
+Expanded VERIFIED_AGENT_TARGETS list with real agents
+Source rotation logic in discovery service
+Rate limiting improvements with fallback strategies
+Additional discovery adapters for new sources
+Focus on real, contactable AI agents that support A2A protocol or have public endpoints.

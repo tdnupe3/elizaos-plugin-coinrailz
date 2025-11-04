@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { db } from "../db";
-import { users, transactions, referrals, globalAIAgents, agentServiceOrders } from "@shared/schema";
-import { sql, count, sum, avg, desc, eq } from "drizzle-orm";
+import { users, transactions, referrals, globalAIAgents, agentServiceOrders, microserviceRequests } from "@shared/schema";
+import { sql, count, sum, avg, desc, eq, gte } from "drizzle-orm";
+import { getUsageStats, detectSDK } from "../middleware/usageAnalyticsMiddleware";
 
 const router = Router();
 
@@ -162,6 +163,124 @@ router.get("/revenue-breakdown", async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to fetch revenue analytics",
+    });
+  }
+});
+
+// x402 Usage Analytics - Payment method breakdown and SDK detection
+router.get("/x402/usage", async (req, res) => {
+  try {
+    const timeframe = (req.query.timeframe as 'hour' | 'day' | 'week') || 'day';
+    const stats = await getUsageStats(timeframe);
+    
+    res.json({
+      success: true,
+      timeframe,
+      stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching x402 usage stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch usage statistics',
+      message: error.message,
+    });
+  }
+});
+
+// x402 Recent Requests - Last N requests with SDK detection
+router.get("/x402/recent-requests", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    
+    const requests = await db.query.microserviceRequests.findMany({
+      limit,
+      orderBy: [desc(microserviceRequests.createdAt)],
+    });
+    
+    const enrichedRequests = requests.map(r => ({
+      ...r,
+      sdk: detectSDK(r.userAgent || undefined),
+      timestamp: r.createdAt,
+    }));
+    
+    res.json({
+      success: true,
+      count: enrichedRequests.length,
+      requests: enrichedRequests,
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching recent requests:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch recent requests',
+      message: error.message,
+    });
+  }
+});
+
+// x402 Payment Breakdown - EIP-712 vs raw transaction hash comparison
+router.get("/x402/payment-breakdown", async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours as string) || 24;
+    const startTime = new Date();
+    startTime.setHours(startTime.getHours() - hours);
+    
+    const requests = await db.query.microserviceRequests.findMany({
+      where: gte(microserviceRequests.createdAt, startTime),
+    });
+    
+    const breakdown = {
+      total: requests.length,
+      eip712: {
+        count: requests.filter(r => r.paymentMethod === 'eip712').length,
+        sdks: {} as Record<string, number>,
+      },
+      tx_hash: {
+        count: requests.filter(r => r.paymentMethod === 'tx_hash').length,
+        sdks: {} as Record<string, number>,
+      },
+      no_payment: {
+        count: requests.filter(r => !r.paymentMethod).length,
+        sdks: {} as Record<string, number>,
+      },
+    };
+    
+    requests.forEach(r => {
+      const sdk = detectSDK(r.userAgent || undefined);
+      
+      if (r.paymentMethod === 'eip712') {
+        breakdown.eip712.sdks[sdk] = (breakdown.eip712.sdks[sdk] || 0) + 1;
+      } else if (r.paymentMethod === 'tx_hash') {
+        breakdown.tx_hash.sdks[sdk] = (breakdown.tx_hash.sdks[sdk] || 0) + 1;
+      } else {
+        breakdown.no_payment.sdks[sdk] = (breakdown.no_payment.sdks[sdk] || 0) + 1;
+      }
+    });
+    
+    res.json({
+      success: true,
+      hours,
+      breakdown,
+      insights: {
+        eip712Percentage: breakdown.total > 0 
+          ? Math.round((breakdown.eip712.count / breakdown.total) * 100) 
+          : 0,
+        txHashPercentage: breakdown.total > 0 
+          ? Math.round((breakdown.tx_hash.count / breakdown.total) * 100) 
+          : 0,
+        conversionRate: breakdown.total > 0 
+          ? Math.round(((breakdown.eip712.count + breakdown.tx_hash.count) / breakdown.total) * 100) 
+          : 0,
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching payment breakdown:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch payment breakdown',
+      message: error.message,
     });
   }
 });

@@ -30,10 +30,12 @@ import {
 } from "@shared/schema";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
+import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
 
 const router = Router();
 
-// Apply interaction tracking to all x402 routes
+// Apply analytics and interaction tracking to all x402 routes
+router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);
 
 // Platform wallet for receiving payments

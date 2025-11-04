@@ -3819,6 +3819,8 @@ export const microserviceRequests = pgTable(
     paymentStatus: varchar("payment_status", { length: 50 }),
     x402PaymentId: varchar("x402_payment_id"),
     walletAddress: varchar("wallet_address"),
+    paymentMethod: varchar("payment_method", { length: 20 }), // 'eip712', 'tx_hash', null (no payment)
+    userAgent: text("user_agent"), // User-Agent header for SDK detection
     createdAt: timestamp("created_at").defaultNow(),
     error: text("error"),
   },
@@ -3827,6 +3829,7 @@ export const microserviceRequests = pgTable(
     index("IDX_microservice_requests_payment_status").on(table.paymentStatus),
     index("IDX_microservice_requests_created").on(table.createdAt),
     index("IDX_microservice_requests_wallet").on(table.walletAddress),
+    index("IDX_microservice_requests_payment_method").on(table.paymentMethod),
   ],
 );
 

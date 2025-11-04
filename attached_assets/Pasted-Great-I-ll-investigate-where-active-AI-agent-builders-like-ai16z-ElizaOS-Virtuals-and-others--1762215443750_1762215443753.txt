@@ -1,0 +1,239 @@
+Great — I’ll investigate where active AI agent builders (like ai16z, ElizaOS, Virtuals, and others) discover infrastructure like yours, including public agent registries, x402 meta-lists, and mechanisms to submit services to them — ideally in automated ways.
+
+I’ll also look for GitHub repos, Discord channels, or protocol-specific directories that agents crawl for new x402 endpoints or A2A-compatible agents.
+
+I’ll let you know as soon as I have verified options you can act on.
+
+Research completed in 12m · 26 sources · 90 searches
+Agent Discovery Registries and Ecosystems
+x402 Bazaar – Discovery Layer for Agent Services
+
+The x402 Bazaar is a production “discovery layer” for agentic services launched in 2025. It acts as a search index of x402-enabled API endpoints, letting AI agents programmatically find new services
+coinbase.com
+coinbase.com
+. In practice, it’s an HTTP API that returns all registered x402 services. Agents (or developers) query the Bazaar’s /list API (e.g. GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources) to retrieve a machine-readable catalog of services, including each service’s description, pricing, input schema, etc.
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. This allows agents to autonomously “browse” available tools and APIs.
+
+ 
+
+How listing works: Registration on x402 Bazaar is automatic for providers using Coinbase’s official x402 facilitator. If a service uses the latest CDP Facilitator library for x402 and sets its endpoint as “discoverable”, the Bazaar will ingest it automatically
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. In other words, by adding discoverable: true in the service’s x402 payment schema, the endpoint is published to the global index without any manual PR or approval
+docs.cdp.coinbase.com
+. (Currently, only services using Coinbase’s facilitator have this auto-listing; manual or third-party facilitator listings are not yet fully supported, though management tools are planned
+docs.cdp.coinbase.com
+.) Newly added services propagate to the index near-real-time – effectively as soon as the service is running with discovery enabled, it appears in the /list results. This enables dynamic discovery: agents can regularly query the Bazaar to see new tools as they come online
+coinbase.com
+coinbase.com
+.
+
+ 
+
+Using Coin Railz as an example: Since Coin Railz’s APIs are x402-compliant, the recommended path is to integrate the Coinbase CDP facilitator and mark each Coin Railz endpoint as discoverable. This requires minimal code (just a config flag in the facilitator setup). Once deployed, no further submission is needed – the Bazaar will automatically include Coin Railz in its catalog
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. Agents built on frameworks like ElizaOS or others can then find Coin Railz by querying the Bazaar. Expected latency for discovery is low (effectively instantaneous after deployment), since the Bazaar is described as a “single source of truth” that agents can query on demand
+coinbase.com
+coinbase.com
+.
+
+ 
+
+Submission/Metadata: Ensure the x402 service metadata (name, description, input parameters) is clear, since agents rely on that to select services. The Bazaar pulls this from the service’s agent-card or schema. There is no manual review – it’s an open index for any compliant service. (If for any reason Coin Railz is not using the CDP facilitator, an alternate approach would be to update to that stack or await future support for registering custom services on the Bazaar.)
+
+AI Agents Directory (x402-Ready Marketplace)
+
+The AI Agents Directory (aiagentsdirectory.com) is a curated marketplace of AI agents and services, branded as “The x402-Ready AI Agents Marketplace.”
+aiagentsdirectory.com
+ It’s essentially a public directory website where developers and businesses can browse agent offerings, see rankings, and even test or connect with them. Unlike the x402 Bazaar (which is machine-facing), this directory is human-facing and curated. It lists many agents (from personal assistant bots to business automation tools) and highlights those capable of autonomous payments (supporting x402)
+aiagentsdirectory.com
+.
+
+ 
+
+Discovery model: The site is curated via submissions. Agent creators must actively list their agent – there is a “Submit AI Agent” function on the site
+aiagentsdirectory.com
+aiagentsdirectory.com
+. In practice, one needs to create an account and provide the agent’s details (name, description, category, pricing model, website or API endpoint, etc.). The submission likely goes through a review process by the directory’s team to ensure quality and validity before it’s published (the site doesn’t explicitly state the review time, but since it’s curated we can infer a short delay for approval). There’s also a contact email (hello@aiagentsdirectory.com) and an online form for API integration requests
+aiagentsdirectory.com
+, indicating a fairly hands-on, curated approach rather than automated crawling. In other words, this directory is PR/approval-based – you submit information and they list the agent if it meets criteria.
+
+ 
+
+Listing Coin Railz: To get Coin Railz services included here, you would use the Submit Agent form on the website
+aiagentsdirectory.com
+ or contact the directory team. Provide a detailed description of Coin Railz’s services, how they comply with x402 (since the marketplace is keen on “autonomous payment” agents), and any usage instructions or demo links. The site’s content suggests they list key metadata like features, pricing (free, freemium, paid), categories, and usage stats
+aiagentsdirectory.com
+aiagentsdirectory.com
+. Ensure you supply an “agent card” or API docs URL if applicable, but note that this directory targets a broader audience (not just programmatic agents). Once submitted, expect a processing latency of perhaps a few days for review. The site boasts “real-time updates” once listed
+aiagentsdirectory.com
+ – meaning after approval, any changes (e.g. new features or pricing) can be updated, and the directory also has a Data API for others to query its listings
+aiagentsdirectory.com
+aiagentsdirectory.com
+. However, that API is gated by an early-access request
+aiagentsdirectory.com
+, so it’s not an open crawlable index like x402 Bazaar. The discovery path here is semi-automatic: agents are discovered by people (or possibly agent-builders) browsing the directory, rather than by autonomous agents crawling it. It’s mainly meant to showcase agents to the world and allow collaboration or user adoption.
+
+ 
+
+Important: The AI Agents Directory has indicated x402 support “coming soon”
+aiagentsdirectory.com
+. This implies they may add a filter or badge for x402-capable agents. Coin Railz, being x402-compliant, would likely be highlighted once listed. The submission should mention this capability. Overall, inclusion in this directory could increase visibility to AI developers and platforms (even if not an automatic pipeline into agent code, it’s used by many in the community).
+
+Virtuals Protocol – Agent Launchpad & In-Ecosystem Registry
+
+Virtuals Protocol (“Virtual”) is a popular AI agent launchpad on Base (an Ethereum L2) known for tokenizing and hosting autonomous agents
+medium.com
+medium.com
+. Virtual has its own Agent Commerce Protocol (ACP) and platform DApp (app.virtuals.io) where agents are created and managed. In this ecosystem, every agent is represented by a token (each agent launches with its own ERC-20 token) and developers (or even AI themselves) can deploy new agents via the platform’s UI. Virtual effectively maintains an on-chain registry of agents: when you register an agent, it is added to the global list of agents within Virtual’s app and smart contracts
+whitepaper.virtuals.io
+medium.com
+. As of late 2024, over 130 agents had been created on Virtual, and new agents could be launched permissionlessly by paying a 100 $VIRTUAL token fee
+medium.com
+. This fee acts as a gate (to prevent spam) but otherwise the network is open – no invite needed. All existing agents are visible in the platform interface (the “Register New Agent” screen immediately lists all agents for reference)
+whitepaper.virtuals.io
+.
+
+ 
+
+Discovery within Virtual: Agents discover each other within the Virtual protocol itself. Virtual’s ACP supports agents taking on roles like “Provider” or “Hybrid” to offer services, and “Requestor” agents to consume services
+whitepaper.virtuals.io
+. When a new provider agent is created, the owner can define its service offerings (via “Job Offerings” or resources in its profile) and publish a business description
+whitepaper.virtuals.io
+whitepaper.virtuals.io
+. These details become visible on Virtual’s network, allowing other agents (or users) to find them. In practice, Virtual’s discovery is semi-automatic and in-protocol: by default, every agent is indexed on the platform once launched (and presumably discoverable via the on-chain data or platform UI). Agents can “mention” or call each other via the protocol’s integration with X (Twitter) and on-chain messaging – e.g. Virtual allows agents to tag each other on social media to initiate interactions
+whitepaper.virtuals.io
+. This is more of a closed ecosystem discovery: only agents that have been launched through Virtual are known to Virtual’s agents. There isn’t a public HTTP API listing all Virtual agents (outside of querying the blockchain or using their UI), but for participants, the discovery is immediate and automatic once you’re in their registry.
+
+ 
+
+Listing Coin Railz in Virtual: If Coin Railz wants its services accessible to Virtual’s agent community, the approach would be to create a Provider agent on Virtual that interfaces with Coin Railz’s API. For example, one could launch an agent called “CoinRailzAgent” via app.virtuals.io, paying the required VIRTUAL fee. During setup you’d provide a profile (name, avatar, description) and specify it as a Provider or Hybrid role so it can offer services
+whitepaper.virtuals.io
+. You would then add details like what tasks it can do – e.g. “Cryptocurrency payment rail services via x402” – in the agent’s business description and offerings. After completing the profile and possibly an initial testing phase, you would “graduate” the agent (Virtual has a concept of graduating agents from beta to production) as per their guide
+whitepaper.virtuals.io
+. Once graduated, the agent’s token is live and it’s officially part of the Virtual ecosystem, visible to all. At that point, other Virtual agents (or users on Virtual) can discover CoinRailzAgent by browsing the agent list in the DApp or by on-chain queries. They could then hire or invoke it for its service (the ACP framework handles agent-to-agent service calls, payments, and even enforcement of rules like failure limits
+whitepaper.virtuals.io
+whitepaper.virtuals.io
+).
+
+ 
+
+Automation vs curation: Virtual’s registry is open but controlled by the platform’s contract. It’s not a web crawler; you must use their interface to join. But once on-boarded, discovery is automated inside Virtual. There is no external approval committee – the only “gate” is the fee and the requirement that your agent abide by protocol rules (agents that fail too often can be “ungraduated” automatically by the system)
+whitepaper.virtuals.io
+. For timing, registering an agent is immediate (few transactions on Base), though a new agent might need to run some jobs to prove stability before users trust it. From submission to being discoverable is essentially as fast as filling the forms and paying the fee – within minutes you can have a listed agent. In summary, for Coin Railz, Virtual provides a permissionless but ecosystem-bound discovery path: you gain exposure to a large community of on-chain agents, but at the cost of launching a tokenized agent within their system.
+
+ElizaOS (ai16z) and Open Agent Discovery
+
+ElizaOS (formerly ai16z) is an open-source AI agent framework rather than a single platform, so it doesn’t maintain a closed registry of agents. Instead, Eliza-based agents are designed to use open protocols for discovery. In practice, this means adhering to standards like Google’s Agent-to-Agent (A2A) protocol (for agent communication and self-description) and integrating with the x402 payment/discovery infrastructure. Under A2A, any agent service should host an Agent Card (a JSON descriptor at /.well-known/agent-card.json on its domain) which describes the agent’s capabilities and endpoints
+a2a-protocol.org
+docs.aws.amazon.com
+. This allows a basic form of discovery: if an agent knows or guesses a service’s URL, it can retrieve the agent-card to learn how to interact. However, the bigger challenge is finding new agents’ URLs in the first place. Eliza’s community has been tackling this via the meta-layers like x402 Bazaar and emerging on-chain registries. In fact, ElizaOS explicitly encourages using x402 for agent payments and service lookup, and ERC-8004 for trust and identity; even the Eliza team references using Virtuals Protocol for coordination alongside x402
+x.com
+.
+
+ 
+
+In practical terms, if Coin Railz is running an A2A-compliant agent server (with an agent-card and JSON-RPC endpoints), any ElizaOS agent can connect to it if it knows the address. To get known, the best approach is to use the discovery channels above: ensure Coin Railz is listed in x402 Bazaar (since Eliza-based agents can query that index to find new tools automatically
+coinbase.com
+coinbase.com
+) and consider on-chain registration. ERC-8004 “Trustless Agents” is a new Ethereum standard (co-authored by folks from Coinbase, Google, and MetaMask) that defines on-chain registries for agent identity and reputation
+eips.ethereum.org
+eips.ethereum.org
+. It introduces a global Identity Registry where each agent mints an ERC-721 NFT as a handle, pointing to its off-chain Agent Registration File (which can include its A2A AgentCard URL, x402 endpoints, etc.)
+eips.ethereum.org
+eips.ethereum.org
+. In effect, this creates a decentralized directory: anyone can browse the blockchain for registered agents and retrieve their metadata (endpoints, descriptions, trust signals) without relying on a centralized list. As this standard is implemented, ElizaOS agents and others will likely use it to discover peers across networks. To include Coin Railz via this path, one would mint a registration NFT in the chosen ERC-8004 registry (likely on a network like Base or Ethereum L2) and host a JSON file describing Coin Railz’s agent services. That file would list Coin Railz’s A2A endpoint (https://coinrailz.com/.well-known/agent-card.json presumably) and any other interfaces (e.g. MCP or human URL)
+eips.ethereum.org
+. Once on-chain, your agent’s existence is public and queryable. This method is trustless and open – no permission needed beyond the blockchain transaction. The latency is just the blockchain confirmation time (seconds). The caveat is ERC-8004 is cutting-edge (proposed in Aug 2025), so its registries are just rolling out; you’d need to watch for the mainnet or testnet deployment of the standard’s contracts to participate.
+
+ 
+
+Summary of Discovery Paths: For autonomous agent infrastructure today, the most actively used discovery mechanism is x402 Bazaar’s automatic index
+coinbase.com
+docs.cdp.coinbase.com
+. This is already in production and used by agent frameworks to let agents “find” new API services on the fly. Other directories exist but are more curated: e.g. the AI Agents Directory (for human-driven discovery and marketing)
+aiagentsdirectory.com
+ and various community “awesome lists.” Platform-specific ecosystems like Virtuals Protocol have their own internal registries for agents launched on their platform (Coin Railz would need to join the platform to be listed)
+medium.com
+. Truth Terminal, for instance, did not rely on any formal registry – it gained notoriety virally (Marc Andreessen’s post boosted it) and isn’t a service others integrate via an API
+coincub.com
+medium.com
+. In other words, it’s an example of an agent that’s not discoverable via standard infrastructure (no agent-card or listing), highlighting why indices like x402 Bazaar are needed.
+
+ 
+
+Going forward, expect a “meta-layer” of cross-indexing: on-chain registries (ERC-8004) will tie together multiple protocols (A2A, x402, etc.) into one identity per agent
+eips.ethereum.org
+eips.ethereum.org
+. There are also hybrid marketplaces like Fluora, which is a “Monetized MCP marketplace” where agents can autonomously find/purchase services using x402 under the hood
+x402.org
+. These are essentially third-party hubs that cross-index agent services alongside payment rails (MCP is the “Model Context Protocol” for AI tool usage, complementary to A2A). For Coin Railz, being present in all relevant channels maximizes discoverability:
+
+Enable automatic listing via x402 Bazaar (fast, used by self-improving agents)
+coinbase.com
+.
+
+Submit to curated directories like AI Agents Directory (for visibility to developers and businesses)
+aiagentsdirectory.com
+.
+
+Deploy an agent in ecosystems like Virtual if targeting those agent communities specifically
+medium.com
+.
+
+Register on-chain when standards like ERC-8004 go live, to be part of the decentralized agent index
+eips.ethereum.org
+eips.ethereum.org
+.
+
+By doing so, Coin Railz will be discoverable whether an autonomous AI is crawling the x402 Bazaar in real time, a dev team is searching a web directory, or a future DAO-driven agent network is scanning the blockchain for reputable agents. Each path has a different inclusion process (automatic vs. manual) and update frequency, as summarized:
+
+x402 Bazaar: Fully automatic crawl of any opt-in service (updates instantly as services flag themselves)
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+.
+
+AI Agents Directory: Manual submission, team-curated (updates on human approval; likely updated weekly or as submissions come in)
+aiagentsdirectory.com
+.
+
+Virtuals Protocol: Permissionless on-chain registry for agents launched on its platform (updates in real time on-chain; agents list themselves by creation)
+medium.com
+.
+
+ERC-8004 Registries: Decentralized NFT-based registry (updates whenever an agent owner registers or updates their record; anyone can read latest state from chain)
+eips.ethereum.org
+eips.ethereum.org
+.
+
+All these are active or emerging in late 2025, with x402 Bazaar being the flagship for production agent-to-agent service discovery
+coinbase.com
+docs.cdp.coinbase.com
+. By following the steps above, Coin Railz can ensure it’s plugged into the networks where autonomous agents look for new “infrastructure” to use.
+
+ 
+
+Sources:
+
+Coinbase Developer Blog – “Introducing x402 Bazaar: A discovery layer for agentic commerce”
+coinbase.com
+coinbase.com
+
+Coinbase x402 Docs – “x402 Bazaar (Discovery Layer)”
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+
+AI Agents Directory (Marketplace Site) – Homepage and API info
+aiagentsdirectory.com
+aiagentsdirectory.com
+
+Virtuals Protocol Whitepaper – Agent registration process
+whitepaper.virtuals.io
+medium.com
+
+ERC-8004 Standard Proposal – On-chain agent identity registry
+eips.ethereum.org
+eips.ethereum.org

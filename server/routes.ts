@@ -378,7 +378,7 @@ Questions? Reply to this message or contact support@coinrailz.com
 
   // 🔐 x402 Protocol Micropayment Gateway - Payment-gated microservices (Official x402-express middleware)
   const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutesV2').then(m => m.default);
-  app.use(x402MicroserviceRoutes);
+  app.use('/x402', x402MicroserviceRoutes);
 
   // 🔍 MCP Service Discovery - AI agent service directory (Model Context Protocol compatible)
   const mcpServiceDiscovery = await import('./routes/mcpServiceDiscovery').then(m => m.default);
@@ -4665,15 +4665,6 @@ Questions? Reply to this message or contact support@coinrailz.com
     });
   });
 
-  // 404 handler for API routes - must come after all other routes
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({
-      error: 'Not Found',
-      message: `API endpoint ${req.method} ${req.path} not found`,
-      timestamp: new Date().toISOString()
-    });
-  });
-
   // Public balance check for demo purposes (remove in production)
   app.get('/api/balance-check/:email', async (req, res) => {
     try {
@@ -5008,6 +4999,15 @@ Questions? Reply to this message or contact support@coinrailz.com
         timestamp: new Date().toISOString()
       });
     }
+  });
+
+  // 404 handler for API routes - MUST be the last route registered
+  app.use('/api', (req, res) => {
+    res.status(404).json({
+      error: 'Not Found',
+      message: `API endpoint ${req.method} ${req.path} not found`,
+      timestamp: new Date().toISOString()
+    });
   });
 
   return server;

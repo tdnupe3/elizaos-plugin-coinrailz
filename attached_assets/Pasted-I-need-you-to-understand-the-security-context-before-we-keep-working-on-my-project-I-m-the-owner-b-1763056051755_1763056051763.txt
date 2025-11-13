@@ -1,0 +1,47 @@
+I need you to understand the security context before we keep working on my project.
+
+I’m the owner/builder of the Coin Railz platform. Earlier today, my Windows PC was compromised after I downloaded and executed a malicious .exe file. The malware drained all of my crypto wallets that were accessible from this machine. My seed phrases/private keys had previously been stored in a Google Doc, and those wallets have now been fully compromised and emptied.
+
+Here is what I have done to remediate the situation and ensure this environment is clean:
+
+Immediately disconnected the PC from the internet and stopped using any wallets or browser extensions on it.
+
+Reported the theft/incident to IC3.gov.
+
+Backed up only essential non-executable files (documents, images, etc.) to a USB drive. I did not back up any .exe, .zip, scripts, installers, or wallet-related files.
+
+Performed a full wipe and clean reinstall of Windows using an official Microsoft/Windows USB installer, deleting all partitions on the system drive.
+
+Reinstalled Chrome from the official site and verified there are no suspicious extensions.
+
+Enabled Windows Security (Defender) and ran a full system scan, which came back clean.
+
+Scanned the USB backup with Windows Security before restoring any files, and only restored non-executable documents.
+
+Deleted all previously used wallets and removed MetaMask entirely so that I can start fresh with new wallets and seed phrases.
+
+I am treating every wallet address and key that was ever used on the old system as permanently compromised and “burned.”
+
+Important for you to know regarding Coin Railz:
+
+All wallets that were previously connected to or used by my Coin Railz platform are now considered compromised.
+
+I have deleted those wallets and removed MetaMask from this machine.
+
+Going forward, we will not reuse any of those addresses or private keys in any capacity.
+
+When we resume development, you must assume that all on-chain configuration tied to the old wallets needs to be rebuilt or re-pointed to brand-new wallets that will be created on a clean, separate, secure device (preferably hardware wallets).
+
+No private keys, mnemonics, or sensitive secrets should ever be stored directly in the repo, in plain-text files, or committed .env files.
+
+Given this context, I want you to:
+
+Help me audit my Coin Railz codebase and configuration files to make sure there are no hard-coded private keys, mnemonics, or API secrets anywhere.
+
+Flag any place where we reference specific wallet addresses so I can decide whether they should be replaced with new “safe” addresses.
+
+From this point on, assume we are rebuilding all wallet integrations using brand-new wallets that have never touched the infected environment.
+
+Help me design and enforce best practices so the codebase never stores sensitive wallet data or secrets insecurely again.
+
+Please acknowledge this security context first, and then ask me what repo/file(s) you should inspect or help with next.

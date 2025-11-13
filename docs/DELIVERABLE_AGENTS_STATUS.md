@@ -78,7 +78,7 @@ Contract: VulnerableExample
 **Technology:** Circle Developer Controlled Wallets + x402 protocol  
 **Pricing:** $50/hour (or transaction-based)  
 **Agent ID:** `payment-processor`  
-**Wallet:** `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321` (platform wallet)  
+**Wallet:** `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` (platform wallet)  
 
 **Capabilities:**
 - ✅ Instant USDC settlements on Base Chain

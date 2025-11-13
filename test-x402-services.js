@@ -44,7 +44,7 @@ async function testService(serviceName) {
     // Validate x402 protocol compliance
     const hasX402Version = body.x402Version === 1;
     const hasAccepts = Array.isArray(body.accepts) && body.accepts.length > 0;
-    const hasPayTo = body.accepts?.[0]?.payTo === "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321";
+    const hasPayTo = body.accepts?.[0]?.payTo === "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
     const hasNetwork = body.accepts?.[0]?.network === "base";
     const hasAsset = body.accepts?.[0]?.asset === "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
     const isDiscoverable = body.accepts?.[0]?.outputSchema?.input?.discoverable === true;

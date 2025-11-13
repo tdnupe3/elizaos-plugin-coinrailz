@@ -354,7 +354,7 @@ async function processPayment(method: string, amount: number, productId: string,
       return { 
         success: false, 
         requiresAction: true,
-        cryptoAddress: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Your platform wallet
+        cryptoAddress: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Your platform wallet
         amount: amount,
         currency: 'USDC',
         transactionId: `crypto_pending_${Date.now()}`,

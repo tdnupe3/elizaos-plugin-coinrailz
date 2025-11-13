@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { PaymentRequest, PaymentResponse } from '../types';
 
 const COIN_RAILZ_BASE_URL = process.env.COIN_RAILZ_URL || 'https://coinrailz.com';
-const PLATFORM_WALLET = '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 
 export class X402Client {
   private baseUrl: string;

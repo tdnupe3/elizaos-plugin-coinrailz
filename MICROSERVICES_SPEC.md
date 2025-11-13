@@ -331,7 +331,7 @@ Each service will have:
 1. Client → POST /x402/service/{service-id}
 2. Server → 402 Payment Required
    Headers:
-     X-Payment-Address: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+     X-Payment-Address: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
      X-Payment-Amount: 0.01 USDC
      X-Payment-Chain: base
 3. Client → Payment to wallet

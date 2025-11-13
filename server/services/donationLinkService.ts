@@ -24,14 +24,14 @@ export class DonationLinkService {
     {
       name: 'Ethereum',
       symbol: 'ETH',
-      address: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Real platform wallet
+      address: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Real platform wallet
       decimals: 18,
       uriScheme: 'ethereum'
     },
     {
       name: 'Base',
       symbol: 'ETH',
-      address: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Same wallet, multi-chain
+      address: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Same wallet, multi-chain
       decimals: 18,
       uriScheme: 'ethereum'
     },

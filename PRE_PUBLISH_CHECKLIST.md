@@ -27,7 +27,7 @@ All 3 agents properly configured:
    - Status: Active ✅
 
 ### Platform Wallet
-- [x] Configured: `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`
+- [x] Configured: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
 - [x] Network: Base Chain
 - [x] Environment variable: `PLATFORM_WALLET_ADDRESS` set
 
@@ -61,7 +61,7 @@ Ensure these are set in production:
 # Required
 CDP_API_KEY_ID=configured ✅
 CDP_PRIVATE_KEY=configured ✅  
-PLATFORM_WALLET_ADDRESS=0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321 ✅
+PLATFORM_WALLET_ADDRESS=0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 ✅
 DATABASE_URL=configured ✅
 
 # Optional (for enhanced features)

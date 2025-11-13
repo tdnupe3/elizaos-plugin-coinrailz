@@ -5,7 +5,7 @@ https://www.x402scan.com/resources/register
 
 ## Platform Details
 - **Base URL**: https://coinrailz.com
-- **Payment Wallet**: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+- **Payment Wallet**: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 - **Supported Networks**: Base (mainnet)
 - **Supported Assets**: USDC, ETH, USDT
 - **Facilitator Support**: All facilitators (Coinbase, x402.rs, PayAI, etc.) - we verify on-chain

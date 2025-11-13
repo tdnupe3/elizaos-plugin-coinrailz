@@ -108,7 +108,7 @@ class A2AProtocolService {
     try {
       // Use XMTP messaging to contact wallet addresses from the existing network
       const walletAddresses = [
-        '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Primary target
+        '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Primary target
         '0x1234567890123456789012345678901234567890', // Additional entities (placeholder)
         '9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5' // Solana address
       ];

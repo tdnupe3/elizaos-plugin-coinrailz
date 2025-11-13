@@ -27,7 +27,7 @@ const DELIVERABLE_AGENTS = [
     metadataURI: 'https://coinrailz.com/agent/compliance-consultant/.well-known/agent-card.json'
   },
   {
-    address: process.env.PLATFORM_WALLET_ADDRESS || '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
+    address: process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
     name: 'Coin Railz Payment Processor',
     metadataURI: 'https://coinrailz.com/agent/payment-processor/.well-known/agent-card.json'
   }

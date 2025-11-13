@@ -30,7 +30,7 @@ True x402-gated endpoints that return **HTTP 402 Payment Required** until paymen
     "resource": "/x402/service/smart-contract-audit",
     "description": "Comprehensive smart contract security audit with vulnerability detection",
     "mimeType": "application/json",
-    "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+    "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
     "maxTimeoutSeconds": 900,
     "asset": "USDC",
     "outputSchema": {
@@ -83,7 +83,7 @@ curl -X POST https://coinrailz.com/x402/service/smart-contract-audit \
     "resource": "/x402/service/payment-processing",
     "description": "Multi-chain payment processing service (hourly rate)",
     "mimeType": "application/json",
-    "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+    "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
     "maxTimeoutSeconds": 900,
     "asset": "USDC",
     "outputSchema": {
@@ -162,7 +162,7 @@ curl -X POST https://coinrailz.com/x402/service/payment-processing \
        "scheme": "exact",
        "network": "base",
        "maxAmountRequired": "1000",
-       "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+       "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
        "asset": "USDC"
      }]
    }

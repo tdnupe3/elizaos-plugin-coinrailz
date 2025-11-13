@@ -1,14 +1,14 @@
 # Manual x402 Payment Test Guide
 
 ## Quick Summary
-Your platform has **7.54 USDC** at `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321` on Base mainnet.
+Your platform has **7.54 USDC** at `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` on Base mainnet.
 
 To execute a REAL x402 payment:
 
 ## Option 1: Using MetaMask (Easiest)
 
 1. **Import the platform wallet into MetaMask** (if you have the private key)
-2. **Send 0.01 USDC** to `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321` (payment to yourself to test)
+2. **Send 0.01 USDC** to `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` (payment to yourself to test)
 3. **Copy the transaction hash**
 4. **Run this command:**
 
@@ -20,8 +20,8 @@ curl -X POST https://coinrailz.com/x402/gas-price-oracle \
     "txHash":"YOUR_TX_HASH_HERE",
     "amount":10000,
     "asset":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "from":"0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
-    "to":"0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+    "from":"0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+    "to":"0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
   }' | base64)" \
   -d '{}'
 ```

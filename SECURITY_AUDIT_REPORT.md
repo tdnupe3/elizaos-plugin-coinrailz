@@ -26,7 +26,7 @@ PLATFORM_XRP_SEED=sEdTq1EhVYY8wvhqbkntGUqYjWgCRSR
 ### 2. **HARDCODED COMPROMISED WALLET ADDRESSES**
 
 #### **Ethereum/Base Platform Wallet (67 occurrences)**
-**Address:** `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`  
+**Address:** `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`  
 **Status:** ⚠️ COMPROMISED - Must be replaced
 
 **Files requiring updates:**

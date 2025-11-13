@@ -114,7 +114,7 @@ export class OnChainX402Outreach {
    */
   private generateMessageData(): string {
     // Platform wallet from environment
-    const platformWallet = process.env.PLATFORM_WALLET_ADDRESS || '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+    const platformWallet = process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
     
     // Optimized message: fits within 1000 character limit
     const message = 

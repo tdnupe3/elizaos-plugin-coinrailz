@@ -8,7 +8,7 @@ import { globalAIAgents } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 
 // Generate unique wallet addresses for each agent (using EVM address format)
-const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 
 const DELIVERABLE_AGENTS = [
   {

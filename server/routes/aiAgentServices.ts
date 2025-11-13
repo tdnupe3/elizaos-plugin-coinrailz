@@ -55,7 +55,7 @@ router.get('/market-data-api', async (req, res) => {
       success: true,
       data: marketData,
       subscription_required: plan !== 'premium',
-      payment_address: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
+      payment_address: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
       accepted_tokens: ['USDC', 'ETH', 'SOL']
     });
 
@@ -118,7 +118,7 @@ router.get('/arbitrage-opportunities', async (req, res) => {
     res.json({
       success: true,
       data: opportunities,
-      subscription_wallet: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321'
+      subscription_wallet: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'
     });
 
   } catch (error) {
@@ -224,7 +224,7 @@ router.post('/dex-aggregation', async (req, res) => {
     res.json({
       success: true,
       data: aggregation,
-      subscription_wallet: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321'
+      subscription_wallet: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'
     });
 
   } catch (error) {

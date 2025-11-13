@@ -24,7 +24,7 @@ I reverse-engineered the complete implementation and created a 47-page guide:
 ✅ $100-$10K+ revenue within 30 days
 
 Early access: $10 USDC
-Payment: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 Download: https://coinrailz.com/reports/
 
 PROVEN RESULTS:
@@ -38,7 +38,7 @@ First 1000 buyers get:
 
 This is the exact moment to act - before the floodgates open.
 
-Get your copy now: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Get your copy now: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 `;
 
   const targetEmails = [
@@ -88,7 +88,7 @@ I spent 3 weeks reverse-engineering the implementation. Created a complete guide
 • 60+ enterprise partnerships
 • $100-$10K+ revenue in 30 days
 
-Early access: $10 USDC → 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Early access: $10 USDC → 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 AMA about the implementation!`,
 
@@ -104,7 +104,7 @@ I reverse-engineered the complete implementation:
 🔥 Multi-chain revenue optimization
 🔥 $100-$10K+ in 30 days
 
-$10 USDC: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+$10 USDC: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 #AIAgents #CoinbaseAgentKit #GoogleAP2`,
 
@@ -121,7 +121,7 @@ Key insights:
 I've compiled everything into a 47-page implementation guide. Early movers are already seeing $500-$15K revenue in the first month.
 
 For technical teams looking to capitalize on this $289B opportunity:
-Payment: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 Happy to discuss implementation challenges in the comments.`,
 
@@ -135,7 +135,7 @@ I reverse-engineered the complete implementation and created a guide showing how
 ✅ Generate $100-$10K+ revenue in 30 days
 
 Sharing with this community first: $10 USDC
-0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 Who's implementing this week?`
 };

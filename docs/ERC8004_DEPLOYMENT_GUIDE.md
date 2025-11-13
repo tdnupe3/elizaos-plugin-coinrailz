@@ -49,7 +49,7 @@ getServiceHistory(address agent)
 1. **Get Testnet ETH:**
    - Go to https://www.coinbase.com/faucet or https://sepoliafaucet.com
    - Request Base Sepolia testnet ETH (free)
-   - Use wallet address: `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321` (or your preferred wallet)
+   - Use wallet address: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` (or your preferred wallet)
 
 2. **Open Remix:**
    - Visit https://remix.ethereum.org

@@ -546,7 +546,7 @@ export default function RevenueDashboard() {
                 <div className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-blue-500" />
                   <span className="font-medium">Ethereum:</span>
-                  <code className="text-xs bg-white px-2 py-1 rounded">0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321</code>
+                  <code className="text-xs bg-white px-2 py-1 rounded">0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91</code>
                 </div>
                 <div className="flex items-center gap-2">
                   <Wallet className="w-4 h-4 text-purple-500" />

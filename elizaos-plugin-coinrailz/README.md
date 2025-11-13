@@ -6,7 +6,7 @@ ElizaOS plugin for Coin Railz x402 micropayment services on Base mainnet.
 
 This plugin adds **18 production-ready micropayment services** to any ElizaOS agent, enabling autonomous AI agents to pay for and access premium APIs using USDC on Base.
 
-**Platform Wallet:** `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`  
+**Platform Wallet:** `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`  
 **Network:** Base Mainnet  
 **Protocol:** x402 (HTTP 402 Payment Required)  
 **Revenue Share:** 85% to agent builders, 15% platform fee

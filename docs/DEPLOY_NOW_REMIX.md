@@ -121,7 +121,7 @@ This will mint NFTs for:
 
 ✅ Coin Railz Payment Processor
    Token ID: 3
-   Address: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+   Address: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
    Active: Yes
 ```
 

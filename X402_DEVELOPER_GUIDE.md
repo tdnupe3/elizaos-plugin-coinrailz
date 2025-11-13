@@ -4,7 +4,7 @@
 
 Coin Railz provides **18 production-ready x402 micropayment services** ($0.10-$5.00 USDC) on Base mainnet. Our platform supports **both** standard x402 payment protocols **AND** direct on-chain payment verification - giving you maximum flexibility.
 
-**Platform Wallet**: `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321` (Base mainnet)
+**Platform Wallet**: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` (Base mainnet)
 
 ---
 
@@ -46,7 +46,7 @@ const response = await fetch402('https://coinrailz.com/x402/token-price', {
 ### Option 2: Direct On-Chain Payment (For Manual Testing / Advanced Use Cases)
 
 **Step 1: Send USDC on Base mainnet**
-- To: `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`
+- To: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
 - Token: USDC (6 decimals)
 - Amount: Service price (see pricing table below)
 - Network: Base
@@ -127,7 +127,7 @@ curl -X POST "https://coinrailz.com/x402/multi-chain-balance" \
       "asset": "USDC",
       "amount": "500000",
       "minAmount": "500000",
-      "address": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+      "address": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
       "description": "Multi-chain wallet balance checker - supports Ethereum, Base, Polygon, Arbitrum, BNB Chain with real-time token prices"
     }
   ],
@@ -162,7 +162,7 @@ curl -X POST "https://coinrailz.com/x402/multi-chain-balance" \
 ### Example 2: Verified Agent Identity (Direct On-Chain Payment)
 
 **Step 1: Send $5.00 USDC to platform wallet**
-- To: `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`
+- To: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
 - Amount: 5.00 USDC (5000000 in 6-decimal format)
 - Network: Base mainnet
 - Transaction: `0xabc123...def456`
@@ -259,7 +259,7 @@ curl -X POST "https://coinrailz.com/x402/verified-agent-identity" \
 
 - **Network**: Base mainnet (Chain ID: 8453)
 - **Payment Token**: USDC (6 decimals, contract: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
-- **Platform Wallet**: `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`
+- **Platform Wallet**: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
 - **RPC Provider**: Alchemy
 - **Rate Limiting**: 100 requests/hour per wallet
 - **Payment Timeout**: 15 minutes

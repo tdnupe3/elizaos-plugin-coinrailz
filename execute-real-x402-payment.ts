@@ -6,7 +6,7 @@
 import { ethers } from 'ethers';
 import axios from 'axios';
 
-const PLATFORM_WALLET = '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 const USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_URL = 'https://coinrailz.com';
 

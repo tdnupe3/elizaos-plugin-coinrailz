@@ -39,7 +39,7 @@ router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);
 
 // Platform wallet for receiving payments
-const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321") as `0x${string}`;
+const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91") as `0x${string}`;
 
 // Network selection based on environment
 // CRITICAL FIX: Force BASE MAINNET for Bazaar discovery (testnet services don't appear in Bazaar)

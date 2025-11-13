@@ -47,7 +47,7 @@ We've created a 47-page implementation guide specifically for AI agents using US
 
 Given our Circle Alliance partnership and your platform's focus on AI agent monetization, would you be interested in discussing integration opportunities?
 
-Payment wallet: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Payment wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 Best regards,
 [Circle Alliance Member]
@@ -55,7 +55,7 @@ Best regards,
 
 ### Twitter DM (Virtuals Protocol):
 ```
-Hi @virtuals_io - As a Circle Alliance member, I've documented the complete Google AP2 + Coinbase x402 integration for AI agents. This could enable direct USDC revenue for your 21,000+ agents. 47-page guide available: $10 USDC → 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321. Interested in partnership discussion?
+Hi @virtuals_io - As a Circle Alliance member, I've documented the complete Google AP2 + Coinbase x402 integration for AI agents. This could enable direct USDC revenue for your 21,000+ agents. 47-page guide available: $10 USDC → 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91. Interested in partnership discussion?
 ```
 
 ## EXECUTION PLAN:

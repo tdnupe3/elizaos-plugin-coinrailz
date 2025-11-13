@@ -39,8 +39,8 @@ export class MassiveBaseEcosystemThousandsService {
       console.log(`🔑 Using existing platform wallet from startup...`);
       
       // Use the platform wallet address that was successfully initialized at startup
-      // From logs: "✅ Platform wallet updated to signer address: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
-      const platformAddress = '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+      // From logs: "✅ Platform wallet updated to signer address: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
+      const platformAddress = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
       
       // For outreach, we just need to know the address - the actual sending will be handled by CDP service
       console.log(`💰 Using platform wallet address: ${platformAddress}`);

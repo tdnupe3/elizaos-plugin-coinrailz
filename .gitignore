@@ -18,6 +18,19 @@ xmtp-production-*
 .env.local
 *.log
 
+# Environment Files - NEVER COMMIT
+.env
+*.env
+!.env.example
+!.env.production.template
+
+# Security - NEVER COMMIT
+**/*private*key*
+**/*seed*
+**/*mnemonic*
+**/wallet*.json
+cdp_*.json
+
 # CDP Credential Files
 attached_assets/cdp_api_key_*.json
 *.json

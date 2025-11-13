@@ -665,7 +665,7 @@ We are seeking funding support for our comprehensive platform featuring:
 🔹 Real-time P2P Transfers
 
 Donation Addresses:
-ETH/USDC: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+ETH/USDC: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 BTC: bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh
 XRP: rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH
 

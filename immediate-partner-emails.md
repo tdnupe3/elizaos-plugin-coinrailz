@@ -26,7 +26,7 @@ We've documented the complete implementation in a 47-page technical guide specif
 
 As Circle Alliance members, we understand the importance of USDC infrastructure for AI agent payments. Would you be interested in exploring an integration partnership?
 
-Early access guide: $10 USDC → 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Early access guide: $10 USDC → 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 Best regards,
 [Circle Alliance Member]
@@ -55,7 +55,7 @@ We've created comprehensive implementation documentation (47 pages) that could a
 
 Given the time-sensitive nature of this opportunity and our shared Circle ecosystem, could we schedule a brief call this week?
 
-Documentation access: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Documentation access: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 Regards,
 [Circle Alliance Partnership Team]
@@ -75,7 +75,7 @@ Our 47-page implementation guide covers:
 💰 Enterprise partnership access
 📈 Multi-chain revenue optimization
 
-Early access: $10 USDC → 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Early access: $10 USDC → 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 Interested in exploring a partnership? Happy to discuss how this could benefit the Virtuals ecosystem.
 

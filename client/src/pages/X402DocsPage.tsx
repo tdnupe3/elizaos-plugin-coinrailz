@@ -250,7 +250,7 @@ export default function X402DocsPage() {
               <div>
                 <p className="text-sm font-semibold">Platform Wallet</p>
                 <code className="text-xs bg-gray-100 dark:bg-gray-800 p-1 rounded">
-                  0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+                  0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
                 </code>
               </div>
               <div>
@@ -311,21 +311,21 @@ curl https://coinrailz.com/x402/service/gas-price-oracle
       "network": "base",
       "maxAmountRequired": "50000",  // 0.05 USDC
       "asset": "USDC",
-      "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+      "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
     },
     {
       "scheme": "exact",
       "network": "base",
       "maxAmountRequired": "16666666666667",  // ~0.05 USD in ETH
       "asset": "ETH",
-      "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+      "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
     },
     {
       "scheme": "exact",
       "network": "base",
       "maxAmountRequired": "50000",  // 0.05 USDT
       "asset": "USDT",
-      "payTo": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+      "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
     }
   ]
 }

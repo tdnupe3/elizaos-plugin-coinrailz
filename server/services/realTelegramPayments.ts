@@ -3,8 +3,8 @@ import axios from 'axios';
 
 // Revenue wallet addresses for the platform
 const PLATFORM_REVENUE_WALLETS = {
-  USDC_BASE: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Base chain USDC
-  USDC_ETHEREUM: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Ethereum USDC (same wallet)
+  USDC_BASE: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Base chain USDC
+  USDC_ETHEREUM: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Ethereum USDC (same wallet)
   XRP_MAINNET: 'rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH', // XRP Ledger mainnet
   XRP_DESTINATION_TAG: '12345' // Optional destination tag
 };
@@ -153,7 +153,7 @@ Click to pay with PayPal!`;
     
     if (!usdcAddress) {
       // Use the primary platform USDC wallet address (Base chain)
-      usdcAddress = '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321'; // Verified platform wallet from logs
+      usdcAddress = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'; // Verified platform wallet from logs
     }
     
     const telegramMessage = `💎 **USDC PAYMENT OPTION**

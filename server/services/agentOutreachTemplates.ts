@@ -139,7 +139,7 @@ Try: https://coinrailz.com/x402/service/instant-agent-wallet`;
 
 Browse: https://coinrailz.com/x402/service
 
-Search 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321 on x402scan`;
+Search 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 on x402scan`;
   }
 
   generateDiscordOutreach(agent: AgentProfile): string {
@@ -156,7 +156,7 @@ I'm from Coin Railz - we built 18 x402 micropayment services for AI agents on Ba
 
 All services discoverable at: https://coinrailz.com/x402/service
 
-Search our wallet on x402scan: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Search our wallet on x402scan: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 Happy to answer questions or set up a demo!`;
   }
@@ -221,7 +221,7 @@ Worth a look?`,
 
 This is my last follow-up about Coin Railz x402 services.
 
-We're live on x402scan with 18 services. Search: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+We're live on x402scan with 18 services. Search: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 
 If you need infrastructure (wallets, identity, pricing, gas, DeFi tools) - we're here.
 

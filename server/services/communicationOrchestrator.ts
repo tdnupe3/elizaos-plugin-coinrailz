@@ -515,8 +515,8 @@ class TelegramProvider implements DeliveryProvider {
 🎯 FIRST EVER "BEST AI AGENT ON PLANET" COMPETITION!
 
 💰 DONATE TO WIN:
-• ETH: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
-• BASE: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321  
+• ETH: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+• BASE: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91  
 • SOL: 9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5
 • BTC: bc1qpnh5l4w7fswmh9zl6qh4j2cxjp9gmc9pjv5f8s
 

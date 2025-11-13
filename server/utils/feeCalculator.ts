@@ -47,7 +47,7 @@ export class FeeCalculator {
   static readonly MIN_AI_AGENT_FEE = 1.00;
 
   // Platform wallet addresses for fee collection
-  static readonly ETHEREUM_FEE_WALLET = "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321";
+  static readonly ETHEREUM_FEE_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
   static readonly SOLANA_FEE_WALLET = "9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5";
 
   static calculateSendMoneyFee(amount: number, currency: string = "USD"): FeeCalculation {

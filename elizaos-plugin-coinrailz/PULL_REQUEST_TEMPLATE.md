@@ -86,7 +86,7 @@ This plugin follows ElizaOS plugin guidelines:
 - **x402 Protocol:** https://x402.org
 - **Coinbase x402 Docs:** https://docs.cdp.coinbase.com/x402
 - **Coin Railz Platform:** https://coinrailz.com
-- **Platform Wallet:** `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`
+- **Platform Wallet:** `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
 
 ## Maintainer Notes
 

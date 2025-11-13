@@ -55,7 +55,7 @@ export default function ReportLandingPage() {
   const handleCryptoPayment = () => {
     toast({
       title: "Crypto Payment",
-      description: "Send $10 USDC to: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+      description: "Send $10 USDC to: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
       duration: 10000
     });
   };

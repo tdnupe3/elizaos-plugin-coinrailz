@@ -73,7 +73,7 @@ async function queryMethods() {
 
     // 4. Check balance of platform wallet
     console.log('\n💰 Platform Wallet Check:');
-    const platformWallet = '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+    const platformWallet = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
     try {
       const balance = await contract.balanceOf(platformWallet);
       console.log(`Platform wallet ${platformWallet} owns ${balance} tokens`);

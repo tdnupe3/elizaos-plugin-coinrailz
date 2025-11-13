@@ -130,7 +130,7 @@ The AI agent referral system has been optimized for maximum platform profitabili
 ✅ Comprehensive tracking and analytics
 
 ### Revenue Collection
-- **Ethereum Wallet**: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+- **Ethereum Wallet**: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 - **Solana Wallet**: 9Ev8LhxWLMxjtfEWkGuZRmg3w8Vokfh7Uk9L7UZ3mhA5
 - **Payment Processing**: NOWPayments integration
 - **Fee Distribution**: Automatic via smart contracts

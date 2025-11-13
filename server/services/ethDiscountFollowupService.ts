@@ -30,10 +30,10 @@ export class EthDiscountFollowupService {
     this.cdpService = coinbaseCDPService;
     
     // Use direct wallet address for ETH discount campaign (same as working original campaigns)
-    console.log('✅ Using platform wallet address: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321');
+    console.log('✅ Using platform wallet address: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91');
     this.platformWallet = { 
-      address: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321',
-      addressOverride: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321'
+      address: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+      addressOverride: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'
     };
     
     const walletAddress = (this.platformWallet as any).addressOverride || this.platformWallet.address;

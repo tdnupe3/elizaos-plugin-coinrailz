@@ -39,7 +39,7 @@ Project: Coin Railz – x402 Autonomous AI Payments & Crypto Exchange
 Domain: https://coinrailz.com
 Network/Asset: Base mainnet / USDC
 Facilitator: https://facilitator.cdp.coinbase.com
-Wallet (recipient): 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321
+Wallet (recipient): 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
 SDK: @coinbase/x402-express v0.7.1
 Discoverable: true on all 18 routes
 What we see:
@@ -56,7 +56,7 @@ Example 402 body (redacted):
     "network": "base",
     "tokenAddress": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     "amount": "10000",
-    "recipient": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+    "recipient": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
     "facilitatorUrl": "https://facilitator.cdp.coinbase.com",
     "metadata": {
       "name": "Gas Price Oracle",

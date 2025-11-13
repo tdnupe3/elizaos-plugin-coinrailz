@@ -844,7 +844,7 @@ Happy trading! 🚀`;
       
       // PLATFORM REVENUE WALLETS (not user Circle wallets)
       const PLATFORM_REVENUE_WALLETS = {
-        USDC_PLATFORM: '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321', // Platform USDC wallet
+        USDC_PLATFORM: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91', // Platform USDC wallet
         XRP_PLATFORM: 'rN7n7otQDd6FczFgLdSqtcsAUxDkw6fzRH' // Platform XRP wallet
       };
       

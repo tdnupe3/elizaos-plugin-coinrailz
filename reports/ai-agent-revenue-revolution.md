@@ -328,5 +328,5 @@ This report gives you everything needed to:
 *© 2025 Coin Railz. All rights reserved.*
 
 **Purchase Price: $10 USDC | ETH | BTC**  
-**Payment Address: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321**  
+**Payment Address: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91**  
 **Instant Delivery Upon Payment Confirmation**

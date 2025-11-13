@@ -38,7 +38,7 @@
     "note": "Platform-operated service. 100% platform fee covers all costs and service delivery."
   },
   "payment": {
-    "wallet_address": "0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321",
+    "wallet_address": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
     "supported_currencies": ["USDC", "USDT", "ETH", "DAI", "WBTC"],
     "payment_networks": [
       "base",
@@ -131,7 +131,7 @@ All payments to your 3 agents now route 100% to platform:
 | Smart Contract Audit ($1000) | Any chain/token | $0 | $1000 | **$1000** |
 | Compliance Consulting ($100/hr) | Any chain/token | $0 | $100 | **$100** |
 
-**All payments consolidated to**: `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`
+**All payments consolidated to**: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
 
 This address receives payments on ALL 7 chains (same EVM address format).
 
@@ -299,7 +299,7 @@ Monitor which chains AI agents choose:
 - ✅ x402 autonomous payments
 - ✅ Multi-chain same address
 
-**Revenue Model**: 100% of all service fees to `0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321`
+**Revenue Model**: 100% of all service fees to `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
 
 ---
 

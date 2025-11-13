@@ -54,7 +54,7 @@ async function readMessages() {
     }
 
     // Check messages sent by our platform wallet
-    const ourWallet = '0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321';
+    const ourWallet = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
     const ourMessages = await publicClient.readContract({
       address: contractConfig.address as `0x${string}`,
       abi: contractConfig.abi,

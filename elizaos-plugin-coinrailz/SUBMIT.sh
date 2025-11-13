@@ -65,7 +65,7 @@ Features:
 Services include: multi-chain balance, gas prices, token data, wallet analysis, 
 trading signals, contract scanning, and more.
 
-Platform wallet: 0x4dB56acDA064eab99BbC9F2AD1021Cd5d126C321"
+Platform wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
 
 # Step 6: Push to fork
 echo "🚀 Pushing to your fork..."

@@ -1,0 +1,68 @@
+=================================================================
+SUBMIT COIN RAILZ PLUGIN TO ELIZA - 3 CLICKS
+=================================================================
+
+YOUR GITHUB IS BACK! Everything is ready. Just 3 simple steps:
+
+STEP 1: Create GitHub Repo (2 minutes)
+---------------------------------------
+1. Go to: https://github.com/new
+2. Name: coinrailz-eliza-plugin
+3. Description: Coin Railz x402 micropayment infrastructure plugin for ElizaOS
+4. Make it PUBLIC
+5. Click "Create repository"
+
+STEP 2: Upload Files (2 minutes)
+---------------------------------
+1. Download coinrailz-eliza-plugin.zip from Replit workspace
+2. Extract it on your computer
+3. On GitHub, click "uploading an existing file"
+4. Drag ALL files from extracted folder
+5. Click "Commit changes"
+
+STEP 3: Submit to ElizaOS (1 minute)
+-------------------------------------
+1. Go to: https://github.com/ai16z/eliza/issues/new
+2. Title: Plugin Submission: Coin Railz x402 Micropayment Services
+3. Copy this into the body:
+
+---START COPYING HERE---
+
+## Plugin Submission Request
+
+**Repository:** https://github.com/tdnupe3/coinrailz-eliza-plugin
+**Type:** Production micropayment infrastructure
+**Status:** Production-ready with tests
+
+### Overview
+Coin Railz provides 18 x402 protocol micropayment services on Base mainnet, enabling ElizaOS agents to autonomously purchase infrastructure services:
+
+**Services ($0.10 - $5.00 USDC):**
+- Multi-chain balance, gas oracle, token prices ($0.10-$0.50)
+- Contract scanning, wallet risk, trade signals ($0.75-$2.00)
+- Instant agent wallets, verified identity ($1.00-$5.00)
+- Plus 12 more DeFi/trading services
+
+**Platform:** https://coinrailz.com
+**Payment:** USDC on Base via x402 protocol
+**Revenue Share:** 85% to developers, 15% platform
+
+**Installation:**
+```bash
+npm install github:tdnupe3/coinrailz-eliza-plugin
+```
+
+---STOP COPYING HERE---
+
+4. Click "Submit new issue"
+
+DONE! ✅
+
+The ElizaOS team reviews and adds plugins to the registry.
+
+=================================================================
+New Secure Wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+All 67 files updated ✅
+Plugin package ready ✅
+Platform running ✅
+=================================================================

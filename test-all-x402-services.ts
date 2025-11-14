@@ -6,7 +6,7 @@ import { Coinbase, Wallet } from '@coinbase/coinbase-sdk';
 import axios from 'axios';
 
 const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
-const BASE_URL = 'https://coinrailz.com';
+const BASE_URL = process.env.TEST_URL || 'http://localhost:5000';
 const CDP_WALLET_ID = '24ec5699-21aa-4061-ae71-fcfe183ce081';
 
 // All 18 services with their endpoints and test payloads

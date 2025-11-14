@@ -66,20 +66,35 @@ export function hybridPaymentMiddleware(req: Request, res: Response, next: NextF
     return next();
   }
 
-  // Try to detect if this is a raw transaction hash
-  // Raw tx hash: 66 characters, starts with "0x"
-  // EIP-712 signature: base64-encoded JSON, much longer
-  const isRawTxHash = /^0x[a-fA-F0-9]{64}$/.test(xPayment.trim());
+  // Try to parse as Base64-encoded JSON first
+  let txHash = xPayment.trim();
+  let paymentAmount: number | undefined;
+  
+  try {
+    // Attempt to decode as Base64 JSON
+    const decoded = Buffer.from(xPayment, 'base64').toString('utf-8');
+    const parsed = JSON.parse(decoded);
+    
+    if (parsed.txHash) {
+      console.log("🔓 Decoded Base64 JSON payment proof");
+      txHash = parsed.txHash;
+      paymentAmount = parsed.amount;
+    }
+  } catch {
+    // Not Base64 JSON - treat as raw transaction hash
+  }
+  
+  // Check if we have a valid transaction hash
+  const isRawTxHash = /^0x[a-fA-F0-9]{64}$/.test(txHash);
   
   if (!isRawTxHash) {
-    // This looks like an EIP-712 signature or other format
-    // Pass it to x402-express middleware
+    // Not a valid tx hash - pass to x402-express for EIP-712 verification
     console.log("🔄 X-PAYMENT detected - passing to x402-express for EIP-712 verification");
     return next();
   }
 
   // This is a raw transaction hash - verify it on-chain
-  console.log(`🔍 Raw transaction hash detected: ${xPayment}`);
+  console.log(`🔍 Raw transaction hash detected: ${txHash}`);
   
   // Extract service name from URL path
   const serviceName = req.path.split("/").pop() || "unknown";
@@ -101,10 +116,12 @@ export function hybridPaymentMiddleware(req: Request, res: Response, next: NextF
   }
 
   // Verify transaction on-chain
-  verifyTransactionPayment(xPayment, serviceName, requiredAmount)
+  verifyTransactionPayment(txHash, serviceName, requiredAmount)
     .then((verified) => {
       if (verified) {
         console.log(`✅ Payment verified on-chain for ${serviceName}`);
+        // Set flag to bypass x402-express verification
+        (req as any).paymentAlreadyVerified = true;
         // Payment verified - continue to service handler
         return next();
       } else {

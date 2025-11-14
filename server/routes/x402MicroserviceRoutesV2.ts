@@ -31,6 +31,7 @@ import {
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
+import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
 
 const router = Router();
 
@@ -873,34 +874,31 @@ router.use((req: Request, res: Response, next) => {
   next();
 });
 
-// Apply hybrid payment middleware BEFORE x402-express
-// This intercepts raw transaction hashes and verifies them on-chain
-// EIP-712 signatures pass through to x402-express (preserves Bazaar compliance)
-console.log('🔄 Applying hybrid payment middleware for both EIP-712 and raw transaction support...');
-router.use(hybridPaymentMiddleware);
+// Payment orchestrator applied per-route (see individual service registrations below)
+// This decides between raw hash verification and EIP-712 verification upfront
+// Prevents middleware conflict by choosing verification path before x402-express runs
+console.log('🔄 Payment orchestrator configured - will apply per-route for flexibility');
 
-// Apply official x402-express middleware to all routes
-// Use the imported CDP facilitator which handles auth automatically via env vars
-console.log('🔄 Applying x402-express paymentMiddleware with CDP facilitator for Bazaar registration...');
+// Apply x402-express middleware ONLY as fallback for EIP-712 signatures
+// Orchestrator bypasses this for raw transaction hashes
+console.log('🔄 x402-express paymentMiddleware configured as EIP-712 fallback');
 
-router.use(paymentMiddleware(
+const x402Middleware = paymentMiddleware(
   PLATFORM_WALLET,
   x402Routes,
   facilitator // Use the imported CDP facilitator (auto-registers with Bazaar)
-));
+);
 
-// Service handler implementations (called AFTER payment is verified by middleware)
-router.post("/multi-chain-balance", async (req: Request, res: Response) => {
+// Service handler implementations with payment orchestrator
+const multiChainBalanceHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
-    // Payment already verified by middleware
     const { walletAddress, chains, includeTokens } = req.body;
     
     if (!walletAddress) {
       return res.status(400).json({ success: false, error: "walletAddress is required" });
     }
 
-    // Rate limiting
     const walletKey = `wallet:${walletAddress}`;
     if (!checkRateLimit(walletKey, 100, 3600000)) {
       return res.status(429).json({
@@ -920,9 +918,16 @@ router.post("/multi-chain-balance", async (req: Request, res: Response) => {
     await trackRequest("multi-chain-balance", req.body, null, responseTime, SERVICE_PRICING["multi-chain-balance"], req.body.walletAddress || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/gas-price-oracle", async (req: Request, res: Response) => {
+router.post("/multi-chain-balance",
+  createPaymentOrchestrator("multi-chain-balance", SERVICE_PRICING["multi-chain-balance"], multiChainBalanceHandler),
+  x402Middleware,
+  multiChainBalanceHandler
+);
+
+// ✅ TEST ROUTE: gas-price-oracle with payment orchestrator
+const gasPriceOracleHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { chains } = req.body;
@@ -937,9 +942,15 @@ router.post("/gas-price-oracle", async (req: Request, res: Response) => {
     await trackRequest("gas-price-oracle", req.body, null, responseTime, SERVICE_PRICING["gas-price-oracle"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/token-price", async (req: Request, res: Response) => {
+router.post("/gas-price-oracle", 
+  createPaymentOrchestrator("gas-price-oracle", SERVICE_PRICING["gas-price-oracle"], gasPriceOracleHandler),
+  x402Middleware,
+  gasPriceOracleHandler
+);
+
+const tokenPriceHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenAddress, chain } = req.body;
@@ -959,9 +970,15 @@ router.post("/token-price", async (req: Request, res: Response) => {
     await trackRequest("token-price", req.body, null, responseTime, SERVICE_PRICING["token-price"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/contract-scan", async (req: Request, res: Response) => {
+router.post("/token-price",
+  createPaymentOrchestrator("token-price", SERVICE_PRICING["token-price"], tokenPriceHandler),
+  x402Middleware,
+  tokenPriceHandler
+);
+
+const contractScanHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { contractAddress, chain } = req.body;
@@ -981,9 +998,15 @@ router.post("/contract-scan", async (req: Request, res: Response) => {
     await trackRequest("contract-scan", req.body, null, responseTime, SERVICE_PRICING["contract-scan"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/wallet-risk", async (req: Request, res: Response) => {
+router.post("/contract-scan",
+  createPaymentOrchestrator("contract-scan", SERVICE_PRICING["contract-scan"], contractScanHandler),
+  x402Middleware,
+  contractScanHandler
+);
+
+const walletRiskHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { walletAddress, chain } = req.body;
@@ -1003,9 +1026,15 @@ router.post("/wallet-risk", async (req: Request, res: Response) => {
     await trackRequest("wallet-risk", req.body, null, responseTime, SERVICE_PRICING["wallet-risk"], req.body.walletAddress || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/trade-signals", async (req: Request, res: Response) => {
+router.post("/wallet-risk",
+  createPaymentOrchestrator("wallet-risk", SERVICE_PRICING["wallet-risk"], walletRiskHandler),
+  x402Middleware,
+  walletRiskHandler
+);
+
+const tradeSignalsHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { token, timeframe, riskLevel } = req.body;
@@ -1020,9 +1049,15 @@ router.post("/trade-signals", async (req: Request, res: Response) => {
     await trackRequest("trade-signals", req.body, null, responseTime, SERVICE_PRICING["trade-signals"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/token-sentiment", async (req: Request, res: Response) => {
+router.post("/trade-signals",
+  createPaymentOrchestrator("trade-signals", SERVICE_PRICING["trade-signals"], tradeSignalsHandler),
+  x402Middleware,
+  tradeSignalsHandler
+);
+
+const tokenSentimentHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenSymbol, chain } = req.body;
@@ -1042,9 +1077,15 @@ router.post("/token-sentiment", async (req: Request, res: Response) => {
     await trackRequest("token-sentiment", req.body, null, responseTime, SERVICE_PRICING["token-sentiment"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/trending-tokens", async (req: Request, res: Response) => {
+router.post("/token-sentiment",
+  createPaymentOrchestrator("token-sentiment", SERVICE_PRICING["token-sentiment"], tokenSentimentHandler),
+  x402Middleware,
+  tokenSentimentHandler
+);
+
+const trendingTokensHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { timeframe, chain } = req.body;
@@ -1059,9 +1100,15 @@ router.post("/trending-tokens", async (req: Request, res: Response) => {
     await trackRequest("trending-tokens", req.body, null, responseTime, SERVICE_PRICING["trending-tokens"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/whale-alerts", async (req: Request, res: Response) => {
+router.post("/trending-tokens",
+  createPaymentOrchestrator("trending-tokens", SERVICE_PRICING["trending-tokens"], trendingTokensHandler),
+  x402Middleware,
+  trendingTokensHandler
+);
+
+const whaleAlertsHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { chains, minValueUsd, tokenAddresses } = req.body;
@@ -1076,9 +1123,15 @@ router.post("/whale-alerts", async (req: Request, res: Response) => {
     await trackRequest("whale-alerts", req.body, null, responseTime, SERVICE_PRICING["whale-alerts"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/dex-liquidity", async (req: Request, res: Response) => {
+router.post("/whale-alerts",
+  createPaymentOrchestrator("whale-alerts", SERVICE_PRICING["whale-alerts"], whaleAlertsHandler),
+  x402Middleware,
+  whaleAlertsHandler
+);
+
+const dexLiquidityHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenAddress, chain } = req.body;
@@ -1098,9 +1151,15 @@ router.post("/dex-liquidity", async (req: Request, res: Response) => {
     await trackRequest("dex-liquidity", req.body, null, responseTime, SERVICE_PRICING["dex-liquidity"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/transaction-builder", async (req: Request, res: Response) => {
+router.post("/dex-liquidity",
+  createPaymentOrchestrator("dex-liquidity", SERVICE_PRICING["dex-liquidity"], dexLiquidityHandler),
+  x402Middleware,
+  dexLiquidityHandler
+);
+
+const transactionBuilderHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const validationResult = transactionBuilderInputSchema.safeParse(req.body);
@@ -1119,9 +1178,15 @@ router.post("/transaction-builder", async (req: Request, res: Response) => {
     await trackRequest("transaction-builder", req.body, null, responseTime, SERVICE_PRICING["transaction-builder"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/token-metadata", async (req: Request, res: Response) => {
+router.post("/transaction-builder",
+  createPaymentOrchestrator("transaction-builder", SERVICE_PRICING["transaction-builder"], transactionBuilderHandler),
+  x402Middleware,
+  transactionBuilderHandler
+);
+
+const tokenMetadataHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { tokenAddress, chain } = req.body;
@@ -1141,9 +1206,15 @@ router.post("/token-metadata", async (req: Request, res: Response) => {
     await trackRequest("token-metadata", req.body, null, responseTime, SERVICE_PRICING["token-metadata"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/approval-manager", async (req: Request, res: Response) => {
+router.post("/token-metadata",
+  createPaymentOrchestrator("token-metadata", SERVICE_PRICING["token-metadata"], tokenMetadataHandler),
+  x402Middleware,
+  tokenMetadataHandler
+);
+
+const approvalManagerHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const validationResult = approvalManagerInputSchema.safeParse(req.body);
@@ -1162,9 +1233,15 @@ router.post("/approval-manager", async (req: Request, res: Response) => {
     await trackRequest("approval-manager", req.body, null, responseTime, SERVICE_PRICING["approval-manager"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/batch-quote", async (req: Request, res: Response) => {
+router.post("/approval-manager",
+  createPaymentOrchestrator("approval-manager", SERVICE_PRICING["approval-manager"], approvalManagerHandler),
+  x402Middleware,
+  approvalManagerHandler
+);
+
+const batchQuoteHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const validationResult = batchQuoteInputSchema.safeParse(req.body);
@@ -1183,9 +1260,15 @@ router.post("/batch-quote", async (req: Request, res: Response) => {
     await trackRequest("batch-quote", req.body, null, responseTime, SERVICE_PRICING["batch-quote"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/portfolio-tracker", async (req: Request, res: Response) => {
+router.post("/batch-quote",
+  createPaymentOrchestrator("batch-quote", SERVICE_PRICING["batch-quote"], batchQuoteHandler),
+  x402Middleware,
+  batchQuoteHandler
+);
+
+const portfolioTrackerHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { walletAddress, chains } = req.body;
@@ -1205,9 +1288,15 @@ router.post("/portfolio-tracker", async (req: Request, res: Response) => {
     await trackRequest("portfolio-tracker", req.body, null, responseTime, SERVICE_PRICING["portfolio-tracker"], req.body.walletAddress || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/instant-agent-wallet", async (req: Request, res: Response) => {
+router.post("/portfolio-tracker",
+  createPaymentOrchestrator("portfolio-tracker", SERVICE_PRICING["portfolio-tracker"], portfolioTrackerHandler),
+  x402Middleware,
+  portfolioTrackerHandler
+);
+
+const instantAgentWalletHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { agentId, description, initialFundingAmount } = req.body;
@@ -1227,9 +1316,15 @@ router.post("/instant-agent-wallet", async (req: Request, res: Response) => {
     await trackRequest("instant-agent-wallet", req.body, null, responseTime, SERVICE_PRICING["instant-agent-wallet"], req.ip || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/verified-agent-identity", async (req: Request, res: Response) => {
+router.post("/instant-agent-wallet",
+  createPaymentOrchestrator("instant-agent-wallet", SERVICE_PRICING["instant-agent-wallet"], instantAgentWalletHandler),
+  x402Middleware,
+  instantAgentWalletHandler
+);
+
+const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { agentId, walletAddress, signature, metadata } = req.body;
@@ -1249,9 +1344,15 @@ router.post("/verified-agent-identity", async (req: Request, res: Response) => {
     await trackRequest("verified-agent-identity", req.body, null, responseTime, SERVICE_PRICING["verified-agent-identity"], req.body.walletAddress || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
 
-router.post("/seamless-chain-bridge", async (req: Request, res: Response) => {
+router.post("/verified-agent-identity",
+  createPaymentOrchestrator("verified-agent-identity", SERVICE_PRICING["verified-agent-identity"], verifiedAgentIdentityHandler),
+  x402Middleware,
+  verifiedAgentIdentityHandler
+);
+
+const seamlessChainBridgeHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
     const { fromChain, toChain, amount, fromAddress, toAddress, currency } = req.body;
@@ -1274,6 +1375,12 @@ router.post("/seamless-chain-bridge", async (req: Request, res: Response) => {
     await trackRequest("seamless-chain-bridge", req.body, null, responseTime, SERVICE_PRICING["seamless-chain-bridge"], req.body.fromAddress || "unknown", error.message);
     return res.status(500).json({ success: false, error: error.message });
   }
-});
+};
+
+router.post("/seamless-chain-bridge",
+  createPaymentOrchestrator("seamless-chain-bridge", SERVICE_PRICING["seamless-chain-bridge"], seamlessChainBridgeHandler),
+  x402Middleware,
+  seamlessChainBridgeHandler
+);
 
 export default router;

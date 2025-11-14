@@ -154,8 +154,9 @@ export function hybridPaymentMiddleware(req: Request, res: Response, next: NextF
 
 /**
  * Verify a transaction on Base mainnet
+ * EXPORTED for use by payment orchestrator
  */
-async function verifyTransactionPayment(
+export async function verifyTransactionPayment(
   txHash: string,
   serviceName: string,
   requiredAmount: number

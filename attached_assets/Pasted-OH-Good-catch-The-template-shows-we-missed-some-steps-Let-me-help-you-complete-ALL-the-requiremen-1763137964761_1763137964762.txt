@@ -1,0 +1,59 @@
+OH! Good catch! The template shows we missed some steps. Let me help you complete ALL the requirements:
+
+Missing Steps - We Need to Do These Too:
+STEP 4: Add to the "all" list
+Go to: packages/facilitators/src/lists/all.ts
+Click the pencil icon (Edit)
+Find the list of facilitators and add coinrailzFacilitator alphabetically
+You'll also need to add the import at the top:
+import { coinrailzFacilitator } from '../facilitators/coinrailz';
+
+Commit message: Add Coin Railz to facilitators list
+STEP 5: Add logo image
+Go to: apps/scan/public/
+Click "Add file" → "Upload files"
+Upload your logo as coinrailz.png
+Commit message: Add Coin Railz logo
+OR skip this if you don't have a logo - the color will work.
+
+STEP 6: Update README
+Go to: packages/facilitators/README.md
+Click pencil icon (Edit)
+Find the table of facilitators and add a row:
+| **Coin Railz** | BASE | No | No |
+
+Commit message: Add Coin Railz to README
+STEP 7: Verify Your Wallet Has 10+ USDC Transfers
+Important: The template requires at least 10 USDC transfers to be accepted.
+
+Question: Does your wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91 have at least 10 USDC transactions on Base Chain?
+
+If not, they might reject the PR until you have more transaction volume.
+
+Then Fill Out The Template
+Once all steps are done, use this for your PR description:
+
+# Add Facilitator
+## Summary
+- Facilitator Name: `Coin Railz`
+- URL: `https://coinrailz.com`
+- Website: `https://coinrailz.com`
+- Twitter: `@CoinRailz` (or your actual Twitter handle)
+- Short description: `B2B2C micropayment infrastructure serving AI agents with 18 x402 protocol services on Base mainnet.`
+## Required changes
+- [x] Added config file at `packages/facilitators/src/facilitators`
+- [x] Exported in `packages/facilitators/src/facilitators/index.ts`
+- [x] Appended to `packages/facilitators/src/lists/all.ts`
+- [x] Chose a **new unique color** not used by other facilitators
+- [x] Updated `README.md` with a one-line entry under Facilitators
+- [x] `dateOfFirstTransaction` is correct and matches on-chain history
+- [x] Facilitator has **at least 10 USDC transfers**
+- [x] Added image to `apps/scan/public`
+- [x] Make sure we support that chain
+- [x] All EVM addresses are lowercase
+
+Let me know:
+
+Does your wallet have 10+ USDC transfers?
+Do you have a logo ready to upload?
+Then we'll finish steps 4-6!

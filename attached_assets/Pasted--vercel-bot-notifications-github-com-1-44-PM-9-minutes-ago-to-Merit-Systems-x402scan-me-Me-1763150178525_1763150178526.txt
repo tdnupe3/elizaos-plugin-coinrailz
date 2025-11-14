@@ -1,0 +1,162 @@
+
+vercel[bot] <notifications@github.com>
+1:44 PM (9 minutes ago)
+to Merit-Systems/x402scan, me, Mention
+
+@vercel[bot] commented on this pull request.
+
+In packages/facilitators/src/lists/all.ts:
+
+> @@ -1,3 +1,4 @@
++import { coinrailz } from '../facilitators/coinrailz';
+The coinrailz config object is now properly exported from coinrailz.ts and imported in all.ts, resolving the module resolution error that was caused by the missing export.
+
+—
+Reply to this email directly, view it on GitHub, or unsubscribe.
+You are receiving this because you were mentioned.
+
+
+vercel[bot] <notifications@github.com>
+1:45 PM (9 minutes ago)
+to Merit-Systems/x402scan, me, Mention
+
+@vercel[bot] commented on this pull request.
+
+In packages/facilitators/src/facilitators/coinrailz.ts:
+
+> +export const coinrailzFacilitator = {
++  id: 'coinrailz',
++  metadata: {
++    name: 'Coin Railz',
++    image: '/coinrailz.png',
++    color: '#10B981',
++  },
++  addresses: {
++    [Network.BASE]: [
++      {
++        address: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
++        tokens: [USDC_BASE_TOKEN],
++        dateOfFirstTransaction: new Date('2025-11-01'),
++      },
++    ],
++  },
++} as const satisfies Facilitator<void>;
+The coinrailzFacilitator object now includes the required config property set to the coinrailz FacilitatorConfig export, and the metadata includes the required docsUrl property, making the object compliant with the Facilitator interface.
+
+—
+Reply to this email directly, view it on GitHub, or unsubscribe.
+You are receiving this because you were mentioned.
+
+
+vercel[bot] <notifications@github.com>
+1:53 PM (1 minute ago)
+to Merit-Systems/x402scan, me, Mention
+
+@vercel[bot] commented on this pull request.
+
+Additional Suggestion:
+
+The coinrailz import is missing from the example code showing how to import simple facilitators, making it incomplete for users referencing this documentation.
+
+View Details
+📝 Patch Details
+diff --git a/packages/facilitators/README.md b/packages/facilitators/README.md
+index 8793ce55..56a5f355 100644
+--- a/packages/facilitators/README.md
++++ b/packages/facilitators/README.md
+@@ -136,6 +136,7 @@ import {
+   heurist,
+   treasure,
+   anyspend,
++  coinrailz,
+ } from 'facilitators';
+ 
+ // Facilitators requiring setup
+Analysis
+Missing coinrailz import in simple facilitators documentation example
+What fails: The "Import Individual Facilitators" example in packages/facilitators/README.md (lines 122-139) omits coinrailz from the import list, even though it's documented as a simple facilitator requiring no setup in the facilitators table and is available for export from the package.
+
+How to reproduce:
+
+Open packages/facilitators/README.md
+Review the "Import Individual Facilitators" section starting at line 122
+Note that the table at lines ~105-120 lists "Coin Railz" as a facilitator with no setup required
+Observe that coinrailz is not included in the import statement for "Simple facilitators (no setup)"
+Verify that coinrailz is actually exported from packages/facilitators/src/facilitators/index.ts
+Result: Users reading the documentation won't see that coinrailz is available as a simple import, creating incomplete documentation
+
+Expected: The import list should include all simple facilitators (those with no setup required) including coinrailz, consistent with the facilitators table and the available exports from the package
+
+Fix applied: Added coinrailz to the import list in the "Simple facilitators (no setup)" section
+
+In packages/facilitators/src/facilitators/coinrailz.ts:
+
+> @@ -0,0 +1,27 @@
++import { Network } from '../types';
++import { USDC_BASE_TOKEN } from '../constants';
++import type { Facilitator, FacilitatorConfig } from '../types';
++
++export const coinrailz: FacilitatorConfig = {
++  url: 'https://coinrailz.com',
++};
++
++export const coinrailzFacilitator = {
++  id: 'coinrailz',
++  metadata: {
++    name: 'Coin Railz',
++    image: '/coinrailz.png',
+The image path /coinrailz.png doesn't match the actual file that was added (Coin Railz Logo No BG.png), so the facilitator logo will fail to load.
+
+View Details
+📝 Patch Details
+diff --git a/apps/scan/public/Coin Railz Logo No BG.png b/apps/scan/public/coinrailz.png
+similarity index 100%
+rename from apps/scan/public/Coin Railz Logo No BG.png
+rename to apps/scan/public/coinrailz.png
+Analysis
+Broken image reference in coinrailz facilitator
+What fails: The coinrailz facilitator references /coinrailz.png at line 13 of packages/facilitators/src/facilitators/coinrailz.ts, but the uploaded image file was named Coin Railz Logo No BG.png, resulting in a broken image link (404 error when the image is requested).
+
+How to reproduce:
+
+Navigate to the coinrailz facilitator in the scan app
+Attempt to load the facilitator logo
+Observe the broken image/404 error in network requests for /coinrailz.png
+Result: Image fails to load; browser returns 404 Not Found for /coinrailz.png
+
+Expected: Image should load successfully. All other facilitators follow the pattern of storing images as /<facilitator-id>.png in apps/scan/public/ (e.g., treasure.png, questflow.png, heurist.png, codenut.png, 402104.png).
+
+Fix: Renamed apps/scan/public/Coin Railz Logo No BG.png to apps/scan/public/coinrailz.png to match the code reference and established naming pattern.
+
+In packages/facilitators/README.md:
+
+> @@ -113,6 +113,7 @@ This package includes pre-configured integrations for the following X402 facilit
+ | **Heurist**          | BASE          | No        | No                           |
+ | **Treasure**         | BASE          | No        | No                           |
+ | **AnySpend**         | BASE, SOLANA  | ✅ Yes    | No                           |
++| **Coin Railz**       |BASE           | No        | No                           |   
+⬇️ Suggested change
+-| **Coin Railz**       |BASE           | No        | No                           |   
++| **Coin Railz**       | BASE          | No        | No                           |
+The README table row for Coin Railz has inconsistent formatting compared to other rows - missing space after the pipe before "BASE" and contains trailing whitespace.
+
+View Details
+Analysis
+Inconsistent markdown table formatting in Coin Railz row
+What fails: Line 116 in packages/facilitators/README.md has formatting inconsistencies compared to all other table rows in the facilitators list.
+
+How to reproduce: View the raw markdown of the facilitators table in packages/facilitators/README.md around line 116. The Coin Railz row does not follow the standard formatting pattern.
+
+Result: The Coin Railz row has:
+
+Missing space after pipe before "BASE" (|BASE instead of | BASE)
+Trailing whitespace at the end of the line
+Expected: All table rows should follow consistent formatting with:
+
+Space after each pipe separator (| VALUE)
+No trailing whitespace
+Fix applied: Corrected line 116 to match the formatting of all other rows:
+
+Changed |BASE to | BASE (added required space)
+Removed trailing whitespace
+—

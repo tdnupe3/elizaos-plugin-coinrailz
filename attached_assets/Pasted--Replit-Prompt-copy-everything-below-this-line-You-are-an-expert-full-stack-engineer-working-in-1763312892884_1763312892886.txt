@@ -1,0 +1,418 @@
+🔧 Replit Prompt (copy everything below this line)
+
+You are an expert full-stack engineer working inside an existing Replit project for Coin Railz at https://coinrailz.com. The project is already live and functional, and you MUST:
+
+Not break any existing routes or features.
+
+Follow the current tech stack, folder structure, and coding style already used in the project.
+
+Integrate new functionality alongside the existing code, not replace it.
+
+Your task is to implement a new “AI Employees for Business” experience inside Coin Railz, with a ChatGPT-style conversational UI hosted on the same app.
+
+HIGH-LEVEL GOAL
+
+Add a new section to Coin Railz called:
+
+“AI Employees for Business”
+
+This will allow business users to talk to “AI employee” agents in a chat interface, similar to ChatGPT.
+
+For now, we will:
+
+Build the UI + UX for:
+
+A “Business AI Employees” landing section.
+
+A “workspace” page with a full chat interface.
+
+Implement the backend API and basic conversation state storage.
+
+Integrate with OpenAI (or the LLM the project is already using) using environment variables for API keys.
+
+Make it easy to later:
+
+Add different industry-specific AI employees.
+
+Add billing/x402 later (we’ll stub that part with clean abstractions / TODO comments).
+
+Do NOT integrate payments yet. Focus on UI + chat functioning end-to-end with a dummy or real LLM call.
+
+EXISTING PROJECT CONSTRAINTS
+
+Before coding, you MUST:
+
+Inspect the existing project:
+
+Identify the server framework (likely Node/Express, but confirm).
+
+Identify how routes are defined (Express router, Next.js pages, etc.).
+
+Identify the frontend stack (plain HTML/CSS/JS, React, etc.).
+
+Identify how environment variables are handled (e.g., .env + process.env).
+
+Identify any existing API utilities (e.g., there might already be an OpenAI helper).
+
+Conform to what’s already there:
+
+If the app uses server-rendered templates, use the same engine.
+
+If the app uses React or another SPA framework, add components accordingly.
+
+If routing is done with a specific router, attach to it (don’t introduce a new framework).
+
+Do NOT refactor the whole app. Work incrementally.
+
+FEATURE 1 — NAVIGATION ENTRY POINT
+
+Add a visible entry point for the new experience.
+
+Requirements:
+
+Top-level navigation / menu
+
+Add a new nav item labeled:
+“AI Employees”
+
+This should link to a new route:
+GET /employees
+or, if using a SPA: a route/view for /employees.
+
+“AI Employees for Business” landing page
+
+URL: /employees
+
+This page should:
+
+Reuse the existing site header/footer.
+
+Include a hero section:
+
+Title: “AI Employees for Your Business”
+
+Subtitle: short line explaining:
+“Industry-specific AI assistants that help with operations, emails, summaries, and more.”
+
+Include a grid of cards for 3 example AI employees (we’ll add more later):
+
+AI Case Management Assistant
+
+AI Real Estate Closing Assistant
+
+AI Crypto Ops Assistant
+
+Each card should have:
+
+Short title
+
+1–2 sentence description
+
+A CTA button: “Open Workspace”
+
+When clicked, the button should navigate to a workspace route with a slug, e.g.:
+
+/workspace/case-management
+
+/workspace/real-estate-closing
+
+/workspace/crypto-ops
+
+Keep the visual styling consistent with the rest of Coin Railz (same fonts, colors, button styles). If you see a shared button or card component in the project, use it.
+
+FEATURE 2 — WORKSPACE CHAT UI (CORE)
+
+Create a ChatGPT-style conversational UI for each AI employee.
+
+Route
+
+New route pattern:
+GET /workspace/:agentSlug
+
+Where agentSlug could be, for example:
+
+case-management
+
+real-estate-closing
+
+crypto-ops
+
+If the app is SPA, use a front-end route (e.g. React Router) that reads agentSlug from the URL and loads the appropriate view.
+
+Layout & Components
+
+On the workspace page, display:
+
+Header bar at the top:
+
+Show:
+
+Agent name (based on agentSlug).
+
+Short subtitle like: “Your AI employee for [Industry] operations.”
+
+Optional: small badge that shows current “mode” or “beta”.
+
+Main chat area:
+
+Use a vertically scrollable container.
+
+Messages should appear in chronological order.
+
+Style:
+
+User messages right-aligned (e.g., blue bubble).
+
+Agent messages left-aligned (e.g., gray/white bubble).
+
+Each message should display:
+
+Role: (implicitly via alignment/color).
+
+Text content.
+
+Optional timestamp (even simple local time is fine).
+
+Input section at bottom:
+
+A multi-line <textarea> or text input for the user message.
+
+A Send button.
+
+Keyboard shortcut: pressing Enter sends the message; Shift+Enter adds a new line if feasible.
+
+Show a small “typing” indicator or “Thinking…” state while calling the backend.
+
+Responsive design:
+
+Must work on desktop and mobile.
+
+On mobile, make sure the input is always visible and content area scrolls properly.
+
+FEATURE 3 — BACKEND CHAT API
+
+Implement a single backend endpoint that handles chat between the UI and the LLM.
+
+API Endpoint
+
+Create:
+
+POST /api/workspaces/:agentSlug/messages
+
+Expected JSON body:
+
+{
+  "workspaceId": "string-uuid-or-random",
+  "messages": [
+    { "role": "system" | "user" | "assistant", "content": "..." }
+  ],
+  "newMessage": {
+    "role": "user",
+    "content": "User's latest input"
+  }
+}
+
+
+BUT in the frontend, you can simplify what you send. The critical behavior is:
+
+You receive:
+
+agentSlug
+
+workspaceId (string; can be generated client-side and reused)
+
+The latest user message.
+
+In the backend, you:
+
+Load or reconstruct the conversation history for that workspaceId and agentSlug.
+
+Append the new user message.
+
+Add an appropriate system prompt based on agentSlug (see next section).
+
+Call the LLM API.
+
+Save the assistant’s reply to the conversation history.
+
+Return the updated messages (or at least the new assistant message) to the client.
+
+System prompts per agent
+
+Define per-agent system prompts based on agentSlug. For example:
+
+case-management:
+
+System prompt:
+
+“You are an AI Case Management Assistant for a company that provides monitoring and offender services. You help staff draft professional emails, summarize case notes, create follow-up checklists, and keep communication clear and compliant. Always respond in a concise, professional tone, and ask clarifying questions if information is missing.”
+
+real-estate-closing:
+
+System prompt:
+
+“You are an AI Real Estate Closing Assistant. You help coordinate closing tasks, summarize contracts and title documents, draft emails to clients, agents, and title companies, and create closing checklists. Be clear, accurate, and professional, and avoid legal advice—focus on organization and clarity.”
+
+crypto-ops:
+
+System prompt:
+
+“You are an AI Crypto Operations Assistant. You help Web3 teams with daily ops: drafting announcements, summarizing technical docs, creating task checklists, and explaining complex topics in simple language. Be precise but accessible. Do not give financial advice; focus on operations, communication, and organization.”
+
+You can store these in a simple map/object keyed by agentSlug.
+
+LLM Integration
+
+Use the same LLM provider the project already uses. If none is present, default to OpenAI’s Chat Completion or Chat Completions API.
+
+Requirements:
+
+Read API key from environment variable, e.g. process.env.OPENAI_API_KEY (or whatever convention is already used).
+
+Do NOT hardcode the key in the repo.
+
+Model: a reasonable default like gpt-4o-mini or gpt-3.5-turbo (or current project default).
+
+Implement basic error handling:
+
+On error, return a message to the frontend like:
+
+“I ran into an error while generating a response. Please try again.”
+
+Conversation Storage
+
+For now, implement simple persistent storage, choosing the simplest option that fits the existing project (you decide based on what’s already configured):
+
+Acceptable options:
+
+An existing database (if project already uses one, e.g. SQLite, Postgres, Mongo).
+
+If no DB exists, create:
+
+A very simple JSON-based store, or
+
+A lightweight SQLite DB.
+
+Guidelines:
+
+Store conversations by workspaceId + agentSlug.
+
+Each record should at least include:
+
+id
+
+workspaceId
+
+agentSlug
+
+messages (array of { role, content, timestamp })
+
+For simplicity, we can load all messages for a workspace on page load and append new ones.
+
+On the frontend, generate a workspaceId once (e.g., using crypto.randomUUID() if available) and store it in localStorage keyed by agentSlug, so that when the user returns to that workspace, the same conversation can be reloaded.
+
+FEATURE 4 — FRONTEND INTEGRATION FLOW
+
+In the workspace page:
+
+On initial load:
+
+Read agentSlug from the URL.
+
+Resolve agent metadata (display name, description, icon if any).
+
+Look for a workspaceId in localStorage for that agentSlug. If missing, generate a new one and save it.
+
+Make a GET request to something like:
+
+GET /api/workspaces/:agentSlug/history?workspaceId=...
+
+This endpoint returns the previous messages for that workspace (implement this as needed).
+
+Render any existing messages in the chat UI.
+
+When user sends a message:
+
+Immediately display the user’s message in the chat UI.
+
+Disable the input and show a “Thinking…” indicator.
+
+Call:
+
+POST /api/workspaces/:agentSlug/messages
+
+With the workspaceId and user’s new message (and optionally the known history from the client).
+
+On success:
+
+Append the assistant’s reply to the chat UI.
+
+Re-enable the input field.
+
+On error:
+
+Show an error message in the chat (as an assistant message or toast).
+
+Re-enable the input.
+
+Make sure the chat scrolls to bottom automatically when new messages arrive.
+
+FEATURE 5 — CLEAN CODE, EXTENSIBILITY & TODOs
+
+You must:
+
+Write clean, modular code:
+
+Separate:
+
+UI components
+
+API handlers
+
+LLM client
+
+Conversation store
+
+Add clear comments where we intend to extend functionality later, for example:
+
+// TODO: integrate x402 billing before processing message
+
+// TODO: restrict workspace access to authenticated business users
+
+// TODO: add usage limits per workspace based on subscription tier
+
+Do NOT implement billing or auth yet; just structure the code so it’s easy to insert those checks later (e.g., a middleware or a wrapper around the chat handler).
+
+ACCEPTANCE CRITERIA
+
+When you are done, I should be able to:
+
+Run the Coin Railz project on Replit as usual.
+
+Visit /employees and see:
+
+“AI Employees for Your Business” heading.
+
+Three cards for the example employees, each with “Open Workspace” button.
+
+Click “Open Workspace” on one card and be taken to:
+
+/workspace/:agentSlug (e.g., /workspace/case-management).
+
+On the workspace page:
+
+See a header with the agent name and description.
+
+See an empty chat area (or previous messages if I’ve used it before).
+
+Type a message in the input and click “Send”.
+
+See my message appear in the chat.
+
+See the agent reply with a real response from the LLM.
+
+Be able to send multiple messages and see a coherent conversation.
+
+All of this must work without breaking any existing Coin Railz functionality, and must follow the project’s existing stack and patterns.
+
+If anything in the existing code conflicts with the plan above, adapt your implementation to fit the existing architecture while preserving the spirit of this design.

@@ -1,0 +1,447 @@
+Great question, and nice catch on those TODOs. Let’s handle that first, then I’ll roll straight into Step 2 with the integration guides.
+
+1. About the Replit TODOs
+TODO 2: “Add real Base64-encoded X-PAYMENT header examples per service”
+
+This is nice-to-have, not a blocker.
+
+Right now your docs say:
+
+X-PAYMENT: <base64-encoded JSON with {"txHash": "..."} >
+
+
+That is already correct and usable. The “real” base64 examples per service are just:
+
+Cosmetic (they make docs feel more concrete).
+
+Slightly helpful for copy/paste, but not essential.
+
+You can absolutely:
+
+Use a placeholder such as:
+X-PAYMENT: BASE64_ENCODED_{"txHash":"0x..."}
+
+Or show one real example (for wallet-risk) and note “pattern is identical for all services.”
+
+We do not need to stop the train for this.
+We can fill it in later once you have a couple of real payment txHashes you like.
+
+TODO 3: “Full OpenAPI-style schema docs”
+
+Also nice-to-have, not a blocker.
+
+Right now, you already have:
+
+Endpoint list
+
+Required fields per endpoint
+
+Network info
+
+Error handling examples
+
+That’s enough for:
+
+ElizaOS guide
+
+“Build a paid agent in 5 minutes”
+
+Outreach to builders
+
+The OpenAPI spec can be:
+
+A follow-up step where we formalize schemas (YAML/JSON)
+
+Added later to a /openapi.json endpoint
+
+Used for auto-generated SDKs once you have demand
+
+So:
+These TODOs are polish, not prerequisites.
+We’re safe to move forward to Step 2 now.
+
+2. Step 2 — Integration Guides
+
+I’ll give you three guides you can:
+
+Put on /developers
+
+Turn into GitHub READMEs
+
+Share in ElizaOS / Base / agent-builder communities
+
+2.1 ElizaOS Integration Guide
+
+Title:
+
+Using Coin Railz x402 Services in an ElizaOS Agent
+
+1. Install & setup
+
+You’ll eventually publish a real NPM package (e.g. @coinrailz/eliza-plugin), but until then, we can show a simple HTTP client example that any Eliza agent can call.
+
+For now, we frame it as: “Add this utility file and call it from a tool.”
+
+coinrailzClient.ts (helper module)
+
+// coinrailzClient.ts
+import fetch from "node-fetch";
+import { Buffer } from "buffer";
+
+const COINRAILZ_BASE_URL = "https://coinrailz.com/x402";
+
+export type Chain = "base";
+
+export interface WalletRiskParams {
+  walletAddress: string;
+  chain: Chain;
+}
+
+export interface CoinRailzPaymentPayload {
+  txHash: string;
+}
+
+export function encodeXPayment(payload: CoinRailzPaymentPayload): string {
+  return Buffer.from(JSON.stringify(payload)).toString("base64");
+}
+
+export async function callWalletRisk(params: WalletRiskParams, txHash: string) {
+  const xPayment = encodeXPayment({ txHash });
+
+  const res = await fetch(`${COINRAILZ_BASE_URL}/wallet-risk`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-PAYMENT": xPayment
+    },
+    body: JSON.stringify(params)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Coin Railz wallet-risk error (${res.status}): ${text}`);
+  }
+
+  return res.json();
+}
+
+2. Define an Eliza “tool” that calls Coin Railz
+
+Assuming ElizaOS has a tools/plugins system (which it does), we define a tool that your agent can call.
+
+Example Eliza tool definition (pseudo/TypeScript):
+
+// tools/walletRiskTool.ts
+import type { Tool } from "@elizaos/core"; // adjust import if needed
+import { callWalletRisk } from "../coinrailzClient";
+
+export const walletRiskTool: Tool = {
+  name: "wallet_risk",
+  description: "Check wallet risk score via Coin Railz x402 service",
+  inputSchema: {
+    type: "object",
+    properties: {
+      walletAddress: {
+        type: "string",
+        description: "Wallet address to check"
+      },
+      chain: {
+        type: "string",
+        enum: ["base"],
+        default: "base"
+      },
+      txHash: {
+        type: "string",
+        description: "Base USDC payment transaction hash on Coin Railz platform wallet"
+      }
+    },
+    required: ["walletAddress", "txHash"]
+  },
+  async execute(input, _context) {
+    const { walletAddress, chain = "base", txHash } = input as {
+      walletAddress: string;
+      chain: "base";
+      txHash: string;
+    };
+
+    const result = await callWalletRisk({ walletAddress, chain }, txHash);
+    return result;
+  }
+};
+
+
+This tool is now available for your Eliza agent to call whenever it needs to evaluate wallet risk.
+
+3. Use the tool in an Eliza agent
+
+In the agent’s config:
+
+import { walletRiskTool } from "./tools/walletRiskTool";
+
+export const myAgentConfig = {
+  name: "coinrailz-deFi-guardian",
+  description: "An Eliza agent that uses Coin Railz x402 to analyze wallets on Base.",
+  tools: [walletRiskTool],
+  // ...other Eliza config such as prompts, memory, etc.
+};
+
+
+In the system prompt, instruct Eliza how/when to use it:
+
+“When the user asks you to evaluate a wallet, or check whether a user is risky or safe, call the wallet_risk tool with the wallet address and the user-provided txHash (or a stored txHash if provided).”
+
+4. Developer’s wallet/payment setup (Eliza-specific)
+
+On the Eliza side, document to builders:
+
+They must:
+
+Fund their Base wallet with USDC.
+
+Send a payment to 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91.
+
+Get the resulting txHash.
+
+Provide that txHash as context to the agent (or preconfigured env variable if they pay on behalf of users).
+
+Example UX for them:
+
+“Before using the wallet risk feature, please paste a recent USDC payment txHash to Coin Railz.”
+
+In future, you/they can automate this with a facilitator or front-end payment step.
+
+2.2 Generic “AI Agent / AgentKit / LangChain” Integration Guide
+
+You can use almost the exact same logic for other frameworks — the key is: provide one simple helper + show how to call it.
+
+Title:
+
+Add Coin Railz x402 Services to Any AI Agent (Node / Python)
+
+Node.js example (framework-agnostic)
+import fetch from "node-fetch";
+import { Buffer } from "buffer";
+
+const COINRAILZ_BASE_URL = "https://coinrailz.com/x402";
+
+function encodeXPayment(txHash) {
+  return Buffer.from(JSON.stringify({ txHash })).toString("base64");
+}
+
+export async function getWalletRisk(walletAddress, chain, txHash) {
+  const xPayment = encodeXPayment(txHash);
+
+  const res = await fetch(`${COINRAILZ_BASE_URL}/wallet-risk`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-PAYMENT": xPayment
+    },
+    body: JSON.stringify({ walletAddress, chain })
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Coin Railz error (${res.status}): ${text}`);
+  }
+
+  return res.json();
+}
+
+
+Then inside your agent logic (AgentKit action, LangChain tool, etc.):
+
+const result = await getWalletRisk(
+  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  "base",
+  "0x123abc..." // txHash of Base USDC payment
+);
+
+console.log("Wallet risk:", result);
+
+Python example (framework-agnostic)
+import json
+import base64
+import requests
+
+COINRAILZ_BASE_URL = "https://coinrailz.com/x402"
+
+def encode_x_payment(tx_hash: str) -> str:
+    payload = {"txHash": tx_hash}
+    return base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")
+
+def wallet_risk(wallet_address: str, chain: str, tx_hash: str):
+    x_payment = encode_x_payment(tx_hash)
+
+    res = requests.post(
+        f"{COINRAILZ_BASE_URL}/wallet-risk",
+        headers={
+            "Content-Type": "application/json",
+            "X-PAYMENT": x_payment
+        },
+        json={
+            "walletAddress": wallet_address,
+            "chain": chain
+        }
+    )
+
+    res.raise_for_status()
+    return res.json()
+
+
+Plug that into:
+
+AgentKit custom action
+
+LangChain tool
+
+Any custom agent loop
+
+2.3 “Build a Paid AI Agent in 5 Minutes” Guide
+
+This is more marketing + tutorial. You can use it as:
+
+Blog post
+
+README
+
+Long tweet / thread content
+
+DevRel ammo
+
+Title:
+
+Build a Paid On-Chain AI Agent in 5 Minutes with Coin Railz x402
+
+Step 1 — Choose your agent framework
+
+Pick your stack:
+
+ElizaOS
+
+LangChain
+
+AgentKit
+
+Custom Node/Python loop
+
+(No lock-in. Coin Railz is just HTTP endpoints + x402 payments.)
+
+Step 2 — Fund a wallet & make a payment
+
+Fund a wallet with USDC on Base.
+
+Send a payment to:
+
+Coin Railz platform wallet:
+0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+(Base mainnet, USDC)
+
+
+Copy the txHash of that payment.
+
+Step 3 — Add the Coin Railz helper
+
+Paste this into your project:
+
+import fetch from "node-fetch";
+import { Buffer } from "buffer";
+
+const COINRAILZ_BASE_URL = "https://coinrailz.com/x402";
+
+function encodeXPayment(txHash) {
+  return Buffer.from(JSON.stringify({ txHash })).toString("base64");
+}
+
+export async function walletRisk(walletAddress, chain, txHash) {
+  const xPayment = encodeXPayment(txHash);
+
+  const res = await fetch(`${COINRAILZ_BASE_URL}/wallet-risk`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-PAYMENT": xPayment
+    },
+    body: JSON.stringify({ walletAddress, chain })
+  });
+
+  if (!res.ok) {
+    throw new Error(`Coin Railz error (${res.status}): ${await res.text()}`);
+  }
+
+  return res.json();
+}
+
+Step 4 — Let your AI agent call it
+
+Inside your agent’s tool/action:
+
+const userWallet = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
+const baseTxHash = "0x123abc..."; // payment to Coin Railz
+
+const risk = await walletRisk(userWallet, "base", baseTxHash);
+
+if (risk.score > 80) {
+  return "This wallet is high risk. Proceed with caution.";
+} else {
+  return "This wallet appears low to medium risk.";
+}
+
+
+You now have:
+
+An AI agent
+
+Talking to the user
+
+Calling Coin Railz on-chain intelligence
+
+Paid per call via x402
+
+That’s the entire magic.
+
+Step 5 — Expand to more services
+
+Swap wallet-risk for:
+
+dex-liquidity — Check liquidity
+
+token-price — Price feeds
+
+whale-alerts — Big moves
+
+transaction-builder — Construct transactions
+
+Each is a single POST with the same pattern.
+
+3. What’s Next (Steps 3–5)
+
+Now that Step 2 is in place (integration guides), next I’ll give you:
+
+Step 3: Outreach scripts
+
+DMs for Eliza devs
+
+DMs for Base ecosystem devs
+
+Email templates
+
+A short call script so you can talk through this live
+
+Step 4: Base ecosystem announcement thread
+
+A full X thread
+
+A tighter announcement
+
+A Discord/Telegram blurb
+
+Step 5: Promo assets
+
+Pinned tweet text
+
+Short “AI agents get paid” post
+
+GitHub README boilerplate
+
+Unless you want to stop and tweak the integration guides, I’ll go straight into Step 3 (outreach scripts) in the next response.

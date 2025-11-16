@@ -34,7 +34,6 @@ import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import x402Routes from './routes/x402Routes';
 import x402GatedRoutes from './routes/x402GatedRoutes';
 import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2'; // FIXED: Use V2 with proper paymentMiddleware
-import demoX402Routes from './routes/demoX402Routes'; // DEMO: Isolated demo routes with separate database
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
 import x402scanScraperRoutes from './routes/x402scanScraperRoutes';
 import x402AnalyticsRoutes from './routes/x402AnalyticsRoutes';
@@ -667,11 +666,6 @@ console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
 // REMOVED: app.use('/x402', x402GatedRoutes); - Conflicted with V2 implementation below
 app.use('/x402', x402MicroserviceRoutes); // x402 micropayment services with official Coinbase CDP facilitator (V2)
-
-// === DEMO x402 ROUTES - ISOLATED FROM PRODUCTION ===
-console.log('🧪 Registering DEMO x402 routes with isolated database...');
-app.use('/demo/x402', demoX402Routes); // Demo routes use demo_* tables only, zero production data access
-
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 app.use('/api/x402scan-scraper', x402scanScraperRoutes);
 app.use('/api/x402-analytics', x402AnalyticsRoutes);

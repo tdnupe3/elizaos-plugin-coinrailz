@@ -622,16 +622,22 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
                             </code>
                           </div>
                           <div>
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Request Body</div>
-                            <code className="text-xs bg-gray-900 text-gray-100 px-2 py-1 rounded block overflow-x-auto">
-                              {service.exampleRequest}
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Required Header</div>
+                            <code className="text-xs bg-blue-50 dark:bg-blue-950 text-blue-800 dark:text-blue-200 px-2 py-1 rounded block overflow-x-auto">
+                              X-PAYMENT: Base64({"{"}"txHash":"0x...","from":"0x...","to":"0xa4b...","amount":"{service.price}"{"}"})
                             </code>
                           </div>
                           <div>
-                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Response</div>
-                            <code className="text-xs bg-gray-900 text-green-400 px-2 py-1 rounded block overflow-x-auto">
-                              {service.exampleResponse}
-                            </code>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Request Body</div>
+                            <pre className="text-xs bg-gray-900 text-gray-100 px-2 py-2 rounded block overflow-x-auto"><code>{service.exampleRequest}</code></pre>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Success Response (200)</div>
+                            <pre className="text-xs bg-gray-900 text-green-400 px-2 py-2 rounded block overflow-x-auto"><code>{service.exampleResponse}</code></pre>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Error Response (402)</div>
+                            <pre className="text-xs bg-gray-900 text-red-400 px-2 py-2 rounded block overflow-x-auto"><code>{'{ "error": "Payment Required", "message": "Invalid or missing X-PAYMENT header" }'}</code></pre>
                           </div>
                           <Button 
                             variant="outline" 

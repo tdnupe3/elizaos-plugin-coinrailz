@@ -12,7 +12,8 @@ import {
   CheckCircle,
   ExternalLink,
   Copy,
-  ChevronRight
+  ChevronRight,
+  Rocket
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -654,6 +655,454 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
                 </div>
               </TabsContent>
             ))}
+          </Tabs>
+        </div>
+      </div>
+
+      {/* Integration Guides */}
+      <div id="integration-guides" className="container mx-auto px-4 py-16 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-4 text-center text-gray-900 dark:text-white">
+            Integration Guides
+          </h2>
+          <p className="text-center text-gray-600 dark:text-gray-400 mb-12 max-w-2xl mx-auto">
+            Step-by-step guides to integrate Coin Railz x402 services into your AI agent framework
+          </p>
+
+          <Tabs defaultValue="eliza" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsTrigger value="eliza">ElizaOS</TabsTrigger>
+              <TabsTrigger value="generic">Generic Framework</TabsTrigger>
+              <TabsTrigger value="quickstart">5-Minute Tutorial</TabsTrigger>
+            </TabsList>
+
+            {/* ElizaOS Integration */}
+            <TabsContent value="eliza">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Zap className="h-6 w-6 text-blue-600" />
+                    ElizaOS Integration Guide
+                  </CardTitle>
+                  <CardDescription>
+                    Add Coin Railz x402 services to your ElizaOS agent
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Step 1: Helper Module */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">1</span>
+                      Create Helper Module
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Add this utility file to handle Coin Railz API calls:
+                    </p>
+                    <div className="relative">
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                        <code>{`// coinrailzClient.ts
+import fetch from "node-fetch";
+import { Buffer } from "buffer";
+
+const COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";
+
+export type Chain = "base";
+
+export interface WalletRiskParams {
+  walletAddress: string;
+  chain: Chain;
+}
+
+export interface CoinRailzPaymentPayload {
+  txHash: string;
+}
+
+export function encodeXPayment(payload: CoinRailzPaymentPayload): string {
+  return Buffer.from(JSON.stringify(payload)).toString("base64");
+}
+
+export async function callWalletRisk(params: WalletRiskParams, txHash: string) {
+  const xPayment = encodeXPayment({ txHash });
+
+  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-PAYMENT": xPayment
+    },
+    body: JSON.stringify(params)
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(\`Coin Railz wallet-risk error (\${res.status}): \${text}\`);
+  }
+
+  return res.json();
+}`}</code>
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`// coinrailzClient.ts\nimport fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\n\nexport type Chain = "base";\n\nexport interface WalletRiskParams {\n  walletAddress: string;\n  chain: Chain;\n}\n\nexport interface CoinRailzPaymentPayload {\n  txHash: string;\n}\n\nexport function encodeXPayment(payload: CoinRailzPaymentPayload): string {\n  return Buffer.from(JSON.stringify(payload)).toString("base64");\n}\n\nexport async function callWalletRisk(params: WalletRiskParams, txHash: string) {\n  const xPayment = encodeXPayment({ txHash });\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify(params)\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz wallet-risk error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}`, 'ElizaOS helper')}
+                        data-testid="button-copy-eliza-helper"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Step 2: Tool Definition */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">2</span>
+                      Define Eliza Tool
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Create a tool that your Eliza agent can call:
+                    </p>
+                    <div className="relative">
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                        <code>{`// tools/walletRiskTool.ts
+import type { Tool } from "@elizaos/core";
+import { callWalletRisk } from "../coinrailzClient";
+
+export const walletRiskTool: Tool = {
+  name: "wallet_risk",
+  description: "Check wallet risk score via Coin Railz x402 service",
+  inputSchema: {
+    type: "object",
+    properties: {
+      walletAddress: {
+        type: "string",
+        description: "Wallet address to check"
+      },
+      chain: {
+        type: "string",
+        enum: ["base"],
+        default: "base"
+      },
+      txHash: {
+        type: "string",
+        description: "Base USDC payment txHash to Coin Railz platform wallet"
+      }
+    },
+    required: ["walletAddress", "txHash"]
+  },
+  async execute(input, _context) {
+    const { walletAddress, chain = "base", txHash } = input as {
+      walletAddress: string;
+      chain: "base";
+      txHash: string;
+    };
+
+    const result = await callWalletRisk({ walletAddress, chain }, txHash);
+    return result;
+  }
+};`}</code>
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`// tools/walletRiskTool.ts\nimport type { Tool } from "@elizaos/core";\nimport { callWalletRisk } from "../coinrailzClient";\n\nexport const walletRiskTool: Tool = {\n  name: "wallet_risk",\n  description: "Check wallet risk score via Coin Railz x402 service",\n  inputSchema: {\n    type: "object",\n    properties: {\n      walletAddress: {\n        type: "string",\n        description: "Wallet address to check"\n      },\n      chain: {\n        type: "string",\n        enum: ["base"],\n        default: "base"\n      },\n      txHash: {\n        type: "string",\n        description: "Base USDC payment txHash to Coin Railz platform wallet"\n      }\n    },\n    required: ["walletAddress", "txHash"]\n  },\n  async execute(input, _context) {\n    const { walletAddress, chain = "base", txHash } = input as {\n      walletAddress: string;\n      chain: "base";\n      txHash: string;\n    };\n\n    const result = await callWalletRisk({ walletAddress, chain }, txHash);\n    return result;\n  }\n};`, 'Eliza tool')}
+                        data-testid="button-copy-eliza-tool"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Step 3: Agent Config */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <span className="bg-blue-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm">3</span>
+                      Add to Agent Config
+                    </h3>
+                    <div className="relative">
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                        <code>{`import { walletRiskTool } from "./tools/walletRiskTool";
+
+export const myAgentConfig = {
+  name: "coinrailz-defi-guardian",
+  description: "An Eliza agent using Coin Railz x402 services",
+  tools: [walletRiskTool],
+  // ...other Eliza config
+};`}</code>
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      <strong>💡 Payment Setup:</strong> Developers must fund a Base wallet with USDC, send payment to <code className="bg-blue-100 dark:bg-blue-800 px-1 rounded">0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91</code>, and provide the txHash to their agent.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Generic Framework Integration */}
+            <TabsContent value="generic">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Code className="h-6 w-6 text-purple-600" />
+                    Generic AI Agent Integration
+                  </CardTitle>
+                  <CardDescription>
+                    Use Coin Railz with any framework (AgentKit, LangChain, custom agents)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Node.js Example */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Node.js / TypeScript</h3>
+                    <div className="relative">
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                        <code>{`import fetch from "node-fetch";
+import { Buffer } from "buffer";
+
+const COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";
+
+function encodeXPayment(txHash) {
+  return Buffer.from(JSON.stringify({ txHash })).toString("base64");
+}
+
+export async function getWalletRisk(walletAddress, chain, txHash) {
+  const xPayment = encodeXPayment(txHash);
+
+  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-PAYMENT": xPayment
+    },
+    body: JSON.stringify({ walletAddress, chain })
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(\`Coin Railz error (\${res.status}): \${text}\`);
+  }
+
+  return res.json();
+}
+
+// Usage in your agent
+const result = await getWalletRisk(
+  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+  "base",
+  "0x123abc..." // txHash of Base USDC payment
+);
+
+console.log("Wallet risk:", result);`}</code>
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`import fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\n\nfunction encodeXPayment(txHash) {\n  return Buffer.from(JSON.stringify({ txHash })).toString("base64");\n}\n\nexport async function getWalletRisk(walletAddress, chain, txHash) {\n  const xPayment = encodeXPayment(txHash);\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify({ walletAddress, chain })\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}\n\n// Usage in your agent\nconst result = await getWalletRisk(\n  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n  "base",\n  "0x123abc..." // txHash of Base USDC payment\n);\n\nconsole.log("Wallet risk:", result);`, 'Node.js code')}
+                        data-testid="button-copy-generic-node"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Python Example */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Python</h3>
+                    <div className="relative">
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-xs">
+                        <code>{`import json
+import base64
+import requests
+
+COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402"
+
+def encode_x_payment(tx_hash: str) -> str:
+    payload = {"txHash": tx_hash}
+    return base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")
+
+def wallet_risk(wallet_address: str, chain: str, tx_hash: str):
+    x_payment = encode_x_payment(tx_hash)
+
+    res = requests.post(
+        f"{COINRAILZ_BASE_URL}/wallet-risk",
+        headers={
+            "Content-Type": "application/json",
+            "X-PAYMENT": x_payment
+        },
+        json={
+            "walletAddress": wallet_address,
+            "chain": chain
+        }
+    )
+
+    res.raise_for_status()
+    return res.json()
+
+# Usage in your agent
+result = wallet_risk(
+    "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "base",
+    "0x123abc..."  # txHash of Base USDC payment
+)
+
+print("Wallet risk:", result)`}</code>
+                      </pre>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="absolute top-2 right-2"
+                        onClick={() => copyToClipboard(`import json\nimport base64\nimport requests\n\nCOINRAILZ_BASE_URL = "https://coinrailz.com/api/x402"\n\ndef encode_x_payment(tx_hash: str) -> str:\n    payload = {"txHash": tx_hash}\n    return base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")\n\ndef wallet_risk(wallet_address: str, chain: str, tx_hash: str):\n    x_payment = encode_x_payment(tx_hash)\n\n    res = requests.post(\n        f"{COINRAILZ_BASE_URL}/wallet-risk",\n        headers={\n            "Content-Type": "application/json",\n            "X-PAYMENT": x_payment\n        },\n        json={\n            "walletAddress": wallet_address,\n            "chain": chain\n        }\n    )\n\n    res.raise_for_status()\n    return res.json()\n\n# Usage in your agent\nresult = wallet_risk(\n    "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n    "base",\n    "0x123abc..."  # txHash of Base USDC payment\n)\n\nprint("Wallet risk:", result)`, 'Python code')}
+                        data-testid="button-copy-generic-python"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-4">
+                    <p className="text-sm text-purple-900 dark:text-purple-100">
+                      <strong>🔧 Framework Agnostic:</strong> These helpers work with AgentKit, LangChain, Haystack, or any custom agent loop. Just call the function from your agent's action/tool definition.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* 5-Minute Tutorial */}
+            <TabsContent value="quickstart">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Rocket className="h-6 w-6 text-green-600" />
+                    Build a Paid AI Agent in 5 Minutes
+                  </CardTitle>
+                  <CardDescription>
+                    Complete tutorial: from zero to working paid agent
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Choose Your Framework</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Pick any AI agent framework: ElizaOS, LangChain, AgentKit, or custom Node/Python loop. No lock-in—Coin Railz is just HTTP endpoints.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Fund & Pay</h4>
+                        <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                          <li>• Fund a wallet with USDC on Base</li>
+                          <li>• Send payment to: <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91</code></li>
+                          <li>• Copy the transaction hash (txHash)</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Add the Helper</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Paste this 20-line helper into your project:
+                        </p>
+                        <div className="relative">
+                          <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto text-xs">
+                            <code>{`import fetch from "node-fetch";
+import { Buffer } from "buffer";
+
+const BASE_URL = "https://coinrailz.com/api/x402";
+
+function encodePayment(txHash) {
+  return Buffer.from(JSON.stringify({ txHash })).toString("base64");
+}
+
+export async function walletRisk(address, chain, txHash) {
+  const res = await fetch(\`\${BASE_URL}/wallet-risk\`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-PAYMENT": encodePayment(txHash)
+    },
+    body: JSON.stringify({ walletAddress: address, chain })
+  });
+  
+  if (!res.ok) throw new Error(\`Error \${res.status}\`);
+  return res.json();
+}`}</code>
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">4</div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Call from Your Agent</h4>
+                        <div className="relative">
+                          <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto text-xs">
+                            <code>{`const userWallet = "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb";
+const paymentTxHash = "0x123abc..."; // Your payment to Coin Railz
+
+const risk = await walletRisk(userWallet, "base", paymentTxHash);
+
+if (risk.riskScore > 80) {
+  return "⚠️ High risk wallet. Proceed with caution.";
+} else {
+  return "✅ Low to medium risk wallet.";
+}`}</code>
+                          </pre>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="flex-shrink-0">
+                        <div className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">5</div>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold mb-2">Scale to More Services</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Swap <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">wallet-risk</code> for any of our 18 services:
+                        </p>
+                        <ul className="text-sm text-gray-600 dark:text-gray-400 mt-2 space-y-1">
+                          <li>• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">dex-liquidity</code> — Check pool liquidity</li>
+                          <li>• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">token-price</code> — Real-time prices</li>
+                          <li>• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">whale-alerts</code> — Track big moves</li>
+                          <li>• <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">transaction-builder</code> — Construct transactions</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-500 rounded-lg p-4">
+                    <h4 className="font-bold text-green-900 dark:text-green-100 mb-2">🎉 You're Done!</h4>
+                    <p className="text-sm text-green-800 dark:text-green-200">
+                      Your AI agent now has on-chain intelligence, paid per call via x402. Same pattern works for all 18 services.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </div>

@@ -238,6 +238,9 @@ import { ethers } from 'ethers';
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 
+// Minimal ERC20 ABI for transfer function
+const ERC20_ABI = ['function transfer(address to, uint256 amount) returns (bool)'];
+
 const provider = new ethers.providers.JsonRpcProvider('https://mainnet.base.org');
 const wallet = new ethers.Wallet(YOUR_PRIVATE_KEY, provider);
 
@@ -274,6 +277,9 @@ import time
 w3 = Web3(Web3.HTTPProvider('https://mainnet.base.org'))
 USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
 PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'
+
+# Minimal ERC20 ABI for transfer function
+ERC20_ABI = [{"constant": False, "inputs": [{"name": "to", "type": "address"}, {"name": "value", "type": "uint256"}], "name": "transfer", "outputs": [{"name": "", "type": "bool"}], "type": "function"}]
 
 # Send USDC payment
 usdc = w3.eth.contract(address=USDC_BASE, abi=ERC20_ABI)
@@ -704,7 +710,11 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
 import fetch from "node-fetch";
 import { Buffer } from "buffer";
 
+// Coin Railz Platform Constants
 const COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";
+const PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const BASE_CHAIN_ID = 8453;
 
 export type Chain = "base";
 
@@ -745,7 +755,7 @@ export async function callWalletRisk(params: WalletRiskParams, txHash: string) {
                         size="sm"
                         variant="outline"
                         className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`// coinrailzClient.ts\nimport fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\n\nexport type Chain = "base";\n\nexport interface WalletRiskParams {\n  walletAddress: string;\n  chain: Chain;\n}\n\nexport interface CoinRailzPaymentPayload {\n  txHash: string;\n}\n\nexport function encodeXPayment(payload: CoinRailzPaymentPayload): string {\n  return Buffer.from(JSON.stringify(payload)).toString("base64");\n}\n\nexport async function callWalletRisk(params: WalletRiskParams, txHash: string) {\n  const xPayment = encodeXPayment({ txHash });\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify(params)\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz wallet-risk error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}`, 'ElizaOS helper')}
+                        onClick={() => copyToClipboard(`// coinrailzClient.ts\nimport fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\n// Coin Railz Platform Constants\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\nconst PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";\nconst USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";\nconst BASE_CHAIN_ID = 8453;\n\nexport type Chain = "base";\n\nexport interface WalletRiskParams {\n  walletAddress: string;\n  chain: Chain;\n}\n\nexport interface CoinRailzPaymentPayload {\n  txHash: string;\n}\n\nexport function encodeXPayment(payload: CoinRailzPaymentPayload): string {\n  return Buffer.from(JSON.stringify(payload)).toString("base64");\n}\n\nexport async function callWalletRisk(params: WalletRiskParams, txHash: string) {\n  const xPayment = encodeXPayment({ txHash });\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify(params)\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz wallet-risk error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}`, 'ElizaOS helper')}
                         data-testid="button-copy-eliza-helper"
                       >
                         <Copy className="h-4 w-4" />
@@ -864,7 +874,10 @@ export const myAgentConfig = {
                         <code>{`import fetch from "node-fetch";
 import { Buffer } from "buffer";
 
+// Coin Railz Platform Constants (Base mainnet)
 const COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";
+const PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 function encodeXPayment(txHash) {
   return Buffer.from(JSON.stringify({ txHash })).toString("base64");
@@ -894,7 +907,7 @@ export async function getWalletRisk(walletAddress, chain, txHash) {
 const result = await getWalletRisk(
   "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
   "base",
-  "0x123abc..." // txHash of Base USDC payment
+  "0x123abc..." // txHash of Base USDC payment to PLATFORM_WALLET
 );
 
 console.log("Wallet risk:", result);`}</code>
@@ -903,7 +916,7 @@ console.log("Wallet risk:", result);`}</code>
                         size="sm"
                         variant="outline"
                         className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`import fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\n\nfunction encodeXPayment(txHash) {\n  return Buffer.from(JSON.stringify({ txHash })).toString("base64");\n}\n\nexport async function getWalletRisk(walletAddress, chain, txHash) {\n  const xPayment = encodeXPayment(txHash);\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify({ walletAddress, chain })\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}\n\n// Usage in your agent\nconst result = await getWalletRisk(\n  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n  "base",\n  "0x123abc..." // txHash of Base USDC payment\n);\n\nconsole.log("Wallet risk:", result);`, 'Node.js code')}
+                        onClick={() => copyToClipboard(`import fetch from "node-fetch";\nimport { Buffer } from "buffer";\n\n// Coin Railz Platform Constants (Base mainnet)\nconst COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402";\nconst PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";\nconst USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";\n\nfunction encodeXPayment(txHash) {\n  return Buffer.from(JSON.stringify({ txHash })).toString("base64");\n}\n\nexport async function getWalletRisk(walletAddress, chain, txHash) {\n  const xPayment = encodeXPayment(txHash);\n\n  const res = await fetch(\`\${COINRAILZ_BASE_URL}/wallet-risk\`, {\n    method: "POST",\n    headers: {\n      "Content-Type": "application/json",\n      "X-PAYMENT": xPayment\n    },\n    body: JSON.stringify({ walletAddress, chain })\n  });\n\n  if (!res.ok) {\n    const text = await res.text();\n    throw new Error(\`Coin Railz error (\${res.status}): \${text}\`);\n  }\n\n  return res.json();\n}\n\n// Usage in your agent\nconst result = await getWalletRisk(\n  "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n  "base",\n  "0x123abc..." // txHash of Base USDC payment to PLATFORM_WALLET\n);\n\nconsole.log("Wallet risk:", result);`, 'Node.js code')}
                         data-testid="button-copy-generic-node"
                       >
                         <Copy className="h-4 w-4" />
@@ -920,7 +933,10 @@ console.log("Wallet risk:", result);`}</code>
 import base64
 import requests
 
+# Coin Railz Platform Constants (Base mainnet)
 COINRAILZ_BASE_URL = "https://coinrailz.com/api/x402"
+PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
+USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 
 def encode_x_payment(tx_hash: str) -> str:
     payload = {"txHash": tx_hash}
@@ -948,7 +964,7 @@ def wallet_risk(wallet_address: str, chain: str, tx_hash: str):
 result = wallet_risk(
     "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
     "base",
-    "0x123abc..."  # txHash of Base USDC payment
+    "0x123abc..."  # txHash of Base USDC payment to PLATFORM_WALLET
 )
 
 print("Wallet risk:", result)`}</code>
@@ -957,7 +973,7 @@ print("Wallet risk:", result)`}</code>
                         size="sm"
                         variant="outline"
                         className="absolute top-2 right-2"
-                        onClick={() => copyToClipboard(`import json\nimport base64\nimport requests\n\nCOINRAILZ_BASE_URL = "https://coinrailz.com/api/x402"\n\ndef encode_x_payment(tx_hash: str) -> str:\n    payload = {"txHash": tx_hash}\n    return base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")\n\ndef wallet_risk(wallet_address: str, chain: str, tx_hash: str):\n    x_payment = encode_x_payment(tx_hash)\n\n    res = requests.post(\n        f"{COINRAILZ_BASE_URL}/wallet-risk",\n        headers={\n            "Content-Type": "application/json",\n            "X-PAYMENT": x_payment\n        },\n        json={\n            "walletAddress": wallet_address,\n            "chain": chain\n        }\n    )\n\n    res.raise_for_status()\n    return res.json()\n\n# Usage in your agent\nresult = wallet_risk(\n    "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n    "base",\n    "0x123abc..."  # txHash of Base USDC payment\n)\n\nprint("Wallet risk:", result)`, 'Python code')}
+                        onClick={() => copyToClipboard(`import json\nimport base64\nimport requests\n\n# Coin Railz Platform Constants (Base mainnet)\nCOINRAILZ_BASE_URL = "https://coinrailz.com/api/x402"\nPLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"\nUSDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"\n\ndef encode_x_payment(tx_hash: str) -> str:\n    payload = {"txHash": tx_hash}\n    return base64.b64encode(json.dumps(payload).encode("utf-8")).decode("utf-8")\n\ndef wallet_risk(wallet_address: str, chain: str, tx_hash: str):\n    x_payment = encode_x_payment(tx_hash)\n\n    res = requests.post(\n        f"{COINRAILZ_BASE_URL}/wallet-risk",\n        headers={\n            "Content-Type": "application/json",\n            "X-PAYMENT": x_payment\n        },\n        json={\n            "walletAddress": wallet_address,\n            "chain": chain\n        }\n    )\n\n    res.raise_for_status()\n    return res.json()\n\n# Usage in your agent\nresult = wallet_risk(\n    "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",\n    "base",\n    "0x123abc..."  # txHash of Base USDC payment to PLATFORM_WALLET\n)\n\nprint("Wallet risk:", result)`, 'Python code')}
                         data-testid="button-copy-generic-python"
                       >
                         <Copy className="h-4 w-4" />
@@ -1028,7 +1044,10 @@ print("Wallet risk:", result)`}</code>
                             <code>{`import fetch from "node-fetch";
 import { Buffer } from "buffer";
 
+// Coin Railz Platform Constants
 const BASE_URL = "https://coinrailz.com/api/x402";
+const PLATFORM_WALLET = "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
 function encodePayment(txHash) {
   return Buffer.from(JSON.stringify({ txHash })).toString("base64");

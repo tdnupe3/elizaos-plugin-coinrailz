@@ -105,6 +105,16 @@ export default function Landing() {
               <span className="text-lg sm:text-xl font-bold text-gray-900">Coin Railz</span>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-3">
+              <Link href="/developers">
+                <Button
+                  variant="ghost"
+                  className="text-gray-700 hover:text-blue-600 hover:bg-blue-50 text-xs sm:text-sm px-2 sm:px-3"
+                  size="sm"
+                  data-testid="nav-developers"
+                >
+                  API Docs
+                </Button>
+              </Link>
               <LanguageSwitcher />
               {isAuthenticated ? (
                 <UserAuthMenu />

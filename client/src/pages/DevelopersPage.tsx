@@ -38,7 +38,9 @@ export default function DevelopersPage() {
       description: 'Get real-time balances across Ethereum, Base, Polygon, Arbitrum, and BNB Chain',
       endpoint: '/api/x402/multi-chain-balance',
       method: 'POST',
-      category: 'Data'
+      category: 'Data',
+      exampleRequest: `{ "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "chains": ["ethereum", "base"], "includeTokens": true }`,
+      exampleResponse: `{ "success": true, "balances": { "ethereum": "1.23 ETH", "base": "0.05 ETH" }, "tokens": [{ "symbol": "USDC", "balance": "100.50" }] }`
     },
     {
       id: 'gas-price-oracle',
@@ -47,7 +49,9 @@ export default function DevelopersPage() {
       description: 'Real-time gas prices with fast/average/slow recommendations',
       endpoint: '/api/x402/gas-price-oracle',
       method: 'POST',
-      category: 'Data'
+      category: 'Data',
+      exampleRequest: `{ "chains": ["ethereum", "base", "polygon"] }`,
+      exampleResponse: `{ "success": true, "data": { "ethereum": { "fast": 25, "average": 18, "slow": 12 } } }`
     },
     {
       id: 'token-price',
@@ -56,7 +60,9 @@ export default function DevelopersPage() {
       description: 'Live token prices with 24h change and volume data',
       endpoint: '/api/x402/token-price',
       method: 'POST',
-      category: 'Data'
+      category: 'Data',
+      exampleRequest: `{ "tokenAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "chain": "ethereum" }`,
+      exampleResponse: `{ "success": true, "price": 2847.32, "change24h": 2.4, "volume24h": "1234567890" }`
     },
     {
       id: 'contract-scan',
@@ -65,7 +71,9 @@ export default function DevelopersPage() {
       description: 'Security analysis and metadata for any smart contract',
       endpoint: '/api/x402/contract-scan',
       method: 'POST',
-      category: 'Security'
+      category: 'Security',
+      exampleRequest: `{ "contractAddress": "0x...", "chain": "ethereum" }`,
+      exampleResponse: `{ "success": true, "riskLevel": "low", "verified": true, "findings": [] }`
     },
     {
       id: 'wallet-risk',
@@ -74,7 +82,9 @@ export default function DevelopersPage() {
       description: 'AML/fraud risk assessment for any wallet address',
       endpoint: '/api/x402/wallet-risk',
       method: 'POST',
-      category: 'Security'
+      category: 'Security',
+      exampleRequest: `{ "walletAddress": "0x...", "chain": "ethereum" }`,
+      exampleResponse: `{ "success": true, "riskScore": 15, "riskLevel": "low", "flags": [] }`
     },
     {
       id: 'trade-signals',
@@ -83,7 +93,9 @@ export default function DevelopersPage() {
       description: 'AI-powered trading signals with confidence scores',
       endpoint: '/api/x402/trade-signals',
       method: 'POST',
-      category: 'Trading'
+      category: 'Trading',
+      exampleRequest: `{ "token": "ETH", "timeframe": "1h", "riskLevel": "medium" }`,
+      exampleResponse: `{ "success": true, "signal": "BUY", "confidence": 0.85, "entry": 2850, "target": 2920 }`
     },
     {
       id: 'token-sentiment',
@@ -92,7 +104,9 @@ export default function DevelopersPage() {
       description: 'Real-time social media sentiment analysis for any token',
       endpoint: '/api/x402/token-sentiment',
       method: 'POST',
-      category: 'Trading'
+      category: 'Trading',
+      exampleRequest: `{ "tokenSymbol": "ETH", "chain": "ethereum" }`,
+      exampleResponse: `{ "success": true, "sentiment": "bullish", "score": 72, "mentions": 1284 }`
     },
     {
       id: 'trending-tokens',
@@ -101,7 +115,9 @@ export default function DevelopersPage() {
       description: 'Discover trending tokens before they pump',
       endpoint: '/api/x402/trending-tokens',
       method: 'POST',
-      category: 'Trading'
+      category: 'Trading',
+      exampleRequest: `{ "timeframe": "24h", "chain": "ethereum" }`,
+      exampleResponse: `{ "success": true, "tokens": [{ "symbol": "PEPE", "change": 45.2, "volume": "12M" }] }`
     },
     {
       id: 'whale-alerts',
@@ -110,7 +126,9 @@ export default function DevelopersPage() {
       description: 'Real-time notifications for large wallet movements',
       endpoint: '/api/x402/whale-alerts',
       method: 'POST',
-      category: 'Trading'
+      category: 'Trading',
+      exampleRequest: `{ "chains": ["ethereum"], "minValueUsd": 100000 }`,
+      exampleResponse: `{ "success": true, "alerts": [{ "from": "0x...", "amount": "500 ETH", "value": "$1.4M" }] }`
     },
     {
       id: 'dex-liquidity',
@@ -119,7 +137,9 @@ export default function DevelopersPage() {
       description: 'Track liquidity pools across major DEXs',
       endpoint: '/api/x402/dex-liquidity',
       method: 'POST',
-      category: 'DeFi'
+      category: 'DeFi',
+      exampleRequest: `{ "tokenAddress": "0x...", "chain": "ethereum" }`,
+      exampleResponse: `{ "success": true, "totalLiquidity": "$2.4M", "pools": [{ "dex": "Uniswap", "liquidity": "$1.2M" }] }`
     },
     {
       id: 'transaction-builder',
@@ -128,7 +148,9 @@ export default function DevelopersPage() {
       description: 'Build and simulate complex multi-step transactions',
       endpoint: '/api/x402/transaction-builder',
       method: 'POST',
-      category: 'DeFi'
+      category: 'DeFi',
+      exampleRequest: `{ "steps": [{ "action": "swap", "tokenIn": "ETH", "tokenOut": "USDC", "amount": "1.0" }] }`,
+      exampleResponse: `{ "success": true, "txData": "0x...", "gasEstimate": 150000, "expectedOutput": "2850 USDC" }`
     },
     {
       id: 'token-metadata',
@@ -137,7 +159,9 @@ export default function DevelopersPage() {
       description: 'Complete token information including logo, decimals, and total supply',
       endpoint: '/api/x402/token-metadata',
       method: 'POST',
-      category: 'Data'
+      category: 'Data',
+      exampleRequest: `{ "tokenAddress": "0x...", "chain": "ethereum" }`,
+      exampleResponse: `{ "success": true, "name": "Ethereum", "symbol": "ETH", "decimals": 18, "totalSupply": "120M" }`
     },
     {
       id: 'approval-manager',
@@ -146,7 +170,9 @@ export default function DevelopersPage() {
       description: 'Manage token approvals and revoke dangerous permissions',
       endpoint: '/api/x402/approval-manager',
       method: 'POST',
-      category: 'Security'
+      category: 'Security',
+      exampleRequest: `{ "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "action": "revoke", "spender": "0x1111111254fb6c44bAC0beD2854e76F90643097d" }`,
+      exampleResponse: `{ "success": true, "txData": "0x095ea7b30000000000000000000000001111111254fb6c44bAC0beD2854e76F90643097d0000000000000000000000000000000000000000000000000000000000000000", "message": "Approval revoked" }`
     },
     {
       id: 'batch-quote',
@@ -155,7 +181,9 @@ export default function DevelopersPage() {
       description: 'Get swap quotes for multiple token pairs simultaneously',
       endpoint: '/api/x402/batch-quote',
       method: 'POST',
-      category: 'DeFi'
+      category: 'DeFi',
+      exampleRequest: `{ "pairs": [{ "tokenIn": "ETH", "tokenOut": "USDC", "amount": "1.0" }] }`,
+      exampleResponse: `{ "success": true, "quotes": [{ "pair": "ETH/USDC", "rate": 2850, "output": "2850 USDC" }] }`
     },
     {
       id: 'portfolio-tracker',
@@ -164,7 +192,9 @@ export default function DevelopersPage() {
       description: 'Complete portfolio analysis with PnL tracking',
       endpoint: '/api/x402/portfolio-tracker',
       method: 'POST',
-      category: 'Data'
+      category: 'Data',
+      exampleRequest: `{ "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "chains": ["ethereum", "base"] }`,
+      exampleResponse: `{ "success": true, "totalValue": "$12,450", "pnl": "+$1,240", "assets": [{ "symbol": "ETH", "balance": "2.5", "value": "$7,100" }] }`
     },
     {
       id: 'instant-agent-wallet',
@@ -173,7 +203,9 @@ export default function DevelopersPage() {
       description: 'Create a Base mainnet wallet with USDC funding instantly',
       endpoint: '/api/x402/instant-agent-wallet',
       method: 'POST',
-      category: 'Agent Services'
+      category: 'Agent Services',
+      exampleRequest: `{ "agentId": "my-ai-agent", "initialFundingAmount": 10 }`,
+      exampleResponse: `{ "success": true, "walletAddress": "0x9876543210987654321098765432109876543210", "balance": "10 USDC", "privateKey": "0xPRIVATE_KEY_REDACTED" }`
     },
     {
       id: 'verified-agent-identity',
@@ -182,7 +214,9 @@ export default function DevelopersPage() {
       description: 'Register your AI agent on-chain with ERC-8004 identity standard',
       endpoint: '/api/x402/verified-agent-identity',
       method: 'POST',
-      category: 'Agent Services'
+      category: 'Agent Services',
+      exampleRequest: `{ "agentId": "my-ai-agent", "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb", "metadata": { "name": "Trading Bot", "version": "1.0" } }`,
+      exampleResponse: `{ "success": true, "tokenId": 42, "registryAddress": "0x1234567890123456789012345678901234567890", "txHash": "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890" }`
     },
     {
       id: 'seamless-chain-bridge',
@@ -191,7 +225,9 @@ export default function DevelopersPage() {
       description: 'Bridge assets across chains with best-rate routing',
       endpoint: '/api/x402/seamless-chain-bridge',
       method: 'POST',
-      category: 'DeFi'
+      category: 'DeFi',
+      exampleRequest: `{ "fromChain": "ethereum", "toChain": "base", "amount": "100", "currency": "USDC" }`,
+      exampleResponse: `{ "success": true, "bridgeTxHash": "0x...", "estimatedArrival": "~60 seconds" }`
     }
   ];
 
@@ -562,12 +598,17 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
                   {services.filter(s => s.category === category).map(service => (
                     <Card key={service.id} className="hover:shadow-lg transition-shadow">
                       <CardHeader>
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <CardTitle className="text-lg">{service.name}</CardTitle>
-                            <CardDescription className="mt-2">{service.description}</CardDescription>
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CardTitle className="text-lg">{service.name}</CardTitle>
+                              <Badge variant="outline" className="text-xs">
+                                {service.method}
+                              </Badge>
+                            </div>
+                            <CardDescription className="mt-1">{service.description}</CardDescription>
                           </div>
-                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 flex-shrink-0">
                             {service.price}
                           </Badge>
                         </div>
@@ -577,7 +618,19 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
                           <div>
                             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Endpoint</div>
                             <code className="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded block overflow-x-auto">
-                              {service.method} {service.endpoint}
+                              {service.endpoint}
+                            </code>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Request Body</div>
+                            <code className="text-xs bg-gray-900 text-gray-100 px-2 py-1 rounded block overflow-x-auto">
+                              {service.exampleRequest}
+                            </code>
+                          </div>
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Response</div>
+                            <code className="text-xs bg-gray-900 text-green-400 px-2 py-1 rounded block overflow-x-auto">
+                              {service.exampleResponse}
                             </code>
                           </div>
                           <Button 
@@ -586,7 +639,7 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
                             className="w-full"
                             data-testid={`button-view-${service.id}`}
                           >
-                            View Documentation <ChevronRight className="ml-2 h-4 w-4" />
+                            View Full Docs <ChevronRight className="ml-2 h-4 w-4" />
                           </Button>
                         </div>
                       </CardContent>

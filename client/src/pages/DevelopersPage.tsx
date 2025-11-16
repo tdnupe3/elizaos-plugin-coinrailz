@@ -241,6 +241,9 @@ const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 // Minimal ERC20 ABI for transfer function
 const ERC20_ABI = ['function transfer(address to, uint256 amount) returns (bool)'];
 
+// Replace with your wallet's private key
+const YOUR_PRIVATE_KEY = process.env.WALLET_PRIVATE_KEY; // e.g., '0x1234...'
+
 const provider = new ethers.providers.JsonRpcProvider('https://mainnet.base.org');
 const wallet = new ethers.Wallet(YOUR_PRIVATE_KEY, provider);
 
@@ -273,10 +276,15 @@ import requests
 import json
 import base64
 import time
+import os
 
 w3 = Web3(Web3.HTTPProvider('https://mainnet.base.org'))
 USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
 PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'
+
+# Replace with your wallet details
+YOUR_KEY = os.getenv('WALLET_PRIVATE_KEY')  # Your private key
+your_address = os.getenv('WALLET_ADDRESS')  # Your wallet address (e.g., '0x1234...')
 
 # Minimal ERC20 ABI for transfer function
 ERC20_ABI = [{"constant": False, "inputs": [{"name": "to", "type": "address"}, {"name": "value", "type": "uint256"}], "name": "transfer", "outputs": [{"name": "", "type": "bool"}], "type": "function"}]
@@ -438,6 +446,15 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
           <h2 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white">
             Quickstart Guide
           </h2>
+          
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-900 dark:text-blue-100">
+              <strong>Before running:</strong> Set your environment variables:
+              <code className="block mt-2 bg-white dark:bg-gray-800 p-2 rounded text-xs font-mono">
+                export WALLET_PRIVATE_KEY="0x..." WALLET_ADDRESS="0x..."
+              </code>
+            </p>
+          </div>
           
           <div className="space-y-6">
             <Card>

@@ -13,14 +13,6 @@ export const SendMoney = lazy(() => import('@/pages/send-money'));
 export const Referrals = lazy(() => import('@/pages/referrals'));
 export const CryptoTransferPage = lazy(() => import('@/pages/crypto-transfer'));
 
-// Demo components (can be lazy loaded since they're not critical path)
-export const DemoDashboard = lazy(() => import('@/pages/demo-dashboard').then(module => ({ default: module.default })));
-export const DemoTransactionHistory = lazy(() => import('@/pages/demo-transaction-history'));
-export const DemoSendMoney = lazy(() => import('@/pages/demo-send-money'));
-export const DemoBuySell = lazy(() => import('@/pages/demo-buy-sell'));
-export const DemoWalletManagement = lazy(() => import('@/pages/demo-wallet-management'));
-export const DemoCryptoTransfer = lazy(() => import('@/pages/demo-crypto-transfer'));
-
 // AI Agent components
 export const AIAgents = lazy(() => import('@/pages/ai-agents'));
 
@@ -72,7 +64,6 @@ export const SystemDashboard = lazy(() => import('@/pages/system-dashboard'));
 
 // Heavy components that are rarely used immediately
 export const MfaSetup = lazy(() => import('@/components/MfaSetup'));
-export const SignupFlowDemo = lazy(() => import('@/pages/signup-flow-demo'));
 
 // AI Marketplace Components
 export const AIMarketplace = lazy(() => import("@/pages/ai-marketplace"));

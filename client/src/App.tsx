@@ -45,12 +45,6 @@ import {
   SendMoney,
   Referrals,
   CryptoTransferPage,
-  DemoDashboard,
-  DemoTransactionHistory,
-  DemoSendMoney,
-  DemoBuySell,
-  DemoWalletManagement,
-  DemoCryptoTransfer,
   EnhancedReferralDashboard,
   HumanReferralDashboard,
   PlatformAnalytics,
@@ -117,7 +111,6 @@ const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
 const OrderManagement = lazy(() => import("@/pages/order-management"));
 const OnrampPage = lazy(() => import("@/pages/onramp"));
 const EnterprisePage = lazy(() => import("@/pages/enterprise"));
-const SignupFlowDemo = lazy(() => import("@/pages/signup-flow-demo"));
 const LegalDisclaimers = lazy(() => import("@/pages/legal-disclaimers"));
 const ContactUs = lazy(() => import("@/pages/contact-us"));
 const WalletAccess = lazy(() => import("@/pages/WalletAccess"));
@@ -137,7 +130,6 @@ const CryptoPrices = lazy(() => import("@/pages/crypto-prices"));
 const BalanceCheck = lazy(() => import("@/pages/balance-check"));
 const DEXTrading = lazy(() => import("@/pages/dex-trading"));
 const AIAgentStore = lazy(() => import("@/pages/AIAgentStore"));
-const BetaBalanceDemo = lazy(() => import("@/pages/beta-balance-demo"));
 const BalanceDisplay = lazy(() => import("@/pages/balance-display"));
 const ProfilePage = lazy(() => import("@/pages/profile"));
 const BankConnectivity = lazy(() => import("@/components/bank-connectivity"));
@@ -184,21 +176,6 @@ function Router() {
         <Route path="/sign-up" component={SignUp} />
 
         {/* Public routes - accessible without authentication */}
-        <Route path="/demo">
-          {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
-        </Route>
-      <Route path="/demo/dashboard">
-        {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
-      </Route>
-      <Route path="/demo-dashboard">
-        {() => <LazyLoadWrapper><DemoDashboard /></LazyLoadWrapper>}
-      </Route>
-      <Route path="/demo/history">
-        {() => <LazyLoadWrapper><DemoTransactionHistory /></LazyLoadWrapper>}
-      </Route>
-      <Route path="/demo/send">
-        {() => <LazyLoadWrapper><DemoSendMoney /></LazyLoadWrapper>}
-      </Route>
       <Route path="/p2p-transfer">
         <P2PTransfer />
       </Route>
@@ -219,23 +196,14 @@ function Router() {
       <Route path="/swap">
         {() => <LazyLoadWrapper><DEXTrading /></LazyLoadWrapper>}
       </Route>
-      <Route path="/beta-balance">
-        {() => <LazyLoadWrapper><BetaBalanceDemo /></LazyLoadWrapper>}
-      </Route>
       <Route path="/balance-display">
         {() => <LazyLoadWrapper><BalanceDisplay /></LazyLoadWrapper>}
       </Route>
       <Route path="/bank-connectivity">
         {() => <LazyLoadWrapper><BankConnectivity /></LazyLoadWrapper>}
       </Route>
-      <Route path="/demo/buy-sell">
-        {() => <LazyLoadWrapper><DemoBuySell /></LazyLoadWrapper>}
-      </Route>
       <Route path="/portfolio-analytics">
         {() => <LazyLoadWrapper><PortfolioAnalytics /></LazyLoadWrapper>}
-      </Route>
-      <Route path="/demo-crypto-transfer">
-        {() => <LazyLoadWrapper><DemoCryptoTransfer /></LazyLoadWrapper>}
       </Route>
       {/* Redirect old swap routes to new DEX trading page (4.2) */}
       <Route path="/swap">
@@ -530,9 +498,6 @@ function Router() {
       <Route path="/signin" component={SignIn} />
       <Route path="/checkout/:paymentIntentId" component={CheckoutPage} />
       <Route path="/checkout/success" component={CheckoutSuccessPage} />
-      <Route path="/signup-flow">
-        {() => <LazyLoadWrapper><SignupFlowDemo /></LazyLoadWrapper>}
-      </Route>
       <Route path="/legal-disclaimers">
         {() => <LazyLoadWrapper><LegalDisclaimers /></LazyLoadWrapper>}
       </Route>
@@ -753,7 +718,7 @@ function Router() {
       </Switch>
 
       {/* AI Agent Chat Widget - Available on all pages */}
-      <ChatWidget isDemo={window.location.pathname.includes('/demo')} />
+      <ChatWidget />
       
       {/* Contact Support Widget - Available on all pages */}
       <ContactWidget />

@@ -1,0 +1,217 @@
+✅ REPLIT PROMPT v2 (COPY/PASTE EXACTLY AS WRITTEN BELOW)
+
+You are working inside the existing Coin Railz codebase on Replit (https://coinrailz.com). This project already contains:
+
+Working agent endpoints
+
+x402 micropayment infrastructure
+
+18 operational services
+
+Existing UI/UX
+
+Production-ready API routing
+
+Deployed main site
+
+Your task is NOT to create a new product, chatbot platform, or feature-heavy UI.
+Your task IS to add a small, simple, incremental enhancement that leverages the existing Coin Railz agent architecture.
+
+🎯 GOAL (VERY IMPORTANT)
+
+Create a SINGLE new page inside Coin Railz called /console that allows a user to:
+
+Select one existing Coin Railz agent service from a dropdown
+
+Enter a natural language request
+
+Have the backend:
+
+Interpret the user request
+
+Call the selected existing agent endpoint
+
+Use x402 if required (existing logic already handles this)
+
+Display the agent’s JSON or text response back to the user
+
+This page is essentially a “Coin Railz Agent Console” — NOT a new product, NOT a new system.
+It is just a thin UI wrapper around existing agent services.
+
+Think of it as a developer/test console, not a full chat app.
+
+🔧 CONSTRAINTS (DO NOT VIOLATE THESE)
+
+Do NOT build a ChatGPT competitor.
+
+Do NOT create conversational memory, multi-turn chat, or stateful threads.
+
+Do NOT implement OpenAI or LLMs unless they already exist in the project.
+
+Do NOT introduce new agent frameworks.
+
+Do NOT duplicate logic that already exists.
+
+Do NOT create a new product line.
+
+Stay inside the current architecture and support files.
+
+The /console page exists ONLY to:
+
+Trigger existing agents
+
+Test existing services
+
+Showcase x402 in a controlled way
+
+Provide a developer-style interface for internal use and demos
+
+Prepare the foundation for future agent “wrappers” WITHOUT building them now
+
+🖥️ UI/UX REQUIREMENTS
+
+Create a new route/page:
+GET /console
+
+This page should include:
+
+1. A dropdown list
+
+Populate it with ALL existing Coin Railz service identifiers.
+This lets the user select which service they want to call.
+
+2. A single text input
+
+For natural language instructions.
+(Example: “Tell me the risk score for wallet 0x…”, “Get the ETH price.”)
+
+3. A “Run” button
+
+When clicked:
+
+POST to a new backend route:
+/api/console/run
+
+Body includes:
+
+{
+  "service": "selected-service-id",
+  "input": "user text"
+}
+
+4. A results box
+
+Show:
+
+The raw JSON returned by the service
+
+Or formatted text if the response is textual
+
+No styling beyond what the project already uses.
+Keep it simple and minimal.
+
+🔌 BACKEND REQUIREMENTS
+
+Create:
+
+POST /api/console/run
+
+This route MUST:
+
+Accept service and input
+
+Validate that service matches an existing service in the project
+
+Convert the natural language input into the correct request body for that service
+
+You may do this with simple parsing logic
+
+Do NOT use an external LLM or new dependencies
+
+Call the existing internal agent execution function
+
+The same function used by your public marketplace agents
+
+Allow x402 to work exactly as it already does
+
+Return:
+
+{
+  "success": true,
+  "response": { ... raw service output ... }
+}
+
+
+On error:
+
+{
+  "success": false,
+  "error": "Readable message"
+}
+
+NO NEW DATABASE TABLES.
+
+This is stateless and simple.
+
+📦 IMPLEMENTATION NOTES
+
+Reuse whatever UI component system the project already uses
+
+Reuse your current CSS or basic inline styles
+
+Reuse your existing API routes logic style
+
+Do not break any existing pages
+
+Do not modify existing service logic
+
+This new /console page is purely:
+
+A developer tool
+
+A testing tool
+
+A safe way to demo Coin Railz agents
+
+✔️ ACCEPTANCE CRITERIA
+
+After implementing:
+
+I can visit /console
+
+I see:
+
+Dropdown of existing services
+
+Text input
+
+“Run” button
+
+Results output area
+
+Selecting a service + entering a request + clicking “Run”:
+
+Calls the correct existing backend agent
+
+Triggers x402 automatically if required
+
+Returns the JSON response into the results box
+
+Nothing else in Coin Railz is changed or broken
+
+No new frameworks, products, chat systems, or agent engines were created
+
+This is a small, safe, incremental enhancement fully aligned with our platform roadmap.
+
+END OF PROMPT
+When you paste this into Replit, it should:
+
+Stop complaining
+
+Stop accusing you of building a new product
+
+Help you incrementally enhance Coin Railz
+
+Stay aligned with x402 + your 18 services
+
+Build something small that sets you up for future “AI Employee” wrappers without scope creep

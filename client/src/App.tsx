@@ -160,6 +160,7 @@ const SubscriptionSuccess = lazy(() => import("@/pages/SubscriptionSuccess"));
 const FreelanceDeveloperServices = lazy(() => import("@/pages/FreelanceDeveloperServices"));
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
+const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -265,6 +266,11 @@ function Router() {
       {/* x402 Service Documentation */}
       <Route path="/x402">
         {() => <X402DocsPage />}
+      </Route>
+      
+      {/* Developer API Documentation - x402 Protocol */}
+      <Route path="/developers">
+        {() => <LazyLoadWrapper><DevelopersPage /></LazyLoadWrapper>}
       </Route>
       
       {/* Enterprise section - separate from consumer platform */}

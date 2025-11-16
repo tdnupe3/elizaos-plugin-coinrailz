@@ -896,15 +896,17 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
     const { walletAddress, chains, includeTokens } = req.body;
     
     if (!walletAddress) {
-      return res.status(400).json({ success: false, error: "walletAddress is required" });
+      res.status(400).json({ success: false, error: "walletAddress is required" });
+      return;
     }
 
     const walletKey = `wallet:${walletAddress}`;
     if (!checkRateLimit(walletKey, 100, 3600000)) {
-      return res.status(429).json({
+      res.status(429).json({
         error: "Rate limit exceeded",
         message: "Maximum 100 requests per hour per wallet",
       });
+      return;
     }
 
     const result = await multiChainBalanceService(walletAddress, chains, includeTokens);
@@ -912,11 +914,11 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
     
     await trackRequest("multi-chain-balance", req.body, result, responseTime, SERVICE_PRICING["multi-chain-balance"], walletAddress);
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("multi-chain-balance", req.body, null, responseTime, SERVICE_PRICING["multi-chain-balance"], req.body.walletAddress || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -936,11 +938,11 @@ const gasPriceOracleHandler = async (req: Request, res: Response) => {
     
     await trackRequest("gas-price-oracle", req.body, result, responseTime, SERVICE_PRICING["gas-price-oracle"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("gas-price-oracle", req.body, null, responseTime, SERVICE_PRICING["gas-price-oracle"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -956,7 +958,8 @@ const tokenPriceHandler = async (req: Request, res: Response) => {
     const { tokenAddress, chain } = req.body;
     
     if (!tokenAddress || !chain) {
-      return res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+      res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+      return;
     }
 
     const result = await tokenPriceFeedService(tokenAddress, chain);
@@ -964,11 +967,11 @@ const tokenPriceHandler = async (req: Request, res: Response) => {
     
     await trackRequest("token-price", req.body, result, responseTime, SERVICE_PRICING["token-price"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("token-price", req.body, null, responseTime, SERVICE_PRICING["token-price"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -984,7 +987,8 @@ const contractScanHandler = async (req: Request, res: Response) => {
     const { contractAddress, chain } = req.body;
     
     if (!contractAddress || !chain) {
-      return res.status(400).json({ success: false, error: "contractAddress and chain are required" });
+      res.status(400).json({ success: false, error: "contractAddress and chain are required" });
+      return;
     }
 
     const result = await contractQuickScanService(contractAddress, chain);
@@ -992,11 +996,11 @@ const contractScanHandler = async (req: Request, res: Response) => {
     
     await trackRequest("contract-scan", req.body, result, responseTime, SERVICE_PRICING["contract-scan"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("contract-scan", req.body, null, responseTime, SERVICE_PRICING["contract-scan"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1012,7 +1016,8 @@ const walletRiskHandler = async (req: Request, res: Response) => {
     const { walletAddress, chain } = req.body;
     
     if (!walletAddress || !chain) {
-      return res.status(400).json({ success: false, error: "walletAddress and chain are required" });
+      res.status(400).json({ success: false, error: "walletAddress and chain are required" });
+      return;
     }
 
     const result = await walletRiskScoreService(walletAddress, chain);
@@ -1020,11 +1025,11 @@ const walletRiskHandler = async (req: Request, res: Response) => {
     
     await trackRequest("wallet-risk", req.body, result, responseTime, SERVICE_PRICING["wallet-risk"], walletAddress);
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("wallet-risk", req.body, null, responseTime, SERVICE_PRICING["wallet-risk"], req.body.walletAddress || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1043,11 +1048,11 @@ const tradeSignalsHandler = async (req: Request, res: Response) => {
     
     await trackRequest("trade-signals", req.body, result, responseTime, SERVICE_PRICING["trade-signals"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("trade-signals", req.body, null, responseTime, SERVICE_PRICING["trade-signals"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1063,7 +1068,8 @@ const tokenSentimentHandler = async (req: Request, res: Response) => {
     const { tokenSymbol, chain } = req.body;
     
     if (!tokenSymbol) {
-      return res.status(400).json({ success: false, error: "tokenSymbol is required" });
+      res.status(400).json({ success: false, error: "tokenSymbol is required" });
+      return;
     }
 
     const result = await tokenSocialSentimentService(req.body);
@@ -1071,11 +1077,11 @@ const tokenSentimentHandler = async (req: Request, res: Response) => {
     
     await trackRequest("token-sentiment", req.body, result, responseTime, SERVICE_PRICING["token-sentiment"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("token-sentiment", req.body, null, responseTime, SERVICE_PRICING["token-sentiment"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1094,11 +1100,11 @@ const trendingTokensHandler = async (req: Request, res: Response) => {
     
     await trackRequest("trending-tokens", req.body, result, responseTime, SERVICE_PRICING["trending-tokens"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("trending-tokens", req.body, null, responseTime, SERVICE_PRICING["trending-tokens"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1117,11 +1123,11 @@ const whaleAlertsHandler = async (req: Request, res: Response) => {
     
     await trackRequest("whale-alerts", req.body, result, responseTime, SERVICE_PRICING["whale-alerts"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("whale-alerts", req.body, null, responseTime, SERVICE_PRICING["whale-alerts"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1137,7 +1143,8 @@ const dexLiquidityHandler = async (req: Request, res: Response) => {
     const { tokenAddress, chain } = req.body;
     
     if (!tokenAddress || !chain) {
-      return res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+      res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+      return;
     }
 
     const result = await dexLiquidityMonitorService(tokenAddress, chain);
@@ -1145,11 +1152,11 @@ const dexLiquidityHandler = async (req: Request, res: Response) => {
     
     await trackRequest("dex-liquidity", req.body, result, responseTime, SERVICE_PRICING["dex-liquidity"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("dex-liquidity", req.body, null, responseTime, SERVICE_PRICING["dex-liquidity"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1164,7 +1171,8 @@ const transactionBuilderHandler = async (req: Request, res: Response) => {
   try {
     const validationResult = transactionBuilderInputSchema.safeParse(req.body);
     if (!validationResult.success) {
-      return res.status(400).json({ success: false, error: validationResult.error.message });
+      res.status(400).json({ success: false, error: validationResult.error.message });
+      return;
     }
 
     const result = await transactionBuilderService(validationResult.data);
@@ -1172,11 +1180,11 @@ const transactionBuilderHandler = async (req: Request, res: Response) => {
     
     await trackRequest("transaction-builder", req.body, result, responseTime, SERVICE_PRICING["transaction-builder"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("transaction-builder", req.body, null, responseTime, SERVICE_PRICING["transaction-builder"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1192,7 +1200,8 @@ const tokenMetadataHandler = async (req: Request, res: Response) => {
     const { tokenAddress, chain } = req.body;
     
     if (!tokenAddress || !chain) {
-      return res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+      res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+      return;
     }
 
     const result = await tokenMetadataService(tokenAddress, chain);
@@ -1200,11 +1209,11 @@ const tokenMetadataHandler = async (req: Request, res: Response) => {
     
     await trackRequest("token-metadata", req.body, result, responseTime, SERVICE_PRICING["token-metadata"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("token-metadata", req.body, null, responseTime, SERVICE_PRICING["token-metadata"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1219,7 +1228,8 @@ const approvalManagerHandler = async (req: Request, res: Response) => {
   try {
     const validationResult = approvalManagerInputSchema.safeParse(req.body);
     if (!validationResult.success) {
-      return res.status(400).json({ success: false, error: validationResult.error.message });
+      res.status(400).json({ success: false, error: validationResult.error.message });
+      return;
     }
 
     const result = await approvalManagerService(validationResult.data);
@@ -1227,11 +1237,11 @@ const approvalManagerHandler = async (req: Request, res: Response) => {
     
     await trackRequest("approval-manager", req.body, result, responseTime, SERVICE_PRICING["approval-manager"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("approval-manager", req.body, null, responseTime, SERVICE_PRICING["approval-manager"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1246,7 +1256,8 @@ const batchQuoteHandler = async (req: Request, res: Response) => {
   try {
     const validationResult = batchQuoteInputSchema.safeParse(req.body);
     if (!validationResult.success) {
-      return res.status(400).json({ success: false, error: validationResult.error.message });
+      res.status(400).json({ success: false, error: validationResult.error.message });
+      return;
     }
 
     const result = await batchQuoteService(validationResult.data);
@@ -1254,11 +1265,11 @@ const batchQuoteHandler = async (req: Request, res: Response) => {
     
     await trackRequest("batch-quote", req.body, result, responseTime, SERVICE_PRICING["batch-quote"], req.ip || "unknown");
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("batch-quote", req.body, null, responseTime, SERVICE_PRICING["batch-quote"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1274,7 +1285,8 @@ const portfolioTrackerHandler = async (req: Request, res: Response) => {
     const { walletAddress, chains } = req.body;
     
     if (!walletAddress) {
-      return res.status(400).json({ success: false, error: "walletAddress is required" });
+      res.status(400).json({ success: false, error: "walletAddress is required" });
+      return;
     }
 
     const result = await portfolioTrackerService(walletAddress, chains || ["ethereum", "base", "polygon"]);
@@ -1282,11 +1294,11 @@ const portfolioTrackerHandler = async (req: Request, res: Response) => {
     
     await trackRequest("portfolio-tracker", req.body, result, responseTime, SERVICE_PRICING["portfolio-tracker"], walletAddress);
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("portfolio-tracker", req.body, null, responseTime, SERVICE_PRICING["portfolio-tracker"], req.body.walletAddress || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1302,7 +1314,8 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
     const { agentId, description, initialFundingAmount } = req.body;
     
     if (!agentId) {
-      return res.status(400).json({ success: false, error: "agentId is required" });
+      res.status(400).json({ success: false, error: "agentId is required" });
+      return;
     }
 
     const result = await instantAgentWalletService({ agentId, description, initialFundingAmount });
@@ -1310,11 +1323,11 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
     
     await trackRequest("instant-agent-wallet", req.body, result, responseTime, SERVICE_PRICING["instant-agent-wallet"], result.walletAddress);
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("instant-agent-wallet", req.body, null, responseTime, SERVICE_PRICING["instant-agent-wallet"], req.ip || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1330,7 +1343,8 @@ const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {
     const { agentId, walletAddress, signature, metadata } = req.body;
     
     if (!agentId || !walletAddress) {
-      return res.status(400).json({ success: false, error: "agentId and walletAddress are required" });
+      res.status(400).json({ success: false, error: "agentId and walletAddress are required" });
+      return;
     }
 
     const result = await verifiedAgentIdentityService({ agentId, walletAddress, signature, metadata });
@@ -1338,11 +1352,11 @@ const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {
     
     await trackRequest("verified-agent-identity", req.body, result, responseTime, SERVICE_PRICING["verified-agent-identity"], walletAddress);
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("verified-agent-identity", req.body, null, responseTime, SERVICE_PRICING["verified-agent-identity"], req.body.walletAddress || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 
@@ -1358,10 +1372,11 @@ const seamlessChainBridgeHandler = async (req: Request, res: Response) => {
     const { fromChain, toChain, amount, fromAddress, toAddress, currency } = req.body;
     
     if (!fromChain || !toChain || !amount || !fromAddress || !toAddress) {
-      return res.status(400).json({ 
+      res.status(400).json({ 
         success: false, 
         error: "fromChain, toChain, amount, fromAddress, and toAddress are required" 
       });
+      return;
     }
 
     const result = await seamlessChainBridgeService({ fromChain, toChain, amount, fromAddress, toAddress, currency });
@@ -1369,11 +1384,11 @@ const seamlessChainBridgeHandler = async (req: Request, res: Response) => {
     
     await trackRequest("seamless-chain-bridge", req.body, result, responseTime, SERVICE_PRICING["seamless-chain-bridge"], fromAddress);
     
-    return res.json(result);
+    res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest("seamless-chain-bridge", req.body, null, responseTime, SERVICE_PRICING["seamless-chain-bridge"], req.body.fromAddress || "unknown", error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: error.message });
   }
 };
 

@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import { providers } from "ethers";
 import { verifyTransactionPayment } from "./hybridPaymentMiddleware";
 
 /**

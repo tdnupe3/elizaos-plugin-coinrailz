@@ -34,7 +34,8 @@ export class WalletConnectMessagingService {
   private async initializeWalletConnect(): Promise<void> {
     try {
       // Initialize WalletConnect v2 Web3Wallet
-      const { Web3Wallet, Core } = await import('@walletconnect/web3wallet');
+      const { Web3Wallet } = await import('@walletconnect/web3wallet');
+      const { Core } = await import('@walletconnect/core');
       
       const core = new Core({
         projectId: process.env.WALLETCONNECT_PROJECT_ID || 'coinrailz-messaging'

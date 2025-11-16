@@ -1,0 +1,456 @@
+Nice, this is actually super helpful—Replit just did the hard part for us by reading your actual code. We’re not guessing anymore, we’re documenting reality.
+I’ll do two things in this reply:
+
+
+Answer all of Replit’s questions explicitly (so we’re clear and aligned).
+
+
+Give you an updated /developers page draft that:
+
+
+Uses the correct header + endpoints
+
+
+Adds onboarding, auth, funding, and error-handling sections
+
+
+Is ready to paste into Replit as content
+
+
+
+
+You said you’re going with Option A (build now)—since Replit already validated the implementation, we’re effectively doing “build now with validated data”, which is the best of both worlds.
+
+1. Direct answers to Replit’s questions (using the validated info)
+Q1: Do services require ONLY x402 headers (no API key / no registration)?
+Answer: Yes. ✅
+
+
+No API keys
+
+
+No coinrailz.com account
+
+
+No separate auth token
+
+
+The only auth is the payment itself, via the X-PAYMENT header.
+
+Q2: What is the exact header name and format?
+Header name: X-PAYMENT (case-insensitive)
+You support two formats internally, but for documentation we’ll lead with the simple one:
+Option A (Simple – txHash JSON encoded in base64)
+Header:
+X-PAYMENT: <base64-encoded JSON>
+
+Where the JSON (before encoding) is:
+{
+  "txHash": "0x123abc..."
+}
+
+Then base64 that JSON and put it in the header.
+Example curl for wallet-risk:
+curl -X POST https://coinrailz.com/x402/wallet-risk \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: eyJ0eEhhc2giOiAiMHg3NDJkMzVDYzY2MzRDMDUzMjkyNWEzYjg0NEJjOWU3NTlmMGJFYiJ9" \
+  -d '{
+    "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "chain": "base"
+  }'
+
+Where the header value decodes to:
+{"txHash":"0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"}
+
+(You can swap that for any real tx hash; docs can show a placeholder.)
+You also support:
+Option B (EIP-712 signature via Coinbase x402 facilitator)
+Header:
+X-PAYMENT: <eip712_signature_from_facilitator>
+
+We’ll mention Option B briefly for advanced users, but keep Option A as the primary “Quick Start.”
+
+Q3: Do developers fund their own wallets?
+Answer: Yes. ✅
+The flow is:
+
+
+Developer funds their own Base wallet with USDC.
+
+
+The wallet sends a payment to the platform wallet:
+Platform wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+Network: Base mainnet
+Asset: USDC on Base
+
+
+
+Developer takes that payment tx hash, wraps it as JSON, base64-encodes it, and puts it in X-PAYMENT.
+
+
+They call a service like /x402/wallet-risk.
+
+
+Coin Railz verifies payment + amount, then returns the response.
+
+
+No Coin Railz login required. No API keys. Very clean.
+
+Q4: Option A vs Option B (build vs validate)
+
+
+Replit already introspected the code and validated the implementation.
+
+
+You said you want to go with Option A (build /developers now).
+
+
+So we’re going to:
+
+Build the /developers page now using the validated headers, endpoints, and flows.
+
+That’s exactly what the rest of this message is for.
+
+2. Updated /developers Page Content (with onboarding, auth, funding, error handling)
+You can paste this into a template page, split into sections, or feed it to Replit as content. Adjust styling to match Coin Railz.
+
+/developers – Draft Content
+
+🧩 Coin Railz for Developers
+Stripe for AI Agents on Base
+Coin Railz is a catalog of 18 on-chain microservices for AI agents, powered by x402 micropayments on Base.
+Your agents can:
+
+
+Read multi-chain balances
+
+
+Check wallet risk
+
+
+Scan contracts
+
+
+Track whales
+
+
+Analyze liquidity
+
+
+Get token prices & sentiment
+
+
+Build transactions
+
+
+Manage approvals
+
+
+Track portfolios
+
+
+Create agent wallets & identities
+
+
+All paid per call using a single header:
+X-PAYMENT: <base64-encoded payment payload>
+
+No API keys.
+No developer accounts.
+Just x402 + Base USDC.
+
+🚀 Onboarding in 4 Steps
+Step 1 — Fund a wallet with USDC on Base
+Use any wallet (MetaMask, Coinbase Wallet, etc.) and bridge or buy USDC on Base.
+
+
+Network: Base mainnet
+
+
+Asset: USDC
+
+
+You can bridge from Ethereum or other chains using your favorite bridge.
+
+Step 2 — Send a payment to the Coin Railz platform wallet
+Before calling a service, your agent (or you) sends a payment transaction on Base to:
+Platform wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+Network: Base mainnet
+Asset: USDC
+
+Each service has a fixed price (see the table below).
+You can batch payments or send them per-call, depending on your design.
+
+Step 3 — Take the txHash and build your X-PAYMENT header
+After the payment transaction confirms, copy the transaction hash (e.g. 0x123abc...).
+Build a small JSON payload:
+{
+  "txHash": "0x123abc..."
+}
+
+Base64-encode that JSON:
+{"txHash":"0x123abc..."} --> eyJ0eEhhc2giOiAiMHgxMjNhYmMuLi4ifQ==
+
+Then send it as the X-PAYMENT header:
+X-PAYMENT: eyJ0eEhhc2giOiAiMHgxMjNhYmMuLi4ifQ==
+
+Coin Railz will:
+
+
+Decode the header
+
+
+Verify the payment
+
+
+Validate the amount
+
+
+Match it to the requested service
+
+
+Return the result if everything checks out
+
+
+
+Advanced: If you’re using Coinbase’s x402 facilitator, you can also send an EIP-712 signature instead of a raw tx hash.
+Just set X-PAYMENT: <eip712_signature> and the facilitator integration will handle it.
+
+
+Step 4 — Call a Coin Railz x402 endpoint
+All services live under:
+Base URL (prod): https://coinrailz.com/x402/
+
+Example: wallet-risk service
+curl -X POST https://coinrailz.com/x402/wallet-risk \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: <your_base64_json_here>" \
+  -d '{
+    "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "chain": "base"
+  }'
+
+If payment is valid and sufficient, you’ll get a JSON response with the risk data.
+
+🧠 Authentication Model (Simple by Design)
+
+
+No API keys
+
+
+No OAuth
+
+
+No developer registration
+
+
+The payment IS the authentication.
+If the X-PAYMENT payload is valid and the txHash corresponds to a sufficient payment, the request is authorized.
+This makes Coin Railz:
+
+
+Ideal for AI agents
+
+
+Easy to embed in ElizaOS / LangChain / AgentKit
+
+
+Extremely simple to reason about
+
+
+
+🛠 Service Catalog
+All endpoints are prefixed with /x402/:
+ServiceEndpointPrice (USDC)Required FieldsMulti-Chain BalancePOST /x402/multi-chain-balance$0.01walletAddressGas Price OraclePOST /x402/gas-price-oracle$0.01chain (optional defaults)Token PricePOST /x402/token-price$0.05tokenAddress, chainContract ScanPOST /x402/contract-scan$2.00contractAddress, chainWallet RiskPOST /x402/wallet-risk$0.50walletAddress, chainTrade SignalsPOST /x402/trade-signals$2.00optional fields (pair, timeframe, etc.)Token SentimentPOST /x402/token-sentiment$0.10tokenSymbolTrending TokensPOST /x402/trending-tokens$0.25optional filtersWhale AlertsPOST /x402/whale-alerts$0.50optional filtersDEX LiquidityPOST /x402/dex-liquidity$0.15tokenAddress, chainTransaction BuilderPOST /x402/transaction-builder$0.30to, chain, amount, etc.Token MetadataPOST /x402/token-metadata$0.10tokenAddress, chainApproval ManagerPOST /x402/approval-manager$0.20tokenAddress, spender, amount, chainBatch QuotePOST /x402/batch-quote$0.40fromToken, toToken, amount, chainPortfolio TrackerPOST /x402/portfolio-tracker$0.50walletAddressInstant Agent WalletPOST /x402/instant-agent-wallet$1.00agentIdVerified Agent IdentityPOST /x402/verified-agent-identity$5.00agentId, walletAddressSeamless Chain BridgePOST /x402/seamless-chain-bridge$2.00fromChain, toChain, amount, fromAddress, toAddress
+(You can tweak prices in the copy to match your actual config if needed.)
+
+⚡ Quick Start Code Examples
+JavaScript (Node / browser)
+const paymentPayload = {
+  txHash: "0x123abc..." // your Base USDC payment tx hash
+};
+
+const xPayment = Buffer
+  .from(JSON.stringify(paymentPayload))
+  .toString("base64");
+
+const res = await fetch("https://coinrailz.com/x402/wallet-risk", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-PAYMENT": xPayment
+  },
+  body: JSON.stringify({
+    walletAddress: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    chain: "base"
+  })
+});
+
+const data = await res.json();
+console.log("Wallet risk result:", data);
+
+
+Python
+import json
+import base64
+import requests
+
+payment_payload = {
+    "txHash": "0x123abc..."  # your Base USDC payment tx hash
+}
+
+x_payment = base64.b64encode(
+    json.dumps(payment_payload).encode("utf-8")
+).decode("utf-8")
+
+res = requests.post(
+    "https://coinrailz.com/x402/wallet-risk",
+    headers={
+        "Content-Type": "application/json",
+        "X-PAYMENT": x_payment
+    },
+    json={
+        "walletAddress": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+        "chain": "base"
+    }
+)
+
+print("Status:", res.status_code)
+print("Body:", res.json())
+
+
+🧪 Error Handling & Debugging
+When something goes wrong, you can expect:
+
+
+HTTP 400 – Bad Request
+
+
+Missing or invalid JSON body
+
+
+Required fields not provided
+
+
+
+
+HTTP 402 – Payment Required / Payment Invalid
+
+
+Missing X-PAYMENT header
+
+
+txHash not found or not confirmed
+
+
+Payment amount too low for requested service
+
+
+
+
+HTTP 500 – Internal Error
+
+
+Unexpected failure on Coin Railz side
+
+
+
+
+Typical error response body (example):
+{
+  "success": false,
+  "error": "Invalid or insufficient payment.",
+  "code": "PAYMENT_INVALID"
+}
+
+If you run into issues:
+
+
+Double-check your txHash is on Base
+
+
+Confirm payment was sent to: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+
+
+Confirm the amount matches or exceeds service price
+
+
+Ensure X-PAYMENT value is valid base64-encoded JSON
+
+
+
+📡 Live Status & Transparency
+
+
+Network: Base mainnet
+
+
+Platform Wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+
+
+x402 Services: 18 live endpoints
+
+
+You can view live status and registration on:
+
+
+x402scan – [link to your Coin Railz profile / resources page]
+(Insert actual URL once you have it handy.)
+
+
+This proves:
+
+
+Your services are registered
+
+
+Your pricing is transparent
+
+
+Your platform wallet is real
+
+
+
+🤝 Need Help? Want a Custom Integration?
+
+
+DM: @coinrailz on X
+
+
+Email: contact@coinrailz.com
+
+
+If you’re building:
+
+
+An AI trading agent
+
+
+A DeFi strategy bot
+
+
+A risk/intelligence agent
+
+
+An on-chain AI co-pilot
+
+
+…we’ll help you wire Coin Railz into your stack.
+
+That’s the /developers page, now fully aligned with:
+
+
+Your actual headers
+
+
+Your actual endpoints
+
+
+The real x402 flow
+
+
+Onboarding, auth, funding, and error-handling
+
+
+
+If you’re good with this, next I’ll move to Step 2: Integration Guides (ElizaOS, “Paid agent in 5 minutes”, etc.), which we can then tie into this /developers page and your outreach.

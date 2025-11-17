@@ -46,12 +46,16 @@ export default function TelegramApp() {
     }
   }, []);
 
+  // Development mode toggle - allows viewing UI without Telegram
+  const DEV_MODE = import.meta.env.DEV;
+
   // Get initData for authentication
   const getInitData = () => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       return window.Telegram.WebApp.initData;
     }
-    return '';
+    // In dev mode, return empty string to skip validation
+    return DEV_MODE ? 'dev-mode' : '';
   };
 
   // Link account and get $1 bonus
@@ -61,6 +65,17 @@ export default function TelegramApp() {
       const initData = getInitData();
       if (!initData) {
         throw new Error('Telegram data not available');
+      }
+
+      // In dev mode, return mock account
+      if (DEV_MODE && initData === 'dev-mode') {
+        return {
+          userId: 'dev-user-123',
+          telegramId: '123456789',
+          username: 'demo_user',
+          firstName: 'Demo',
+          apiKey: 'cr_tg_dev_key_preview_only'
+        };
       }
       
       const response = await apiRequest('/api/telegram/link', {
@@ -84,12 +99,26 @@ export default function TelegramApp() {
     queryKey: ['/api/telegram/activity'],
     queryFn: async () => {
       const initData = getInitData();
+
+      // In dev mode, return mock transactions
+      if (DEV_MODE && initData === 'dev-mode') {
+        return [
+          {
+            id: '1',
+            amount: 1.00,
+            type: 'bonus',
+            description: 'Welcome bonus',
+            createdAt: new Date().toISOString()
+          }
+        ];
+      }
+
       const response = await fetch(`/api/telegram/activity?initData=${encodeURIComponent(initData)}`);
       if (!response.ok) throw new Error('Failed to fetch activity');
       return response.json();
     },
     enabled: !!account,
-    refetchInterval: 5000 // Refresh every 5 seconds
+    refetchInterval: DEV_MODE ? false : 5000 // Don't refresh in dev mode
   });
 
   // Calculate balance from transactions
@@ -112,6 +141,15 @@ export default function TelegramApp() {
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
       const initData = getInitData();
+
+      // In dev mode, return mock response
+      if (DEV_MODE && initData === 'dev-mode') {
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+        return {
+          response: `This is a demo response. In production, the AI would analyze your request: "${message}". Try asking about wallet risks, token prices, or DEX liquidity!`
+        };
+      }
+
       const response = await apiRequest('/api/telegram/agent-chat', {
         method: 'POST',
         body: JSON.stringify({ initData, message })

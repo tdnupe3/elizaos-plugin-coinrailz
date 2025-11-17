@@ -3,6 +3,7 @@ import TelegramBot from "node-telegram-bot-api";
 import OpenAI from "openai";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { db } from "../db";
 import { telegramAccounts, telegramReferrals, users, creditsAccounts, creditTransactions, apiKeys } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -24,6 +25,24 @@ const openai = new OpenAI({
 const WEBAPP_URL = process.env.REPL_HOME ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/telegram/app` : "http://localhost:5000/telegram/app";
 const STARTING_BONUS = 1.00; // $1 starting bonus
 const REFERRAL_BONUS_PERCENT = 0.10; // 10% of first purchase
+
+// SECURITY: JWT_SECRET is REQUIRED for internal auth - no fallback allowed
+if (!process.env.JWT_SECRET) {
+  throw new Error("FATAL: JWT_SECRET environment variable is required for secure internal authentication");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+
+/**
+ * Generate a cryptographically signed internal auth token
+ * This prevents header spoofing attacks - only our Telegram backend can generate valid tokens
+ */
+function generateInternalAuthToken(userId: string): string {
+  return jwt.sign(
+    { userId, service: 'telegram-miniapp-proxy', iat: Math.floor(Date.now() / 1000) },
+    JWT_SECRET,
+    { expiresIn: '5m' } // Short-lived token (5 minutes)
+  );
+}
 
 /**
  * Validate Telegram initData signature to prevent spoofing
@@ -490,14 +509,16 @@ If user asks for a service and lacks funds, politely inform them and suggest top
         const serviceId = functionName.replace("_", "-");
         
         try {
-          // SECURITY FIX: Use server-side credentials for internal service calls
-          // Since we only store hashedKey, we authenticate internally as the platform
+          // SECURITY: Generate cryptographically signed JWT token for internal auth
+          // This prevents header spoofing - only our backend can generate valid tokens
+          const internalAuthToken = generateInternalAuthToken(telegramAccount.userId);
+          
           const response = await fetch(`${process.env.REPL_HOME || 'http://localhost:5000'}/api/x402/${serviceId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-Internal-User-ID': telegramAccount.userId, // Internal auth
-              'X-Internal-Auth': 'telegram-miniapp-proxy' // Server-to-server auth
+              'X-Internal-User-ID': telegramAccount.userId,
+              'X-Internal-Auth': internalAuthToken // JWT signed with JWT_SECRET
             },
             body: JSON.stringify(functionArgs)
           });
@@ -547,15 +568,17 @@ If user asks for a service and lacks funds, politely inform them and suggest top
       const newBalance = await creditsService.getBalance(telegramAccount.userId);
       
       // Calculate actual service costs (not including the $0.10 chat fee)
-      const serviceCosts = balanceBeforeServices - newBalance;
-      const totalSpent = CHAT_FEE + serviceCosts;
+      // Clamp to 0 to handle failed/refunded tool calls
+      const delta = balanceBeforeServices - newBalance;
+      const serviceCosts = Math.max(delta, 0);
+      const creditsSpent = CHAT_FEE + serviceCosts;
 
       return res.json({
         message: finalCompletion.choices[0].message.content,
         toolsUsed: toolCalls.map(tc => tc.function.name),
         chatFee: CHAT_FEE,
         serviceCosts,
-        creditsSpent: totalSpent,
+        creditsSpent,
         newBalance
       });
     }

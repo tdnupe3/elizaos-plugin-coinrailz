@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { ethers } from "ethers";
+import jwt from "jsonwebtoken";
 import { db } from "../db";
 import { usedTransactionHashes } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -70,7 +71,36 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
   // OPTION 0: Internal server-to-server authentication (Telegram Mini-App proxy)
   // This allows the Telegram backend to call x402 services on behalf of users
   // without exposing raw API keys (since we only store bcrypt hashes)
-  if (xInternalAuth === "telegram-miniapp-proxy" && xInternalUserId) {
+  // SECURITY: Validates JWT signature to prevent header spoofing attacks
+  if (xInternalAuth && xInternalUserId) {
+    // SECURITY: JWT_SECRET must be set - no fallback allowed
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET) {
+      console.error("FATAL: JWT_SECRET not set - internal auth disabled");
+      return res.status(500).json({
+        error: "Internal authentication unavailable",
+        message: "Server misconfiguration: JWT_SECRET not set"
+      });
+    }
+    
+    try {
+      // Verify JWT signature (throws if invalid/expired)
+      const decoded = jwt.verify(xInternalAuth, JWT_SECRET) as { userId: string; service: string };
+      
+      // Validate token claims
+      if (decoded.service !== 'telegram-miniapp-proxy' || decoded.userId !== xInternalUserId) {
+        return res.status(401).json({
+          error: "Invalid internal auth token",
+          message: "Token claims do not match request headers"
+        });
+      }
+    } catch (error) {
+      console.error("Internal auth token verification failed:", error);
+      return res.status(401).json({
+        error: "Invalid or expired internal auth token",
+        message: "Token signature verification failed"
+      });
+    }
     const serviceName = req.path.split("/").pop() || "unknown";
     const requiredAmountUSDC = SERVICE_PRICING[serviceName];
     

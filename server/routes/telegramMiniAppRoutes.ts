@@ -129,8 +129,8 @@ router.post("/link", async (req: Request, res: Response) => {
     }
 
     // New user - create full account
-    const userId = `tg_${nanoid(16)}`; // Generate unique user ID
-    const userReferralCode = `TGM${nanoid(8)}`; // Generate referral code
+    const userId = `t${nanoid(8)}`; // Generate unique user ID (9 chars total - fits varchar(12))
+    const userReferralCode = `T${nanoid(8)}`; // Generate referral code (9 chars total)
 
     // Start transaction
     await db.transaction(async (tx) => {
@@ -145,17 +145,19 @@ router.post("/link", async (req: Request, res: Response) => {
       });
 
       // 2. Create credits account with $1 starting bonus
-      await tx.insert(creditsAccounts).values({
+      const [creditsAccount] = await tx.insert(creditsAccounts).values({
         userId,
         balance: STARTING_BONUS,
         autoTopUpEnabled: false,
-      });
+      }).returning();
 
       // 3. Log the starting bonus transaction
       await tx.insert(creditTransactions).values({
+        accountId: creditsAccount.id,
         userId,
         amount: STARTING_BONUS,
         type: 'bonus',
+        balanceBefore: '0.00',
         balanceAfter: STARTING_BONUS,
         description: 'Welcome bonus - Try Coin Railz services!',
         metadata: {

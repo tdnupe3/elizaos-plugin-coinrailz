@@ -2,7 +2,11 @@
 
 ## Overview
 
-Coin Railz provides **18 production-ready x402 micropayment services** ($0.10-$5.00 USDC) on Base mainnet. Our platform supports **both** standard x402 payment protocols **AND** direct on-chain payment verification - giving you maximum flexibility.
+Coin Railz provides **18 production-ready x402 micropayment services** ($0.10-$5.00 USDC) on Base mainnet. We offer **three payment methods** for maximum developer flexibility:
+
+1. **Prepaid Credits with API Keys** (RECOMMENDED) - Easiest integration, highest conversion
+2. **Standard x402 Protocol** - Works with existing x402 tools (AgentKit, x402-fetch, ElizaOS)
+3. **Direct On-Chain Payment** - Manual USDC transfers with transaction hash
 
 **Platform Wallet**: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` (Base mainnet)
 
@@ -10,7 +14,73 @@ Coin Railz provides **18 production-ready x402 micropayment services** ($0.10-$5
 
 ## 🚀 Quick Start
 
-### Option 1: Standard x402 Tools (Recommended)
+### Option 1: Prepaid Credits with API Keys (RECOMMENDED - 50-70% Conversion Rate)
+
+**Why prepaid credits?**
+- ✅ No blockchain knowledge required
+- ✅ Pay with Stripe (credit card) or crypto
+- ✅ Single API key for all services
+- ✅ Automatic credit deduction
+- ✅ Real-time balance tracking
+- ✅ 50-70% conversion vs 2-5% for manual USDC payments
+
+**Step 1: Buy Credits**
+Visit https://coinrailz.com/credits and purchase credits via:
+- Stripe (credit/debit card)
+- USDC/USDT (any amount)
+
+**Step 2: Generate API Key**
+Visit https://coinrailz.com/api-keys and click "Generate New API Key"
+
+**Step 3: Use the API Key**
+
+**TypeScript/JavaScript (Server-Side):**
+```typescript
+import { X402Client } from '@coinrailz/x402-client';
+
+const client = new X402Client({ 
+  apiKey: process.env.COINRAILZ_API_KEY 
+});
+
+const response = await client.callService({
+  serviceId: 'multi-chain-balance',
+  payload: { address: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb' }
+});
+```
+
+**Direct HTTP (cURL):**
+```bash
+curl -X POST "https://coinrailz.com/x402/multi-chain-balance" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer cr_live_YOUR_API_KEY_HERE" \
+  -d '{"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"}'
+```
+
+**Python:**
+```python
+import requests
+
+headers = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer cr_live_YOUR_API_KEY_HERE"
+}
+
+response = requests.post(
+    "https://coinrailz.com/x402/multi-chain-balance",
+    json={"address": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"},
+    headers=headers
+)
+```
+
+**🔐 SECURITY WARNING**: 
+- NEVER expose API keys in client-side code (browsers, mobile apps)
+- ALWAYS use API keys server-side only (Node.js, Python, backend services)
+- Store API keys in environment variables, not in source code
+- Revoke compromised keys immediately at https://coinrailz.com/api-keys
+
+---
+
+### Option 2: Standard x402 Tools
 
 **Works out-of-the-box with:**
 - [Coinbase AgentKit](https://github.com/coinbase/agentkit) - Python SDK for AI agents
@@ -43,7 +113,7 @@ const response = await fetch402('https://coinrailz.com/x402/token-price', {
 
 ---
 
-### Option 2: Direct On-Chain Payment (For Manual Testing / Advanced Use Cases)
+### Option 3: Direct On-Chain Payment (For Manual Testing / Advanced Use Cases)
 
 **Step 1: Send USDC on Base mainnet**
 - To: `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`

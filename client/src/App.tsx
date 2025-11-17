@@ -32,6 +32,7 @@ import AuthPage from "@/pages/auth";
 import MainMenu from "@/pages/main-menu";
 import P2PTransfer from "@/pages/p2p-transfer";
 import X402DocsPage from "@/pages/X402DocsPage";
+import TelegramApp from "@/pages/telegram/TelegramApp";
 
 // Lazy-loaded components for performance optimization
 import {
@@ -602,6 +603,11 @@ function Router() {
       {/* Main route - conditional based on auth */}
       <Route path="/">
         {() => isLoading || !isAuthenticated ? <Landing /> : <MainMenu />}
+      </Route>
+
+      {/* Telegram Mini-App route - MUST be unauthenticated */}
+      <Route path="/telegram">
+        <TelegramApp />
       </Route>
       
       {/* Dashboard route - redirect to main menu for now */}

@@ -223,6 +223,11 @@ router.post("/link", async (req: Request, res: Response) => {
       // 5. Create Telegram account link
       const referredByUserId = referralCode ? await findUserByReferralCode(referralCode) : null;
 
+      // SECURITY: Prevent self-referral exploit
+      if (referredByUserId && referredByUserId === userId) {
+        throw new Error('Cannot refer yourself');
+      }
+
       await tx.insert(telegramAccounts).values({
         telegramId: telegramId.toString(),
         userId,
@@ -236,6 +241,13 @@ router.post("/link", async (req: Request, res: Response) => {
       });
 
       // 6. If referred, log referral (bonus will be credited on first purchase)
+      // TODO (Task 8 - CRITICAL): Implement 10% referral bonus settlement in payment webhooks
+      // When referred user makes first PAID top-up (Stripe/USDC):
+      // 1. Check telegramReferrals for this user's referral record
+      // 2. Calculate 10% of top-up amount
+      // 3. Credit referrer via creditsService.addCredits()
+      // 4. Update telegramReferrals.bonusAmount and mark as paid
+      // 5. Prevent duplicate payouts (only first purchase)
       if (referredByUserId) {
         await tx.insert(telegramReferrals).values({
           referrerUserId: referredByUserId,
@@ -327,13 +339,24 @@ router.post("/agent-chat", async (req: Request, res: Response) => {
       });
     }
 
-    // Deduct chat fee BEFORE calling OpenAI
-    await creditsService.deductCredits(
-      telegramAccount.userId,
-      CHAT_FEE,
-      'chat',
-      'AI chat message'
-    );
+    // Deduct chat fee BEFORE calling OpenAI (CRITICAL: prevents free usage)
+    try {
+      await creditsService.deductCredits({
+        userId: telegramAccount.userId,
+        amount: CHAT_FEE,
+        serviceName: 'telegram-chat',
+        description: 'AI chat message',
+        metadata: { source: 'telegram_miniapp' }
+      });
+    } catch (error: any) {
+      // Insufficient credits - return 402
+      return res.status(402).json({
+        error: "Insufficient credits",
+        balance,
+        required: CHAT_FEE,
+        message: error.message || "You need at least $0.10 to chat. Please top up your account."
+      });
+    }
 
     // Update balance after deduction
     const updatedBalance = balance - CHAT_FEE;
@@ -456,12 +479,14 @@ If user asks for a service and lacks funds, politely inform them and suggest top
         const serviceId = functionName.replace("_", "-");
         
         try {
-          // Call our own x402 service with user's API key
+          // SECURITY FIX: Use server-side credentials for internal service calls
+          // Since we only store hashedKey, we authenticate internally as the platform
           const response = await fetch(`${process.env.REPL_HOME || 'http://localhost:5000'}/api/x402/${serviceId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'X-API-KEY': apiKey.keyValue
+              'X-Internal-User-ID': telegramAccount.userId, // Internal auth
+              'X-Internal-Auth': 'telegram-miniapp-proxy' // Server-to-server auth
             },
             body: JSON.stringify(functionArgs)
           });
@@ -495,7 +520,7 @@ If user asks for a service and lacks funds, politely inform them and suggest top
         messages: [
           {
             role: "system",
-            content: `You are Coin Railz Copilot. Format service results clearly for the user. Current balance: $${balance.toFixed(2)}`
+            content: `You are Coin Railz Copilot. Format service results clearly for the user. Current balance: $${updatedBalance.toFixed(2)}`
           },
           { role: "user", content: message },
           responseMessage,
@@ -519,11 +544,14 @@ If user asks for a service and lacks funds, politely inform them and suggest top
     }
 
     // No tools called - just return OpenAI's response
+    // FIX: Show updated balance (after $0.10 chat deduction)
+    const newBalance = await creditsService.getBalance(telegramAccount.userId);
+    
     res.json({
       message: responseMessage.content,
       toolsUsed: [],
-      creditsSpent: 0,
-      newBalance: balance
+      creditsSpent: CHAT_FEE, // User paid $0.10 for chat
+      newBalance
     });
 
   } catch (error: any) {

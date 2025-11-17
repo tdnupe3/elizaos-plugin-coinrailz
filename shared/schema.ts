@@ -3458,6 +3458,41 @@ export const telegramTrades = pgTable("telegram_trades", {
   index("IDX_telegram_trades_created").on(table.createdAt),
 ]);
 
+// Telegram Mini-App Tables for Coin Railz Agent Console
+export const telegramAccounts = pgTable("telegram_accounts", {
+  id: serial("id").primaryKey(),
+  telegramId: varchar("telegram_id", { length: 255 }).notNull().unique(), // Telegram user ID
+  userId: varchar("user_id").notNull(), // FK to users.id (varchar)
+  apiKeyId: varchar("api_key_id"), // FK to apiKeys.id for server-side API calls
+  username: varchar("username", { length: 255 }),
+  firstName: varchar("first_name", { length: 255 }),
+  lastName: varchar("last_name", { length: 255 }),
+  referralCode: varchar("referral_code", { length: 50 }).unique(), // Unique referral code for this Telegram user
+  referredByUserId: varchar("referred_by_user_id"), // FK to users.id (who referred this user)
+  welcomeBonusGranted: boolean("welcome_bonus_granted").default(false), // $1 starting bonus
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastActiveAt: timestamp("last_active_at").defaultNow()
+}, (table) => [
+  uniqueIndex("IDX_telegram_accounts_telegram_id_unique").on(table.telegramId),
+  index("IDX_telegram_accounts_user_id").on(table.userId),
+  index("IDX_telegram_accounts_referral_code").on(table.referralCode),
+  index("IDX_telegram_accounts_referred_by").on(table.referredByUserId),
+]);
+
+export const telegramReferrals = pgTable("telegram_referrals", {
+  id: serial("id").primaryKey(),
+  referrerUserId: varchar("referrer_user_id").notNull(), // FK to users.id (who gets the bonus)
+  refereeUserId: varchar("referee_user_id").notNull(), // FK to users.id (who was referred)
+  bonusAmount: decimal("bonus_amount", { precision: 10, scale: 2 }).notNull(), // Amount of bonus credits awarded (10% of first purchase)
+  refereeFirstPurchaseAmount: decimal("referee_first_purchase_amount", { precision: 10, scale: 2 }), // Amount of referee's first purchase
+  creditedAt: timestamp("credited_at"), // When the bonus was actually credited
+  createdAt: timestamp("created_at").defaultNow().notNull() // When the referral link was used
+}, (table) => [
+  index("IDX_telegram_referrals_referrer").on(table.referrerUserId),
+  index("IDX_telegram_referrals_referee").on(table.refereeUserId),
+  index("IDX_telegram_referrals_credited_at").on(table.creditedAt),
+]);
+
 // PaymentIntent tracking to prevent replay attacks
 export const paymentIntentTracking = pgTable(
   "payment_intent_tracking",
@@ -3511,6 +3546,26 @@ export const telegramTradeInsertSchema = createInsertSchema(telegramTrades).omit
 export const telegramTradeSelectSchema = createSelectSchema(telegramTrades);
 export type InsertTelegramTrade = z.infer<typeof telegramTradeInsertSchema>;
 export type SelectTelegramTrade = typeof telegramTrades.$inferSelect;
+
+// Telegram Mini-App schema types
+export const telegramAccountInsertSchema = createInsertSchema(telegramAccounts).omit({
+  id: true,
+  createdAt: true,
+  lastActiveAt: true
+});
+
+export const telegramAccountSelectSchema = createSelectSchema(telegramAccounts);
+export type InsertTelegramAccount = z.infer<typeof telegramAccountInsertSchema>;
+export type SelectTelegramAccount = typeof telegramAccounts.$inferSelect;
+
+export const telegramReferralInsertSchema = createInsertSchema(telegramReferrals).omit({
+  id: true,
+  createdAt: true
+});
+
+export const telegramReferralSelectSchema = createSelectSchema(telegramReferrals);
+export type InsertTelegramReferral = z.infer<typeof telegramReferralInsertSchema>;
+export type SelectTelegramReferral = typeof telegramReferrals.$inferSelect;
 
 // PaymentIntent tracking schema types
 export const paymentIntentTrackingInsertSchema = createInsertSchema(paymentIntentTracking).omit({

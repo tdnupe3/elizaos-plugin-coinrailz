@@ -62,6 +62,7 @@ import subscriptionPayments from './routes/subscriptionPayments';
 import aiAgentServices from './routes/aiAgentServices';
 import agentServiceRoutes from './routes/agentServiceRoutes';
 import { telegramOutreachService } from './services/telegramOutreachService.js';
+import telegramMiniAppRoutes from './routes/telegramMiniAppRoutes';
 import { bnbChainService } from "./services/bnbChainService";
 import { pulseChainService } from "./services/pulseChainService";
 import { connectionManager } from "./services/connectionManager";
@@ -3055,6 +3056,7 @@ app.use('/api/real-wallet-discovery', realWalletDiscoveryRoutes);
 app.use('/api/targeted-outreach', targetedOutreachRoutes);
 app.use('/api/outreach', outreachRoutes);
 app.use('/api/auto-joiner', autoJoinerRoutes);
+app.use('/api/telegram', telegramMiniAppRoutes);
 app.use('/api/payments', subscriptionPayments);
 app.use('/api/ai-agent-services', aiAgentServices);
 app.use('/api/agent-services', agentServiceRoutes); // Order/delivery for Smart Contract Auditor & Compliance Consultant

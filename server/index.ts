@@ -681,8 +681,10 @@ console.log('✅ x402scan agent scraper routes registered');
 // === PREPAID CREDITS SYSTEM & CONVERSION OPTIMIZATION ===
 console.log('💳 Registering Prepaid Credits system for conversion optimization...');
 import { registerCreditsRoutes } from './routes/creditsRoutes';
+import { registerApiKeysRoutes } from './routes/apiKeysRoutes';
 registerCreditsRoutes(app);
-console.log('✅ Credits system routes registered successfully');
+registerApiKeysRoutes(app);
+console.log('✅ Credits & API Keys routes registered successfully');
 
 console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
 app.use('/api/sdk-licensing', sdkLicensingRoutes);

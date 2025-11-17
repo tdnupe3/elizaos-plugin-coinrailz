@@ -3,6 +3,7 @@ import { ethers } from "ethers";
 import { db } from "../db";
 import { usedTransactionHashes } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { creditsService } from "../services/creditsService.js";
 
 // Alchemy provider for Base mainnet
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
@@ -52,15 +53,86 @@ interface TransactionReceipt {
 /**
  * Hybrid Payment Middleware
  * 
- * Accepts BOTH payment formats:
- * 1. EIP-712 signatures (standard x402) - passes through to x402-express
- * 2. Raw transaction hashes - verifies on-chain via Alchemy
+ * Accepts THREE payment formats:
+ * 1. API Key (prepaid credits) - X-API-KEY header
+ * 2. EIP-712 signatures (standard x402) - passes through to x402-express
+ * 3. Raw transaction hashes - verifies on-chain via Alchemy
  * 
- * This maintains Coinbase Bazaar compliance while adding flexibility
+ * This maintains Coinbase Bazaar compliance while adding flexibility and prepaid credits
  */
-export function hybridPaymentMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function hybridPaymentMiddleware(req: Request, res: Response, next: NextFunction) {
+  const xApiKey = req.headers["x-api-key"] as string | undefined;
   const xPayment = req.headers["x-payment"] as string | undefined;
   
+  // OPTION 1: API Key authentication (prepaid credits)
+  if (xApiKey) {
+    const serviceName = req.path.split("/").pop() || "unknown";
+    const requiredAmountUSDC = SERVICE_PRICING[serviceName];
+    
+    if (!requiredAmountUSDC) {
+      return res.status(400).json({
+        error: "Invalid service",
+        serviceName
+      });
+    }
+    
+    // Convert USDC micros to dollars
+    const requiredAmountUSD = requiredAmountUSDC / 1000000;
+    
+    try {
+      // Validate API key
+      const validation = await creditsService.validateApiKey(xApiKey);
+      
+      if (!validation.valid || !validation.userId) {
+        return res.status(401).json({
+          error: "Invalid or revoked API key",
+          message: "Your API key is invalid, expired, or has been revoked"
+        });
+      }
+      
+      // Check if user has sufficient credits
+      const balance = await creditsService.getBalance(validation.userId);
+      
+      if (balance < requiredAmountUSD) {
+        return res.status(402).json({
+          error: "Insufficient credits",
+          required: requiredAmountUSD,
+          available: balance,
+          message: `You need $${requiredAmountUSD} in credits but only have $${balance}. Please purchase more credits.`
+        });
+      }
+      
+      // Deduct credits
+      await creditsService.deductCredits({
+        userId: validation.userId,
+        amount: requiredAmountUSD,
+        serviceName,
+        description: `${serviceName} API call via API key`,
+        metadata: {
+          apiKeyId: validation.keyId,
+          endpoint: req.path,
+          method: req.method
+        }
+      });
+      
+      console.log(`✅ API key payment: User ${validation.userId} paid $${requiredAmountUSD} for ${serviceName}`);
+      
+      // Attach user info to request for downstream use
+      (req as any).paidViaApiKey = true;
+      (req as any).apiKeyUserId = validation.userId;
+      
+      return next();
+      
+    } catch (error: any) {
+      console.error("❌ API key payment error:", error);
+      return res.status(500).json({
+        error: "Payment processing failed",
+        message: error.message
+      });
+    }
+  }
+  
+  // OPTION 2 & 3: X-PAYMENT header (txHash or EIP-712)
   // If no X-PAYMENT header, let x402-express handle it (will return 402)
   if (!xPayment) {
     return next();

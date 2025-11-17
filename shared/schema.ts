@@ -4189,3 +4189,99 @@ export const batchQuoteInputSchema = z.object({
 
 export type BatchQuoteInput = z.infer<typeof batchQuoteInputSchema>;
 
+// Credits Accounts - Prepaid credits balance for users
+export const creditsAccounts = pgTable("credits_accounts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  balance: decimal("balance", { precision: 12, scale: 2 }).default("0.00").notNull(),
+  autoTopUpEnabled: boolean("auto_top_up_enabled").default(false),
+  autoTopUpThreshold: decimal("auto_top_up_threshold", { precision: 12, scale: 2 }).default("10.00"),
+  autoTopUpAmount: decimal("auto_top_up_amount", { precision: 12, scale: 2 }).default("50.00"),
+  preferredPaymentMethod: varchar("preferred_payment_method").default("stripe"), // stripe, usdc, usdt
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  uniqueIndex("IDX_credits_accounts_user_id").on(table.userId),
+  index("IDX_credits_accounts_balance").on(table.balance),
+]);
+
+// Credit Transactions - Ledger of all credit movements
+export const creditTransactions = pgTable("credit_transactions", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id").notNull().references(() => creditsAccounts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  type: varchar("type").notNull(), // purchase, debit, refund, adjustment, bonus
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  balanceBefore: decimal("balance_before", { precision: 12, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 12, scale: 2 }).notNull(),
+  referenceId: varchar("reference_id"), // Stripe payment ID, txHash, etc.
+  serviceName: varchar("service_name"), // Which x402 service was called (for debits)
+  paymentMethod: varchar("payment_method"), // stripe, usdc, usdt
+  metadata: jsonb("metadata"), // Additional transaction data
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+  index("IDX_credit_transactions_account_id").on(table.accountId),
+  index("IDX_credit_transactions_user_id").on(table.userId),
+  index("IDX_credit_transactions_type").on(table.type),
+  index("IDX_credit_transactions_reference_id").on(table.referenceId),
+  index("IDX_credit_transactions_created_at").on(table.createdAt),
+]);
+
+// API Keys - API key authentication for prepaid credits
+export const apiKeys = pgTable("api_keys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  keyPrefix: varchar("key_prefix", { length: 12 }).notNull(), // First 12 chars for display (e.g., "cr_live_abc1")
+  hashedKey: varchar("hashed_key", { length: 255 }).notNull(), // Bcrypt hash of full key
+  name: varchar("name").default("API Key"), // User-friendly name
+  status: varchar("status").default("active").notNull(), // active, revoked, expired
+  lastUsedAt: timestamp("last_used_at"),
+  expiresAt: timestamp("expires_at"),
+  allowedServices: jsonb("allowed_services"), // Restrict to specific services if needed
+  rateLimit: integer("rate_limit").default(1000), // Requests per hour
+  createdAt: timestamp("created_at").defaultNow(),
+  revokedAt: timestamp("revoked_at"),
+}, (table) => [
+  uniqueIndex("IDX_api_keys_hashed_key").on(table.hashedKey),
+  index("IDX_api_keys_user_id").on(table.userId),
+  index("IDX_api_keys_status").on(table.status),
+  index("IDX_api_keys_key_prefix").on(table.keyPrefix),
+]);
+
+// Credits Accounts Insert/Select Schemas
+export const creditsAccountsInsertSchema = createInsertSchema(creditsAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const creditsAccountsSelectSchema = createSelectSchema(creditsAccounts);
+
+export type CreditsAccount = typeof creditsAccounts.$inferSelect;
+export type InsertCreditsAccount = z.infer<typeof creditsAccountsInsertSchema>;
+
+// Credit Transactions Insert/Select Schemas
+export const creditTransactionsInsertSchema = createInsertSchema(creditTransactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const creditTransactionsSelectSchema = createSelectSchema(creditTransactions);
+
+export type CreditTransaction = typeof creditTransactions.$inferSelect;
+export type InsertCreditTransaction = z.infer<typeof creditTransactionsInsertSchema>;
+
+// API Keys Insert/Select Schemas
+export const apiKeysInsertSchema = createInsertSchema(apiKeys).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+  revokedAt: true,
+});
+
+export const apiKeysSelectSchema = createSelectSchema(apiKeys);
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = z.infer<typeof apiKeysInsertSchema>;
+

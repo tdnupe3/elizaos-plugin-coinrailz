@@ -116,7 +116,6 @@ const ContactUs = lazy(() => import("@/pages/contact-us"));
 const WalletAccess = lazy(() => import("@/pages/WalletAccess"));
 
 const AgentDashboard = lazy(() => import("@/pages/agent-dashboard"));
-const CreditsPage = lazy(() => import("@/pages/credits"));
 const AIAgentRegistration = lazy(() => import("@/pages/ai-agent-registration"));
 const AgentOrderManagement = lazy(() => import("@/pages/agent-order-management"));
 const CustomerOrderDashboard = lazy(() => import("@/pages/customer-order-dashboard"));
@@ -153,6 +152,8 @@ const FreelanceDeveloperServices = lazy(() => import("@/pages/FreelanceDeveloper
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
+const CreditsPage = lazy(() => import("@/pages/CreditsPage"));
+const APIKeysPage = lazy(() => import("@/pages/APIKeysPage"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -239,6 +240,15 @@ function Router() {
       {/* Developer API Documentation - x402 Protocol */}
       <Route path="/developers">
         {() => <LazyLoadWrapper><DevelopersPage /></LazyLoadWrapper>}
+      </Route>
+
+      {/* Prepaid Credits System - Conversion Optimization */}
+      <Route path="/credits">
+        {() => <LazyLoadWrapper><CreditsPage /></LazyLoadWrapper>}
+      </Route>
+
+      <Route path="/api-keys">
+        {() => <LazyLoadWrapper><APIKeysPage /></LazyLoadWrapper>}
       </Route>
       
       {/* Enterprise section - separate from consumer platform */}

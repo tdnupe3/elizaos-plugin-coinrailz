@@ -4,42 +4,57 @@ import type { PaymentRequest, PaymentResponse } from '../types';
 const COIN_RAILZ_BASE_URL = process.env.COIN_RAILZ_URL || 'https://coinrailz.com';
 const PLATFORM_WALLET = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
 
+export interface X402ClientConfig {
+  baseUrl?: string;
+  apiKey?: string;
+}
+
 export class X402Client {
   private baseUrl: string;
+  private apiKey?: string;
 
-  constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || COIN_RAILZ_BASE_URL;
+  constructor(config?: X402ClientConfig) {
+    this.baseUrl = config?.baseUrl || COIN_RAILZ_BASE_URL;
+    this.apiKey = config?.apiKey || process.env.COINRAILZ_API_KEY;
   }
 
   async callService(request: PaymentRequest): Promise<PaymentResponse> {
     const { serviceId, payload, walletAddress } = request;
 
     try {
-      // Step 1: Try to call service without payment (will get 402)
       const endpoint = `${this.baseUrl}/x402/${serviceId}`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+
+      if (this.apiKey) {
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
+      }
       
       try {
-        const response = await axios.post(endpoint, payload, {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
+        const response = await axios.post(endpoint, payload, { headers });
         
-        // If we got here, service was free or payment already made
         return {
           success: true,
           serviceResponse: response.data
         };
       } catch (error) {
         if (axios.isAxiosError(error) && error.response?.status === 402) {
-          // Payment required - extract payment details
           const paymentDetails = error.response.data;
           
-          console.log(`💳 Payment required for ${serviceId}:`, paymentDetails);
-          console.log(`ℹ️  To pay:`);
-          console.log(`   1. Send ${paymentDetails.accepts[0].maxAmountRequired / 10000} USDC to ${PLATFORM_WALLET}`);
-          console.log(`   2. Include transaction hash in X-PAYMENT header`);
-          console.log(`   3. Retry the request`);
+          if (this.apiKey) {
+            console.log(`💳 Insufficient credits for ${serviceId}. Please top up your account.`);
+          } else {
+            console.log(`💳 Payment required for ${serviceId}:`, paymentDetails);
+            console.log(`ℹ️  Option 1 (Recommended): Use prepaid credits`);
+            console.log(`   1. Buy credits at ${this.baseUrl}/credits`);
+            console.log(`   2. Generate an API key at ${this.baseUrl}/api-keys`);
+            console.log(`   3. Initialize client with: new X402Client({ apiKey: 'your-key' })`);
+            console.log(`ℹ️  Option 2 (Legacy): Pay with USDC`);
+            console.log(`   1. Send ${paymentDetails.accepts[0].maxAmountRequired / 10000} USDC to ${PLATFORM_WALLET}`);
+            console.log(`   2. Include transaction hash in X-PAYMENT header`);
+            console.log(`   3. Retry the request`);
+          }
           
           return {
             success: false,
@@ -66,13 +81,16 @@ export class X402Client {
 
     try {
       const endpoint = `${this.baseUrl}/x402/${serviceId}`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-PAYMENT': transactionHash
+      };
+
+      if (this.apiKey) {
+        headers['Authorization'] = `Bearer ${this.apiKey}`;
+      }
       
-      const response = await axios.post(endpoint, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-PAYMENT': transactionHash
-        }
-      });
+      const response = await axios.post(endpoint, payload, { headers });
       
       return {
         success: true,

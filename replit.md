@@ -40,9 +40,21 @@ The platform is structured around core services for unified payment processing, 
 - **Compliance**: Features integrated KYC/AML with incentive dashboards and progressive KYC.
 - **Data Monetization**: Provides APIs for crypto flow intelligence, AI marketplace analytics, and viral referral analytics.
 
+## Recent Changes (Nov 17, 2025)
+### Telegram Mini-App Viral Growth Features
+- ✅ **Bot Commands**: Added /help, /scan, /risk, /price, /liquidity, /portfolio shortcuts
+- ✅ **Viral Hooks**: "Invite Friends" button with referral tracking, "Share Result" functionality with error fallbacks
+- ✅ **Pricing Synchronization**: All 18 x402 services aligned across hybridPaymentMiddleware (micro-USDC), microservices.ts (USD), and user-facing copy
+- ✅ **Complete Price Range**: $0.10 (chat/gas oracle) to $5.00 (agent identity verification)
+- ✅ **Referral Infrastructure**: Uses backend referralCode for tracking, ready for growth
+
+### Known Issues
+- ⚠️ **XMTP Database Conflicts**: XMTP messaging service fails to initialize due to schema conflicts (duplicate column errors). System uses graceful fallback to basic wallet messaging. Does NOT affect Telegram Mini-App, prepaid credits, or x402 payments. XMTP is only used for optional agent-to-agent communication features.
+
 ## External Dependencies
 - **Circle**: For USDC wallet creation, management, balance tracking, and transaction processing via Developer Controlled Wallets SDK.
 - **x402 Protocol**: HTTP 402-based autonomous AI agent payment standard, integrated with Coinbase CDP facilitator for payment verification and settlement. Coin Railz offers 18 registered micropayment services on x402scan.
+- **Telegram**: Mini-App hosted at public HTTPS URL, bot @coinrailz_bot with webhook integration for viral distribution.
 - **Plaid**: For user bank account linking and ACH processing.
 - **CoinFlip**: For USD ↔ USDC conversions.
 - **CoinGecko API**: For real-time cryptocurrency pricing and market data.

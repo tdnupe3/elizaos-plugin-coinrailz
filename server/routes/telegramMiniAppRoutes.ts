@@ -22,7 +22,9 @@ const openai = new OpenAI({
 });
 
 // Platform configuration
-const WEBAPP_URL = process.env.REPL_HOME ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co/telegram/app` : "http://localhost:5000/telegram/app";
+const WEBAPP_URL = process.env.REPLIT_DOMAINS 
+  ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}/telegram`
+  : "http://localhost:5000/telegram";
 const STARTING_BONUS = 1.00; // $1 starting bonus
 const REFERRAL_BONUS_PERCENT = 0.10; // 10% of first purchase
 

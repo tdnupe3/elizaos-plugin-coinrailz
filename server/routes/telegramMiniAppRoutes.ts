@@ -28,13 +28,14 @@ const WEBAPP_URL = process.env.REPLIT_DOMAINS
 const STARTING_BONUS = 1.00; // $1 starting bonus
 const REFERRAL_BONUS_PERCENT = 0.10; // 10% of first purchase
 
-// Telegram Payments configuration
-const STRIPE_PROVIDER_TOKEN = process.env.TELEGRAM_STRIPE_PROVIDER_TOKEN || "";
+// Telegram Payments configuration using Telegram Stars
+// For digital goods/services, Telegram Stars is required (app store compliant)
+// 1 Star ≈ $0.01 USD (Telegram's native in-app currency)
 const PAYMENT_TIERS = [
-  { amount: 10, label: "$10 Credits", description: "Get $10 in credits" },
-  { amount: 25, label: "$25 Credits", description: "Get $25 in credits + 10% bonus" },
-  { amount: 50, label: "$50 Credits", description: "Get $50 in credits + 15% bonus" },
-  { amount: 100, label: "$100 Credits", description: "Get $100 in credits + 20% bonus" }
+  { stars: 1000, usdValue: 10, label: "1,000 ⭐ Stars", description: "$10 in credits", bonus: 0 },
+  { stars: 2500, usdValue: 25, label: "2,500 ⭐ Stars", description: "$27.50 credits (+10% bonus)", bonus: 0.10 },
+  { stars: 5000, usdValue: 50, label: "5,000 ⭐ Stars", description: "$57.50 credits (+15% bonus)", bonus: 0.15 },
+  { stars: 10000, usdValue: 100, label: "10,000 ⭐ Stars", description: "$120 credits (+20% bonus)", bonus: 0.20 }
 ] as const;
 
 // SECURITY: JWT_SECRET is REQUIRED for internal auth - no fallback allowed
@@ -295,18 +296,18 @@ router.post("/webhook", async (req: Request, res: Response) => {
       // Handle /buy command
       else if (text === "/buy") {
         const keyboard = PAYMENT_TIERS.map(tier => [{
-          text: `💳 ${tier.label}`,
-          callback_data: `buy_${tier.amount}`
+          text: `⭐ ${tier.label}`,
+          callback_data: `buy_${tier.stars}`
         }]);
         
         await bot.sendMessage(chatId,
-          "💰 *Buy Credits*\n\n" +
-          "Choose a payment tier below:\n\n" +
-          "• $10 - Standard\n" +
-          "• $25 - +10% bonus ($27.50 total)\n" +
-          "• $50 - +15% bonus ($57.50 total)\n" +
-          "• $100 - +20% bonus ($120.00 total)\n\n" +
-          "Payment via Stripe - secure & instant!",
+          "💰 *Buy Credits with Telegram Stars*\n\n" +
+          "Choose a payment tier:\n\n" +
+          "⭐ 1,000 Stars → $10 credits\n" +
+          "⭐ 2,500 Stars → $27.50 credits (+10% bonus)\n" +
+          "⭐ 5,000 Stars → $57.50 credits (+15% bonus)\n" +
+          "⭐ 10,000 Stars → $120 credits (+20% bonus)\n\n" +
+          "✨ Pay with Apple Pay, Google Pay, or card!",
           {
             parse_mode: "Markdown",
             reply_markup: {
@@ -370,17 +371,17 @@ router.post("/webhook", async (req: Request, res: Response) => {
       // Show buy credits tier selection
       if (data === "buy_credits") {
         const keyboard = PAYMENT_TIERS.map(tier => [{
-          text: `💳 ${tier.label}`,
-          callback_data: `buy_${tier.amount}`
+          text: `⭐ ${tier.label}`,
+          callback_data: `buy_${tier.stars}`
         }]);
         
         await bot.sendMessage(chatId,
-          "💰 *Buy Credits*\n\n" +
+          "💰 *Buy Credits with Telegram Stars*\n\n" +
           "Choose a payment tier:\n\n" +
-          "• $10 - Standard\n" +
-          "• $25 - +10% bonus ($27.50 total)\n" +
-          "• $50 - +15% bonus ($57.50 total)\n" +
-          "• $100 - +20% bonus ($120.00 total)",
+          "⭐ 1,000 Stars → $10 credits\n" +
+          "⭐ 2,500 Stars → $27.50 credits (+10% bonus)\n" +
+          "⭐ 5,000 Stars → $57.50 credits (+15% bonus)\n" +
+          "⭐ 10,000 Stars → $120 credits (+20% bonus)",
           {
             parse_mode: "Markdown",
             reply_markup: {
@@ -392,34 +393,33 @@ router.post("/webhook", async (req: Request, res: Response) => {
       
       // Handle specific tier purchase
       else if (data?.startsWith("buy_")) {
-        const amount = parseInt(data.replace("buy_", ""));
-        const tier = PAYMENT_TIERS.find(t => t.amount === amount);
+        const stars = parseInt(data.replace("buy_", ""));
+        const tier = PAYMENT_TIERS.find(t => t.stars === stars);
         
-        if (!tier || !STRIPE_PROVIDER_TOKEN) {
+        if (!tier) {
           await bot.sendMessage(chatId, 
-            "⚠️ Payments are being configured. Please try again in a few moments or contact support."
+            "⚠️ Invalid payment tier. Please use /buy to see available options."
           );
           return res.status(200).json({ ok: true });
         }
         
-        // Calculate bonus
-        let bonus = 0;
-        if (amount === 25) bonus = 0.10;
-        else if (amount === 50) bonus = 0.15;
-        else if (amount === 100) bonus = 0.20;
+        const totalCredits = tier.usdValue * (1 + tier.bonus);
         
-        const totalCredits = amount * (1 + bonus);
-        
-        // Send Telegram invoice
+        // Send Telegram Stars invoice (no provider_token needed for Stars)
         await bot.sendInvoice(chatId, {
           title: tier.label,
-          description: tier.description + (bonus > 0 ? ` (+${bonus * 100}% bonus = $${totalCredits.toFixed(2)})` : ""),
-          payload: JSON.stringify({ userId, amount, bonus }),
-          provider_token: STRIPE_PROVIDER_TOKEN,
-          currency: "USD",
+          description: tier.description,
+          payload: JSON.stringify({ 
+            userId, 
+            stars: tier.stars,
+            usdValue: tier.usdValue, 
+            bonus: tier.bonus,
+            totalCredits 
+          }),
+          currency: "XTR", // XTR = Telegram Stars currency code
           prices: [{
             label: tier.label,
-            amount: amount * 100 // Telegram uses cents
+            amount: tier.stars // For Stars, amount is in Stars (not cents)
           }]
         });
       }
@@ -433,17 +433,14 @@ router.post("/webhook", async (req: Request, res: Response) => {
       await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
     }
     
-    // Handle successful payment
+    // Handle successful payment (Telegram Stars)
     if (update.message?.successful_payment) {
       const payment = update.message.successful_payment;
       const chatId = update.message.chat.id;
       
       try {
         const payload = JSON.parse(payment.invoice_payload);
-        const { userId, amount, bonus } = payload;
-        
-        // Calculate total credits with bonus
-        const totalCredits = amount * (1 + (bonus || 0));
+        const { stars, usdValue, bonus, totalCredits } = payload;
         
         // Find user's account
         const telegramId = update.message.from?.id;
@@ -459,12 +456,12 @@ router.post("/webhook", async (req: Request, res: Response) => {
         await creditsService.addCredits(
           telegramAccount.userId,
           totalCredits,
-          `Telegram payment - ${amount === totalCredits ? `$${amount}` : `$${amount} + ${(bonus * 100)}% bonus`}`,
+          `Telegram Stars payment - ${stars} ⭐ (${bonus > 0 ? `$${usdValue} + ${(bonus * 100)}% bonus` : `$${usdValue}`})`,
           {
-            source: "telegram_payment",
+            source: "telegram_stars",
             paymentId: payment.telegram_payment_charge_id,
-            providerPaymentId: payment.provider_payment_charge_id,
-            amount,
+            stars,
+            usdValue,
             bonus: bonus || 0
           }
         );
@@ -475,7 +472,8 @@ router.post("/webhook", async (req: Request, res: Response) => {
         // Send success message
         await bot.sendMessage(chatId,
           `✅ *Payment Successful!*\n\n` +
-          `Added: $${totalCredits.toFixed(2)}\n` +
+          `Paid: ${stars} ⭐ Stars\n` +
+          `Added: $${totalCredits.toFixed(2)} credits\n` +
           `New Balance: $${newBalance.toFixed(2)}\n\n` +
           `Ready to use your credits! 🚀`,
           {

@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import TelegramBot from "node-telegram-bot-api";
 import OpenAI from "openai";
 import crypto from "crypto";
+import bcrypt from "bcrypt";
 import { db } from "../db";
 import { telegramAccounts, telegramReferrals, users, creditsAccounts, creditTransactions, apiKeys } from "@shared/schema";
 import { eq, and, desc } from "drizzle-orm";
@@ -27,12 +28,13 @@ const REFERRAL_BONUS_PERCENT = 0.10; // 10% of first purchase
 /**
  * Validate Telegram initData signature to prevent spoofing
  * https://core.telegram.org/bots/webapps#validating-data-received-via-the-mini-app
+ * Returns the user data if valid, null if invalid
  */
-function validateTelegramData(initData: string): boolean {
+function validateTelegramData(initData: string): { id: number; first_name?: string; last_name?: string; username?: string } | null {
   try {
     const params = new URLSearchParams(initData);
     const hash = params.get("hash");
-    if (!hash) return false;
+    if (!hash) return null;
 
     params.delete("hash");
     
@@ -45,10 +47,32 @@ function validateTelegramData(initData: string): boolean {
     const secretKey = crypto.createHmac("sha256", "WebAppData").update(TELEGRAM_BOT_TOKEN).digest();
     const calculatedHash = crypto.createHmac("sha256", secretKey).update(dataCheckString).digest("hex");
 
-    return calculatedHash === hash;
+    if (calculatedHash !== hash) {
+      return null;
+    }
+
+    // Check auth_date to prevent replay attacks (reject if older than 5 minutes)
+    const authDate = params.get("auth_date");
+    if (!authDate) return null;
+    
+    const authTimestamp = parseInt(authDate);
+    const now = Math.floor(Date.now() / 1000);
+    const MAX_AGE_SECONDS = 5 * 60; // 5 minutes
+    
+    if (now - authTimestamp > MAX_AGE_SECONDS) {
+      console.warn(`Telegram auth_date too old: ${now - authTimestamp}s ago`);
+      return null;
+    }
+
+    // Extract and parse user data
+    const userParam = params.get("user");
+    if (!userParam) return null;
+    
+    const userData = JSON.parse(userParam);
+    return userData;
   } catch (error) {
     console.error("Telegram data validation error:", error);
-    return false;
+    return null;
   }
 }
 
@@ -105,11 +129,23 @@ router.post("/webhook", async (req: Request, res: Response) => {
  */
 router.post("/link", async (req: Request, res: Response) => {
   try {
-    const { telegramId, username, firstName, lastName, referralCode } = req.body;
+    const { initData, referralCode } = req.body;
 
-    if (!telegramId) {
-      return res.status(400).json({ error: "telegramId is required" });
+    if (!initData) {
+      return res.status(400).json({ error: "initData is required" });
     }
+
+    // Validate Telegram signature
+    const userData = validateTelegramData(initData);
+    if (!userData) {
+      return res.status(401).json({ error: "Invalid Telegram signature" });
+    }
+
+    // Extract validated data
+    const telegramId = userData.id;
+    const username = userData.username || null;
+    const firstName = userData.first_name || "User";
+    const lastName = userData.last_name || null;
 
     // Check if Telegram account already exists
     let telegramAccount = await db.query.telegramAccounts.findFirst({
@@ -168,11 +204,12 @@ router.post("/link", async (req: Request, res: Response) => {
 
       // 4. Generate server-side API key for this user
       const apiKeyValue = `cr_tg_${nanoid(32)}`;
-      const keyPrefix = apiKeyValue.substring(0, 14); // cr_tg_xxxxxx
+      const keyPrefix = apiKeyValue.substring(0, 12); // cr_tg_xxxxxx (12 chars max)
+      const hashedKey = await bcrypt.hash(apiKeyValue, 10); // Hash for secure storage
 
       const [apiKey] = await tx.insert(apiKeys).values({
         userId,
-        keyValue: apiKeyValue,
+        hashedKey, // Store hashed version
         keyPrefix,
         name: 'Telegram Mini-App',
         status: 'active',
@@ -208,12 +245,18 @@ router.post("/link", async (req: Request, res: Response) => {
       }
     });
 
+    // SECURITY: Return API key ONCE for SDK/direct API access
+    // Never log this value. Delivered over HTTPS only.
+    // Frontend must prompt user to copy and never store it.
     res.json({
       userId,
       balance: STARTING_BONUS,
       displayName: firstName || 'User',
       isNewUser: true,
-      welcomeMessage: `Welcome! You've received $${STARTING_BONUS} in free credits to try our services. 🎉`
+      apiKey: apiKeyValue, // ⚠️ Shown ONCE - user must copy now
+      apiKeyPrefix: keyPrefix,
+      welcomeMessage: `Welcome! You've received $${STARTING_BONUS} in free credits to try our services. 🎉`,
+      securityNotice: "Copy your API key now - it won't be shown again!"
     });
 
   } catch (error) {
@@ -238,11 +281,19 @@ async function findUserByReferralCode(code: string): Promise<string | null> {
  */
 router.post("/agent-chat", async (req: Request, res: Response) => {
   try {
-    const { telegramId, message } = req.body;
+    const { initData, message } = req.body;
 
-    if (!telegramId || !message) {
-      return res.status(400).json({ error: "telegramId and message are required" });
+    if (!initData || !message) {
+      return res.status(400).json({ error: "initData and message are required" });
     }
+
+    // Validate Telegram signature
+    const userData = validateTelegramData(initData);
+    if (!userData) {
+      return res.status(401).json({ error: "Invalid Telegram signature" });
+    }
+
+    const telegramId = userData.id;
 
     // Get Telegram account and API key
     const telegramAccount = await db.query.telegramAccounts.findFirst({
@@ -264,6 +315,28 @@ router.post("/agent-chat", async (req: Request, res: Response) => {
 
     // Get current balance
     const balance = await creditsService.getBalance(telegramAccount.userId);
+
+    // CRITICAL: Charge for chat message usage ($0.10 per message)
+    const CHAT_FEE = 0.10;
+    if (balance < CHAT_FEE) {
+      return res.status(402).json({ 
+        error: "Insufficient credits", 
+        balance,
+        required: CHAT_FEE,
+        message: "You need at least $0.10 to chat. Please top up your account."
+      });
+    }
+
+    // Deduct chat fee BEFORE calling OpenAI
+    await creditsService.deductCredits(
+      telegramAccount.userId,
+      CHAT_FEE,
+      'chat',
+      'AI chat message'
+    );
+
+    // Update balance after deduction
+    const updatedBalance = balance - CHAT_FEE;
 
     // Define OpenAI tools (functions) for Coin Railz services
     const tools: OpenAI.ChatCompletionTool[] = [
@@ -351,7 +424,7 @@ router.post("/agent-chat", async (req: Request, res: Response) => {
           role: "system",
           content: `You are Coin Railz Copilot, an AI assistant for blockchain services. You help users check wallet risks, token prices, DEX liquidity, contract security, and balances. 
 
-Current user balance: $${balance.toFixed(2)}
+Current user balance: $${updatedBalance.toFixed(2)}
 
 Service costs:
 - Wallet Risk: $0.50
@@ -465,11 +538,19 @@ If user asks for a service and lacks funds, politely inform them and suggest top
  */
 router.get("/activity", async (req: Request, res: Response) => {
   try {
-    const { telegramId } = req.query;
+    const { initData } = req.query;
 
-    if (!telegramId) {
-      return res.status(400).json({ error: "telegramId is required" });
+    if (!initData || typeof initData !== 'string') {
+      return res.status(400).json({ error: "initData is required" });
     }
+
+    // Validate Telegram signature
+    const userData = validateTelegramData(initData);
+    if (!userData) {
+      return res.status(401).json({ error: "Invalid Telegram signature" });
+    }
+
+    const telegramId = userData.id;
 
     // Get Telegram account
     const telegramAccount = await db.query.telegramAccounts.findFirst({

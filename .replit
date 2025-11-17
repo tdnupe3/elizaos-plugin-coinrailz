@@ -11,10 +11,6 @@ deploymentTarget = "autoscale"
 build = ["sh", "-c", "npm run build"]
 run = ["sh", "-c", "NODE_ENV=production node dist/index.js"]
 
-[[ports]]
-localPort = 5000
-externalPort = 5000
-
 [workflows]
 runButton = "Project"
 
@@ -38,3 +34,7 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_sendgrid==1.0.0", "javascript_paypal==1.0.0", "javascript_stripe==1.0.0", "javascript_google_analytics==1.0.0", "javascript_websocket==1.0.0"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80

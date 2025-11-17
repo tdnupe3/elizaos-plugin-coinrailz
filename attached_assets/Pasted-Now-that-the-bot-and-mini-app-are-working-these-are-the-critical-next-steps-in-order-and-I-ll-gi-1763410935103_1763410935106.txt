@@ -1,0 +1,181 @@
+Now that the bot and mini-app are working, these are the critical next steps (in order), and I’ll give you everything you need for each one:
+
+✅ STEP 1 — Set the Bot’s Public Profile (Mandatory for Trust & Viral Growth)
+
+You need these in place immediately:
+
+1. Bot Name
+
+Coin Railz Agent Console
+
+2. Bot Description (short)
+
+Paste this into BotFather:
+
+Autonomous AI agent console for on-chain intelligence. Run wallet risk scans, token prices, liquidity checks, contract scans, portfolio reports — all paid with prepaid credits.
+
+3. Bot About Text (profile bio)
+
+Paste into BotFather:
+
+The official Coin Railz mini-app. Fully autonomous agent payments, 18 on-chain services, API key support, and OpenAI-powered insights.
+
+4. Bot Commands
+
+Paste into BotFather under /setcommands:
+
+start - Launch the Coin Railz Mini-App
+help - Get support or instructions
+scan - Run a smart contract scan
+risk - Wallet risk check
+liquidity - DEX liquidity data
+price - Token price lookup
+portfolio - Wallet portfolio view
+
+
+These make the bot look premium + trusted.
+
+If you want, I can also write your privacy policy, terms, and support page text (Telegram requires these eventually).
+
+⚡ STEP 2 — Add the Bot to Your Twitter Profile & Website
+
+You now have:
+
+✓ Website
+✓ SDK
+✓ Stripe credits
+✓ Telegram bot
+✓ Mini-app
+
+Now we show them off.
+
+Update Twitter Bio:
+
+Stripe for autonomous AI agents. Prepaid credits, 18 on-chain services, API keys, and a Telegram agent console.
+Bot: @coinrailz_bot
+coinrailz.com
+
+Add bot link to your website navigation:
+
+“Telegram Mini-App (NEW)” → https://t.me/coinrailz_bot/app
+
+This drives conversion.
+
+🔥 STEP 3 — Announce the Bot (Short Tweet Version, 180 chars)
+
+Post this NOW:
+
+🚀 The Coin Railz Telegram Mini-App is LIVE.
+Wallet risk, token prices, DEX liquidity, portfolio scans & more — all paid with prepaid credits.
+Try it: @coinrailz_bot
+#AI #Agents #Base
+
+Follow-up tweet:
+
+Built for autonomous agents. Powered by @BuildOnBase + @OpenAI + Coin Railz prepaid credits.
+18 real on-chain services. No wallets. No gas.
+https://coinrailz.com
+
+Let me know when posted — I’ll give you the perfect reply threads.
+
+🧠 STEP 4 — Add LLM “Reasoning Mode” Inside the Mini-App
+
+Now that the bot and mini-app work, turn it into a real AI agent console with:
+
+OpenAI reasoning
+
+Tool calling
+
+Automatic routing to:
+
+wallet-risk
+
+token-price
+
+dex-liquidity
+
+contract-scan
+
+portfolio-tracker
+
+I can give you the full system prompt, function definitions, and payload spec to paste into Replit so that:
+
+Users can literally SAY:
+“Scan this contract”
+“Is this wallet safe?”
+“What’s the liquidity for PEPE on Base?”
+
+And the LLM automatically performs the action using your credits.
+
+If you want this next, say:
+
+👉 “Give me the LLM routing system prompt + tool definitions.”
+
+🟩 STEP 5 — Add Referral Structure (Agents Recruit Agents)
+
+This is where the growth loop begins.
+
+Every Telegram user gets a unique referral link:
+
+https://t.me/coinrailz_bot?start=TGM_<telegram_id>
+
+You already have account linking, so now:
+
+When someone joins via referral:
+
+Attribute referral
+
+Log it in DB
+
+(Optionally) award 10 bonus credits after first top-up
+
+Show "Invite & earn credits" in the mini-app
+
+I already have the DB schema, reward logic, and UI flow ready if you want them.
+
+Say:
+
+👉 “Give me the referral system spec.”
+
+🟪 STEP 6 — Add Viral Hooks Inside the Mini-App
+
+Small touches = big growth.
+
+Inside your Telegram Mini App, add:
+
+🔹 “Share this result” button
+
+When someone runs a contract scan or wallet risk check →
+They can share a Telegram message with:
+
+“I just scanned a contract using Coin Railz — the on-chain agent console. Try it: @coinrailz_bot”
+
+🔹 “Invite an Agent” button
+
+Opens Telegram share sheet with your referral link.
+
+🔹 “Daily Task”
+
+Give users one free action every day (like wallet-risk-check).
+This builds daily retention.
+
+If you want, I’ll generate all UI copy.
+
+🧩 STEP 7 — Connect Website Login ↔ Telegram
+
+If a user logs in at coinrailz.com and links their Telegram account:
+
+They see their Telegram connection status
+
+They can generate a “Telegram dedicated API key”
+
+Credits sync in both directions
+
+This unifies your ecosystem.
+
+🟦 Since everything is ready, here are the next decisions you must make:
+
+1️⃣ Do you want LLM reasoning mode next?
+2️⃣ Do you want the referral system next?
+3️⃣ Do you want viral growth hooks next?
+4️⃣ Do you want the bot’s help file + onboarding script?

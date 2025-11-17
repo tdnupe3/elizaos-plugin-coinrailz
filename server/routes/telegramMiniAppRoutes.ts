@@ -223,9 +223,17 @@ router.post("/link", async (req: Request, res: Response) => {
       // 5. Create Telegram account link
       const referredByUserId = referralCode ? await findUserByReferralCode(referralCode) : null;
 
-      // SECURITY: Prevent self-referral exploit
-      if (referredByUserId && referredByUserId === userId) {
-        throw new Error('Cannot refer yourself');
+      // SECURITY: Prevent self-referral exploit (check by Telegram ID, not userId)
+      // Users can create multiple accounts with different userIds but same Telegram identity
+      if (referredByUserId) {
+        const referrerTelegramAccount = await tx.query.telegramAccounts.findFirst({
+          where: eq(telegramAccounts.userId, referredByUserId)
+        });
+        
+        // Block if referrer has the same Telegram ID (self-referral across accounts)
+        if (referrerTelegramAccount && referrerTelegramAccount.telegramId === telegramId.toString()) {
+          throw new Error('Cannot refer yourself across multiple accounts');
+        }
       }
 
       await tx.insert(telegramAccounts).values({
@@ -470,6 +478,9 @@ If user asks for a service and lacks funds, politely inform them and suggest top
     // If OpenAI wants to call tools
     if (toolCalls && toolCalls.length > 0) {
       const toolResults = [];
+      
+      // Track balance before service calls for accurate cost calculation
+      const balanceBeforeServices = await creditsService.getBalance(telegramAccount.userId);
 
       for (const toolCall of toolCalls) {
         const functionName = toolCall.function.name;
@@ -534,11 +545,17 @@ If user asks for a service and lacks funds, politely inform them and suggest top
 
       // Get updated balance after service calls
       const newBalance = await creditsService.getBalance(telegramAccount.userId);
+      
+      // Calculate actual service costs (not including the $0.10 chat fee)
+      const serviceCosts = balanceBeforeServices - newBalance;
+      const totalSpent = CHAT_FEE + serviceCosts;
 
       return res.json({
         message: finalCompletion.choices[0].message.content,
         toolsUsed: toolCalls.map(tc => tc.function.name),
-        creditsSpent: balance - newBalance,
+        chatFee: CHAT_FEE,
+        serviceCosts,
+        creditsSpent: totalSpent,
         newBalance
       });
     }

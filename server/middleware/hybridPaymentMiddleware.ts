@@ -64,6 +64,65 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
   const xApiKey = req.headers["x-api-key"] as string | undefined;
   const authHeader = req.headers["authorization"] as string | undefined;
   const xPayment = req.headers["x-payment"] as string | undefined;
+  const xInternalAuth = req.headers["x-internal-auth"] as string | undefined;
+  const xInternalUserId = req.headers["x-internal-user-id"] as string | undefined;
+  
+  // OPTION 0: Internal server-to-server authentication (Telegram Mini-App proxy)
+  // This allows the Telegram backend to call x402 services on behalf of users
+  // without exposing raw API keys (since we only store bcrypt hashes)
+  if (xInternalAuth === "telegram-miniapp-proxy" && xInternalUserId) {
+    const serviceName = req.path.split("/").pop() || "unknown";
+    const requiredAmountUSDC = SERVICE_PRICING[serviceName];
+    
+    if (!requiredAmountUSDC) {
+      return res.status(400).json({
+        error: "Invalid service",
+        serviceName
+      });
+    }
+    
+    const requiredAmountUSD = requiredAmountUSDC / 1000000;
+    
+    try {
+      // Verify user exists and has sufficient credits
+      const balance = await creditsService.getBalance(xInternalUserId);
+      
+      if (balance < requiredAmountUSD) {
+        return res.status(402).json({
+          error: "Insufficient credits",
+          required: requiredAmountUSD,
+          available: balance,
+          message: `User needs $${requiredAmountUSD} but only has $${balance}`
+        });
+      }
+      
+      // Deduct credits
+      await creditsService.deductCredits({
+        userId: xInternalUserId,
+        amount: requiredAmountUSD,
+        serviceName,
+        description: `${serviceName} via Telegram Mini-App`,
+        metadata: {
+          source: 'telegram_miniapp_proxy',
+          endpoint: req.path
+        }
+      });
+      
+      console.log(`✅ Internal auth: User ${xInternalUserId} paid $${requiredAmountUSD} for ${serviceName} via Telegram`);
+      
+      // Attach userId to request for downstream handlers
+      (req as any).userId = xInternalUserId;
+      (req as any).serviceCost = requiredAmountUSD;
+      
+      return next();
+    } catch (error: any) {
+      console.error("Internal auth payment error:", error);
+      return res.status(402).json({
+        error: "Payment failed",
+        message: error.message
+      });
+    }
+  }
   
   // Extract API key from Authorization: Bearer header or X-API-KEY header
   let apiKey = xApiKey;

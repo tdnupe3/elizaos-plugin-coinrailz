@@ -4,7 +4,7 @@ import '@telegram-apps/telegram-ui/dist/styles.css';
 import { AppRoot, Placeholder, Button, Cell, Section, List, Banner, Card, Title, Text, Headline, Subheadline } from '@telegram-apps/telegram-ui';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { Loader2, Sparkles, Wallet, MessageSquare, TrendingUp, AlertCircle } from 'lucide-react';
+import { Loader2, Sparkles, Wallet, MessageSquare, TrendingUp, AlertCircle, Share2, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface TelegramAccount {
@@ -12,6 +12,7 @@ interface TelegramAccount {
   telegramId: string;
   username?: string;
   firstName?: string;
+  referralCode?: string;
   apiKey: string;
 }
 
@@ -74,6 +75,7 @@ export default function TelegramApp() {
           telegramId: '123456789',
           username: 'demo_user',
           firstName: 'Demo',
+          referralCode: 'TDEV12345',
           apiKey: 'cr_tg_dev_key_preview_only'
         };
       }
@@ -296,15 +298,43 @@ export default function TelegramApp() {
                   </Text>
                 ) : (
                   chatHistory.map((msg, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-3 rounded-lg ${
-                        msg.role === 'user'
-                          ? 'bg-blue-100 dark:bg-blue-900 ml-8'
-                          : 'bg-gray-100 dark:bg-gray-800 mr-8'
-                      }`}
-                    >
-                      <Text>{msg.content}</Text>
+                    <div key={idx}>
+                      <div
+                        className={`p-3 rounded-lg ${
+                          msg.role === 'user'
+                            ? 'bg-blue-100 dark:bg-blue-900 ml-8'
+                            : 'bg-gray-100 dark:bg-gray-800 mr-8'
+                        }`}
+                      >
+                        <Text>{msg.content}</Text>
+                      </div>
+                      {msg.role === 'assistant' && (
+                        <div className="flex justify-end mr-8 mt-1">
+                          <button
+                            onClick={() => {
+                              if (window.Telegram?.WebApp) {
+                                try {
+                                  window.Telegram.WebApp.switchInlineQuery(
+                                    `I just got this insight from Coin Railz AI: "${msg.content.substring(0, 100)}..." Try it: @coinrailz_bot`,
+                                    ['users', 'groups', 'channels']
+                                  );
+                                } catch (error) {
+                                  // Fallback if inline sharing is disabled
+                                  toast({
+                                    title: "Share via Telegram",
+                                    description: "Copy this message and share it with your friends!"
+                                  });
+                                }
+                              }
+                            }}
+                            className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                            data-testid={`button-share-result-${idx}`}
+                          >
+                            <Share2 className="w-3 h-3" />
+                            Share
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -334,6 +364,43 @@ export default function TelegramApp() {
             </Card>
           </Section>
         )}
+
+        {/* Invite Friends (Viral Growth) */}
+        <Section header="Grow Your Credits">
+          <List>
+            <Cell
+              before={<Users className="w-6 h-6 text-purple-500" />}
+              subtitle="Share Coin Railz with friends"
+              onClick={() => {
+                if (window.Telegram?.WebApp && account?.referralCode) {
+                  const inviteUrl = `https://t.me/coinrailz_bot?start=${account.referralCode}`;
+                  const shareText = `🚀 Try Coin Railz Agent Console - Get $1 free credits!\n\nAI-powered blockchain intelligence: wallet risk checks, token prices, DEX liquidity & more.\n\n${inviteUrl}`;
+                  
+                  try {
+                    window.Telegram.WebApp.switchInlineQuery(shareText, ['users', 'groups', 'channels']);
+                  } catch (error) {
+                    // Fallback if inline sharing is disabled
+                    toast({
+                      title: "Your Referral Link",
+                      description: inviteUrl
+                    });
+                  }
+                } else {
+                  const fallbackUrl = account?.referralCode 
+                    ? `https://t.me/coinrailz_bot?start=${account.referralCode}`
+                    : 'https://t.me/coinrailz_bot';
+                  toast({
+                    title: "Share link",
+                    description: fallbackUrl
+                  });
+                }
+              }}
+              data-testid="button-invite-friends"
+            >
+              Invite Friends
+            </Cell>
+          </List>
+        </Section>
 
         {/* Recent Activity */}
         {activity.length > 0 && (

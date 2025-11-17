@@ -17,26 +17,28 @@ const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 // Platform wallet address
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
 
-// Service pricing (must match x402MicroserviceRoutesV2.ts)
+// Service pricing (MUST match agent-chat system prompt in telegramMiniAppRoutes.ts)
+// Updated 2025-11-17: Aligned with Telegram Mini-App advertised pricing
+// CRITICAL: USDC has 6 decimals, so $1.00 = 1,000,000 micro-USDC
 const SERVICE_PRICING: Record<string, number> = {
-  "multi-chain-balance": 50000, // $0.50 in USDC (6 decimals)
-  "gas-price-oracle": 10000, // $0.10
-  "token-price": 15000, // $0.15
-  "contract-scan": 200000, // $2.00
-  "wallet-risk": 100000, // $1.00
-  "trade-signals": 75000, // $0.75
-  "token-sentiment": 25000, // $0.25
-  "trending-tokens": 50000, // $0.50
-  "whale-alerts": 35000, // $0.35
-  "dex-liquidity": 20000, // $0.20
-  "transaction-builder": 30000, // $0.30
-  "token-metadata": 10000, // $0.10
-  "approval-manager": 20000, // $0.20
-  "batch-quote": 40000, // $0.40
-  "portfolio-tracker": 50000, // $0.50
-  "instant-agent-wallet": 100000, // $1.00
-  "verified-agent-identity": 500000, // $5.00
-  "seamless-chain-bridge": 200000, // $2.00
+  "multi-chain-balance": 500000, // $0.50 in micro-USDC (6 decimals) - Used for portfolio
+  "gas-price-oracle": 100000, // $0.10
+  "token-price": 250000, // $0.25
+  "contract-scan": 1000000, // $1.00
+  "wallet-risk": 500000, // $0.50
+  "trade-signals": 750000, // $0.75
+  "token-sentiment": 250000, // $0.25
+  "trending-tokens": 500000, // $0.50
+  "whale-alerts": 350000, // $0.35
+  "dex-liquidity": 200000, // $0.20
+  "transaction-builder": 300000, // $0.30
+  "token-metadata": 100000, // $0.10
+  "approval-manager": 200000, // $0.20
+  "batch-quote": 400000, // $0.40
+  "portfolio-tracker": 500000, // $0.50
+  "instant-agent-wallet": 1000000, // $1.00
+  "verified-agent-identity": 5000000, // $5.00
+  "seamless-chain-bridge": 2000000, // $2.00
 };
 
 interface TransactionReceipt {

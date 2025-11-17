@@ -12,26 +12,29 @@ const router = Router();
 const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 
 // Pricing configuration (in USDC)
+// MUST match agent-chat system prompt in telegramMiniAppRoutes.ts AND hybridPaymentMiddleware.ts
+// Updated 2025-11-17: Aligned with Telegram Mini-App advertised pricing
+// MUST match hybridPaymentMiddleware.ts micro-USDC values (converted to USD)
 const SERVICE_PRICING = {
-  "multi-chain-balance": 0.01,
-  "gas-price-oracle": 0.01,
-  "token-price": 0.05,
-  "contract-scan": 2.0,
-  "wallet-risk": 0.5,
-  "trade-signals": 2.0,
-  "token-sentiment": 0.10,
-  "trending-tokens": 0.25,
-  "whale-alerts": 0.50,
-  "dex-liquidity": 0.15,
-  "transaction-builder": 0.30,
-  "token-metadata": 0.10,
-  "approval-manager": 0.20,
-  "batch-quote": 0.40,
-  "portfolio-tracker": 0.50,
+  "multi-chain-balance": 0.50,       // 500,000 micro-USDC
+  "gas-price-oracle": 0.10,           // 100,000 micro-USDC (UPDATED from $0.01)
+  "token-price": 0.25,                // 250,000 micro-USDC
+  "contract-scan": 1.0,                // 1,000,000 micro-USDC
+  "wallet-risk": 0.5,                  // 500,000 micro-USDC
+  "trade-signals": 0.75,               // 750,000 micro-USDC (UPDATED from $2.00)
+  "token-sentiment": 0.25,             // 250,000 micro-USDC (UPDATED from $0.10)
+  "trending-tokens": 0.50,             // 500,000 micro-USDC (UPDATED from $0.25)
+  "whale-alerts": 0.35,                // 350,000 micro-USDC (UPDATED from $0.50)
+  "dex-liquidity": 0.20,               // 200,000 micro-USDC
+  "transaction-builder": 0.30,         // 300,000 micro-USDC
+  "token-metadata": 0.10,              // 100,000 micro-USDC
+  "approval-manager": 0.20,            // 200,000 micro-USDC
+  "batch-quote": 0.40,                 // 400,000 micro-USDC
+  "portfolio-tracker": 0.50,           // 500,000 micro-USDC
   // New B2B2C Infrastructure Services (High-end pricing)
-  "instant-agent-wallet": 1.00,       // Wallet-as-a-Service
-  "verified-agent-identity": 5.00,    // KYA Identity Verification
-  "seamless-chain-bridge": 2.00,      // Cross-Chain Payment Routing
+  "instant-agent-wallet": 1.00,        // 1,000,000 micro-USDC
+  "verified-agent-identity": 5.00,     // 5,000,000 micro-USDC
+  "seamless-chain-bridge": 2.00,       // 2,000,000 micro-USDC
 };
 
 // Cache helper functions

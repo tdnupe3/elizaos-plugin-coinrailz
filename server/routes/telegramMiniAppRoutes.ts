@@ -135,6 +135,147 @@ router.post("/webhook", async (req: Request, res: Response) => {
           }
         );
       }
+      
+      // Handle /help command
+      else if (text === "/help") {
+        await bot.sendMessage(chatId,
+          "ℹ️ *Coin Railz Agent Console Help*\n\n" +
+          "*Available Commands:*\n" +
+          "/start - Launch the mini-app and get $1 free credits\n" +
+          "/help - Show this help message\n" +
+          "/scan - Quick contract scan\n" +
+          "/risk - Wallet risk check\n" +
+          "/price - Token price lookup\n" +
+          "/liquidity - DEX liquidity data\n" +
+          "/portfolio - View wallet portfolio\n\n" +
+          "*Inside the Mini-App:*\n" +
+          "• Chat with AI ($0.10/message)\n" +
+          "• Access 18 blockchain services\n" +
+          "• Track your activity & balance\n" +
+          "• Share results with friends\n\n" +
+          "*Pricing:*\n" +
+          "💬 AI Chat: $0.10/message\n" +
+          "🔍 Services: $0.10 - $5.00 each\n\n" +
+          "Launch the app to get started! 👇",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "🎮 Launch Agent Console",
+                  web_app: { url: WEBAPP_URL }
+                }
+              ]]
+            }
+          }
+        );
+      }
+      
+      // Handle service shortcut commands
+      else if (text === "/scan") {
+        await bot.sendMessage(chatId,
+          "🔍 *Smart Contract Scan*\n\n" +
+          "Launch the mini-app and ask:\n" +
+          "\"Scan this contract: 0x...\" or\n" +
+          "\"Is this contract safe?\"\n\n" +
+          "Cost: $0.10 chat + $1.00 scan = $1.10",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "🎮 Open Scanner",
+                  web_app: { url: `${WEBAPP_URL}?action=scan` }
+                }
+              ]]
+            }
+          }
+        );
+      }
+      
+      else if (text === "/risk") {
+        await bot.sendMessage(chatId,
+          "⚠️ *Wallet Risk Check*\n\n" +
+          "Launch the mini-app and ask:\n" +
+          "\"Check risk for wallet 0x...\" or\n" +
+          "\"Is this wallet safe?\"\n\n" +
+          "Cost: $0.10 chat + $0.50 risk check = $0.60",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "🎮 Check Risk",
+                  web_app: { url: `${WEBAPP_URL}?action=risk` }
+                }
+              ]]
+            }
+          }
+        );
+      }
+      
+      else if (text === "/price") {
+        await bot.sendMessage(chatId,
+          "💰 *Token Price Lookup*\n\n" +
+          "Launch the mini-app and ask:\n" +
+          "\"What's the price of ETH?\" or\n" +
+          "\"Show me BTC price\"\n\n" +
+          "Cost: $0.10 chat + $0.25 price = $0.35",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "🎮 Check Prices",
+                  web_app: { url: `${WEBAPP_URL}?action=price` }
+                }
+              ]]
+            }
+          }
+        );
+      }
+      
+      else if (text === "/liquidity") {
+        await bot.sendMessage(chatId,
+          "💧 *DEX Liquidity Data*\n\n" +
+          "Launch the mini-app and ask:\n" +
+          "\"Check liquidity for USDC on Uniswap\" or\n" +
+          "\"Show me liquidity pools\"\n\n" +
+          "Cost: $0.10 chat + $0.20 liquidity = $0.30",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "🎮 View Liquidity",
+                  web_app: { url: `${WEBAPP_URL}?action=liquidity` }
+                }
+              ]]
+            }
+          }
+        );
+      }
+      
+      else if (text === "/portfolio") {
+        await bot.sendMessage(chatId,
+          "📊 *Wallet Portfolio View*\n\n" +
+          "Launch the mini-app and ask:\n" +
+          "\"Show portfolio for 0x...\" or\n" +
+          "\"What tokens does this wallet hold?\"\n\n" +
+          "Cost: $0.10 chat + $0.50 report = $0.60",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "🎮 View Portfolio",
+                  web_app: { url: `${WEBAPP_URL}?action=portfolio` }
+                }
+              ]]
+            }
+          }
+        );
+      }
     }
 
     res.status(200).json({ ok: true });
@@ -179,6 +320,10 @@ router.post("/link", async (req: Request, res: Response) => {
 
       return res.json({
         userId: telegramAccount.userId,
+        telegramId: telegramAccount.telegramId,
+        username: telegramAccount.username,
+        firstName: telegramAccount.firstName,
+        referralCode: telegramAccount.referralCode,
         balance,
         displayName: `${telegramAccount.firstName || 'User'}`,
         isNewUser: false
@@ -291,6 +436,10 @@ router.post("/link", async (req: Request, res: Response) => {
     // Frontend must prompt user to copy and never store it.
     res.json({
       userId,
+      telegramId: telegramId.toString(),
+      username,
+      firstName,
+      referralCode: userReferralCode,
       balance: STARTING_BONUS,
       displayName: firstName || 'User',
       isNewUser: true,

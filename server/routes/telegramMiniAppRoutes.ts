@@ -28,6 +28,15 @@ const WEBAPP_URL = process.env.REPLIT_DOMAINS
 const STARTING_BONUS = 1.00; // $1 starting bonus
 const REFERRAL_BONUS_PERCENT = 0.10; // 10% of first purchase
 
+// Telegram Payments configuration
+const STRIPE_PROVIDER_TOKEN = process.env.TELEGRAM_STRIPE_PROVIDER_TOKEN || "";
+const PAYMENT_TIERS = [
+  { amount: 10, label: "$10 Credits", description: "Get $10 in credits" },
+  { amount: 25, label: "$25 Credits", description: "Get $25 in credits + 10% bonus" },
+  { amount: 50, label: "$50 Credits", description: "Get $50 in credits + 15% bonus" },
+  { amount: 100, label: "$100 Credits", description: "Get $100 in credits + 20% bonus" }
+] as const;
+
 // SECURITY: JWT_SECRET is REQUIRED for internal auth - no fallback allowed
 if (!process.env.JWT_SECRET) {
   throw new Error("FATAL: JWT_SECRET environment variable is required for secure internal authentication");
@@ -125,12 +134,16 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "Tap below to get started 👇",
           {
             reply_markup: {
-              inline_keyboard: [[
-                {
+              inline_keyboard: [
+                [{
                   text: "🎮 Launch Agent Console",
                   web_app: { url: referralCode ? `${WEBAPP_URL}?ref=${referralCode}` : WEBAPP_URL }
-                }
-              ]]
+                }],
+                [{
+                  text: "💳 Buy Credits",
+                  callback_data: "buy_credits"
+                }]
+              ]
             }
           }
         );
@@ -142,6 +155,8 @@ router.post("/webhook", async (req: Request, res: Response) => {
           "ℹ️ *Coin Railz Agent Console Help*\n\n" +
           "*Available Commands:*\n" +
           "/start - Launch the mini-app and get $1 free credits\n" +
+          "/buy - Buy credits (instant payment via Stripe)\n" +
+          "/balance - Check your credit balance\n" +
           "/help - Show this help message\n" +
           "/scan - Quick contract scan\n" +
           "/risk - Wallet risk check\n" +
@@ -274,6 +289,212 @@ router.post("/webhook", async (req: Request, res: Response) => {
               ]]
             }
           }
+        );
+      }
+      
+      // Handle /buy command
+      else if (text === "/buy") {
+        const keyboard = PAYMENT_TIERS.map(tier => [{
+          text: `💳 ${tier.label}`,
+          callback_data: `buy_${tier.amount}`
+        }]);
+        
+        await bot.sendMessage(chatId,
+          "💰 *Buy Credits*\n\n" +
+          "Choose a payment tier below:\n\n" +
+          "• $10 - Standard\n" +
+          "• $25 - +10% bonus ($27.50 total)\n" +
+          "• $50 - +15% bonus ($57.50 total)\n" +
+          "• $100 - +20% bonus ($120.00 total)\n\n" +
+          "Payment via Stripe - secure & instant!",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: keyboard
+            }
+          }
+        );
+      }
+      
+      // Handle /balance command
+      else if (text === "/balance") {
+        const telegramId = update.message.from?.id;
+        if (!telegramId) {
+          await bot.sendMessage(chatId, "Error: Could not identify your account.");
+          return res.status(200).json({ ok: true });
+        }
+        
+        const telegramAccount = await db.query.telegramAccounts.findFirst({
+          where: eq(telegramAccounts.telegramId, telegramId.toString())
+        });
+        
+        if (!telegramAccount) {
+          await bot.sendMessage(chatId,
+            "❌ No account found. Send /start to create an account and get $1 free!"
+          );
+          return res.status(200).json({ ok: true });
+        }
+        
+        const balance = await creditsService.getBalance(telegramAccount.userId);
+        
+        await bot.sendMessage(chatId,
+          `💰 *Your Balance*\n\n` +
+          `Credits: $${balance.toFixed(2)}\n\n` +
+          `Use /buy to add more credits or /help for available services.`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "💳 Buy More Credits", callback_data: "buy_credits" }
+              ]]
+            }
+          }
+        );
+      }
+    }
+    
+    // Handle callback queries (inline button clicks)
+    if (update.callback_query) {
+      const callbackQuery = update.callback_query;
+      const chatId = callbackQuery.message?.chat.id;
+      const data = callbackQuery.data;
+      const userId = callbackQuery.from.id;
+      
+      if (!chatId) {
+        return res.status(200).json({ ok: true });
+      }
+      
+      // Answer callback query immediately to remove loading state
+      await bot.answerCallbackQuery(callbackQuery.id);
+      
+      // Show buy credits tier selection
+      if (data === "buy_credits") {
+        const keyboard = PAYMENT_TIERS.map(tier => [{
+          text: `💳 ${tier.label}`,
+          callback_data: `buy_${tier.amount}`
+        }]);
+        
+        await bot.sendMessage(chatId,
+          "💰 *Buy Credits*\n\n" +
+          "Choose a payment tier:\n\n" +
+          "• $10 - Standard\n" +
+          "• $25 - +10% bonus ($27.50 total)\n" +
+          "• $50 - +15% bonus ($57.50 total)\n" +
+          "• $100 - +20% bonus ($120.00 total)",
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: keyboard
+            }
+          }
+        );
+      }
+      
+      // Handle specific tier purchase
+      else if (data?.startsWith("buy_")) {
+        const amount = parseInt(data.replace("buy_", ""));
+        const tier = PAYMENT_TIERS.find(t => t.amount === amount);
+        
+        if (!tier || !STRIPE_PROVIDER_TOKEN) {
+          await bot.sendMessage(chatId, 
+            "⚠️ Payments are being configured. Please try again in a few moments or contact support."
+          );
+          return res.status(200).json({ ok: true });
+        }
+        
+        // Calculate bonus
+        let bonus = 0;
+        if (amount === 25) bonus = 0.10;
+        else if (amount === 50) bonus = 0.15;
+        else if (amount === 100) bonus = 0.20;
+        
+        const totalCredits = amount * (1 + bonus);
+        
+        // Send Telegram invoice
+        await bot.sendInvoice(chatId, {
+          title: tier.label,
+          description: tier.description + (bonus > 0 ? ` (+${bonus * 100}% bonus = $${totalCredits.toFixed(2)})` : ""),
+          payload: JSON.stringify({ userId, amount, bonus }),
+          provider_token: STRIPE_PROVIDER_TOKEN,
+          currency: "USD",
+          prices: [{
+            label: tier.label,
+            amount: amount * 100 // Telegram uses cents
+          }]
+        });
+      }
+    }
+    
+    // Handle pre-checkout query (required by Telegram before payment)
+    if (update.pre_checkout_query) {
+      const preCheckoutQuery = update.pre_checkout_query;
+      
+      // Validate the payment - always approve for now
+      await bot.answerPreCheckoutQuery(preCheckoutQuery.id, true);
+    }
+    
+    // Handle successful payment
+    if (update.message?.successful_payment) {
+      const payment = update.message.successful_payment;
+      const chatId = update.message.chat.id;
+      
+      try {
+        const payload = JSON.parse(payment.invoice_payload);
+        const { userId, amount, bonus } = payload;
+        
+        // Calculate total credits with bonus
+        const totalCredits = amount * (1 + (bonus || 0));
+        
+        // Find user's account
+        const telegramId = update.message.from?.id;
+        if (!telegramId) throw new Error("No telegram ID");
+        
+        const telegramAccount = await db.query.telegramAccounts.findFirst({
+          where: eq(telegramAccounts.telegramId, telegramId.toString())
+        });
+        
+        if (!telegramAccount) throw new Error("No account found");
+        
+        // Add credits to account
+        await creditsService.addCredits(
+          telegramAccount.userId,
+          totalCredits,
+          `Telegram payment - ${amount === totalCredits ? `$${amount}` : `$${amount} + ${(bonus * 100)}% bonus`}`,
+          {
+            source: "telegram_payment",
+            paymentId: payment.telegram_payment_charge_id,
+            providerPaymentId: payment.provider_payment_charge_id,
+            amount,
+            bonus: bonus || 0
+          }
+        );
+        
+        // Get new balance
+        const newBalance = await creditsService.getBalance(telegramAccount.userId);
+        
+        // Send success message
+        await bot.sendMessage(chatId,
+          `✅ *Payment Successful!*\n\n` +
+          `Added: $${totalCredits.toFixed(2)}\n` +
+          `New Balance: $${newBalance.toFixed(2)}\n\n` +
+          `Ready to use your credits! 🚀`,
+          {
+            parse_mode: "Markdown",
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "🎮 Launch Agent Console",
+                  web_app: { url: WEBAPP_URL }
+                }
+              ]]
+            }
+          }
+        );
+      } catch (error) {
+        console.error("Payment processing error:", error);
+        await bot.sendMessage(chatId,
+          "⚠️ Payment received but there was an error adding credits. Please contact support with this payment ID: " + 
+          payment.telegram_payment_charge_id
         );
       }
     }

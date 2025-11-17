@@ -83,11 +83,14 @@ import { initializeServiceHandlers } from './services/handlers';
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
-// STRIPE WEBHOOK BEFORE JSON PARSER - Critical for raw body signature verification
+// STRIPE WEBHOOKS BEFORE JSON PARSER - Critical for raw body signature verification
 import { stripeWebhookHandler } from './routes/stripePaymentRoutes.js';
-app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/json'}), stripeWebhookHandler);
+import { creditsStripeWebhookHandler } from './routes/creditsRoutes.js';
 
-// Apply JSON parsing middleware AFTER Stripe webhook
+app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/json'}), stripeWebhookHandler);
+app.post('/api/credits/stripe-webhook', express.raw({type: 'application/json'}), creditsStripeWebhookHandler);
+
+// Apply JSON parsing middleware AFTER Stripe webhooks
 app.use(express.json({ limit: '50mb' }));
 
 // INITIALIZE SERVICE DELIVERY FRAMEWORK - CRITICAL FOR AI AGENT MARKETPLACE

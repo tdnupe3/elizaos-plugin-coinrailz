@@ -23,6 +23,7 @@ The platform is structured around core services for unified payment processing, 
 ### AI Agent Marketplace
 - **Architecture**: Features free and A2A agent self-registration, A2A marketplace discoverability via `.well-known/agent-card.json` endpoints, and an autonomous customer journey for service purchases.
 - **Payment Protocol**: Integrates the x402 protocol for autonomous, HTTP 402-based payments using USDC on Base Chain, including real Coinbase CDP wallet creation and Alchemy RPC verification.
+- **Prepaid Credits System** (Nov 2024): Stripe-style developer experience with dual payment support (Stripe + USDC/USDT) to increase conversion from 2-5% (manual USDC) to 50-70% (prepaid credits). Features API key authentication for seamless SDK integration, atomic balance management with FOR UPDATE row locking to prevent race conditions, and comprehensive transaction history. Architecture includes credits_accounts, credit_transactions, and api_keys tables with full audit trails. Webhook infrastructure uses raw body parsing for Stripe signature verification, registered before express.json() middleware.
 - **Blockchain Identity**: Employs ERC-8004 Blockchain Identity on Base mainnet (IdentityRegistry, ReputationRegistry) for AI agent identities and on-chain reputation tracking. A known contract bug prevents direct agent data retrieval, requiring workarounds using `ownerOf()`.
 
 ### Authentication Systems

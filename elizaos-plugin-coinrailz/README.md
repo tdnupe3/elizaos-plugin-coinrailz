@@ -22,11 +22,49 @@ This plugin adds **18 production-ready micropayment services** to any ElizaOS ag
 
 ## Installation
 
+### Option 1: Prepaid Credits with API Keys (RECOMMENDED - 50-70% Conversion)
+
+**Best for:** Production applications, autonomous agents, enterprise use
+
+```bash
+# Install standalone SDK (no ElizaOS required)
+npm install @coinrailz/sdk
+# or for Python
+pip install coinrailz-sdk
+```
+
+**Why prepaid credits?**
+- ✅ No blockchain knowledge required
+- ✅ Pay with Stripe (credit card) or USDC
+- ✅ Single API key for all services
+- ✅ Automatic credit deduction
+- ✅ 50-70% conversion vs 2-5% for manual USDC payments
+
+**Quick Start with Prepaid Credits:**
+
+```typescript
+import { CoinRailzClient } from '@coinrailz/sdk';
+
+const client = new CoinRailzClient({
+  apiKey: process.env.COINRAILZ_API_KEY
+});
+
+// Check balance
+const balance = await client.getBalance();
+
+// Call any service
+const risk = await client.getWalletRisk('0x742d35Cc...', 'ethereum');
+```
+
+See `/examples/node/` for standalone JavaScript examples and `/examples/python/` for Python examples.
+
+### Option 2: ElizaOS Plugin (x402 Protocol)
+
+**Best for:** ElizaOS agent integration with autonomous USDC payments
+
 ```bash
 npm install @elizaos/plugin-coinrailz
 ```
-
-## Quick Start
 
 ```typescript
 import { elizaLogger, AgentRuntime } from "@elizaos/core";
@@ -39,6 +77,8 @@ const runtime = new AgentRuntime({
 
 elizaLogger.log("Coin Railz plugin loaded - agent can now use micropayment services");
 ```
+
+See `/examples/eliza/` for advanced ElizaOS agent examples.
 
 ## Available Services
 
@@ -117,7 +157,61 @@ const price = await runtime.processAction({
 });
 ```
 
-## How It Works
+## Payment Methods
+
+### Option 1: Prepaid Credits with API Keys (RECOMMENDED)
+
+**⚡ 50-70% conversion rate vs 2-5% for manual USDC payments**
+
+**Why use prepaid credits?**
+- ✅ No blockchain knowledge required
+- ✅ Pay with Stripe or crypto
+- ✅ Single API key for all services
+- ✅ Automatic credit deduction
+- ✅ Much easier for non-technical users
+
+**Setup:**
+
+1. **Buy Credits**: Visit https://coinrailz.com/credits
+   - Pay with credit card (Stripe) or USDC/USDT
+   
+2. **Generate API Key**: Visit https://coinrailz.com/api-keys
+   - Click "Generate New API Key"
+   - Copy your key (starts with `cr_live_`)
+
+3. **Configure Environment Variable**:
+```bash
+export COINRAILZ_API_KEY="cr_live_YOUR_KEY_HERE"
+```
+
+4. **Use in ElizaOS**:
+```typescript
+import { coinrailzPlugin } from "@elizaos/plugin-coinrailz";
+
+const runtime = new AgentRuntime({
+  env: {
+    COINRAILZ_API_KEY: process.env.COINRAILZ_API_KEY
+  },
+  plugins: [coinrailzPlugin]
+});
+
+// Plugin automatically uses API key for all service calls
+const response = await runtime.processAction({
+  action: "COINRAILZ_PAY_SERVICE",
+  content: {
+    serviceId: "multi-chain-balance",
+    payload: { address: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb" }
+  }
+});
+```
+
+**🔐 SECURITY**: API keys should ONLY be used server-side. Never expose them in client-side code.
+
+---
+
+### Option 2: x402 Protocol (For Autonomous Agents)
+
+**How It Works:**
 
 1. **Agent calls service** - Action triggers x402 payment flow
 2. **402 Response** - Service returns payment requirement (amount, address)

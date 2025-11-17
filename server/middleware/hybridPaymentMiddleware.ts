@@ -62,10 +62,17 @@ interface TransactionReceipt {
  */
 export async function hybridPaymentMiddleware(req: Request, res: Response, next: NextFunction) {
   const xApiKey = req.headers["x-api-key"] as string | undefined;
+  const authHeader = req.headers["authorization"] as string | undefined;
   const xPayment = req.headers["x-payment"] as string | undefined;
   
+  // Extract API key from Authorization: Bearer header or X-API-KEY header
+  let apiKey = xApiKey;
+  if (!apiKey && authHeader?.startsWith("Bearer ")) {
+    apiKey = authHeader.substring(7); // Remove "Bearer " prefix
+  }
+  
   // OPTION 1: API Key authentication (prepaid credits)
-  if (xApiKey) {
+  if (apiKey) {
     const serviceName = req.path.split("/").pop() || "unknown";
     const requiredAmountUSDC = SERVICE_PRICING[serviceName];
     
@@ -81,7 +88,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
     
     try {
       // Validate API key
-      const validation = await creditsService.validateApiKey(xApiKey);
+      const validation = await creditsService.validateApiKey(apiKey);
       
       if (!validation.valid || !validation.userId) {
         return res.status(401).json({
@@ -120,6 +127,9 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
       // Attach user info to request for downstream use
       (req as any).paidViaApiKey = true;
       (req as any).apiKeyUserId = validation.userId;
+      
+      // CRITICAL: Set req.user for downstream routes that expect authenticated user
+      (req as any).user = { id: validation.userId };
       
       return next();
       

@@ -1,4 +1,4 @@
-import { Express, Request, Response } from "express";
+import express, { Express, Request, Response } from "express";
 import { creditsService } from "../services/creditsService.js";
 import Stripe from "stripe";
 import { db } from "../db.js";
@@ -8,7 +8,133 @@ import { ethers } from "ethers";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Export webhook handler for early registration in server/index.ts
+export const creditsStripeWebhookHandler = async (req: Request, res: Response) => {
+  const sig = req.headers["stripe-signature"] as string;
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    console.error("❌ STRIPE_WEBHOOK_SECRET not configured");
+    return res.status(500).json({ error: "Webhook not configured" });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    // req.body is Buffer here due to express.raw in server/index.ts
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err: any) {
+    console.error("❌ Webhook signature verification failed:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Handle checkout.session.completed event
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    const userId = session.metadata?.userId;
+    const creditsAmount = session.metadata?.creditsAmount;
+
+    if (!userId || !creditsAmount) {
+      console.error("❌ Missing metadata in Stripe session:", session.id);
+      return res.status(400).json({ error: "Invalid session metadata" });
+    }
+
+    try {
+      const amount = parseFloat(creditsAmount);
+      
+      // Credit the user's balance
+      const result = await creditsService.addCredits({
+        userId,
+        amount,
+        paymentMethod: "stripe",
+        referenceId: session.id,
+        description: `Stripe payment - $${amount} credits`,
+        metadata: {
+          stripeSessionId: session.id,
+          stripePaymentIntent: session.payment_intent
+        }
+      });
+
+      console.log(`✅ Stripe webhook: Credited $${amount} to user ${userId} (session: ${session.id})`);
+      console.log(`💰 New balance: $${result.newBalance}`);
+
+    } catch (error: any) {
+      console.error("❌ Error processing Stripe payment:", error);
+      return res.status(500).json({ error: "Failed to credit balance" });
+    }
+  }
+
+  res.json({ received: true });
+};
+
 export function registerCreditsRoutes(app: Express) {
+  
+  // Stripe webhook is registered in server/index.ts before express.json()
+  // This registration is kept for reference but won't execute if /api/credits/stripe-webhook
+  // is already registered above
+  if (false) {
+    app.post("/api/credits/stripe-webhook", 
+      express.raw({ type: "application/json" }),
+      async (req: Request, res: Response) => {
+      const sig = req.headers["stripe-signature"] as string;
+      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+      if (!webhookSecret) {
+        console.error("❌ STRIPE_WEBHOOK_SECRET not configured");
+        return res.status(500).json({ error: "Webhook not configured" });
+      }
+
+      let event: Stripe.Event;
+
+      try {
+        // req.body is Buffer here due to express.raw
+        event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+      } catch (err: any) {
+        console.error("❌ Webhook signature verification failed:", err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+      }
+
+      // Handle checkout.session.completed event
+      if (event.type === "checkout.session.completed") {
+        const session = event.data.object as Stripe.Checkout.Session;
+
+        const userId = session.metadata?.userId;
+        const creditsAmount = session.metadata?.creditsAmount;
+
+        if (!userId || !creditsAmount) {
+          console.error("❌ Missing metadata in Stripe session:", session.id);
+          return res.status(400).json({ error: "Invalid session metadata" });
+        }
+
+        try {
+          const amount = parseFloat(creditsAmount);
+          
+          // Credit the user's balance
+          const result = await creditsService.addCredits({
+            userId,
+            amount,
+            paymentMethod: "stripe",
+            referenceId: session.id,
+            description: `Stripe payment - $${amount} credits`,
+            metadata: {
+              stripeSessionId: session.id,
+              stripePaymentIntent: session.payment_intent
+            }
+          });
+
+          console.log(`✅ Stripe webhook: Credited $${amount} to user ${userId} (session: ${session.id})`);
+          console.log(`💰 New balance: $${result.newBalance}`);
+
+        } catch (error: any) {
+          console.error("❌ Error processing Stripe payment:", error);
+          return res.status(500).json({ error: "Failed to credit balance" });
+        }
+      }
+
+      res.json({ received: true });
+    });
+  }
   
   // Get credits balance
   app.get("/api/credits/balance", async (req: Request, res: Response) => {
@@ -164,47 +290,6 @@ export function registerCreditsRoutes(app: Express) {
     } catch (error: any) {
       console.error("❌ Crypto purchase error:", error);
       res.status(500).json({ error: error.message || "Failed to process crypto payment" });
-    }
-  });
-
-  // Stripe webhook for payment success
-  app.post("/api/credits/webhook/stripe", async (req: Request, res: Response) => {
-    const sig = req.headers['stripe-signature'];
-
-    if (!sig || !process.env.STRIPE_WEBHOOK_SECRET) {
-      return res.status(400).send('Webhook signature missing');
-    }
-
-    try {
-      const event = stripe.webhooks.constructEvent(
-        req.body,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET
-      );
-
-      if (event.type === 'checkout.session.completed') {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const userId = session.metadata?.userId;
-        const creditsAmount = parseFloat(session.metadata?.creditsAmount || '0');
-
-        if (userId && creditsAmount > 0) {
-          await creditsService.addCredits({
-            userId,
-            amount: creditsAmount,
-            paymentMethod: "stripe",
-            referenceId: session.id,
-            description: `Purchased ${creditsAmount} credits via Stripe`,
-            metadata: { sessionId: session.id, paymentIntentId: session.payment_intent }
-          });
-
-          console.log(`✅ Stripe payment processed: User ${userId} +$${creditsAmount}`);
-        }
-      }
-
-      res.json({ received: true });
-    } catch (error: any) {
-      console.error('❌ Stripe webhook error:', error);
-      res.status(400).send(`Webhook Error: ${error.message}`);
     }
   });
 

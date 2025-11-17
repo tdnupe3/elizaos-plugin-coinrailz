@@ -29,7 +29,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { queryClient, apiRequest } from '@lib/queryClient';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 
 interface CreditTransaction {
   id: number;

@@ -114,6 +114,10 @@ function validateTelegramData(initData: string): { id: number; first_name?: stri
 router.post("/webhook", async (req: Request, res: Response) => {
   try {
     const update = req.body;
+    
+    // CRITICAL: Respond to Telegram immediately (within 1 second) to prevent timeout
+    // Process commands asynchronously after sending 200 OK
+    res.status(200).json({ ok: true });
 
     if (update.message && update.message.text) {
       const chatId = update.message.chat.id;
@@ -497,10 +501,11 @@ router.post("/webhook", async (req: Request, res: Response) => {
       }
     }
 
-    res.status(200).json({ ok: true });
+    // Response already sent at the beginning of the handler
   } catch (error) {
     console.error("Telegram webhook error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    // Don't send error response if we already sent 200 OK
+    // Just log the error - Telegram already received acknowledgment
   }
 });
 

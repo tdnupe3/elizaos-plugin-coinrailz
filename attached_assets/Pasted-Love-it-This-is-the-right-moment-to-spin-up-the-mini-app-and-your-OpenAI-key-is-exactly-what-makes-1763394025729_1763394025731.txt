@@ -1,0 +1,924 @@
+Love it. This is the right moment to spin up the mini-app, and your OpenAI key is exactly what makes it special instead of “just another bot.”
+I’ll do two things:
+
+
+Design the Telegram mini-app so it’s actually world-class and referral-worthy.
+
+
+Give you a single, detailed prompt you can paste into Replit so it can handle all the coding.
+
+
+No questions needed — I’ll make reasonable assumptions and keep everything aligned with your existing stack and “don’t distract from revenue” rule.
+
+1️⃣ What this Telegram Mini-App is
+Name (working): Coin Railz Agent Console
+Goal: Let humans and AI agents interact with Coin Railz from Telegram with:
+
+
+Prepaid credits + API keys
+
+
+OpenAI-powered “Coin Railz Copilot” that understands natural language
+
+
+One-tap access to your highest-value services (wallet-risk, dex-liquidity, token-price, portfolio, contract-scan)
+
+
+Built-in referral/invite flow so agents bring more agents
+
+
+Positioning:
+
+“Your AI agent’s on-chain command center, inside Telegram.”
+
+
+2️⃣ Core Features (v1 – but not “MVP cheap”)
+These are all realistic and re-use your existing backend + credits system.
+A. Telegram login + account link
+
+
+When a user opens the mini-app, it:
+
+
+Uses Telegram.WebApp.initDataUnsafe.user.id to identify them.
+
+
+Calls a Coin Railz backend endpoint like POST /api/telegram/link:
+
+
+If this Telegram user already has a Coin Railz account → return their credit balance + API keys.
+
+
+If not → create a lightweight “telegram user account” + credits row, and (optionally) auto-generate a default API key for the mini-app.
+
+
+
+
+
+
+B. Credit-aware dashboard
+Inside the mini-app UI, user sees:
+
+
+Current credits balance (pulled from your credits_accounts table via API).
+
+
+Buttons:
+
+
+“Run Wallet Risk Check”
+
+
+“Check Token Price”
+
+
+“Check DEX Liquidity”
+
+
+“Scan Contract”
+
+
+“View Portfolio Snapshot”
+
+
+“Ask Coin Railz a Question” (LLM chat)
+
+
+
+
+“Top up credits” button:
+
+
+Opens https://coinrailz.com in external browser (or in-Telegram webview) on your existing Stripe/credits page.
+
+
+
+
+C. OpenAI-powered “Coin Railz Copilot” (chat)
+
+
+Chat box in the mini-app:
+
+
+User can type:
+
+
+“Is this wallet risky? 0x…”
+
+
+“What’s liquidity like for this token on Base?”
+
+
+“Scan this contract: 0x…”
+
+
+“Show me a portfolio view for 0x…”
+
+
+
+
+
+
+Backend chat endpoint:
+
+
+/api/telegram/agent-chat
+
+
+Uses OpenAI (Chat Completions with tools/functions) to:
+
+
+Parse intent
+
+
+Decide which Coin Railz service(s) to call
+
+
+Call your internal credit-charging service wrappers (NOT direct x402)
+
+
+Return a nicely formatted summary back to the mini-app
+
+
+
+
+
+
+Tools exposed to the LLM:
+
+
+wallet-risk
+
+
+token-price
+
+
+dex-liquidity
+
+
+portfolio-tracker
+
+
+contract-scan
+
+
+
+
+So the user just talks; the LLM routes to your services and spends credits.
+D. Credit-aware enforcement
+
+
+Every time the chat or a button triggers a service:
+
+
+Backend checks user’s credit balance.
+
+
+If insufficient → return “low balance” message with a Top Up link.
+
+
+If sufficient → deduct credits atomically, call service, return result.
+
+
+
+
+E. Transaction history view
+
+
+Tab/section: “Recent activity”
+
+
+Shows last N service calls:
+
+
+Type (wallet-risk, token-price, etc.)
+
+
+Timestamp
+
+
+Cost in credits
+
+
+Compact result/summary
+
+
+
+
+
+
+Data is pulled from your credit_transactions table via a read-only endpoint like GET /api/telegram/activity.
+F. Referral / invite hooks (foundation)
+
+
+Each Telegram user gets a simple referral code (e.g., TGM-<telegram_id>).
+
+
+In the mini-app:
+
+
+“Invite another agent” button:
+
+
+Opens Telegram share sheet with a pre-written message and a deep link:
+
+
+https://t.me/<your_bot>?start=<referral_code>
+
+
+
+
+
+
+
+
+Backend stores the referral code on /api/telegram/link and logs referrals in a table (e.g., telegram_referrals).
+
+
+(Optional now / later) Reward scheme:
+
+
+On first credit purchase by referred user, referrer gets bonus credits.
+
+
+
+
+This is how “agents refer more agents.”
+
+3️⃣ Architecture (high level, but specific enough for Replit)
+Existing stack (what we assume):
+
+
+Backend: Node.js + Express (already running x402, Stripe, credits, API keys).
+
+
+Frontend: React/Next.js (used for coinrailz.com).
+
+
+DB: Postgres with your existing tables (credits_accounts, credit_transactions, api_keys, etc.).
+
+
+OpenAI: Working API key configured in env.
+
+
+Stripe: Already integrated for prepaid credits.
+
+
+New components for the Telegram mini-app:
+Backend additions
+
+
+Telegram bot webhook handler
+
+
+New Express route: POST /api/telegram/webhook
+
+
+Validates Telegram webhook token
+
+
+Handles:
+
+
+/start command
+
+
+Sending a button that opens the mini-app (WebApp)
+
+
+
+
+Uses sendMessage and sendChatAction to respond.
+
+
+
+
+Telegram WebApp auth endpoint
+
+
+New route: POST /api/telegram/link
+
+
+Input: Telegram init data (user id, username, optional referral code)
+
+
+Behavior:
+
+
+Verify Telegram signature (to ensure the request is genuine).
+
+
+Lookup or create a Coin Railz “telegram user” record.
+
+
+Ensure they have a credits_account.
+
+
+Optionally generate a dedicated API key for Telegram usage.
+
+
+Return:
+
+
+creditsBalance
+
+
+displayName
+
+
+maybe defaultApiKeyId (NOT the key itself if you don’t want to expose it client-side).
+
+
+
+
+
+
+
+
+Telegram chat & tools endpoint
+
+
+New route: POST /api/telegram/agent-chat
+
+
+Input:
+
+
+{ telegramUserId, message }
+
+
+
+
+Steps:
+
+
+Resolve telegramUserId → internal user/credits_account.
+
+
+Call OpenAI Chat API with tool definitions (wallet-risk, etc.).
+
+
+If a tool is requested:
+
+
+Check credit balance; if insufficient, respond with a “top up” message and skip the call.
+
+
+Deduct credits (atomic transaction).
+
+
+Call internal service wrapper for that x402 service.
+
+
+
+
+Return:
+
+
+assistantMessage text
+
+
+toolCallsUsed info (optional)
+
+
+
+
+
+
+
+
+Activity endpoint
+
+
+GET /api/telegram/activity?telegramUserId=...
+
+
+Returns last N credit_transactions for that user, simplified.
+
+
+
+
+(Optional now / later) Referral logging endpoint
+
+
+POST /api/telegram/referral
+
+
+Or just record referral in /api/telegram/link based on start param.
+
+
+
+
+Frontend additions
+
+
+New Next.js/React page for the WebApp
+
+
+Route: /telegram/app
+
+
+Uses Telegram WebApp JS SDK:
+
+
+window.Telegram.WebApp for:
+
+
+getting user info
+
+
+adjusting theme
+
+
+closing app, haptic, etc.
+
+
+
+
+
+
+Layout:
+
+
+Header: balance, “Top up” button
+
+
+Tabs or sections:
+
+
+“Chat”
+
+
+“Quick Actions”
+
+
+“Activity”
+
+
+
+
+Chat section:
+
+
+Scrollable chat history
+
+
+Input box for user messages
+
+
+“Send” button
+
+
+
+
+Quick Actions:
+
+
+Buttons for high-value services (wallet risk, token price, etc.), opening modals to gather parameters (address, token, etc.)
+
+
+
+
+Activity:
+
+
+List of last 10 actions.
+
+
+
+
+
+
+
+
+Telegram-optimized UI
+
+
+Single-column layout, large tap targets.
+
+
+Dark/light theme based on Telegram.WebApp.colorScheme.
+
+
+Use Telegram’s main button (Telegram.WebApp.MainButton) for primary action if you want extra polish.
+
+
+
+
+
+4️⃣ Env vars & config Replit will need
+Tell Replit to wire these up in .env / secrets:
+
+
+TELEGRAM_BOT_TOKEN – BotFather token.
+
+
+TELEGRAM_BOT_USERNAME – e.g., CoinRailzBot.
+
+
+TELEGRAM_WEBHOOK_SECRET or path token for security.
+
+
+OPENAI_API_KEY – already set.
+
+
+Existing Stripe / DB envs – already set.
+
+
+You will also need to set the bot’s webhook:
+
+
+https://<your-domain>/api/telegram/webhook
+
+
+
+5️⃣ The Big Prompt for Replit (paste this as-is)
+Here’s a single block you can give to Replit’s agent. It’s written like a spec + task list. No code fences, no weird formatting.
+
+You are the lead full-stack engineer on the Coin Railz platform. Coin Railz is a production system with: prepaid credits (Stripe + Base USDC), credits_accounts and credit_transactions tables, an api_keys table, 18 x402 services, OpenAI API access, and a deployed coinrailz.com site (Next.js/React + Node/Express backend). Your job is to design and implement a Telegram Mini-App and bot that reuses the existing credits and API infrastructure, without introducing a different business model or major new backend systems.
+High-level product goal:
+Build the best Telegram Mini-App in the world for interacting with Coin Railz. It should feel like an on-chain command center for AI agents: users can see their prepaid credit balance, run high-value Coin Railz services, and chat with an OpenAI-powered “Coin Railz Copilot” that routes to our services. Everything must respect the existing prepaid credits + API keys flow. The Mini-App is a front-end and UX layer over what already exists; do NOT build new core products or engines.
+Key principles:
+
+
+Do NOT create new monetization models. All billing must go through the existing prepaid credits system.
+
+
+Reuse existing tables (credits_accounts, credit_transactions, api_keys) and internal service wrappers.
+
+
+Keep the scope to: Telegram bot + Mini-App UI + small number of focused backend endpoints.
+
+
+Prioritize reliability, security, and simplicity over cleverness.
+
+
+No direct on-chain calls from Telegram; always go through our backend.
+
+
+Assume Node/Express backend and Next.js/React frontend.
+
+
+Features to implement:
+
+
+Telegram bot + webhook
+
+
+
+
+Create a new Express route: POST /api/telegram/webhook
+
+
+Validate the Telegram webhook (basic security and payload parsing).
+
+
+Handle /start command:
+
+
+If incoming message has a start payload (referral code), store it for later attribution.
+
+
+Reply with a message and a button that opens the Telegram WebApp (Mini-App) using the Telegram WebApp API.
+
+
+
+
+The bot should be simple: its main job is to launch the WebApp and maybe send brief status messages.
+
+
+
+
+Telegram WebApp (Mini-App) page
+
+
+
+
+Create a new Next.js/React page, e.g., /telegram/app.
+
+
+This page will be loaded inside Telegram using the Telegram WebApp JS SDK.
+
+
+On mount, use Telegram.WebApp.initDataUnsafe to retrieve the Telegram user id, username, and theme.
+
+
+Immediately POST to a new backend endpoint /api/telegram/link with this information (and optional referral code from init data):
+
+
+If this Telegram user already exists, retrieve:
+
+
+current credits balance
+
+
+basic profile info
+
+
+
+
+If not, create:
+
+
+a new “telegram user” record linked to our existing user/credits system
+
+
+a credits_account row with a starting balance of 0
+
+
+
+
+Optionally generate a default API key for this user’s Telegram actions (but do NOT expose the raw key value to the frontend).
+
+
+Return: creditsBalance, displayName, telegramUserId, and any other non-sensitive metadata.
+
+
+
+
+The UI should have:
+
+
+A header showing the current credits balance and a “Top up” button that opens the existing Coin Railz credits/Stripe page in a new browser or Telegram webview.
+
+
+A tabbed or sectioned layout with:
+
+
+“Chat” – LLM-powered interactions
+
+
+“Quick Actions” – button-driven workflows for key services
+
+
+“Activity” – recent usage list
+
+
+
+
+
+
+
+
+OpenAI-powered chat endpoint
+
+
+
+
+Create a new backend route: POST /api/telegram/agent-chat
+
+
+Input: { telegramUserId, message }
+
+
+Behavior:
+
+
+Resolve telegramUserId to our internal user/credits_account.
+
+
+Use OpenAI Chat Completions with function/tool calling to define tools for at least the following internal service wrappers:
+
+
+wallet-risk
+
+
+token-price
+
+
+dex-liquidity
+
+
+portfolio-tracker
+
+
+contract-scan
+
+
+
+
+The tools should NOT call x402 directly; they should call our internal server-side functions that:
+
+
+validate the user has enough credits
+
+
+deduct the appropriate credits atomically (within a DB transaction)
+
+
+call the corresponding Coin Railz service (whatever internal methods we already use)
+
+
+
+
+If credits are insufficient, the tool should gracefully return a structured “low balance” result.
+
+
+The agent-chat endpoint should orchestrate:
+
+
+sending the user message + previous context (lightweight) to OpenAI
+
+
+handling any tool calls the model requests
+
+
+returning a final assistantMessage string plus optional structured metadata back to the frontend.
+
+
+
+
+Make sure this endpoint is resilient to failures (timeouts, invalid input).
+
+
+
+
+
+
+Quick Actions
+
+
+
+
+In the Mini-App UI, add buttons for:
+
+
+Run Wallet Risk Check
+
+
+Check Token Price
+
+
+Check DEX Liquidity
+
+
+Scan Contract
+
+
+View Portfolio Snapshot
+
+
+
+
+Each button should open a small modal or form to collect the required inputs (wallet address, token address/symbol, chain, etc.).
+
+
+On submit:
+
+
+Call a backend route (these can reuse the same agent-chat endpoint with structured prompts, or dedicated endpoints like /api/telegram/wallet-risk).
+
+
+Backend reuses the same credit-aware internal service wrappers as described above.
+
+
+Show results in a clear, formatted way in the Mini-App (and optionally also push a summary into the chat history for continuity).
+
+
+
+
+
+
+Activity view
+
+
+
+
+Add a new backend endpoint: GET /api/telegram/activity?telegramUserId=...
+
+
+This should:
+
+
+Map telegramUserId to the user/credits account.
+
+
+Read recent credit_transactions for that user.
+
+
+Return a simplified activity feed: { type, serviceName, creditsSpent, timestamp, shortSummary }.
+
+
+
+
+In the Mini-App Activity tab, display the last 10–20 actions in a mobile-friendly list.
+
+
+
+
+Referral foundation
+
+
+
+
+When the user first opens the bot with /start <payload>, treat the payload as a potential referral code.
+
+
+Add a new DB table (if it doesn’t exist) for telegram_referrals with fields like: id, referrerTelegramId, referredTelegramId, createdAt, firstPurchaseAt.
+
+
+In /api/telegram/link, if a new telegram user is created and a referral code is present, record the relationship.
+
+
+Do NOT implement the full reward logic yet; just make sure referrals are logged correctly for future use (we may award bonus credits later).
+
+
+In the Mini-App, add an “Invite another agent” button that opens a Telegram share dialog with a prefilled message and a deep link like: https://t.me/<BOT_USERNAME>?start=<referralCode>, where referralCode uniquely ties back to this Telegram user.
+
+
+
+
+OpenAI and credit safety
+
+
+
+
+All OpenAI calls must go through our server using the existing OPENAI_API_KEY env var. The Mini-App must never see the key.
+
+
+The Telegram chat endpoint should never expose internal implementation details (stack traces, raw SQL errors).
+
+
+All credit deductions must use existing credit logic with DB transactions to prevent race conditions/double spending.
+
+
+
+
+Implementation order
+Follow this sequence:
+
+
+Wire up Telegram bot webhook route and minimal /start handling.
+
+
+Create /telegram/app page with Telegram.WebApp integration and call to /api/telegram/link.
+
+
+Implement the credit-aware backend link endpoint.
+
+
+Implement the agent-chat endpoint with OpenAI tools and one initial tool (e.g., wallet-risk) end-to-end.
+
+
+Expand tools to token-price, dex-liquidity, portfolio-tracker, contract-scan.
+
+
+Add Quick Actions UI elements that call these tools directly.
+
+
+Add Activity endpoint and UI.
+
+
+Add referral logging and invite button.
+
+
+Do a full end-to-end test: new Telegram user → linked account → top up credits on web → return to Mini-App → run tools → see activity.
+
+
+Developer ergonomics
+
+
+
+
+Comment new code clearly with what it does and why.
+
+
+Reuse existing helper functions or patterns for DB access, auth, and credit handling where possible.
+
+
+Keep all Telegram-specific logic clearly namespaced (e.g., in a /telegram folder for backend and frontend code) so it doesn’t pollute the rest of the codebase.
+
+
+Deliverables:
+
+
+Working Telegram bot that can launch the WebApp.
+
+
+/telegram/app Mini-App that shows balance, supports chat, quick actions, and activity.
+
+
+Backend endpoints: /api/telegram/webhook, /api/telegram/link, /api/telegram/agent-chat, /api/telegram/activity.
+
+
+Referral tracking wired in as described, even if rewards are added later.
+
+
+All code committed to the existing Coin Railz repo with sensible filenames and structure.
+
+
+If any information about existing functions, DB schemas, or routes is unclear, inspect the current codebase and align with the already implemented patterns instead of inventing new ones.
+
+That’s the full spec.
+If you’d like, next I can:
+
+
+Draft the BotFather config script text (what description/commands to give your Telegram bot).
+
+
+Write a short product blurb for the bot’s description (“What can this bot do?”).
+
+
+Help you design the social card image copy for your website so X shows a proper thumbnail.
+
+

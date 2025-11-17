@@ -1,0 +1,158 @@
+Let’s go through each item in the menu you showed and I’ll tell you EXACTLY what to enable or skip.
+
+✅ 1. Inline Mode
+
+Leave OFF.
+
+Inline mode is for bots that reply inside chats using @coinrailz_bot something.
+You don’t need this right now — avoid the extra overhead.
+
+✅ 2. Business Mode
+
+Optional — useful later, not required now.
+
+This is mainly for customer support workflows. You can skip for now.
+
+✅ 3. Allow Groups?
+
+TURN THIS OFF.
+
+Reason:
+
+We do NOT want people running on-chain scans inside group chats.
+
+Protects your API quotas and OpenAI calls.
+
+Reduces spam and bot abuse risk.
+
+Set to: NO
+
+✅ 4. Group Privacy
+
+You can ignore this — not relevant because groups are disabled.
+
+✅ 5. Group Admin Rights
+
+Ignore (not relevant).
+
+✅ 6. Channel Admin Rights
+
+Ignore (not relevant).
+
+🟦 7. Payments
+
+LEAVE THIS OFF.
+You are NOT using Telegram Payments — you're using Stripe / USDC.
+
+Turning this on will cause confusion.
+Coin Railz doesn’t process payments inside Telegram.
+
+So set to: OFF
+
+💥 8. Domain
+
+THIS ONE YOU MUST SET if you haven’t already.
+
+Go to Set Domain
+And enter:
+
+https://coinrailz.com
+
+
+AND
+
+https://<your-miniapp-domain-if-different>
+
+
+This is required for:
+✔ Telegram WebApp loading
+✔ JS SDK working
+✔ WebApp.initData signature verification
+
+If the domain is not set →
+Users will see blank screens or "Invalid domain" errors.
+
+This is one of the most important settings.
+
+🔵 9. Menu Button
+
+You SHOULD configure this.
+
+Set a menu button that launches your mini-app.
+
+Example:
+
+Text: "Open Coin Railz"
+URL: https://coinrailz.com/telegram/app
+(or whatever your mini-app page is)
+
+This puts a permanent button at the top of the chat — MAJOR friction reducer.
+
+🚀 10. Configure Mini App
+
+YES — configure this 100%.
+
+Inside here you should set:
+
+• Mini App Title
+
+Coin Railz – Agent Console
+
+• Mini App URL
+
+Point it to your actual mini-app URL:
+
+https://coinrailz.com/telegram/app
+
+
+(or whatever Replit shows)
+
+• Enable: "Attach to Menu"
+
+YES — this is the Telegram-native way to show the app.
+
+• Enable: "Show settings shortcuts"
+
+Optional — but recommended.
+
+• Enable: "Launch button"
+
+YES — users can launch the app without typing /start.
+
+• Enable: "Auto expand on open"
+
+YES — makes the app feel premium and native.
+
+🟨 11. Paid Broadcast
+
+IGNORE.
+Not needed, waste of money, not aligned with your strategy.
+
+🟩 SUMMARY — What YOU need to set
+
+Here is your exact checklist:
+
+✔ No Inline Mode
+✔ No Groups
+✔ No Payments
+✔ Set Domain to your site
+✔ Configure Mini-App
+✔ Set Menu Button to launch Mini-App
+✔ Good bot description, about text, and commands
+
+Once those are set →
+Your mini-app becomes an official Telegram Native App, fully integrated into the client UI.
+
+🔥 NEXT STEP
+
+Your Telegram bot is now live + configured…
+
+So the next question is:
+
+Do you want:
+
+1️⃣ LLM Reasoning Mode (the AI routes actions to your services)
+2️⃣ Referral System
+3️⃣ Viral Growth Hooks
+4️⃣ Help Menu / Bot Onboarding Script
+5️⃣ Coin Railz website OpenGraph meta tags (to fix your Twitter links)

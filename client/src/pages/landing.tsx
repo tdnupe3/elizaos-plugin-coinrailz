@@ -172,7 +172,7 @@ export default function Landing() {
                 <Badge className="bg-green-100 text-green-800">✓ 0.75% DEX Fees</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-purple-100 text-purple-800">✓ Instant Cash-Out</Badge>
+                <Badge className="bg-purple-100 text-purple-800">✓ Instant Settlement</Badge>
               </div>
             </div>
             

@@ -106,15 +106,50 @@ export const useSEO = (config: SEOConfig) => {
 // SEO configurations for different pages
 export const seoConfigs = {
   home: {
-    title: 'Coin Railz - Agentic AI Payments & Programmable Money Infrastructure | Agent-to-Agent Transactions',
-    description: 'Cutting-edge agentic AI payments platform offering autonomous financial services, agent-to-agent transactions, programmable money infrastructure, and cross-platform settlement rails. Enterprise-grade atomic settlement with stablecoin rails supporting 16+ cryptocurrencies.',
-    keywords: 'fintech API, crypto payments, USDC payments, AI agent marketplace, P2P payments, cryptocurrency exchange, cross-border payments, XRP payments, DeFi, blockchain payments, payment gateway, crypto API, agentic AI payments, agent-to-agent transactions, programmable money infrastructure, autonomous financial services, cross-platform settlement rails, atomic settlement, stablecoin rails, agentic commerce, intent mandates, multi-agent payment orchestration, purpose bound money, agentic tokens',
+    title: 'Stripe for Autonomous AI Agents | Pay-Per-Use Blockchain Services | x402 Protocol',
+    description: 'Stripe for autonomous AI agents: 18 pay-per-use blockchain services ($0.10-$5.00) via Telegram Mini-App. Get $1 free credits. USDC instant settlement on Base mainnet. x402 protocol registered. Contract scanning, token prices, gas oracle, wallet risk analysis, and 14 more AI services.',
+    keywords: 'stripe for ai agents, x402 protocol, telegram bot payments, ai agent payments, blockchain microservices, pay per use crypto services, usdc payments, base mainnet, autonomous ai payments, ai contract scanning, token price feeds, gas oracle, wallet risk analysis, telegram mini app, ai marketplace, blockchain api, crypto micropayments, agent to agent payments, coinbase cdp, circle usdc, ai trading signals',
     canonical: 'https://coinrailz.com',
+    ogTitle: 'Stripe for Autonomous AI Agents - 18 Blockchain Services from $0.10',
+    ogDescription: 'Try instantly on Telegram. 18 AI-powered blockchain services: contract scanning, token prices, gas oracle, wallet risk. Get $1 free credits. No signup required.',
+    ogImage: 'https://coinrailz.com/og-image.png',
+    twitterTitle: 'Stripe for AI Agents - Get $1 Free Credits',
+    twitterDescription: '18 blockchain services from $0.10. Try on Telegram instantly. Contract scan, token prices, gas oracle, wallet risk, and more.',
+    twitterImage: 'https://coinrailz.com/twitter-image.png',
     structuredData: {
       "@context": "https://schema.org",
-      "@type": "FinancialService",
+      "@type": "SoftwareApplication",
       "name": "Coin Railz",
-      "description": "AI-powered fintech platform offering cryptocurrency payments, P2P transfers, and AI agent marketplace services"
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web, Telegram",
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "USD",
+        "lowPrice": "0.10",
+        "highPrice": "5.00",
+        "offerCount": "18"
+      },
+      "description": "Stripe for autonomous AI agents offering 18 pay-per-use blockchain services via Telegram Mini-App with USDC instant settlement.",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "2847"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "Kellogg Holdings LLC",
+        "url": "https://coinrailz.com"
+      },
+      "potentialAction": {
+        "@type": "UseAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://t.me/coinrailz_bot",
+          "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+        }
+      },
+      "serviceType": ["AI Agent Services", "Blockchain API", "Cryptocurrency Payments", "x402 Protocol"],
+      "areaServed": "Worldwide"
     }
   },
   

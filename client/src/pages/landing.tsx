@@ -57,7 +57,7 @@ export default function Landing() {
       user_type: 'enterprise_customer',
       payment_method: 'coinbase'
     });
-    window.location.href = "/auth/coinbase/login";
+    // Link component handles navigation
   };
 
   const handleGuestAccess = () => {
@@ -202,16 +202,6 @@ export default function Landing() {
                 🚀 Get Started Now - It's Free!
               </Button>
               
-              {/* Coinbase Sign In Option */}
-              <Button 
-                onClick={handleCoinbaseSignIn}
-                variant="outline"
-                className="w-full border-orange-500 text-orange-600 hover:bg-orange-50 py-3 sm:py-4 text-base sm:text-lg font-medium mb-3"
-                size="lg"
-              >
-                <img src="https://cdn.worldvectorlogo.com/logos/coinbase-1.svg" alt="Coinbase" className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Sign In with Coinbase
-              </Button>
               
               <p className="text-center text-sm text-gray-500 mt-3">
                 Already have an account? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In with Replit</button>

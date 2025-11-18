@@ -357,9 +357,92 @@ export default function Landing() {
             <CoinbaseConnectionSection />
           </div>
 
+          {/* 18 x402 SERVICES PRICING - REVENUE DRIVER */}
+          <div className="text-center mb-12">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold text-gray-900 mb-3">18 Pay-Per-Use AI Services</h2>
+              <p className="text-lg text-gray-600 mb-2">Available instantly via Telegram • Try with your $1 free credits</p>
+              <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">No subscription • Pay only for what you use</Badge>
+            </div>
+
+            {/* Services Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl mx-auto mb-6">
+              {[
+                { name: "AI Chat Assistant", price: "$0.10", description: "GPT-4 powered conversations", icon: <Bot className="w-5 h-5" /> },
+                { name: "Gas Price Oracle", price: "$0.10", description: "Real-time gas estimates", icon: <Activity className="w-5 h-5" /> },
+                { name: "Token Metadata", price: "$0.10", description: "Unified token info", icon: <Network className="w-5 h-5" /> },
+                { name: "DEX Liquidity Monitor", price: "$0.20", description: "Pool liquidity tracking", icon: <TrendingUp className="w-5 h-5" /> },
+                { name: "Approval Manager", price: "$0.20", description: "Token approval builder", icon: <Shield className="w-5 h-5" /> },
+                { name: "Token Price Feed", price: "$0.25", description: "Real-time crypto prices", icon: <DollarSign className="w-5 h-5" /> },
+                { name: "Token Sentiment", price: "$0.25", description: "Social sentiment analysis", icon: <TrendingUp className="w-5 h-5" /> },
+                { name: "Transaction Builder", price: "$0.30", description: "Pre-validated transactions", icon: <Send className="w-5 h-5" /> },
+                { name: "Whale Alerts", price: "$0.35", description: "Large wallet movements", icon: <Activity className="w-5 h-5" /> },
+                { name: "Batch Quote", price: "$0.40", description: "Multi-DEX price quotes", icon: <Repeat className="w-5 h-5" /> },
+                { name: "Multi-Chain Balance", price: "$0.50", description: "7+ chain balances", icon: <Network className="w-5 h-5" /> },
+                { name: "Trending Tokens", price: "$0.50", description: "Top gainers/losers", icon: <TrendingUp className="w-5 h-5" /> },
+                { name: "Wallet Risk Score", price: "$0.50", description: "Compliance analysis", icon: <Shield className="w-5 h-5" /> },
+                { name: "Portfolio Tracker", price: "$0.50", description: "Multi-chain valuation", icon: <Activity className="w-5 h-5" /> },
+                { name: "Trade Signals", price: "$0.75", description: "AI trading recommendations", icon: <TrendingUp className="w-5 h-5" /> },
+                { name: "Contract Security Scan", price: "$1.00", description: "Vulnerability detection", icon: <Shield className="w-5 h-5" /> },
+                { name: "Instant Agent Wallet", price: "$1.00", description: "Circle MPC wallets", icon: <CreditCard className="w-5 h-5" /> },
+                { name: "Chain Bridge", price: "$2.00", description: "Cross-chain USDC routing", icon: <Repeat className="w-5 h-5" /> },
+              ].map((service, idx) => (
+                <Card 
+                  key={idx}
+                  className="hover:shadow-md transition-shadow border-gray-200 bg-white text-left"
+                  data-testid={`service-card-${idx}`}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-blue-600">{service.icon}</div>
+                      <Badge className="bg-green-50 text-green-700 font-bold text-sm">{service.price}</Badge>
+                    </div>
+                    <CardTitle className="text-sm font-semibold text-gray-900">{service.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-xs text-gray-600">{service.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {/* Premium Service Highlight */}
+              <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-300 hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <Shield className="w-5 h-5 text-purple-600" />
+                    <Badge className="bg-purple-100 text-purple-800 font-bold text-sm">$5.00</Badge>
+                  </div>
+                  <CardTitle className="text-sm font-semibold text-purple-900">AI Agent Identity (KYA)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs text-purple-700">ERC-8004 on-chain verification</p>
+                  <Badge className="mt-2 bg-purple-200 text-purple-900 text-xs">Premium</Badge>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="text-center">
+              <a 
+                href="https://t.me/coinrailz_bot" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                data-testid="telegram-services-cta"
+              >
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all"
+                  size="lg"
+                >
+                  <Send className="w-5 h-5 mr-2" />
+                  Try These Services on Telegram
+                </Button>
+              </a>
+              <p className="text-sm text-gray-600 mt-3">Use your $1 free credit for 10 AI chats or 4 contract scans</p>
+            </div>
+          </div>
+
           {/* Streamlined Core Features - Only Working Features */}
           <div className="text-center mb-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Core Platform Features</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Full Platform Features</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               
               {/* Send Money - Working */}

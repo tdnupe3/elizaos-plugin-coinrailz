@@ -208,7 +208,67 @@ export default function Landing() {
               </p>
             </div>
 
-
+            {/* TELEGRAM MINI-APP CTA - PRIMARY REVENUE DRIVER */}
+            <div className="mb-8 max-w-3xl mx-auto">
+              <Card className="border-2 border-blue-400 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-xl">
+                <CardHeader className="text-center pb-4">
+                  <div className="flex justify-center mb-3">
+                    <div className="bg-blue-600 text-white rounded-full w-16 h-16 flex items-center justify-center text-3xl shadow-lg">
+                      🎮
+                    </div>
+                  </div>
+                  <CardTitle className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                    Try Instantly on Telegram
+                  </CardTitle>
+                  <p className="text-lg text-gray-700 font-medium">
+                    Get <span className="text-green-600 font-bold">$1 FREE credits</span> • No signup required
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-white rounded-lg p-4 border border-blue-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-4">
+                      <div className="flex items-center justify-center space-x-2">
+                        <Zap className="w-5 h-5 text-blue-600" />
+                        <span className="text-sm font-medium text-gray-700">18 AI Services</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <DollarSign className="w-5 h-5 text-green-600" />
+                        <span className="text-sm font-medium text-gray-700">$0.10-$5.00/use</span>
+                      </div>
+                      <div className="flex items-center justify-center space-x-2">
+                        <Globe className="w-5 h-5 text-purple-600" />
+                        <span className="text-sm font-medium text-gray-700">12 Languages</span>
+                      </div>
+                    </div>
+                    <a 
+                      href="https://t.me/coinrailz_bot" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      data-testid="telegram-bot-link"
+                      onClick={() => {
+                        trackEvent('click', 'telegram_bot_cta', 'main_landing_section');
+                        trackBusinessEvent('telegram_bot_click', {
+                          service_type: 'telegram_miniapp',
+                          user_type: 'prospective_customer',
+                          value: 1
+                        });
+                      }}
+                    >
+                      <Button 
+                        className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white py-5 sm:py-6 text-lg sm:text-xl font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+                        size="lg"
+                      >
+                        <Send className="w-5 h-5 sm:w-6 sm:h-6 mr-3" />
+                        Open Telegram Bot → Get $1 Free
+                      </Button>
+                    </a>
+                  </div>
+                  <p className="text-center text-sm text-gray-600">
+                    🤖 AI contract scanning • 📊 Token price feeds • ⛽ Gas oracle • 🔍 Wallet risk analysis • And 14 more services
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Secondary Actions - All Functional */}
             <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8 max-w-2xl mx-auto px-4 sm:px-0">

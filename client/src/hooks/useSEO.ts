@@ -107,13 +107,13 @@ export const useSEO = (config: SEOConfig) => {
 export const seoConfigs = {
   home: {
     title: 'Multi-Chain Payment Infrastructure | DEX Aggregator + Fiat Off-Ramps | 7 Blockchains',
-    description: 'Multi-chain payment infrastructure for crypto communities: Swap at best rates across Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain. Cash out via Zelle, PayPal, Venmo, Cash App. 0.75% DEX fees, 1% cash-out fees. Automatic platform detection, instant settlement.',
+    description: 'Multi-chain payment infrastructure for crypto communities: Trade at best rates across Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain. Universal settlement to any platform. 0.75% DEX fees, 1% P2P routing. Cross-chain liquidity with instant settlement.',
     keywords: 'multi-chain payment infrastructure, dex aggregator, crypto cash out, fiat off-ramp, swap crypto, zelle crypto, paypal crypto, venmo crypto, cash app crypto, ethereum swap, base chain, polygon swap, bsc swap, arbitrum, optimism, pulsechain, usdc payments, cross-platform payments, crypto to fiat, best crypto rates, p2p crypto, crypto trading infrastructure',
     canonical: 'https://coinrailz.com',
     ogTitle: 'Multi-Chain Payment Infrastructure - Trade Crypto + Cash Out Instantly',
-    ogDescription: 'Best rates across 7 blockchains. Swap crypto, then cash out to Zelle, PayPal, Venmo, or Cash App. 0.75% DEX fees. Automatic platform detection.',
+    ogDescription: 'Cross-chain liquidity meets universal settlement. Best rates across 7 blockchains with instant cross-platform routing. 0.75% DEX fees, 1% P2P routing.',
     twitterTitle: 'Multi-Chain DEX + Fiat Off-Ramps - 7 Blockchains',
-    twitterDescription: 'Trade crypto at best rates on Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain. Cash out via Zelle/PayPal/Venmo instantly.',
+    twitterDescription: 'Cross-chain liquidity meets universal settlement. Trade at best rates on Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain with instant platform routing.',
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",

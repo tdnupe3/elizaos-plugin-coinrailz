@@ -160,7 +160,7 @@ export default function Landing() {
             </h1>
             
             <p className="text-xl sm:text-2xl text-gray-600 mb-6 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Swap crypto at best rates across 7 blockchains, then cash out via Zelle, PayPal, Venmo, or Cash App. Automatic platform detection.
+              Cross-chain liquidity meets universal settlement. Trade at best rates across 7 blockchains, settle to any platform instantly.
             </p>
             
             {/* Trust Badges */}

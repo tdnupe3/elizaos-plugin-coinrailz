@@ -110,6 +110,18 @@ export class TelegramTradingBot {
       await this.sendHelpMessage(chatId);
     });
 
+    // SHOP COMMAND - NEW REVENUE DRIVER
+    this.bot.onText(/\/shop/, async (msg) => {
+      const chatId = msg.chat.id;
+      await this.handleShopCommand(chatId);
+    });
+
+    // CREDITS COMMAND - View balance and buy credits
+    this.bot.onText(/\/credits/, async (msg) => {
+      const chatId = msg.chat.id;
+      await this.handleCreditsCommand(chatId);
+    });
+
     // Handle callback queries (inline buttons)
     this.bot.on('callback_query', async (callbackQuery) => {
       const msg = callbackQuery.message;
@@ -622,6 +634,22 @@ Choose your plan:`;
           await this.shareBot(chatId);
           break;
           
+        case 'buy_credits':
+          await this.handleCreditsCommand(chatId);
+          break;
+
+        case 'back_to_shop':
+          await this.handleShopCommand(chatId);
+          break;
+
+        case 'view_credits':
+          await this.handleCreditsCommand(chatId);
+          break;
+
+        case 'shop_help':
+          await this.bot.sendMessage(chatId, `📚 **Shop Help**\n\nNeed assistance? Contact support:\n• Telegram: @coinrailz_support\n• Email: support@coinrailz.com\n• Web: https://coinrailz.com/support`);
+          break;
+          
         default:
           await this.bot.sendMessage(chatId, 'Feature coming soon! 🚀');
       }
@@ -694,6 +722,136 @@ Payment is secure and processed by Stripe.`;
     } catch (error) {
       console.error('Error processing upgrade:', error);
       await this.bot.sendMessage(chatId, '❌ Error processing upgrade. Please try again.');
+    }
+  }
+
+  /**
+   * 🛒 Handle /shop command - NEW REVENUE DRIVER
+   */
+  private async handleShopCommand(chatId: number): Promise<void> {
+    try {
+      const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
+        ? 'https://coinrailz.com' 
+        : 'http://localhost:5000';
+
+      const shopMessage = `🛒 **Coin Railz Shop**
+
+Welcome to the fastest way to monetize your trading and AI workflows!
+
+**🔥 AI Agent Pro Bundle** - $49 (Launch Price!)
+• Access to all 18 x402-powered microservices
+• Telegram Mini-App access
+• 30 days unlimited contract scans
+• 50 agent-to-agent service credits
+• Whale alerts & trade signals
+• Smart contract auditing
+Regular price: $99/month
+
+**💳 Prepaid Credits** - Start at $10
+• Use across all 18 AI services
+• No subscription required
+• Credits never expire
+• Perfect for pay-as-you-go
+
+**💰 P2P Conversion Service** - 5-10% fee
+• Convert crypto to cash instantly
+• Licensed MTL processor (Alabama)
+• Same-day settlement guaranteed
+• USDT, USDC, XRP, ETH, BTC
+• No limits on transaction size
+
+Choose what you need:`;
+
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🔥 AI Agent Pro Bundle - $49', url: `${baseUrl}/products/ai-agent-bundle` },
+            ],
+            [
+              { text: '💳 Buy Credits ($10-$500)', callback_data: 'buy_credits' },
+            ],
+            [
+              { text: '💰 P2P Conversion Service', url: `${baseUrl}/p2p-conversion` },
+            ],
+            [
+              { text: '📊 View My Credits', callback_data: 'view_credits' },
+              { text: '❓ Help', callback_data: 'shop_help' }
+            ]
+          ]
+        }
+      };
+
+      await this.bot.sendMessage(chatId, shopMessage, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+
+    } catch (error) {
+      console.error('Error in shop command:', error);
+      await this.bot.sendMessage(chatId, '❌ Error loading shop. Please try again.');
+    }
+  }
+
+  /**
+   * 💳 Handle /credits command
+   */
+  private async handleCreditsCommand(chatId: number): Promise<void> {
+    try {
+      const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
+        ? 'https://coinrailz.com' 
+        : 'http://localhost:5000';
+
+      const creditsMessage = `💳 **Your Credit Balance**
+
+**Current Balance:** 0 credits
+
+**What are credits?**
+Credits let you access all 18 AI services without a subscription:
+• Contract Scanner (5 credits/scan)
+• Whale Tracker (3 credits/alert)
+• Trade Signals (2 credits/signal)
+• Smart Contract Audit (10 credits/audit)
+• And 14 more services...
+
+**Credit Packages:**
+• $10 = 100 credits
+• $25 = 275 credits (10% bonus!)
+• $50 = 600 credits (20% bonus!)
+• $100 = 1,300 credits (30% bonus!)
+• $500 = 7,000 credits (40% bonus!)
+
+Credits never expire and work across all services!`;
+
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '$10 - 100 credits', url: `${baseUrl}/products/credits?amount=10` },
+              { text: '$25 - 275 credits', url: `${baseUrl}/products/credits?amount=25` }
+            ],
+            [
+              { text: '$50 - 600 credits', url: `${baseUrl}/products/credits?amount=50` },
+              { text: '$100 - 1,300 credits', url: `${baseUrl}/products/credits?amount=100` }
+            ],
+            [
+              { text: '$500 - 7,000 credits', url: `${baseUrl}/products/credits?amount=500` }
+            ],
+            [
+              { text: '🔙 Back to Shop', callback_data: 'back_to_shop' }
+            ]
+          ]
+        }
+      };
+
+      await this.bot.sendMessage(chatId, creditsMessage, {
+        parse_mode: 'Markdown',
+        ...keyboard
+      });
+
+    } catch (error) {
+      console.error('Error in credits command:', error);
+      await this.bot.sendMessage(chatId, '❌ Error loading credits. Please try again.');
     }
   }
 

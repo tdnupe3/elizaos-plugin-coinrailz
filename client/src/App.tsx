@@ -248,6 +248,18 @@ function Router() {
         {() => <LazyLoadWrapper><CreditsPage /></LazyLoadWrapper>}
       </Route>
 
+      {/* Product Pages - Revenue Generation */}
+      <Route path="/products/ai-agent-bundle">
+        {() => {
+          const AIAgentBundlePage = lazy(() => import("@/pages/AIAgentBundlePage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <AIAgentBundlePage />
+            </Suspense>
+          );
+        }}
+      </Route>
+
       <Route path="/api-keys">
         {() => <LazyLoadWrapper><APIKeysPage /></LazyLoadWrapper>}
       </Route>

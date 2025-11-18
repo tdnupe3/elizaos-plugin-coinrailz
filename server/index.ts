@@ -70,6 +70,7 @@ import { peezyService } from './services/peezyIntegrationService';
 import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
 import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
 import agentCardRoutes from './routes/agentCardRoutes';
+import wellKnownRoutes from './routes/wellKnownRoutes';
 import discoveryRoutes from './routes/discoveryRoutes';
 import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
 import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
@@ -619,6 +620,11 @@ app.use(a2aBridgeRoutes);
 console.log('🎯 Registering Agent Card routes for A2A discovery of marketplace agents...');
 app.use(agentCardRoutes);
 console.log('✅ Agent Card routes registered - Marketplace agents now discoverable via A2A protocol');
+
+// Register .well-known endpoints for x402 indexing and discovery
+console.log('🔍 Registering .well-known endpoints for x402scan and Coinbase indexing...');
+app.use(wellKnownRoutes);
+console.log('✅ .well-known endpoints registered - Platform discoverable by x402 indexers');
 
 // Register Autonomous Discovery routes for crawler/search engine discovery
 console.log('🔍 Registering Autonomous Discovery routes (sitemap, robots.txt, search engine pings)...');

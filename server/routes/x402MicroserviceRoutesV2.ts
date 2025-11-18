@@ -46,6 +46,18 @@ const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae
 // CRITICAL FIX: Force BASE MAINNET for Bazaar discovery (testnet services don't appear in Bazaar)
 const NETWORK: Network = "base"; // Always use mainnet for production discoverability
 
+// Public base URL for Bazaar discovery (x402 crawler needs public URLs, not localhost)
+const PUBLIC_BASE_URL: `${string}://${string}` = (process.env.REPLIT_DEPLOYMENT === '1' 
+  ? 'https://coinrailz.com'
+  : process.env.REPL_SLUG 
+    ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+    : 'http://localhost:5000') as `${string}://${string}`;
+
+// Helper function to create properly typed resource URLs
+function resourceUrl(path: string): `${string}://${string}` {
+  return `${PUBLIC_BASE_URL}${path}` as `${string}://${string}`;
+}
+
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
 
@@ -77,6 +89,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/multi-chain-balance`,
       name: "Multi-Chain Balance Checker",
       description: "Query wallet balances across 7+ EVM chains in a single API call",
       mimeType: "application/json",
@@ -113,6 +126,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/gas-price-oracle`,
       name: "Gas Price Oracle",
       description: "Real-time gas prices for multiple chains with USD cost estimates",
       mimeType: "application/json",
@@ -143,6 +157,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/token-price`,
       name: "Token Price Feed",
       description: "Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener",
       mimeType: "application/json",
@@ -178,6 +193,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/contract-scan`,
       name: "Contract Security Scanner",
       description: "Basic smart contract security scan with safety score and vulnerability checks",
       mimeType: "application/json",
@@ -212,6 +228,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/wallet-risk`,
       name: "Wallet Risk Analyzer",
       description: "Wallet risk analysis with compliance flags and transaction pattern detection",
       mimeType: "application/json",
@@ -246,6 +263,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/trade-signals`,
       name: "AI Trade Signals",
       description: "AI-powered crypto trading signals with entry/exit points and risk analysis",
       mimeType: "application/json",
@@ -292,6 +310,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/token-sentiment`,
       name: "Token Sentiment Analyzer",
       description: "Social sentiment analysis for tokens with momentum indicators and activity levels",
       mimeType: "application/json",
@@ -335,6 +354,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/trending-tokens`,
       name: "Trending Tokens Feed",
       description: "Top gaining and losing tokens across DEXs with real-time market data",
       mimeType: "application/json",
@@ -375,6 +395,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/whale-alerts`,
       name: "Whale Movement Tracker",
       description: "Track large wallet movements (whales) with on-chain transaction monitoring",
       mimeType: "application/json",
@@ -415,6 +436,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/dex-liquidity`,
       name: "DEX Liquidity Monitor",
       description: "Real-time DEX liquidity pool monitoring across multiple exchanges",
       mimeType: "application/json",
@@ -457,6 +479,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/transaction-builder`,
       name: "Transaction Builder API",
       description: "Pre-validated transaction encoding for agent-to-agent transfers (B2B2C infrastructure)",
       mimeType: "application/json",
@@ -504,6 +527,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/token-metadata`,
       name: "Token Metadata Service",
       description: "Unified token info across all chains - essential building block for trading agent UIs (B2B2C infrastructure)",
       mimeType: "application/json",
@@ -549,6 +573,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/approval-manager`,
       name: "Token Approval Manager",
       description: "Token approval transaction generator - required infrastructure for DeFi agents (B2B2C infrastructure)",
       mimeType: "application/json",
@@ -637,6 +662,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/portfolio-tracker`,
       name: "Portfolio Tracker API",
       description: "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents (B2B2C infrastructure)",
       mimeType: "application/json",
@@ -679,6 +705,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/instant-agent-wallet`,
       name: "Instant Agent Wallet Creator",
       description: "Create MPC-secured USDC wallets instantly - Circle Developer-Controlled Wallets for AI agents (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
@@ -724,6 +751,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/verified-agent-identity`,
       name: "Agent Identity Verification",
       description: "KYA (Know-Your-Agent) identity verification - On-chain reputation & compliance scoring using ERC-8004 standard (Premium B2B2C Infrastructure)",
       mimeType: "application/json",
@@ -771,6 +799,7 @@ const x402Routes = {
     network: NETWORK,
     config: {
       discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/seamless-chain-bridge`,
       name: "Cross-Chain USDC Bridge",
       description: "Cross-chain USDC routing via Circle CCTP - Pay on Ethereum, receive on Base/Polygon/Arbitrum instantly (Premium B2B2C Infrastructure)",
       mimeType: "application/json",

@@ -4,7 +4,7 @@ hidden = [".config", ".git", "generated-icon.png", "node_modules", "dist"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["solc"]
+packages = ["solc", "jq"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -42,3 +42,7 @@ externalPort = 80
 [[ports]]
 localPort = 34113
 externalPort = 3000
+
+[[ports]]
+localPort = 46219
+externalPort = 3001

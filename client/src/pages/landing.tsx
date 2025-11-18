@@ -204,7 +204,7 @@ export default function Landing() {
               
               
               <p className="text-center text-sm text-gray-500 mt-3">
-                Already have an account? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In with Replit</button>
+                Already have an account? <button onClick={handleSignIn} className="text-blue-600 hover:text-blue-800 font-medium underline">Sign In</button>
               </p>
             </div>
 

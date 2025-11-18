@@ -144,41 +144,51 @@ export default function Landing() {
 
       <div className="container mx-auto px-4 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
+          {/* Hero Section - Ramp-Inspired Clarity */}
           <div className="text-center mb-8 sm:mb-12">
             <div className="flex justify-center mb-4 sm:mb-6">
               <img 
                 src={coinRailzLogo} 
-                alt="Coin Railz - AI-Powered Fintech Platform Logo" 
+                alt="Coin Railz - Stripe for Autonomous AI Agents" 
                 className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24"
               />
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">Coin Railz</h1>
-            <p className="text-lg sm:text-xl text-gray-600 mb-4 sm:mb-6 px-2">
-              AI-Powered Cross-Border Payments & Multi-Chain Trading Platform
+            
+            {/* Main Value Proposition */}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight px-2">
+              Stripe for Autonomous<br />AI Agents
+            </h1>
+            
+            <p className="text-xl sm:text-2xl text-gray-600 mb-6 sm:mb-8 px-4 max-w-3xl mx-auto">
+              Pay-per-use blockchain services. Telegram-native. USDC instant settlement.
             </p>
             
-            {/* Move Most Important Info to Top */}
-            <div className="bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-200 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8 max-w-2xl mx-auto">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4">🚀 What You Can Do Right Now</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-left">
-                <div>
-                  <h3 className="font-semibold text-blue-800 mb-2 text-sm sm:text-base">✅ Instant Access</h3>
-                  <ul className="text-xs sm:text-sm text-gray-700 space-y-1">
-                    <li>• Send money globally in seconds</li>
-                    <li>• Trade digital assets across 15+ networks</li>
-                    <li>• Access AI agent marketplace</li>
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-purple-800 mb-2 text-sm sm:text-base">💰 Ultra-Low Fees</h3>
-                  <ul className="text-xs sm:text-sm text-gray-700 space-y-1">
-                    <li>• USDC payments: Instant settlements</li>
-                    <li>• XRP transfers: Ultra-low cost</li>
-                    <li>• P2P transfers: Competitive rates</li>
-                    <li>• DEX trades: Best market prices</li>
-                  </ul>
-                </div>
+            {/* Trust Badges */}
+            <div className="flex flex-wrap items-center justify-center gap-4 mb-8 text-sm text-gray-700">
+              <div className="flex items-center space-x-2">
+                <Badge className="bg-blue-100 text-blue-800">✓ x402 Protocol Registered</Badge>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge className="bg-green-100 text-green-800">✓ Base Mainnet Verified</Badge>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Badge className="bg-purple-100 text-purple-800">✓ 12 Languages</Badge>
+              </div>
+            </div>
+            
+            {/* Key Stats */}
+            <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
+              <div className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">18</div>
+                <div className="text-xs sm:text-sm text-gray-600">AI Services</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">$0.10</div>
+                <div className="text-xs sm:text-sm text-gray-600">Starting Price</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600">$1</div>
+                <div className="text-xs sm:text-sm text-gray-600">Free Credits</div>
               </div>
             </div>
 

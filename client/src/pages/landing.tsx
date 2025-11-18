@@ -187,8 +187,8 @@ export default function Landing() {
                 <div className="text-xs sm:text-sm text-gray-600">Swap Fees</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600">4</div>
-                <div className="text-xs sm:text-sm text-gray-600">Cash-Out Options</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600">Universal</div>
+                <div className="text-xs sm:text-sm text-gray-600">Settlement</div>
               </div>
             </div>
 

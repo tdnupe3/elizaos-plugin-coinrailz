@@ -112,10 +112,8 @@ export const seoConfigs = {
     canonical: 'https://coinrailz.com',
     ogTitle: 'Stripe for Autonomous AI Agents - 18 Blockchain Services from $0.10',
     ogDescription: 'Try instantly on Telegram. 18 AI-powered blockchain services: contract scanning, token prices, gas oracle, wallet risk. Get $1 free credits. No signup required.',
-    ogImage: 'https://coinrailz.com/og-image.png',
     twitterTitle: 'Stripe for AI Agents - Get $1 Free Credits',
     twitterDescription: '18 blockchain services from $0.10. Try on Telegram instantly. Contract scan, token prices, gas oracle, wallet risk, and more.',
-    twitterImage: 'https://coinrailz.com/twitter-image.png',
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",

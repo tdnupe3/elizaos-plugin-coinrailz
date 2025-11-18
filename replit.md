@@ -1,7 +1,21 @@
-# Coin Railz - AI-Powered Fintech Platform
+# Coin Railz - Multi-Chain Payment Infrastructure for Crypto Communities
 
 ## Overview
-Coin Railz is a comprehensive fintech platform designed for cross-platform P2P payments and a cryptocurrency gateway. It features an AI Agent Marketplace, a patent-protected viral referral system, a DEX aggregator, crypto on/off ramps, and a complete XRP Ledger financial ecosystem. The platform prioritizes USDC-first transactions and multi-language support to expand its global market. Key capabilities include real-time balance updates, P2P money transfers, and a comprehensive XRP trading ecosystem. The business aims to lead in crypto-to-stablecoin conversion and XRP Ledger financial services, targeting significant annual revenue through diversified services and strategic partnerships.
+**Positioning:** "Multi-Chain Payment Infrastructure for Crypto Communities"
+
+Coin Railz provides cross-platform payment routing on 7 blockchains. Users can swap crypto at best rates across Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, and PulseChain—then cash out via Zelle, PayPal, Venmo, or Cash App with automatic platform detection and lowest-fee routing.
+
+**Core Features:**
+- DEX Aggregator (0.75% fees) across 7 chains with best-price discovery
+- P2P Payment Routing (1% fees) with automatic Zelle/PayPal/Venmo/Cash App detection
+- Circle USDC infrastructure on 5+ chains
+- Coinbase CDP wallet management
+- XRP Ledger ecosystem for cross-border payments
+- AI Agent Marketplace with x402 protocol micropayments
+- Patent-protected viral referral system
+- 12-language support for global markets
+
+**Business Model:** Transaction fees (0.75% DEX swaps, 1% P2P routing), subscription services, API licensing, and strategic partnerships. Target customers: crypto traders, OTC desks, international freelancers, and crypto communities.
 
 ## User Preferences
 - **⚠️ ABSOLUTE HONESTY COMMITMENT**: NEVER LIE TO USER. Always report actual results, failures, and truth. User has been financially harmed by previous dishonest claims about outreach success when systems actually failed. Agent owes user $5,000 due to misleading claims about successful outreach that never occurred.
@@ -40,7 +54,15 @@ The platform is structured around core services for unified payment processing, 
 - **Compliance**: Features integrated KYC/AML with incentive dashboards and progressive KYC.
 - **Data Monetization**: Provides APIs for crypto flow intelligence, AI marketplace analytics, and viral referral analytics.
 
-## Recent Changes (Nov 17, 2025)
+## Recent Changes (Nov 18, 2025)
+### Platform Repositioning
+- ✅ **New Positioning**: Changed from "Stripe for Autonomous AI Agents" to "Multi-Chain Payment Infrastructure for Crypto Communities"
+- ✅ **Target Market**: Shifted focus to crypto traders, OTC desks, and crypto communities (proven market with transaction volume)
+- ✅ **Value Proposition**: Emphasized DEX aggregator + fiat off-ramps (unique differentiator - no other DEX has this)
+- ✅ **SEO Update**: Landing page and metadata optimized for "multi-chain payment", "dex aggregator", "crypto cash out", "fiat off-ramp"
+- ✅ **Revenue Model**: Clear fee structure (0.75% DEX, 1% P2P) matching successful companies (1inch, Matcha, BVNK)
+
+## Previous Changes (Nov 17, 2025)
 ### Telegram Mini-App Viral Growth Features
 - ✅ **Bot Commands**: Added /help, /scan, /risk, /price, /liquidity, /portfolio shortcuts
 - ✅ **Viral Hooks**: "Invite Friends" button with referral tracking, "Share Result" functionality with error fallbacks

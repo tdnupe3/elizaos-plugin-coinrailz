@@ -149,46 +149,46 @@ export default function Landing() {
             <div className="flex justify-center mb-4 sm:mb-6">
               <img 
                 src={coinRailzLogo} 
-                alt="Coin Railz - Stripe for Autonomous AI Agents" 
+                alt="Coin Railz - Multi-Chain Payment Infrastructure for Crypto Communities" 
                 className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24"
               />
             </div>
             
             {/* Main Value Proposition */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight px-2">
-              Stripe for Autonomous<br />AI Agents
+              Multi-Chain Payment<br />Infrastructure
             </h1>
             
             <p className="text-xl sm:text-2xl text-gray-600 mb-6 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Pay-per-use blockchain services. Telegram-native. USDC instant settlement.
+              Swap crypto at best rates across 7 blockchains, then cash out via Zelle, PayPal, Venmo, or Cash App. Automatic platform detection.
             </p>
             
             {/* Trust Badges */}
             <div className="flex flex-wrap items-center justify-center gap-4 mb-8 text-sm text-gray-700">
               <div className="flex items-center space-x-2">
-                <Badge className="bg-blue-100 text-blue-800">✓ x402 Protocol Registered</Badge>
+                <Badge className="bg-blue-100 text-blue-800">✓ 7 Blockchains</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-green-100 text-green-800">✓ Base Mainnet Verified</Badge>
+                <Badge className="bg-green-100 text-green-800">✓ 0.75% DEX Fees</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-purple-100 text-purple-800">✓ 12 Languages</Badge>
+                <Badge className="bg-purple-100 text-purple-800">✓ Instant Cash-Out</Badge>
               </div>
             </div>
             
             {/* Key Stats */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">18</div>
-                <div className="text-xs sm:text-sm text-gray-600">AI Services</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">7</div>
+                <div className="text-xs sm:text-sm text-gray-600">Blockchains</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-green-600">$0.10</div>
-                <div className="text-xs sm:text-sm text-gray-600">Starting Price</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">0.75%</div>
+                <div className="text-xs sm:text-sm text-gray-600">Swap Fees</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600">$1</div>
-                <div className="text-xs sm:text-sm text-gray-600">Free Credits</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600">4</div>
+                <div className="text-xs sm:text-sm text-gray-600">Cash-Out Options</div>
               </div>
             </div>
 

@@ -106,28 +106,28 @@ export const useSEO = (config: SEOConfig) => {
 // SEO configurations for different pages
 export const seoConfigs = {
   home: {
-    title: 'Stripe for Autonomous AI Agents | Pay-Per-Use Blockchain Services | x402 Protocol',
-    description: 'Stripe for autonomous AI agents: 18 pay-per-use blockchain services ($0.10-$5.00) via Telegram Mini-App. Get $1 free credits. USDC instant settlement on Base mainnet. x402 protocol registered. Contract scanning, token prices, gas oracle, wallet risk analysis, and 14 more AI services.',
-    keywords: 'stripe for ai agents, x402 protocol, telegram bot payments, ai agent payments, blockchain microservices, pay per use crypto services, usdc payments, base mainnet, autonomous ai payments, ai contract scanning, token price feeds, gas oracle, wallet risk analysis, telegram mini app, ai marketplace, blockchain api, crypto micropayments, agent to agent payments, coinbase cdp, circle usdc, ai trading signals',
+    title: 'Multi-Chain Payment Infrastructure | DEX Aggregator + Fiat Off-Ramps | 7 Blockchains',
+    description: 'Multi-chain payment infrastructure for crypto communities: Swap at best rates across Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain. Cash out via Zelle, PayPal, Venmo, Cash App. 0.75% DEX fees, 1% cash-out fees. Automatic platform detection, instant settlement.',
+    keywords: 'multi-chain payment infrastructure, dex aggregator, crypto cash out, fiat off-ramp, swap crypto, zelle crypto, paypal crypto, venmo crypto, cash app crypto, ethereum swap, base chain, polygon swap, bsc swap, arbitrum, optimism, pulsechain, usdc payments, cross-platform payments, crypto to fiat, best crypto rates, p2p crypto, crypto trading infrastructure',
     canonical: 'https://coinrailz.com',
-    ogTitle: 'Stripe for Autonomous AI Agents - 18 Blockchain Services from $0.10',
-    ogDescription: 'Try instantly on Telegram. 18 AI-powered blockchain services: contract scanning, token prices, gas oracle, wallet risk. Get $1 free credits. No signup required.',
-    twitterTitle: 'Stripe for AI Agents - Get $1 Free Credits',
-    twitterDescription: '18 blockchain services from $0.10. Try on Telegram instantly. Contract scan, token prices, gas oracle, wallet risk, and more.',
+    ogTitle: 'Multi-Chain Payment Infrastructure - Trade Crypto + Cash Out Instantly',
+    ogDescription: 'Best rates across 7 blockchains. Swap crypto, then cash out to Zelle, PayPal, Venmo, or Cash App. 0.75% DEX fees. Automatic platform detection.',
+    twitterTitle: 'Multi-Chain DEX + Fiat Off-Ramps - 7 Blockchains',
+    twitterDescription: 'Trade crypto at best rates on Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain. Cash out via Zelle/PayPal/Venmo instantly.',
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
       "name": "Coin Railz",
       "applicationCategory": "FinanceApplication",
-      "operatingSystem": "Web, Telegram",
+      "operatingSystem": "Web",
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "USD",
-        "lowPrice": "0.10",
-        "highPrice": "5.00",
-        "offerCount": "18"
+        "lowPrice": "0.75",
+        "highPrice": "1.00",
+        "description": "0.75% DEX swap fees, 1% fiat cash-out fees"
       },
-      "description": "Stripe for autonomous AI agents offering 18 pay-per-use blockchain services via Telegram Mini-App with USDC instant settlement.",
+      "description": "Multi-chain payment infrastructure for crypto communities. Swap at best rates across 7 blockchains, cash out via Zelle, PayPal, Venmo, Cash App. Automatic platform detection.",
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
@@ -139,14 +139,14 @@ export const seoConfigs = {
         "url": "https://coinrailz.com"
       },
       "potentialAction": {
-        "@type": "UseAction",
+        "@type": "TradeAction",
         "target": {
           "@type": "EntryPoint",
-          "urlTemplate": "https://t.me/coinrailz_bot",
+          "urlTemplate": "https://coinrailz.com/swap",
           "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
         }
       },
-      "serviceType": ["AI Agent Services", "Blockchain API", "Cryptocurrency Payments", "x402 Protocol"],
+      "serviceType": ["DEX Aggregator", "Multi-Chain Swap", "Fiat Off-Ramp", "P2P Payment Routing", "Cross-Platform Payments"],
       "areaServed": "Worldwide"
     }
   },

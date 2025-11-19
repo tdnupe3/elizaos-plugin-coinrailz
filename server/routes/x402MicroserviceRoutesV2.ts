@@ -39,6 +39,22 @@ const router = Router();
 router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);
 
+// CRITICAL FIX: Override Host header for x402-express resource URL generation
+// x402-express reads req.get('host') to build resource URLs - we need to inject the public domain
+router.use((req: Request, res: Response, next) => {
+  if (process.env.REPLIT_DEPLOYMENT === '1') {
+    // In production, force coinrailz.com as the host
+    req.headers.host = 'coinrailz.com';
+    req.headers['x-forwarded-host'] = 'coinrailz.com';
+  } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+    // In workspace, use repl.co URL
+    const workspaceHost = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    req.headers.host = workspaceHost;
+    req.headers['x-forwarded-host'] = workspaceHost;
+  }
+  next();
+});
+
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91") as `0x${string}`;
 
@@ -862,15 +878,37 @@ router.use((req: Request, res: Response, next) => {
       try {
         const chunkStr = typeof chunk === 'string' ? chunk : chunk.toString();
         const body = JSON.parse(chunkStr);
-        console.log(`📦 Parsed body, has x402Version: ${!!body?.x402Version}, has paymentRequirements: ${!!body?.paymentRequirements}`);
+        console.log(`📦 Parsed body, has x402Version: ${!!body?.x402Version}, has accepts: ${!!body?.accepts}`);
         
-        // Check if this is a 402 response with paymentRequirements
-        if (body?.x402Version && body?.paymentRequirements && Array.isArray(body.paymentRequirements)) {
-          console.log('🎯 Modifying paymentRequirements to add discoverable:true');
-          // Modify the response to add discoverable:true
-          body.paymentRequirements = body.paymentRequirements.map((req: any) => {
+        // Check if this is a 402 response with accepts array (x402-express uses "accepts", not "paymentRequirements")
+        if (body?.x402Version && body?.accepts && Array.isArray(body.accepts)) {
+          console.log('🎯 Modifying paymentRequirements to add discoverable:true AND fix resource URLs');
+          
+          // Determine the correct public base URL for this environment
+          const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+          const isWorkspace = process.env.REPL_SLUG && process.env.REPL_OWNER;
+          let publicBaseUrl = 'http://localhost:5000'; // fallback
+          
+          if (isProduction) {
+            publicBaseUrl = 'https://coinrailz.com';
+          } else if (isWorkspace) {
+            publicBaseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+          }
+          
+          console.log(`🌐 Fixing resource URLs to use: ${publicBaseUrl}`);
+          
+          // Modify the response to add discoverable:true AND fix resource URLs
+          body.accepts = body.accepts.map((req: any) => {
+            // Fix the resource URL if it contains localhost
+            let fixedResource = req.resource;
+            if (fixedResource && fixedResource.includes('localhost')) {
+              fixedResource = fixedResource.replace(/http:\/\/localhost:\d+/, publicBaseUrl);
+              console.log(`   🔧 Fixed resource: ${req.resource} → ${fixedResource}`);
+            }
+            
             const modifiedReq = {
               ...req,
+              resource: fixedResource, // Use fixed resource URL
               discoverable: true, // Add at top level
             };
             
@@ -911,7 +949,11 @@ console.log('🔄 Payment orchestrator configured - will apply per-route for fle
 // Apply x402-express middleware ONLY as fallback for EIP-712 signatures
 // Orchestrator bypasses this for raw transaction hashes
 console.log('🔄 x402-express paymentMiddleware configured as EIP-712 fallback');
+console.log(`🌐 PUBLIC_BASE_URL set to: ${PUBLIC_BASE_URL}`);
 
+// NOTE: x402-express doesn't support baseURL parameter - it uses request headers
+// We've set resource field in each route config, but x402-express v0.7.1 ignores it
+// Will need to upgrade x402-express or modify request headers
 const x402Middleware = paymentMiddleware(
   PLATFORM_WALLET,
   x402Routes,

@@ -675,6 +675,30 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
 // REMOVED: app.use('/x402', x402GatedRoutes); - Conflicted with V2 implementation below
+
+// CRITICAL FIX: Override Host header for x402 Bazaar discovery
+// x402-express v0.7.1 ignores "resource" config field and uses req.get('host') instead
+// This causes localhost URLs in production, breaking Coinbase Bazaar indexing
+app.use('/x402', (req, res, next) => {
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+  const isWorkspace = process.env.REPL_SLUG && process.env.REPL_OWNER;
+  
+  if (isProduction) {
+    req.headers.host = 'coinrailz.com';
+    req.headers['x-forwarded-host'] = 'coinrailz.com';
+    req.headers['x-forwarded-proto'] = 'https';
+    console.log('🌐 [x402] Overriding Host header to: coinrailz.com (production)');
+  } else if (isWorkspace) {
+    const workspaceHost = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    req.headers.host = workspaceHost;
+    req.headers['x-forwarded-host'] = workspaceHost;
+    req.headers['x-forwarded-proto'] = 'https';
+    console.log(`🌐 [x402] Overriding Host header to: ${workspaceHost} (workspace)`);
+  }
+  
+  next();
+});
+
 app.use('/x402', x402MicroserviceRoutes); // x402 micropayment services with official Coinbase CDP facilitator (V2)
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 app.use('/api/x402scan-scraper', x402scanScraperRoutes);

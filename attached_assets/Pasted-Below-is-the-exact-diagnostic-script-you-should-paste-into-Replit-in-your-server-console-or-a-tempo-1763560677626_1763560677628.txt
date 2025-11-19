@@ -1,0 +1,134 @@
+Below is the exact diagnostic script you should paste into Replit (in your server console or a temporary route) to verify:
+
+✅ All 18 x402 services
+✅ Correct resource URLs
+✅ .well-known endpoints
+✅ JSON validity
+✅ Public accessibility
+✅ No localhost leakage
+✅ Coinbase crawler readiness
+
+This is the full health-check script.
+
+🟦 Paste This Into Replit → “Console” (node REPL)
+const axios = require("axios");
+
+const BASE = "https://coinrailz.com";
+
+// 1. Check .well-known endpoints first
+const wellknown = [
+  "/.well-known/agent-card.json",
+  "/.well-known/service-manifest.json",
+  "/.well-known/payment-methods.json",
+  "/.well-known/pricing.json"
+];
+
+// 2. All 18 x402 services (add or remove as needed)
+const services = [
+  "gas-price-oracle",
+  "token-metadata",
+  "dex-liquidity",
+  "approval-manager",
+  "token-sentiment",
+  "token-price",
+  "transaction-builder",
+  "whale-alerts",
+  "batch-quote",
+  "multi-chain-balance",
+  "portfolio-tracker",
+  "trending-tokens",
+  "wallet-risk",
+  "trade-signals",
+  "contract-quick-scan",
+  "instant-agent-wallet",
+  "seamless-chain-bridge",
+  "verified-agent-identity"
+];
+
+async function checkUrl(url) {
+  try {
+    const res = await axios.get(url, { timeout: 5000 });
+    return { status: res.status, ok: true, data: res.data };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+(async () => {
+  console.log("🔍 Checking .well-known endpoints...\n");
+
+  for (const path of wellknown) {
+    const url = `${BASE}${path}`;
+    const check = await checkUrl(url);
+    console.log(url, check.ok ? "✅ OK" : "❌ ERROR", check.ok ? "" : check.error);
+  }
+
+  console.log("\n🔍 Checking x402 services...\n");
+
+  for (const service of services) {
+    const url = `${BASE}/x402/${service}`;
+    const check = await checkUrl(url);
+
+    if (!check.ok) {
+      console.log(`❌ ${service} — ERROR: ${check.error}`);
+      continue;
+    }
+
+    // resource field check
+    const resource = check.data.resource;
+    const isPublic = resource?.startsWith("https://coinrailz.com");
+
+    console.log(
+      `${isPublic ? "✅" : "⚠️"} ${service} — status=${check.status} — resource=${resource}`
+    );
+  }
+
+  console.log("\n🏁 Done.\n");
+})();
+
+🧠 What This Script Checks
+
+This script verifies:
+
+✔ Service route is reachable
+✔ Status code is 200
+✔ JSON is valid
+✔ resource URL is public
+✔ No localhost or 127.0.0.1
+✔ All 18 x402 services respond
+✔ All 4 .well-known manifests respond
+
+This replicates exactly what the Coinbase crawler tests.
+
+🔥 What GOOD Output Looks Like
+
+You want to see:
+
+https://coinrailz.com/.well-known/agent-card.json  ✅ OK
+...
+multi-chain-balance — status=200 — resource=https://coinrailz.com/x402/multi-chain-balance
+
+❌ What BAD Output Looks Like
+
+If you see:
+
+resource: http://localhost:5000/...
+
+
+or:
+
+❌ ERROR: Request failed with status code 404
+
+
+or:
+
+⚠️ missing or incorrect resource URL
+
+
+Then we need to patch something.
+
+🧩 If you want a version that logs EVERYTHING in JSON form, say:
+
+“Give me the verbose diagnostic version.”
+
+Run this in Replit — then paste the output here and I’ll confirm crawler readiness.

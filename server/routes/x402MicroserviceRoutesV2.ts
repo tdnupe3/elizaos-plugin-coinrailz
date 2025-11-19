@@ -926,9 +926,11 @@ router.use((req: Request, res: Response, next) => {
             return modifiedReq;
           });
           
-          // Send the modified body
+          // Send the modified body with correct Content-Length
           const modifiedChunk = JSON.stringify(body);
-          console.log('✅ MODIFIED RESPONSE BEING SENT WITH DISCOVERABLE:TRUE');
+          const modifiedLength = Buffer.byteLength(modifiedChunk, 'utf8');
+          res.setHeader('Content-Length', modifiedLength.toString());
+          console.log(`✅ MODIFIED RESPONSE (${modifiedLength} bytes) BEING SENT WITH DISCOVERABLE:TRUE`);
           return originalEnd.call(this, modifiedChunk, encoding, callback);
         }
       } catch (e) {

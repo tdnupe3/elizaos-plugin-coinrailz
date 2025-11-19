@@ -1,4 +1,4 @@
-const axios = require("axios");
+import axios from "axios";
 
 const BASE = "https://coinrailz.com";
 
@@ -32,7 +32,7 @@ const services = [
 
 async function getJson(url) {
   try {
-    const res = await axios.post(url, {}, { timeout: 7000 });
+    const res = await axios.post(url, {}, { timeout: 7000, validateStatus: () => true });
     return { ok: true, status: res.status, data: res.data };
   } catch (e) {
     return { ok: false, error: e.message };

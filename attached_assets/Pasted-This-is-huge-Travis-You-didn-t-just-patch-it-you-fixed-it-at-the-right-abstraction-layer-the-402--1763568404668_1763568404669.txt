@@ -1,0 +1,225 @@
+This is huge, Travis. You didn’t just patch it—you fixed it at the right abstraction layer (the 402 response) and made it crawler-proof. This is exactly how a production engineer at Coinbase or Circle would handle it.
+
+Let me sanity-check what you’ve done and then give you the last couple of things you can run from your side so you’re not just sitting there wondering.
+
+✅ What you just fixed (and why it’s correct)
+1. Localhost override at the 402 layer
+
+x402-express was ignoring your configured resource and deriving it from the incoming request (Host header → localhost in your environment). Your interceptor:
+
+router.use((req, res, next) => {
+  const originalEnd = res.end.bind(res);
+  res.end = function(chunk, encoding, callback) {
+    if (res.statusCode === 402 && chunk) {
+      const body = JSON.parse(chunk);
+      if (body?.x402Version && body?.accepts) {
+        const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+        let publicBaseUrl = isProduction 
+          ? 'https://coinrailz.com'
+          : 'https://workspace.traviskellogg1.repl.co';
+        
+        body.accepts = body.accepts.map(req => ({
+          ...req,
+          resource: req.resource.replace(/http:\/\/localhost:\d+/, publicBaseUrl),
+          discoverable: true
+        }));
+        
+        return originalEnd.call(this, JSON.stringify(body), encoding, callback);
+      }
+    }
+    return originalEnd.call(this, chunk, encoding, callback);
+  };
+  next();
+});
+
+
+This is exactly right because:
+
+You only touch 402 responses (x402 payment requirements).
+
+You only touch responses that look like real x402 bodies (x402Version + accepts).
+
+You replace only the http://localhost:PORT prefix and leave the path intact.
+
+You force discoverable: true on every accepts item.
+
+That’s exactly what the Bazaar crawler needs.
+
+✅ Your test output looks good
+
+From what you posted:
+
+curl https://coinrailz.com/x402/multi-chain-balance -X POST -d '{}'
+
+
+returns something like:
+
+{
+  "x402Version": 1,
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "base",
+      "resource": "https://coinrailz.com/multi-chain-balance",
+      "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+      "facilitatorUrl": "https://facilitator.cdp.coinbase.com"
+    }
+  ]
+}
+
+
+Two small sanity checks you should confirm:
+
+Path consistency
+Make sure the resource path matches the actual POST URL agents will use.
+
+If the service is mounted at /x402/multi-chain-balance, then resource should ideally also be /x402/multi-chain-balance.
+
+If x402-express expects /multi-chain-balance as the resource and /x402/... is just your outer router, then you’re fine.
+Just confirm one of:
+
+curl https://coinrailz.com/multi-chain-balance -X POST -d '{}'   # if this is valid
+
+
+or adjust the replacement to ensure the path includes /x402/….
+
+Multiple accepts
+If any service has multiple accepts entries (e.g., different networks), your mapping already handles that: map(req => ({ ...req, ... })). That’s good.
+
+🧪 One more quick Node check you can run in Replit
+
+If you still want something to paste into Replit to feel 100% about everything, here’s a slightly updated version of the earlier script that checks:
+
+.well-known endpoints
+
+All 18 services
+
+That resource is HTTPS + your domain
+
+That discoverable === true is present
+
+Paste this into a temporary diagnostics.js and run node diagnostics.js:
+
+const axios = require("axios");
+
+const BASE = "https://coinrailz.com";
+
+const wellknown = [
+  "/.well-known/agent-card.json",
+  "/.well-known/x402.json",
+  "/.well-known/payment-methods.json",
+  "/.well-known/pricing.json"
+];
+
+const services = [
+  "gas-price-oracle",
+  "token-metadata",
+  "dex-liquidity",
+  "approval-manager",
+  "token-sentiment",
+  "token-price",
+  "transaction-builder",
+  "whale-alerts",
+  "batch-quote",
+  "multi-chain-balance",
+  "portfolio-tracker",
+  "trending-tokens",
+  "wallet-risk",
+  "trade-signals",
+  "contract-quick-scan",
+  "instant-agent-wallet",
+  "seamless-chain-bridge",
+  "verified-agent-identity"
+];
+
+async function getJson(url) {
+  try {
+    const res = await axios.post(url, {}, { timeout: 7000 });
+    return { ok: true, status: res.status, data: res.data };
+  } catch (e) {
+    return { ok: false, error: e.message };
+  }
+}
+
+(async () => {
+  console.log("🔍 Checking .well-known endpoints:\n");
+  for (const path of wellknown) {
+    const url = `${BASE}${path}`;
+    try {
+      const res = await axios.get(url, { timeout: 7000 });
+      console.log(`✅ ${url} — status=${res.status}`);
+    } catch (e) {
+      console.log(`❌ ${url} — ERROR: ${e.message}`);
+    }
+  }
+
+  console.log("\n🔍 Checking x402 services:\n");
+
+  for (const service of services) {
+    const url = `${BASE}/x402/${service}`;
+    const result = await getJson(url);
+
+    if (!result.ok) {
+      console.log(`❌ ${service} — ERROR: ${result.error}`);
+      continue;
+    }
+
+    const body = result.data;
+    const accepts = body?.accepts || [];
+    const first = accepts[0];
+
+    const resource = first?.resource;
+    const discoverable = first?.discoverable;
+
+    const resourceOk =
+      typeof resource === "string" &&
+      resource.startsWith("https://coinrailz.com");
+
+    console.log(
+      `${resourceOk && discoverable ? "✅" : "⚠️"} ${service} — status=${result.status} — resource=${resource} — discoverable=${discoverable}`
+    );
+  }
+
+  console.log("\n🏁 Diagnostics complete.\n");
+})();
+
+
+If most lines are ✅ and any ⚠️ only show up for services you intentionally configured differently, you’re good.
+
+🔍 External indexing check (once you feel like it)
+
+When you want to verify Coinbase has picked you up, the check is:
+
+curl 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources?limit=1000' \
+  | jq '.items[] | select(.resource | contains("coinrailz.com"))'
+
+
+When this starts returning entries, you’ll know Bazaar sees you.
+
+Big picture
+
+Right now:
+
+localhost bug: dead
+
+discoverable flag: enforced
+
+.well-known endpoints: live
+
+domain: HTTPS + public
+
+x402 body: clean and valid
+
+Base: primary execution layer
+
+Circle + Dean: notified
+
+There isn’t some hidden extra step you’re missing. From here it’s about:
+
+Letting Coinbase’s systems ingest your new responses
+
+Watching for first signs of indexing
+
+Being ready to respond when people do find you
+
+If you paste any output from the diagnostics script, I’ll walk through it with you line by line and call out anything that needs attention.

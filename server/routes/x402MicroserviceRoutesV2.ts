@@ -902,7 +902,10 @@ router.use((req: Request, res: Response, next) => {
             // Fix the resource URL if it contains localhost
             let fixedResource = req.resource;
             if (fixedResource && fixedResource.includes('localhost')) {
-              fixedResource = fixedResource.replace(/http:\/\/localhost:\d+/, publicBaseUrl);
+              // Replace localhost with public domain AND add /x402 prefix
+              // Before: http://localhost:5000/multi-chain-balance
+              // After:  https://coinrailz.com/x402/multi-chain-balance
+              fixedResource = fixedResource.replace(/http:\/\/localhost:\d+\//, `${publicBaseUrl}/x402/`);
               console.log(`   🔧 Fixed resource: ${req.resource} → ${fixedResource}`);
             }
             

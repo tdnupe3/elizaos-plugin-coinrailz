@@ -102,6 +102,69 @@ class AutonomousDiscoveryService {
         sitemap += `  </url>\n`;
       }
 
+      // User-facing pages - Products & Marketplace
+      const userPages = [
+        // Core Products
+        { path: '/products/ai-agent-bundle', priority: '0.9' },
+        { path: '/marketplace', priority: '0.9' },
+        { path: '/x402-docs', priority: '0.8' },
+        
+        // Trading & Exchange
+        { path: '/swap', priority: '0.9' },
+        { path: '/buy-sell', priority: '0.9' },
+        { path: '/p2p-transfer', priority: '0.9' },
+        
+        // Cryptocurrency Features
+        { path: '/xrp', priority: '0.8' },
+        { path: '/xrp/buy-sell', priority: '0.8' },
+        { path: '/xrp/trade', priority: '0.8' },
+        { path: '/xrp/explorer', priority: '0.7' },
+        { path: '/xrp/liquidity', priority: '0.7' },
+        { path: '/xrp/cross-border', priority: '0.8' },
+        
+        { path: '/usdc', priority: '0.8' },
+        { path: '/usdc/buy', priority: '0.8' },
+        { path: '/usdc/send', priority: '0.8' },
+        { path: '/usdc/bridge', priority: '0.7' },
+        
+        // User Dashboard & Wallet
+        { path: '/wallet', priority: '0.8' },
+        { path: '/dashboard', priority: '0.7' },
+        { path: '/portfolio', priority: '0.7' },
+        { path: '/transactions', priority: '0.7' },
+        
+        // Enterprise Features
+        { path: '/enterprise', priority: '0.8' },
+        { path: '/enterprise/api', priority: '0.7' },
+        { path: '/enterprise/pricing', priority: '0.8' },
+        { path: '/enterprise/compliance', priority: '0.7' },
+        
+        // Authentication & Account
+        { path: '/login', priority: '0.6' },
+        { path: '/signup', priority: '0.6' },
+        
+        // Documentation & Support
+        { path: '/docs', priority: '0.7' },
+        { path: '/docs/getting-started', priority: '0.7' },
+        { path: '/docs/api', priority: '0.7' },
+        { path: '/docs/x402-protocol', priority: '0.8' },
+        { path: '/faq', priority: '0.6' },
+        { path: '/support', priority: '0.6' },
+        
+        // Legal & Company Info
+        { path: '/about', priority: '0.5' },
+        { path: '/privacy', priority: '0.5' },
+        { path: '/terms', priority: '0.5' },
+      ];
+      
+      for (const page of userPages) {
+        sitemap += `  <url>\n`;
+        sitemap += `    <loc>${baseUrl}${page.path}</loc>\n`;
+        sitemap += `    <lastmod>${now}</lastmod>\n`;
+        sitemap += `    <priority>${page.priority}</priority>\n`;
+        sitemap += `  </url>\n`;
+      }
+
       // Individual agent cards
       for (const agent of agents) {
         sitemap += `  <url>\n`;

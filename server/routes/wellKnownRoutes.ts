@@ -42,6 +42,581 @@ const getBaseUrl = (req?: any) => {
 };
 
 /**
+ * GET /.well-known/agent.json
+ * 
+ * A2A v0.3 compliant agent card for Google Agent2Agent protocol
+ * Enables semantic skill matching and agent-to-agent collaboration
+ */
+router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  
+  const a2aAgentCard = {
+    name: "Coin Railz Multi-Chain Payment Infrastructure",
+    description: "Production-grade blockchain infrastructure for AI agents. 18 x402 micropayment services across 7 chains: trading signals, security audits, wallet analytics, gas optimization, and DeFi intelligence.",
+    version: "0.3.0",
+    agentId: "coinrailz-x402-infrastructure",
+    
+    // A2A v0.3 service endpoint
+    serviceUrl: `${baseUrl}/x402`,
+    
+    // Skills array with semantic descriptions for AI matching
+    skills: [
+      {
+        id: "multi_chain_balance",
+        name: "Multi-Chain Balance Checker",
+        description: "Check wallet balances across 7 EVM chains in one API call. Use when user asks 'what's my balance', 'check wallet on multiple chains', or 'show my assets'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "EVM wallet address (0x...)" },
+            chains: { type: "array", items: { type: "string" }, description: "Optional: Specific chains to check (ethereum, base, polygon, bsc, arbitrum, optimism, pulsechain)" },
+            includeTokens: { type: "boolean", description: "Include ERC-20 token balances" }
+          },
+          required: ["walletAddress"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            balances: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  chain: { type: "string" },
+                  nativeBalance: { type: "string" },
+                  tokens: { type: "array" }
+                }
+              }
+            }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "analytics"
+      },
+      {
+        id: "gas_price_oracle",
+        name: "Gas Price Oracle",
+        description: "Real-time gas prices across multiple chains with USD cost estimates. Use when user asks 'how much is gas', 'current gas fees', or 'cheapest time to transact'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            chains: { type: "array", items: { type: "string" }, description: "Chains to check (default: all supported chains)" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            gasPrices: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  chain: { type: "string" },
+                  slow: { type: "number" },
+                  standard: { type: "number" },
+                  fast: { type: "number" },
+                  usdCost: { type: "object" }
+                }
+              }
+            }
+          }
+        },
+        pricing: { amount: 0.10, currency: "USD" },
+        category: "utilities"
+      },
+      {
+        id: "token_price",
+        name: "Token Price Lookup",
+        description: "Get real-time token prices with 24h change, volume, and market cap from CoinGecko/DEX Screener. Use when user asks 'what's the price of', 'token value', or 'price check'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain network (ethereum, base, polygon, etc.)" }
+          },
+          required: ["tokenAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            price: { type: "number" },
+            priceChange24h: { type: "number" },
+            volume24h: { type: "number" },
+            marketCap: { type: "number" },
+            source: { type: "string" }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "trading"
+      },
+      {
+        id: "wallet_risk_analysis",
+        name: "Wallet Risk Assessment",
+        description: "Analyze wallet for suspicious activity, scam exposure, and security risks. Use when user asks 'is this wallet safe', 'check wallet security', or 'wallet reputation'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "Wallet address to analyze" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["walletAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            riskScore: { type: "number", description: "0-100 (0=safe, 100=high risk)" },
+            flags: { type: "array", items: { type: "string" } },
+            scamExposure: { type: "boolean" },
+            recommendations: { type: "array", items: { type: "string" } }
+          }
+        },
+        pricing: { amount: 0.75, currency: "USD" },
+        category: "security"
+      },
+      {
+        id: "trade_signals",
+        name: "AI Trading Signals",
+        description: "Generate trading signals based on technical analysis and on-chain data. Use when user asks 'should I buy/sell', 'trading recommendation', or 'market opportunity'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token to analyze" },
+            chain: { type: "string" },
+            timeframe: { type: "string", description: "1h, 4h, 1d, 1w" }
+          },
+          required: ["tokenAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            signal: { type: "string", enum: ["buy", "sell", "hold"] },
+            confidence: { type: "number" },
+            indicators: { type: "object" },
+            reasoning: { type: "string" }
+          }
+        },
+        pricing: { amount: 0.20, currency: "USD" },
+        category: "trading"
+      },
+      {
+        id: "smart_contract_scan",
+        name: "Smart Contract Security Scan",
+        description: "Basic security scan of smart contracts with vulnerability detection. Use when user asks 'is this contract safe', 'check contract security', or 'audit contract'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            contractAddress: { type: "string", description: "Contract to scan" },
+            chain: { type: "string" }
+          },
+          required: ["contractAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            safetyScore: { type: "number" },
+            vulnerabilities: { type: "array" },
+            contractType: { type: "string" },
+            verified: { type: "boolean" }
+          }
+        },
+        pricing: { amount: 1.00, currency: "USD" },
+        category: "security"
+      },
+      {
+        id: "token_sentiment",
+        name: "Token Sentiment Analysis",
+        description: "Social sentiment analysis from Twitter/Reddit for tokens. Use when user asks 'what people say about', 'token sentiment', or 'community opinion'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string" },
+            chain: { type: "string" }
+          },
+          required: ["tokenAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
+            score: { type: "number" },
+            mentions24h: { type: "number" },
+            trending: { type: "boolean" }
+          }
+        },
+        pricing: { amount: 0.30, currency: "USD" },
+        category: "analytics"
+      },
+      {
+        id: "trending_tokens",
+        name: "Trending Tokens Discovery",
+        description: "Find trending tokens by volume, price movement, or social activity. Use when user asks 'what's trending', 'hot tokens', or 'new opportunities'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            chain: { type: "string" },
+            metric: { type: "string", enum: ["volume", "price_change", "social"], description: "Sorting metric" },
+            limit: { type: "number", description: "Number of results (default: 10)" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            tokens: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  address: { type: "string" },
+                  name: { type: "string" },
+                  price: { type: "number" },
+                  change24h: { type: "number" },
+                  volume24h: { type: "number" }
+                }
+              }
+            }
+          }
+        },
+        pricing: { amount: 0.40, currency: "USD" },
+        category: "trading"
+      },
+      {
+        id: "whale_alerts",
+        name: "Whale Movement Tracker",
+        description: "Track large wallet movements and whale activity in real-time. Use when user asks 'whale movements', 'large transfers', or 'big wallet activity'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token to monitor (optional)" },
+            chain: { type: "string" },
+            minAmount: { type: "number", description: "Minimum USD value" }
+          },
+          required: ["chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            movements: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  from: { type: "string" },
+                  to: { type: "string" },
+                  amount: { type: "string" },
+                  usdValue: { type: "number" },
+                  timestamp: { type: "number" }
+                }
+              }
+            }
+          }
+        },
+        pricing: { amount: 0.30, currency: "USD" },
+        category: "analytics"
+      },
+      {
+        id: "dex_liquidity",
+        name: "DEX Liquidity Scanner",
+        description: "Analyze liquidity pools across DEXs with APY and impermanent loss calculations. Use when user asks 'liquidity pool info', 'best APY', or 'LP opportunity'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenPair: { type: "string", description: "e.g., 'ETH/USDC'" },
+            chain: { type: "string" },
+            dex: { type: "string", description: "Specific DEX or 'all'" }
+          },
+          required: ["tokenPair", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            pools: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  dex: { type: "string" },
+                  liquidity: { type: "number" },
+                  apy: { type: "number" },
+                  volume24h: { type: "number" },
+                  impermanentLoss: { type: "number" }
+                }
+              }
+            }
+          }
+        },
+        pricing: { amount: 0.35, currency: "USD" },
+        category: "defi"
+      },
+      {
+        id: "transaction_builder",
+        name: "Transaction Builder",
+        description: "Build optimized transactions with gas estimation. Use when user asks 'create transaction', 'prepare swap', or 'build tx'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            from: { type: "string" },
+            to: { type: "string" },
+            value: { type: "string" },
+            data: { type: "string" },
+            chain: { type: "string" }
+          },
+          required: ["from", "to", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            transaction: { type: "object" },
+            gasEstimate: { type: "number" },
+            gasCostUSD: { type: "number" }
+          }
+        },
+        pricing: { amount: 0.15, currency: "USD" },
+        category: "utilities"
+      },
+      {
+        id: "token_metadata",
+        name: "Token Metadata Fetcher",
+        description: "Get comprehensive token information (name, symbol, decimals, total supply, holders). Use when user asks 'token info', 'token details', or 'what is this token'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string" },
+            chain: { type: "string" }
+          },
+          required: ["tokenAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string" },
+            symbol: { type: "string" },
+            decimals: { type: "number" },
+            totalSupply: { type: "string" },
+            holders: { type: "number" },
+            verified: { type: "boolean" }
+          }
+        },
+        pricing: { amount: 0.10, currency: "USD" },
+        category: "utilities"
+      },
+      {
+        id: "approval_manager",
+        name: "Token Approval Manager",
+        description: "Check and revoke token approvals for security. Use when user asks 'check approvals', 'revoke permissions', or 'wallet security audit'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string" },
+            chain: { type: "string" }
+          },
+          required: ["walletAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            approvals: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  token: { type: "string" },
+                  spender: { type: "string" },
+                  amount: { type: "string" },
+                  riskLevel: { type: "string" }
+                }
+              }
+            },
+            revokeTransactions: { type: "array" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "security"
+      },
+      {
+        id: "batch_price_quote",
+        name: "Batch DEX Quote",
+        description: "Get best swap prices across all DEX aggregators. Use when user asks 'best swap price', 'compare DEX prices', or 'cheapest route'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenIn: { type: "string" },
+            tokenOut: { type: "string" },
+            amount: { type: "string" },
+            chain: { type: "string" }
+          },
+          required: ["tokenIn", "tokenOut", "amount", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            quotes: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  dex: { type: "string" },
+                  amountOut: { type: "string" },
+                  priceImpact: { type: "number" },
+                  gasEstimate: { type: "number" }
+                }
+              }
+            },
+            bestQuote: { type: "object" }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "trading"
+      },
+      {
+        id: "portfolio_tracker",
+        name: "Portfolio Analytics",
+        description: "Complete portfolio analysis with P&L, allocation, and performance metrics. Use when user asks 'portfolio value', 'my holdings', or 'investment performance'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string" },
+            chains: { type: "array", items: { type: "string" } }
+          },
+          required: ["walletAddress"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            totalValueUSD: { type: "number" },
+            profitLoss: { type: "number" },
+            allocation: { type: "array" },
+            topHoldings: { type: "array" },
+            performance30d: { type: "number" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "analytics"
+      },
+      {
+        id: "instant_agent_wallet",
+        name: "Instant Agent Wallet Creation",
+        description: "Create a new wallet for AI agent with USDC funding. Use when agent needs 'create wallet', 'agent wallet', or 'autonomous wallet'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            fundingAmount: { type: "number", description: "Initial USDC amount" },
+            chain: { type: "string", description: "Preferred chain (default: base)" }
+          }
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string" },
+            privateKeyEncrypted: { type: "string" },
+            balance: { type: "number" },
+            chain: { type: "string" }
+          }
+        },
+        pricing: { amount: 2.00, currency: "USD" },
+        category: "utilities"
+      },
+      {
+        id: "verified_agent_identity",
+        name: "Agent Identity Verification",
+        description: "Verify AI agent identity on-chain using ERC-8004. Use when agent needs 'verify identity', 'agent reputation', or 'on-chain proof'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            agentId: { type: "string" },
+            metadata: { type: "object", description: "Agent metadata to store on-chain" }
+          },
+          required: ["agentId"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            identityAddress: { type: "string" },
+            verified: { type: "boolean" },
+            reputationScore: { type: "number" },
+            transactionHash: { type: "string" }
+          }
+        },
+        pricing: { amount: 5.00, currency: "USD" },
+        category: "utilities"
+      },
+      {
+        id: "cross_chain_bridge",
+        name: "Cross-Chain Bridge Monitor",
+        description: "Track bridge transactions and get best bridge rates. Use when user asks 'bridge tokens', 'move assets', or 'cross-chain transfer'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string" },
+            fromChain: { type: "string" },
+            toChain: { type: "string" },
+            amount: { type: "string" }
+          },
+          required: ["fromChain", "toChain"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            bridges: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  fee: { type: "number" },
+                  estimatedTime: { type: "string" },
+                  security: { type: "string" }
+                }
+              }
+            },
+            recommended: { type: "object" }
+          }
+        },
+        pricing: { amount: 0.40, currency: "USD" },
+        category: "utilities"
+      }
+    ],
+    
+    // Authentication (OpenAPI-style)
+    authentication: {
+      type: "custom",
+      scheme: "x402",
+      description: "x402 protocol: Send USDC payment on Base, include txHash in X-PAYMENT header"
+    },
+    
+    // Supported transports
+    transports: ["REST", "x402"],
+    
+    // Modalities
+    modalities: ["text", "data"],
+    
+    // Protocol info
+    protocolVersion: "0.3.0",
+    a2aCompliant: true,
+    x402Compliant: true,
+    
+    // Endpoints
+    endpoints: {
+      openapi: `${baseUrl}/.well-known/openapi.json`,
+      serviceManifest: `${baseUrl}/.well-known/service-manifest.json`,
+      pricing: `${baseUrl}/.well-known/pricing.json`,
+      documentation: `${baseUrl}/developers`,
+      marketplace: `${baseUrl}/marketplace`
+    },
+    
+    // Platform metadata
+    platform: {
+      name: "Coin Railz",
+      url: baseUrl,
+      type: "payment_infrastructure",
+      chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
+      positioning: "Multi-Chain Payment Infrastructure for Crypto Communities"
+    }
+  };
+  
+  res.status(200).json(a2aAgentCard);
+});
+
+/**
  * GET /.well-known/agent-card.json
  * 
  * Main platform agent card - describes Coin Railz as a service provider

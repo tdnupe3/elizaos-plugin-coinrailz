@@ -22,13 +22,15 @@ export function createProviderRouter(provider: ProviderType): Router {
   router.get('/.well-known/agent-card.json', (req, res) => {
     // Get baseUrl from request
     let baseUrl = process.env.PUBLIC_BASE_URL;
-    if (!baseUrl && req.get('host')) {
+    if (!baseUrl) {
       const host = req.get('host');
-      const protocol = req.protocol || 'https';
-      if (host.includes('localhost') || host.includes('127.0.0.1')) {
-        baseUrl = `http://${host}`;
-      } else {
-        baseUrl = `${protocol}://${host}`;
+      if (host) {
+        const protocol = req.protocol || 'https';
+        if (host.includes('localhost') || host.includes('127.0.0.1')) {
+          baseUrl = `http://${host}`;
+        } else {
+          baseUrl = `${protocol}://${host}`;
+        }
       }
     }
     if (!baseUrl) {

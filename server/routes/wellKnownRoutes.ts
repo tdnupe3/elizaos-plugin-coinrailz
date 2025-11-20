@@ -10,10 +10,29 @@ import { Router, Request, Response } from 'express';
 const router = Router();
 
 // Get base URL for the platform
-const getBaseUrl = () => {
-  return process.env.REPLIT_DEPLOYMENT === '1' 
-    ? 'https://coinrailz.com' 
-    : 'http://localhost:5000';
+const getBaseUrl = (req?: any) => {
+  // Use PUBLIC_BASE_URL if set (preferred)
+  if (process.env.PUBLIC_BASE_URL) {
+    return process.env.PUBLIC_BASE_URL;
+  }
+  
+  // Use request hostname if available (production)
+  if (req && req.get('host')) {
+    const host = req.get('host');
+    const protocol = req.protocol || 'https';
+    // Only use http for localhost/127.0.0.1, otherwise use https
+    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+      return `http://${host}`;
+    }
+    return `${protocol}://${host}`;
+  }
+  
+  // Fallback based on deployment flag
+  if (process.env.REPLIT_DEPLOYMENT === '1') {
+    return 'https://coinrailz.com';
+  }
+  
+  return 'http://localhost:5000';
 };
 
 /**
@@ -23,7 +42,7 @@ const getBaseUrl = () => {
  * Discoverable by ChatGPT, Google AI, x402scan, and other A2A platforms
  */
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(req);
   
   const agentCard = {
     name: "Coin Railz x402 Payment Infrastructure",
@@ -134,7 +153,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
  * Complete list of all x402 services offered by Coin Railz
  */
 router.get('/.well-known/service-manifest.json', async (req: Request, res: Response) => {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(req);
   
   const manifest = {
     platform: "Coin Railz",
@@ -370,7 +389,7 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
  * Lists all available x402 micropayment services with correct endpoint paths
  */
 router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl(req);
   
   const x402Manifest = {
     name: "Coin Railz",

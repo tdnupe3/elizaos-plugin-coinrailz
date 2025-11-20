@@ -17,13 +17,26 @@ const bridgeAdapter = new A2ABridgeAdapter();
  */
 export function createProviderRouter(provider: ProviderType): Router {
   const router = Router();
-  
-  const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
-    ? 'https://coinrailz.com' 
-    : 'http://localhost:5000';
 
   // ChatGPT requirement: Exact /.well-known/agent-card.json path
   router.get('/.well-known/agent-card.json', (req, res) => {
+    // Get baseUrl from request
+    let baseUrl = process.env.PUBLIC_BASE_URL;
+    if (!baseUrl && req.get('host')) {
+      const host = req.get('host');
+      const protocol = req.protocol || 'https';
+      if (host.includes('localhost') || host.includes('127.0.0.1')) {
+        baseUrl = `http://${host}`;
+      } else {
+        baseUrl = `${protocol}://${host}`;
+      }
+    }
+    if (!baseUrl) {
+      baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
+        ? 'https://coinrailz.com' 
+        : 'http://localhost:5000';
+    }
+    
     // Override provider parameter for this specific provider
     (req.params as any).provider = provider;
     

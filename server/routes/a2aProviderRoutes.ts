@@ -25,10 +25,15 @@ export function createProviderRouter(provider: ProviderType): Router {
     if (!baseUrl) {
       const host = req.get('host');
       if (host) {
-        const protocol = req.protocol || 'https';
+        // Only use http for localhost/127.0.0.1, otherwise ALWAYS use https
+        // (req.protocol is often 'http' in production behind reverse proxy)
         if (host.includes('localhost') || host.includes('127.0.0.1')) {
           baseUrl = `http://${host}`;
         } else {
+          // For all other domains (production), use HTTPS
+          // Check X-Forwarded-Proto header first (standard proxy header)
+          const forwardedProto = req.get('x-forwarded-proto');
+          const protocol = forwardedProto || 'https';
           baseUrl = `${protocol}://${host}`;
         }
       }

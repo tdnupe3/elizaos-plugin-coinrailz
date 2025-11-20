@@ -19,11 +19,17 @@ const getBaseUrl = (req?: any) => {
   // Use request hostname if available (production)
   if (req && req.get('host')) {
     const host = req.get('host');
-    const protocol = req.protocol || 'https';
-    // Only use http for localhost/127.0.0.1, otherwise use https
+    
+    // Only use http for localhost/127.0.0.1, otherwise ALWAYS use https
+    // (req.protocol is often 'http' in production behind reverse proxy/load balancer)
     if (host.includes('localhost') || host.includes('127.0.0.1')) {
       return `http://${host}`;
     }
+    
+    // For all other domains (production), use HTTPS
+    // Check X-Forwarded-Proto header first (standard proxy header)
+    const forwardedProto = req.get('x-forwarded-proto');
+    const protocol = forwardedProto || 'https';
     return `${protocol}://${host}`;
   }
   

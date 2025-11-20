@@ -64,27 +64,51 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "multi_chain_balance",
         name: "Multi-Chain Balance Checker",
-        description: "Check wallet balances across 7 EVM chains in one API call. Use when user asks 'what's my balance', 'check wallet on multiple chains', or 'show my assets'.",
+        description: "Check wallet balances across 7 EVM chains in one API call. Use when user asks 'what's my balance', 'check wallet on multiple chains', 'show my assets', 'balance on Ethereum', 'balance on Base', or 'balance on Polygon'.",
         inputSchema: {
           type: "object",
+          title: "Multi-Chain Balance Request",
+          description: "Request wallet balances across multiple EVM chains",
+          additionalProperties: false,
           properties: {
-            walletAddress: { type: "string", description: "EVM wallet address (0x...)" },
-            chains: { type: "array", items: { type: "string" }, description: "Optional: Specific chains to check (ethereum, base, polygon, bsc, arbitrum, optimism, pulsechain)" },
-            includeTokens: { type: "boolean", description: "Include ERC-20 token balances" }
+            walletAddress: { 
+              type: "string", 
+              title: "Wallet Address",
+              description: "EVM wallet address (0x...)",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chains: { 
+              type: "array", 
+              title: "Target Chains",
+              description: "Optional: Specific chains to check",
+              items: { 
+                type: "string",
+                enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+              }
+            },
+            includeTokens: { 
+              type: "boolean", 
+              title: "Include Tokens",
+              description: "Include ERC-20 token balances",
+              default: true
+            }
           },
           required: ["walletAddress"]
         },
         outputSchema: {
           type: "object",
+          title: "Multi-Chain Balance Response",
+          additionalProperties: false,
           properties: {
             balances: {
               type: "array",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  chain: { type: "string" },
-                  nativeBalance: { type: "string" },
-                  tokens: { type: "array" }
+                  chain: { type: "string", title: "Chain Name", enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"] },
+                  nativeBalance: { type: "string", title: "Native Balance", description: "Native token balance (ETH, MATIC, etc.)" },
+                  tokens: { type: "array", title: "Token Balances" }
                 }
               }
             }
@@ -96,26 +120,40 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "gas_price_oracle",
         name: "Gas Price Oracle",
-        description: "Real-time gas prices across multiple chains with USD cost estimates. Use when user asks 'how much is gas', 'current gas fees', or 'cheapest time to transact'.",
+        description: "Real-time gas prices across multiple chains with USD cost estimates. Use when user asks 'how much is gas', 'current gas fees', 'gas price on Ethereum', 'gas price on Base', 'gas price on Polygon', or 'cheapest time to transact'.",
         inputSchema: {
           type: "object",
+          title: "Gas Price Request",
+          description: "Request gas prices for specific chains",
+          additionalProperties: false,
           properties: {
-            chains: { type: "array", items: { type: "string" }, description: "Chains to check (default: all supported chains)" }
+            chains: { 
+              type: "array", 
+              title: "Target Chains",
+              description: "Chains to check (default: all supported chains)",
+              items: {
+                type: "string",
+                enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+              }
+            }
           }
         },
         outputSchema: {
           type: "object",
+          title: "Gas Price Response",
+          additionalProperties: false,
           properties: {
             gasPrices: {
               type: "array",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  chain: { type: "string" },
-                  slow: { type: "number" },
-                  standard: { type: "number" },
-                  fast: { type: "number" },
-                  usdCost: { type: "object" }
+                  chain: { type: "string", title: "Chain Name", enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"] },
+                  slow: { type: "number", title: "Slow Gas Price (gwei)" },
+                  standard: { type: "number", title: "Standard Gas Price (gwei)" },
+                  fast: { type: "number", title: "Fast Gas Price (gwei)" },
+                  usdCost: { type: "object", title: "USD Cost Estimates" }
                 }
               }
             }
@@ -127,23 +165,38 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "token_price",
         name: "Token Price Lookup",
-        description: "Get real-time token prices with 24h change, volume, and market cap from CoinGecko/DEX Screener. Use when user asks 'what's the price of', 'token value', or 'price check'.",
+        description: "Get real-time token prices with 24h change, volume, and market cap from CoinGecko/DEX Screener. Use when user asks 'what's the price of', 'token value', 'price check', 'token price on Ethereum', 'token price on Base', or 'token price on Polygon'.",
         inputSchema: {
           type: "object",
+          title: "Token Price Request",
+          description: "Request real-time token price data",
+          additionalProperties: false,
           properties: {
-            tokenAddress: { type: "string", description: "Token contract address" },
-            chain: { type: "string", description: "Blockchain network (ethereum, base, polygon, etc.)" }
+            tokenAddress: { 
+              type: "string", 
+              title: "Token Contract Address",
+              description: "Token contract address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string", 
+              title: "Blockchain Network",
+              description: "Blockchain network where token exists",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["tokenAddress", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Token Price Response",
+          additionalProperties: false,
           properties: {
-            price: { type: "number" },
-            priceChange24h: { type: "number" },
-            volume24h: { type: "number" },
-            marketCap: { type: "number" },
-            source: { type: "string" }
+            price: { type: "number", title: "Current Price USD" },
+            priceChange24h: { type: "number", title: "24h Price Change %" },
+            volume24h: { type: "number", title: "24h Trading Volume USD" },
+            marketCap: { type: "number", title: "Market Cap USD" },
+            source: { type: "string", title: "Data Source", enum: ["coingecko", "dexscreener"] }
           }
         },
         pricing: { amount: 0.25, currency: "USD" },
@@ -152,22 +205,37 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "wallet_risk_analysis",
         name: "Wallet Risk Assessment",
-        description: "Analyze wallet for suspicious activity, scam exposure, and security risks. Use when user asks 'is this wallet safe', 'check wallet security', or 'wallet reputation'.",
+        description: "Analyze wallet for suspicious activity, scam exposure, and security risks. Use when user asks 'is this wallet safe', 'check wallet security', 'wallet reputation', 'wallet risk on Ethereum', 'wallet risk on Base', or 'is this address safe'.",
         inputSchema: {
           type: "object",
+          title: "Wallet Risk Analysis Request",
+          description: "Request security analysis for a wallet address",
+          additionalProperties: false,
           properties: {
-            walletAddress: { type: "string", description: "Wallet address to analyze" },
-            chain: { type: "string", description: "Blockchain network" }
+            walletAddress: { 
+              type: "string", 
+              title: "Wallet Address",
+              description: "Wallet address to analyze",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string", 
+              title: "Blockchain Network",
+              description: "Blockchain network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["walletAddress", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Wallet Risk Assessment Response",
+          additionalProperties: false,
           properties: {
-            riskScore: { type: "number", description: "0-100 (0=safe, 100=high risk)" },
-            flags: { type: "array", items: { type: "string" } },
-            scamExposure: { type: "boolean" },
-            recommendations: { type: "array", items: { type: "string" } }
+            riskScore: { type: "number", title: "Risk Score", description: "0-100 (0=safe, 100=high risk)", minimum: 0, maximum: 100 },
+            flags: { type: "array", title: "Risk Flags", items: { type: "string" } },
+            scamExposure: { type: "boolean", title: "Scam Exposure Detected" },
+            recommendations: { type: "array", title: "Security Recommendations", items: { type: "string" } }
           }
         },
         pricing: { amount: 0.75, currency: "USD" },
@@ -176,23 +244,42 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "trade_signals",
         name: "AI Trading Signals",
-        description: "Generate trading signals based on technical analysis and on-chain data. Use when user asks 'should I buy/sell', 'trading recommendation', or 'market opportunity'.",
+        description: "Generate trading signals based on technical analysis and on-chain data. Use when user asks 'should I buy/sell', 'trading recommendation', 'market opportunity', 'trade signal for token on Ethereum', 'trade signal for token on Base', or 'should I buy this token'.",
         inputSchema: {
           type: "object",
+          title: "Trade Signal Request",
+          description: "Request AI-powered trading signals",
+          additionalProperties: false,
           properties: {
-            tokenAddress: { type: "string", description: "Token to analyze" },
-            chain: { type: "string" },
-            timeframe: { type: "string", description: "1h, 4h, 1d, 1w" }
+            tokenAddress: { 
+              type: "string", 
+              title: "Token Address",
+              description: "Token to analyze",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            },
+            timeframe: { 
+              type: "string", 
+              title: "Analysis Timeframe",
+              description: "Chart timeframe for analysis",
+              enum: ["1h", "4h", "1d", "1w"]
+            }
           },
           required: ["tokenAddress", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Trade Signal Response",
+          additionalProperties: false,
           properties: {
-            signal: { type: "string", enum: ["buy", "sell", "hold"] },
-            confidence: { type: "number" },
-            indicators: { type: "object" },
-            reasoning: { type: "string" }
+            signal: { type: "string", title: "Signal", enum: ["buy", "sell", "hold"] },
+            confidence: { type: "number", title: "Confidence Score", minimum: 0, maximum: 1 },
+            indicators: { type: "object", title: "Technical Indicators" },
+            reasoning: { type: "string", title: "Analysis Reasoning" }
           }
         },
         pricing: { amount: 0.20, currency: "USD" },
@@ -201,22 +288,36 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "smart_contract_scan",
         name: "Smart Contract Security Scan",
-        description: "Basic security scan of smart contracts with vulnerability detection. Use when user asks 'is this contract safe', 'check contract security', or 'audit contract'.",
+        description: "Basic security scan of smart contracts with vulnerability detection. Use when user asks 'is this contract safe', 'check contract security', 'audit contract', 'scan contract on Ethereum', 'scan contract on Base', or 'contract vulnerabilities'.",
         inputSchema: {
           type: "object",
+          title: "Smart Contract Scan Request",
+          description: "Request security scan for a smart contract",
+          additionalProperties: false,
           properties: {
-            contractAddress: { type: "string", description: "Contract to scan" },
-            chain: { type: "string" }
+            contractAddress: { 
+              type: "string", 
+              title: "Contract Address",
+              description: "Contract address to scan",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["contractAddress", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Contract Security Scan Response",
+          additionalProperties: false,
           properties: {
-            safetyScore: { type: "number" },
-            vulnerabilities: { type: "array" },
-            contractType: { type: "string" },
-            verified: { type: "boolean" }
+            safetyScore: { type: "number", title: "Safety Score", minimum: 0, maximum: 100 },
+            vulnerabilities: { type: "array", title: "Detected Vulnerabilities", items: { type: "string" } },
+            contractType: { type: "string", title: "Contract Type" },
+            verified: { type: "boolean", title: "Source Code Verified" }
           }
         },
         pricing: { amount: 1.00, currency: "USD" },
@@ -225,22 +326,35 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "token_sentiment",
         name: "Token Sentiment Analysis",
-        description: "Social sentiment analysis from Twitter/Reddit for tokens. Use when user asks 'what people say about', 'token sentiment', or 'community opinion'.",
+        description: "Social sentiment analysis from Twitter/Reddit for tokens. Use when user asks 'what people say about', 'token sentiment', 'community opinion', 'sentiment on Ethereum', 'sentiment on Base', or 'social buzz'.",
         inputSchema: {
           type: "object",
+          title: "Token Sentiment Request",
+          description: "Request social sentiment analysis for a token",
+          additionalProperties: false,
           properties: {
-            tokenAddress: { type: "string" },
-            chain: { type: "string" }
+            tokenAddress: { 
+              type: "string",
+              title: "Token Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["tokenAddress", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Token Sentiment Response",
+          additionalProperties: false,
           properties: {
-            sentiment: { type: "string", enum: ["positive", "neutral", "negative"] },
-            score: { type: "number" },
-            mentions24h: { type: "number" },
-            trending: { type: "boolean" }
+            sentiment: { type: "string", title: "Overall Sentiment", enum: ["positive", "neutral", "negative"] },
+            score: { type: "number", title: "Sentiment Score", minimum: -1, maximum: 1 },
+            mentions24h: { type: "number", title: "Social Mentions (24h)" },
+            trending: { type: "boolean", title: "Is Trending" }
           }
         },
         pricing: { amount: 0.30, currency: "USD" },
@@ -249,28 +363,50 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "trending_tokens",
         name: "Trending Tokens Discovery",
-        description: "Find trending tokens by volume, price movement, or social activity. Use when user asks 'what's trending', 'hot tokens', or 'new opportunities'.",
+        description: "Find trending tokens by volume, price movement, or social activity. Use when user asks 'what's trending', 'hot tokens', 'new opportunities', 'trending on Ethereum', 'trending on Base', or 'trending on Polygon'.",
         inputSchema: {
           type: "object",
+          title: "Trending Tokens Request",
+          description: "Request trending tokens by specific metrics",
+          additionalProperties: false,
           properties: {
-            chain: { type: "string" },
-            metric: { type: "string", enum: ["volume", "price_change", "social"], description: "Sorting metric" },
-            limit: { type: "number", description: "Number of results (default: 10)" }
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            },
+            metric: { 
+              type: "string", 
+              title: "Sorting Metric",
+              enum: ["volume", "price_change", "social"], 
+              description: "Metric to sort trending tokens by"
+            },
+            limit: { 
+              type: "number", 
+              title: "Result Limit",
+              description: "Number of results to return (default: 10)",
+              minimum: 1,
+              maximum: 100,
+              default: 10
+            }
           }
         },
         outputSchema: {
           type: "object",
+          title: "Trending Tokens Response",
+          additionalProperties: false,
           properties: {
             tokens: {
               type: "array",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  address: { type: "string" },
-                  name: { type: "string" },
-                  price: { type: "number" },
-                  change24h: { type: "number" },
-                  volume24h: { type: "number" }
+                  address: { type: "string", title: "Token Address" },
+                  name: { type: "string", title: "Token Name" },
+                  price: { type: "number", title: "Current Price USD" },
+                  change24h: { type: "number", title: "24h Price Change %" },
+                  volume24h: { type: "number", title: "24h Volume USD" }
                 }
               }
             }
@@ -282,29 +418,49 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "whale_alerts",
         name: "Whale Movement Tracker",
-        description: "Track large wallet movements and whale activity in real-time. Use when user asks 'whale movements', 'large transfers', or 'big wallet activity'.",
+        description: "Track large wallet movements and whale activity in real-time. Use when user asks 'whale movements', 'large transfers', 'big wallet activity', 'whale alerts on Ethereum', 'whale alerts on Base', or 'large transactions'.",
         inputSchema: {
           type: "object",
+          title: "Whale Tracker Request",
+          description: "Request whale movement tracking",
+          additionalProperties: false,
           properties: {
-            tokenAddress: { type: "string", description: "Token to monitor (optional)" },
-            chain: { type: "string" },
-            minAmount: { type: "number", description: "Minimum USD value" }
+            tokenAddress: { 
+              type: "string", 
+              title: "Token Address",
+              description: "Token to monitor (optional - leave empty for all tokens)",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            },
+            minAmount: { 
+              type: "number", 
+              title: "Minimum USD Value",
+              description: "Minimum transaction value in USD to track",
+              minimum: 0
+            }
           },
           required: ["chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Whale Movements Response",
+          additionalProperties: false,
           properties: {
             movements: {
               type: "array",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  from: { type: "string" },
-                  to: { type: "string" },
-                  amount: { type: "string" },
-                  usdValue: { type: "number" },
-                  timestamp: { type: "number" }
+                  from: { type: "string", title: "Sender Address" },
+                  to: { type: "string", title: "Recipient Address" },
+                  amount: { type: "string", title: "Amount" },
+                  usdValue: { type: "number", title: "USD Value" },
+                  timestamp: { type: "number", title: "Timestamp (Unix)" }
                 }
               }
             }
@@ -316,29 +472,47 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "dex_liquidity",
         name: "DEX Liquidity Scanner",
-        description: "Analyze liquidity pools across DEXs with APY and impermanent loss calculations. Use when user asks 'liquidity pool info', 'best APY', or 'LP opportunity'.",
+        description: "Analyze liquidity pools across DEXs with APY and impermanent loss calculations. Use when user asks 'liquidity pool info', 'best APY', 'LP opportunity', 'liquidity on Ethereum', 'liquidity on Base', or 'pool analysis'.",
         inputSchema: {
           type: "object",
+          title: "DEX Liquidity Request",
+          description: "Request liquidity pool analysis",
+          additionalProperties: false,
           properties: {
-            tokenPair: { type: "string", description: "e.g., 'ETH/USDC'" },
-            chain: { type: "string" },
-            dex: { type: "string", description: "Specific DEX or 'all'" }
+            tokenPair: { 
+              type: "string", 
+              title: "Token Pair",
+              description: "Trading pair to analyze (e.g., 'ETH/USDC', 'WBTC/ETH')"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            },
+            dex: { 
+              type: "string", 
+              title: "DEX Platform",
+              description: "Specific DEX to query (e.g., 'uniswap', 'sushiswap') or 'all'"
+            }
           },
           required: ["tokenPair", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "DEX Liquidity Response",
+          additionalProperties: false,
           properties: {
             pools: {
               type: "array",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  dex: { type: "string" },
-                  liquidity: { type: "number" },
-                  apy: { type: "number" },
-                  volume24h: { type: "number" },
-                  impermanentLoss: { type: "number" }
+                  dex: { type: "string", title: "DEX Name" },
+                  liquidity: { type: "number", title: "Total Liquidity USD" },
+                  apy: { type: "number", title: "APY %" },
+                  volume24h: { type: "number", title: "24h Volume USD" },
+                  impermanentLoss: { type: "number", title: "Estimated IL %" }
                 }
               }
             }
@@ -350,24 +524,49 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "transaction_builder",
         name: "Transaction Builder",
-        description: "Build optimized transactions with gas estimation. Use when user asks 'create transaction', 'prepare swap', or 'build tx'.",
+        description: "Build optimized transactions with gas estimation. Use when user asks 'create transaction', 'prepare swap', 'build tx', 'build transaction on Ethereum', 'build transaction on Base', or 'prepare transfer'.",
         inputSchema: {
           type: "object",
+          title: "Transaction Builder Request",
+          description: "Request transaction construction with gas estimates",
+          additionalProperties: false,
           properties: {
-            from: { type: "string" },
-            to: { type: "string" },
-            value: { type: "string" },
-            data: { type: "string" },
-            chain: { type: "string" }
+            from: { 
+              type: "string", 
+              title: "Sender Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            to: { 
+              type: "string", 
+              title: "Recipient Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            value: { 
+              type: "string", 
+              title: "Value (wei)",
+              description: "Transaction value in wei"
+            },
+            data: { 
+              type: "string", 
+              title: "Transaction Data",
+              description: "Optional contract call data (0x...)"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["from", "to", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Transaction Builder Response",
+          additionalProperties: false,
           properties: {
-            transaction: { type: "object" },
-            gasEstimate: { type: "number" },
-            gasCostUSD: { type: "number" }
+            transaction: { type: "object", title: "Transaction Object" },
+            gasEstimate: { type: "number", title: "Gas Estimate" },
+            gasCostUSD: { type: "number", title: "Estimated Gas Cost USD" }
           }
         },
         pricing: { amount: 0.15, currency: "USD" },
@@ -376,24 +575,37 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "token_metadata",
         name: "Token Metadata Fetcher",
-        description: "Get comprehensive token information (name, symbol, decimals, total supply, holders). Use when user asks 'token info', 'token details', or 'what is this token'.",
+        description: "Get comprehensive token information (name, symbol, decimals, total supply, holders). Use when user asks 'token info', 'token details', 'what is this token', 'token info on Ethereum', or 'token info on Base'.",
         inputSchema: {
           type: "object",
+          title: "Token Metadata Request",
+          description: "Request comprehensive token information",
+          additionalProperties: false,
           properties: {
-            tokenAddress: { type: "string" },
-            chain: { type: "string" }
+            tokenAddress: { 
+              type: "string",
+              title: "Token Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["tokenAddress", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Token Metadata Response",
+          additionalProperties: false,
           properties: {
-            name: { type: "string" },
-            symbol: { type: "string" },
-            decimals: { type: "number" },
-            totalSupply: { type: "string" },
-            holders: { type: "number" },
-            verified: { type: "boolean" }
+            name: { type: "string", title: "Token Name" },
+            symbol: { type: "string", title: "Token Symbol" },
+            decimals: { type: "number", title: "Token Decimals" },
+            totalSupply: { type: "string", title: "Total Supply" },
+            holders: { type: "number", title: "Holder Count" },
+            verified: { type: "boolean", title: "Contract Verified" }
           }
         },
         pricing: { amount: 0.10, currency: "USD" },
@@ -402,31 +614,46 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "approval_manager",
         name: "Token Approval Manager",
-        description: "Check and revoke token approvals for security. Use when user asks 'check approvals', 'revoke permissions', or 'wallet security audit'.",
+        description: "Check and revoke token approvals for security. Use when user asks 'check approvals', 'revoke permissions', 'wallet security audit', 'check approvals on Ethereum', 'check approvals on Base', or 'security check'.",
         inputSchema: {
           type: "object",
+          title: "Approval Manager Request",
+          description: "Request token approval security audit",
+          additionalProperties: false,
           properties: {
-            walletAddress: { type: "string" },
-            chain: { type: "string" }
+            walletAddress: { 
+              type: "string",
+              title: "Wallet Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["walletAddress", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Approval Manager Response",
+          additionalProperties: false,
           properties: {
             approvals: {
               type: "array",
+              title: "Active Approvals",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  token: { type: "string" },
-                  spender: { type: "string" },
-                  amount: { type: "string" },
-                  riskLevel: { type: "string" }
+                  token: { type: "string", title: "Token Address" },
+                  spender: { type: "string", title: "Spender Address" },
+                  amount: { type: "string", title: "Approved Amount" },
+                  riskLevel: { type: "string", title: "Risk Level", enum: ["low", "medium", "high"] }
                 }
               }
             },
-            revokeTransactions: { type: "array" }
+            revokeTransactions: { type: "array", title: "Revoke Transaction Data" }
           }
         },
         pricing: { amount: 0.50, currency: "USD" },
@@ -435,33 +662,55 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "batch_price_quote",
         name: "Batch DEX Quote",
-        description: "Get best swap prices across all DEX aggregators. Use when user asks 'best swap price', 'compare DEX prices', or 'cheapest route'.",
+        description: "Get best swap prices across all DEX aggregators. Use when user asks 'best swap price', 'compare DEX prices', 'cheapest route', 'best price on Ethereum', 'best price on Base', or 'swap quote'.",
         inputSchema: {
           type: "object",
+          title: "Batch DEX Quote Request",
+          description: "Request best swap prices across DEX aggregators",
+          additionalProperties: false,
           properties: {
-            tokenIn: { type: "string" },
-            tokenOut: { type: "string" },
-            amount: { type: "string" },
-            chain: { type: "string" }
+            tokenIn: { 
+              type: "string",
+              title: "Input Token Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            tokenOut: { 
+              type: "string",
+              title: "Output Token Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            amount: { 
+              type: "string",
+              title: "Input Amount",
+              description: "Amount to swap (in token decimals)"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            }
           },
           required: ["tokenIn", "tokenOut", "amount", "chain"]
         },
         outputSchema: {
           type: "object",
+          title: "Batch DEX Quote Response",
+          additionalProperties: false,
           properties: {
             quotes: {
               type: "array",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  dex: { type: "string" },
-                  amountOut: { type: "string" },
-                  priceImpact: { type: "number" },
-                  gasEstimate: { type: "number" }
+                  dex: { type: "string", title: "DEX Name" },
+                  amountOut: { type: "string", title: "Output Amount" },
+                  priceImpact: { type: "number", title: "Price Impact %" },
+                  gasEstimate: { type: "number", title: "Gas Estimate" }
                 }
               }
             },
-            bestQuote: { type: "object" }
+            bestQuote: { type: "object", title: "Best Quote" }
           }
         },
         pricing: { amount: 0.25, currency: "USD" },
@@ -470,23 +719,39 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "portfolio_tracker",
         name: "Portfolio Analytics",
-        description: "Complete portfolio analysis with P&L, allocation, and performance metrics. Use when user asks 'portfolio value', 'my holdings', or 'investment performance'.",
+        description: "Complete portfolio analysis with P&L, allocation, and performance metrics. Use when user asks 'portfolio value', 'my holdings', 'investment performance', 'portfolio on Ethereum', 'portfolio on Base', or 'how am I doing'.",
         inputSchema: {
           type: "object",
+          title: "Portfolio Analytics Request",
+          description: "Request comprehensive portfolio analysis",
+          additionalProperties: false,
           properties: {
-            walletAddress: { type: "string" },
-            chains: { type: "array", items: { type: "string" } }
+            walletAddress: { 
+              type: "string",
+              title: "Wallet Address",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chains: { 
+              type: "array", 
+              title: "Target Chains",
+              items: { 
+                type: "string",
+                enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+              }
+            }
           },
           required: ["walletAddress"]
         },
         outputSchema: {
           type: "object",
+          title: "Portfolio Analytics Response",
+          additionalProperties: false,
           properties: {
-            totalValueUSD: { type: "number" },
-            profitLoss: { type: "number" },
-            allocation: { type: "array" },
-            topHoldings: { type: "array" },
-            performance30d: { type: "number" }
+            totalValueUSD: { type: "number", title: "Total Portfolio Value USD" },
+            profitLoss: { type: "number", title: "Total P&L USD" },
+            allocation: { type: "array", title: "Asset Allocation" },
+            topHoldings: { type: "array", title: "Top Holdings" },
+            performance30d: { type: "number", title: "30-Day Performance %" }
           }
         },
         pricing: { amount: 0.50, currency: "USD" },
@@ -495,21 +760,37 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "instant_agent_wallet",
         name: "Instant Agent Wallet Creation",
-        description: "Create a new wallet for AI agent with USDC funding. Use when agent needs 'create wallet', 'agent wallet', or 'autonomous wallet'.",
+        description: "Create a new wallet for AI agent with USDC funding. Use when agent needs 'create wallet', 'agent wallet', 'autonomous wallet', 'new wallet on Base', or 'setup wallet'.",
         inputSchema: {
           type: "object",
+          title: "Agent Wallet Creation Request",
+          description: "Request new wallet creation for AI agent",
+          additionalProperties: false,
           properties: {
-            fundingAmount: { type: "number", description: "Initial USDC amount" },
-            chain: { type: "string", description: "Preferred chain (default: base)" }
+            fundingAmount: { 
+              type: "number", 
+              title: "Initial Funding Amount",
+              description: "Initial USDC amount to fund wallet",
+              minimum: 0
+            },
+            chain: { 
+              type: "string", 
+              title: "Blockchain Network",
+              description: "Preferred chain (default: base)",
+              enum: ["base", "ethereum", "polygon", "arbitrum", "optimism"],
+              default: "base"
+            }
           }
         },
         outputSchema: {
           type: "object",
+          title: "Agent Wallet Creation Response",
+          additionalProperties: false,
           properties: {
-            walletAddress: { type: "string" },
-            privateKeyEncrypted: { type: "string" },
-            balance: { type: "number" },
-            chain: { type: "string" }
+            walletAddress: { type: "string", title: "Wallet Address" },
+            privateKeyEncrypted: { type: "string", title: "Encrypted Private Key" },
+            balance: { type: "number", title: "Initial Balance USDC" },
+            chain: { type: "string", title: "Blockchain Network" }
           }
         },
         pricing: { amount: 2.00, currency: "USD" },
@@ -518,22 +799,35 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "verified_agent_identity",
         name: "Agent Identity Verification",
-        description: "Verify AI agent identity on-chain using ERC-8004. Use when agent needs 'verify identity', 'agent reputation', or 'on-chain proof'.",
+        description: "Verify AI agent identity on-chain using ERC-8004. Use when agent needs 'verify identity', 'agent reputation', 'on-chain proof', 'prove identity', or 'verify on Base'.",
         inputSchema: {
           type: "object",
+          title: "Agent Identity Verification Request",
+          description: "Request on-chain identity verification for AI agent",
+          additionalProperties: false,
           properties: {
-            agentId: { type: "string" },
-            metadata: { type: "object", description: "Agent metadata to store on-chain" }
+            agentId: { 
+              type: "string",
+              title: "Agent Identifier",
+              description: "Unique identifier for the AI agent"
+            },
+            metadata: { 
+              type: "object", 
+              title: "Agent Metadata",
+              description: "Agent metadata to store on-chain (optional)"
+            }
           },
           required: ["agentId"]
         },
         outputSchema: {
           type: "object",
+          title: "Agent Identity Verification Response",
+          additionalProperties: false,
           properties: {
-            identityAddress: { type: "string" },
-            verified: { type: "boolean" },
-            reputationScore: { type: "number" },
-            transactionHash: { type: "string" }
+            identityAddress: { type: "string", title: "Identity Contract Address" },
+            verified: { type: "boolean", title: "Verification Status" },
+            reputationScore: { type: "number", title: "On-Chain Reputation Score" },
+            transactionHash: { type: "string", title: "Transaction Hash" }
           }
         },
         pricing: { amount: 5.00, currency: "USD" },
@@ -542,33 +836,56 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       {
         id: "cross_chain_bridge",
         name: "Cross-Chain Bridge Monitor",
-        description: "Track bridge transactions and get best bridge rates. Use when user asks 'bridge tokens', 'move assets', or 'cross-chain transfer'.",
+        description: "Track bridge transactions and get best bridge rates. Use when user asks 'bridge tokens', 'move assets', 'cross-chain transfer', 'bridge from Ethereum to Base', 'bridge from Polygon to Arbitrum', or 'transfer between chains'.",
         inputSchema: {
           type: "object",
+          title: "Cross-Chain Bridge Request",
+          description: "Request bridge options for cross-chain transfers",
+          additionalProperties: false,
           properties: {
-            tokenAddress: { type: "string" },
-            fromChain: { type: "string" },
-            toChain: { type: "string" },
-            amount: { type: "string" }
+            tokenAddress: { 
+              type: "string",
+              title: "Token Address",
+              description: "Token to bridge (optional - leave empty for native token)",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            fromChain: { 
+              type: "string",
+              title: "Source Chain",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            },
+            toChain: { 
+              type: "string",
+              title: "Destination Chain",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            },
+            amount: { 
+              type: "string",
+              title: "Amount to Bridge",
+              description: "Amount to bridge (optional)"
+            }
           },
           required: ["fromChain", "toChain"]
         },
         outputSchema: {
           type: "object",
+          title: "Cross-Chain Bridge Response",
+          additionalProperties: false,
           properties: {
             bridges: {
               type: "array",
               items: {
                 type: "object",
+                additionalProperties: false,
                 properties: {
-                  name: { type: "string" },
-                  fee: { type: "number" },
-                  estimatedTime: { type: "string" },
-                  security: { type: "string" }
+                  name: { type: "string", title: "Bridge Name" },
+                  fee: { type: "number", title: "Bridge Fee %" },
+                  estimatedTime: { type: "string", title: "Estimated Time" },
+                  security: { type: "string", title: "Security Rating", enum: ["high", "medium", "low"] }
                 }
               }
             },
-            recommended: { type: "object" }
+            recommended: { type: "object", title: "Recommended Bridge" }
           }
         },
         pricing: { amount: 0.40, currency: "USD" },
@@ -576,11 +893,91 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       }
     ],
     
+    // Error schemas for A2A v0.3 compliance
+    errors: {
+      PaymentRequired: {
+        code: "PAYMENT_REQUIRED",
+        httpStatus: 402,
+        description: "x402 payment required to access this service",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            error: { type: "string", title: "Error Message" },
+            code: { type: "string", title: "Error Code" },
+            price_usd: { type: "number", title: "Service Price USD" },
+            payment_address: { type: "string", title: "Payment Wallet Address" },
+            network: { type: "string", title: "Payment Network", enum: ["base", "ethereum", "polygon", "arbitrum", "optimism"] },
+            currency: { type: "string", title: "Payment Currency", enum: ["USDC", "USDT"] }
+          },
+          required: ["error", "code", "price_usd", "payment_address", "network", "currency"]
+        }
+      },
+      InvalidRequest: {
+        code: "INVALID_REQUEST",
+        httpStatus: 400,
+        description: "Request validation failed",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            error: { type: "string", title: "Error Message" },
+            code: { type: "string", title: "Error Code" },
+            details: { 
+              type: "array", 
+              title: "Validation Errors",
+              items: {
+                type: "object",
+                properties: {
+                  field: { type: "string" },
+                  message: { type: "string" }
+                }
+              }
+            }
+          },
+          required: ["error", "code"]
+        }
+      },
+      ServiceError: {
+        code: "SERVICE_ERROR",
+        httpStatus: 500,
+        description: "Internal service error",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            error: { type: "string", title: "Error Message" },
+            code: { type: "string", title: "Error Code" },
+            requestId: { type: "string", title: "Request ID for support" }
+          },
+          required: ["error", "code"]
+        }
+      },
+      RateLimitExceeded: {
+        code: "RATE_LIMIT_EXCEEDED",
+        httpStatus: 429,
+        description: "Rate limit exceeded",
+        schema: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            error: { type: "string", title: "Error Message" },
+            code: { type: "string", title: "Error Code" },
+            retryAfter: { type: "number", title: "Retry After (seconds)" }
+          },
+          required: ["error", "code", "retryAfter"]
+        }
+      }
+    },
+    
     // Authentication (OpenAPI-style)
     authentication: {
       type: "custom",
       scheme: "x402",
-      description: "x402 protocol: Send USDC payment on Base, include txHash in X-PAYMENT header"
+      description: "x402 protocol: Send USDC payment on Base, include txHash in X-PAYMENT header",
+      headerName: "X-PAYMENT",
+      paymentNetworks: ["base", "ethereum", "polygon", "arbitrum", "optimism"],
+      acceptedCurrencies: ["USDC", "USDT"]
     },
     
     // Supported transports
@@ -601,6 +998,13 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
       pricing: `${baseUrl}/.well-known/pricing.json`,
       documentation: `${baseUrl}/developers`,
       marketplace: `${baseUrl}/marketplace`
+    },
+    
+    // Rate limiting metadata (A2A v0.3 optional field)
+    rateLimits: {
+      requestsPerMinute: 60,
+      requestsPerHour: 1000,
+      burstLimit: 10
     },
     
     // Platform metadata

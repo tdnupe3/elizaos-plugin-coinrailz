@@ -20,6 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 export default function DevelopersPage() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
 
   useEffect(() => {
     // Add JSON-LD schema for Google AI indexing
@@ -361,7 +362,77 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
   -H "X-PAYMENT: $(echo -n '{"txHash":"0xYOUR_TX_HASH","amount":"100000","token":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913","from":"0xYOUR_WALLET"}' | base64)" \\
   -d '{"chains":["ethereum","base"]}'`;
 
+  const errorHandlingExample = `// Error handling patterns
+async function safeApiCall(endpoint, payload, txHash) {
+  try {
+    const response = await fetch(\`https://coinrailz.com/api/x402/\${endpoint}\`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-PAYMENT': Buffer.from(JSON.stringify({ txHash })).toString('base64')
+      },
+      body: JSON.stringify(payload)
+    });
+
+    // Handle payment errors
+    if (response.status === 402) {
+      const error = await response.json();
+      console.error('Payment failed:', error.message);
+      throw new Error('Invalid payment - check txHash and amount');
+    }
+
+    // Handle rate limiting
+    if (response.status === 429) {
+      console.warn('Rate limited - retry after 60 seconds');
+      throw new Error('Rate limit exceeded');
+    }
+
+    // Handle other errors
+    if (!response.ok) {
+      throw new Error(\`API error: \${response.status}\`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('API call failed:', error);
+    throw error;
+  }
+}`;
+
   const categories = Array.from(new Set(services.map(s => s.category)));
+
+  const faqItems = [
+    {
+      id: 'payment-proof',
+      question: 'What exactly is the X-PAYMENT header?',
+      answer: 'The X-PAYMENT header contains a base64-encoded JSON object with your transaction proof. It must include the txHash of your USDC payment on Base mainnet to our platform wallet. Each txHash can only be used once.'
+    },
+    {
+      id: 'why-base',
+      question: 'Why do I have to pay on Base? Can I use another chain?',
+      answer: 'Base was chosen for its speed (~12 second finality) and low fees. Currently, x402 services require Base mainnet USDC only. We may expand to other chains in the future.'
+    },
+    {
+      id: 'rate-limits',
+      question: 'What are the rate limits?',
+      answer: 'Free tier: 10 requests/minute. Pro tier: 1000 requests/minute. Enterprise: custom limits. Rate limiting is per API key and resets every minute. 429 status code indicates you\'ve hit the limit.'
+    },
+    {
+      id: 'retry-logic',
+      question: 'How should I handle retries?',
+      answer: 'Use exponential backoff: wait 1s, 2s, 4s, 8s, then fail. Don\'t retry on 402 (payment errors) - fix the issue instead. 429 errors can be retried after 60 seconds.'
+    },
+    {
+      id: 'txhash-reuse',
+      question: 'Can I reuse a transaction hash?',
+      answer: 'No - each txHash is single-use only. If you reuse it, you\'ll get a 402 error. Generate a new payment for each API call.'
+    },
+    {
+      id: 'refunds',
+      question: 'What if the API call fails after I paid?',
+      answer: 'If the API fails after successful payment (500 error), we automatically retry and credit your account. If it fails due to invalid input (400 error), the payment is non-refundable as the request was malformed.'
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -714,6 +785,228 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
               </TabsContent>
             ))}
           </Tabs>
+        </div>
+      </div>
+
+      {/* Rate Limiting & Error Handling */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-white">
+            Rate Limiting & Error Handling
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-6 mb-8">
+            {/* Rate Limits */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Rate Limits</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="border-l-4 border-blue-500 pl-4">
+                  <div className="font-semibold text-gray-900 dark:text-white">Free Tier</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">10 requests/minute</div>
+                </div>
+                <div className="border-l-4 border-purple-500 pl-4">
+                  <div className="font-semibold text-gray-900 dark:text-white">Pro Tier</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">1,000 requests/minute</div>
+                </div>
+                <div className="border-l-4 border-green-500 pl-4">
+                  <div className="font-semibold text-gray-900 dark:text-white">Enterprise</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">Custom limits per agreement</div>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded text-sm text-blue-900 dark:text-blue-100">
+                  <strong>Rate reset:</strong> Every minute. Tracked per API endpoint.
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* HTTP Status Codes */}
+            <Card>
+              <CardHeader>
+                <CardTitle>HTTP Status Codes</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="font-semibold">200</span>
+                  <span className="text-gray-600 dark:text-gray-400">Success</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">400</span>
+                  <span className="text-gray-600 dark:text-gray-400">Bad request (invalid input)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">402</span>
+                  <span className="text-gray-600 dark:text-gray-400">Payment required/invalid</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">429</span>
+                  <span className="text-gray-600 dark:text-gray-400">Rate limit exceeded</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="font-semibold">500</span>
+                  <span className="text-gray-600 dark:text-gray-400">Server error (retry with backoff)</span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Error Handling Example */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Error Handling Pattern</CardTitle>
+              <CardDescription>Best practices for robust API integration</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="relative">
+                <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto text-sm">
+                  <code>{errorHandlingExample}</code>
+                </pre>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="absolute top-2 right-2"
+                  onClick={() => copyToClipboard(errorHandlingExample, 'Error handling code')}
+                  data-testid="button-copy-error-handling"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Best Practices */}
+      <div className="container mx-auto px-4 py-16 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-white">
+            Best Practices
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-green-600" />
+                  Security
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Never expose private keys:</strong> Only send txHash in headers, never keys or seeds
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Validate HTTPS:</strong> Always use HTTPS for API calls, never HTTP
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Audit txHashes:</strong> Log all payments and verify they're Base mainnet
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-yellow-600" />
+                  Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3 text-sm">
+                <div className="flex gap-3">
+                  <CheckCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Batch requests:</strong> Send multiple payments upfront for burst usage
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <CheckCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Cache results:</strong> Store API responses locally to minimize calls
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <CheckCircle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <strong>Use connection pooling:</strong> Reuse HTTP connections for better throughput
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* FAQ */}
+      <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-white">
+            Frequently Asked Questions
+          </h2>
+
+          <div className="space-y-3">
+            {faqItems.map(item => (
+              <Card 
+                key={item.id}
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setExpandedFaq(expandedFaq === item.id ? null : item.id)}
+                data-testid={`faq-item-${item.id}`}
+              >
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{item.question}</CardTitle>
+                    <ChevronRight 
+                      className={`h-5 w-5 text-gray-500 transition-transform ${expandedFaq === item.id ? 'rotate-90' : ''}`}
+                    />
+                  </div>
+                </CardHeader>
+                {expandedFaq === item.id && (
+                  <CardContent>
+                    <p className="text-gray-600 dark:text-gray-400">{item.answer}</p>
+                  </CardContent>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          <Card className="mt-8 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+            <CardHeader>
+              <CardTitle className="text-green-900 dark:text-green-200 flex items-center gap-2">
+                <Rocket className="h-5 w-5" />
+                Ready to Build?
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-green-900 dark:text-green-100 mb-4">
+                You have everything you need. Start with the quickstart guide, choose your framework, and build your first paid AI service in minutes.
+              </p>
+              <div className="flex gap-3">
+                <Button 
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => document.getElementById('quickstart')?.scrollIntoView({ behavior: 'smooth' })}
+                  data-testid="button-ready-quickstart"
+                >
+                  Start Quickstart
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="border-green-600 text-green-600"
+                  onClick={() => document.getElementById('integration-guides')?.scrollIntoView({ behavior: 'smooth' })}
+                  data-testid="button-ready-integrations"
+                >
+                  View Integration Guides
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

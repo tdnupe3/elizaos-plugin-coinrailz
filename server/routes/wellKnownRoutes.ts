@@ -332,6 +332,374 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
 });
 
 /**
+ * GET /.well-known/x402.json
+ * 
+ * x402 protocol discovery endpoint for Coinbase Bazaar and other x402 indexers
+ * Lists all available x402 micropayment services with correct endpoint paths
+ */
+router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl();
+  
+  const x402Manifest = {
+    name: "Coin Railz",
+    homepage: "https://coinrailz.com",
+    contact: "support@coinrailz.com",
+    description: "AI agent marketplace with x402 autonomous payment endpoints, A2A 2.0 discovery, and multi-chain support across 7 EVM networks.",
+    version: "x402-2.0",
+    endpoints: [
+      // Trader-Focused Services (10 services)
+      {
+        path: "/x402/multi-chain-balance",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        description: "Query wallet balances across 7+ EVM chains in a single API call",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "Wallet address to check" },
+            chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional)" },
+            includeTokens: { type: "boolean", description: "Include token balances (optional)" }
+          },
+          required: ["walletAddress"]
+        }
+      },
+      {
+        path: "/x402/gas-price-oracle",
+        methods: ["POST"],
+        price_usd: 0.10,
+        auth: "x402",
+        description: "Real-time gas prices for multiple chains with USD cost estimates",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            chains: { type: "array", items: { type: "string" }, description: "Chains to check (optional, default: all)" }
+          }
+        }
+      },
+      {
+        path: "/x402/token-price",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        description: "Token pricing with 24h change, volume, market cap from CoinGecko/DEX Screener",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "chain"]
+        }
+      },
+      {
+        path: "/x402/contract-scan",
+        methods: ["POST"],
+        price_usd: 1.0,
+        auth: "x402",
+        description: "Basic smart contract security scan with safety score and vulnerability checks",
+        status: "healthy",
+        category: "security",
+        input_schema: {
+          type: "object",
+          properties: {
+            contractAddress: { type: "string", description: "Smart contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["contractAddress", "chain"]
+        }
+      },
+      {
+        path: "/x402/wallet-risk",
+        methods: ["POST"],
+        price_usd: 0.5,
+        auth: "x402",
+        description: "Wallet risk analysis with compliance flags and transaction pattern detection",
+        status: "healthy",
+        category: "security",
+        input_schema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "Wallet address to analyze" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["walletAddress", "chain"]
+        }
+      },
+      {
+        path: "/x402/trade-signals",
+        methods: ["POST"],
+        price_usd: 0.75,
+        auth: "x402",
+        description: "AI-powered crypto trading signals with entry/exit points and risk analysis",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            token: { type: "string", description: "Token pair (default: BTC/USDT)" },
+            timeframe: { type: "string", description: "Timeframe (default: 15m)" },
+            riskLevel: { type: "string", description: "Risk level (default: medium)" }
+          }
+        }
+      },
+      {
+        path: "/x402/token-sentiment",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        description: "Social sentiment analysis for tokens with momentum indicators",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            tokenSymbol: { type: "string", description: "Token symbol" },
+            chain: { type: "string", description: "Blockchain network (optional)" }
+          },
+          required: ["tokenSymbol"]
+        }
+      },
+      {
+        path: "/x402/trending-tokens",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        description: "Top gaining and losing tokens across DEXs with real-time market data",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            timeframe: { type: "string", description: "Timeframe (default: 24h)" },
+            chain: { type: "string", description: "Blockchain network (optional)" }
+          }
+        }
+      },
+      {
+        path: "/x402/whale-alerts",
+        methods: ["POST"],
+        price_usd: 0.35,
+        auth: "x402",
+        description: "Track large wallet movements with on-chain transaction monitoring",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            chains: { type: "array", items: { type: "string" }, description: "Chains to monitor (optional)" },
+            minValueUsd: { type: "number", description: "Minimum transaction value in USD (optional)" },
+            tokenAddresses: { type: "array", items: { type: "string" }, description: "Specific tokens to track (optional)" }
+          }
+        }
+      },
+      {
+        path: "/x402/dex-liquidity",
+        methods: ["POST"],
+        price_usd: 0.20,
+        auth: "x402",
+        description: "Real-time DEX liquidity pool monitoring across multiple exchanges",
+        status: "healthy",
+        category: "trader-focused",
+        input_schema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "chain"]
+        }
+      },
+      // B2B2C Infrastructure Services (5 services)
+      {
+        path: "/x402/transaction-builder",
+        methods: ["POST"],
+        price_usd: 0.30,
+        auth: "x402",
+        description: "Pre-validated transaction encoding for agent-to-agent transfers",
+        status: "healthy",
+        category: "infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            from: { type: "string", description: "Sender address" },
+            to: { type: "string", description: "Recipient address" },
+            value: { type: "string", description: "Transaction value" },
+            data: { type: "string", description: "Transaction data (optional)" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["from", "to", "value", "chain"]
+        }
+      },
+      {
+        path: "/x402/token-metadata",
+        methods: ["POST"],
+        price_usd: 0.10,
+        auth: "x402",
+        description: "Unified token info across all chains - essential for trading agent UIs",
+        status: "healthy",
+        category: "infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "chain"]
+        }
+      },
+      {
+        path: "/x402/approval-manager",
+        methods: ["POST"],
+        price_usd: 0.20,
+        auth: "x402",
+        description: "Token approval transaction generator - required for DeFi agents",
+        status: "healthy",
+        category: "infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            tokenAddress: { type: "string", description: "Token contract address" },
+            spender: { type: "string", description: "Spender address" },
+            amount: { type: "string", description: "Approval amount" },
+            chain: { type: "string", description: "Blockchain network" }
+          },
+          required: ["tokenAddress", "spender", "amount", "chain"]
+        }
+      },
+      {
+        path: "/x402/batch-quote",
+        methods: ["POST"],
+        price_usd: 0.40,
+        auth: "x402",
+        description: "Multi-DEX price quotes in single call - critical for trading bot price discovery",
+        status: "healthy",
+        category: "infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            pairs: { type: "array", items: { type: "string" }, description: "Array of trading pairs to quote" }
+          },
+          required: ["pairs"]
+        }
+      },
+      {
+        path: "/x402/portfolio-tracker",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        description: "Real-time multi-chain portfolio valuation - infrastructure for portfolio management agents",
+        status: "healthy",
+        category: "infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            walletAddress: { type: "string", description: "Wallet address to track" },
+            chains: { type: "array", items: { type: "string" }, description: "Chains to track (optional)" }
+          },
+          required: ["walletAddress"]
+        }
+      },
+      // Premium B2B2C Infrastructure (3 services)
+      {
+        path: "/x402/instant-agent-wallet",
+        methods: ["POST"],
+        price_usd: 1.00,
+        auth: "x402",
+        description: "Create MPC-secured USDC wallets instantly - Circle Developer-Controlled Wallets for AI agents",
+        status: "healthy",
+        category: "premium-infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            agentId: { type: "string", description: "Unique AI agent identifier" },
+            description: { type: "string", description: "Wallet description/label (optional)" },
+            initialFundingAmount: { type: "number", description: "Initial USDC funding amount (optional)" }
+          },
+          required: ["agentId"]
+        }
+      },
+      {
+        path: "/x402/verified-agent-identity",
+        methods: ["POST"],
+        price_usd: 5.00,
+        auth: "x402",
+        description: "KYA (Know-Your-Agent) identity verification - On-chain reputation & compliance scoring using ERC-8004 standard",
+        status: "healthy",
+        category: "premium-infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            agentId: { type: "string", description: "Unique AI agent identifier" },
+            walletAddress: { type: "string", description: "Agent's wallet address" },
+            signature: { type: "string", description: "Signature proof (optional)" },
+            metadata: { type: "object", description: "Additional agent metadata (optional)" }
+          },
+          required: ["agentId", "walletAddress"]
+        }
+      },
+      {
+        path: "/x402/seamless-chain-bridge",
+        methods: ["POST"],
+        price_usd: 2.00,
+        auth: "x402",
+        description: "Cross-chain USDC routing via Circle CCTP - Pay on Ethereum, receive on Base/Polygon/Arbitrum instantly",
+        status: "healthy",
+        category: "premium-infrastructure",
+        input_schema: {
+          type: "object",
+          properties: {
+            fromChain: { type: "string", description: "Source blockchain" },
+            toChain: { type: "string", description: "Destination blockchain" },
+            amount: { type: "string", description: "Amount to bridge" },
+            fromAddress: { type: "string", description: "Sender address" },
+            toAddress: { type: "string", description: "Recipient address" },
+            currency: { type: "string", description: "Currency (default: USDC)" }
+          },
+          required: ["fromChain", "toChain", "amount", "fromAddress", "toAddress"]
+        }
+      }
+    ],
+    x402: {
+      protocol_version: "1.0.0",
+      facilitator: "https://facilitator.cdp.coinbase.co",
+      payment_network: "base",
+      payment_token: {
+        symbol: "USDC",
+        address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        decimals: 6
+      },
+      platform_wallet: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
+    },
+    a2a: {
+      protocol_version: "2.0.0",
+      agent_directory: `${baseUrl}/api/agents/directory`,
+      discovery_enabled: true
+    },
+    commerce: {
+      total_services: 18,
+      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure"],
+      platform_commission: 15,
+      minimum_payment: 0.10,
+      maximum_payment: 10000
+    },
+    blockchain: {
+      supported_chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
+      supported_tokens: ["USDC", "USDT", "ETH", "DAI"],
+      primary_chain: "base"
+    }
+  };
+  
+  res.status(200).json(x402Manifest);
+});
+
+/**
  * GET /.well-known/pricing.json
  * 
  * Detailed pricing information for all services

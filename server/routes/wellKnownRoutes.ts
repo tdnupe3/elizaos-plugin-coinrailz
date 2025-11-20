@@ -20,15 +20,23 @@ const getBaseUrl = () => {
  * GET /.well-known/agent-card.json
  * 
  * Main platform agent card - describes Coin Railz as a service provider
- * This is what x402scan and other indexers will discover
+ * Discoverable by ChatGPT, Google AI, x402scan, and other A2A platforms
  */
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl();
   
   const agentCard = {
-    name: "Coin Railz",
-    description: "Multi-Chain Payment Infrastructure for Crypto Communities. DEX aggregator with fiat off-ramps across 7 blockchains.",
+    name: "Coin Railz x402 Payment Infrastructure",
+    description: "Multi-Chain Payment Infrastructure for Crypto Communities. 18 x402 micropayment services: DEX aggregator, trading signals, wallet risk analysis, security audits, and blockchain intelligence. Pay per request with USDC on Base.",
     version: "2.0.0",
+    
+    // ChatGPT & Google AI Discovery
+    integration_guides: {
+      chatgpt: `${baseUrl}/developers#integration-guides`,
+      google_ai: `${baseUrl}/developers`,
+      eliza_os: `${baseUrl}/developers#integration-guides`,
+      generic_agents: `${baseUrl}/developers#quickstart`
+    },
     
     capabilities: [
       "smart_contract_scanning",
@@ -53,10 +61,14 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     
     pricing: {
       model: "per_service",
+      price_range: "$0.10 - $5.00 per request",
       base_rate: 0.25,
       currency: "USD",
       minimum_transaction: 0.10,
-      services_url: `${baseUrl}/.well-known/pricing.json`
+      services_url: `${baseUrl}/.well-known/pricing.json`,
+      no_registration: true,
+      no_api_keys: true,
+      pay_per_request: true
     },
     
     payment: {
@@ -65,16 +77,22 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       supported_currencies: ["USDC", "USDT", "ETH", "DAI"],
       payment_networks: ["base", "ethereum", "polygon", "arbitrum", "optimism"],
       stablecoins: ["USDC", "USDT", "DAI"],
-      payment_methods_url: `${baseUrl}/.well-known/payment-methods.json`
+      payment_methods_url: `${baseUrl}/.well-known/payment-methods.json`,
+      x402_compliant: true,
+      instant_settlement: true,
+      base_finality_seconds: 12
     },
     
     endpoints: {
+      openapi_schema: `${baseUrl}/.well-known/openapi.json`,
       service_manifest: `${baseUrl}/.well-known/service-manifest.json`,
       pricing: `${baseUrl}/.well-known/pricing.json`,
       payment_methods: `${baseUrl}/.well-known/payment-methods.json`,
       marketplace: `${baseUrl}/marketplace`,
-      api_docs: `${baseUrl}/x402`,
-      health_check: `${baseUrl}/api/health`
+      api_docs: `${baseUrl}/developers`,
+      x402_docs: `${baseUrl}/x402`,
+      health_check: `${baseUrl}/api/health`,
+      agent_directory: `${baseUrl}/api/agents/directory`
     },
     
     platform: {
@@ -82,14 +100,28 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       url: baseUrl,
       type: "payment_infrastructure",
       chains_supported: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
-      total_services: 18
+      total_services: 18,
+      positioning: "Multi-Chain Payment Infrastructure for Crypto Communities"
     },
     
     protocol_info: {
       a2a_version: "2.0.0",
       payment_protocol: "x402",
       discovery_enabled: true,
-      x402_compliant: true
+      x402_compliant: true,
+      chatgpt_compatible: true,
+      google_ai_compatible: true
+    },
+    
+    quickstart: {
+      title: "Start in 3 steps",
+      steps: [
+        "Send USDC payment on Base mainnet to platform wallet",
+        "Wait ~12 seconds for Base finality",
+        "Call API with txHash in X-PAYMENT header"
+      ],
+      documentation_url: `${baseUrl}/developers#quickstart`,
+      code_examples: `${baseUrl}/developers#integration-guides`
     }
   };
   

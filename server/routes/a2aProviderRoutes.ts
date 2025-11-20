@@ -13,14 +13,64 @@ const bridgeAdapter = new A2ABridgeAdapter();
 
 /**
  * 🏭 Create provider-specific router with /.well-known/agent-card.json
+ * Enables ChatGPT, Google AI, and other providers to discover Coin Railz services
  */
 export function createProviderRouter(provider: ProviderType): Router {
   const router = Router();
+  
+  const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
+    ? 'https://coinrailz.com' 
+    : 'http://localhost:5000';
 
   // ChatGPT requirement: Exact /.well-known/agent-card.json path
   router.get('/.well-known/agent-card.json', (req, res) => {
     // Override provider parameter for this specific provider
     (req.params as any).provider = provider;
+    
+    // Return enriched agent card with Coin Railz integration details
+    const enrichedCard = {
+      name: `Coin Railz x402 API (via ${provider})`,
+      description: `Access Coin Railz x402 micropayment services through ${provider}. 18 blockchain APIs for trading signals, security analysis, and DeFi intelligence.`,
+      version: "2.0.0",
+      provider_bridge: provider,
+      
+      integration: {
+        platform: "Coin Railz",
+        payment_protocol: "x402",
+        url: baseUrl,
+        documentation: `${baseUrl}/developers`,
+        openapi_schema: `${baseUrl}/.well-known/openapi.json`
+      },
+      
+      capabilities: [
+        "multi-chain-balance", "gas-price-oracle", "token-price", "wallet-risk",
+        "trade-signals", "token-sentiment", "trending-tokens", "whale-alerts",
+        "dex-liquidity", "transaction-builder", "token-metadata", "approval-manager",
+        "batch-quote", "portfolio-tracker", "instant-agent-wallet", "verified-agent-identity",
+        "seamless-chain-bridge"
+      ],
+      
+      pricing: {
+        model: "per_request_x402",
+        range: "$0.10 - $5.00 per request",
+        currency: "USDC on Base",
+        no_registration: true,
+        no_setup_fees: true
+      },
+      
+      payment: {
+        method: "x402_http_402",
+        token: "USDC",
+        chain: "Base (8453)",
+        wallet: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+        finality_seconds: 12
+      },
+      
+      quickstart: `${baseUrl}/developers#quickstart`,
+      full_docs: `${baseUrl}/developers`,
+      marketplace: `${baseUrl}/marketplace`
+    };
+    
     bridgeAdapter.handleAgentCard(req, res);
   });
 

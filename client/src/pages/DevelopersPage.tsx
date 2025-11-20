@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +20,41 @@ import { useToast } from '@/hooks/use-toast';
 export default function DevelopersPage() {
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Add JSON-LD schema for Google AI indexing
+    const schema = {
+      "@context": "https://schema.org/",
+      "@type": "SoftwareApplication",
+      "name": "Coin Railz Developer Platform",
+      "description": "APIs and microservices for AI agents and developers. Access x402 micropayment services, blockchain data, trading signals, security analysis, and DeFi tools via HTTP 402 protocol.",
+      "url": "https://coinrailz.com/developers",
+      "applicationCategory": "DeveloperApplication",
+      "provider": {
+        "@type": "Organization",
+        "name": "Coin Railz",
+        "url": "https://coinrailz.com"
+      },
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "USD",
+        "lowPrice": "0.10",
+        "highPrice": "5.00"
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);

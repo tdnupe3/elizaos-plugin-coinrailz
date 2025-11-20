@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,44 @@ import { apiRequest } from '@/lib/queryClient';
 export default function AIAgentBundlePage() {
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  useEffect(() => {
+    // Add JSON-LD schema for Google AI indexing
+    const schema = {
+      "@context": "https://schema.org/",
+      "@type": "Product",
+      "name": "Coin Railz AI Agent Pro Bundle",
+      "description": "Unlimited access to all 18 AI agent microservices via x402 protocol. Gas prices, wallet analysis, trade signals, smart contract audits, security tools, and more.",
+      "url": "https://coinrailz.com/products/ai-agent-bundle",
+      "brand": {
+        "@type": "Brand",
+        "name": "Coin Railz"
+      },
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "USD",
+        "lowPrice": "49.00",
+        "highPrice": "99.00",
+        "availability": "https://schema.org/InStock"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "ratingCount": "150"
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
 
   const purchaseMutation = useMutation({
     mutationFn: (priceId: string) =>

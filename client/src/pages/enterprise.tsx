@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,39 @@ export default function EnterprisePage() {
 
   // SEO optimization for enterprise page
   useSEO(seoConfigs.enterprise);
+
+  useEffect(() => {
+    // Add JSON-LD schema for Google AI indexing
+    const schema = {
+      "@context": "https://schema.org/",
+      "@type": "SoftwareApplication",
+      "name": "Coin Railz Enterprise Solutions",
+      "description": "Enterprise-grade crypto infrastructure for institutions. Coinbase CDP, Circle USDC, XRP Ledger, AI agent marketplace, and custom solutions for banks and fintech companies.",
+      "url": "https://coinrailz.com/enterprise",
+      "applicationCategory": "BusinessApplication",
+      "provider": {
+        "@type": "Organization",
+        "name": "Coin Railz",
+        "url": "https://coinrailz.com"
+      },
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "description": "Enterprise custom pricing"
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
 
   const enterpriseFeatures = [
     {

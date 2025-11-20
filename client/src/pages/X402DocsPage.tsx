@@ -2,10 +2,40 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Copy, Check, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function X402DocsPage() {
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Add JSON-LD schema for Google AI indexing
+    const schema = {
+      "@context": "https://schema.org/",
+      "@type": "APIReference",
+      "name": "x402 Microservices - Coin Railz",
+      "description": "Production-ready x402 micropayment services for AI agents. 18 microservices including balance checking, gas prices, token data, smart contract audits, and security analysis. Instant USDC payments on Base chain.",
+      "url": "https://coinrailz.com/x402-docs",
+      "applicationCategory": "WebAPI",
+      "provider": {
+        "@type": "Organization",
+        "name": "Coin Railz",
+        "url": "https://coinrailz.com"
+      },
+      "documentation": "https://coinrailz.com/x402-docs",
+      "schemaVersion": "1.0"
+    };
+    
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
 
   const services = [
     {

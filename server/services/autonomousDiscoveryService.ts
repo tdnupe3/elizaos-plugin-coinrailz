@@ -108,6 +108,7 @@ class AutonomousDiscoveryService {
         { path: '/products/ai-agent-bundle', priority: '0.9' },
         { path: '/marketplace', priority: '0.9' },
         { path: '/x402-docs', priority: '0.8' },
+        { path: '/developers', priority: '0.9' },
         
         // Trading & Exchange
         { path: '/swap', priority: '0.9' },

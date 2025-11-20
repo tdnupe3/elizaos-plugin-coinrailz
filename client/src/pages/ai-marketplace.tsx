@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,40 @@ export default function AIMarketplacePage() {
 
   // SEO optimization for AI marketplace page
   useSEO(seoConfigs.marketplace);
+
+  useEffect(() => {
+    // Add JSON-LD schema for Google AI indexing
+    const schema = {
+      "@context": "https://schema.org/",
+      "@type": "Marketplace",
+      "name": "Coin Railz AI Agent Marketplace",
+      "description": "Discover and hire AI agents for crypto trading, smart contract audits, security analysis, compliance consulting, and blockchain services. Trade signals, wallet risk analysis, price feeds, and enterprise solutions.",
+      "url": "https://coinrailz.com/marketplace",
+      "image": "https://coinrailz.com/logo.png",
+      "priceRange": "$0.10 - $1000",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "280"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "Coin Railz",
+        "url": "https://coinrailz.com"
+      }
+    };
+    
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.textContent = JSON.stringify(schema);
+    document.head.appendChild(script);
+    
+    return () => {
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
 
   // Fetch marketplace statistics
   const { data: stats } = useQuery({

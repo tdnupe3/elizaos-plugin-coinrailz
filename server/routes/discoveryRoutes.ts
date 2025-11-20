@@ -84,4 +84,95 @@ router.post('/api/discovery/campaign', async (req, res) => {
   }
 });
 
+/**
+ * GET /.well-known/openapi.json
+ * OpenAPI schema for AI agents and Gemini integration
+ */
+router.get('/.well-known/openapi.json', (req, res) => {
+  try {
+    const openApiSchema = {
+      "openapi": "3.0.0",
+      "info": {
+        "title": "Coin Railz x402 Microservices API",
+        "description": "Production-ready x402 HTTP 402 micropayment services for AI agents. Query blockchain data, security analysis, trading signals, DeFi intelligence via HTTP 402 protocol with Base USDC.",
+        "version": "1.0.0",
+        "contact": {
+          "name": "Coin Railz Support",
+          "url": "https://coinrailz.com",
+          "email": "support@coinrailz.com"
+        }
+      },
+      "servers": [
+        {
+          "url": "https://coinrailz.com",
+          "description": "Production server"
+        }
+      ],
+      "paths": {
+        "/x402/multi-chain-balance": {
+          "post": {
+            "summary": "Get wallet balances across multiple chains",
+            "operationId": "getMultiChainBalance",
+            "tags": ["Data"],
+            "responses": {
+              "402": { "description": "Payment Required - HTTP 402 response with payment details" },
+              "200": { "description": "Success - Balance data returned after payment" }
+            }
+          }
+        },
+        "/x402/gas-price-oracle": {
+          "post": {
+            "summary": "Real-time gas prices for all major chains",
+            "operationId": "getGasPrices",
+            "tags": ["Data"],
+            "responses": {
+              "402": { "description": "Payment Required" },
+              "200": { "description": "Gas price data" }
+            }
+          }
+        },
+        "/x402/token-price": {
+          "post": {
+            "summary": "Live token prices with market data",
+            "operationId": "getTokenPrice",
+            "tags": ["Data"],
+            "responses": {
+              "402": { "description": "Payment Required" },
+              "200": { "description": "Token price data" }
+            }
+          }
+        },
+        "/x402/wallet-risk": {
+          "post": {
+            "summary": "AML/fraud risk assessment for wallet",
+            "operationId": "getWalletRisk",
+            "tags": ["Security"],
+            "responses": {
+              "402": { "description": "Payment Required" },
+              "200": { "description": "Risk assessment data" }
+            }
+          }
+        },
+        "/x402/trade-signals": {
+          "post": {
+            "summary": "AI-powered trading signals with confidence scores",
+            "operationId": "getTradeSignals",
+            "tags": ["Trading"],
+            "responses": {
+              "402": { "description": "Payment Required" },
+              "200": { "description": "Trading signal" }
+            }
+          }
+        }
+      }
+    };
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.json(openApiSchema);
+  } catch (error) {
+    console.error('OpenAPI schema generation failed:', error);
+    res.status(500).json({ error: 'Failed to generate OpenAPI schema' });
+  }
+});
+
 export default router;

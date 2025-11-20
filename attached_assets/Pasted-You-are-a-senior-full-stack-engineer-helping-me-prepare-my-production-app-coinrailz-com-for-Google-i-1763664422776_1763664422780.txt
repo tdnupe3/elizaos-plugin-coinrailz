@@ -1,0 +1,167 @@
+You are a senior full-stack engineer helping me prepare my production app coinrailz.com for Google indexing and SEO.
+
+Tech stack & context:
+
+Backend: Node.js + Express (Coin Railz API + x402 services)
+
+Frontend: React (Vite) served from Express
+
+Domain: https://coinrailz.com
+
+There are ~125 routes/pages (wallets, XRP, USDC, swap, marketplace, docs, products, etc.).
+
+IMPORTANT: Do not modify any x402 routes, payment logic, or server middleware related to Coinbase CDP, Circle, or Telegram. We are only working on Google/search/SEO-related items.
+
+Your tasks
+
+Generate a proper sitemap.xml
+
+Check if a sitemap.xml already exists anywhere in the project.
+
+If it does, open it and update/replace it.
+
+If it doesn’t exist, create a new sitemap.xml in the correct place so it’s served at:
+
+https://coinrailz.com/sitemap.xml
+
+Include at least these URLs explicitly:
+
+/
+
+/products/ai-agent-bundle
+
+/x402-docs
+
+/marketplace
+
+/swap
+
+/buy-sell
+
+/p2p-transfer
+
+/xrp
+
+/usdc
+
+/wallet
+
+/dashboard
+
+Any existing /enterprise or docs pages
+
+For the rest of the app (since there are many routes), you can either:
+
+Add them explicitly if you can discover them safely, OR
+
+Use reasonable patterns for sections (e.g. /xrp/*, /usdc/*, /wallet/*, /enterprise/*).
+
+Make sure the XML is valid and follows the standard sitemap protocol.
+
+Ensure robots.txt is present and correct
+
+Check if we already have robots.txt.
+
+If not, create one so it’s served at:
+
+https://coinrailz.com/robots.txt
+
+Default behavior:
+
+Allow all well-behaved crawlers to index the site.
+
+Reference the sitemap:
+
+Sitemap: https://coinrailz.com/sitemap.xml
+
+Do not block anything unless there’s an obvious security reason (e.g., admin-only paths).
+
+Add (or confirm) Google Search Console verification support
+
+Assume I will verify with either:
+
+HTML file in the web root or
+
+<meta name="google-site-verification" ...> tag.
+
+Identify the correct place in the React/HTML entry point (likely index.html in Vite or a main template used by Express) where I should paste the verification <meta> tag.
+
+Add a placeholder meta tag with a TODO comment like:
+
+<!-- TODO: Replace content value with real Search Console verification token -->
+<meta name="google-site-verification" content="PASTE_TOKEN_HERE" />
+
+
+Make sure this ends up in the <head> of the public-facing HTML that serves /.
+
+Confirm Google Analytics 4 (GA4) integration or set up a clean hook
+
+Look for any existing Google Analytics / gtag / GA4 code.
+
+If GA4 is already present:
+
+Confirm it’s loaded in the main HTML or top-level React entry so it fires on all pages.
+
+If GA4 is not present:
+
+Add a clean GA4 hook in the main HTML template, but use a placeholder measurement ID and a clear TODO comment:
+
+<!-- TODO: Replace G-XXXXXXX with real GA4 Measurement ID -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXX');
+</script>
+
+
+Make sure this is added in the <head> so I only need to replace G-XXXXXXX later.
+
+Basic SEO & social tags sanity check
+
+In the main HTML template (index.html or equivalent):
+
+Ensure we have sensible <title> and <meta name="description">.
+
+Title should mention: “Coin Railz”, “AI agents”, “USDC micropayments”, and “Base”.
+
+Description should briefly explain that Coin Railz offers x402-based AI agent infrastructure, USDC payments, and multi-chain tools.
+
+Ensure we have Open Graph / Twitter Card tags for better link previews:
+
+og:title, og:description, og:url, og:type, and a placeholder og:image.
+
+twitter:card, twitter:title, twitter:description.
+
+If something already exists, improve it rather than delete it.
+
+Do NOT break anything
+
+Do not change:
+
+Any Express routes under /x402/*, /api/*, or payment endpoints.
+
+Any Circle, Coinbase CDP, or Telegram-related code.
+
+Any new files you create should be minimal and standards compliant.
+
+After changes, explain:
+
+Which files you created or modified.
+
+Where the sitemap and robots.txt are served from.
+
+Where I should paste:
+
+The Google Search Console verification token.
+
+The real GA4 Measurement ID.
+
+When you’re done, summarize your changes clearly so I can review them, and show me the contents of:
+
+sitemap.xml
+
+robots.txt
+
+The updated main HTML/template containing <head> (with SEO tags, GA4 hook, and Search Console placeholder).

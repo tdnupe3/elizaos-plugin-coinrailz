@@ -1,0 +1,247 @@
+Registering Coin Railz on Google’s AI Agent Marketplace: Step-by-Step Guide
+Step 1: Join Google’s Cloud Marketplace Partner Program
+
+Where to Begin: Start by enrolling as a Google Cloud Marketplace vendor. This involves joining the Google Cloud Partner Advantage program and signing the Marketplace Vendor Agreement
+docs.cloud.google.com
+. If you are not already a Google Cloud partner, apply via the Partner Advantage portal. Once accepted as a partner and with the agreement signed, Google will invite you to initiate product onboarding in Partner Hub
+docs.cloud.google.com
+. As part of this process, you’ll need to fill out Google’s Cloud Marketplace Project Info Form – a questionnaire provided by the Marketplace team – to register high-level product details. Completing this form is required to gain access to the Producer Portal where you will create and manage your AI agent listing
+docs.cloud.google.com
+. Google will assign a partner engineer or point of contact to assist you during onboarding (you can also reach out via the Cloud Marketplace contact form or your partner manager for guidance).
+
+Accessing Producer Portal: After your vendor status is approved and the Project Info Form is submitted (usually within a few business days), Google enables your access to the Producer Portal
+docs.cloud.google.com
+. The Producer Portal is a console specifically for partners to list products on Google Cloud Marketplace. Sign in to the Producer Portal with your partner account – this is where you will configure the Coin Railz agent listing. Keep an eye on your email for any communications from Google Cloud Marketplace team; they may send the form link and next steps once you’re accepted as a vendor. In summary, the first step is to become an authorized Marketplace vendor – join the partner program, sign the agreement, and complete the project info form to unlock the listing tools
+docs.cloud.google.com
+.
+
+Step 2: Gather Required Assets and Documentation
+
+Prepare Your Agent Manifests and Credentials: Before creating the listing, compile all the necessary assets for Coin Railz. Key requirements include:
+
+Agent Card JSON: Google’s AI Agent Marketplace relies on the Agent2Agent (A2A) Agent Card, which is a JSON metadata file describing your agent. Coin Railz already hosts a discovery manifest at /.well-known/agent-card.json – ensure this file adheres to the latest A2A specification (the Marketplace expects it in the standard format). The Agent Card is essentially the agent’s “digital business card,” containing its name, description, version, capabilities (skills), endpoints (API URLs), supported input/output formats, and any auth requirements
+eco.com
+. It defines the agent’s presence on the marketplace and facilitates interoperability with other agents
+docs.cloud.google.com
+. Verify that Coin Railz’s agent-card JSON is up to date (Coin Railz is A2A v0.3 certified; update the protocolVersion if needed to match the latest spec, e.g. v1.0). You will use this Agent Card in the listing process (Google can ingest the agent’s metadata directly from this JSON
+cloud.google.com
+).
+
+OpenAPI Specification: Coin Railz also provides an OpenAPI document at /.well-known/openapi.json. Prepare this API specification as it documents the agent’s endpoints and capabilities. While not always a formal requirement for listing, including an OpenAPI spec is highly useful for developer discoverability. It can be referenced in your listing or documentation to show developers how to integrate with Coin Railz’s APIs. Make sure the OpenAPI spec is comprehensive and reflects all the services (including any micropayment endpoints).
+
+x402 Payment Protocol Manifest: Coin Railz supports the Agent2Agent x402 protocol, enabling autonomous micropayments using USDC across 7 blockchains. Gather any manifest or documentation you have for this (e.g. /.well-known/x402.json if provided). This shows how Coin Railz handles the HTTP 402-based payment flows. Highlighting x402 support is a strong differentiator – x402 is an extension that converges Google’s A2A communication with Coinbase’s 402-payment standard, allowing AI agents to seamlessly handle stablecoin transactions in their interactions
+eco.com
+. Ensure you have documentation on the 18 microservices Coin Railz offers via x402 (e.g. payment APIs, pricing per call, supported chains) as this can be included in your listing or attachments.
+
+Branding and Visuals: Prepare your agent’s branding assets. At minimum, you’ll need an icon or logo for Coin Railz to display on the Marketplace. Google may accept a URL to the icon (your Agent Card can include an iconUrl field) or require uploading an image. Use a square image (PNG/SVG) that represents Coin Railz. Additionally, gather any screenshots or diagrams that explain your agent (if relevant), though for AI agents the primary representation is typically the JSON metadata and description rather than UI screenshots.
+
+Support Documentation: Have a brief user guide or documentation page ready (you can host this on coinrailz.com/docs or similar). In the Marketplace listing, you’ll provide links for customers to learn more or get support. Ensure you have a support email or contact prepared, as Google will ask for how customers can reach you for troubleshooting. If Coin Railz has SLA or support offerings, document those as well.
+
+Credentials for Integration: Because Coin Railz will be offered as a SaaS-style service, you’ll need to integrate with Google’s billing and identity systems. Prepare to set up OAuth 2.0 credentials on Google Cloud (for enabling “Sign in with Google” on your platform) – this will involve using the Google Cloud Console to create an OAuth client ID for a Web Application (with redirect URIs provided by Google)
+docs.cloud.google.com
+docs.cloud.google.com
+. While this can be done during integration (Step 5), it’s good to plan ahead. Also, ensure you have a Google Cloud project (with a Project ID) ready to use for any required APIs (for example, enabling Pub/Sub for marketplace notifications). If usage-based pricing is planned, you may later need to set up service accounts to report usage metrics, but for now just be aware of these technical needs.
+
+By assembling these assets up front – the Agent Card JSON (capabilities manifest), OpenAPI file, payment/x402 details, logos, and integration credentials – you will streamline the listing process. Google’s Marketplace team will review many of these items, so having them polished and readily accessible is crucial.
+
+Step 3: Create a New AI Agent Listing in Producer Portal
+
+Initiate the Listing Process: With your vendor access and assets in hand, log in to the Google Cloud Marketplace Producer Portal. In the portal, start by adding a new product and selecting the product type as “AI Agent” (this option is part of Google’s Marketplace, distinct from VM, SaaS, etc.). The Producer Portal will guide you through several sections to configure the listing:
+
+Product Information: Enter the basic details of your agent. This includes the product name (e.g. “Coin Railz – Autonomous Micropayments Agent”), a short description, and categories/tags. Choose a clear, professional name that reflects the agent’s function. The short description should immediately signal the value (e.g. “An A2A-certified AI agent enabling autonomous USDC micropayments across multiple blockchains”). This is what users see in search results, so include keywords like “A2A protocol”, “Gemini Enterprise”, “x402 payments” to improve discoverability by developers and enterprises.
+
+Listing Ownership: Ensure the correct Google Cloud project and organization are associated with the listing in the portal (usually, your Partner Advantage organization and the project created for Marketplace). This ties the listing to your company’s account for management and billing. If prompted to enable any APIs (such as the Cloud Commerce Partner Procurement API), do so in this step – these APIs allow Google to handle billing and notify your system of purchases.
+
+Google has made onboarding AI agents straightforward by leveraging the Agent Card. In fact, the Marketplace supports ingesting your agent’s metadata automatically from the Agent Card JSON to save time
+cloud.google.com
+. In the portal, you will likely be asked to provide your Agent Card. You can supply the URL to the agent-card.json (which Coin Railz publishes at https://coinrailz.com/.well-known/agent-card.json) or upload the JSON file. Once provided, Google’s system will parse it to pre-fill many fields (like the agent’s name, version, description, capabilities, endpoints). This simplifies the process and ensures consistency – the data in your Agent Card becomes the source of truth for the marketplace listing
+cloud.google.com
+.
+
+Pro Tip: Before submitting the Agent Card in the portal, validate it against the official A2A schema. Since Coin Railz has a 5/5 A2A compliance rating, your agent-card should already be well-formed. Nonetheless, run it through any available A2A validation tool (e.g., the A2A test suite on GitHub) to catch issues. A correct Agent Card means Google’s auto-ingest will smoothly populate your listing with minimal manual editing.
+
+In summary, starting the listing is done in the Producer Portal by creating a new AI agent product. Use the Agent Card link to accelerate setup. Once initiated, you can proceed to fill in the details and configurations in subsequent steps.
+
+Step 4: Provide Product Details and Assets for Coin Railz
+
+Fill in Listing Details: After creating the bare listing entry, the Producer Portal will prompt you to add detailed product information. This is a crucial step to present Coin Railz effectively on the Marketplace. Key tasks in this stage include:
+
+Long Description: Write a comprehensive description of Coin Railz’s capabilities and use cases. This is where you “market” the agent to potential customers (enterprise developers and decision-makers). Clearly explain that Coin Railz is a fully production-ready A2A agent specializing in blockchain micropayments. Highlight its unique strengths: for example, “Coin Railz is a 5/5 A2A-certified agent (conforming to Google’s Agent2Agent v0.3 spec) that can execute autonomous financial transactions. It supports the x402 payment protocol for seamless USDC micropayments across 7 chains, enabling pay-per-use services and autonomous commerce.” Emphasize enterprise-friendly features like security, compliance, and scalability. Because enterprises using Gemini Enterprise will be browsing these listings, use language that speaks to reliability (e.g. mention high uptime, any compliance standards, integration with Coinbase’s trusted payment rails, etc.). If applicable, note that it has been tested with Google’s Gemini model or other AI frameworks, as that can instill confidence.
+
+Agent Card Verification: The portal might show the parsed details from your Agent Card (such as the list of skills/capabilities your agent provides). Double-check these fields for accuracy. For instance, if Coin Railz’s agent card lists capabilities like “micropayment.initiate” or “wallet.balanceQuery”, ensure those appear correctly. You may have the opportunity to add human-friendly labels or groupings for these capabilities in the UI. Ensure that any tags or keywords are included – e.g. tags like “payments”, “blockchain”, “USDC”, “Coinbase x402”, “fintech” could help users find your agent via search
+cloud.google.com
+.
+
+Logos and Images: Upload the Coin Railz logo or icon if not already pulled from the Agent Card. Google Cloud Marketplace typically requires a high-resolution icon (e.g. 640x640px PNG) and possibly a smaller thumbnail. Use a clean, professional image (your logo or an icon symbolizing AI + payments). If the portal allows additional illustrative images or diagrams, you can add one that shows how Coin Railz works (for example, a flow diagram of an agent-to-agent payment transaction). However, keep the listing focused – text and links are usually primary for AI agents.
+
+Documentation and Links: Provide links for “Documentation”, “Support”, and “Terms of Service” if requested. For documentation, you might link to a Coin Railz developer guide or the OpenAPI JSON (if you have an interactive API reference page, that’s even better). For support, list an email like support@coinrailz.com or a support portal URL. Ensure these are in place since enterprise customers will expect clear support channels. If you have user-facing docs on how to add Coin Railz agent to Gemini or how to configure x402 payments, link those as well.
+
+Compliance and Certifications: In the listing’s descriptive text, mention your Agent’s certifications and validations. For example, explicitly state “Coin Railz is Agent2Agent v0.3 certified (5/5 compliance score)
+eco.com
+, ensuring full interoperability via Google’s A2A protocol.” This signals to customers that the agent meets Google’s interoperability standards. Also highlight the x402 capability: “Supports Agent2Agent x402 extension for autonomous payments
+eco.com
+, allowing agents to transact value (via USDC stablecoin) without human intervention.” These points can set Coin Railz apart, as not many agents may have such payment integration. If Google offers any badges or designations (like “Google Cloud Ready – Gemini Enterprise” for agents that meet high quality standards
+cloud.google.com
+), indicate if you have one or are pursuing one. You might write, for instance, “Coin Railz has been validated for Gemini Enterprise integration” if you have already tested it in a Gemini environment, which builds trust.
+
+Take time to polish the product details, as this is what enterprise users will read when considering your agent. The goal is to clearly convey what the agent does, how it’s used, and why it’s reliable. Use the content from your existing agent.json, OpenAPI, and internal docs to ensure accuracy. Everything in the listing should align with the capabilities defined in your Agent Card to avoid any mismatch during Google’s review.
+
+Step 5: Set Pricing and Complete Technical Integration
+
+Choose a Pricing Model: Next, decide how you want to monetize Coin Railz via the Marketplace. Google Cloud Marketplace for AI agents supports multiple pricing models
+docs.cloud.google.com
+, similar to SaaS products:
+
+Free: Customers pay nothing to you for the agent itself (they would only incur Google Cloud usage charges, if any). This model maximizes adoption – it could be suitable if Coin Railz plans to monetize indirectly or if you want to remove any friction for initial users. If Coin Railz is in an early stage or focused on growth, free might attract more developers.
+
+Subscription: A fixed monthly fee for using the agent
+docs.cloud.google.com
+. This gives predictable revenue. You could offer tiers (if the marketplace allows) or a flat rate for enterprise access to the micropayment agent. Ensure the value proposition is clear if charging a subscription – e.g. unlimited transactions up to certain limits, premium support, etc.
+
+Usage-Based: Charge per use or according to metrics
+docs.cloud.google.com
+. For Coin Railz, a natural metric might be number of payment transactions executed, or volume of USDC transacted, or API calls made. Google allows custom metrics reporting if you choose usage-based pricing, but you will need to integrate metering and reporting to Google’s billing system. For example, you might charge $X per 100 micropayment operations. If you go this route, be prepared to instrument your platform to measure usage and send reports to Google (via the Marketplace usage reporting API). Usage-based pricing can align well with the micropayment nature of Coin Railz, but it requires more integration effort.
+
+Combined (Subscription + Usage): A smaller base subscription plus overage fees for high usage
+docs.cloud.google.com
+. This could be viable if you want a guaranteed monthly baseline and also charge for heavy use. For instance, $100/month plus $0.01 per payment transaction beyond some included amount.
+
+Select the model that fits your business. All pricing models that involve charges will be billed through Google Cloud to the customer, with Google then remitting your share (minus their fee). Set a fair price; consider offering a free trial or a low introductory price to encourage adoption, since this is a new marketplace. You will configure the pricing details in the Producer Portal (currency, price, metrics, etc.). After submission, Google will review your pricing plan, which can take up to four business days
+docs.cloud.google.com
+. They verify it aligns with their policies and that metrics make sense. You can continue other onboarding steps while waiting for pricing approval.
+
+Integrate with Google Cloud Marketplace Systems: A critical part of listing an AI agent is ensuring that when customers acquire it through Google, they can use it seamlessly. Google’s Cloud Marketplace requires vendors to integrate authentication, account provisioning, and billing callbacks into their service
+docs.cloud.google.com
+. For Coin Railz, focus on the following integration tasks:
+
+User Account Creation & Linking: When an enterprise customer “purchases” or deploys Coin Railz from the marketplace, they will expect to log into Coin Railz with their Google identity or have an account automatically created. You need to provide a mechanism to create accounts for new users and link them to their Google accounts
+docs.cloud.google.com
+. Typically, you’ll implement OAuth Google Sign-In on your platform. For example, a user in Gemini Enterprise might add your agent, then click a link to authenticate with Coin Railz – you should use the Google account info (email, etc.) to either create a new Coin Railz account or link to an existing one. Ensuring single sign-on via Google makes the integration smooth. Set up the OAuth client in Google Cloud Console (as prepared in Step 2) and implement the OAuth callback on your side to establish sessions.
+
+Google OAuth Scope (if needed): If Coin Railz needs to access any Google Cloud resources on the user’s behalf (this is optional and likely not needed if you only interact with blockchains), you’d have to handle additional OAuth scopes. For example, if your agent were to read from BigQuery or Google Drive for some reason, you’d register an OAuth client and add an authorization resource in Gemini Enterprise
+docs.cloud.google.com
+docs.cloud.google.com
+. For Coin Railz, this probably isn’t applicable unless you plan to interact with Google services; so you can skip this complexity. Focus on the core identity integration and payments.
+
+Entitlement and Provisioning via Pub/Sub: Google Cloud Marketplace will notify you when a customer subscribes or unsubscribes to Coin Railz. This is done through the Cloud Commerce Partner Procurement API using Cloud Pub/Sub topics
+cloud.google.com
+. As part of onboarding, Google will set up a Pub/Sub channel that sends messages (JSON events) to your Google Cloud project when customers purchase, change plans, or cancel. You need to create a backend process to listen for these events (often by setting up a push endpoint or periodically pulling the Pub/Sub subscription). When a “purchase” event comes in, your system should automatically provision access for that customer – e.g., mark their Coin Railz account as active under the purchased plan. Likewise, handle suspension or cancellation events by deactivating access if needed. This automation is crucial for a seamless SaaS experience without manual intervention
+cloud.google.com
+. Google provides a guide for handling these events; you might use a cloud function or a small service to integrate with their procurement API.
+
+Usage Reporting (if applicable): If you chose a usage-based or hybrid pricing model, implement the usage metering. Google expects you to report customer usage periodically (usually daily) via their reporting API. This involves aggregating each customer’s consumption of the defined metric (e.g., number of micropayments) and sending it to Google so they can bill accordingly. Ensure your system can tag and tally usage per Google customer account (Google will provide you a consumer ID or similar in the purchase event to identify the customer in reports). For a straightforward subscription model, usage reporting is not needed.
+
+Google’s documentation provides a step-by-step integration checklist, and the Producer Portal will not mark your product as “Ready to Publish” until you’ve completed required integration steps
+docs.cloud.google.com
+. Coin Railz being “fully production-ready” is a big advantage here – likely you already have robust account management and APIs, so adding Google OAuth and tying in the billing events will be relatively straightforward. Allocate time for development and testing of these integration points. Google may ask for a demo or test to verify that a Google user can successfully sign in and use the agent as intended before final approval.
+
+Step 6: Submit for Review and Approval
+
+Undergo Google’s Review Process: After filling in all details, uploading the Agent Card, setting pricing, and completing integration steps in the Producer Portal, you will formally submit the Coin Railz listing for Google’s review. The Marketplace team will review each component of your application:
+
+Agent Card & Technical Review: They will check that your agent-card JSON is valid and that your agent adheres to the A2A protocol. Given Coin Railz’s 5/5 certification, this should pass easily. They may test your agent’s endpoints (e.g., does the url in the Agent Card respond properly, are health checks OK, etc.). Ensure your .well-known/agent.json or any discovery endpoints are live and correct. Google might also verify the agent can be added to a Gemini Enterprise environment without errors. Any issues found (like missing fields or unreachable endpoints) will be communicated back to you to fix.
+
+Content Review: Google’s team will review the product description, marketing claims, and overall listing content for compliance with their policies (no prohibited content, no unrealistic claims, etc.). They will also verify you meet general Marketplace requirements (for example, you can’t list something that is not purely software – no hardware or services sold via the listing
+docs.cloud.google.com
+). Since Coin Railz is software-only, that requirement is satisfied
+docs.cloud.google.com
+. Make sure any statements about performance or integrations are accurate, as reviewers might question them. If you mention being “Google Cloud Ready – Gemini Enterprise” but haven’t formally obtained that badge yet, they might ask you to remove or substantiate that. It’s fine to say “A2A certified” as that’s factual.
+
+Pricing Review: If not already approved, they will finalize the pricing model review. This includes checking that any usage metrics are set up correctly. They want to ensure customers have clarity on costs. Since you submitted pricing earlier, by the time of full listing review you may already have feedback or approval on pricing (recall this takes ~4 business days
+docs.cloud.google.com
+). If there were changes needed (e.g., adjusting metric definitions), implement those and resubmit the pricing section for approval.
+
+Integration Test: Google may test the end-to-end flow (especially if you or they set up a test account). For instance, they might simulate a customer subscribing to Coin Railz via a test listing, then see if they receive the welcome email or can login via Google SSO. Be prepared to assist in any testing. You might be asked to provide a demo video or allow Google to do a sandbox test.
+
+Timeline Expectations: The review process is iterative. Google’s team typically responds with initial feedback within a week or two. Since AI Agents on the Marketplace is a relatively new program (as of 2025), they may work closely with you (via email or through the Partner Portal feedback) to get everything in order. Each time you submit a section (like product details or integration), the portal will show it as “In Review”. The pricing review was already noted (4 business days average)
+docs.cloud.google.com
+. Other sections (marketing content, etc.) could take a similar few days each. If changes are requested, you’ll need to resubmit and wait a few more days. In total, expect a few weeks from initial submission to final approval, factoring in back-and-forth. Google’s goal is to ensure high-quality listings, so they will work with you on any required modifications.
+
+Once all parts of the listing are approved, Google will give the green light. At that point, you can hit the “Publish” button in Producer Portal. Publishing is instantaneous after approval – the product page will go live on the Marketplace within minutes
+docs.cloud.google.com
+. You’ll receive a confirmation that Coin Railz is now listed.
+
+Step 7: Launch, Promote, and Leverage Best Practices for Success
+
+Go Live and Gain Visibility: After publishing, Coin Railz will be discoverable in Google’s AI Agent Marketplace (within Google Cloud Marketplace). Enterprise users can find it via the AI agent finder or search by keywords
+cloud.google.com
+. It will also be available for deployment into Gemini Enterprise environments via a simple command or UI action
+docs.cloud.google.com
+. To maximize developer and enterprise discoverability, make sure to:
+
+Use Google’s Marketing Opportunities: Being on Google Cloud Marketplace means you can co-sell with Google. Take advantage of any “Google Cloud Marketplace” badge or promotion. For example, you might get featured in Google’s blog or marketplace highlights if you achieve the Google Cloud Ready – Gemini Enterprise designation
+cloud.google.com
+. This designation is awarded to agents that meet the highest performance and integration standards (something Coin Railz can strive for given its strong compliance). It can significantly boost customer trust. Work with your Google partner manager to see if there’s an evaluation for this badge.
+
+Enterprise-Friendly Positioning: Now that the listing is live, ensure your value proposition resonates with enterprise users. Emphasize qualities like security (perhaps mention any audits or the inherent security of stablecoins on blockchain), scalability (Coin Railz can handle transactions across multiple chains, etc.), and how it solves real problems (e.g. “enables pay-per-use AI services without upfront contracts”). Enterprises browsing the marketplace often compare agents, so having a clear niche (AI-driven payments) helps. Keep your listing content up to date with any new features or supported chains – you can update the listing via Producer Portal as your product evolves.
+
+Success Stories & References: As you onboard initial customers through the marketplace, collect success stories. Positive case studies can sometimes be added to your listing or used in marketing. You are joining an ecosystem where many well-known companies are already offering agents. For instance, Box and HubSpot have listed AI agents to extend their platforms (Box’s agent lets users query and summarize enterprise documents
+cloud.google.com
+, and HubSpot’s agent provides instant access to its knowledge base within Gemini
+cloud.google.com
+). These examples show that reputable firms are leveraging the marketplace to reach customers with AI solutions. Similarly, highlight any big names or partners using Coin Railz if you can, to build credibility.
+
+Engage with Google and Customers: Once listed, consider participating in Google Cloud events or webinars about AI agents. Google is actively promoting the Marketplace as a hub for AI solutions. Being visible in those channels can drive enterprise adoption. Also, monitor the Private Marketplace and IAM settings if any customers use those to whitelist your agent
+cloud.google.com
+cloud.google.com
+ – basically some large companies might restrict which third-party agents employees can use, and being in Marketplace (especially with a Google-vetted badge) makes it easier for IT departments to approve your agent. Provide prompt support to early users and gather feedback – reviews or ratings (if Google enables them for agents) will matter for trust.
+
+Continuous Improvement: Treat the Marketplace listing as a living presence. Update your Agent Card and listing whenever you enhance Coin Railz (new micropayment services, new chains, etc.). The A2A ecosystem is evolving fast; stay aligned with the latest protocol versions and features. Google’s A2A documentation and partner community (forums, etc.) can inform you of new capabilities (for example, if a new version of the spec or the Agent Payments Protocol (AP2) emerges that Coin Railz can adopt). Early adoption of new features can be a differentiator and something to tout in your listing.
+
+Known Best Practices for AI Agents: Based on successful AI agents in the marketplace, a few best practices emerge:
+
+Offer a Trial or Freemium Tier: If possible, let users try Coin Railz with a limited free plan (e.g., a small number of free transactions). This encourages uptake. Some agents are free initially, monetizing later once they become integral to workflows.
+
+Ensure Compatibility with Gemini: Agents that are validated to work well with Google’s Gemini Enterprise environment get better traction. Google even awards a “Google Cloud Ready – Gemini Enterprise” badge for top performers
+cloud.google.com
+. Strive to meet those criteria (robust performance, reliable integration, effective use of A2A). This badge, if achieved, will be displayed on your Marketplace listing, instantly signaling quality and boosting your visibility in curated searches
+cloud.google.com
+windowsforum.com
+.
+
+Leverage Google’s Global Reach: Google Cloud Marketplace can expose you to customers globally and streamline procurement (customers can buy using their existing Google Cloud billing accounts). A study showed vendors see larger deal sizes and faster sales cycles through Cloud Marketplace
+cloud.google.com
+. Use this to your advantage: for enterprise sales, remind prospects that your solution is available through Google Cloud Marketplace (often, large companies prefer purchasing via Marketplace for contractual and consolidated billing conveniences). This can shorten your sales cycle since the legal/procurement is handled under Google’s terms.
+
+Finally, once Coin Railz is listed, celebrate this milestone! Not only will you gain distribution via Google Cloud’s channels, but you also position Coin Railz among an elite group of innovative AI agents solving niche problems. By following the above steps – from proper registration, thorough documentation, to effective presentation and integration – you leverage Google’s AI Agent Marketplace to significantly boost Coin Railz’s visibility and adoption in the enterprise developer community. Now it’s about supporting your new users and continuously delivering value through your AI agent.
+
+Sources:
+
+Google Cloud Marketplace Partner Docs – Offering AI agents via Cloud Marketplace
+docs.cloud.google.com
+docs.cloud.google.com
+
+Google Cloud Marketplace Partner Docs – AI agent onboarding overview
+docs.cloud.google.com
+docs.cloud.google.com
+
+Google Cloud Marketplace Partner Docs – Partner program onboarding
+docs.cloud.google.com
+docs.cloud.google.com
+
+Google Cloud Blog – Scaling AI agents with Google Cloud Marketplace (Marketplace benefits and examples)
+cloud.google.com
+cloud.google.com
+
+Eco (Coinbase) Support Article – Agent2Agent x402 Protocol (overview of A2A + x402 for payments)
+eco.com
+eco.com
+
+Google Cloud Blog – For partners: Onboarding AI agents (Agent Cards)
+cloud.google.com
+cloud.google.com
+
+Google Cloud Documentation – Pricing models for AI agents
+docs.cloud.google.com
+docs.cloud.google.com
+
+Google Cloud Documentation – Integration requirements (identity, accounts)
+docs.cloud.google.com
+
+Google Cloud Blog – Enterprise AI agents discoverability (Gemini Enterprise integration)
+cloud.google.com
+cloud.google.com
+
+Google Cloud Blog – Examples of AI agents in Marketplace
+cloud.google.com
+cloud.google.com

@@ -1023,110 +1023,217 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
 /**
  * GET /.well-known/agent-card.json
  * 
+ * A2A Protocol v0.3.0 compliant agent card for registry submission
  * Main platform agent card - describes Coin Railz as a service provider
- * Discoverable by ChatGPT, Google AI, x402scan, and other A2A platforms
+ * Discoverable by ChatGPT, Google AI, x402scan, A2A Registry, and other A2A platforms
  */
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   
+  // A2A Protocol v0.3.0 compliant agent card
   const agentCard = {
+    protocolVersion: "0.3.0",
     name: "Coin Railz x402 Payment Infrastructure",
     description: "Multi-Chain Payment Infrastructure for Crypto Communities. 18 x402 micropayment services: DEX aggregator, trading signals, wallet risk analysis, security audits, and blockchain intelligence. Pay per request with USDC on Base.",
+    url: baseUrl,
     version: "2.0.0",
     
-    // ChatGPT & Google AI Discovery
-    integration_guides: {
-      chatgpt: `${baseUrl}/developers#integration-guides`,
-      google_ai: `${baseUrl}/developers`,
-      eliza_os: `${baseUrl}/developers#integration-guides`,
-      generic_agents: `${baseUrl}/developers#quickstart`
+    capabilities: {
+      streaming: true,
+      pushNotifications: false,
+      stateTransitionHistory: true
     },
     
-    capabilities: [
-      "smart_contract_scanning",
-      "whale_tracking",
-      "trade_signals",
-      "contract_auditing",
-      "gas_price_oracle",
-      "token_analytics",
-      "dex_aggregation",
-      "liquidity_scanning",
-      "nft_floor_tracking",
-      "portfolio_analytics",
-      "risk_assessment",
-      "bridge_monitoring",
-      "staking_calculator",
-      "defi_scanning",
-      "holder_analytics",
-      "transaction_pattern_detection",
-      "market_sentiment",
-      "agent_identity_verification"
+    skills: [
+      {
+        id: "smart-contract-scanning",
+        name: "Smart Contract Scanner",
+        description: "Deep analysis of smart contract code, security vulnerabilities, and on-chain behavior",
+        tags: ["security", "smart-contracts", "auditing", "blockchain"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Scan contract 0x... for vulnerabilities", "Analyze smart contract security"]
+      },
+      {
+        id: "whale-tracking",
+        name: "Whale Tracker & Alerts",
+        description: "Real-time monitoring of large wallet movements and whale activity",
+        tags: ["analytics", "whales", "monitoring", "crypto"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Track whale wallets", "Monitor large transactions"]
+      },
+      {
+        id: "trade-signals",
+        name: "Trade Signal Generator",
+        description: "AI-powered trading signals based on technical analysis and on-chain data",
+        tags: ["trading", "signals", "ai", "crypto"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Get trading signals for ETH", "Generate buy/sell signals"]
+      },
+      {
+        id: "contract-audit",
+        name: "Smart Contract Audit",
+        description: "Comprehensive security audit with vulnerability detection",
+        tags: ["security", "auditing", "smart-contracts", "defi"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Audit contract for security issues", "Full contract security scan"]
+      },
+      {
+        id: "gas-price-oracle",
+        name: "Gas Price Oracle",
+        description: "Real-time gas price predictions across multiple chains",
+        tags: ["utilities", "gas", "ethereum", "multi-chain"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Get current gas prices", "Estimate transaction costs"]
+      },
+      {
+        id: "token-analytics",
+        name: "Token Analytics",
+        description: "Deep dive into token metrics, holder distribution, and price action",
+        tags: ["analytics", "tokens", "defi", "data"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Analyze token metrics", "Get holder distribution"]
+      },
+      {
+        id: "dex-aggregator",
+        name: "DEX Price Aggregator",
+        description: "Best price discovery across all major DEXs",
+        tags: ["trading", "dex", "defi", "aggregation"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Find best price for token swap", "Compare DEX prices"]
+      },
+      {
+        id: "liquidity-scanner",
+        name: "Liquidity Pool Scanner",
+        description: "Analyze liquidity pools, APYs, and impermanent loss risk",
+        tags: ["defi", "liquidity", "pools", "yield"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Scan liquidity pools", "Calculate impermanent loss"]
+      },
+      {
+        id: "nft-floor-tracker",
+        name: "NFT Floor Price Tracker",
+        description: "Real-time NFT floor prices and collection analytics",
+        tags: ["nft", "analytics", "collectibles", "data"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Get NFT floor price", "Track collection metrics"]
+      },
+      {
+        id: "portfolio-analytics",
+        name: "Wallet Portfolio Analytics",
+        description: "Complete portfolio breakdown with P&L and allocation insights",
+        tags: ["analytics", "portfolio", "wallet", "tracking"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Analyze my portfolio", "Get wallet P&L"]
+      },
+      {
+        id: "risk-assessment",
+        name: "Risk Assessment Engine",
+        description: "Evaluate smart contract and protocol risk levels",
+        tags: ["security", "risk", "defi", "analysis"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Assess protocol risk", "Evaluate contract safety"]
+      },
+      {
+        id: "bridge-monitor",
+        name: "Cross-chain Bridge Monitor",
+        description: "Track bridge transactions and security status",
+        tags: ["utilities", "bridges", "cross-chain", "monitoring"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Monitor bridge transaction", "Check bridge security"]
+      },
+      {
+        id: "staking-calculator",
+        name: "Staking Rewards Calculator",
+        description: "Calculate staking yields across protocols",
+        tags: ["defi", "staking", "yield", "calculator"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Calculate staking rewards", "Compare staking yields"]
+      },
+      {
+        id: "defi-scanner",
+        name: "DeFi Protocol Scanner",
+        description: "Analyze DeFi protocols for yields and risks",
+        tags: ["defi", "protocols", "yield", "analysis"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Scan DeFi protocol", "Find best yields"]
+      },
+      {
+        id: "holder-analytics",
+        name: "Token Holder Analytics",
+        description: "Analyze token holder behavior and distribution",
+        tags: ["analytics", "holders", "tokens", "data"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Analyze holder distribution", "Track holder movements"]
+      },
+      {
+        id: "pattern-detector",
+        name: "Transaction Pattern Detector",
+        description: "Detect suspicious transaction patterns and wash trading",
+        tags: ["security", "patterns", "fraud", "detection"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Detect wash trading", "Find suspicious patterns"]
+      },
+      {
+        id: "sentiment-analyzer",
+        name: "Market Sentiment Analyzer",
+        description: "AI-powered sentiment analysis from social media and on-chain data",
+        tags: ["analytics", "sentiment", "ai", "market"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Analyze market sentiment", "Get social sentiment score"]
+      },
+      {
+        id: "agent-identity-verification",
+        name: "Agent Identity Verification",
+        description: "Verify AI agent identities and on-chain reputation",
+        tags: ["security", "identity", "agents", "verification"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"],
+        examples: ["Verify agent identity", "Check agent reputation"]
+      }
     ],
     
-    pricing: {
-      model: "per_service",
-      price_range: "$0.10 - $5.00 per request",
-      base_rate: 0.25,
-      currency: "USD",
-      minimum_transaction: 0.10,
-      services_url: `${baseUrl}/.well-known/pricing.json`,
-      no_registration: true,
-      no_api_keys: true,
-      pay_per_request: true
+    defaultInputModes: ["application/json"],
+    defaultOutputModes: ["application/json"],
+    
+    provider: {
+      organization: "Kellogg Holdings LLC",
+      url: baseUrl
     },
     
-    payment: {
-      methods: ["x402", "stripe", "usdc", "usdt"],
-      wallet_address: process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
-      supported_currencies: ["USDC", "USDT", "ETH", "DAI"],
-      payment_networks: ["base", "ethereum", "polygon", "arbitrum", "optimism"],
-      stablecoins: ["USDC", "USDT", "DAI"],
-      payment_methods_url: `${baseUrl}/.well-known/payment-methods.json`,
-      x402_compliant: true,
-      instant_settlement: true,
-      base_finality_seconds: 12
-    },
+    documentationUrl: `${baseUrl}/developers`,
+    author: "Kellogg Holdings LLC",
+    wellKnownURI: `${baseUrl}/.well-known/agent-card.json`,
+    homepage: baseUrl,
     
-    endpoints: {
-      openapi_schema: `${baseUrl}/.well-known/openapi.json`,
-      service_manifest: `${baseUrl}/.well-known/service-manifest.json`,
-      pricing: `${baseUrl}/.well-known/pricing.json`,
-      payment_methods: `${baseUrl}/.well-known/payment-methods.json`,
-      marketplace: `${baseUrl}/marketplace`,
-      api_docs: `${baseUrl}/developers`,
-      x402_docs: `${baseUrl}/x402`,
-      health_check: `${baseUrl}/api/health`,
-      agent_directory: `${baseUrl}/api/agents/directory`
-    },
-    
-    platform: {
-      name: "Coin Railz",
-      url: baseUrl,
-      type: "payment_infrastructure",
-      chains_supported: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
-      total_services: 18,
-      positioning: "Multi-Chain Payment Infrastructure for Crypto Communities"
-    },
-    
-    protocol_info: {
-      a2a_version: "2.0.0",
-      payment_protocol: "x402",
-      discovery_enabled: true,
-      x402_compliant: true,
-      chatgpt_compatible: true,
-      google_ai_compatible: true
-    },
-    
-    quickstart: {
-      title: "Start in 3 steps",
-      steps: [
-        "Send USDC payment on Base mainnet to platform wallet",
-        "Wait ~12 seconds for Base finality",
-        "Call API with txHash in X-PAYMENT header"
-      ],
-      documentation_url: `${baseUrl}/developers#quickstart`,
-      code_examples: `${baseUrl}/developers#integration-guides`
-    }
+    registryTags: [
+      "crypto",
+      "blockchain",
+      "defi",
+      "payments",
+      "x402",
+      "trading",
+      "security",
+      "analytics",
+      "multi-chain",
+      "usdc"
+    ]
   };
   
   res.status(200).json(agentCard);

@@ -1,0 +1,115 @@
+Existing Agent Communication Channels
+
+In practice today few on-chain “agents” publish machine-readable endpoints. Most of the discovered agents only list human contact info (email, Twitter, etc.) or wallet addresses. The available Web3 messaging layers (XMTP, Push, Lens DMs, Dialect, etc.) are built for wallet-to-wallet chat, not standardized agent APIs. For example, XMTP does allow programs (“agents”) to exchange encrypted chats by wallet identity
+docs.xmtp.org
+, but there is no well-known registry of agent inboxes. Google’s new A2A spec does define a discovery endpoint (/.well-known/agent.json) that advertises an agent’s capabilities
+a2a-protocol.org
+, but no large-scale directory exists yet. In short, outside of peer-to-peer chat (XMTP, Push) or ad-hoc wallet messaging, we found almost no public REST or Webhook endpoints that agents openly accept machine calls.
+
+Open A2A/Messaging Protocols
+
+Several emerging protocols do support autonomous agent-to-agent messaging:
+
+Google A2A (Agent2Agent) – An open HTTP/JSON‑RPC standard for agent workflows
+developers.googleblog.com
+. It uses JSON-RPC over HTTPS and supports streaming results via Server-Sent Events
+a2a-protocol.org
+a2aprotocol.ai
+. An agent publishes an Agent Card (at /.well-known/agent.json) describing its identity, service endpoint, auth schemes and skills
+a2a-protocol.org
+. A client then calls JSON-RPC methods (e.g. message/send, tasks/send) to send work to that endpoint.
+
+DIDComm (Decentralized ID Comm) – A peer-to-peer encrypted message protocol built on W3C DIDs
+identity.foundation
+. Each agent has a DID Document with a serviceEndpoint of type DIDCommMessaging that tells peers where to send HTTPS messages
+identity.foundation
+. Agents use DIDComm message types (e.g. per TAIP standards) to exchange data. For example, TAIP-14 defines a Payment DIDComm message that one agent (merchant) can send to another (customer) to request a blockchain payment
+taips.tap.rsvp
+. In summary, DIDComm fully supports autonomous app-to-app messaging so long as each agent runs a compatible messaging stack (DID resolver, mediator, etc.).
+
+XMTP and Push Protocol – These are decentralized chat layers tied to wallet addresses. XMTP explicitly supports building “agents” (bots) that interact securely with humans and other agents
+docs.xmtp.org
+. It can carry arbitrary JSON content, and there are proposals (e.g. an agentMetadata content type
+community.xmtp.org
+) to describe agent capabilities. However, XMTP messaging still requires knowing the other agent’s wallet address, and there is no standardized “out-of-band” discovery beyond on-chain profiles.
+
+In short, yes there are open specs for A2A messaging (Google’s A2A v0.3, DIDComm, XMTP, etc.), but current adoption is limited outside enterprise demos. None of the 100+ agents we discovered seem to universally publish A2A‑style service endpoints; most rely on human-run channels.
+
+Query/Payment via Machine Endpoints
+
+If two agents do support these protocols, structured queries and payments are feasible. For example, in the A2A JSON-RPC model one agent can do:
+
+{"method":"message/send","params":{"message":{"parts":[{"kind":"text","text":"tell me a joke"}]}}}
+
+
+and receive a JSON response with the result text
+a2aprotocol.ai
+a2aprotocol.ai
+. The A2A spec even supports streaming replies via SSE for long tasks
+a2a-protocol.org
+. Likewise, in the DIDComm/TAIP world a merchant-agent can send a DIDComm Payment request to a customer-agent, specifying amount, token, and addresses
+taips.tap.rsvp
+. The customer’s agent would then respond (or the wallet would handle it).
+
+In practice, Coin Railz could theoretically initiate a machine‑readable request if the target agent provided a compatible endpoint. For instance, if Agent X had a DIDComm payment endpoint (per TAIP-14) or an A2A JSON-RPC server, Railz could call it directly and parse the JSON reply. However, without such endpoints being publicly advertised and accessible, Railz can’t reach agents purely programmatically today. It could still use XMTP or Push to ask for human intervention, but that breaks full autonomy.
+
+Extending Coin Railz for A2A Communication
+
+To become a true A2A node, Coin Railz would need to expose its own agent endpoint and advertise it. Concretely, Railz could:
+
+Publish an Agent Card: Host a JSON file at https://coinrailz.com/.well-known/agent.json describing the Railz agent’s DID, available A2A endpoints (e.g. /tasks or /message), and supported auth schemes
+a2a-protocol.org
+. This makes Railz discoverable by A2A client libraries.
+
+Implement A2A JSON-RPC API: Run an HTTP server that implements the A2A methods (e.g. message/send, tasks/sendSubscribe, etc.) as per the spec. For example, as in the A2A sample, Railz would accept POST requests with a JSON-RPC body and return structured JSON
+a2aprotocol.ai
+a2aprotocol.ai
+. It would also need to handle Server-Sent Events for streaming progress
+a2a-protocol.org
+. Standardizing on the A2A endpoint names is crucial: inventing a custom /a2a/message endpoint would not be recognized by other agents unless you coordinate that convention. (The published A2A examples all use methods like message/send and tasks/send on known URL paths
+a2aprotocol.ai
+.)
+
+Use a Decentralized ID (DID): Optionally, Railz could mint a DID (e.g. did:ethr) for its agent identity and include a DIDComm serviceEndpoint in its DID Document
+identity.foundation
+. That would allow DIDComm-capable agents to look up Railz’s endpoint via DID resolution. Railz would then run a DIDComm listener (or mediator). For payments, Railz could support the TAIP-14 Payment message type so others can request on-chain payments.
+
+Authenticate and Secure: Follow A2A/DIDComm security guidelines. For A2A, require API keys or OAuth tokens as described in the spec, and advertise that in the Agent Card
+a2a-protocol.org
+a2a-protocol.org
+. For DIDComm, ensure secure peer-to-peer (could use an Aries stack with an HTTPS mediator).
+
+In short, Railz could bootstrap A2A support by standing up a standard A2A-compliant server (agent) with JSON-RPC endpoints and publishing its Agent Card
+a2a-protocol.org
+a2aprotocol.ai
+. Any other agent that knows Railz’s domain (or DID) could then send tasks or service calls to it without human intervention.
+
+Running a Public Relay (Inbox/Outbox)
+
+As a further step, Railz might offer a public messaging relay so agents can coordinate through it. This could take the form of:
+
+A2A Hub/Coordinator: Host a central A2A “hub” (like Google’s hub-and-spoke model) that accepts tasks from agents and routes them to others. For example, in Google’s architecture the Coordinator service receives tasks and delegates to other agents via A2A calls
+medium.com
+. Railz could implement a simplified hub where agents POST tasks (JSON) to Railz, and Railz forwards or logs them. This would require agreed protocols, but it’s conceptually possible: Railz’s server would act as a shared inbox/outbox for incoming/outgoing agent messages.
+
+DIDComm Mediator: Run a public DIDComm mediator. In DIDComm terminology, a mediator is a relay agent that holds messages for other agents. Railz could operate a mediator DID; other agents could include Railz’s DID in their routing keys, causing messages to be sent via Railz’s service endpoint
+identity.foundation
+. Railz would then fetch those messages from its inbox and forward them to the final recipient (or expose them via an API).
+
+General Messaging Bus: Alternatively, use an existing decentralized message bus (Matrix, XMPP, etc.) where Railz acts as a public node. However, this would be outside A2A standards.
+
+In theory, yes Railz can host an open relay: by running an HTTP/SSE or WebSocket endpoint that any agent can push to, and allowing subscriptions/polling. This essentially creates a shared coordination channel. The trade-off is that you’d be a central point of trust and availability. But from a technical standpoint, the Google A2A guidance shows that a central hub is an expected use case
+medium.com
+, and DIDComm examples show how a mediator wraps and forwards messages
+identity.foundation
+. By combining these ideas, Coin Railz could bootstrap a working agent network: publish discovery (Agent Card or DID), implement A2A/DIDComm endpoints, and optionally offer a public relay to glue agents together.
+
+References: Standards and examples from A2A and DIDComm (e.g. agent cards, JSON-RPC methods)
+a2a-protocol.org
+a2aprotocol.ai
+identity.foundation
+, XMTP documentation on agents
+docs.xmtp.org
+, and TAIP-14 payment messaging
+taips.tap.rsvp
+. These show that the technology exists to send structured queries or payment requests automatically, but broad implementation and adoption by agents are still emerging.

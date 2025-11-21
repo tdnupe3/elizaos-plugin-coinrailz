@@ -674,7 +674,11 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 // === x402 PROTOCOL AUTONOMOUS PAYMENTS ===
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
-// REMOVED: app.use('/x402', x402GatedRoutes); - Conflicted with V2 implementation below
+
+// === x402 GATED SERVICE ENDPOINTS (FOR x402scan DISCOVERY) ===
+console.log('🔒 Mounting x402 Gated Routes for x402scan/Bazaar discovery...');
+app.use('/x402', x402GatedRoutes); // Returns 402 Payment Required - compliant with x402scan validation (routes already have /service/ prefix)
+console.log('✅ x402 Gated Routes mounted at /x402/service/* - x402scan can now discover services');
 
 // CRITICAL FIX: Override Host header for x402 Bazaar discovery
 // x402-express v0.7.1 ignores "resource" config field and uses req.get('host') instead

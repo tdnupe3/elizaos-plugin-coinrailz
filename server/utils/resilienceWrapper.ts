@@ -80,6 +80,15 @@ async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Export circuit breaker stats for monitoring
+export function getCircuitBreakerStats() {
+  const stats: Record<string, CircuitBreakerState> = {};
+  circuitBreakers.forEach((value, key) => {
+    stats[key] = { ...value };
+  });
+  return stats;
+}
+
 export async function withResilience<T>(
   fn: () => Promise<T>,
   key: string,

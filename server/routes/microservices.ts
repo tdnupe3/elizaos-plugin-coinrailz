@@ -2021,6 +2021,22 @@ router.post("/dex-liquidity", async (req: Request, res: Response) => {
   }
 });
 
+// Operational monitoring endpoint for circuit breaker health
+router.get("/health/circuit-breakers", async (req: Request, res: Response) => {
+  const { getCircuitBreakerStats } = await import('../utils/resilienceWrapper');
+  const stats = getCircuitBreakerStats();
+  
+  const summary = {
+    totalCircuits: Object.keys(stats).length,
+    open: Object.values(stats).filter(s => s.state === 'open').length,
+    halfOpen: Object.values(stats).filter(s => s.state === 'half-open').length,
+    closed: Object.values(stats).filter(s => s.state === 'closed').length,
+    details: stats
+  };
+  
+  res.json({ success: true, data: summary });
+});
+
 // Export service functions for direct in-process calls (bypassing HTTP)
 export {
   multiChainBalanceService,

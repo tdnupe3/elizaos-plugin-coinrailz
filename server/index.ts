@@ -60,6 +60,7 @@ import autoJoinerRoutes from './routes/autoJoinerFixed';
 import subscriptionPayments from './routes/subscriptionPayments';
 import aiAgentServices from './routes/aiAgentServices';
 import agentServiceRoutes from './routes/agentServiceRoutes';
+import microservicesRoutes from './routes/microservices';
 import { telegramOutreachService } from './services/telegramOutreachService.js';
 import telegramMiniAppRoutes from './routes/telegramMiniAppRoutes';
 import { bnbChainService } from "./services/bnbChainService";
@@ -3111,6 +3112,7 @@ app.use('/api/telegram', telegramMiniAppRoutes);
 app.use('/api/payments', subscriptionPayments);
 app.use('/api/ai-agent-services', aiAgentServices);
 app.use('/api/agent-services', agentServiceRoutes); // Order/delivery for Smart Contract Auditor & Compliance Consultant
+app.use('/api/microservices', microservicesRoutes); // 18 internal services with circuit breaker resilience
 app.use('/api', immediateRevenueRoutes);
 app.use('/api', walletBalanceRoutes);
 

@@ -2473,9 +2473,10 @@ export const dexTrades = pgTable("dex_trades", {
   fromAmount: decimal("from_amount", { precision: 20, scale: 8 }).notNull(),
   toAmount: decimal("to_amount", { precision: 20, scale: 8 }).notNull(),
   platformFee: decimal("platform_fee", { precision: 10, scale: 6 }).notNull(), // Our 0.25% fee
+  network: varchar("network").notNull(), // Network/chain (ethereum, base, polygon, etc.)
   networkFee: decimal("network_fee", { precision: 18, scale: 8 }), // Gas fees
   slippagePercent: decimal("slippage_percent", { precision: 5, scale: 2 }).default("2.0"), // 2% default
-  chain: varchar("chain").notNull(), // base-mainnet, ethereum-mainnet, etc.
+  chain: varchar("chain"), // Legacy field, kept for compatibility
   dexProtocol: varchar("dex_protocol"), // uniswap, sushiswap, etc.
   transactionHash: varchar("transaction_hash"), // Blockchain tx hash
   status: varchar("status").default("pending"), // pending, completed, failed, cancelled
@@ -2483,9 +2484,10 @@ export const dexTrades = pgTable("dex_trades", {
   metadata: jsonb("metadata"), // Additional trade data
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => ({
   walletAddressIndex: index("dex_trades_wallet_idx").on(table.walletAddress),
-  chainIndex: index("dex_trades_chain_idx").on(table.chain),
+  networkIndex: index("dex_trades_network_idx").on(table.network),
   statusIndex: index("dex_trades_status_idx").on(table.status),
   createdAtIndex: index("dex_trades_created_idx").on(table.createdAt),
 }));

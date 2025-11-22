@@ -140,6 +140,7 @@ router.post('/trade', async (req: Request, res: Response) => {
       fromAmount: amount,
       toAmount: tradeResult.toAmount,
       platformFee: tradeResult.platformFee,
+      network: chain || 'ethereum', // Map chain to network field
       networkFee: tradeResult.networkFee,
       slippagePercent: slippage.toString(),
       chain,

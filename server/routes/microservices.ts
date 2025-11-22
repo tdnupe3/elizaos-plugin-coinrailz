@@ -1856,6 +1856,87 @@ router.post("/seamless-chain-bridge", async (req: Request, res: Response) => {
   }
 });
 
+// Add missing routes for services with existing functions
+router.post("/token-sentiment", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "token-sentiment";
+
+  try {
+    const { tokenSymbol, chain } = req.body;
+    if (!tokenSymbol) {
+      return res.status(400).json({ success: false, error: "tokenSymbol is required" });
+    }
+
+    const result = await tokenSocialSentimentService(tokenSymbol, chain);
+    const responseTime = Date.now() - startTime;
+
+    await trackRequest(serviceId, req.body, result, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown");
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post("/trending-tokens", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "trending-tokens";
+
+  try {
+    const { timeframe, chain, limit } = req.body;
+    const result = await trendingTokensFeedService(timeframe, chain, limit);
+    const responseTime = Date.now() - startTime;
+
+    await trackRequest(serviceId, req.body, result, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown");
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post("/whale-alerts", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "whale-alerts";
+
+  try {
+    const { tokenAddress, chain, threshold } = req.body;
+    const result = await whaleWalletAlertsService(tokenAddress, chain, threshold);
+    const responseTime = Date.now() - startTime;
+
+    await trackRequest(serviceId, req.body, result, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown");
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post("/dex-liquidity", async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const serviceId = "dex-liquidity";
+
+  try {
+    const { tokenAddress, chain } = req.body;
+    if (!tokenAddress || !chain) {
+      return res.status(400).json({ success: false, error: "tokenAddress and chain are required" });
+    }
+
+    const result = await dexLiquidityMonitorService(tokenAddress, chain);
+    const responseTime = Date.now() - startTime;
+
+    await trackRequest(serviceId, req.body, result, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown");
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    await trackRequest(serviceId, req.body, null, responseTime, SERVICE_PRICING[serviceId], req.ip || "unknown", error.message);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Export service functions for direct in-process calls (bypassing HTTP)
 export {
   multiChainBalanceService,

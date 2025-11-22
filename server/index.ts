@@ -115,6 +115,10 @@ function validateRequiredEnvironmentVariables() {
 }
 
 validateRequiredEnvironmentVariables();
+
+// Additional production health checks
+import { validateProductionReadiness } from './healthChecks';
+validateProductionReadiness();
 // ============= END BOOT-TIME VALIDATION =============
 
 const app = express();

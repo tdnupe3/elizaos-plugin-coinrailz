@@ -39,13 +39,13 @@ export function createPaymentOrchestrator(
         );
 
         if (verified) {
-          console.log(`✅ Orchestrator: Raw hash payment verified for ${serviceName}, marking for x402-express`);
-          // Store verification result so x402-express knows payment is valid
+          console.log(`✅ Orchestrator: Raw hash payment verified for ${serviceName}, executing handler directly`);
+          // Store verification result for handler to use
           res.locals.payment = { method: "raw-hash", txHash: decoded.txHash };
-          // Continue to x402-express middleware
-          return next();
+          // Execute handler directly, skipping x402-express middleware
+          return await handler(req, res);
         } else {
-          console.log(`❌ Orchestrator: Payment verification failed for ${serviceName}, delegating to x402-express`);
+          console.log(`❌ Orchestrator: Payment verification failed for ${serviceName}, returning 402`);
           // Verification failed → let x402-express middleware generate 402 response
           return next();
         }

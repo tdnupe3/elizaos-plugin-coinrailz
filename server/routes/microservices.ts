@@ -1534,23 +1534,15 @@ async function verifiedAgentIdentityService(params: {
   const { agentId, walletAddress, signature, metadata } = params;
 
   try {
-    // REAL verification using Circle wallet ownership check
-    const { CircleClient } = await import('../services/circleClient');
-    const circleClient = new CircleClient();
-
-    // Verify wallet exists in Circle system
-    const wallets = await circleClient.listWallets();
-    const walletExists = wallets?.data?.wallets?.some(
-      (w: any) => w.address?.toLowerCase() === walletAddress.toLowerCase()
-    );
-
     // Check ERC-8004 on-chain identity (existing contract deployed Oct 29, 2025)
     const identityContractAddress = "0x8AfBd4f43399aeB6e26AD827AeaAADfB10ebb5Aa";
     const reputationContractAddress = "0x3130232Ef23f7f7Dbc41f2c6A790928bc674Bb24";
     
     let onChainIdentity = null;
     let reputationScore = 0;
+    let hasIdentityNFT = false;
     
+    // Primary verification: On-chain ERC-8004 identity via Alchemy
     try {
       const alchemy = alchemyConfigs.base;
       if (alchemy) {
@@ -1567,16 +1559,31 @@ async function verifiedAgentIdentityService(params: {
             network: "base-mainnet"
           };
           reputationScore = 85; // Base score for identity NFT holders
+          hasIdentityNFT = true;
         }
       }
     } catch (nftError) {
       console.log('No on-chain identity found:', nftError);
     }
 
-    const verificationStatus = walletExists ? "verified" : "pending";
-    const trustScore = walletExists ? 95 : 60;
+    // Optional: Check wallet activity via Alchemy
+    let walletActivityScore = 0;
+    try {
+      const alchemy = alchemyConfigs.base;
+      if (alchemy) {
+        const balance = await alchemy.core.getBalance(walletAddress);
+        const hasBalance = BigInt(balance.toString()) > 0n;
+        walletActivityScore = hasBalance ? 20 : 0;
+      }
+    } catch (balanceError) {
+      console.log('Could not check wallet balance:', balanceError);
+    }
 
-    console.log(`✅ REAL identity verification for ${agentId}: ${verificationStatus}`);
+    // Calculate verification status based on available data
+    const verificationStatus = hasIdentityNFT ? "verified" : "unverified";
+    const trustScore = Math.min(95, reputationScore + walletActivityScore + (signature ? 10 : 0));
+
+    console.log(`✅ Identity verification for ${agentId}: ${verificationStatus} (score: ${trustScore})`);
 
     return {
       success: true,
@@ -1586,15 +1593,20 @@ async function verifiedAgentIdentityService(params: {
       trustScore,
       reputationScore,
       onChainIdentity,
+      verificationMethods: {
+        onChainIdentity: hasIdentityNFT,
+        walletActivity: walletActivityScore > 0,
+        signatureProvided: !!signature
+      },
       capabilities: {
-        circleWalletVerified: walletExists,
         erc8004Identity: !!onChainIdentity,
-        signatureValid: !!signature
+        signatureValid: !!signature,
+        hasWalletBalance: walletActivityScore > 0
       },
       compliance: {
-        kycStatus: "agent_verified",
+        kycStatus: hasIdentityNFT ? "verified" : "unverified",
         sanctionsCheck: "clear",
-        riskLevel: "low",
+        riskLevel: trustScore > 70 ? "low" : trustScore > 40 ? "medium" : "high",
         lastChecked: new Date().toISOString()
       },
       identityDetails: {
@@ -1603,7 +1615,8 @@ async function verifiedAgentIdentityService(params: {
         createdAt: new Date().toISOString(),
         metadata: metadata || {},
         identityContract: identityContractAddress,
-        reputationContract: reputationContractAddress
+        reputationContract: reputationContractAddress,
+        verificationMethod: "on-chain-erc8004"
       },
       verified_at: new Date().toISOString()
     };

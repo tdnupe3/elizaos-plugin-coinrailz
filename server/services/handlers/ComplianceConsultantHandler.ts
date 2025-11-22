@@ -1,5 +1,5 @@
 /**
- * Compliance Consultant Service Handler - PRODUCTION READY ✅
+ * Compliance Consultant Service Handler - AI-ENHANCED ✅
  * Handles regulatory compliance analysis and AML/KYC consulting
  * 
  * Features:
@@ -7,9 +7,15 @@
  * - Real-time AML/sanctions screening via external APIs
  * - Rule-based fallback when APIs unavailable
  * - Multi-provider support (Sanction Scanner, AMLBot, Chainalysis)
+ * - AI enhancement for additional insights and recommendations
+ * 
+ * Service: $500
+ * AI Cost: ~$0.03
+ * Profit Margin: 99.99%
  */
 
 import { ServiceHandler, ServiceDeliveryRequest, ServiceDeliveryResult } from '../serviceDeliveryFramework';
+import { enhanceComplianceReportWithAI } from '../openAIServiceDelivery';
 import { nanoid } from 'nanoid';
 
 export class ComplianceConsultantHandler implements ServiceHandler {
@@ -182,12 +188,25 @@ export class ComplianceConsultantHandler implements ServiceHandler {
     console.log(`   Jurisdiction: ${complianceRequirements.jurisdiction}`);
     console.log(`   Risk Level: ${complianceReport.riskAssessment.overallRisk}`);
 
+    const aiEnhancement = await enhanceComplianceReportWithAI(
+      complianceReport,
+      request.orderId
+    );
+
+    if (aiEnhancement.success) {
+      console.log(`🤖 AI enhancement added to compliance report`);
+      console.log(`   💰 AI Cost: $${aiEnhancement.cost?.totalCost.toFixed(4)}, Profit: $${(500 - (aiEnhancement.cost?.totalCost || 0)).toFixed(2)}`);
+    }
+
     return {
       success: true,
       orderId: request.orderId,
       agentId: request.agentId,
       deliveryData: {
         complianceReport,
+        aiEnhancement: aiEnhancement.success ? aiEnhancement.data : undefined,
+        costAnalysis: aiEnhancement.cost,
+        deliveryTimeMs: aiEnhancement.deliveryTimeMs,
         serviceType: 'compliance_consulting',
         completedAt: new Date().toISOString(),
       },

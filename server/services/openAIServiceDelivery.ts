@@ -826,3 +826,196 @@ Return ONLY valid JSON with this exact structure:
     };
   }
 }
+
+/**
+ * Contract Scan Enhancement using Etherscan + GPT-4o
+ * 
+ * Service: $1.00
+ * Estimated Cost: ~$0.01 per scan
+ * Profit Margin: 99%
+ */
+export async function enhanceContractScanWithAI(
+  contractData: any,
+  contractAddress: string,
+  chain: string,
+  orderId: string
+): Promise<ServiceDeliveryResult<any>> {
+  const startTime = Date.now();
+  
+  try {
+    const prompt = `You are a smart contract security expert. Analyze this contract scan and provide enhanced insights:
+
+Order ID: ${orderId}
+Contract: ${contractAddress}
+Chain: ${chain}
+
+Scan Data:
+${JSON.stringify(contractData, null, 2)}
+
+Provide enhanced analysis in JSON format with:
+1. Security assessment with severity levels
+2. Detailed vulnerability explanations
+3. Actionable recommendations
+4. Risk score (0-100)
+
+Return ONLY valid JSON with this exact structure:
+{
+  "securityAssessment": "detailed security analysis",
+  "vulnerabilities": [{"severity": "critical|high|medium|low", "description": "string", "recommendation": "string"}],
+  "riskScore": number,
+  "overallRecommendation": "string",
+  "actionItems": ["array of specific actions to take"]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      messages: [
+        { role: 'system', content: 'You are a smart contract security expert specializing in vulnerability analysis.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 1500,
+      response_format: { type: 'json_object' }
+    });
+
+    const result = response.choices[0]?.message?.content;
+    if (!result) throw new Error('No response from OpenAI');
+
+    const aiEnhancement = JSON.parse(result);
+    
+    const cost: ServiceDeliveryCost = {
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
+      totalCost: calculateCost(
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0,
+        'gpt-4o'
+      ),
+      model: 'gpt-4o'
+    };
+
+    const deliveryTimeMs = Date.now() - startTime;
+
+    console.log(`✅ Contract Scan Enhancement delivered in ${deliveryTimeMs}ms`);
+    console.log(`💰 Cost: $${cost.totalCost.toFixed(4)}, Profit: $${(1.00 - cost.totalCost).toFixed(2)}`);
+
+    return {
+      success: true,
+      data: {
+        orderId,
+        contractAddress,
+        chain,
+        scanData: contractData,
+        aiEnhancement,
+        timestamp: new Date(),
+        deliveryMethod: 'ai_enhanced',
+        model: 'gpt-4o'
+      },
+      cost,
+      deliveryTimeMs
+    };
+
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Contract scan enhancement failed: ${error.message}`,
+      deliveryTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+/**
+ * Wallet Risk Analysis using Alchemy + GPT-4o-mini
+ * 
+ * Service: $0.50
+ * Estimated Cost: ~$0.005 per analysis
+ * Profit Margin: 99%
+ */
+export async function enhanceWalletRiskWithAI(
+  riskData: any,
+  walletAddress: string,
+  chain: string,
+  orderId: string
+): Promise<ServiceDeliveryResult<any>> {
+  const startTime = Date.now();
+  
+  try {
+    const prompt = `You are a blockchain risk analysis expert. Analyze this wallet and provide enhanced insights:
+
+Order ID: ${orderId}
+Wallet: ${walletAddress}
+Chain: ${chain}
+
+Risk Data:
+${JSON.stringify(riskData, null, 2)}
+
+Provide enhanced analysis in JSON format with:
+1. Detailed risk assessment
+2. Behavioral patterns identified
+3. Red flags and concerns
+4. Recommendations for interacting with this wallet
+
+Return ONLY valid JSON with this exact structure:
+{
+  "riskAssessment": "detailed risk analysis",
+  "behavioralPatterns": ["array of identified patterns"],
+  "redFlags": ["array of concerning behaviors"],
+  "trustScore": number,
+  "recommendations": ["array of actionable recommendations"]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a blockchain forensics and risk analysis expert.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' }
+    });
+
+    const result = response.choices[0]?.message?.content;
+    if (!result) throw new Error('No response from OpenAI');
+
+    const aiEnhancement = JSON.parse(result);
+    
+    const cost: ServiceDeliveryCost = {
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
+      totalCost: calculateCost(
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0
+      ),
+      model: 'gpt-4o-mini'
+    };
+
+    const deliveryTimeMs = Date.now() - startTime;
+
+    console.log(`✅ Wallet Risk Enhancement delivered in ${deliveryTimeMs}ms`);
+    console.log(`💰 Cost: $${cost.totalCost.toFixed(4)}, Profit: $${(0.50 - cost.totalCost).toFixed(2)}`);
+
+    return {
+      success: true,
+      data: {
+        orderId,
+        walletAddress,
+        chain,
+        riskData,
+        aiEnhancement,
+        timestamp: new Date(),
+        deliveryMethod: 'ai_enhanced',
+        model: 'gpt-4o-mini'
+      },
+      cost,
+      deliveryTimeMs
+    };
+
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Wallet risk enhancement failed: ${error.message}`,
+      deliveryTimeMs: Date.now() - startTime
+    };
+  }
+}

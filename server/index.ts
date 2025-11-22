@@ -678,6 +678,12 @@ app.use('/api/x402', x402Routes);
 // Gated services now integrated into x402MicroserviceRoutesV2 for unified middleware
 console.log('🔒 Mounting x402 Routes (includes /service/* gated endpoints for x402scan/Bazaar discovery)...');
 app.use('/x402', x402MicroserviceRoutes); // All x402 services with official Coinbase CDP facilitator (V2)
+
+// Mount x402 gated enterprise services at /service for x402scan/Coinbase Bazaar discovery
+import x402GatedRoutes from './routes/x402GatedRoutes.js';
+app.use('/service', x402GatedRoutes); // Payment-gated services for AI agents
+console.log('✅ x402 gated enterprise services mounted at /service/* with 402 payment challenges');
+
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 app.use('/api/x402scan-scraper', x402scanScraperRoutes);
 app.use('/api/x402-analytics', x402AnalyticsRoutes);

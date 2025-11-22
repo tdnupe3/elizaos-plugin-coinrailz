@@ -26,6 +26,12 @@ export interface ServiceDeliveryRequest {
   paymentDetails?: any;
   complianceRequirements?: any;
   amlScreeningDetails?: any;
+  
+  // AI-powered service fields
+  walletAddress?: string;
+  chains?: string[];
+  tokenAddress?: string;
+  chain?: string;
 }
 
 export interface ServiceDeliveryResult {

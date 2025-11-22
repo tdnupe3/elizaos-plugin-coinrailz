@@ -45,9 +45,12 @@ function resourceUrl(path: string): `${string}://${string}` {
 
 // Service pricing (in USD for x402-express, converted internally)
 const SERVICE_PRICING = {
-  'smart-contract-audit': 1000,  // $1000 USD
-  'payment-processing': 50,      // $50 USD
-  'compliance-consultation': 500, // $500 USD
+  'smart-contract-audit': 1000,      // $1000 USD
+  'payment-processing': 50,          // $50 USD
+  'compliance-consultation': 500,    // $500 USD
+  'multi-chain-balance': 0.50,       // $0.50 USD
+  'gas-price-oracle': 0.10,          // $0.10 USD
+  'token-price-lookup': 0.25,        // $0.25 USD
 };
 
 // CRITICAL: Host header override for x402-express resource URL generation
@@ -102,6 +105,42 @@ const x402Routes = {
       description: 'AML/KYC compliance consultation and risk assessment',
       mimeType: 'application/json',
       maxTimeoutSeconds: 600,
+    },
+  },
+  'POST /multi-chain-balance': {
+    price: `$${SERVICE_PRICING['multi-chain-balance']}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: resourceUrl('/x402/service/multi-chain-balance'),
+      name: 'Multi-Chain Balance Checker',
+      description: 'Check wallet balances across multiple blockchain networks with AI-powered portfolio analysis',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 60,
+    },
+  },
+  'POST /gas-price-oracle': {
+    price: `$${SERVICE_PRICING['gas-price-oracle']}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: resourceUrl('/x402/service/gas-price-oracle'),
+      name: 'Gas Price Oracle',
+      description: 'Real-time gas prices across multiple chains with AI-powered timing recommendations',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 30,
+    },
+  },
+  'POST /token-price-lookup': {
+    price: `$${SERVICE_PRICING['token-price-lookup']}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: resourceUrl('/x402/service/token-price-lookup'),
+      name: 'Token Price Lookup',
+      description: 'Real-time token pricing and market analysis powered by DEXScreener + AI',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 30,
     },
   },
 };
@@ -248,6 +287,124 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
   }
 };
 
+const multiChainBalanceHandler = async (req: Request, res: Response) => {
+  try {
+    const { walletAddress, chains } = req.body;
+
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: walletAddress',
+      });
+    }
+
+    const { MultiChainBalanceHandler } = await import('../services/handlers/MultiChainBalanceHandler');
+    const handler = new MultiChainBalanceHandler();
+    
+    const result = await handler.execute({
+      orderId: nanoid(),
+      agentId: 'multi-chain-balance-checker',
+      serviceType: 'x402_gated',
+      customerId: req.ip || 'x402-autonomous',
+      amount: SERVICE_PRICING['multi-chain-balance'],
+      metadata: { protocol: 'x402', paymentVerified: true },
+      walletAddress,
+      chains: chains || ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism'],
+    });
+
+    res.json({
+      success: true,
+      result,
+      amountPaid: SERVICE_PRICING['multi-chain-balance'],
+      currency: 'USDC',
+      network: 'base',
+    });
+  } catch (error: any) {
+    console.error('Multi-chain balance check execution failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Balance check execution failed',
+      details: error.message,
+    });
+  }
+};
+
+const gasPriceOracleHandler = async (req: Request, res: Response) => {
+  try {
+    const { chains } = req.body;
+
+    const { GasPriceOracleHandler } = await import('../services/handlers/GasPriceOracleHandler');
+    const handler = new GasPriceOracleHandler();
+    
+    const result = await handler.execute({
+      orderId: nanoid(),
+      agentId: 'gas-price-oracle',
+      serviceType: 'x402_gated',
+      customerId: req.ip || 'x402-autonomous',
+      amount: SERVICE_PRICING['gas-price-oracle'],
+      metadata: { protocol: 'x402', paymentVerified: true },
+      chains: chains || ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism'],
+    });
+
+    res.json({
+      success: true,
+      result,
+      amountPaid: SERVICE_PRICING['gas-price-oracle'],
+      currency: 'USDC',
+      network: 'base',
+    });
+  } catch (error: any) {
+    console.error('Gas price oracle execution failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Gas price oracle execution failed',
+      details: error.message,
+    });
+  }
+};
+
+const tokenPriceLookupHandler = async (req: Request, res: Response) => {
+  try {
+    const { tokenAddress, chain } = req.body;
+
+    if (!tokenAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: tokenAddress',
+      });
+    }
+
+    const { TokenPriceLookupHandler } = await import('../services/handlers/TokenPriceLookupHandler');
+    const handler = new TokenPriceLookupHandler();
+    
+    const result = await handler.execute({
+      orderId: nanoid(),
+      agentId: 'token-price-lookup',
+      serviceType: 'x402_gated',
+      customerId: req.ip || 'x402-autonomous',
+      amount: SERVICE_PRICING['token-price-lookup'],
+      metadata: { protocol: 'x402', paymentVerified: true },
+      tokenAddress,
+      chain: chain || 'ethereum',
+    });
+
+    res.json({
+      success: true,
+      result,
+      amountPaid: SERVICE_PRICING['token-price-lookup'],
+      currency: 'USDC',
+      network: 'base',
+    });
+  } catch (error: any) {
+    console.error('Token price lookup execution failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Token price lookup execution failed',
+      details: error.message,
+    });
+  }
+};
+
 // Register routes with payment orchestrator + x402 middleware
 // Paths are relative to /x402/service mount point in server/index.ts
 router.post('/smart-contract-audit',
@@ -263,6 +420,21 @@ router.post('/payment-processing',
 router.post('/compliance-consultation',
   x402Middleware,
   complianceConsultationHandler
+);
+
+router.post('/multi-chain-balance',
+  x402Middleware,
+  multiChainBalanceHandler
+);
+
+router.post('/gas-price-oracle',
+  x402Middleware,
+  gasPriceOracleHandler
+);
+
+router.post('/token-price-lookup',
+  x402Middleware,
+  tokenPriceLookupHandler
 );
 
 export default router;

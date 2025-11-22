@@ -1079,20 +1079,64 @@ router.post("/wallet-risk", async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: "walletAddress and chain are required" });
     }
 
-    const result = await walletRiskScoreService(walletAddress, chain);
+    let result;
+    let deliveryMethod = "traditional";
+    
+    try {
+      // Try traditional service first
+      result = await walletRiskScoreService(walletAddress, chain);
+    } catch (basicError: any) {
+      console.log(`⚠️ Traditional wallet risk failed, using AI enhancement: ${basicError.message}`);
+      
+      // Fallback to AI-enhanced analysis
+      const { enhanceWalletRiskWithAI } = await import('../services/openAIServiceDelivery');
+      
+      // Create basic risk data for AI to analyze
+      const basicRiskData = {
+        address: walletAddress,
+        chain,
+        errorReason: basicError.message,
+        fallbackAnalysis: true,
+        riskScore: 50,
+        riskLevel: "MEDIUM",
+        flags: [`Unable to fetch transaction history: ${basicError.message}`],
+        analysis: {
+          age: "Unknown",
+          totalTransactions: 0,
+          totalVolume: "$0.00",
+          uniqueContracts: 0,
+          mixerInteractions: 0
+        }
+      };
+      
+      const aiResult = await enhanceWalletRiskWithAI(
+        basicRiskData,
+        walletAddress,
+        chain,
+        `wallet-risk-${Date.now()}`
+      );
+      
+      if (!aiResult.success) {
+        throw new Error(aiResult.error || 'AI enhancement failed');
+      }
+      
+      result = aiResult.data;
+      deliveryMethod = "ai_enhanced";
+    }
 
     const responseTime = Date.now() - startTime;
+    const resultWithMethod = { ...result, deliveryMethod };
 
     await trackRequest(
       serviceId,
       req.body,
-      result,
+      resultWithMethod,
       responseTime,
       SERVICE_PRICING[serviceId],
       walletAddress
     );
 
-    res.json({ success: true, data: result, queryTime: `${(responseTime / 1000).toFixed(1)}s` });
+    res.json({ success: true, data: resultWithMethod, queryTime: `${(responseTime / 1000).toFixed(1)}s` });
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
     await trackRequest(
@@ -1422,22 +1466,25 @@ async function instantAgentWalletService(params: {
   const { agentId, description, initialFundingAmount } = params;
 
   try {
-    // REAL Circle API call to create Developer-Controlled Wallet
-    const { CircleClient } = await import('../services/circleClient');
-    const circleClient = new CircleClient();
+    // Use Coinbase CDP for wallet creation instead of Circle
+    const { coinbaseCDPService } = await import('../services/coinbaseCDPService');
     
     const walletDescription = description || `AI Agent Wallet: ${agentId}`;
-    const walletResponse = await circleClient.createWallet(walletDescription);
     
-    if (!walletResponse?.data?.wallet) {
-      throw new Error('Failed to create Circle wallet');
+    // Create CDP wallet
+    const walletResult = await coinbaseCDPService.createWallet({
+      walletId: `agent-${agentId}-${Date.now()}`,
+      description: walletDescription
+    });
+    
+    if (!walletResult.success || !walletResult.address) {
+      throw new Error('Failed to create CDP wallet');
     }
 
-    const wallet = walletResponse.data.wallet;
-    const walletAddress = wallet.address;
-    const walletId = wallet.walletId;
+    const walletAddress = walletResult.address;
+    const walletId = walletResult.walletId || `cdp-${agentId}`;
 
-    console.log(`✅ REAL Circle wallet created for agent ${agentId}: ${walletAddress}`);
+    console.log(`✅ CDP wallet created for agent ${agentId}: ${walletAddress}`);
 
     return {
       success: true,
@@ -1459,9 +1506,10 @@ async function instantAgentWalletService(params: {
       created_at: new Date().toISOString(),
       fundingInstructions: {
         depositAddress: walletAddress,
-        supportedAssets: ["USDC"],
+        supportedAssets: ["USDC", "ETH"],
         minimumDeposit: "0.10 USDC",
-        networkFees: "Covered by platform"
+        networkFees: "Paid from wallet balance",
+        provider: "Coinbase CDP"
       }
     };
   } catch (error: any) {

@@ -1,227 +1,115 @@
 /**
- * x402-Gated Service Endpoints - TRUE x402 Protocol Implementation
+ * x402-Gated Service Endpoints - Official x402-express Implementation
  * 
- * These endpoints return HTTP 402 Payment Required until payment is made.
- * Complies with x402scan validation schema for ecosystem registration.
+ * Uses official paymentMiddleware + facilitator pattern for x402scan/Bazaar compliance
+ * Matches the working pattern from x402MicroserviceRoutesV2.ts
  * 
  * Features:
- * ✅ Returns 402 Payment Required with payment metadata
- * ✅ Accepts payment proof via X-PAYMENT header
- * ✅ Verifies payment on-chain via Alchemy RPC
- * ✅ Delivers actual service after payment
- * ✅ Strict x402scan schema compliance
+ * ✅ Official x402-express paymentMiddleware with Coinbase facilitator
+ * ✅ Payment orchestrator for hybrid payment verification
+ * ✅ Compliant with x402scan and Coinbase Bazaar requirements
+ * ✅ Production-ready resource URLs
  */
 
-import express from 'express';
-import { z } from 'zod';
-import { x402PaymentService } from '../services/x402PaymentService';
+import { Router, Request, Response } from 'express';
+import { paymentMiddleware, Network } from 'x402-express';
+import { facilitator } from '@coinbase/x402';
 import { nanoid } from 'nanoid';
+import { createPaymentOrchestrator } from '../middleware/paymentOrchestrator';
 
-const router = express.Router();
+const router = Router();
 
 // Platform wallet for receiving payments
-const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
+const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91') as `0x${string}`;
 
-// Service pricing configuration (in USDC base units - 6 decimals)
+// Network for x402 payments
+const NETWORK: Network = 'base';
+
+// Public base URL for production discovery
+const PUBLIC_BASE_URL: `${string}://${string}` = (process.env.REPLIT_DEPLOYMENT === '1' 
+  ? 'https://coinrailz.com'
+  : process.env.REPL_SLUG 
+    ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+    : 'http://localhost:5000') as `${string}://${string}`;
+
+// Helper function to create properly typed resource URLs
+function resourceUrl(path: string): `${string}://${string}` {
+  return `${PUBLIC_BASE_URL}${path}` as `${string}://${string}`;
+}
+
+// Service pricing (in USD for x402-express, converted internally)
 const SERVICE_PRICING = {
-  'smart-contract-audit': {
-    amount: '1000000000', // 1000 USDC in base units
-    description: 'Comprehensive smart contract security audit with vulnerability detection',
-    mimeType: 'application/json',
+  'smart-contract-audit': 1000,  // $1000 USD
+  'payment-processing': 50,      // $50 USD
+  'compliance-consultation': 500, // $500 USD
+};
+
+// CRITICAL: Host header override for x402-express resource URL generation
+router.use((req: Request, res: Response, next) => {
+  if (process.env.REPLIT_DEPLOYMENT === '1') {
+    req.headers.host = 'coinrailz.com';
+    req.headers['x-forwarded-host'] = 'coinrailz.com';
+    req.headers['x-forwarded-proto'] = 'https';
+  } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+    const workspaceHost = `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    req.headers.host = workspaceHost;
+    req.headers['x-forwarded-host'] = workspaceHost;
+    req.headers['x-forwarded-proto'] = 'https';
+  }
+  next();
+});
+
+// Define x402 routes configuration (must match x402MicroserviceRoutesV2 structure)
+// Paths are relative to /x402/service mount point
+const x402Routes = {
+  'POST /smart-contract-audit': {
+    price: `$${SERVICE_PRICING['smart-contract-audit']}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: resourceUrl('/x402/service/smart-contract-audit'),
+      name: 'Smart Contract Auditor',
+      description: 'Comprehensive smart contract security audit with vulnerability detection',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 900,
+    },
   },
-  'payment-processing': {
-    amount: '50000000', // 50 USDC in base units
-    description: 'Multi-chain payment processing service (hourly rate)',
-    mimeType: 'application/json',
+  'POST /payment-processing': {
+    price: `$${SERVICE_PRICING['payment-processing']}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: resourceUrl('/x402/service/payment-processing'),
+      name: 'Payment Processor',
+      description: 'Multi-chain payment processing service (hourly rate)',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 300,
+    },
   },
-  'compliance-consultation': {
-    amount: '500000000', // 500 USDC in base units
-    description: 'AML/KYC compliance consultation and risk assessment',
-    mimeType: 'application/json',
+  'POST /compliance-consultation': {
+    price: `$${SERVICE_PRICING['compliance-consultation']}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: resourceUrl('/x402/service/compliance-consultation'),
+      name: 'Compliance Consultant',
+      description: 'AML/KYC compliance consultation and risk assessment',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 600,
+    },
   },
 };
 
-/**
- * Generate x402scan-compliant payment metadata
- */
-function generateX402Response(serviceId: string, resourcePath: string) {
-  const pricing = SERVICE_PRICING[serviceId as keyof typeof SERVICE_PRICING];
-  
-  // x402scan requires FULL URL, not just path
-  const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
-    ? 'https://coinrailz.com' 
-    : 'http://localhost:5000';
-  const fullResourceUrl = `${baseUrl}${resourcePath}`;
-  
-  return {
-    x402Version: 1,
-    accepts: [
-      {
-        scheme: 'exact' as const,
-        network: 'base' as const,
-        maxAmountRequired: pricing.amount,
-        resource: fullResourceUrl,
-        description: pricing.description,
-        mimeType: pricing.mimeType,
-        payTo: PLATFORM_WALLET,
-        maxTimeoutSeconds: 900, // 15 minutes
-        asset: 'USDC',
-        outputSchema: {
-          input: {
-            type: 'http' as const,
-            method: 'POST' as const,
-            bodyType: 'json' as const,
-            bodyFields: getInputSchema(serviceId),
-          },
-          output: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean' },
-              result: { type: 'object' },
-              transactionId: { type: 'string' },
-            },
-          },
-        },
-        extra: {
-          supportedNetworks: ['base', 'ethereum', 'polygon', 'arbitrum', 'optimism', 'avalanche', 'binance-smart-chain'],
-          supportedTokens: ['USDC', 'USDT', 'ETH', 'DAI', 'WBTC'],
-          platformCommission: '100%',
-          instantDelivery: true,
-        },
-      },
-    ],
-  };
-}
+// Create x402 middleware with official facilitator
+const x402Middleware = paymentMiddleware(
+  PLATFORM_WALLET,
+  x402Routes,
+  facilitator
+);
 
-/**
- * Get input schema based on service type
- */
-function getInputSchema(serviceId: string) {
-  switch (serviceId) {
-    case 'smart-contract-audit':
-      return {
-        contractCode: {
-          type: 'string',
-          required: true,
-          description: 'Solidity smart contract source code to audit',
-        },
-        contractName: {
-          type: 'string',
-          required: false,
-          description: 'Optional contract name',
-        },
-      };
-    case 'payment-processing':
-      return {
-        amount: {
-          type: 'number',
-          required: true,
-          description: 'Payment amount to process',
-        },
-        currency: {
-          type: 'string',
-          required: true,
-          description: 'Currency (USDC, USDT, ETH, DAI, WBTC)',
-        },
-        network: {
-          type: 'string',
-          required: true,
-          description: 'Blockchain network',
-        },
-        recipientAddress: {
-          type: 'string',
-          required: true,
-          description: 'Recipient wallet address',
-        },
-      };
-    case 'compliance-consultation':
-      return {
-        businessType: {
-          type: 'string',
-          required: true,
-          description: 'Type of business requiring compliance check',
-        },
-        jurisdiction: {
-          type: 'string',
-          required: true,
-          description: 'Operating jurisdiction',
-        },
-        transactionVolume: {
-          type: 'number',
-          required: false,
-          description: 'Monthly transaction volume in USD',
-        },
-      };
-    default:
-      return {};
-  }
-}
+// Service Handlers
 
-/**
- * Verify x402 payment proof
- */
-async function verifyPaymentProof(paymentHeader: string, expectedAmount: string): Promise<{ valid: boolean; transactionId?: string; error?: string }> {
-  try {
-    // Payment header format: "paymentId:txHash" or just "paymentId"
-    const [paymentId, txHash] = paymentHeader.split(':');
-    
-    if (!paymentId) {
-      return { valid: false, error: 'Invalid payment header format' };
-    }
-
-    // Verify payment via our service
-    const verificationResult = await x402PaymentService.verifyPayment(paymentId, txHash);
-    
-    if (!verificationResult.success) {
-      return { valid: false, error: verificationResult.error || 'Payment verification failed' };
-    }
-
-    // Check payment amount matches expected
-    // Note: In production, we would verify the actual on-chain amount
-    // For now, trust that verification service checked the amount
-    const expected = parseFloat(expectedAmount);
-    
-    // Verification service already checked amount during payment creation
-    // If verification succeeded, amount is sufficient
-
-    return { 
-      valid: true, 
-      transactionId: txHash || paymentId,
-    };
-  } catch (error: any) {
-    console.error('Payment verification error:', error);
-    return { valid: false, error: error.message || 'Verification failed' };
-  }
-}
-
-/**
- * ALL /x402/service/smart-contract-audit
- * x402-gated smart contract security audit service
- */
-router.all('/service/smart-contract-audit', async (req, res) => {
-  const paymentHeader = req.headers['x-payment'] as string;
-  const serviceId = 'smart-contract-audit';
-  const pricing = SERVICE_PRICING[serviceId];
-
-  // No payment provided - return 402 with payment metadata
-  if (!paymentHeader) {
-    const x402Response = generateX402Response(serviceId, '/x402/service/smart-contract-audit');
-    
-    return res.status(402).json(x402Response);
-  }
-
-  // Verify payment
-  const verification = await verifyPaymentProof(paymentHeader, pricing.amount);
-  
-  if (!verification.valid) {
-    return res.status(402).json({
-      x402Version: 1,
-      error: verification.error || 'Payment verification failed',
-      accepts: generateX402Response(serviceId, '/x402/service/smart-contract-audit').accepts,
-    });
-  }
-
-  // Payment verified - execute service
+const smartContractAuditHandler = async (req: Request, res: Response) => {
   try {
     const { contractCode, contractName } = req.body;
 
@@ -232,7 +120,6 @@ router.all('/service/smart-contract-audit', async (req, res) => {
       });
     }
 
-    // Import handler and execute audit
     const { SmartContractAuditHandler } = await import('../services/handlers/SmartContractAuditHandler');
     const handler = new SmartContractAuditHandler();
     
@@ -240,20 +127,17 @@ router.all('/service/smart-contract-audit', async (req, res) => {
       orderId: nanoid(),
       agentId: 'smart-contract-auditor',
       serviceType: 'x402_gated',
-      customerId: 'x402-autonomous',
-      amount: parseFloat(pricing.amount),
+      customerId: req.ip || 'x402-autonomous',
+      amount: SERVICE_PRICING['smart-contract-audit'],
       metadata: { protocol: 'x402', paymentVerified: true },
       contractCode,
       contractName: contractName || 'Contract',
     });
 
-    // Return successful audit result with payment receipt
-    res.setHeader('X-PAYMENT-RESPONSE', verification.transactionId || 'verified');
     res.json({
       success: true,
       result,
-      transactionId: verification.transactionId,
-      amountPaid: pricing.amount,
+      amountPaid: SERVICE_PRICING['smart-contract-audit'],
       currency: 'USDC',
       network: 'base',
     });
@@ -265,36 +149,9 @@ router.all('/service/smart-contract-audit', async (req, res) => {
       details: error.message,
     });
   }
-});
+};
 
-/**
- * ALL /x402/service/payment-processing
- * x402-gated multi-chain payment processing service
- */
-router.all('/service/payment-processing', async (req, res) => {
-  const paymentHeader = req.headers['x-payment'] as string;
-  const serviceId = 'payment-processing';
-  const pricing = SERVICE_PRICING[serviceId];
-
-  // No payment provided - return 402 with payment metadata
-  if (!paymentHeader) {
-    const x402Response = generateX402Response(serviceId, '/x402/service/payment-processing');
-    
-    return res.status(402).json(x402Response);
-  }
-
-  // Verify payment
-  const verification = await verifyPaymentProof(paymentHeader, pricing.amount);
-  
-  if (!verification.valid) {
-    return res.status(402).json({
-      x402Version: 1,
-      error: verification.error || 'Payment verification failed',
-      accepts: generateX402Response(serviceId, '/x402/service/payment-processing').accepts,
-    });
-  }
-
-  // Payment verified - execute service
+const paymentProcessingHandler = async (req: Request, res: Response) => {
   try {
     const { amount, currency, network, recipientAddress } = req.body;
 
@@ -305,7 +162,6 @@ router.all('/service/payment-processing', async (req, res) => {
       });
     }
 
-    // Import handler and execute payment
     const { PaymentProcessorHandler } = await import('../services/handlers/PaymentProcessorHandler');
     const handler = new PaymentProcessorHandler();
     
@@ -313,8 +169,8 @@ router.all('/service/payment-processing', async (req, res) => {
       orderId: nanoid(),
       agentId: 'payment-processor',
       serviceType: 'x402_gated',
-      customerId: 'x402-autonomous',
-      amount: parseFloat(pricing.amount),
+      customerId: req.ip || 'x402-autonomous',
+      amount: SERVICE_PRICING['payment-processing'],
       metadata: { protocol: 'x402', paymentVerified: true },
       paymentDetails: {
         amount,
@@ -324,13 +180,10 @@ router.all('/service/payment-processing', async (req, res) => {
       },
     });
 
-    // Return successful processing result with payment receipt
-    res.setHeader('X-PAYMENT-RESPONSE', verification.transactionId || 'verified');
     res.json({
       success: true,
       result,
-      transactionId: verification.transactionId,
-      amountPaid: pricing.amount,
+      amountPaid: SERVICE_PRICING['payment-processing'],
       currency: 'USDC',
       network: 'base',
     });
@@ -342,36 +195,9 @@ router.all('/service/payment-processing', async (req, res) => {
       details: error.message,
     });
   }
-});
+};
 
-/**
- * ALL /x402/service/compliance-consultation
- * x402-gated AML/KYC compliance consultation service
- */
-router.all('/service/compliance-consultation', async (req, res) => {
-  const paymentHeader = req.headers['x-payment'] as string;
-  const serviceId = 'compliance-consultation';
-  const pricing = SERVICE_PRICING[serviceId];
-
-  // No payment provided - return 402 with payment metadata
-  if (!paymentHeader) {
-    const x402Response = generateX402Response(serviceId, '/x402/service/compliance-consultation');
-    
-    return res.status(402).json(x402Response);
-  }
-
-  // Verify payment
-  const verification = await verifyPaymentProof(paymentHeader, pricing.amount);
-  
-  if (!verification.valid) {
-    return res.status(402).json({
-      x402Version: 1,
-      error: verification.error || 'Payment verification failed',
-      accepts: generateX402Response(serviceId, '/x402/service/compliance-consultation').accepts,
-    });
-  }
-
-  // Payment verified - execute service
+const complianceConsultationHandler = async (req: Request, res: Response) => {
   try {
     const { businessType, jurisdiction, transactionVolume } = req.body;
 
@@ -382,7 +208,6 @@ router.all('/service/compliance-consultation', async (req, res) => {
       });
     }
 
-    // Import handler and execute consultation
     const { ComplianceConsultantHandler } = await import('../services/handlers/ComplianceConsultantHandler');
     const handler = new ComplianceConsultantHandler();
     
@@ -390,8 +215,8 @@ router.all('/service/compliance-consultation', async (req, res) => {
       orderId: nanoid(),
       agentId: 'compliance-consultant',
       serviceType: 'x402_gated',
-      customerId: 'x402-autonomous',
-      amount: parseFloat(pricing.amount),
+      customerId: req.ip || 'x402-autonomous',
+      amount: SERVICE_PRICING['compliance-consultation'],
       metadata: { protocol: 'x402', paymentVerified: true },
       complianceRequirements: {
         businessType,
@@ -400,13 +225,10 @@ router.all('/service/compliance-consultation', async (req, res) => {
       },
     });
 
-    // Return successful consultation result with payment receipt
-    res.setHeader('X-PAYMENT-RESPONSE', verification.transactionId || 'verified');
     res.json({
       success: true,
       result,
-      transactionId: verification.transactionId,
-      amountPaid: pricing.amount,
+      amountPaid: SERVICE_PRICING['compliance-consultation'],
       currency: 'USDC',
       network: 'base',
     });
@@ -418,6 +240,26 @@ router.all('/service/compliance-consultation', async (req, res) => {
       details: error.message,
     });
   }
-});
+};
+
+// Register routes with payment orchestrator + x402 middleware
+// Paths are relative to /x402/service mount point in server/index.ts
+router.post('/smart-contract-audit',
+  createPaymentOrchestrator('smart-contract-audit', SERVICE_PRICING['smart-contract-audit'], smartContractAuditHandler),
+  x402Middleware,
+  smartContractAuditHandler
+);
+
+router.post('/payment-processing',
+  createPaymentOrchestrator('payment-processing', SERVICE_PRICING['payment-processing'], paymentProcessingHandler),
+  x402Middleware,
+  paymentProcessingHandler
+);
+
+router.post('/compliance-consultation',
+  createPaymentOrchestrator('compliance-consultation', SERVICE_PRICING['compliance-consultation'], complianceConsultationHandler),
+  x402Middleware,
+  complianceConsultationHandler
+);
 
 export default router;

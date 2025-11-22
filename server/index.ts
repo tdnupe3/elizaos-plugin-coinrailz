@@ -677,7 +677,7 @@ app.use('/api/x402', x402Routes);
 
 // === x402 GATED SERVICE ENDPOINTS (FOR x402scan DISCOVERY) ===
 console.log('🔒 Mounting x402 Gated Routes for x402scan/Bazaar discovery...');
-app.use('/x402', x402GatedRoutes); // Returns 402 Payment Required - compliant with x402scan validation (routes already have /service/ prefix)
+app.use('/x402/service', x402GatedRoutes); // Returns 402 Payment Required - compliant with x402scan validation
 console.log('✅ x402 Gated Routes mounted at /x402/service/* - x402scan can now discover services');
 
 // CRITICAL FIX: Override Host header for x402 Bazaar discovery

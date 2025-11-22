@@ -19,21 +19,9 @@ export function createPaymentOrchestrator(
   return async (req: Request, res: Response, next: NextFunction) => {
     const xPayment = req.headers["x-payment"] as string | undefined;
 
-    // No payment header → return 402
+    // No payment header → let x402-express middleware generate the 402 response
     if (!xPayment) {
-      return res.status(402).json({
-        x402Version: 1,
-        error: "X-PAYMENT header is required",
-        accepts: [{
-          scheme: "exact",
-          network: "base",
-          maxAmountRequired: requiredAmount.toString(),
-          resource: `http://localhost:5000/${serviceName}`,
-          mimeType: "application/json",
-          payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
-          facilitatorUrl: "https://facilitator.cdp.coinbase.com"
-        }]
-      });
+      return next();
     }
 
     // Try to decode as Base64 JSON (raw transaction hash)

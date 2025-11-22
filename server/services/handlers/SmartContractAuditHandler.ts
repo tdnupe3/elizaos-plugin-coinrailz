@@ -1,10 +1,14 @@
 /**
  * Smart Contract Audit Service Handler
- * Handles automated security audits using Slither
+ * AI-powered security audits using GPT-4o
+ * 
+ * Service: $1000
+ * AI Cost: ~$0.02-0.10
+ * Profit Margin: 99.99%
  */
 
 import { ServiceHandler, ServiceDeliveryRequest, ServiceDeliveryResult } from '../serviceDeliveryFramework';
-import { auditSmartContract, AuditResult } from '../smartContractAuditor';
+import { auditSmartContractWithAI } from '../openAIServiceDelivery';
 
 export class SmartContractAuditHandler implements ServiceHandler {
   canHandle(request: ServiceDeliveryRequest): boolean {
@@ -17,29 +21,34 @@ export class SmartContractAuditHandler implements ServiceHandler {
 
   async execute(request: ServiceDeliveryRequest): Promise<ServiceDeliveryResult> {
     try {
-      console.log(`🔍 Starting smart contract audit for order: ${request.orderId}`);
+      console.log(`🔍 Starting AI-powered smart contract audit for order: ${request.orderId}`);
 
       if (!request.contractCode || !request.contractName) {
         throw new Error('Contract code and name required for audit');
       }
 
-      // Execute Slither audit
-      const auditResult: AuditResult = await auditSmartContract({
-        contractCode: request.contractCode,
-        contractName: request.contractName,
-        userId: request.customerId,
-        orderId: request.orderId,
-      });
+      const aiResult = await auditSmartContractWithAI(
+        request.contractCode,
+        request.contractName,
+        request.orderId
+      );
 
-      console.log(`✅ Smart contract audit completed for order: ${request.orderId}`);
-      console.log(`   Issues found: ${auditResult.issuesFound}, Severity: ${auditResult.severity}, Score: ${auditResult.auditScore}/100`);
+      if (!aiResult.success) {
+        throw new Error(aiResult.error || 'AI audit failed');
+      }
+
+      console.log(`✅ AI-powered audit completed for order: ${request.orderId}`);
+      console.log(`   Severity: ${aiResult.data.severity}, Score: ${aiResult.data.auditScore}/100`);
+      console.log(`   💰 AI Cost: $${aiResult.cost?.totalCost.toFixed(4)}, Profit: $${(1000 - (aiResult.cost?.totalCost || 0)).toFixed(2)}`);
 
       return {
         success: true,
         orderId: request.orderId,
         agentId: request.agentId,
         deliveryData: {
-          auditResult,
+          auditResult: aiResult.data,
+          costAnalysis: aiResult.cost,
+          deliveryTimeMs: aiResult.deliveryTimeMs,
           serviceType: 'smart_contract_audit',
           completedAt: new Date().toISOString(),
         },

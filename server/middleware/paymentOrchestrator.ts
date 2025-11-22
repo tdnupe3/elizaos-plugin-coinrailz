@@ -39,24 +39,15 @@ export function createPaymentOrchestrator(
         );
 
         if (verified) {
-          console.log(`✅ Orchestrator: Payment verified, executing handler for ${serviceName}`);
-          // Payment verified → execute handler directly (bypass x402-express)
-          return await handler(req, res);
+          console.log(`✅ Orchestrator: Raw hash payment verified for ${serviceName}, marking for x402-express`);
+          // Store verification result so x402-express knows payment is valid
+          res.locals.payment = { method: "raw-hash", txHash: decoded.txHash };
+          // Continue to x402-express middleware
+          return next();
         } else {
-          console.log(`❌ Orchestrator: Payment verification failed for ${serviceName}`);
-          return res.status(402).json({
-            x402Version: 1,
-            error: "Payment verification failed",
-            message: "Transaction not found, insufficient amount, or already used",
-            accepts: [{
-              scheme: "exact",
-              network: "base",
-              maxAmountRequired: requiredAmount.toString(),
-              resource: `http://localhost:5000/${serviceName}`,
-              mimeType: "application/json",
-              payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91"
-            }]
-          });
+          console.log(`❌ Orchestrator: Payment verification failed for ${serviceName}, delegating to x402-express`);
+          // Verification failed → let x402-express middleware generate 402 response
+          return next();
         }
       }
     } catch (e) {

@@ -860,87 +860,83 @@ const x402Routes = {
       }
     }
   },
+  
+  // === ENTERPRISE GATED SERVICES ===
+  "POST /service/smart-contract-audit": {
+    price: "$1000",
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/service/smart-contract-audit`,
+      name: "Smart Contract Auditor",
+      description: "Comprehensive smart contract security audit with vulnerability detection",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 900,
+    },
+  },
+  "POST /service/payment-processing": {
+    price: "$50",
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/service/payment-processing`,
+      name: "Payment Processor",
+      description: "Multi-chain payment processing service (hourly rate)",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 300,
+    },
+  },
+  "POST /service/compliance-consultation": {
+    price: "$500",
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/service/compliance-consultation`,
+      name: "Compliance Consultant",
+      description: "AML/KYC compliance consultation and risk assessment",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 600,
+    },
+  },
 };
 
-// HYPOTHESIS TEST: Add discoverable:true to actual HTTP 402 response body
-// (Bazaar crawler may be looking for this field in the response, not just in config)
-// This middleware MUST run BEFORE paymentMiddleware to intercept the response
+// CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
+// These fields must be manually injected by wrapping res.json BEFORE paymentMiddleware runs
+// See: https://github.com/coinbase/x402-express/issues - discoverable is metadata-only
 router.use((req: Request, res: Response, next) => {
-  const originalEnd = res.end.bind(res);
+  const originalJson = res.json.bind(res);
   
-  // Intercept at the lowest level - res.end() which all response methods ultimately call
-  res.end = function(chunk: any, encoding?: any, callback?: any) {
-    console.log(`🔍 res.end intercepted! Status: ${res.statusCode}, Has chunk: ${!!chunk}`);
-    
-    // Only modify if status is 402 and chunk looks like JSON
-    if (res.statusCode === 402 && chunk) {
-      console.log('✅ 402 response detected with chunk');
-      try {
-        const chunkStr = typeof chunk === 'string' ? chunk : chunk.toString();
-        const body = JSON.parse(chunkStr);
-        console.log(`📦 Parsed body, has x402Version: ${!!body?.x402Version}, has accepts: ${!!body?.accepts}`);
-        
-        // Check if this is a 402 response with accepts array (x402-express uses "accepts", not "paymentRequirements")
-        if (body?.x402Version && body?.accepts && Array.isArray(body.accepts)) {
-          console.log('🎯 Modifying paymentRequirements to add discoverable:true AND fix resource URLs');
-          
-          // Determine the correct public base URL for this environment
-          const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-          const isWorkspace = process.env.REPL_SLUG && process.env.REPL_OWNER;
-          let publicBaseUrl = 'http://localhost:5000'; // fallback
-          
-          if (isProduction) {
-            publicBaseUrl = 'https://coinrailz.com';
-          } else if (isWorkspace) {
-            publicBaseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-          }
-          
-          console.log(`🌐 Fixing resource URLs to use: ${publicBaseUrl}`);
-          
-          // Modify the response to add discoverable:true AND fix resource URLs
-          body.accepts = body.accepts.map((req: any) => {
-            // Fix the resource URL if it contains localhost
-            let fixedResource = req.resource;
-            if (fixedResource && fixedResource.includes('localhost')) {
-              // Replace localhost with public domain AND add /x402 prefix
-              // Before: http://localhost:5000/multi-chain-balance
-              // After:  https://coinrailz.com/x402/multi-chain-balance
-              fixedResource = fixedResource.replace(/http:\/\/localhost:\d+\//, `${publicBaseUrl}/x402/`);
-              console.log(`   🔧 Fixed resource: ${req.resource} → ${fixedResource}`);
-            }
-            
-            const modifiedReq = {
-              ...req,
-              resource: fixedResource, // Use fixed resource URL
-              discoverable: true, // Add at top level
-            };
-            
-            // Also add to metadata.outputSchema.input (matching arvos.xyz format)
-            if (modifiedReq.metadata?.outputSchema?.input) {
-              modifiedReq.metadata.outputSchema.input = {
-                ...modifiedReq.metadata.outputSchema.input,
-                discoverable: true
-              };
-            }
-            
-            return modifiedReq;
-          });
-          
-          // Send the modified body with correct Content-Length
-          const modifiedChunk = JSON.stringify(body);
-          const modifiedLength = Buffer.byteLength(modifiedChunk, 'utf8');
-          res.setHeader('Content-Length', modifiedLength.toString());
-          console.log(`✅ MODIFIED RESPONSE (${modifiedLength} bytes) BEING SENT WITH DISCOVERABLE:TRUE`);
-          return originalEnd.call(this, modifiedChunk, encoding, callback);
-        }
-      } catch (e) {
-        console.error('❌ Error in res.end interception:', e);
+  // Monkey-patch res.json to inject missing x402scan required fields
+  res.json = function(body: any) {
+    // Only modify 402 Payment Required responses from x402-express
+    if (res.statusCode === 402 && body?.x402Version && body?.accepts) {
+      console.log('🔧 Injecting discoverable:true + facilitatorUrl into 402 response');
+      
+      // Determine correct public base URL for this environment
+      const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+      const isWorkspace = process.env.REPL_SLUG && process.env.REPL_OWNER;
+      let publicBaseUrl = 'http://localhost:5000';
+      
+      if (isProduction) {
+        publicBaseUrl = 'https://coinrailz.com';
+      } else if (isWorkspace) {
+        publicBaseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
       }
+      
+      // Inject facilitatorUrl at top level (x402scan requirement)
+      body.facilitatorUrl = 'https://facilitator.x402.io'; // Coinbase CDP facilitator
+      
+      // Inject discoverable:true into each payment requirement (x402scan requirement)
+      body.accepts = body.accepts.map((paymentReq: any) => ({
+        ...paymentReq,
+        discoverable: true,
+        resource: paymentReq.resource?.replace(/http:\/\/localhost:\d+\//, `${publicBaseUrl}/x402/`) || paymentReq.resource,
+      }));
+      
+      console.log(`✅ Injected: facilitatorUrl=${body.facilitatorUrl}, discoverable=true for ${body.accepts.length} payment requirements`);
     }
     
-    // Pass through unmodified
-    console.log('➡️ Passing through unmodified response');
-    return originalEnd.call(this, chunk, encoding, callback);
+    return originalJson(body);
   };
   
   next();
@@ -1472,6 +1468,163 @@ router.post("/seamless-chain-bridge",
   createPaymentOrchestrator("seamless-chain-bridge", SERVICE_PRICING["seamless-chain-bridge"], seamlessChainBridgeHandler),
   x402Middleware,
   seamlessChainBridgeHandler
+);
+
+// === ENTERPRISE GATED SERVICE HANDLERS ===
+
+const smartContractAuditHandler = async (req: Request, res: Response) => {
+  try {
+    const { contractCode, contractName } = req.body;
+
+    if (!contractCode) {
+      return res.status(400).json({
+        success: false,
+        error: 'Contract code is required',
+      });
+    }
+
+    const { nanoid } = await import('nanoid');
+    const { SmartContractAuditHandler } = await import('../services/handlers/SmartContractAuditHandler');
+    const handler = new SmartContractAuditHandler();
+    
+    const result = await handler.execute({
+      orderId: nanoid(),
+      agentId: 'smart-contract-auditor',
+      serviceType: 'x402_gated',
+      customerId: req.ip || 'x402-autonomous',
+      amount: 1000,
+      metadata: { protocol: 'x402', paymentVerified: true },
+      contractCode,
+      contractName: contractName || 'Contract',
+    });
+
+    res.json({
+      success: true,
+      result,
+      amountPaid: 1000,
+      currency: 'USDC',
+      network: 'base',
+    });
+  } catch (error: any) {
+    console.error('Smart contract audit execution failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Audit execution failed',
+      details: error.message,
+    });
+  }
+};
+
+const paymentProcessingHandler = async (req: Request, res: Response) => {
+  try {
+    const { amount, currency, network, recipientAddress } = req.body;
+
+    if (!amount || !currency || !network || !recipientAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: amount, currency, network, recipientAddress',
+      });
+    }
+
+    const { nanoid } = await import('nanoid');
+    const { PaymentProcessorHandler } = await import('../services/handlers/PaymentProcessorHandler');
+    const handler = new PaymentProcessorHandler();
+    
+    const result = await handler.execute({
+      orderId: nanoid(),
+      agentId: 'payment-processor',
+      serviceType: 'x402_gated',
+      customerId: req.ip || 'x402-autonomous',
+      amount: 50,
+      metadata: { protocol: 'x402', paymentVerified: true },
+      paymentDetails: {
+        amount,
+        currency,
+        network,
+        recipientAddress,
+      },
+    });
+
+    res.json({
+      success: true,
+      result,
+      amountPaid: 50,
+      currency: 'USDC',
+      network: 'base',
+    });
+  } catch (error: any) {
+    console.error('Payment processing execution failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Payment processing failed',
+      details: error.message,
+    });
+  }
+};
+
+const complianceConsultationHandler = async (req: Request, res: Response) => {
+  try {
+    const { businessType, jurisdiction, transactionVolume } = req.body;
+
+    if (!businessType || !jurisdiction) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required fields: businessType, jurisdiction',
+      });
+    }
+
+    const { nanoid } = await import('nanoid');
+    const { ComplianceConsultantHandler } = await import('../services/handlers/ComplianceConsultantHandler');
+    const handler = new ComplianceConsultantHandler();
+    
+    const result = await handler.execute({
+      orderId: nanoid(),
+      agentId: 'compliance-consultant',
+      serviceType: 'x402_gated',
+      customerId: req.ip || 'x402-autonomous',
+      amount: 500,
+      metadata: { protocol: 'x402', paymentVerified: true },
+      complianceRequirements: {
+        businessType,
+        jurisdiction,
+        transactionVolume: transactionVolume || 0,
+      },
+    });
+
+    res.json({
+      success: true,
+      result,
+      amountPaid: 500,
+      currency: 'USDC',
+      network: 'base',
+    });
+  } catch (error: any) {
+    console.error('Compliance consultation execution failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Consultation execution failed',
+      details: error.message,
+    });
+  }
+};
+
+// Register enterprise gated service routes
+router.post("/service/smart-contract-audit",
+  createPaymentOrchestrator("service/smart-contract-audit", 1000, smartContractAuditHandler),
+  x402Middleware,
+  smartContractAuditHandler
+);
+
+router.post("/service/payment-processing",
+  createPaymentOrchestrator("service/payment-processing", 50, paymentProcessingHandler),
+  x402Middleware,
+  paymentProcessingHandler
+);
+
+router.post("/service/compliance-consultation",
+  createPaymentOrchestrator("service/compliance-consultation", 500, complianceConsultationHandler),
+  x402Middleware,
+  complianceConsultationHandler
 );
 
 export default router;

@@ -16,8 +16,14 @@ import { paymentMiddleware, Network } from 'x402-express';
 import { facilitator } from '@coinbase/x402';
 import { nanoid } from 'nanoid';
 import { createPaymentOrchestrator } from '../middleware/paymentOrchestrator';
+import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
+import { usageAnalyticsMiddleware } from '../middleware/usageAnalyticsMiddleware';
 
 const router = Router();
+
+// Apply analytics and interaction tracking to all x402 routes (MUST be first)
+router.use(usageAnalyticsMiddleware);
+router.use(x402TrackingMiddleware);
 
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91') as `0x${string}`;

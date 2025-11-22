@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { P2PTransferService } from '../services/p2pTransferService';
+import { db } from '../db';
+import { p2pTransfers } from '@shared/schema';
 
 const router = Router();
 
@@ -217,16 +219,35 @@ router.post('/transfer', async (req, res) => {
     const { fee, processingFee, estimatedDelivery } = calculateFees(transferAmount, finalSenderMethod, finalRecipientMethod);
     const transferId = `p2p_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
     
+    // Persist to database for revenue tracking
+    console.log('🔍 DEBUG: About to insert P2P transfer to database:', transferId);
+    const transfers = await db.insert(p2pTransfers).values({
+      transferId,
+      recipient,
+      amount: transferAmount.toString(),
+      fee: fee.toString(),
+      processingFee: processingFee.toString(),
+      totalFee: (fee + processingFee).toString(),
+      senderMethod: finalSenderMethod,
+      recipientMethod: finalRecipientMethod,
+      status: 'initiated',
+      note: note || null,
+      userId: (req as any).session?.user?.id || null,
+    }).returning();
+    
+    console.log('✅ DEBUG: P2P transfer inserted, returned:', transfers.length, 'rows');
+    const transfer = transfers[0];
+    
     res.json({
       success: true,
-      transferId,
+      transferId: transfer.transferId,
       amount: transferAmount,
       fee,
       processingFee,
       totalFee: fee + processingFee,
       senderMethod: finalSenderMethod,
       recipientMethod: finalRecipientMethod,
-      status: 'initiated',
+      status: transfer.status,
       estimatedDelivery,
       note: note || '',
       compliance: {
@@ -237,9 +258,11 @@ router.post('/transfer', async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('❌ DEBUG: P2P transfer failed:', error);
     res.status(500).json({
       success: false,
-      error: 'Transfer initiation failed'
+      error: 'Transfer initiation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

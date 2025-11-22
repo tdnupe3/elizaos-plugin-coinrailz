@@ -458,6 +458,33 @@ export const cryptoTransfers = pgTable("crypto_transfers", {
   confirmedAt: timestamp("confirmed_at"),
 });
 
+// P2P Payment Routing Transfers (Venmo, PayPal, CashApp, etc.)
+export const p2pTransfers = pgTable("p2p_transfers", {
+  id: serial("id").primaryKey(),
+  transferId: varchar("transfer_id").notNull().unique(),
+  recipient: varchar("recipient").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  fee: decimal("fee", { precision: 10, scale: 2 }).notNull(),
+  processingFee: decimal("processing_fee", { precision: 10, scale: 2 }).notNull(),
+  totalFee: decimal("total_fee", { precision: 10, scale: 2 }).notNull(),
+  senderMethod: varchar("sender_method").notNull(),
+  recipientMethod: varchar("recipient_method").notNull(),
+  status: varchar("status").notNull().default("initiated"),
+  note: text("note"),
+  userId: varchar("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+});
+
+// P2P Transfers schemas
+export const insertP2PTransferSchema = createInsertSchema(p2pTransfers).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+export type InsertP2PTransfer = z.infer<typeof insertP2PTransferSchema>;
+export type P2PTransfer = typeof p2pTransfers.$inferSelect;
+
 // USDC Conversion System - Missing critical table for revenue optimization
 export const usdcConversions = pgTable("usdc_conversions", {
   id: serial("id").primaryKey(),

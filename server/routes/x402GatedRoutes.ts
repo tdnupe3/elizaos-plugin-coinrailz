@@ -251,19 +251,16 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
 // Register routes with payment orchestrator + x402 middleware
 // Paths are relative to /x402/service mount point in server/index.ts
 router.post('/smart-contract-audit',
-  createPaymentOrchestrator('smart-contract-audit', SERVICE_PRICING['smart-contract-audit'], smartContractAuditHandler),
   x402Middleware,
   smartContractAuditHandler
 );
 
 router.post('/payment-processing',
-  createPaymentOrchestrator('payment-processing', SERVICE_PRICING['payment-processing'], paymentProcessingHandler),
   x402Middleware,
   paymentProcessingHandler
 );
 
 router.post('/compliance-consultation',
-  createPaymentOrchestrator('compliance-consultation', SERVICE_PRICING['compliance-consultation'], complianceConsultationHandler),
   x402Middleware,
   complianceConsultationHandler
 );

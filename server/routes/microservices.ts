@@ -5,6 +5,7 @@ import { nanoid } from "nanoid";
 import { Alchemy, Network } from "alchemy-sdk";
 import axios from "axios";
 import { eq, and, sql } from "drizzle-orm";
+import { withResilience } from '../utils/resilienceWrapper';
 
 const router = Router();
 
@@ -214,12 +215,20 @@ async function multiChainBalanceService(walletAddress: string, chains: string[],
         return { chain, error: "Chain not supported" };
       }
 
-      const balance = await alchemy.core.getBalance(walletAddress);
+      const balance = await withResilience(
+        () => alchemy.core.getBalance(walletAddress),
+        `alchemy-balance-${chain}-${walletAddress.slice(0,8)}`,
+        { maxRetries: 2, timeoutMs: 5000, fallback: BigInt(0) }
+      );
       const balanceEth = parseFloat(balance.toString()) / 1e18;
 
       let tokens: any[] = [];
       if (includeTokens) {
-        const tokenBalances = await alchemy.core.getTokenBalances(walletAddress);
+        const tokenBalances = await withResilience(
+          () => alchemy.core.getTokenBalances(walletAddress),
+          `alchemy-tokens-${chain}-${walletAddress.slice(0,8)}`,
+          { maxRetries: 2, timeoutMs: 5000, fallback: { tokenBalances: [] } }
+        );
         tokens = tokenBalances.tokenBalances
           .filter((t) => t.tokenBalance && parseInt(t.tokenBalance) > 0)
           .slice(0, 5)
@@ -306,7 +315,20 @@ async function gasPriceOracleService(chains: string[]) {
         return { chain, error: "Chain not supported" };
       }
 
-      const feeData = await alchemy.core.getFeeData();
+      const feeData = await withResilience(
+        () => alchemy.core.getFeeData(),
+        `alchemy-feeData-${chain}`,
+        { 
+          maxRetries: 2, 
+          timeoutMs: 4000, 
+          fallback: { 
+            lastBaseFeePerGas: BigInt(20000000000),
+            maxFeePerGas: BigInt(25000000000),
+            maxPriorityFeePerGas: BigInt(2000000000),
+            gasPrice: BigInt(20000000000)
+          } 
+        }
+      );
       const baseFeeGwei = feeData.lastBaseFeePerGas
         ? parseFloat(feeData.lastBaseFeePerGas.toString()) / 1e9
         : 20;
@@ -532,14 +554,22 @@ async function walletRiskScoreService(walletAddress: string, chain: string) {
     }
 
     // Get transaction count and history
-    const txCount = await alchemy.core.getTransactionCount(walletAddress);
+    const txCount = await withResilience(
+      () => alchemy.core.getTransactionCount(walletAddress),
+      `alchemy-txCount-${chain}-${walletAddress.slice(0,8)}`,
+      { maxRetries: 2, timeoutMs: 4000, fallback: 0 }
+    );
     
     // Get recent transfers
-    const transfers = await alchemy.core.getAssetTransfers({
-      fromAddress: walletAddress,
-      category: ["external" as any, "erc20" as any, "erc721" as any, "erc1155" as any],
-      maxCount: 100,
-    });
+    const transfers = await withResilience(
+      () => alchemy.core.getAssetTransfers({
+        fromAddress: walletAddress,
+        category: ["external" as any, "erc20" as any, "erc721" as any, "erc1155" as any],
+        maxCount: 100,
+      }),
+      `alchemy-transfers-${chain}-${walletAddress.slice(0,8)}`,
+      { maxRetries: 2, timeoutMs: 5000, fallback: { transfers: [] } }
+    );
 
     // Known mixer addresses (Tornado Cash)
     const mixerAddresses = [
@@ -783,11 +813,15 @@ async function whaleWalletAlertsService(tokenAddress: string, chain: string = "e
       throw new Error("Chain not supported for whale tracking");
     }
 
-    const transfers = await alchemy.core.getAssetTransfers({
-      contractAddresses: [tokenAddress],
-      category: ["erc20" as any],
-      maxCount: 100,
-    });
+    const transfers = await withResilience(
+      () => alchemy.core.getAssetTransfers({
+        contractAddresses: [tokenAddress],
+        category: ["erc20" as any],
+        maxCount: 100,
+      }),
+      `alchemy-whale-${chain}-${tokenAddress.slice(0,8)}`,
+      { maxRetries: 2, timeoutMs: 5000, fallback: { transfers: [] } }
+    );
 
     const ethPrice = await getEthPrice();
     const whaleMovements: any[] = [];
@@ -1304,7 +1338,20 @@ async function tokenMetadataService(tokenAddress: string, chain: string) {
     const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];
     if (!alchemy) throw new Error(`Chain ${chain} not supported`);
 
-    const metadata = await alchemy.core.getTokenMetadata(tokenAddress);
+    const metadata = await withResilience(
+      () => alchemy.core.getTokenMetadata(tokenAddress),
+      `alchemy-metadata-${chain}-${tokenAddress.slice(0,8)}`,
+      { 
+        maxRetries: 2, 
+        timeoutMs: 4000, 
+        fallback: {
+          name: "Unknown Token",
+          symbol: "UNKNOWN",
+          decimals: 18,
+          logo: null
+        }
+      }
+    );
     
     const result = {
       address: tokenAddress,
@@ -1523,9 +1570,6 @@ async function instantAgentWalletService(params: {
     throw new Error(`Failed to create agent wallet: ${error.message}`);
   }
 }
-
-// Production-grade resilience wrapper import
-import { withResilience } from '../utils/resilienceWrapper';
 
 // Service 17: Verified Agent Identity (KYA - Know Your Agent)
 async function verifiedAgentIdentityService(params: {

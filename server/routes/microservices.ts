@@ -1467,22 +1467,20 @@ async function instantAgentWalletService(params: {
 
   try {
     // Use Coinbase CDP for wallet creation instead of Circle
-    const { coinbaseCDPService } = await import('../services/coinbaseCDPService');
+    const { CoinbaseCDPService } = await import('../services/coinbaseCDPService');
+    const cdpService = CoinbaseCDPService.getInstance();
     
     const walletDescription = description || `AI Agent Wallet: ${agentId}`;
     
-    // Create CDP wallet
-    const walletResult = await coinbaseCDPService.createWallet({
-      walletId: `agent-${agentId}-${Date.now()}`,
-      description: walletDescription
-    });
+    // Create CDP wallet - use proper function signature
+    const cdpWallet = await cdpService.createWallet(agentId, 'base-mainnet');
     
-    if (!walletResult.success || !walletResult.address) {
+    if (!cdpWallet || !cdpWallet.address) {
       throw new Error('Failed to create CDP wallet');
     }
 
-    const walletAddress = walletResult.address;
-    const walletId = walletResult.walletId || `cdp-${agentId}`;
+    const walletAddress = cdpWallet.address;
+    const walletId = cdpWallet.id;
 
     console.log(`✅ CDP wallet created for agent ${agentId}: ${walletAddress}`);
 

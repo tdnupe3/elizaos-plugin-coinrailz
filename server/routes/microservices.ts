@@ -1243,17 +1243,25 @@ router.get("/metrics", async (req: Request, res: Response) => {
 
 // Service 11: Transaction Builder API
 async function transactionBuilderService(params: { 
-  to: string; 
+  fromAddress?: string;
+  toAddress?: string;
+  to?: string; 
   value?: string; 
   data?: string; 
   chain: string;
   tokenAddress?: string;
   amount?: string;
 }) {
-  const { to, value, data, chain, tokenAddress, amount } = params;
+  const { fromAddress, toAddress, to, value, data, chain, tokenAddress, amount } = params;
+  const recipientAddress = to || toAddress;
+
+  if (!recipientAddress) {
+    throw new Error("toAddress or to parameter is required");
+  }
 
   const transaction: any = {
-    to,
+    from: fromAddress,
+    to: recipientAddress,
     chain,
     gasEstimate: "21000",
     timestamp: new Date().toISOString(),
@@ -1261,14 +1269,14 @@ async function transactionBuilderService(params: {
 
   // ERC20 transfer
   if (tokenAddress && amount) {
-    const paddedAddress = to.replace('0x', '').padStart(64, '0');
+    const paddedAddress = recipientAddress.replace('0x', '').padStart(64, '0');
     const paddedAmount = parseInt(amount).toString(16).padStart(64, '0');
     transaction.data = `0xa9059cbb${paddedAddress}${paddedAmount}`;
     transaction.to = tokenAddress;
     transaction.type = "ERC20_TRANSFER";
     transaction.decodedParams = {
       method: "transfer",
-      recipient: to,
+      recipient: recipientAddress,
       amount: amount,
     };
   } else {

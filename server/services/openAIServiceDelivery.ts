@@ -426,30 +426,64 @@ Return ONLY valid JSON with this exact structure:
 }
 
 /**
- * Multi-Chain Balance Analysis using GPT-4o
+ * Multi-Chain Balance Analysis using Alchemy + GPT-4o
  * 
  * Service: $0.50
  * Estimated Cost: ~$0.005 per analysis
  * Profit Margin: 99%
  */
 export async function analyzeMultiChainBalanceWithAI(
-  balanceData: any,
   walletAddress: string,
+  chains: string[],
   orderId: string
 ): Promise<ServiceDeliveryResult<any>> {
   const startTime = Date.now();
   
   try {
+    // Fetch actual blockchain data using Alchemy
+    const balances: any[] = [];
+    
+    for (const chain of chains) {
+      try {
+        const rpcUrl = getRPCUrl(chain);
+        if (!rpcUrl) continue;
+        
+        // Fetch native balance
+        const response = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_getBalance',
+            params: [walletAddress, 'latest'],
+            id: 1
+          })
+        });
+        
+        const data = await response.json();
+        const balanceWei = data.result ? parseInt(data.result, 16) : 0;
+        const balanceEth = balanceWei / 1e18;
+        
+        balances.push({
+          chain,
+          nativeBalance: balanceEth.toFixed(6),
+          nativeSymbol: getNativeSymbol(chain)
+        });
+      } catch (error) {
+        console.error(`Error fetching balance for ${chain}:`, error);
+      }
+    }
+
     const prompt = `You are a crypto portfolio analyst. Analyze this multi-chain wallet and provide insights:
 
 Order ID: ${orderId}
 Wallet: ${walletAddress}
 
 Balance Data:
-${JSON.stringify(balanceData, null, 2)}
+${JSON.stringify(balances, null, 2)}
 
 Provide analysis in JSON format with:
-1. Total portfolio value (USD)
+1. Total portfolio value (USD estimate)
 2. Asset allocation breakdown
 3. Chain diversification analysis
 4. Risk assessment
@@ -496,12 +530,16 @@ Return ONLY valid JSON with this exact structure:
 
     const deliveryTimeMs = Date.now() - startTime;
 
+    console.log(`✅ Multi-Chain Balance Analysis delivered in ${deliveryTimeMs}ms`);
+    console.log(`💰 Cost: $${cost.totalCost.toFixed(4)} (${cost.inputTokens} in, ${cost.outputTokens} out)`);
+    console.log(`📊 Profit: $${(0.50 - cost.totalCost).toFixed(2)}`);
+
     return {
       success: true,
       data: {
         orderId,
         walletAddress,
-        balanceData,
+        balances,
         analysis,
         timestamp: new Date(),
         deliveryMethod: 'ai_powered',
@@ -515,6 +553,275 @@ Return ONLY valid JSON with this exact structure:
     return {
       success: false,
       error: `Balance analysis failed: ${error.message}`,
+      deliveryTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+function getRPCUrl(chain: string): string | null {
+  const alchemyKey = process.env.ALCHEMY_API_KEY;
+  if (!alchemyKey) return null;
+  
+  const urls: Record<string, string> = {
+    'ethereum': `https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    'base': `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    'polygon': `https://polygon-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    'arbitrum': `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`,
+    'optimism': `https://opt-mainnet.g.alchemy.com/v2/${alchemyKey}`
+  };
+  
+  return urls[chain] || null;
+}
+
+function getNativeSymbol(chain: string): string {
+  const symbols: Record<string, string> = {
+    'ethereum': 'ETH',
+    'base': 'ETH',
+    'polygon': 'MATIC',
+    'arbitrum': 'ETH',
+    'optimism': 'ETH',
+    'bsc': 'BNB',
+    'pulsechain': 'PLS'
+  };
+  
+  return symbols[chain] || 'ETH';
+}
+
+/**
+ * Gas Price Oracle using blockchain RPC + GPT-4o
+ * 
+ * Service: $0.10
+ * Estimated Cost: ~$0.003 per query
+ * Profit Margin: 97%
+ */
+export async function getGasPricesWithAI(
+  chains: string[],
+  orderId: string
+): Promise<ServiceDeliveryResult<any>> {
+  const startTime = Date.now();
+  
+  try {
+    const gasPrices: any[] = [];
+    
+    for (const chain of chains) {
+      try {
+        const rpcUrl = getRPCUrl(chain);
+        if (!rpcUrl) continue;
+        
+        const response = await fetch(rpcUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'eth_gasPrice',
+            params: [],
+            id: 1
+          })
+        });
+        
+        const data = await response.json();
+        const gasPriceWei = data.result ? parseInt(data.result, 16) : 0;
+        const gasPriceGwei = gasPriceWei / 1e9;
+        
+        gasPrices.push({
+          chain,
+          gasPrice: gasPriceGwei.toFixed(2),
+          slow: (gasPriceGwei * 0.8).toFixed(2),
+          standard: gasPriceGwei.toFixed(2),
+          fast: (gasPriceGwei * 1.2).toFixed(2)
+        });
+      } catch (error) {
+        console.error(`Error fetching gas price for ${chain}:`, error);
+      }
+    }
+
+    const prompt = `You are a blockchain gas fee expert. Analyze these gas prices and provide insights:
+
+Order ID: ${orderId}
+
+Gas Price Data:
+${JSON.stringify(gasPrices, null, 2)}
+
+Provide analysis in JSON format with:
+1. Current market conditions
+2. Best time to transact (timing recommendations)
+3. Cost comparison across chains
+4. Money-saving tips
+
+Return ONLY valid JSON with this exact structure:
+{
+  "marketConditions": "description of current gas market",
+  "bestTimeToTransact": "timing recommendation",
+  "cheapestChain": "chain name",
+  "costComparison": [{"chain": "string", "relativeCost": "string"}],
+  "moneySavingTips": ["array of tips"]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a blockchain gas fee expert.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' }
+    });
+
+    const result = response.choices[0]?.message?.content;
+    if (!result) throw new Error('No response from OpenAI');
+
+    const analysis = JSON.parse(result);
+    
+    const cost: ServiceDeliveryCost = {
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
+      totalCost: calculateCost(
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0
+      ),
+      model: 'gpt-4o-mini'
+    };
+
+    const deliveryTimeMs = Date.now() - startTime;
+
+    console.log(`✅ Gas Price Oracle delivered in ${deliveryTimeMs}ms`);
+    console.log(`💰 Cost: $${cost.totalCost.toFixed(4)}, Profit: $${(0.10 - cost.totalCost).toFixed(2)}`);
+
+    return {
+      success: true,
+      data: {
+        orderId,
+        gasPrices,
+        analysis,
+        timestamp: new Date(),
+        deliveryMethod: 'ai_powered',
+        model: 'gpt-4o-mini'
+      },
+      cost,
+      deliveryTimeMs
+    };
+
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Gas price oracle failed: ${error.message}`,
+      deliveryTimeMs: Date.now() - startTime
+    };
+  }
+}
+
+/**
+ * Token Price Lookup using CoinGecko/DEXScreener + GPT-4o
+ * 
+ * Service: $0.25
+ * Estimated Cost: ~$0.004 per lookup
+ * Profit Margin: 98%
+ */
+export async function getTokenPriceWithAI(
+  tokenAddress: string,
+  chain: string,
+  orderId: string
+): Promise<ServiceDeliveryResult<any>> {
+  const startTime = Date.now();
+  
+  try {
+    // Try DEXScreener first for real-time data
+    let priceData: any = null;
+    
+    try {
+      const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${tokenAddress}`);
+      const data = await response.json();
+      
+      if (data.pairs && data.pairs.length > 0) {
+        const pair = data.pairs[0];
+        priceData = {
+          price: pair.priceUsd,
+          volume24h: pair.volume?.h24,
+          priceChange24h: pair.priceChange?.h24,
+          liquidity: pair.liquidity?.usd,
+          source: 'DEXScreener'
+        };
+      }
+    } catch (error) {
+      console.error('DEXScreener failed, will use AI estimation:', error);
+    }
+
+    const prompt = `You are a cryptocurrency market analyst. Analyze this token and provide insights:
+
+Order ID: ${orderId}
+Token Address: ${tokenAddress}
+Chain: ${chain}
+
+Price Data: ${priceData ? JSON.stringify(priceData, null, 2) : 'Not available - provide best estimate'}
+
+Provide analysis in JSON format with:
+1. Current price (or estimate if data unavailable)
+2. Market analysis
+3. Risk assessment
+4. Trading recommendations
+
+Return ONLY valid JSON with this exact structure:
+{
+  "price": "USD price as string",
+  "priceConfidence": "high" | "medium" | "low",
+  "marketAnalysis": "description of market conditions",
+  "volume24h": "24h trading volume",
+  "riskLevel": "low" | "medium" | "high",
+  "tradingRecommendations": ["array of recommendations"]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a cryptocurrency market analyst.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.3,
+      max_tokens: 1000,
+      response_format: { type: 'json_object' }
+    });
+
+    const result = response.choices[0]?.message?.content;
+    if (!result) throw new Error('No response from OpenAI');
+
+    const analysis = JSON.parse(result);
+    
+    const cost: ServiceDeliveryCost = {
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
+      totalCost: calculateCost(
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0
+      ),
+      model: 'gpt-4o-mini'
+    };
+
+    const deliveryTimeMs = Date.now() - startTime;
+
+    console.log(`✅ Token Price Lookup delivered in ${deliveryTimeMs}ms`);
+    console.log(`💰 Cost: $${cost.totalCost.toFixed(4)}, Profit: $${(0.25 - cost.totalCost).toFixed(2)}`);
+
+    return {
+      success: true,
+      data: {
+        orderId,
+        tokenAddress,
+        chain,
+        priceData,
+        analysis,
+        timestamp: new Date(),
+        deliveryMethod: 'ai_powered',
+        model: 'gpt-4o-mini'
+      },
+      cost,
+      deliveryTimeMs
+    };
+
+  } catch (error: any) {
+    return {
+      success: false,
+      error: `Token price lookup failed: ${error.message}`,
       deliveryTimeMs: Date.now() - startTime
     };
   }

@@ -81,6 +81,37 @@ import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from './paypal.js';
 import rateLimitImport from 'express-rate-limit';
 import { initializeServiceHandlers } from './services/handlers';
+
+// ============= BOOT-TIME VALIDATION =============
+// Verify required environment variables before starting server
+function validateRequiredEnvironmentVariables() {
+  const required = {
+    ALCHEMY_API_KEY: 'Alchemy API (blockchain RPC)',
+    OPENAI_API_KEY: 'OpenAI API (AI services)',
+    CDP_API_KEY_ID: 'Coinbase CDP (wallet creation)',
+    CDP_API_KEY_SECRET: 'Coinbase CDP (wallet creation)',
+  };
+
+  const missing: string[] = [];
+  for (const [key, description] of Object.entries(required)) {
+    if (!process.env[key]) {
+      missing.push(`${key} (${description})`);
+    }
+  }
+
+  if (missing.length > 0) {
+    console.error('❌ CRITICAL: Missing required environment variables:');
+    missing.forEach(m => console.error(`  - ${m}`));
+    console.error('\n⚠️  Server will start but services will fail. Add missing variables to continue.');
+    console.error('Continuing in degraded mode...\n');
+  } else {
+    console.log('✅ All required environment variables present');
+  }
+}
+
+validateRequiredEnvironmentVariables();
+// ============= END BOOT-TIME VALIDATION =============
+
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 

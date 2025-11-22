@@ -1524,6 +1524,14 @@ async function instantAgentWalletService(params: {
   }
 }
 
+// Helper: Timeout wrapper for Alchemy calls
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
+  ]);
+}
+
 // Service 17: Verified Agent Identity (KYA - Know Your Agent)
 async function verifiedAgentIdentityService(params: {
   agentId: string;
@@ -1542,14 +1550,18 @@ async function verifiedAgentIdentityService(params: {
     let reputationScore = 0;
     let hasIdentityNFT = false;
     
-    // Primary verification: On-chain ERC-8004 identity via Alchemy
+    // Primary verification: On-chain ERC-8004 identity via Alchemy with timeout
     try {
       const alchemy = alchemyConfigs.base;
       if (alchemy) {
-        // Check if agent has ERC-721 identity NFT
-        const nfts = await alchemy.nft.getNftsForOwner(walletAddress, {
-          contractAddresses: [identityContractAddress]
-        });
+        // Check if agent has ERC-721 identity NFT (5 second timeout)
+        const nfts = await withTimeout(
+          alchemy.nft.getNftsForOwner(walletAddress, {
+            contractAddresses: [identityContractAddress]
+          }),
+          5000,
+          { ownedNfts: [] } as any
+        );
         
         if (nfts.ownedNfts.length > 0) {
           onChainIdentity = {
@@ -1566,12 +1578,16 @@ async function verifiedAgentIdentityService(params: {
       console.log('No on-chain identity found:', nftError);
     }
 
-    // Optional: Check wallet activity via Alchemy
+    // Optional: Check wallet activity via Alchemy with timeout
     let walletActivityScore = 0;
     try {
       const alchemy = alchemyConfigs.base;
       if (alchemy) {
-        const balance = await alchemy.core.getBalance(walletAddress);
+        const balance = await withTimeout(
+          alchemy.core.getBalance(walletAddress),
+          3000,
+          BigInt(0)
+        );
         const hasBalance = BigInt(balance.toString()) > 0n;
         walletActivityScore = hasBalance ? 20 : 0;
       }

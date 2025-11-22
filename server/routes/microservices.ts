@@ -1524,13 +1524,8 @@ async function instantAgentWalletService(params: {
   }
 }
 
-// Helper: Timeout wrapper for Alchemy calls
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallback: T): Promise<T> {
-  return Promise.race([
-    promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), timeoutMs))
-  ]);
-}
+// Production-grade resilience wrapper import
+import { withResilience } from '../utils/resilienceWrapper';
 
 // Service 17: Verified Agent Identity (KYA - Know Your Agent)
 async function verifiedAgentIdentityService(params: {
@@ -1550,20 +1545,24 @@ async function verifiedAgentIdentityService(params: {
     let reputationScore = 0;
     let hasIdentityNFT = false;
     
-    // Primary verification: On-chain ERC-8004 identity via Alchemy with timeout
+    // Primary verification: On-chain ERC-8004 identity via Alchemy with circuit breaker
     try {
       const alchemy = alchemyConfigs.base;
       if (alchemy) {
-        // Check if agent has ERC-721 identity NFT (5 second timeout)
-        const nfts = await withTimeout(
-          alchemy.nft.getNftsForOwner(walletAddress, {
+        // Check if agent has ERC-721 identity NFT with retry + circuit breaker
+        const nfts = await withResilience(
+          () => alchemy.nft.getNftsForOwner(walletAddress, {
             contractAddresses: [identityContractAddress]
           }),
-          5000,
-          { ownedNfts: [] } as any
+          `alchemy-nft-${walletAddress}`,
+          {
+            maxRetries: 2,
+            timeoutMs: 5000,
+            fallback: { ownedNfts: [] }
+          }
         );
         
-        if (nfts.ownedNfts.length > 0) {
+        if (nfts.ownedNfts && nfts.ownedNfts.length > 0) {
           onChainIdentity = {
             tokenId: nfts.ownedNfts[0].tokenId,
             contract: identityContractAddress,
@@ -1578,15 +1577,19 @@ async function verifiedAgentIdentityService(params: {
       console.log('No on-chain identity found:', nftError);
     }
 
-    // Optional: Check wallet activity via Alchemy with timeout
+    // Optional: Check wallet activity via Alchemy with circuit breaker
     let walletActivityScore = 0;
     try {
       const alchemy = alchemyConfigs.base;
       if (alchemy) {
-        const balance = await withTimeout(
-          alchemy.core.getBalance(walletAddress),
-          3000,
-          BigInt(0)
+        const balance = await withResilience(
+          () => alchemy.core.getBalance(walletAddress),
+          `alchemy-balance-${walletAddress}`,
+          {
+            maxRetries: 2,
+            timeoutMs: 3000,
+            fallback: BigInt(0)
+          }
         );
         const hasBalance = BigInt(balance.toString()) > 0n;
         walletActivityScore = hasBalance ? 20 : 0;

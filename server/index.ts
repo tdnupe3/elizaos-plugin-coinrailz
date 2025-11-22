@@ -100,12 +100,16 @@ function validateRequiredEnvironmentVariables() {
   }
 
   if (missing.length > 0) {
-    console.error('❌ CRITICAL: Missing required environment variables:');
-    missing.forEach(m => console.error(`  - ${m}`));
-    console.error('\n⚠️  Server will start but services will fail. Add missing variables to continue.');
-    console.error('Continuing in degraded mode...\n');
+    console.error('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.error('❌ CRITICAL ERROR: Missing required environment variables');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    missing.forEach(m => console.error(`  ❌ ${m}`));
+    console.error('\n🛑 Server cannot start in production without these variables.');
+    console.error('   Add them to your environment and try again.\n');
+    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    process.exit(1); // HARD FAIL for production readiness
   } else {
-    console.log('✅ All required environment variables present');
+    console.log('✅ All required environment variables validated');
   }
 }
 

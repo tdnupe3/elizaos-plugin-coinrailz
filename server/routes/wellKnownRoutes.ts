@@ -52,7 +52,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 18 x402 micropayment services across 7 chains: trading signals, security audits, wallet analytics, gas optimization, and DeFi intelligence.",
+    description: "Production-grade blockchain infrastructure for AI agents. 21 x402 micropayment services across 7 chains: trading signals, security audits, wallet analytics, gas optimization, and DeFi intelligence.",
     version: "0.3.0",
     agentId: "coinrailz-x402-infrastructure",
     

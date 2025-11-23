@@ -8,45 +8,46 @@ import { Router, Request, Response } from 'express';
 import { coinbaseCDPService } from '../services/coinbaseCDPService';
 import { coinGeckoPricingService } from '../services/pricing/CoinGeckoPricingService';
 import { dexScreenerService } from '../services/dexScreenerService';
+import { sendBotError } from '../utils/botApiHelpers';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
-// Bot API rate limiters
+// Bot API rate limiters (with X-RateLimit-* headers for bot compatibility)
 const botQuoteLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 50,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: true
 });
 
 const botSwapLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: true
 });
 
 const botIntelLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 100,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: true
 });
 
 const botPairsLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 100,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: true
 });
 
 const botPriceLimit = rateLimit({
   windowMs: 60 * 1000,
   max: 50,
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: true
 });
 
 // Validation schemas
@@ -96,7 +97,8 @@ router.get('/dex/quote', botQuoteLimit, async (req: Request, res: Response) => {
     });
 
     // Bot-friendly response format (adapted for server-executed swaps)
-    const botResponse = {
+    res.json({
+      success: true,
       fromToken: from,
       toToken: to,
       fromAmount: amount,
@@ -109,23 +111,16 @@ router.get('/dex/quote', botQuoteLimit, async (req: Request, res: Response) => {
       chain: chain,
       protocol: 'Coinbase CDP',
       executionType: 'server-executed',
+      source: 'Coinbase CDP',
       timestamp: Date.now()
-    };
-
-    res.json(botResponse);
+    });
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: error.errors
-      });
+      return sendBotError(res, 400, 'Invalid request parameters', 'VALIDATION_ERROR');
     }
     console.error('❌ Bot Quote Error:', error);
-    res.status(500).json({
-      error: 'Failed to get quote',
-      message: error.message
-    });
+    return sendBotError(res, 500, 'Failed to get DEX quote', 'QUOTE_ERROR');
   }
 });
 
@@ -159,7 +154,7 @@ router.post('/dex/swap', botSwapLimit, async (req: Request, res: Response) => {
       chain: internalChain
     });
 
-    const botResponse = {
+    res.json({
       success: true,
       fromToken: from,
       toToken: to,
@@ -171,23 +166,16 @@ router.post('/dex/swap', botSwapLimit, async (req: Request, res: Response) => {
       networkFee: tradeResult.networkFee,
       chain: chain,
       executionType: 'server-executed',
+      source: 'Coinbase CDP',
       timestamp: tradeResult.timestamp
-    };
-
-    res.json(botResponse);
+    });
 
   } catch (error: any) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({
-        error: 'Validation failed',
-        details: error.errors
-      });
+      return sendBotError(res, 400, 'Invalid request parameters', 'VALIDATION_ERROR');
     }
     console.error('❌ Bot Swap Error:', error);
-    res.status(500).json({
-      error: 'Failed to execute swap',
-      message: error.message
-    });
+    return sendBotError(res, 500, 'Failed to execute swap', 'SWAP_ERROR');
   }
 });
 
@@ -228,15 +216,14 @@ router.get('/intel', botIntelLimit, async (req: Request, res: Response) => {
     res.json({
       success: true,
       intelligence,
-      note: 'Real-time data from CoinGecko API. Whale alerts require premium tier.'
+      source: 'CoinGecko API + Coinbase CDP',
+      note: 'Real-time data from CoinGecko API. Whale alerts require premium tier.',
+      timestamp: Date.now()
     });
 
   } catch (error: any) {
     console.error('❌ Bot Intel Error:', error);
-    res.status(500).json({
-      error: 'Failed to get intelligence feed',
-      message: error.message
-    });
+    return sendBotError(res, 500, 'Failed to get market intelligence', 'INTEL_ERROR');
   }
 });
 
@@ -334,10 +321,7 @@ router.get('/pairs', botPairsLimit, async (req: Request, res: Response) => {
     const supportedChains = ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'];
     
     if (chain && !supportedChains.includes(chain)) {
-      return res.status(400).json({
-        error: 'Unsupported chain',
-        supportedChains
-      });
+      return sendBotError(res, 400, `Unsupported chain: ${chain}. Supported: ${supportedChains.join(', ')}`, 'INVALID_CHAIN');
     }
 
     if (chain) {
@@ -354,7 +338,7 @@ router.get('/pairs', botPairsLimit, async (req: Request, res: Response) => {
           volume24h: p.volume24h
         })),
         totalPairs: pairs.length,
-        dataSource: 'DEXScreener API (real on-chain data)',
+        source: 'DEXScreener API',
         minLiquidity: 10000,
         timestamp: Date.now()
       });
@@ -372,7 +356,7 @@ router.get('/pairs', botPairsLimit, async (req: Request, res: Response) => {
           return acc;
         }, {} as Record<string, string[]>),
         totalPairs: uniquePairs.length,
-        dataSource: 'DEXScreener API (real on-chain data)',
+        source: 'DEXScreener API',
         minLiquidity: 10000,
         timestamp: Date.now()
       });
@@ -380,10 +364,7 @@ router.get('/pairs', botPairsLimit, async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('❌ Pairs Lookup Error:', error);
-    res.status(500).json({
-      error: 'Failed to get trading pairs from DEXScreener',
-      message: error.message
-    });
+    return sendBotError(res, 500, 'Failed to get trading pairs from DEXScreener', 'PAIRS_ERROR');
   }
 });
 
@@ -396,21 +377,14 @@ router.get('/price', botPriceLimit, async (req: Request, res: Response) => {
     const token = (req.query.token as string)?.toUpperCase();
     
     if (!token) {
-      return res.status(400).json({
-        error: 'Missing required parameter: token',
-        example: '/api/bot/price?token=ETH'
-      });
+      return sendBotError(res, 400, 'Missing required parameter: token', 'MISSING_TOKEN');
     }
 
     const prices = await coinGeckoPricingService.getPrices([token]);
     const priceData = prices[token];
 
     if (!priceData) {
-      return res.status(404).json({
-        error: 'Token not found',
-        token,
-        note: 'Supported tokens: ETH, BTC, SOL, BNB, MATIC, XRP, USDC, USDT'
-      });
+      return sendBotError(res, 404, 'Token not found. Supported: ETH, BTC, SOL, BNB, MATIC, XRP, USDC, USDT', 'TOKEN_NOT_FOUND');
     }
 
     res.json({
@@ -425,10 +399,7 @@ router.get('/price', botPriceLimit, async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('❌ Price Lookup Error:', error);
-    res.status(500).json({
-      error: 'Failed to get token price',
-      message: error.message
-    });
+    return sendBotError(res, 500, 'Failed to get token price from CoinGecko', 'PRICE_ERROR');
   }
 });
 
@@ -437,7 +408,9 @@ router.get('/price', botPriceLimit, async (req: Request, res: Response) => {
  */
 router.get('/health', (req: Request, res: Response) => {
   res.json({
+    success: true,
     status: 'operational',
+    apiVersion: '2025-11-23',
     endpoints: {
       quote: '/api/bot/dex/quote',
       swap: '/api/bot/dex/swap',

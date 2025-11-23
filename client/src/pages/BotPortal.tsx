@@ -27,6 +27,14 @@ export default function BotPortal() {
         </AlertDescription>
       </Alert>
 
+      <Alert className="mb-6" data-testid="alert-data-integrity">
+        <Info className="h-4 w-4" />
+        <AlertDescription>
+          <strong>Data Integrity Policy:</strong> All data from this API comes from live sources: Coinbase CDP, CoinGecko, and DEXScreener. 
+          We do not fabricate, simulate, or mock on-chain data, pairs, or prices. If an endpoint returns it, it came from a real integration.
+        </AlertDescription>
+      </Alert>
+
       <div className="grid gap-6">
         {/* Quick Start */}
         <Card data-testid="card-quick-start">

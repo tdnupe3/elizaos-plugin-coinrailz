@@ -32,6 +32,7 @@ import AuthPage from "@/pages/auth";
 import MainMenu from "@/pages/main-menu";
 import P2PTransfer from "@/pages/p2p-transfer";
 import X402DocsPage from "@/pages/X402DocsPage";
+import BundlesPage from "@/pages/BundlesPage";
 import TelegramApp from "@/pages/telegram/TelegramApp";
 
 // Lazy-loaded components for performance optimization
@@ -237,6 +238,11 @@ function Router() {
       {/* x402 Service Documentation */}
       <Route path="/x402">
         {() => <X402DocsPage />}
+      </Route>
+      
+      {/* Service Bundles Marketplace */}
+      <Route path="/bundles">
+        {() => <BundlesPage />}
       </Route>
       
       {/* Developer API Documentation - x402 Protocol */}

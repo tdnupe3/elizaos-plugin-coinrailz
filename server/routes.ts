@@ -48,6 +48,7 @@ import agentDiscoveryRoutes from "./routes/agentDiscoveryRoutes";
 import revolutionaryPaymentRoutes from "./routes/revolutionaryPaymentRoutes";
 import walletAccessRoutes from "./routes/walletAccessRoutes";
 import { solanaMessagingRoutes } from "./routes/solanaMessagingRoutes";
+import bundleRoutes from "./routes/bundleRoutes";
 
 import { requireKYC, requireKYCLevel, getKYCStatus } from "./middleware/kycVerification";
 
@@ -379,6 +380,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   
   // Bot-Optimized API routes - Industry-standard format for trading bots
   app.use('/api/bot', botApiRoutes);
+
+  // 📦 Service Bundle Marketplace - Packaged microservice offerings
+  app.use('/api/bundles', bundleRoutes);
 
   // 🔐 x402 Protocol Micropayment Gateway - Payment-gated microservices (Official x402-express middleware)
   const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutesV2').then(m => m.default);

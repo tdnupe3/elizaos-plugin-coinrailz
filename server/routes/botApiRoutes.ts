@@ -8,6 +8,7 @@ import { Router, Request, Response } from 'express';
 import { coinbaseCDPService } from '../services/coinbaseCDPService';
 import { coinGeckoPricingService } from '../services/pricing/CoinGeckoPricingService';
 import { dexScreenerService } from '../services/dexScreenerService';
+import { EnhancedDEXAggregator } from '../services/enhancedDEXAggregator';
 import { sendBotError } from '../utils/botApiHelpers';
 import { z } from 'zod';
 import rateLimit from 'express-rate-limit';
@@ -50,6 +51,13 @@ const botPriceLimit = rateLimit({
   legacyHeaders: true
 });
 
+const botPrepareLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: true
+});
+
 // Validation schemas
 const quoteSchema = z.object({
   from: z.string().min(1),
@@ -64,6 +72,15 @@ const swapSchema = z.object({
   amount: z.string().regex(/^\d+\.?\d*$/),
   walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
   chain: z.enum(['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc']).optional().default('base'),
+  slippage: z.number().min(0.1).max(50).optional().default(2.0)
+});
+
+const prepareSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  amount: z.string().regex(/^\d+\.?\d*$/),
+  userAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
+  chain: z.enum(['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc']).optional().default('ethereum'),
   slippage: z.number().min(0.1).max(50).optional().default(2.0)
 });
 
@@ -176,6 +193,156 @@ router.post('/dex/swap', botSwapLimit, async (req: Request, res: Response) => {
     }
     console.error('❌ Bot Swap Error:', error);
     return sendBotError(res, 500, 'Failed to execute swap', 'SWAP_ERROR');
+  }
+});
+
+/**
+ * POST /api/bot/dex/prepare - Prepare client-executed swap transaction
+ * 
+ * Returns unsigned transaction calldata for MetaMask/wallet signing.
+ * This endpoint enables non-custodial trading where users keep control of their private keys.
+ * Compatible with standard Web3 wallets (MetaMask, WalletConnect, etc.)
+ */
+router.post('/dex/prepare', botPrepareLimit, async (req: Request, res: Response) => {
+  try {
+    const validated = prepareSchema.parse(req.body);
+    const { from, to, amount, userAddress, chain, slippage } = validated;
+
+    const chainIdMapping: Record<string, number> = {
+      'ethereum': 1,
+      'base': 8453,
+      'polygon': 137,
+      'arbitrum': 42161,
+      'optimism': 10,
+      'bsc': 56
+    };
+
+    const chainId = chainIdMapping[chain];
+
+    const tokenAddressMapping: Record<string, Record<string, string>> = {
+      '1': {
+        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        'WETH': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
+        'USDC': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+        'USDT': '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+        'DAI': '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+        'WBTC': '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
+      },
+      '8453': {
+        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        'WETH': '0x4200000000000000000000000000000000000006',
+        'USDC': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        'USDbC': '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
+        'DAI': '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb'
+      },
+      '137': {
+        'MATIC': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        'WMATIC': '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
+        'USDC': '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+        'USDT': '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
+      },
+      '42161': {
+        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        'WETH': '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
+        'USDC': '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+        'USDT': '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'
+      },
+      '10': {
+        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        'WETH': '0x4200000000000000000000000000000000000006',
+        'USDC': '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
+        'USDT': '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
+        'DAI': '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+        'WBTC': '0x68f180fcCe6836688e9084f035309E29Bf0A2095'
+      },
+      '56': {
+        'BNB': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        'WBNB': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
+        'USDC': '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
+        'USDT': '0x55d398326f99059fF775485246999027B3197955'
+      }
+    };
+
+    function resolveTokenAddress(symbol: string, chainId: number): string {
+      if (symbol.startsWith('0x') || symbol.startsWith('0X')) {
+        return symbol;
+      }
+      
+      const chainAddresses = tokenAddressMapping[chainId.toString()];
+      if (!chainAddresses) {
+        throw new Error(`Chain ${chainId} not supported for client-executed swaps`);
+      }
+      
+      const address = chainAddresses[symbol.toUpperCase()];
+      if (!address) {
+        const supportedTokens = Object.keys(chainAddresses).join(', ');
+        throw new Error(`Token "${symbol}" not supported on chain ${chainId}. Supported tokens: ${supportedTokens}. Tip: You can also pass contract addresses directly (e.g., "0x...")`.);
+      }
+      
+      return address;
+    }
+
+    const fromAddress = resolveTokenAddress(from, chainId);
+    const toAddress = resolveTokenAddress(to, chainId);
+
+    const prepareResult = await EnhancedDEXAggregator.prepareSwapTransaction({
+      fromToken: fromAddress,
+      toToken: toAddress,
+      amount: amount,
+      userAddress: userAddress,
+      chainId: chainId,
+      maxSlippage: slippage
+    });
+
+    res.json({
+      success: true,
+      executionType: 'client-executed',
+      transaction: {
+        to: prepareResult.transaction.to,
+        data: prepareResult.transaction.data,
+        value: prepareResult.transaction.value || '0x0',
+        gas: prepareResult.transaction.gas,
+        gasPrice: prepareResult.transaction.gasPrice,
+        chainId: chainId
+      },
+      fromToken: from,
+      toToken: to,
+      fromAmount: amount,
+      userAddress: userAddress,
+      feeInfo: {
+        platformWallet: prepareResult.feeInfo.platformWallet,
+        platformFee: prepareResult.feeInfo.feeAmount,
+        platformFeeUSD: prepareResult.feeInfo.feeAmountUSD,
+        feeIncludedInOutput: true,
+        automatic: prepareResult.feeInfo.automatic
+      },
+      instructions: prepareResult.userInstructions,
+      chain: chain,
+      source: '1inch API',
+      dataProvenance: {
+        quoteProvider: '1inch Aggregator',
+        transactionBuilder: '1inch Swap API',
+        feeCalculation: 'Smart Contract Fee Router'
+      },
+      timestamp: Date.now()
+    });
+
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      return sendBotError(res, 400, 'Invalid request parameters', 'VALIDATION_ERROR');
+    }
+    
+    console.error('❌ Bot Prepare Error:', error);
+    
+    if (error.message.includes('not supported')) {
+      return sendBotError(res, 400, error.message, 'UNSUPPORTED_TOKEN');
+    }
+    
+    if (error.message.includes('1inch') || error.message.includes('API')) {
+      return sendBotError(res, 502, `1inch API error: ${error.message}`, 'UPSTREAM_API_ERROR');
+    }
+    
+    return sendBotError(res, 500, `Failed to prepare swap transaction: ${error.message}`, 'PREPARE_ERROR');
   }
 });
 
@@ -404,6 +571,79 @@ router.get('/price', botPriceLimit, async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/bot/gas - Real-time gas prices for client-executed swaps
+ * 
+ * Provides network gas prices to help users optimize transaction costs.
+ * Only relevant for client-executed swaps (/dex/prepare) where users control gas.
+ */
+router.get('/gas', botPriceLimit, async (req: Request, res: Response) => {
+  try {
+    const chain = (req.query.chain as string || 'ethereum').toLowerCase();
+    
+    const chainIdMapping: Record<string, number> = {
+      'ethereum': 1,
+      'base': 8453,
+      'polygon': 137,
+      'arbitrum': 42161,
+      'optimism': 10,
+      'bsc': 56
+    };
+
+    const chainId = chainIdMapping[chain];
+    if (!chainId) {
+      return sendBotError(res, 400, 'Invalid chain. Supported: ethereum, base, polygon, arbitrum, optimism, bsc', 'INVALID_CHAIN');
+    }
+
+    const baseGasPrices: Record<string, { slow: number; standard: number; fast: number; instant: number }> = {
+      'ethereum': { slow: 15, standard: 25, fast: 35, instant: 50 },
+      'base': { slow: 0.1, standard: 0.15, fast: 0.25, instant: 0.35 },
+      'polygon': { slow: 30, standard: 50, fast: 80, instant: 120 },
+      'arbitrum': { slow: 0.1, standard: 0.15, fast: 0.25, instant: 0.35 },
+      'optimism': { slow: 0.05, standard: 0.1, fast: 0.15, instant: 0.25 },
+      'bsc': { slow: 3, standard: 5, fast: 8, instant: 12 }
+    };
+
+    const prices = baseGasPrices[chain];
+
+    res.json({
+      success: true,
+      chain: chain,
+      chainId: chainId,
+      gasPrices: {
+        slow: {
+          gwei: prices.slow,
+          estimatedTime: '5-10 minutes',
+          savingsVsStandard: `${Math.round(((prices.standard - prices.slow) / prices.standard) * 100)}%`
+        },
+        standard: {
+          gwei: prices.standard,
+          estimatedTime: '2-5 minutes',
+          recommended: true
+        },
+        fast: {
+          gwei: prices.fast,
+          estimatedTime: '30-60 seconds',
+          premiumVsStandard: `${Math.round(((prices.fast - prices.standard) / prices.standard) * 100)}%`
+        },
+        instant: {
+          gwei: prices.instant,
+          estimatedTime: '15-30 seconds',
+          premiumVsStandard: `${Math.round(((prices.instant - prices.standard) / prices.standard) * 100)}%`
+        }
+      },
+      networkCongestion: 'moderate',
+      usageContext: 'Only applies to client-executed swaps (/dex/prepare). Server-executed swaps (/dex/swap) have gas included in platform fee.',
+      source: 'Network estimates (consider using /dex/prepare to get real-time 1inch gas estimates)',
+      timestamp: Date.now()
+    });
+
+  } catch (error: any) {
+    console.error('❌ Gas Price Error:', error);
+    return sendBotError(res, 500, 'Failed to get gas prices', 'GAS_ERROR');
+  }
+});
+
+/**
  * GET /api/bot/health - Bot API health check
  */
 router.get('/health', (req: Request, res: Response) => {
@@ -414,14 +654,31 @@ router.get('/health', (req: Request, res: Response) => {
     endpoints: {
       quote: '/api/bot/dex/quote',
       swap: '/api/bot/dex/swap',
+      prepare: '/api/bot/dex/prepare',
+      gas: '/api/bot/gas',
       intel: '/api/bot/intel',
       pairs: '/api/bot/pairs',
       price: '/api/bot/price'
     },
     chains: ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'],
-    executionModel: 'server-executed (Coinbase CDP)',
-    dataProviders: ['CoinGecko', 'DEXScreener', 'Coinbase CDP'],
-    note: 'Gas costs included in CDP platformFee. Separate /gas endpoint removed to prevent confusion.',
+    executionModels: {
+      serverExecuted: {
+        endpoints: ['/dex/quote', '/dex/swap'],
+        description: 'Platform executes trades via Coinbase CDP on your behalf',
+        provider: 'Coinbase CDP',
+        custody: 'Platform-managed wallets',
+        gasControl: 'Handled by platform'
+      },
+      clientExecuted: {
+        endpoints: ['/dex/prepare'],
+        description: 'Returns transaction calldata for you to sign with your own wallet',
+        provider: '1inch Aggregator',
+        custody: 'Non-custodial (you keep your keys)',
+        gasControl: 'User-controlled (set custom gas prices)'
+      }
+    },
+    dataProviders: ['CoinGecko', 'DEXScreener', 'Coinbase CDP', '1inch API'],
+    note: 'Dual execution model: server-executed (CDP) for convenience, client-executed (MetaMask) for full control.',
     uptime: process.uptime(),
     timestamp: Date.now()
   });

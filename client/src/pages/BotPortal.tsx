@@ -9,21 +9,22 @@ export default function BotPortal() {
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
         <h1 className="text-4xl font-bold mb-2" data-testid="heading-bot-api">
-          Bot-Optimized DEX Quote API (Powered by Coinbase CDP)
+          Bot-Optimized DEX API - Dual Execution Models
         </h1>
         <p className="text-muted-foreground text-lg mb-2" data-testid="text-subtitle">
-          Build trading bots with real execution, real quotes, and real trending intel.
+          Build trading bots with real execution, real quotes, and real trending intel. Choose your execution model.
         </p>
         <p className="text-sm text-muted-foreground" data-testid="text-keywords">
-          No simulation. No fake pricing. No paywall. Server-executed swaps across 6 chains.
+          No simulation. No fake pricing. No paywall. Server-executed (CDP) OR client-executed (MetaMask) swaps across 6 chains.
         </p>
       </div>
 
       <Alert className="mb-6" data-testid="alert-execution-model">
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Execution Model:</strong> Unlike 1inch/0x which return transaction calldata for client execution, 
-          we execute swaps via Coinbase CDP on your behalf and return transaction hashes. No wallet setup required.
+          <strong>Dual Execution Models:</strong> We offer BOTH server-executed swaps (Coinbase CDP - no wallet needed) 
+          AND client-executed swaps (1inch - returns transaction calldata for MetaMask/wallet signing). 
+          Choose the model that fits your use case.
         </AlertDescription>
       </Alert>
 
@@ -201,11 +202,15 @@ tradingBot().catch(console.error);`}
               <div className="space-y-2">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="quote" data-testid="tab-quote">Quote</TabsTrigger>
-                  <TabsTrigger value="swap" data-testid="tab-swap">Swap</TabsTrigger>
-                  <TabsTrigger value="intel" data-testid="tab-intel">Intel</TabsTrigger>
+                  <TabsTrigger value="swap" data-testid="tab-swap">Swap (CDP)</TabsTrigger>
+                  <TabsTrigger value="prepare" data-testid="tab-prepare">Prepare (MetaMask)</TabsTrigger>
                 </TabsList>
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="intel" data-testid="tab-intel">Intel</TabsTrigger>
                   <TabsTrigger value="pairs" data-testid="tab-pairs">Pairs</TabsTrigger>
+                  <TabsTrigger value="gas" data-testid="tab-gas">Gas</TabsTrigger>
+                </TabsList>
+                <TabsList className="grid w-full grid-cols-1">
                   <TabsTrigger value="price" data-testid="tab-price">Price</TabsTrigger>
                 </TabsList>
               </div>
@@ -307,6 +312,91 @@ tradingBot().catch(console.error);`}
   "status": "confirmed",
   "executionType": "server-executed"
 }`}
+                  </pre>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="prepare" className="space-y-4" data-testid="content-prepare">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="destructive">POST</Badge>
+                    <code className="text-sm">/api/bot/dex/prepare</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Prepare client-executed swap transaction for MetaMask/wallet signing (non-custodial)
+                  </p>
+                  
+                  <div className="bg-primary/10 p-4 rounded-lg mb-4" data-testid="alert-prepare-differentiator">
+                    <p className="text-sm">
+                      <strong>Client-Executed Model:</strong> Returns unsigned transaction calldata from 1inch API. 
+                      You sign with your own wallet (MetaMask, WalletConnect, etc). Full gas control, non-custodial trading.
+                    </p>
+                  </div>
+                  
+                  <h4 className="font-semibold mb-2">Request Body</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-prepare-request">
+{`{
+  "from": "ETH",
+  "to": "USDC",
+  "amount": "1.0",
+  "userAddress": "0xYourWallet",
+  "chain": "ethereum",
+  "slippage": 2.0
+}`}
+                  </pre>
+
+                  <h4 className="font-semibold mt-4 mb-2">Response</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-prepare-response">
+{`{
+  "success": true,
+  "executionType": "client-executed",
+  "transaction": {
+    "to": "0x1111111254fb6c44bAC0beD2854e76F90643097d",
+    "data": "0xabc123...",
+    "value": "0x0de0b6b3a7640000",
+    "gas": "0x30d40",
+    "gasPrice": "0x5d21dba00",
+    "chainId": 1
+  },
+  "fromToken": "ETH",
+  "toToken": "USDC",
+  "fromAmount": "1.0",
+  "feeInfo": {
+    "platformWallet": "0xPlatformWallet",
+    "platformFee": "2.43",
+    "platformFeeUSD": "2.43",
+    "feeIncludedInOutput": true
+  },
+  "instructions": [
+    "Send exactly: 1.0 ETH",
+    "You receive: 3221.24 USDC",
+    "Platform fee: 2.43 USDC ($2.43)",
+    "Fee automatically deducted from your output"
+  ],
+  "source": "1inch API"
+}`}
+                  </pre>
+
+                  <h4 className="font-semibold mt-4 mb-2">Example: Sign with ethers.js</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-prepare-example">
+{`const response = await fetch('/api/bot/dex/prepare', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    from: 'ETH',
+    to: 'USDC',
+    amount: '1.0',
+    userAddress: await signer.getAddress(),
+    chain: 'ethereum'
+  })
+});
+
+const { transaction } = await response.json();
+
+// Sign and broadcast with your wallet
+const tx = await signer.sendTransaction(transaction);
+await tx.wait();
+console.log('Swap complete:', tx.hash);`}
                   </pre>
                 </div>
               </TabsContent>
@@ -440,6 +530,95 @@ tradingBot().catch(console.error);`}
   "source": "CoinGecko API",
   "timestamp": 1732398456789
 }`}
+                  </pre>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="gas" className="space-y-4" data-testid="content-gas">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline">GET</Badge>
+                    <code className="text-sm">/api/bot/gas</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Real-time gas prices for client-executed swaps (only relevant for /dex/prepare endpoint)
+                  </p>
+
+                  <div className="bg-primary/10 p-4 rounded-lg mb-4" data-testid="alert-gas-context">
+                    <p className="text-sm">
+                      <strong>Usage Context:</strong> This endpoint is only useful for client-executed swaps (/dex/prepare) 
+                      where you control gas. Server-executed swaps (/dex/swap) have gas included in the platform fee.
+                    </p>
+                  </div>
+
+                  <h4 className="font-semibold mb-2">Parameters</h4>
+                  <table className="w-full text-sm" data-testid="table-gas-params">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Name</th>
+                        <th className="text-left p-2">Type</th>
+                        <th className="text-left p-2">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="p-2"><code>chain</code></td>
+                        <td className="p-2">string (optional)</td>
+                        <td className="p-2">ethereum, base, polygon, arbitrum, optimism, bsc (default: ethereum)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h4 className="font-semibold mt-4 mb-2">Response</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-gas-response">
+{`{
+  "success": true,
+  "chain": "ethereum",
+  "chainId": 1,
+  "gasPrices": {
+    "slow": {
+      "gwei": 15,
+      "estimatedTime": "5-10 minutes",
+      "savingsVsStandard": "40%"
+    },
+    "standard": {
+      "gwei": 25,
+      "estimatedTime": "2-5 minutes",
+      "recommended": true
+    },
+    "fast": {
+      "gwei": 35,
+      "estimatedTime": "30-60 seconds",
+      "premiumVsStandard": "40%"
+    },
+    "instant": {
+      "gwei": 50,
+      "estimatedTime": "15-30 seconds",
+      "premiumVsStandard": "100%"
+    }
+  },
+  "networkCongestion": "moderate",
+  "usageContext": "Only applies to client-executed swaps (/dex/prepare). Server-executed swaps (/dex/swap) have gas included in platform fee.",
+  "timestamp": 1732398456789
+}`}
+                  </pre>
+
+                  <h4 className="font-semibold mt-4 mb-2">Example: Set Custom Gas Price</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-gas-example">
+{`// Get current gas prices
+const { gasPrices } = await fetch('/api/bot/gas?chain=ethereum').then(r => r.json());
+
+// Prepare transaction with custom gas
+const { transaction } = await fetch('/api/bot/dex/prepare', {
+  method: 'POST',
+  body: JSON.stringify({ from: 'ETH', to: 'USDC', amount: '1.0', userAddress: '0x...' })
+}).then(r => r.json());
+
+// Override gas price with "fast" tier
+transaction.gasPrice = ethers.utils.parseUnits(gasPrices.fast.gwei.toString(), 'gwei');
+
+// Sign and send with custom gas
+const tx = await signer.sendTransaction(transaction);`}
                   </pre>
                 </div>
               </TabsContent>

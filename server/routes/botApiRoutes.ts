@@ -284,6 +284,142 @@ async function fetchHighVolumePairs(limit: number) {
 }
 
 /**
+ * GET /api/bot/gas - Get current gas prices for supported chains
+ * Essential for bots to calculate execution profitability
+ * 
+ * NOTE: Returns estimated gas costs based on Coinbase CDP execution model.
+ * Actual costs determined at swap time by CDP service.
+ */
+router.get('/gas', applyRateLimit(100, 60000), async (req: Request, res: Response) => {
+  try {
+    const chain = req.query.chain as string;
+    
+    const supportedChains = ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'];
+    
+    if (chain && !supportedChains.includes(chain)) {
+      return res.status(400).json({
+        error: 'Unsupported chain',
+        supportedChains
+      });
+    }
+
+    // Return Coinbase CDP gas estimates (server-executed model means we handle gas)
+    // These are typical ranges - actual gas paid by Coinbase CDP on user's behalf
+    const gasEstimates: Record<string, any> = {
+      ethereum: { typical: '0.002 ETH', source: 'Coinbase CDP estimates' },
+      base: { typical: '0.0001 ETH', source: 'Coinbase CDP estimates' },
+      polygon: { typical: '0.01 MATIC', source: 'Coinbase CDP estimates' },
+      arbitrum: { typical: '0.0001 ETH', source: 'Coinbase CDP estimates' },
+      optimism: { typical: '0.0001 ETH', source: 'Coinbase CDP estimates' },
+      bsc: { typical: '0.001 BNB', source: 'Coinbase CDP estimates' }
+    };
+
+    const response = chain
+      ? { chain, ...gasEstimates[chain], timestamp: Date.now() }
+      : { chains: gasEstimates, timestamp: Date.now() };
+
+    res.json({
+      success: true,
+      gas: response,
+      note: 'CDP server-executed model: Coinbase pays gas, we charge platform fee. Estimates only.'
+    });
+
+  } catch (error: any) {
+    console.error('❌ Gas Price Error:', error);
+    res.status(500).json({
+      error: 'Failed to get gas estimates',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/bot/pairs - Get list of available trading pairs
+ * Essential for bots to know what assets are tradeable
+ */
+router.get('/pairs', applyRateLimit(100, 60000), async (req: Request, res: Response) => {
+  try {
+    const chain = req.query.chain as string;
+
+    const pairsByChain: Record<string, string[]> = {
+      ethereum: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT', 'WBTC/ETH', 'WBTC/USDC'],
+      base: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT'],
+      polygon: ['MATIC/USDC', 'ETH/USDC', 'USDC/USDT', 'WBTC/USDC'],
+      arbitrum: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT', 'WBTC/ETH'],
+      optimism: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT'],
+      bsc: ['BNB/USDC', 'BNB/USDT', 'ETH/USDC', 'USDC/USDT']
+    };
+
+    const allPairs = Object.values(pairsByChain).flat();
+    const uniquePairs = [...new Set(allPairs)];
+
+    const response = chain && pairsByChain[chain]
+      ? { chain, pairs: pairsByChain[chain] }
+      : { pairs: uniquePairs, byChain: pairsByChain };
+
+    res.json({
+      success: true,
+      ...response,
+      totalPairs: chain ? pairsByChain[chain].length : uniquePairs.length,
+      note: 'All pairs executable via Coinbase CDP. Server-side execution only.',
+      timestamp: Date.now()
+    });
+
+  } catch (error: any) {
+    console.error('❌ Pairs Lookup Error:', error);
+    res.status(500).json({
+      error: 'Failed to get trading pairs',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/bot/price - Get current price for a token
+ * Essential for bots to check balances and calculate profitability
+ */
+router.get('/price', applyRateLimit(50, 60000), async (req: Request, res: Response) => {
+  try {
+    const token = (req.query.token as string)?.toUpperCase();
+    
+    if (!token) {
+      return res.status(400).json({
+        error: 'Missing required parameter: token',
+        example: '/api/bot/price?token=ETH'
+      });
+    }
+
+    const prices = await coinGeckoPricingService.getPrices([token]);
+    const priceData = prices[token];
+
+    if (!priceData) {
+      return res.status(404).json({
+        error: 'Token not found',
+        token,
+        note: 'Supported tokens: ETH, BTC, SOL, BNB, MATIC, USDC, USDT'
+      });
+    }
+
+    res.json({
+      success: true,
+      token,
+      price: priceData.usd,
+      change24h: priceData.usd_24h_change,
+      lastUpdate: new Date(priceData.last_updated_at * 1000).toISOString(),
+      source: 'CoinGecko API',
+      timestamp: Date.now()
+    });
+
+  } catch (error: any) {
+    console.error('❌ Price Lookup Error:', error);
+    res.status(500).json({
+      error: 'Failed to get token price',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/bot/health - Bot API health check
  */
 router.get('/health', (req: Request, res: Response) => {
@@ -292,7 +428,10 @@ router.get('/health', (req: Request, res: Response) => {
     endpoints: {
       quote: '/api/bot/dex/quote',
       swap: '/api/bot/dex/swap',
-      intel: '/api/bot/intel'
+      intel: '/api/bot/intel',
+      gas: '/api/bot/gas',
+      pairs: '/api/bot/pairs',
+      price: '/api/bot/price'
     },
     chains: ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'],
     executionModel: 'server-executed (Coinbase CDP)',

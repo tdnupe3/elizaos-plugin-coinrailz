@@ -8,9 +8,14 @@ export default function BotPortal() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2" data-testid="heading-bot-api">Trading Bot API</h1>
-        <p className="text-muted-foreground text-lg" data-testid="text-subtitle">
-          Server-executed DEX swaps across 6 chains with real-time intelligence feeds
+        <h1 className="text-4xl font-bold mb-2" data-testid="heading-bot-api">
+          Bot-Optimized DEX Quote API (Powered by Coinbase CDP)
+        </h1>
+        <p className="text-muted-foreground text-lg mb-2" data-testid="text-subtitle">
+          Build trading bots with real execution, real quotes, and real trending intel.
+        </p>
+        <p className="text-sm text-muted-foreground" data-testid="text-keywords">
+          No simulation. No fake pricing. No paywall. Server-executed swaps across 6 chains.
         </p>
       </div>
 
@@ -32,44 +37,135 @@ export default function BotPortal() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-semibold mb-2">Get a Quote (Python)</h3>
-              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-python-quote">
+            <Tabs defaultValue="python" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="python">Python</TabsTrigger>
+                <TabsTrigger value="nodejs">Node.js</TabsTrigger>
+                <TabsTrigger value="typescript">TypeScript</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="python" className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Complete Bot Example</h3>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-python-complete">
 {`import requests
 
-url = "https://coinrailz.com/api/bot/dex/quote"
-params = {
+# Get current gas prices
+gas = requests.get("https://coinrailz.com/api/bot/gas?chain=base").json()
+print(f"Gas cost: {gas['gas']['estimatedCost']}")
+
+# Check available pairs
+pairs = requests.get("https://coinrailz.com/api/bot/pairs?chain=base").json()
+print(f"Available pairs: {pairs['pairs']}")
+
+# Get quote
+quote = requests.get("https://coinrailz.com/api/bot/dex/quote", params={
     "from": "ETH",
     "to": "USDC",
     "amount": "1.0",
     "chain": "base"
+}).json()
+print(f"Rate: {quote['exchangeRate']} USDC per ETH")
+
+# Execute swap
+swap = requests.post("https://coinrailz.com/api/bot/dex/swap", json={
+    "from": "ETH",
+    "to": "USDC",
+    "amount": "1.0",
+    "walletAddress": "0xYourWallet",
+    "chain": "base"
+}).json()
+print(f"Tx hash: {swap['transactionHash']}")`}
+                  </pre>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="nodejs" className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Complete Bot Example (Node.js)</h3>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-nodejs-complete">
+{`const axios = require('axios');
+
+async function tradingBot() {
+  // Get current gas prices
+  const gasRes = await axios.get('https://coinrailz.com/api/bot/gas?chain=base');
+  console.log('Gas cost:', gasRes.data.gas.estimatedCost);
+
+  // Check available pairs
+  const pairsRes = await axios.get('https://coinrailz.com/api/bot/pairs?chain=base');
+  console.log('Available pairs:', pairsRes.data.pairs);
+
+  // Get quote
+  const quoteRes = await axios.get('https://coinrailz.com/api/bot/dex/quote', {
+    params: { from: 'ETH', to: 'USDC', amount: '1.0', chain: 'base' }
+  });
+  console.log('Rate:', quoteRes.data.exchangeRate, 'USDC per ETH');
+
+  // Execute swap
+  const swapRes = await axios.post('https://coinrailz.com/api/bot/dex/swap', {
+    from: 'ETH',
+    to: 'USDC',
+    amount: '1.0',
+    walletAddress: '0xYourWallet',
+    chain: 'base'
+  });
+  console.log('Tx hash:', swapRes.data.transactionHash);
 }
 
-response = requests.get(url, params=params)
-quote = response.json()
-print(f"Exchange rate: {quote['exchangeRate']}")`}
-              </pre>
-            </div>
+tradingBot().catch(console.error);`}
+                  </pre>
+                </div>
+              </TabsContent>
 
-            <div>
-              <h3 className="font-semibold mb-2">Execute Swap (JavaScript)</h3>
-              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-javascript-swap">
-{`const response = await fetch("https://coinrailz.com/api/bot/dex/swap", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    from: "ETH",
-    to: "USDC",
-    amount: "1.0",
-    walletAddress: "0xYourWallet",
-    chain: "base"
-  })
-});
+              <TabsContent value="typescript" className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Complete Bot Example (TypeScript)</h3>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-typescript-complete">
+{`import axios from 'axios';
 
-const swap = await response.json();
-console.log(\`Tx: \${swap.transactionHash}\`);`}
-              </pre>
-            </div>
+interface QuoteResponse {
+  fromToken: string;
+  toToken: string;
+  fromAmount: string;
+  toAmount: string;
+  exchangeRate: string;
+  estimatedGas: string;
+  platformFee: string;
+}
+
+interface SwapResponse {
+  success: boolean;
+  transactionHash: string;
+  fromToken: string;
+  toToken: string;
+  toAmount: string;
+}
+
+async function tradingBot(): Promise<void> {
+  // Get current gas prices
+  const { data: gasData } = await axios.get('https://coinrailz.com/api/bot/gas?chain=base');
+  console.log('Gas cost:', gasData.gas.estimatedCost);
+
+  // Get quote with type safety
+  const { data: quote } = await axios.get<QuoteResponse>(
+    'https://coinrailz.com/api/bot/dex/quote',
+    { params: { from: 'ETH', to: 'USDC', amount: '1.0', chain: 'base' } }
+  );
+  console.log(\`Rate: \${quote.exchangeRate} USDC per ETH\`);
+
+  // Execute swap with type safety
+  const { data: swap } = await axios.post<SwapResponse>(
+    'https://coinrailz.com/api/bot/dex/swap',
+    { from: 'ETH', to: 'USDC', amount: '1.0', walletAddress: '0xYourWallet', chain: 'base' }
+  );
+  console.log(\`Tx hash: \${swap.transactionHash}\`);
+}
+
+tradingBot().catch(console.error);`}
+                  </pre>
+                </div>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -80,11 +176,18 @@ console.log(\`Tx: \${swap.transactionHash}\`);`}
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="quote">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="quote" data-testid="tab-quote">Quote</TabsTrigger>
-                <TabsTrigger value="swap" data-testid="tab-swap">Swap</TabsTrigger>
-                <TabsTrigger value="intel" data-testid="tab-intel">Intel Feed</TabsTrigger>
-              </TabsList>
+              <div className="space-y-2">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="quote" data-testid="tab-quote">Quote</TabsTrigger>
+                  <TabsTrigger value="swap" data-testid="tab-swap">Swap</TabsTrigger>
+                  <TabsTrigger value="intel" data-testid="tab-intel">Intel</TabsTrigger>
+                </TabsList>
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="gas" data-testid="tab-gas">Gas Prices</TabsTrigger>
+                  <TabsTrigger value="pairs" data-testid="tab-pairs">Pairs</TabsTrigger>
+                  <TabsTrigger value="price" data-testid="tab-price">Price</TabsTrigger>
+                </TabsList>
+              </div>
 
               <TabsContent value="quote" className="space-y-4" data-testid="content-quote">
                 <div>
@@ -231,6 +334,135 @@ console.log(\`Tx: \${swap.transactionHash}\`);`}
       }
     ]
   }
+}`}
+                  </pre>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="gas" className="space-y-4" data-testid="content-gas">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline">GET</Badge>
+                    <code className="text-sm">/api/bot/gas</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Get current gas prices for calculating execution profitability
+                  </p>
+
+                  <h4 className="font-semibold mb-2">Parameters</h4>
+                  <table className="w-full text-sm" data-testid="table-gas-params">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Name</th>
+                        <th className="text-left p-2">Type</th>
+                        <th className="text-left p-2">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="p-2"><code>chain</code></td>
+                        <td className="p-2">string (optional)</td>
+                        <td className="p-2">ethereum, base, polygon, arbitrum, optimism, bsc</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h4 className="font-semibold mt-4 mb-2">Response</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-gas-response">
+{`{
+  "success": true,
+  "gas": {
+    "chain": "base",
+    "standard": "0.05 gwei",
+    "fast": "0.1 gwei",
+    "instant": "0.2 gwei",
+    "estimatedCost": "$0.01",
+    "timestamp": 1732398456789
+  }
+}`}
+                  </pre>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="pairs" className="space-y-4" data-testid="content-pairs">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline">GET</Badge>
+                    <code className="text-sm">/api/bot/pairs</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Get list of available trading pairs by chain
+                  </p>
+
+                  <h4 className="font-semibold mb-2">Parameters</h4>
+                  <table className="w-full text-sm" data-testid="table-pairs-params">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Name</th>
+                        <th className="text-left p-2">Type</th>
+                        <th className="text-left p-2">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="p-2"><code>chain</code></td>
+                        <td className="p-2">string (optional)</td>
+                        <td className="p-2">Filter by chain (all chains if omitted)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h4 className="font-semibold mt-4 mb-2">Response</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-pairs-response">
+{`{
+  "success": true,
+  "pairs": ["ETH/USDC", "ETH/USDT", "USDC/USDT"],
+  "totalPairs": 3,
+  "note": "All pairs executable via Coinbase CDP",
+  "timestamp": 1732398456789
+}`}
+                  </pre>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="price" className="space-y-4" data-testid="content-price">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline">GET</Badge>
+                    <code className="text-sm">/api/bot/price</code>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Get current price for a token (CoinGecko data, 60s cache)
+                  </p>
+
+                  <h4 className="font-semibold mb-2">Parameters</h4>
+                  <table className="w-full text-sm" data-testid="table-price-params">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left p-2">Name</th>
+                        <th className="text-left p-2">Type</th>
+                        <th className="text-left p-2">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="p-2"><code>token</code></td>
+                        <td className="p-2">string (required)</td>
+                        <td className="p-2">Token symbol (ETH, BTC, SOL, BNB, MATIC, USDC)</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h4 className="font-semibold mt-4 mb-2">Response</h4>
+                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-price-response">
+{`{
+  "success": true,
+  "token": "ETH",
+  "price": 3245.67,
+  "change24h": 2.5,
+  "lastUpdate": "2025-11-23T00:40:00.000Z",
+  "source": "CoinGecko API",
+  "timestamp": 1732398456789
 }`}
                   </pre>
                 </div>

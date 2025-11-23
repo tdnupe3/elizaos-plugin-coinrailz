@@ -133,19 +133,31 @@ export class X402BazaarAdapter extends BaseDiscoveryAdapter {
       }, 30000);
 
       if (!response.ok) {
+        const responseText = await response.text();
+        console.error(`❌ Bazaar API error: HTTP ${response.status}`);
+        console.error(`   URL: ${url}`);
+        console.error(`   Response: ${responseText.substring(0, 500)}`);
+        
         if (response.status === 429) {
           console.warn(`⏰ Rate limit hit (429) - will retry with backoff`);
           throw new Error('Rate limit exceeded');
+        }
+        if (response.status === 401 || response.status === 403) {
+          console.error(`🔒 Authentication failed - check CDP credentials`);
+          return null;
         }
         if (response.status >= 500) {
           console.warn(`🔄 Server error (${response.status}) - will retry`);
           throw new Error(`Server error: ${response.status}`);
         }
-        console.error(`❌ Bazaar API error: HTTP ${response.status}`);
         return null;
       }
 
-      return await this.safeJsonParse(response);
+      const data = await this.safeJsonParse(response);
+      console.log(`✅ Bazaar API response: HTTP ${response.status}`);
+      console.log(`   Resources count: ${data?.resources?.length || 0}`);
+      console.log(`   Has cursor: ${!!data?.pagination?.cursor}`);
+      return data;
       
     }, 3, 2000); // 3 retries, 2-second base delay
   }

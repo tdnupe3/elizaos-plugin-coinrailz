@@ -890,6 +890,139 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         },
         pricing: { amount: 0.40, currency: "USD" },
         category: "utilities"
+      },
+      {
+        id: "payment_processing",
+        name: "Payment Processing Service",
+        description: "Process Stripe, PayPal, and crypto payments with instant settlement. Use when user asks 'process payment', 'accept payment', 'settle transaction', or 'handle checkout'.",
+        inputSchema: {
+          type: "object",
+          title: "Payment Processing Request",
+          description: "Process a payment transaction",
+          additionalProperties: false,
+          properties: {
+            amount: { 
+              type: "number",
+              title: "Payment Amount",
+              description: "Amount to process"
+            },
+            currency: { 
+              type: "string",
+              title: "Currency",
+              enum: ["USD", "EUR", "USDC", "USDT"]
+            },
+            paymentMethod: { 
+              type: "string",
+              title: "Payment Method",
+              enum: ["stripe", "paypal", "crypto"]
+            },
+            metadata: { 
+              type: "object",
+              title: "Payment Metadata",
+              description: "Optional payment metadata"
+            }
+          },
+          required: ["amount", "currency", "paymentMethod"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Payment Processing Response",
+          additionalProperties: false,
+          properties: {
+            transactionId: { type: "string", title: "Transaction ID" },
+            status: { type: "string", title: "Payment Status", enum: ["pending", "completed", "failed"] },
+            settlementTime: { type: "string", title: "Settlement Time Estimate" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "payments"
+      },
+      {
+        id: "compliance_consultation",
+        name: "Compliance Consultation Service",
+        description: "AI-powered KYC/AML compliance guidance and regulatory analysis. Use when user asks 'check compliance', 'KYC requirements', 'AML rules', or 'regulatory guidance'.",
+        inputSchema: {
+          type: "object",
+          title: "Compliance Consultation Request",
+          description: "Request compliance guidance",
+          additionalProperties: false,
+          properties: {
+            jurisdiction: { 
+              type: "string",
+              title: "Jurisdiction",
+              description: "Target jurisdiction (e.g., 'USA', 'EU', 'Singapore')"
+            },
+            transactionType: { 
+              type: "string",
+              title: "Transaction Type",
+              description: "Type of transaction requiring compliance check"
+            },
+            amount: { 
+              type: "number",
+              title: "Transaction Amount",
+              description: "Optional transaction amount for thresholds"
+            }
+          },
+          required: ["jurisdiction", "transactionType"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Compliance Consultation Response",
+          additionalProperties: false,
+          properties: {
+            compliant: { type: "boolean", title: "Compliance Status" },
+            requirements: { type: "array", title: "Required Actions" },
+            riskLevel: { type: "string", title: "Risk Assessment", enum: ["low", "medium", "high"] },
+            recommendations: { type: "array", title: "Compliance Recommendations" }
+          }
+        },
+        pricing: { amount: 5.00, currency: "USD" },
+        category: "compliance"
+      },
+      {
+        id: "smart_contract_audit",
+        name: "Smart Contract Security Audit",
+        description: "Deep security audit using Slither static analysis and vulnerability detection. Use when user asks 'audit contract', 'security review', 'check vulnerabilities', or 'analyze smart contract'.",
+        inputSchema: {
+          type: "object",
+          title: "Smart Contract Audit Request",
+          description: "Request comprehensive contract security audit",
+          additionalProperties: false,
+          properties: {
+            contractAddress: { 
+              type: "string",
+              title: "Contract Address",
+              description: "Smart contract address to audit",
+              pattern: "^0x[a-fA-F0-9]{40}$"
+            },
+            chain: { 
+              type: "string",
+              title: "Blockchain Network",
+              enum: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"]
+            },
+            auditDepth: { 
+              type: "string",
+              title: "Audit Depth",
+              enum: ["basic", "comprehensive", "expert"],
+              default: "comprehensive"
+            }
+          },
+          required: ["contractAddress", "chain"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Smart Contract Audit Response",
+          additionalProperties: false,
+          properties: {
+            overallScore: { type: "number", title: "Security Score (0-100)" },
+            vulnerabilities: { type: "array", title: "Detected Vulnerabilities" },
+            gasOptimizations: { type: "array", title: "Gas Optimization Suggestions" },
+            codeQuality: { type: "string", title: "Code Quality Assessment" },
+            recommendation: { type: "string", title: "Final Recommendation", enum: ["safe", "caution", "dangerous"] }
+          }
+        },
+        pricing: { amount: 10.00, currency: "USD" },
+        category: "security"
       }
     ],
     

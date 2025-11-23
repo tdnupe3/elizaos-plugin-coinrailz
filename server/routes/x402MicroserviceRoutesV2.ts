@@ -32,12 +32,15 @@ import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
 import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
+import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
+import { deductBundleCredits } from "../services/bundleCreditService";
 
 const router = Router();
 
 // Apply analytics and interaction tracking to all x402 routes
 router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);
+router.use(bundleAuthMiddleware); // Check for bundle subscriptions
 
 // CRITICAL FIX: Override Host header for x402-express resource URL generation
 // x402-express reads req.get('host') to build resource URLs - we need to inject the public domain
@@ -989,6 +992,22 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
     
     await trackRequest("multi-chain-balance", req.body, result, responseTime, SERVICE_PRICING["multi-chain-balance"], walletAddress);
     
+    // Deduct bundle credits if subscription exists
+    if (req.bundleSubscription) {
+      const deductionResult = await deductBundleCredits(
+        req.bundleSubscription.id,
+        "multi-chain-balance",
+        "multi-chain-balance",
+        "200",
+        { walletAddress, chains }
+      );
+      if (deductionResult.success) {
+        res.setHeader("X-Bundle-Credits-Used", deductionResult.creditsDeducted.toString());
+        res.setHeader("X-Bundle-Credits-Remaining", deductionResult.creditsRemaining.toString());
+        res.setHeader("X-Payment-Method", "bundle-subscription");
+      }
+    }
+    
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
@@ -1012,6 +1031,22 @@ const gasPriceOracleHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("gas-price-oracle", req.body, result, responseTime, SERVICE_PRICING["gas-price-oracle"], req.ip || "unknown");
+    
+    // Deduct bundle credits if subscription exists
+    if (req.bundleSubscription) {
+      const deductionResult = await deductBundleCredits(
+        req.bundleSubscription.id,
+        "gas-price-oracle",
+        "gas-price-oracle",
+        "200",
+        { chains }
+      );
+      if (deductionResult.success) {
+        res.setHeader("X-Bundle-Credits-Used", deductionResult.creditsDeducted.toString());
+        res.setHeader("X-Bundle-Credits-Remaining", deductionResult.creditsRemaining.toString());
+        res.setHeader("X-Payment-Method", "bundle-subscription");
+      }
+    }
     
     res.json(result);
   } catch (error: any) {

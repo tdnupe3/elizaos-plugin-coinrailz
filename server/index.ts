@@ -127,9 +127,12 @@ const port = parseInt(process.env.PORT || '5000', 10);
 // STRIPE WEBHOOKS BEFORE JSON PARSER - Critical for raw body signature verification
 import { stripeWebhookHandler } from './routes/stripePaymentRoutes.js';
 import { creditsStripeWebhookHandler } from './routes/creditsRoutes.js';
+import { bundleStripeWebhookHandler } from './routes/bundleRoutes.js';
 
 app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/json'}), stripeWebhookHandler);
 app.post('/api/credits/stripe-webhook', express.raw({type: 'application/json'}), creditsStripeWebhookHandler);
+// Bundle subscription webhook - must receive raw body for Stripe signature verification
+app.post('/api/bundles/webhook', express.raw({type: 'application/json'}), bundleStripeWebhookHandler);
 
 // Apply JSON parsing middleware AFTER Stripe webhooks
 app.use(express.json({ limit: '50mb' }));

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Footer } from "@/components/Footer";
 import { WalletDisplay } from "@/components/wallet-display";
 
-import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign, Wallet, Shield } from "@/lib/icons";
+import { Send, TrendingUp, TrendingDown, ArrowLeftRight, Users, BarChart3, Bot, Globe, DollarSign, Wallet, Shield, Package } from "@/lib/icons";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -81,6 +81,14 @@ export default function MainMenu() {
       icon: Bot,
       color: 'bg-purple-500 hover:bg-purple-600',
       route: '/ai-marketplace'
+    },
+    {
+      id: 'service-bundles',
+      title: 'Service Bundles',
+      description: 'AI agent microservice packages - Save up to 50%',
+      icon: Package,
+      color: 'bg-orange-500 hover:bg-orange-600',
+      route: '/bundles'
     },
     {
       id: 'usdc-ecosystem',

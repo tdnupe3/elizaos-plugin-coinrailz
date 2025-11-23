@@ -4391,6 +4391,7 @@ export const serviceBundleSubscriptions = pgTable("service_bundle_subscriptions"
   nextBillingDate: timestamp("next_billing_date"),
   cancelledAt: timestamp("cancelled_at"),
   email: varchar("email"),
+  apiKeyHash: varchar("api_key_hash"), // SHA-256 hash of the subscription API key
   metadata: jsonb("metadata"), // Additional subscription metadata
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

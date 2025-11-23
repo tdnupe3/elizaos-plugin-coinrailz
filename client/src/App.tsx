@@ -33,6 +33,8 @@ import MainMenu from "@/pages/main-menu";
 import P2PTransfer from "@/pages/p2p-transfer";
 import X402DocsPage from "@/pages/X402DocsPage";
 import BundlesPage from "@/pages/BundlesPage";
+import BundleCheckoutPage from "@/pages/BundleCheckoutPage";
+import SubscriptionManagementPage from "@/pages/SubscriptionManagementPage";
 import TelegramApp from "@/pages/telegram/TelegramApp";
 
 // Lazy-loaded components for performance optimization
@@ -243,6 +245,16 @@ function Router() {
       {/* Service Bundles Marketplace */}
       <Route path="/bundles">
         {() => <BundlesPage />}
+      </Route>
+      
+      {/* Bundle Checkout */}
+      <Route path="/checkout/:bundleId/:tier">
+        {() => <BundleCheckoutPage />}
+      </Route>
+      
+      {/* Subscription Management */}
+      <Route path="/subscriptions">
+        {() => <SubscriptionManagementPage />}
       </Route>
       
       {/* Developer API Documentation - x402 Protocol */}

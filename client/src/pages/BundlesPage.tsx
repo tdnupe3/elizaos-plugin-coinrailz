@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle, Zap, Shield, DollarSign } from "lucide-react";
+import { useLocation } from "wouter";
 
 interface Bundle {
   id: string;
@@ -38,6 +39,7 @@ function getBundleIcon(bundleId: string) {
 }
 
 export default function BundlesPage() {
+  const [, setLocation] = useLocation();
   const { data, isLoading } = useQuery<{ bundles: Bundle[] }>({
     queryKey: ["/api/bundles"],
   });
@@ -146,9 +148,29 @@ export default function BundlesPage() {
                 </ul>
               </div>
 
-              <div className="mt-auto">
-                <Button className="w-full" data-testid={`button-purchase-${bundle.id}`}>
-                  Get Started
+              <div className="mt-auto space-y-2">
+                <Button 
+                  className="w-full" 
+                  data-testid={`button-purchase-${bundle.id}-starter`}
+                  onClick={() => setLocation(`/checkout/${bundle.id}/starter`)}
+                >
+                  Start with Starter
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="w-full" 
+                  data-testid={`button-purchase-${bundle.id}-professional`}
+                  onClick={() => setLocation(`/checkout/${bundle.id}/professional`)}
+                >
+                  Upgrade to Professional
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="w-full border-primary" 
+                  data-testid={`button-purchase-${bundle.id}-enterprise`}
+                  onClick={() => setLocation(`/checkout/${bundle.id}/enterprise`)}
+                >
+                  Go Enterprise
                 </Button>
               </div>
             </CardContent>

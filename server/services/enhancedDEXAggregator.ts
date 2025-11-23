@@ -92,8 +92,11 @@ export class EnhancedDEXAggregator {
           console.log('🔄 Using live 1inch API');
           const quote1inch = await this.get1inchQuote(validatedRequest);
           quotes.push(quote1inch);
-        } catch (error) {
-          console.warn('1inch API failed, using fallback:', error);
+        } catch (error: any) {
+          console.warn(`❌ 1inch API failed (code: ${error.code || 'UNKNOWN'}):`, error.message);
+          if (error.details) {
+            console.warn('  Details:', error.details);
+          }
         }
       }
 
@@ -102,8 +105,8 @@ export class EnhancedDEXAggregator {
         try {
           const quote0x = await this.get0xQuote(validatedRequest);
           quotes.push(quote0x);
-        } catch (error) {
-          console.warn('0x API failed:', error);
+        } catch (error: any) {
+          console.warn(`❌ 0x Protocol failed:`, error.message);
         }
       }
 
@@ -111,8 +114,8 @@ export class EnhancedDEXAggregator {
       try {
         const uniswapQuote = await this.getUniswapQuote(validatedRequest);
         quotes.push(uniswapQuote);
-      } catch (error) {
-        console.warn('Uniswap quote failed:', error);
+      } catch (error: any) {
+        console.warn(`❌ Uniswap/PulseX fallback failed:`, error.message);
       }
 
       if (quotes.length === 0) {
@@ -221,23 +224,85 @@ export class EnhancedDEXAggregator {
       throw new Error('1inch API key not configured');
     }
 
-    // Convert amount to wei if dealing with ETH
-    let amount = request.amount;
-    if (request.fromToken.toUpperCase() === 'ETH') {
-      // Convert from ETH to wei (multiply by 10^18)
-      amount = (parseFloat(request.amount) * Math.pow(10, 18)).toString();
+    // Import token resolution helpers
+    const { resolveTokenAddress, resolveTokenByAddress, parseAmountToWei, TOKEN_METADATA } = await import('../utils/botApiHelpers');
+
+    // Map chain ID to chain name
+    const chainIdToName: Record<number, string> = {
+      1: 'ethereum',
+      8453: 'base',
+      137: 'polygon',
+      56: 'bsc',
+      42161: 'arbitrum',
+      10: 'optimism',
+    };
+
+    const chainName = chainIdToName[request.chainId];
+    if (!chainName) {
+      throw new Error(`Unsupported chain ID: ${request.chainId}`);
     }
 
+    // Handle both token symbols and addresses
+    let fromAddress: string;
+    let toAddress: string;
+    let fromDecimals: number;
+    let toDecimals: number;
+
+    // Check if fromToken is already an address
+    if (request.fromToken.startsWith('0x') || request.fromToken.startsWith('0X')) {
+      fromAddress = request.fromToken;
+      // Look up decimals from TOKEN_METADATA by address
+      const fromTokenMeta = resolveTokenByAddress(fromAddress, chainName);
+      if (fromTokenMeta) {
+        fromDecimals = fromTokenMeta.decimals;
+      } else {
+        // Unknown token address - default to 18 decimals (ETH standard)
+        console.warn(`⚠️ Unknown token address ${fromAddress} on ${chainName}, defaulting to 18 decimals`);
+        fromDecimals = 18;
+      }
+    } else {
+      const fromTokenMeta = resolveTokenAddress(request.fromToken, chainName);
+      if (!fromTokenMeta) {
+        throw new Error(`Token ${request.fromToken} not supported on ${chainName}`);
+      }
+      fromAddress = fromTokenMeta.address;
+      fromDecimals = fromTokenMeta.decimals;
+    }
+
+    // Check if toToken is already an address
+    if (request.toToken.startsWith('0x') || request.toToken.startsWith('0X')) {
+      toAddress = request.toToken;
+      // Look up decimals from TOKEN_METADATA by address
+      const toTokenMeta = resolveTokenByAddress(toAddress, chainName);
+      if (toTokenMeta) {
+        toDecimals = toTokenMeta.decimals;
+      } else {
+        // Unknown token address - default to 18 decimals (ETH standard)
+        console.warn(`⚠️ Unknown token address ${toAddress} on ${chainName}, defaulting to 18 decimals`);
+        toDecimals = 18;
+      }
+    } else {
+      const toTokenMeta = resolveTokenAddress(request.toToken, chainName);
+      if (!toTokenMeta) {
+        throw new Error(`Token ${request.toToken} not supported on ${chainName}`);
+      }
+      toAddress = toTokenMeta.address;
+      toDecimals = toTokenMeta.decimals;
+    }
+
+    // Convert amount to base units (wei) using proper decimals
+    const amountInWei = parseAmountToWei(request.amount, fromDecimals);
+
     const params = new URLSearchParams({
-      src: request.fromToken.toUpperCase() === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : request.fromToken,
-      dst: request.toToken.toUpperCase() === 'USDC' ? '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' : request.toToken,
-      amount: amount,
+      src: fromAddress,
+      dst: toAddress,
+      amount: amountInWei,
       includeTokensInfo: 'true',
       includeProtocols: 'true',
       includeGas: 'true'
     });
 
-    console.log(`🔄 Fetching 1inch quote: ${request.fromToken} → ${request.toToken}, amount: ${amount}`);
+    console.log(`🔄 Fetching 1inch quote: ${request.fromToken} → ${request.toToken}, amount: ${amountInWei} (${request.amount} ${request.fromToken})`);
 
     const response = await fetch(
       `https://api.1inch.dev/swap/v6.0/${request.chainId}/quote?${params}`,
@@ -251,18 +316,25 @@ export class EnhancedDEXAggregator {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`1inch API error: ${response.status} ${response.statusText} - ${errorText}`);
-      throw new Error(`1inch API error: ${response.statusText}`);
+      const errorCode = `1INCH_API_ERROR_${response.status}`;
+      console.error(`❌ 1inch API error (chain ${chainName}): ${response.status} ${response.statusText} - ${errorText}`);
+      
+      const error = new Error(`1inch API error on ${chainName}: ${response.statusText}`) as any;
+      error.code = errorCode;
+      error.provider = '1inch';
+      error.chainId = request.chainId;
+      error.details = errorText;
+      throw error;
     }
 
     const data = await response.json();
-    console.log('✅ 1inch API response received');
+    console.log(`✅ 1inch API quote received for ${request.fromToken}→${request.toToken} on ${chainName}`);
     
-    // Convert output amount back to readable format
-    let outputAmount = data.dstAmount;
-    if (request.toToken.toUpperCase() === 'USDC') {
-      outputAmount = (parseFloat(data.dstAmount) / Math.pow(10, 6)).toString();
-    }
+    // Import format helper for output conversion
+    const { formatAmountFromWei } = await import('../utils/botApiHelpers');
+    
+    // Convert output amount back to readable format using proper decimals
+    const outputAmount = formatAmountFromWei(data.dstAmount, toDecimals);
     
     return {
       dex: '1inch Aggregator',
@@ -428,17 +500,51 @@ export class EnhancedDEXAggregator {
       throw new Error(`1inch does not support chain ${request.chainId}`);
     }
 
+    // Import token resolution helpers for precise amount conversion
+    const { resolveTokenAddress, resolveTokenByAddress, parseAmountToWei } = await import('../utils/botApiHelpers');
+    
+    // Map chain ID to chain name for metadata lookup
+    const chainIdToName: Record<number, string> = {
+      1: 'ethereum',
+      8453: 'base',
+      137: 'polygon',
+      56: 'bsc',
+      42161: 'arbitrum',
+      10: 'optimism',
+    };
+    
+    const chainName = chainIdToName[request.chainId];
+    if (!chainName) {
+      throw new Error(`Unsupported chain ID: ${request.chainId}`);
+    }
+    
     // 1inch uses this special address for native tokens (ETH/BNB/MATIC) across all chains
     const NATIVE_TOKEN_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
     const isNativeToken = request.fromToken.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase();
     
-    // Convert amount to wei if dealing with native token
-    let amount = request.amount;
+    // Get token decimals for precise conversion - handle BOTH symbols and addresses
+    let fromDecimals: number;
+    
     if (isNativeToken) {
-      // Convert to wei as clean integer string (no decimals, no scientific notation)
-      const weiAmount = parseFloat(request.amount) * Math.pow(10, 18);
-      amount = Math.floor(weiAmount).toString();
+      fromDecimals = 18; // Native tokens always 18 decimals
+    } else if (request.fromToken.startsWith('0x') || request.fromToken.startsWith('0X')) {
+      // Token is an address - lookup via address
+      const tokenMeta = resolveTokenByAddress(request.fromToken, chainName);
+      if (!tokenMeta) {
+        throw new Error(`Token address ${request.fromToken} not found in TOKEN_METADATA for ${chainName}. Please add it to ensure correct decimal handling.`);
+      }
+      fromDecimals = tokenMeta.decimals;
+    } else {
+      // Token is a symbol - lookup via symbol
+      const tokenMeta = resolveTokenAddress(request.fromToken, chainName);
+      if (!tokenMeta) {
+        throw new Error(`Token symbol ${request.fromToken} not supported on ${chainName}. Please check TOKEN_METADATA or pass the contract address instead.`);
+      }
+      fromDecimals = tokenMeta.decimals;
     }
+    
+    // Convert amount to base units (wei) with correct decimals for ALL tokens
+    const amount = parseAmountToWei(request.amount, fromDecimals);
 
     // Use the token address as-is (already resolved by caller)
     const srcAddress = request.fromToken;
@@ -474,15 +580,24 @@ export class EnhancedDEXAggregator {
   /**
    * Prepare generic swap transaction for non-1inch chains
    */
-  private static prepareGenericSwap(request: z.infer<typeof swapExecuteSchema>): any {
+  private static async prepareGenericSwap(request: z.infer<typeof swapExecuteSchema>): Promise<any> {
+    // Import token resolution helpers for precise amount conversion
+    const { parseAmountToWei } = await import('../utils/botApiHelpers');
+    
     // For demo purposes, return mock transaction data
     // In production, this would integrate with other DEX APIs (Uniswap, etc.)
+    const isNativeToken = request.fromToken.toUpperCase() === 'ETH' || 
+                          request.fromToken.toUpperCase() === 'BNB' || 
+                          request.fromToken.toUpperCase() === 'MATIC';
+    
+    // Use precise wei conversion instead of parseFloat to avoid precision loss
+    const valueInWei = isNativeToken ? parseAmountToWei(request.amount, 18) : '0';
+    const valueHex = isNativeToken ? `0x${BigInt(valueInWei).toString(16)}` : '0x0';
+    
     return {
       to: '0x1111111254fb6c44bAC0beD2854e76F90643097d', // 1inch router address
       data: '0x...',
-      value: request.fromToken.toUpperCase() === 'ETH' ? 
-        `0x${(parseFloat(request.amount) * Math.pow(10, 18)).toString(16)}` : 
-        '0x0',
+      value: valueHex,
       gas: '0x30d40', // 200000 gas limit
       gasPrice: '0x3b9aca00' // 1 gwei
     };

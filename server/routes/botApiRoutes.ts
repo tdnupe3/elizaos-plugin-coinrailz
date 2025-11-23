@@ -284,58 +284,11 @@ async function fetchHighVolumePairs(limit: number) {
 }
 
 /**
- * GET /api/bot/gas - Get current gas prices for supported chains
- * Essential for bots to calculate execution profitability
- * 
- * NOTE: Returns estimated gas costs based on Coinbase CDP execution model.
- * Actual costs determined at swap time by CDP service.
- */
-router.get('/gas', applyRateLimit(100, 60000), async (req: Request, res: Response) => {
-  try {
-    const chain = req.query.chain as string;
-    
-    const supportedChains = ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'];
-    
-    if (chain && !supportedChains.includes(chain)) {
-      return res.status(400).json({
-        error: 'Unsupported chain',
-        supportedChains
-      });
-    }
-
-    // Return Coinbase CDP gas estimates (server-executed model means we handle gas)
-    // These are typical ranges - actual gas paid by Coinbase CDP on user's behalf
-    const gasEstimates: Record<string, any> = {
-      ethereum: { typical: '0.002 ETH', source: 'Coinbase CDP estimates' },
-      base: { typical: '0.0001 ETH', source: 'Coinbase CDP estimates' },
-      polygon: { typical: '0.01 MATIC', source: 'Coinbase CDP estimates' },
-      arbitrum: { typical: '0.0001 ETH', source: 'Coinbase CDP estimates' },
-      optimism: { typical: '0.0001 ETH', source: 'Coinbase CDP estimates' },
-      bsc: { typical: '0.001 BNB', source: 'Coinbase CDP estimates' }
-    };
-
-    const response = chain
-      ? { chain, ...gasEstimates[chain], timestamp: Date.now() }
-      : { chains: gasEstimates, timestamp: Date.now() };
-
-    res.json({
-      success: true,
-      gas: response,
-      note: 'CDP server-executed model: Coinbase pays gas, we charge platform fee. Estimates only.'
-    });
-
-  } catch (error: any) {
-    console.error('❌ Gas Price Error:', error);
-    res.status(500).json({
-      error: 'Failed to get gas estimates',
-      message: error.message
-    });
-  }
-});
-
-/**
  * GET /api/bot/pairs - Get list of available trading pairs
  * Essential for bots to know what assets are tradeable
+ * 
+ * NOTE: Returns curated list of commonly tradeable pairs on each chain.
+ * Actual pair availability confirmed at quote/swap time by Coinbase CDP.
  */
 router.get('/pairs', applyRateLimit(100, 60000), async (req: Request, res: Response) => {
   try {
@@ -361,7 +314,8 @@ router.get('/pairs', applyRateLimit(100, 60000), async (req: Request, res: Respo
       success: true,
       ...response,
       totalPairs: chain ? pairsByChain[chain].length : uniquePairs.length,
-      note: 'All pairs executable via Coinbase CDP. Server-side execution only.',
+      note: 'Curated list of common pairs. Actual availability confirmed at swap time by Coinbase CDP.',
+      executionModel: 'server-executed',
       timestamp: Date.now()
     });
 
@@ -429,13 +383,12 @@ router.get('/health', (req: Request, res: Response) => {
       quote: '/api/bot/dex/quote',
       swap: '/api/bot/dex/swap',
       intel: '/api/bot/intel',
-      gas: '/api/bot/gas',
       pairs: '/api/bot/pairs',
       price: '/api/bot/price'
     },
     chains: ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'],
     executionModel: 'server-executed (Coinbase CDP)',
-    dataProviders: ['CoinGecko', 'Alchemy', 'Coinbase CDP'],
+    dataProviders: ['CoinGecko', 'Coinbase CDP'],
     uptime: process.uptime(),
     timestamp: Date.now()
   });

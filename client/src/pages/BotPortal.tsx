@@ -50,13 +50,13 @@ export default function BotPortal() {
                   <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-python-complete">
 {`import requests
 
-# Get current gas prices
-gas = requests.get("https://coinrailz.com/api/bot/gas?chain=base").json()
-print(f"Gas cost: {gas['gas']['estimatedCost']}")
-
 # Check available pairs
 pairs = requests.get("https://coinrailz.com/api/bot/pairs?chain=base").json()
 print(f"Available pairs: {pairs['pairs']}")
+
+# Get current ETH price
+price = requests.get("https://coinrailz.com/api/bot/price?token=ETH").json()
+print(f"ETH price: ${price['price']}")
 
 # Get quote
 quote = requests.get("https://coinrailz.com/api/bot/dex/quote", params={
@@ -66,8 +66,9 @@ quote = requests.get("https://coinrailz.com/api/bot/dex/quote", params={
     "chain": "base"
 }).json()
 print(f"Rate: {quote['exchangeRate']} USDC per ETH")
+print(f"Platform fee: {quote['platformFee']}")
 
-# Execute swap
+# Execute swap (CDP handles gas)
 swap = requests.post("https://coinrailz.com/api/bot/dex/swap", json={
     "from": "ETH",
     "to": "USDC",
@@ -87,21 +88,22 @@ print(f"Tx hash: {swap['transactionHash']}")`}
 {`const axios = require('axios');
 
 async function tradingBot() {
-  // Get current gas prices
-  const gasRes = await axios.get('https://coinrailz.com/api/bot/gas?chain=base');
-  console.log('Gas cost:', gasRes.data.gas.estimatedCost);
-
   // Check available pairs
   const pairsRes = await axios.get('https://coinrailz.com/api/bot/pairs?chain=base');
   console.log('Available pairs:', pairsRes.data.pairs);
+
+  // Get current ETH price
+  const priceRes = await axios.get('https://coinrailz.com/api/bot/price?token=ETH');
+  console.log('ETH price: $', priceRes.data.price);
 
   // Get quote
   const quoteRes = await axios.get('https://coinrailz.com/api/bot/dex/quote', {
     params: { from: 'ETH', to: 'USDC', amount: '1.0', chain: 'base' }
   });
   console.log('Rate:', quoteRes.data.exchangeRate, 'USDC per ETH');
+  console.log('Platform fee:', quoteRes.data.platformFee);
 
-  // Execute swap
+  // Execute swap (CDP handles gas)
   const swapRes = await axios.post('https://coinrailz.com/api/bot/dex/swap', {
     from: 'ETH',
     to: 'USDC',
@@ -141,10 +143,21 @@ interface SwapResponse {
   toAmount: string;
 }
 
+interface PriceResponse {
+  success: boolean;
+  token: string;
+  price: number;
+  change24h: number;
+}
+
 async function tradingBot(): Promise<void> {
-  // Get current gas prices
-  const { data: gasData } = await axios.get('https://coinrailz.com/api/bot/gas?chain=base');
-  console.log('Gas cost:', gasData.gas.estimatedCost);
+  // Check available pairs
+  const { data: pairsData } = await axios.get('https://coinrailz.com/api/bot/pairs?chain=base');
+  console.log('Available pairs:', pairsData.pairs);
+
+  // Get current ETH price
+  const { data: priceData } = await axios.get<PriceResponse>('https://coinrailz.com/api/bot/price?token=ETH');
+  console.log(\`ETH price: $\${priceData.price}\`);
 
   // Get quote with type safety
   const { data: quote } = await axios.get<QuoteResponse>(
@@ -152,8 +165,9 @@ async function tradingBot(): Promise<void> {
     { params: { from: 'ETH', to: 'USDC', amount: '1.0', chain: 'base' } }
   );
   console.log(\`Rate: \${quote.exchangeRate} USDC per ETH\`);
+  console.log(\`Platform fee: \${quote.platformFee}\`);
 
-  // Execute swap with type safety
+  // Execute swap (CDP handles gas)
   const { data: swap } = await axios.post<SwapResponse>(
     'https://coinrailz.com/api/bot/dex/swap',
     { from: 'ETH', to: 'USDC', amount: '1.0', walletAddress: '0xYourWallet', chain: 'base' }
@@ -182,8 +196,7 @@ tradingBot().catch(console.error);`}
                   <TabsTrigger value="swap" data-testid="tab-swap">Swap</TabsTrigger>
                   <TabsTrigger value="intel" data-testid="tab-intel">Intel</TabsTrigger>
                 </TabsList>
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="gas" data-testid="tab-gas">Gas Prices</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="pairs" data-testid="tab-pairs">Pairs</TabsTrigger>
                   <TabsTrigger value="price" data-testid="tab-price">Price</TabsTrigger>
                 </TabsList>
@@ -333,51 +346,6 @@ tradingBot().catch(console.error);`}
         "lastUpdate": "2025-11-23T00:40:00.000Z"
       }
     ]
-  }
-}`}
-                  </pre>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="gas" className="space-y-4" data-testid="content-gas">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Badge variant="outline">GET</Badge>
-                    <code className="text-sm">/api/bot/gas</code>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Get current gas prices for calculating execution profitability
-                  </p>
-
-                  <h4 className="font-semibold mb-2">Parameters</h4>
-                  <table className="w-full text-sm" data-testid="table-gas-params">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left p-2">Name</th>
-                        <th className="text-left p-2">Type</th>
-                        <th className="text-left p-2">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <td className="p-2"><code>chain</code></td>
-                        <td className="p-2">string (optional)</td>
-                        <td className="p-2">ethereum, base, polygon, arbitrum, optimism, bsc</td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  <h4 className="font-semibold mt-4 mb-2">Response</h4>
-                  <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-gas-response">
-{`{
-  "success": true,
-  "gas": {
-    "chain": "base",
-    "standard": "0.05 gwei",
-    "fast": "0.1 gwei",
-    "instant": "0.2 gwei",
-    "estimatedCost": "$0.01",
-    "timestamp": 1732398456789
   }
 }`}
                   </pre>

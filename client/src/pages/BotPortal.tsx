@@ -61,11 +61,11 @@ export default function BotPortal() {
 
 # Check available pairs
 pairs = requests.get("https://coinrailz.com/api/bot/pairs?chain=base").json()
-print(f"Available pairs: {pairs['pairs']}")
+print(f"Available pairs: ${"{"}{pairs['pairs']}{"}"}")
 
 # Get current ETH price
 price = requests.get("https://coinrailz.com/api/bot/price?token=ETH").json()
-print(f"ETH price: ${price['price']}")
+print(f"ETH price: ${"$"}{price['price']}")
 
 # Get quote
 quote = requests.get("https://coinrailz.com/api/bot/dex/quote", params={
@@ -74,8 +74,8 @@ quote = requests.get("https://coinrailz.com/api/bot/dex/quote", params={
     "amount": "1.0",
     "chain": "base"
 }).json()
-print(f"Rate: {quote['exchangeRate']} USDC per ETH")
-print(f"Platform fee: {quote['platformFee']}")
+print(f"Rate: ${"{"}{quote['exchangeRate']}{"}"} USDC per ETH")
+print(f"Platform fee: ${"{"}{quote['platformFee']}{"}"}")
 
 # Execute swap (CDP handles gas)
 swap = requests.post("https://coinrailz.com/api/bot/dex/swap", json={
@@ -85,7 +85,7 @@ swap = requests.post("https://coinrailz.com/api/bot/dex/swap", json={
     "walletAddress": "0xYourWallet",
     "chain": "base"
 }).json()
-print(f"Tx hash: {swap['transactionHash']}")`}
+print(f"Tx hash: ${"{"}{swap['transactionHash']}{"}"}")`}
                   </pre>
                 </div>
               </TabsContent>
@@ -166,22 +166,22 @@ async function tradingBot(): Promise<void> {
 
   // Get current ETH price
   const { data: priceData } = await axios.get<PriceResponse>('https://coinrailz.com/api/bot/price?token=ETH');
-  console.log(\`ETH price: $\${priceData.price}\`);
+  console.log(\`ETH price: ${'${priceData.price}'}\`);
 
   // Get quote with type safety
   const { data: quote } = await axios.get<QuoteResponse>(
     'https://coinrailz.com/api/bot/dex/quote',
     { params: { from: 'ETH', to: 'USDC', amount: '1.0', chain: 'base' } }
   );
-  console.log(\`Rate: \${quote.exchangeRate} USDC per ETH\`);
-  console.log(\`Platform fee: \${quote.platformFee}\`);
+  console.log(\`Rate: ${'${quote.exchangeRate}'} USDC per ETH\`);
+  console.log(\`Platform fee: ${'${quote.platformFee}'}\`);
 
   // Execute swap (CDP handles gas)
   const { data: swap } = await axios.post<SwapResponse>(
     'https://coinrailz.com/api/bot/dex/swap',
     { from: 'ETH', to: 'USDC', amount: '1.0', walletAddress: '0xYourWallet', chain: 'base' }
   );
-  console.log(\`Tx hash: \${swap.transactionHash}\`);
+  console.log(\`Tx hash: ${'${swap.transactionHash}'}\`);
 }
 
 tradingBot().catch(console.error);`}

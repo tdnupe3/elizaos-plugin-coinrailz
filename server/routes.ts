@@ -35,6 +35,7 @@ import dexRoutes from "./routes/dexRoutes";
 import tradingRoutes from "./routes/tradingRoutes";
 
 import defiWalletRoutes from "./routes/defiWalletRoutes";
+import botApiRoutes from "./routes/botApiRoutes";
 import { coinbaseCDPService } from './services/coinbaseCDPService';
 import { setupAnalyticsRoutes } from "./routes/analytics";
 import { setupReferralRoutes } from "./routes/referrals";
@@ -375,6 +376,9 @@ Questions? Reply to this message or contact support@coinrailz.com
 
   // DEX Trading routes - Guest & User Support (No Auth Required)
   app.use('/api/dex', dexRoutes);
+  
+  // Bot-Optimized API routes - Industry-standard format for trading bots
+  app.use('/api/bot', botApiRoutes);
 
   // 🔐 x402 Protocol Micropayment Gateway - Payment-gated microservices (Official x402-express middleware)
   const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutesV2').then(m => m.default);

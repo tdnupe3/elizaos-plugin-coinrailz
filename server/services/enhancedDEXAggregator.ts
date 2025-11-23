@@ -84,6 +84,31 @@ export class EnhancedDEXAggregator {
     }
 
     try {
+      // Import BigInt helpers for precise decimal comparisons
+      const { resolveTokenAddress, resolveTokenByAddress, parseAmountToWei, formatAmountFromWei } = await import('../utils/botApiHelpers');
+      
+      // Get output token metadata for precise BigInt comparisons
+      const chainIdToName: Record<number, string> = {
+        1: 'ethereum',
+        8453: 'base',
+        137: 'polygon',
+        56: 'bsc',
+        42161: 'arbitrum',
+        10: 'optimism',
+        369: 'pulsechain',
+      };
+      
+      const chainName = chainIdToName[validatedRequest.chainId];
+      let toTokenMetadata;
+      if (chainName) {
+        if (validatedRequest.toToken.startsWith('0x') || validatedRequest.toToken.startsWith('0X')) {
+          toTokenMetadata = resolveTokenByAddress(validatedRequest.toToken, chainName);
+        } else {
+          toTokenMetadata = resolveTokenAddress(validatedRequest.toToken, chainName);
+        }
+      }
+      const toTokenDecimals = toTokenMetadata?.decimals || 18;
+      
       const quotes: DEXQuote[] = [];
 
       // Prioritize live 1inch API if available
@@ -122,19 +147,25 @@ export class EnhancedDEXAggregator {
         throw new Error('No DEX quotes available');
       }
 
-      // Find best quote by output amount
-      const bestQuote = quotes.reduce((best, current) => 
-        parseFloat(current.outputAmount) > parseFloat(best.outputAmount) ? current : best
-      );
+      // Find best quote by output amount using BigInt comparison (no parseFloat precision loss)
+      const bestQuote = quotes.reduce((best, current) => {
+        const bestWei = BigInt(parseAmountToWei(best.outputAmount, toTokenDecimals));
+        const currentWei = BigInt(parseAmountToWei(current.outputAmount, toTokenDecimals));
+        return currentWei > bestWei ? current : best;
+      });
 
-      // Calculate platform fee from output amount (user receives less, not pays more)
-      const inputAmount = parseFloat(validatedRequest.amount);
-      const fullOutputAmount = parseFloat(bestQuote.outputAmount);
-      const platformFeeFromOutput = fullOutputAmount * this.platformFeeRate;
-      const userReceivesAmount = fullOutputAmount - platformFeeFromOutput;
+      // Calculate platform fee from output amount using BigInt (user receives less, not pays more)
+      const fullOutputWei = BigInt(parseAmountToWei(bestQuote.outputAmount, toTokenDecimals));
+      const feeBasisPoints = BigInt(Math.floor(this.platformFeeRate * 10000));
+      const platformFeeWei = (fullOutputWei * feeBasisPoints) / BigInt(10000);
+      const userReceivesWei = fullOutputWei - platformFeeWei;
+      
+      // Convert back to human-readable amounts
+      const platformFeeFromOutput = formatAmountFromWei(platformFeeWei.toString(), toTokenDecimals);
+      const userReceivesAmount = formatAmountFromWei(userReceivesWei.toString(), toTokenDecimals);
       
       // Convert output fee to USD
-      const platformFeeUSD = await this.convertToUSD(platformFeeFromOutput.toString(), validatedRequest.toToken);
+      const platformFeeUSD = await this.convertToUSD(platformFeeFromOutput, validatedRequest.toToken);
 
       // Generate warnings
       const priceImpactWarning = bestQuote.priceImpact > this.maxPriceImpact;
@@ -145,19 +176,23 @@ export class EnhancedDEXAggregator {
 
       const aggregatedQuote: AggregatedQuote = {
         bestQuote,
-        allQuotes: quotes.sort((a, b) => parseFloat(b.outputAmount) - parseFloat(a.outputAmount)),
-        platformFee: platformFeeFromOutput.toString(),
+        allQuotes: quotes.sort((a, b) => {
+          const aWei = BigInt(parseAmountToWei(a.outputAmount, toTokenDecimals));
+          const bWei = BigInt(parseAmountToWei(b.outputAmount, toTokenDecimals));
+          return bWei > aWei ? 1 : bWei < aWei ? -1 : 0;
+        }),
+        platformFee: platformFeeFromOutput,
         platformFeeUSD,
-        totalOutputAfterFees: userReceivesAmount.toString(),
+        totalOutputAfterFees: userReceivesAmount,
         priceImpactWarning,
         slippageWarning,
         timestamp: new Date().toISOString(),
         feeCollectionInfo: {
           platformWallet: platformWallet,
           instructions: [
-            `Platform fee (${platformFeeFromOutput.toFixed(6)} ${validatedRequest.toToken} = $${platformFeeUSD}) deducted from output`,
+            `Platform fee (${parseFloat(platformFeeFromOutput).toFixed(6)} ${validatedRequest.toToken} = $${platformFeeUSD}) deducted from output`,
             `You send: ${validatedRequest.amount} ${validatedRequest.fromToken}`,
-            `You receive: ${userReceivesAmount.toFixed(6)} ${validatedRequest.toToken} (after 0.25% platform fee)`
+            `You receive: ${parseFloat(userReceivesAmount).toFixed(6)} ${validatedRequest.toToken} (after 0.75% platform fee)`
           ],
           required: true
         }
@@ -408,9 +443,11 @@ export class EnhancedDEXAggregator {
     }
     
     // Convert 0x's buyAmount (wei) to human-readable decimals for consistency with 1inch
-    // Default to 18 decimals if metadata not found (prevents wei string fallback)
-    const decimals = toTokenMetadata?.decimals || 18;
-    const outputAmountHumanReadable = formatAmountFromWei(data.buyAmount, decimals);
+    // Require metadata - if missing, skip this quote (safer than guessing decimals)
+    if (!toTokenMetadata) {
+      throw new Error(`Cannot normalize 0x quote: token ${request.toToken} metadata not found on chain ${chainName || request.chainId}. Add to TOKEN_METADATA or use address format.`);
+    }
+    const outputAmountHumanReadable = formatAmountFromWei(data.buyAmount, toTokenMetadata.decimals);
 
     return {
       dex: '0x Protocol',
@@ -730,7 +767,10 @@ export class EnhancedDEXAggregator {
     };
     
     const rate = conversionRates[token.toUpperCase()] || 1;
-    return (parseFloat(amount) * rate).toString();
+    // Use Number for USD conversion (maintains precision for display purposes)
+    const amountNum = Number(amount);
+    const usdValue = amountNum * rate;
+    return usdValue.toFixed(2);
   }
 
   /**

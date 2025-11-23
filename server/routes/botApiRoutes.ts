@@ -219,75 +219,9 @@ router.post('/dex/prepare', botPrepareLimit, async (req: Request, res: Response)
 
     const chainId = chainIdMapping[chain];
 
-    const tokenAddressMapping: Record<string, Record<string, string>> = {
-      '1': {
-        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        'WETH': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-        'USDC': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-        'USDT': '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-        'DAI': '0x6B175474E89094C44Da98b954EedeAC495271d0F',
-        'WBTC': '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599'
-      },
-      '8453': {
-        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        'WETH': '0x4200000000000000000000000000000000000006',
-        'USDC': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-        'USDbC': '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA',
-        'DAI': '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb'
-      },
-      '137': {
-        'MATIC': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        'WMATIC': '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270',
-        'USDC': '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-        'USDT': '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'
-      },
-      '42161': {
-        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        'WETH': '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1',
-        'USDC': '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
-        'USDT': '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9'
-      },
-      '10': {
-        'ETH': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        'WETH': '0x4200000000000000000000000000000000000006',
-        'USDC': '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
-        'USDT': '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
-        'DAI': '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
-        'WBTC': '0x68f180fcCe6836688e9084f035309E29Bf0A2095'
-      },
-      '56': {
-        'BNB': '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        'WBNB': '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
-        'USDC': '0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
-        'USDT': '0x55d398326f99059fF775485246999027B3197955'
-      }
-    };
-
-    function resolveTokenAddress(symbol: string, chainId: number): string {
-      if (symbol.startsWith('0x') || symbol.startsWith('0X')) {
-        return symbol;
-      }
-      
-      const chainAddresses = tokenAddressMapping[chainId.toString()];
-      if (!chainAddresses) {
-        throw new Error(`Chain ${chainId} not supported for client-executed swaps`);
-      }
-      
-      const address = chainAddresses[symbol.toUpperCase()];
-      if (!address) {
-        const supportedTokens = Object.keys(chainAddresses).join(', ');
-        throw new Error(`Token "${symbol}" not supported on chain ${chainId}. Supported tokens: ${supportedTokens}. Tip: You can also pass contract addresses directly (e.g., "0x...")`);
-      }
-      
-      return address;
-    }
-
-    const fromAddress = resolveTokenAddress(from, chainId);
-    const toAddress = resolveTokenAddress(to, chainId);
-
     const prepareResult = await EnhancedDEXAggregator.prepareSwapTransaction({
-      fromToken: fromAddress,
-      toToken: toAddress,
+      fromToken: from,
+      toToken: to,
       amount: amount,
       userAddress: userAddress,
       chainId: chainId,

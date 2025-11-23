@@ -347,6 +347,11 @@ export class EnhancedDEXAggregator {
   }
 
   /**
+   * Chains supported by 1inch API v6
+   */
+  private static readonly ONEINCH_SUPPORTED_CHAINS = [1, 56, 137, 10, 42161, 8453];
+
+  /**
    * Prepare swap transaction data for MetaMask execution with automatic fee collection
    */
   static async prepareSwapTransaction(request: z.infer<typeof swapExecuteSchema>): Promise<{
@@ -375,11 +380,12 @@ export class EnhancedDEXAggregator {
         outputToken: validatedRequest.toToken
       });
 
-      // Get original swap transaction from 1inch
+      // Get original swap transaction from 1inch (supports all chains except PulseChain)
       let originalTransaction;
-      if (validatedRequest.chainId === 1) {
+      if (this.ONEINCH_SUPPORTED_CHAINS.includes(validatedRequest.chainId)) {
         originalTransaction = await this.prepare1inchSwap(validatedRequest);
       } else {
+        // Fallback for PulseChain (369) only
         originalTransaction = this.prepareGenericSwap(validatedRequest);
       }
 
@@ -409,7 +415,7 @@ export class EnhancedDEXAggregator {
   }
 
   /**
-   * Prepare 1inch swap transaction
+   * Prepare 1inch swap transaction for any supported chain
    */
   private static async prepare1inchSwap(request: z.infer<typeof swapExecuteSchema>): Promise<any> {
     const apiKey = process.env.ONEINCH_API_KEY;
@@ -417,15 +423,29 @@ export class EnhancedDEXAggregator {
       throw new Error('1inch API key not configured');
     }
 
-    // Convert amount to wei if dealing with ETH
+    // Verify chain is supported
+    if (!this.ONEINCH_SUPPORTED_CHAINS.includes(request.chainId)) {
+      throw new Error(`1inch does not support chain ${request.chainId}`);
+    }
+
+    // Convert amount to wei if dealing with native token (ETH/BNB/MATIC/etc)
     let amount = request.amount;
-    if (request.fromToken.toUpperCase() === 'ETH') {
+    const isNativeToken = request.fromToken.toUpperCase() === 'ETH' || 
+                          request.fromToken.toUpperCase() === 'BNB' ||
+                          request.fromToken.toUpperCase() === 'MATIC';
+    
+    if (isNativeToken) {
       amount = (parseFloat(request.amount) * Math.pow(10, 18)).toString();
     }
 
+    // Native token address is same across all chains in 1inch
+    const srcAddress = isNativeToken ? 
+      '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : 
+      request.fromToken;
+
     const params = new URLSearchParams({
-      src: request.fromToken.toUpperCase() === 'ETH' ? '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : request.fromToken,
-      dst: request.toToken.toUpperCase() === 'USDC' ? '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48' : request.toToken,
+      src: srcAddress,
+      dst: request.toToken,
       amount: amount,
       from: request.userAddress,
       slippage: (request.maxSlippage || 5.0).toString(),
@@ -433,7 +453,7 @@ export class EnhancedDEXAggregator {
     });
 
     const response = await fetch(
-      `https://api.1inch.dev/swap/v6.0/1/swap?${params}`,
+      `https://api.1inch.dev/swap/v6.0/${request.chainId}/swap?${params}`,
       {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -444,7 +464,7 @@ export class EnhancedDEXAggregator {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`1inch swap API error: ${response.status} - ${errorText}`);
+      throw new Error(`1inch swap API error (chain ${request.chainId}): ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();

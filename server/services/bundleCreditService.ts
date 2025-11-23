@@ -64,10 +64,8 @@ export async function deductBundleCredits(
     await db.insert(serviceBundleUsage).values({
       subscriptionId,
       serviceSlug,
-      endpoint,
-      creditsDeducted: creditCost,
-      responseStatus,
-      requestMetadata: requestMetadata || {},
+      creditsCharged: creditCost,
+      responseStatus: responseStatus ? parseInt(responseStatus) : null,
     });
 
     return {

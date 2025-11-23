@@ -17,6 +17,13 @@ export function createPaymentOrchestrator(
   handler: (req: Request, res: Response) => Promise<void>
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
+    // Check if bundle subscription exists (set by bundleAuthMiddleware)
+    if (req.bundleSubscription) {
+      console.log(`🎫 Bundle subscription detected for ${serviceName}, executing handler directly`);
+      res.locals.payment = { method: "bundle-subscription", subscriptionId: req.bundleSubscription.id };
+      return await handler(req, res);
+    }
+
     const xPayment = req.headers["x-payment"] as string | undefined;
 
     // No payment header → let x402-express middleware generate the 402 response

@@ -80,6 +80,13 @@ export const TOKEN_METADATA: Record<string, Record<string, TokenMetadata>> = {
     DAI: { symbol: 'DAI', address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1', decimals: 18, isNative: false },
     WBTC: { symbol: 'WBTC', address: '0x68f180fcCe6836688e9084f035309E29Bf0A2095', decimals: 8, isNative: false },
   },
+  pulsechain: {
+    PLS: { symbol: 'PLS', address: NATIVE_TOKEN_ADDRESS, decimals: 18, isNative: true },
+    WPLS: { symbol: 'WPLS', address: '0xA1077a294dDE1B09bB078844df40758a5D0f9a27', decimals: 18, isNative: false },
+    PLSX: { symbol: 'PLSX', address: '0x95B303987A60C71504D99Aa1b13B4DA07b0790ab', decimals: 18, isNative: false },
+    HEX: { symbol: 'HEX', address: '0x2b591e99afE9f32eAA6214f7B7629768c40Eeb39', decimals: 8, isNative: false },
+    DAI: { symbol: 'DAI', address: '0xefD766cCb38EaF1dfd701853BFCe31359239F305', decimals: 18, isNative: false },
+  },
 };
 
 export function resolveTokenAddress(symbol: string, chain: string): TokenMetadata | null {

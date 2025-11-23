@@ -381,11 +381,42 @@ export class EnhancedDEXAggregator {
 
     const data = await response.json();
 
+    // Import helpers to convert 0x's wei output to human-readable decimals
+    const { resolveTokenAddress, resolveTokenByAddress, formatAmountFromWei } = await import('../utils/botApiHelpers');
+    
+    // Map chain ID to chain name
+    const chainIdToName: Record<number, string> = {
+      1: 'ethereum',
+      8453: 'base',
+      137: 'polygon',
+      56: 'bsc',
+      42161: 'arbitrum',
+      10: 'optimism',
+      369: 'pulsechain',
+    };
+    
+    const chainName = chainIdToName[request.chainId];
+    
+    // Resolve output token to get decimals (0x returns wei, need to convert to human-readable)
+    let toTokenMetadata;
+    if (chainName) {
+      if (request.toToken.startsWith('0x') || request.toToken.startsWith('0X')) {
+        toTokenMetadata = resolveTokenByAddress(request.toToken, chainName);
+      } else {
+        toTokenMetadata = resolveTokenAddress(request.toToken, chainName);
+      }
+    }
+    
+    // Convert 0x's buyAmount (wei) to human-readable decimals for consistency with 1inch
+    // Default to 18 decimals if metadata not found (prevents wei string fallback)
+    const decimals = toTokenMetadata?.decimals || 18;
+    const outputAmountHumanReadable = formatAmountFromWei(data.buyAmount, decimals);
+
     return {
       dex: '0x Protocol',
       inputAmount: request.amount,
-      outputAmount: data.buyAmount,
-      exchangeRate: parseFloat(data.buyAmount) / parseFloat(request.amount),
+      outputAmount: outputAmountHumanReadable,
+      exchangeRate: parseFloat(outputAmountHumanReadable) / parseFloat(request.amount),
       priceImpact: parseFloat(data.estimatedPriceImpact || '0') * 100,
       gasEstimate: data.estimatedGas || '120000',
       route: data.sources?.map((s: any) => s.name) || ['0x Router'],
@@ -440,17 +471,61 @@ export class EnhancedDEXAggregator {
     const validatedRequest = swapExecuteSchema.parse(request);
 
     try {
+      // Import helpers for precise BigInt calculations
+      const { resolveTokenAddress, resolveTokenByAddress, parseAmountToWei, formatAmountFromWei } = await import('../utils/botApiHelpers');
+      
       // Get quote first to calculate output-based fee
       const quote = await this.getAggregatedQuote(validatedRequest);
-      const fullOutputAmount = parseFloat(quote.bestQuote.outputAmount);
       
-      // Calculate platform fee from output (user receives less, doesn't pay more)
-      const outputFeeCalculation = SmartContractFeeRouter.calculateOutputBasedFee({
-        inputAmount: validatedRequest.amount,
-        outputAmount: fullOutputAmount.toString(),
-        platformFeeRate: this.platformFeeRate,
-        outputToken: validatedRequest.toToken
-      });
+      // Map chain ID to chain name for token metadata lookup
+      const chainIdToName: Record<number, string> = {
+        1: 'ethereum',
+        8453: 'base',
+        137: 'polygon',
+        56: 'bsc',
+        42161: 'arbitrum',
+        10: 'optimism',
+        369: 'pulsechain',
+      };
+      
+      const chainName = chainIdToName[validatedRequest.chainId];
+      
+      // Resolve output token metadata to get decimals for precise calculations
+      // Default to 18 decimals if metadata unavailable (graceful fallback)
+      let toTokenMetadata;
+      if (chainName) {
+        if (validatedRequest.toToken.startsWith('0x') || validatedRequest.toToken.startsWith('0X')) {
+          toTokenMetadata = resolveTokenByAddress(validatedRequest.toToken, chainName);
+        } else {
+          toTokenMetadata = resolveTokenAddress(validatedRequest.toToken, chainName);
+        }
+      }
+      
+      const toTokenDecimals = toTokenMetadata?.decimals || 18;
+      
+      // Convert human-readable output amount to wei for precise BigInt arithmetic
+      const fullOutputWei = BigInt(parseAmountToWei(quote.bestQuote.outputAmount, toTokenDecimals));
+      
+      // Calculate platform fee in wei (0.75% = 75 basis points / 10000)
+      const feeBasisPoints = BigInt(Math.floor(this.platformFeeRate * 10000));
+      const platformFeeWei = (fullOutputWei * feeBasisPoints) / BigInt(10000);
+      const userReceivesWei = fullOutputWei - platformFeeWei;
+      
+      // Convert back to human-readable amounts
+      const platformFeeAmount = formatAmountFromWei(platformFeeWei.toString(), toTokenDecimals);
+      const userReceivesAmount = formatAmountFromWei(userReceivesWei.toString(), toTokenDecimals);
+      
+      // Calculate USD value (simplified conversion rates)
+      const conversionRates: Record<string, number> = {
+        'USDC': 1, 'USDT': 1, 'DAI': 1, 'USDC.E': 1, 'USDBC': 1,
+        'ETH': 2000, 'WETH': 2000,
+        'WBTC': 35000,
+        'BNB': 300, 'WBNB': 300,
+        'MATIC': 0.8, 'WMATIC': 0.8
+      };
+      const tokenSymbol = toTokenMetadata?.symbol || validatedRequest.toToken;
+      const rate = conversionRates[tokenSymbol.toUpperCase()] || 1;
+      const platformFeeUSD = (parseFloat(platformFeeAmount) * rate).toFixed(2);
 
       // Get original swap transaction from 1inch (supports all chains except PulseChain)
       let originalTransaction;
@@ -468,15 +543,15 @@ export class EnhancedDEXAggregator {
         platformFeeIncluded: true,
         feeInfo: {
           platformWallet,
-          feeAmount: outputFeeCalculation.platformFeeAmount,
-          feeAmountUSD: outputFeeCalculation.platformFeeUSD,
+          feeAmount: platformFeeAmount,
+          feeAmountUSD: platformFeeUSD,
           automatic: true,
           token: validatedRequest.toToken
         },
         userInstructions: [
           `Send exactly: ${validatedRequest.amount} ${validatedRequest.fromToken}`,
-          `You receive: ${outputFeeCalculation.userReceivesAmount} ${validatedRequest.toToken}`,
-          `Platform fee: ${outputFeeCalculation.platformFeeAmount} ${validatedRequest.toToken} ($${outputFeeCalculation.platformFeeUSD})`,
+          `You receive: ${userReceivesAmount} ${validatedRequest.toToken}`,
+          `Platform fee: ${platformFeeAmount} ${validatedRequest.toToken} ($${platformFeeUSD})`,
           `Fee automatically deducted from your output - no extra payment needed`
         ]
       };

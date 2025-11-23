@@ -276,7 +276,7 @@ router.post('/dex/prepare', botPrepareLimit, async (req: Request, res: Response)
       const address = chainAddresses[symbol.toUpperCase()];
       if (!address) {
         const supportedTokens = Object.keys(chainAddresses).join(', ');
-        throw new Error(`Token "${symbol}" not supported on chain ${chainId}. Supported tokens: ${supportedTokens}. Tip: You can also pass contract addresses directly (e.g., "0x...")`.);
+        throw new Error(`Token "${symbol}" not supported on chain ${chainId}. Supported tokens: ${supportedTokens}. Tip: You can also pass contract addresses directly (e.g., "0x...")`);
       }
       
       return address;

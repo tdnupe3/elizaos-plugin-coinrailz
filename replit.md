@@ -42,7 +42,7 @@ The platform uses a dual-wallet system (Circle USDC and DeFi/MetaMask) and is st
 - **Blockchain Integration:** Multi-chain support for USDC (Ethereum, Polygon, Base, Arbitrum, BNB Chain) and integration with DEX aggregators. Comprehensive XRP Ledger ecosystem for trading, wallet management, and cross-border payments.
 - **Compliance:** Integrated KYC/AML with incentive dashboards and progressive KYC.
 - **Data Monetization:** APIs for crypto flow intelligence, AI marketplace analytics, and viral referral analytics.
-- **Bot-Optimized API Layer:** Server-executed swap endpoints (`/api/bot/dex/quote`, `/api/bot/dex/swap`) via Coinbase CDP, a `/bots` documentation portal, and a real-time intelligence feed (`/api/bot/intel`) using CoinGecko API for trending tokens and market data. Features Zod validation, rate limiting (50-100 req/min), and anonymous access.
+- **Bot-Optimized API Layer:** DUAL EXECUTION MODEL for DEX swaps - both server-executed (Coinbase CDP for convenience) and client-executed (1inch API + MetaMask for non-custodial control). Endpoints: `/api/bot/dex/quote` (pricing), `/api/bot/dex/swap` (server-executed), `/api/bot/dex/prepare` (client-executed transaction calldata), `/api/bot/gas` (real-time gas prices across all chains). Bot documentation portal at `/bots` explains both execution models with code examples. Real-time intelligence feed (`/api/bot/intel`) using CoinGecko API for trending tokens and market data. Features Zod validation, rate limiting (30-100 req/min), token symbol-to-address resolution, and anonymous access.
 
 ## External Dependencies
 - **Circle:** USDC wallet creation, management, balance tracking via Developer Controlled Wallets SDK.

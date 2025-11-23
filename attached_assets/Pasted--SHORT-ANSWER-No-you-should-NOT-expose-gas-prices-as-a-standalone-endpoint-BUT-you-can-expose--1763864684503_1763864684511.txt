@@ -1,0 +1,147 @@
+✅ SHORT ANSWER:
+
+No — you should NOT expose gas prices as a standalone endpoint.
+BUT you can expose "network congestion indicators" if you frame them properly.
+
+🧠 WHY NOT EXPOSE GAS PRICES?
+
+Your current architecture means:
+
+1. CDP abstracts all gas fees
+
+Users do not sign transactions.
+
+Users do not choose gas tiers (slow/fast/instant).
+
+Gas is bundled inside CDP’s platformFee, which they do pay.
+
+If you show gas prices, people will assume:
+
+They can choose higher fee tiers
+
+Faster execution is possible via “instant gas”
+
+They can optimize their swaps by adjusting gas
+
+But none of that is true.
+
+This violates your "absolute honesty" rule.
+
+🚫 BAD UX & MISLEADING OUTCOMES
+
+If you publish something like:
+
+{
+  slow: 8 gwei,
+  fast: 16 gwei,
+  instant: 25 gwei
+}
+
+
+Users will think:
+
+“If I choose instant gas, my tx will confirm faster.”
+
+But with CDP:
+
+Your server executes the transaction
+
+CDP always uses its own internal gas model
+
+User input has ZERO impact
+
+This creates false expectations → guaranteed support headaches.
+
+🟨 WHEN WOULD IT BE USEFUL TO EXPOSE ANY GAS DATA?
+
+ONLY if you present it as a read-only “network congestion indicator”
+and NOT tied to execution costs.
+
+Bots DO use network congestion to decide:
+
+When to trigger arbitrage
+
+When to run strategies
+
+When to monitor liquidity
+
+When to snipe
+
+When to throttle quote requests
+
+But they do not use gas tiers in CDP execution.
+
+✔ ACCURATE, HONEST ALTERNATIVE ENDPOINT (RECOMMENDED)
+/api/bot/network/congestion
+
+Returns high-level, non-actionable congestion data like:
+
+{
+  "chain": "ethereum",
+  "baseFeeGwei": 12.34,
+  "congestionLevel": "moderate",
+  "comment": "Execution gas is abstracted by Coinbase CDP and included in platform fees."
+}
+
+🧾 Important disclaimers (built into response)
+
+“Gas shown is informational only.”
+
+“Execution gas is handled internally by CDP.”
+
+“These values DO NOT reflect platform fees for your swap.”
+
+“Gas choices (slow/fast/instant) are not supported in the swap model.”
+
+This is honest, useful, and prevents any misunderstanding.
+
+🟩 SHOULD YOU CREATE A /gas PRICES ENDPOINT?
+
+No. Not in its raw form.
+It will inevitably mislead users—even advanced bot developers.
+
+🔥 SHOULD YOU CREATE A “NETWORK CONGESTION” ENDPOINT?
+
+Yes — this is the perfect compromise.
+
+It gives:
+
+Real on-chain data
+
+Real utility for bots
+
+No confusion about execution
+
+No simulator-like metrics
+
+100% transparency about how CDP handles gas
+
+And it positions Coin Railz as bot-optimized, without lying or overpromising.
+
+🟦 THE EXACT ENDPOINT I RECOMMEND
+GET /api/bot/network/congestion?chain=ethereum
+{
+  "chain": "ethereum",
+  "baseFeeGwei": 11.82,
+  "priorityFeeGwei": 1.25,
+  "congestionLevel": "low",
+  "note": "Execution gas and fee tiers are handled internally by Coinbase CDP. Values shown are informational only and do not affect execution costs."
+}
+
+Derived congestion levels:
+
+low → baseFee < 15
+
+moderate → 15–40
+
+high → 40–90
+
+extreme → >90
+
+(This is standard in infra dashboards.)
+
+🧩 CONCLUSION
+❌ Do NOT expose gas prices.
+✔ DO expose network congestion indicators.
+🟦 Include disclaimers so you remain perfectly honest.
+🔵 It will help bot developers WITHOUT misleading any end-users.

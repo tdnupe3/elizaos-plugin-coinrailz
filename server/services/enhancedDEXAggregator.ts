@@ -428,20 +428,20 @@ export class EnhancedDEXAggregator {
       throw new Error(`1inch does not support chain ${request.chainId}`);
     }
 
-    // Convert amount to wei if dealing with native token (ETH/BNB/MATIC/etc)
-    let amount = request.amount;
-    const isNativeToken = request.fromToken.toUpperCase() === 'ETH' || 
-                          request.fromToken.toUpperCase() === 'BNB' ||
-                          request.fromToken.toUpperCase() === 'MATIC';
+    // 1inch uses this special address for native tokens (ETH/BNB/MATIC) across all chains
+    const NATIVE_TOKEN_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
+    const isNativeToken = request.fromToken.toLowerCase() === NATIVE_TOKEN_ADDRESS.toLowerCase();
     
+    // Convert amount to wei if dealing with native token
+    let amount = request.amount;
     if (isNativeToken) {
-      amount = (parseFloat(request.amount) * Math.pow(10, 18)).toString();
+      // Convert to wei as clean integer string (no decimals, no scientific notation)
+      const weiAmount = parseFloat(request.amount) * Math.pow(10, 18);
+      amount = Math.floor(weiAmount).toString();
     }
 
-    // Native token address is same across all chains in 1inch
-    const srcAddress = isNativeToken ? 
-      '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE' : 
-      request.fromToken;
+    // Use the token address as-is (already resolved by caller)
+    const srcAddress = request.fromToken;
 
     const params = new URLSearchParams({
       src: srcAddress,

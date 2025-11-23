@@ -447,7 +447,8 @@ router.get('/health', (req: Request, res: Response) => {
     },
     chains: ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'],
     executionModel: 'server-executed (Coinbase CDP)',
-    dataProviders: ['CoinGecko', 'Coinbase CDP'],
+    dataProviders: ['CoinGecko', 'DEXScreener', 'Coinbase CDP'],
+    note: 'Gas costs included in CDP platformFee. Separate /gas endpoint removed to prevent confusion.',
     uptime: process.uptime(),
     timestamp: Date.now()
   });

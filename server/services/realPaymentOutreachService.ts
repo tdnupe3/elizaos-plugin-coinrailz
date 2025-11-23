@@ -17,7 +17,7 @@ export class RealPaymentOutreachService {
   private platformWallet: ethers.Wallet | null = null;
 
   constructor() {
-    this.xmtpService = new XMTPMessagingService();
+    this.xmtpService = XMTPMessagingService.getInstance();
     this.provider = new ethers.JsonRpcProvider('https://mainnet.base.org');
   }
 

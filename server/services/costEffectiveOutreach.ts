@@ -213,7 +213,7 @@ Interested in monetizing AI services? Reply for free setup help!`;
       let xmtpService;
       try {
         const { XMTPMessagingService } = await import('../services/xmtpMessagingService');
-        xmtpService = new XMTPMessagingService();
+        xmtpService = XMTPMessagingService.getInstance();
       } catch (importError) {
         console.error('❌ Failed to import XMTP service:', importError);
         return {

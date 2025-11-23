@@ -382,7 +382,7 @@ Would love your thoughts on the implementation patterns!
       const { CoinbaseAgentEcosystemService } = await import('./services/coinbaseAgentEcosystemService');
       const { AgentDiscoveryService } = await import('./services/agentDiscoveryService');
       
-      const xmtpService = new XMTPMessagingService();
+      const xmtpService = XMTPMessagingService.getInstance();
       const coinbaseService = new CoinbaseAgentEcosystemService();
       const discoveryService = AgentDiscoveryService.getInstance();
       
@@ -599,7 +599,7 @@ Time-sensitive opportunity for quantum computing pioneers. Can we schedule an em
       const { AgentDiscoveryService } = await import('./services/agentDiscoveryService');
       const { CommunicationOrchestrator } = await import('./services/communicationOrchestrator');
       
-      const xmtpService = new XMTPMessagingService();
+      const xmtpService = XMTPMessagingService.getInstance();
       const coinbaseService = new CoinbaseAgentEcosystemService();
       const discoveryService = AgentDiscoveryService.getInstance();
       const orchestrator = new CommunicationOrchestrator();
@@ -1597,7 +1597,7 @@ Payment: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
       console.log('📡 LAUNCHING REAL XMTP MASS OUTREACH');
       
       const { XMTPMessagingService } = await import('./services/xmtpMessagingService');
-      const xmtpService = new XMTPMessagingService();
+      const xmtpService = XMTPMessagingService.getInstance();
       
       // Use hardcoded agent addresses for immediate outreach
       const targetAgents = [

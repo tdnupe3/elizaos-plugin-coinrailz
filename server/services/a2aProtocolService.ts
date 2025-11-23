@@ -64,7 +64,7 @@ class A2AProtocolService {
 
   constructor() {
     this.communicationOrchestrator = new CommunicationOrchestrator();
-    this.xmtpService = new XMTPMessagingService();
+    this.xmtpService = XMTPMessagingService.getInstance();
   }
 
   // Database persistence methods

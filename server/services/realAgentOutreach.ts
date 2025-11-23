@@ -21,7 +21,7 @@ export class RealAgentOutreach {
   private discordReady = false;
 
   constructor() {
-    this.xmtpService = new XMTPMessagingService();
+    this.xmtpService = XMTPMessagingService.getInstance();
     this.initializeDiscord();
   }
 

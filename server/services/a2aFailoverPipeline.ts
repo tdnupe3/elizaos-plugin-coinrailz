@@ -44,7 +44,7 @@ export class A2AFailoverPipeline {
   
   constructor() {
     this.communicationOrchestrator = new CommunicationOrchestrator();
-    this.xmtpService = new XMTPMessagingService();
+    this.xmtpService = XMTPMessagingService.getInstance();
     
     console.log('🔄 A2A Failover Pipeline V2.0 initialized');
     

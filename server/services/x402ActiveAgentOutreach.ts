@@ -13,7 +13,7 @@ export class X402ActiveAgentOutreach {
   private xmtpService: XMTPMessagingService;
   
   constructor() {
-    this.xmtpService = new XMTPMessagingService();
+    this.xmtpService = XMTPMessagingService.getInstance();
   }
 
   /**

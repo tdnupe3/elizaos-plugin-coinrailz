@@ -60,7 +60,7 @@ export class AutomatedOutreachService {
 
     // Initialize XMTP messaging service for REAL wallet outreach
     try {
-      this.xmtpService = new XMTPMessagingService();
+      this.xmtpService = XMTPMessagingService.getInstance();
       console.log('✅ XMTP messaging service initialized for real outreach');
     } catch (error) {
       console.log('❌ XMTP service initialization failed:', error);

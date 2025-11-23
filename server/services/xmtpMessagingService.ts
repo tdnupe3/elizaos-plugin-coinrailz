@@ -23,6 +23,9 @@ export interface XMTPConversation {
 }
 
 export class XMTPMessagingService {
+  private static instance: XMTPMessagingService | null = null;
+  private static initializationCount = 0;
+  
   private xmtpClient: Client | null = null;
   private platformWalletAddress: string | null = null;
   private platformWalletSigner: ethers.Wallet | null = null;
@@ -32,9 +35,27 @@ export class XMTPMessagingService {
   
   private initPromise: Promise<void> | null = null;
   
-  constructor() {
+  /**
+   * Singleton pattern - prevents multiple concurrent initializations
+   */
+  private constructor() {
+    XMTPMessagingService.initializationCount++;
+    console.log(`🔧 XMTPMessagingService instantiation #${XMTPMessagingService.initializationCount}`);
     this.cdpService = CoinbaseCDPService.getInstance();
     this.initPromise = this.initialize();
+  }
+  
+  /**
+   * Get singleton instance - ensures only one XMTP client exists process-wide
+   */
+  public static getInstance(): XMTPMessagingService {
+    if (!XMTPMessagingService.instance) {
+      console.log('🆕 Creating NEW XMTPMessagingService singleton instance');
+      XMTPMessagingService.instance = new XMTPMessagingService();
+    } else {
+      console.log('♻️ Reusing EXISTING XMTPMessagingService singleton instance');
+    }
+    return XMTPMessagingService.instance;
   }
   
   /**
@@ -111,38 +132,67 @@ export class XMTPMessagingService {
       // Create XMTP client with proper signer interface  
       const xmtpWalletAddress = this.platformWalletSigner.address;
       
-      // Clear any existing corrupted database with proper locking
+      // XMTP database path and cleanup
       const dbPath = `/tmp/xmtp_db_${xmtpWalletAddress}`;
+      const dbWalPath = `${dbPath}.db-wal`;
+      const dbShmPath = `${dbPath}.db-shm`;
+      
+      // Helper function to completely remove XMTP database files (WAL/SHM included)
+      const removeXMTPDatabase = async () => {
+        const fs = await import('fs');
+        const filesToRemove = [dbPath, dbWalPath, dbShmPath];
+        
+        for (const file of filesToRemove) {
+          try {
+            if (fs.existsSync(file)) {
+              fs.rmSync(file, { recursive: true, force: true });
+              console.log(`🗑️ Removed: ${file}`);
+            }
+          } catch (err) {
+            console.log(`⚠️ Could not remove ${file}:`, (err as Error).message);
+          }
+        }
+      };
+      
+      // Only clean database if we detect potential corruption
+      // (First initialization or after previous error)
+      let shouldCleanDatabase = false;
+      
       try {
         const fs = await import('fs');
-        const path = await import('path');
         
-        // Wait a bit if database is in use
-        let retries = 3;
-        while (retries > 0) {
-          try {
-            if (fs.existsSync(dbPath)) {
-              // Close any file descriptors that might be holding the database
+        // Check if database exists - if yes, might be corrupted from previous run
+        if (fs.existsSync(dbPath)) {
+          console.log('🔍 Found existing XMTP database - checking for corruption...');
+          shouldCleanDatabase = true;
+        }
+        
+        // Clean database files with retry logic if needed
+        if (shouldCleanDatabase) {
+          let retries = 3;
+          while (retries > 0) {
+            try {
+              // Force garbage collection to close file handles
               if (global.gc) global.gc();
+              await new Promise(resolve => setTimeout(resolve, 100));
               
-              // Remove database files with retry logic
-              fs.rmSync(dbPath, { recursive: true, force: true });
-              console.log('🗑️ Cleared existing XMTP database to prevent encryption conflicts');
-            }
-            break;
-          } catch (dbError: any) {
-            if (dbError?.message?.includes('EBUSY') || dbError?.message?.includes('lock')) {
-              retries--;
-              console.log(`⏳ Database busy, retrying... (${retries} attempts left)`);
-              await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-              throw dbError;
+              await removeXMTPDatabase();
+              console.log('✅ Database cleanup complete - ready for fresh initialization');
+              break;
+            } catch (dbError: any) {
+              if (dbError?.message?.includes('EBUSY') || dbError?.message?.includes('lock')) {
+                retries--;
+                console.log(`⏳ Database busy, retrying cleanup... (${retries} attempts left)`);
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } else {
+                console.log('⚠️ Database cleanup failed:', dbError.message);
+                break;
+              }
             }
           }
         }
       } catch (error) {
-        console.log('ℹ️ Could not clear database, continuing with fallback mode');
-        // Don't throw - continue without XMTP if database issues
+        console.log('ℹ️ Database cleanup skipped, will attempt initialization anyway');
       }
       
       // Generate consistent encryption key based on wallet address (deterministic)
@@ -904,4 +954,4 @@ export class XMTPMessagingService {
 }
 
 // Singleton instance for global use
-export const xmtpMessagingService = new XMTPMessagingService();
+export const xmtpMessagingService = XMTPMessagingService.getInstance();

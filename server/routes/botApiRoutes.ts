@@ -7,10 +7,47 @@
 import { Router, Request, Response } from 'express';
 import { coinbaseCDPService } from '../services/coinbaseCDPService';
 import { coinGeckoPricingService } from '../services/pricing/CoinGeckoPricingService';
+import { dexScreenerService } from '../services/dexScreenerService';
 import { z } from 'zod';
-import { applyRateLimit } from '../middleware/rateLimiting';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// Bot API rate limiters
+const botQuoteLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const botSwapLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const botIntelLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const botPairsLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const botPriceLimit = rateLimit({
+  windowMs: 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Validation schemas
 const quoteSchema = z.object({
@@ -36,7 +73,7 @@ const swapSchema = z.object({
  * Unlike 0x/1inch which return transaction calldata for client execution,
  * we execute swaps via Coinbase CDP on behalf of users.
  */
-router.get('/dex/quote', applyRateLimit(50, 60000), async (req: Request, res: Response) => {
+router.get('/dex/quote', botQuoteLimit, async (req: Request, res: Response) => {
   try {
     const validated = quoteSchema.parse(req.query);
     const { from, to, amount, chain } = validated;
@@ -98,7 +135,7 @@ router.get('/dex/quote', applyRateLimit(50, 60000), async (req: Request, res: Re
  * NOTE: This endpoint executes trades via Coinbase CDP and returns transaction hash.
  * For bots that need raw transaction calldata (0x/1inch style), use our SDK instead.
  */
-router.post('/dex/swap', applyRateLimit(20, 60000), async (req: Request, res: Response) => {
+router.post('/dex/swap', botSwapLimit, async (req: Request, res: Response) => {
   try {
     const validated = swapSchema.parse(req.body);
     const { from, to, amount, walletAddress, chain, slippage } = validated;
@@ -162,7 +199,7 @@ router.post('/dex/swap', applyRateLimit(20, 60000), async (req: Request, res: Re
  * - Alchemy RPC (on-chain whale detection when available)
  * - Internal analytics (high-volume pairs)
  */
-router.get('/intel', applyRateLimit(100, 60000), async (req: Request, res: Response) => {
+router.get('/intel', botIntelLimit, async (req: Request, res: Response) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string || '10'), 50);
     const chain = req.query.chain as string || 'all';
@@ -284,45 +321,67 @@ async function fetchHighVolumePairs(limit: number) {
 }
 
 /**
- * GET /api/bot/pairs - Get list of available trading pairs
+ * GET /api/bot/pairs - Get real on-chain trading pairs from DEXScreener
  * Essential for bots to know what assets are tradeable
  * 
- * NOTE: Returns curated list of commonly tradeable pairs on each chain.
- * Actual pair availability confirmed at quote/swap time by Coinbase CDP.
+ * DATA SOURCE: Real on-chain pairs from DEXScreener API (free, 300 req/min, 80+ chains)
+ * Returns actual pairs with >$10K liquidity, sorted by liquidity
  */
-router.get('/pairs', applyRateLimit(100, 60000), async (req: Request, res: Response) => {
+router.get('/pairs', botPairsLimit, async (req: Request, res: Response) => {
   try {
     const chain = req.query.chain as string;
+    
+    const supportedChains = ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism', 'bsc'];
+    
+    if (chain && !supportedChains.includes(chain)) {
+      return res.status(400).json({
+        error: 'Unsupported chain',
+        supportedChains
+      });
+    }
 
-    const pairsByChain: Record<string, string[]> = {
-      ethereum: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT', 'WBTC/ETH', 'WBTC/USDC'],
-      base: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT'],
-      polygon: ['MATIC/USDC', 'ETH/USDC', 'USDC/USDT', 'WBTC/USDC'],
-      arbitrum: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT', 'WBTC/ETH'],
-      optimism: ['ETH/USDC', 'ETH/USDT', 'USDC/USDT'],
-      bsc: ['BNB/USDC', 'BNB/USDT', 'ETH/USDC', 'USDC/USDT']
-    };
+    if (chain) {
+      const pairs = await dexScreenerService.getPairsByChain(chain);
+      
+      res.json({
+        success: true,
+        chain,
+        pairs: pairs.map(p => `${p.base}/${p.quote}`),
+        pairDetails: pairs.map(p => ({
+          pair: `${p.base}/${p.quote}`,
+          dex: p.dex,
+          liquidity: p.liquidity,
+          volume24h: p.volume24h
+        })),
+        totalPairs: pairs.length,
+        dataSource: 'DEXScreener API (real on-chain data)',
+        minLiquidity: 10000,
+        timestamp: Date.now()
+      });
+    } else {
+      const allPairs = await dexScreenerService.getAllPairs();
+      const uniquePairs = Array.from(new Set(
+        Object.values(allPairs).flat().map(p => `${p.base}/${p.quote}`)
+      )).sort();
 
-    const allPairs = Object.values(pairsByChain).flat();
-    const uniquePairs = [...new Set(allPairs)];
-
-    const response = chain && pairsByChain[chain]
-      ? { chain, pairs: pairsByChain[chain] }
-      : { pairs: uniquePairs, byChain: pairsByChain };
-
-    res.json({
-      success: true,
-      ...response,
-      totalPairs: chain ? pairsByChain[chain].length : uniquePairs.length,
-      note: 'Curated list of common pairs. Actual availability confirmed at swap time by Coinbase CDP.',
-      executionModel: 'server-executed',
-      timestamp: Date.now()
-    });
+      res.json({
+        success: true,
+        pairs: uniquePairs,
+        byChain: Object.entries(allPairs).reduce((acc, [chain, pairs]) => {
+          acc[chain] = pairs.map(p => `${p.base}/${p.quote}`);
+          return acc;
+        }, {} as Record<string, string[]>),
+        totalPairs: uniquePairs.length,
+        dataSource: 'DEXScreener API (real on-chain data)',
+        minLiquidity: 10000,
+        timestamp: Date.now()
+      });
+    }
 
   } catch (error: any) {
     console.error('❌ Pairs Lookup Error:', error);
     res.status(500).json({
-      error: 'Failed to get trading pairs',
+      error: 'Failed to get trading pairs from DEXScreener',
       message: error.message
     });
   }
@@ -332,7 +391,7 @@ router.get('/pairs', applyRateLimit(100, 60000), async (req: Request, res: Respo
  * GET /api/bot/price - Get current price for a token
  * Essential for bots to check balances and calculate profitability
  */
-router.get('/price', applyRateLimit(50, 60000), async (req: Request, res: Response) => {
+router.get('/price', botPriceLimit, async (req: Request, res: Response) => {
   try {
     const token = (req.query.token as string)?.toUpperCase();
     

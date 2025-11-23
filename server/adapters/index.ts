@@ -9,10 +9,15 @@ import { A2ARegistryAdapter } from './a2aRegistryAdapter';
 import { OnchainLookupsAdapter } from './onchainLookupsAdapter';
 import { SocialScrapingAdapter } from './socialScrapingAdapter';
 import { PlatformAdapter } from './platformAdapter';
+import { X402BazaarAdapter } from './x402BazaarAdapter';
 
 // Initialize and register all adapters
 export function initializeDiscoveryAdapters(): void {
   console.log('🔧 Initializing and registering discovery adapters...');
+
+  // x402 Bazaar Adapter - REAL paying agents from Coinbase official Bazaar
+  const bazaarAdapter = new X402BazaarAdapter();
+  agentDiscoveryService.registerAdapter('x402-bazaar', bazaarAdapter);
 
   // A2A Registry Adapter - Connects to A2A protocol registries
   const a2aAdapter = new A2ARegistryAdapter();
@@ -32,11 +37,12 @@ export function initializeDiscoveryAdapters(): void {
 
   console.log('✅ All discovery adapters registered successfully!');
   console.log(`📊 Total expected yield: ${
+    bazaarAdapter.expectedYield +
     a2aAdapter.expectedYield + 
     onchainAdapter.expectedYield + 
     socialAdapter.expectedYield + 
     platformAdapter.expectedYield
-  } agents per discovery run`);
+  } agents per discovery run (including ${bazaarAdapter.expectedYield} REAL paying agents from Coinbase Bazaar)`);
 
   // Start the discovery scheduler
   agentDiscoveryService.startScheduler();
@@ -45,6 +51,7 @@ export function initializeDiscoveryAdapters(): void {
 
 // Export individual adapters for testing
 export {
+  X402BazaarAdapter,
   A2ARegistryAdapter,
   OnchainLookupsAdapter,
   SocialScrapingAdapter,

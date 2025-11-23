@@ -19,7 +19,7 @@ interface CoinGeckoPriceResponse {
   [key: string]: CoinGeckoPrice;
 }
 
-type SupportedAsset = 'ethereum' | 'solana' | 'usd-coin' | 'tether' | 'ripple' | 'binancecoin';
+type SupportedAsset = 'ethereum' | 'solana' | 'usd-coin' | 'tether' | 'ripple' | 'binancecoin' | 'bitcoin' | 'matic-network';
 
 const ASSET_MAP: Record<string, SupportedAsset> = {
   'ETH': 'ethereum',
@@ -27,7 +27,9 @@ const ASSET_MAP: Record<string, SupportedAsset> = {
   'USDC': 'usd-coin',
   'USDT': 'tether',
   'XRP': 'ripple',
-  'BNB': 'binancecoin'
+  'BNB': 'binancecoin',
+  'BTC': 'bitcoin',
+  'MATIC': 'matic-network'
 };
 
 class CoinGeckoPricingService {
@@ -253,7 +255,9 @@ class CoinGeckoPricingService {
       'USDC': 1,
       'USDT': 1,
       'XRP': 0.6,
-      'BNB': 600
+      'BNB': 600,
+      'BTC': 100000, // Current approximate
+      'MATIC': 0.4   // Current approximate
     };
     return emergencyPrices[asset.toUpperCase()] || 0;
   }

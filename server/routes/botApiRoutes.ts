@@ -350,7 +350,7 @@ router.get('/price', applyRateLimit(50, 60000), async (req: Request, res: Respon
       return res.status(404).json({
         error: 'Token not found',
         token,
-        note: 'Supported tokens: ETH, BTC, SOL, BNB, MATIC, USDC, USDT'
+        note: 'Supported tokens: ETH, BTC, SOL, BNB, MATIC, XRP, USDC, USDT'
       });
     }
 

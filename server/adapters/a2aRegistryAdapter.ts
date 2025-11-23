@@ -150,34 +150,52 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
       try {
         console.log(`🔍 Checking A2A registry: ${registryUrl}`);
         
-        const response = await this.safeFetch(registryUrl, {
+        // CRITICAL FIX: Use native fetch with redirect: 'follow' to handle 301 redirects
+        const response = await fetch(registryUrl, {
+          method: 'GET',
           headers: {
             'Accept': 'application/json',
             'User-Agent': 'CoinRailz-A2A-Platform/1.0'
-          }
-        }, 15000);
+          },
+          redirect: 'follow', // Follow HTTP redirects (www.a2aregistry.org → a2aregistry.org)
+          signal: AbortSignal.timeout(15000)
+        });
         
         if (response.ok) {
-          const data = await this.safeJsonParse(response);
+          let data;
+          try {
+            data = await response.json();
+          } catch (parseError) {
+            console.error(`❌ JSON parse error for ${registryUrl}:`, (parseError as Error).message);
+            continue; // Skip to next registry
+          }
           
           // Handle different registry formats
           if (data && typeof data === 'object') {
             let agentList: any[] = [];
             
-            // Format 1: Direct array of agents
-            if (Array.isArray(data)) {
-              agentList = data;
-            }
-            // Format 2: Object with 'agents' or 'data' key
-            else if (data.agents && Array.isArray(data.agents)) {
+            // Format 1: a2aregistry.org format - { agents: [...] }
+            if (data.agents && Array.isArray(data.agents)) {
               agentList = data.agents;
+              console.log(`📦 Found ${agentList.length} agents in 'agents' array`);
             }
+            // Format 2: api.a2a-registry.dev REST format - direct array
+            else if (Array.isArray(data)) {
+              agentList = data;
+              console.log(`📦 Found ${agentList.length} agents in direct array`);
+            }
+            // Format 3: Generic 'data' wrapper
             else if (data.data && Array.isArray(data.data)) {
               agentList = data.data;
+              console.log(`📦 Found ${agentList.length} agents in 'data' array`);
             }
-            // Format 3: Object with 'registry' key
+            // Format 4: 'registry' wrapper
             else if (data.registry && Array.isArray(data.registry)) {
               agentList = data.registry;
+              console.log(`📦 Found ${agentList.length} agents in 'registry' array`);
+            }
+            else {
+              console.log(`⚠️ Unknown registry format for ${registryUrl}, data keys:`, Object.keys(data));
             }
             
             // Process discovered agents
@@ -211,11 +229,18 @@ export class A2ARegistryAdapter extends BaseDiscoveryAdapter {
               }
             }
             
-            console.log(`✅ Found ${agentList.length} agents from ${registryUrl}`);
+            console.log(`✅ Successfully parsed ${agentList.length} agents from ${registryUrl}`);
           }
+        } else {
+          console.log(`⚠️ HTTP ${response.status} for ${registryUrl}`);
         }
       } catch (error) {
-        console.log(`⚠️ Registry ${registryUrl} not available:`, (error as Error).message);
+        const err = error as Error;
+        if (err.name === 'AbortError') {
+          console.log(`⏰ Timeout fetching ${registryUrl}`);
+        } else {
+          console.log(`❌ Error fetching ${registryUrl}:`, err.message);
+        }
       }
       
       // Rate limit between registries

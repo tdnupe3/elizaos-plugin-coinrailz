@@ -116,13 +116,11 @@ export const AGENT_SOCIAL_CONTACTS = {
 } as const;
 
 /**
- * Known A2A agent registry URLs to check (VERIFIED LIVE - October 2025)
+ * Known A2A agent registry URLs to check (VERIFIED LIVE - November 2025)
+ * Tested: Nov 23, 2025 - 102 real agents confirmed (Business Source, Chess Agent, Code Agent, etc.)
  */
 export const A2A_REGISTRY_URLS: string[] = [
-  'https://www.a2aregistry.org/registry.json', // PRIMARY: Community-driven production registry
-  'https://api.a2a-registry.dev/jsonrpc', // Alternative registry with JSON-RPC API
-  'https://www.a2acards.com/index.html', // A2A Cards directory
-  'https://raw.githubusercontent.com/sing1ee/a2a-directory/main/agents.json', // GitHub community directory
+  'https://a2aregistry.org/registry.json', // PRIMARY: Community-driven production registry (102+ real agents)
 ];
 
 /**

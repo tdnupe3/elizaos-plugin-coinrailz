@@ -61,11 +61,11 @@ export default function BotPortal() {
 
 # Check available pairs
 pairs = requests.get("https://coinrailz.com/api/bot/pairs?chain=base").json()
-print(f"Available pairs: \\{pairs['pairs']\\}")
+print(f"Available pairs: {pairs['pairs']}")
 
 # Get current ETH price
 price = requests.get("https://coinrailz.com/api/bot/price?token=ETH").json()
-print(f"ETH price: $\\{price['price']\\}")
+print(f"ETH price: ${price['price']}")
 
 # Get quote
 quote = requests.get("https://coinrailz.com/api/bot/dex/quote", params={
@@ -74,8 +74,8 @@ quote = requests.get("https://coinrailz.com/api/bot/dex/quote", params={
     "amount": "1.0",
     "chain": "base"
 }).json()
-print(f"Rate: \\{quote['exchangeRate']\\} USDC per ETH")
-print(f"Platform fee: \\{quote['platformFee']\\}")
+print(f"Rate: {quote['exchangeRate']} USDC per ETH")
+print(f"Platform fee: {quote['platformFee']}")
 
 # Execute swap (CDP handles gas)
 swap = requests.post("https://coinrailz.com/api/bot/dex/swap", json={
@@ -85,7 +85,7 @@ swap = requests.post("https://coinrailz.com/api/bot/dex/swap", json={
     "walletAddress": "0xYourWallet",
     "chain": "base"
 }).json()
-print(f"Tx hash: \\{swap['transactionHash']\\}")`}
+print(f"Tx hash: {swap['transactionHash']}")`}
                   </pre>
                 </div>
               </TabsContent>

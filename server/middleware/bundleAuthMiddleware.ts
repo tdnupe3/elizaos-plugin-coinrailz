@@ -105,22 +105,34 @@ export async function bundleAuthMiddleware(
 }
 
 // Service cost mapping (in credits)
+// Based on Professional tier pricing ($0.165/credit) aligned with pay-per-call USDC costs
 export const SERVICE_CREDIT_COSTS: Record<string, number> = {
-  // Trading Intelligence Bundle Services
-  "dex-quote": 1,
-  "dex-swap": 2,
-  "gas-prices": 1,
-  "trending-tokens": 2,
+  // Trading Intelligence Bundle Services (1-5 credits, avg $0.30/call)
+  "gas-price-oracle": 1,        // $0.10 → 1 credit
+  "token-metadata": 1,           // $0.10 → 1 credit
+  "dex-liquidity": 1,            // $0.20 → 1 credit
+  "token-price": 2,              // $0.25 → 2 credits
+  "token-sentiment": 2,          // $0.25 → 2 credits
+  "transaction-builder": 2,      // $0.30 → 2 credits
+  "whale-alerts": 2,             // $0.35 → 2 credits
+  "batch-quote": 2,              // $0.40 → 2 credits
+  "trending-tokens": 3,          // $0.50 → 3 credits
+  "multi-chain-balance": 3,      // $0.50 → 3 credits
+  "portfolio-tracker": 3,        // $0.50 → 3 credits
+  "trade-signals": 5,            // $0.75 → 5 credits
   
-  // Security Bundle Services
-  "smart-contract-audit": 10,
-  "wallet-analysis": 5,
-  "token-security": 3,
+  // Security & Compliance Bundle Services (3-61 credits, avg $1.50/call)
+  "approval-manager": 1,         // $0.20 → 1 credit
+  "wallet-risk": 3,              // $0.50 → 3 credits
+  "contract-scan": 6,            // $1.00 → 6 credits
+  "compliance-consultation": 30, // $5.00 → 30 credits
+  "smart-contract-audit": 61,    // $10.00 → 61 credits
   
-  // Payments Bundle Services
-  "payment-routing": 2,
-  "payment-status": 1,
-  "invoice-generation": 1,
+  // Payments & Execution Bundle Services (3-30 credits, avg $1.20/call)
+  "payment-processing": 3,       // $0.50 → 3 credits
+  "instant-agent-wallet": 6,     // $1.00 → 6 credits
+  "seamless-chain-bridge": 12,   // $2.00 → 12 credits
+  "verified-agent-identity": 30, // $5.00 → 30 credits
 };
 
 export function getServiceCreditCost(serviceSlug: string, endpoint: string): number {

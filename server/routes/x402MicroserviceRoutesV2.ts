@@ -37,6 +37,29 @@ import { deductBundleCredits } from "../services/bundleCreditService";
 
 const router = Router();
 
+// Helper function to track bundle credits after successful service execution
+async function trackBundleUsage(
+  req: Request,
+  res: Response,
+  serviceSlug: string,
+  requestMetadata?: Record<string, any>
+) {
+  if (req.bundleSubscription) {
+    const deductionResult = await deductBundleCredits(
+      req.bundleSubscription.id,
+      serviceSlug,
+      serviceSlug,
+      "200",
+      requestMetadata || {}
+    );
+    if (deductionResult.success) {
+      res.setHeader("X-Bundle-Credits-Used", deductionResult.creditsDeducted.toString());
+      res.setHeader("X-Bundle-Credits-Remaining", deductionResult.creditsRemaining.toString());
+      res.setHeader("X-Payment-Method", "bundle-subscription");
+    }
+  }
+}
+
 // Apply analytics and interaction tracking to all x402 routes
 router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);
@@ -991,22 +1014,7 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("multi-chain-balance", req.body, result, responseTime, SERVICE_PRICING["multi-chain-balance"], walletAddress);
-    
-    // Deduct bundle credits if subscription exists
-    if (req.bundleSubscription) {
-      const deductionResult = await deductBundleCredits(
-        req.bundleSubscription.id,
-        "multi-chain-balance",
-        "multi-chain-balance",
-        "200",
-        { walletAddress, chains }
-      );
-      if (deductionResult.success) {
-        res.setHeader("X-Bundle-Credits-Used", deductionResult.creditsDeducted.toString());
-        res.setHeader("X-Bundle-Credits-Remaining", deductionResult.creditsRemaining.toString());
-        res.setHeader("X-Payment-Method", "bundle-subscription");
-      }
-    }
+    await trackBundleUsage(req, res, "multi-chain-balance", { walletAddress, chains });
     
     res.json(result);
   } catch (error: any) {
@@ -1031,22 +1039,7 @@ const gasPriceOracleHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("gas-price-oracle", req.body, result, responseTime, SERVICE_PRICING["gas-price-oracle"], req.ip || "unknown");
-    
-    // Deduct bundle credits if subscription exists
-    if (req.bundleSubscription) {
-      const deductionResult = await deductBundleCredits(
-        req.bundleSubscription.id,
-        "gas-price-oracle",
-        "gas-price-oracle",
-        "200",
-        { chains }
-      );
-      if (deductionResult.success) {
-        res.setHeader("X-Bundle-Credits-Used", deductionResult.creditsDeducted.toString());
-        res.setHeader("X-Bundle-Credits-Remaining", deductionResult.creditsRemaining.toString());
-        res.setHeader("X-Payment-Method", "bundle-subscription");
-      }
-    }
+    await trackBundleUsage(req, res, "gas-price-oracle", { chains });
     
     res.json(result);
   } catch (error: any) {
@@ -1076,6 +1069,7 @@ const tokenPriceHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("token-price", req.body, result, responseTime, SERVICE_PRICING["token-price"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "token-price", { tokenAddress, chain });
     
     res.json(result);
   } catch (error: any) {
@@ -1105,6 +1099,7 @@ const contractScanHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("contract-scan", req.body, result, responseTime, SERVICE_PRICING["contract-scan"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "contract-scan", { contractAddress, chain });
     
     res.json(result);
   } catch (error: any) {
@@ -1134,6 +1129,7 @@ const walletRiskHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("wallet-risk", req.body, result, responseTime, SERVICE_PRICING["wallet-risk"], walletAddress);
+    await trackBundleUsage(req, res, "wallet-risk", { walletAddress, chain });
     
     res.json(result);
   } catch (error: any) {
@@ -1157,6 +1153,7 @@ const tradeSignalsHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("trade-signals", req.body, result, responseTime, SERVICE_PRICING["trade-signals"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "trade-signals", { token, timeframe, riskLevel });
     
     res.json(result);
   } catch (error: any) {
@@ -1186,6 +1183,7 @@ const tokenSentimentHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("token-sentiment", req.body, result, responseTime, SERVICE_PRICING["token-sentiment"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "token-sentiment", req.body);
     
     res.json(result);
   } catch (error: any) {
@@ -1209,6 +1207,7 @@ const trendingTokensHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("trending-tokens", req.body, result, responseTime, SERVICE_PRICING["trending-tokens"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "trending-tokens", { timeframe, chain });
     
     res.json(result);
   } catch (error: any) {
@@ -1232,6 +1231,7 @@ const whaleAlertsHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("whale-alerts", req.body, result, responseTime, SERVICE_PRICING["whale-alerts"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "whale-alerts", { chains, minValueUsd });
     
     res.json(result);
   } catch (error: any) {
@@ -1261,6 +1261,7 @@ const dexLiquidityHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("dex-liquidity", req.body, result, responseTime, SERVICE_PRICING["dex-liquidity"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "dex-liquidity", { tokenAddress, chain });
     
     res.json(result);
   } catch (error: any) {
@@ -1289,6 +1290,7 @@ const transactionBuilderHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("transaction-builder", req.body, result, responseTime, SERVICE_PRICING["transaction-builder"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "transaction-builder", validationResult.data);
     
     res.json(result);
   } catch (error: any) {
@@ -1318,6 +1320,7 @@ const tokenMetadataHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("token-metadata", req.body, result, responseTime, SERVICE_PRICING["token-metadata"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "token-metadata", { tokenAddress, chain });
     
     res.json(result);
   } catch (error: any) {
@@ -1346,6 +1349,7 @@ const approvalManagerHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("approval-manager", req.body, result, responseTime, SERVICE_PRICING["approval-manager"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "approval-manager", validationResult.data);
     
     res.json(result);
   } catch (error: any) {
@@ -1374,6 +1378,7 @@ const batchQuoteHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("batch-quote", req.body, result, responseTime, SERVICE_PRICING["batch-quote"], req.ip || "unknown");
+    await trackBundleUsage(req, res, "batch-quote", validationResult.data);
     
     res.json(result);
   } catch (error: any) {
@@ -1403,6 +1408,7 @@ const portfolioTrackerHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("portfolio-tracker", req.body, result, responseTime, SERVICE_PRICING["portfolio-tracker"], walletAddress);
+    await trackBundleUsage(req, res, "portfolio-tracker", { walletAddress, chains });
     
     res.json(result);
   } catch (error: any) {
@@ -1432,6 +1438,7 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("instant-agent-wallet", req.body, result, responseTime, SERVICE_PRICING["instant-agent-wallet"], result.walletAddress);
+    await trackBundleUsage(req, res, "instant-agent-wallet", { agentId });
     
     res.json(result);
   } catch (error: any) {
@@ -1461,6 +1468,7 @@ const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("verified-agent-identity", req.body, result, responseTime, SERVICE_PRICING["verified-agent-identity"], walletAddress);
+    await trackBundleUsage(req, res, "verified-agent-identity", { agentId, walletAddress });
     
     res.json(result);
   } catch (error: any) {
@@ -1493,6 +1501,7 @@ const seamlessChainBridgeHandler = async (req: Request, res: Response) => {
     const responseTime = Date.now() - startTime;
     
     await trackRequest("seamless-chain-bridge", req.body, result, responseTime, SERVICE_PRICING["seamless-chain-bridge"], fromAddress);
+    await trackBundleUsage(req, res, "seamless-chain-bridge", { fromChain, toChain, amount });
     
     res.json(result);
   } catch (error: any) {
@@ -1535,6 +1544,8 @@ const smartContractAuditHandler = async (req: Request, res: Response) => {
       contractCode,
       contractName: contractName || 'Contract',
     });
+
+    await trackBundleUsage(req, res, "smart-contract-audit", { contractName });
 
     res.json({
       success: true,
@@ -1583,6 +1594,8 @@ const paymentProcessingHandler = async (req: Request, res: Response) => {
       },
     });
 
+    await trackBundleUsage(req, res, "payment-processing", { amount, currency, network });
+
     res.json({
       success: true,
       result,
@@ -1628,6 +1641,8 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
         transactionVolume: transactionVolume || 0,
       },
     });
+
+    await trackBundleUsage(req, res, "compliance-consultation", { businessType, jurisdiction });
 
     res.json({
       success: true,

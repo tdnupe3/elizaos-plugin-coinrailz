@@ -21,24 +21,32 @@ const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2
 // Updated 2025-11-17: Aligned with Telegram Mini-App advertised pricing
 // CRITICAL: USDC has 6 decimals, so $1.00 = 1,000,000 micro-USDC
 const SERVICE_PRICING: Record<string, number> = {
-  "multi-chain-balance": 500000, // $0.50 in micro-USDC (6 decimals) - Used for portfolio
+  // Trading Intelligence Services ($0.10-$0.75)
   "gas-price-oracle": 100000, // $0.10
+  "token-metadata": 100000, // $0.10
+  "dex-liquidity": 200000, // $0.20
+  "approval-manager": 200000, // $0.20
   "token-price": 250000, // $0.25
-  "contract-scan": 1000000, // $1.00
+  "token-sentiment": 250000, // $0.25
+  "transaction-builder": 300000, // $0.30
+  "whale-alerts": 350000, // $0.35
+  "batch-quote": 400000, // $0.40
+  "multi-chain-balance": 500000, // $0.50
+  "trending-tokens": 500000, // $0.50
+  "portfolio-tracker": 500000, // $0.50
   "wallet-risk": 500000, // $0.50
   "trade-signals": 750000, // $0.75
-  "token-sentiment": 250000, // $0.25
-  "trending-tokens": 500000, // $0.50
-  "whale-alerts": 350000, // $0.35
-  "dex-liquidity": 200000, // $0.20
-  "transaction-builder": 300000, // $0.30
-  "token-metadata": 100000, // $0.10
-  "approval-manager": 200000, // $0.20
-  "batch-quote": 400000, // $0.40
-  "portfolio-tracker": 500000, // $0.50
+  
+  // Execution & Infrastructure Services ($0.50-$2.00)
+  "payment-processing": 500000, // $0.50 - ADDED (was missing)
+  "contract-scan": 1000000, // $1.00
   "instant-agent-wallet": 1000000, // $1.00
-  "verified-agent-identity": 5000000, // $5.00
   "seamless-chain-bridge": 2000000, // $2.00
+  
+  // Premium Services ($5.00-$10.00)
+  "verified-agent-identity": 5000000, // $5.00
+  "compliance-consultation": 5000000, // $5.00 - ADDED (was missing)
+  "smart-contract-audit": 10000000, // $10.00 - ADDED (was missing)
 };
 
 interface TransactionReceipt {

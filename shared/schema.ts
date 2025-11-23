@@ -4369,3 +4369,77 @@ export const apiKeysSelectSchema = createSelectSchema(apiKeys);
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof apiKeysInsertSchema>;
 
+// Service Bundle Subscriptions - Track AI agent bundle purchases
+export const serviceBundleSubscriptions = pgTable("service_bundle_subscriptions", {
+  id: serial("id").primaryKey(),
+  bundleId: varchar("bundle_id").notNull(), // trading-intelligence, security-compliance, payments-execution
+  tier: varchar("tier").notNull(), // starter, professional, enterprise
+  subscriberId: varchar("subscriber_id").notNull(), // Agent wallet address or user ID
+  subscriberType: varchar("subscriber_type").notNull().default("agent"), // agent, user
+  status: varchar("status").notNull().default("active"), // active, paused, cancelled, expired
+  creditsTotal: integer("credits_total").notNull(), // Total credits allocated per billing cycle
+  creditsUsed: integer("credits_used").notNull().default(0), // Credits consumed this cycle
+  creditsRemaining: integer("credits_remaining").notNull(), // Calculated: creditsTotal - creditsUsed
+  monthlyPrice: decimal("monthly_price", { precision: 10, scale: 2 }).notNull(),
+  paymentMethod: varchar("payment_method").notNull(), // x402, stripe, circle, coinbase
+  paymentAddress: varchar("payment_address"), // Wallet address for crypto payments
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  startDate: timestamp("start_date").notNull().defaultNow(),
+  currentPeriodStart: timestamp("current_period_start").notNull().defaultNow(),
+  currentPeriodEnd: timestamp("current_period_end").notNull(),
+  nextBillingDate: timestamp("next_billing_date"),
+  cancelledAt: timestamp("cancelled_at"),
+  email: varchar("email"),
+  metadata: jsonb("metadata"), // Additional subscription metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_bundle_subscriptions_bundle_id").on(table.bundleId),
+  index("IDX_bundle_subscriptions_subscriber").on(table.subscriberId),
+  index("IDX_bundle_subscriptions_status").on(table.status),
+  index("IDX_bundle_subscriptions_stripe_sub").on(table.stripeSubscriptionId),
+]);
+
+// Service Bundle Usage Tracking - Track individual service calls against bundle credits
+export const serviceBundleUsage = pgTable("service_bundle_usage", {
+  id: serial("id").primaryKey(),
+  subscriptionId: integer("subscription_id").notNull().references(() => serviceBundleSubscriptions.id),
+  serviceSlug: varchar("service_slug").notNull(), // gas-price-oracle, token-price, etc
+  creditsCharged: integer("credits_charged").notNull().default(1), // Usually 1 credit per call
+  requestMethod: varchar("request_method"), // GET, POST
+  requestPath: varchar("request_path"),
+  responseStatus: integer("response_status"),
+  responseTime: integer("response_time"), // milliseconds
+  ipAddress: varchar("ip_address"),
+  userAgent: varchar("user_agent"),
+  timestamp: timestamp("timestamp").defaultNow(),
+}, (table) => [
+  index("IDX_bundle_usage_subscription").on(table.subscriptionId),
+  index("IDX_bundle_usage_service").on(table.serviceSlug),
+  index("IDX_bundle_usage_timestamp").on(table.timestamp),
+]);
+
+// Service Bundle Subscriptions Insert/Select Schemas
+export const serviceBundleSubscriptionsInsertSchema = createInsertSchema(serviceBundleSubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const serviceBundleSubscriptionsSelectSchema = createSelectSchema(serviceBundleSubscriptions);
+
+export type ServiceBundleSubscription = typeof serviceBundleSubscriptions.$inferSelect;
+export type InsertServiceBundleSubscription = z.infer<typeof serviceBundleSubscriptionsInsertSchema>;
+
+// Service Bundle Usage Insert/Select Schemas
+export const serviceBundleUsageInsertSchema = createInsertSchema(serviceBundleUsage).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const serviceBundleUsageSelectSchema = createSelectSchema(serviceBundleUsage);
+
+export type ServiceBundleUsage = typeof serviceBundleUsage.$inferSelect;
+export type InsertServiceBundleUsage = z.infer<typeof serviceBundleUsageInsertSchema>;
+

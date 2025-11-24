@@ -11,7 +11,6 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
-import { persistDiscoveredAgent, getAgentByURL } from '../storage/discoveredAgentsStorage';
 
 const router = Router();
 

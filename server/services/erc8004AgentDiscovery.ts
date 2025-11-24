@@ -3,7 +3,6 @@ import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { ERC8004_CONTRACTS, IDENTITY_REGISTRY_ABI } from '../config/blockchain';
-import { persistDiscoveredAgent } from '../storage/discoveredAgentsStorage';
 
 interface AgentRegistration {
   tokenId: number;

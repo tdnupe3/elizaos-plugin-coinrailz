@@ -16,7 +16,6 @@ import { eq, and, or, sql, desc, asc, inArray } from 'drizzle-orm';
 import { CommunicationOrchestrator } from './communicationOrchestrator';
 import cron from 'node-cron';
 import Redis from 'ioredis';
-import { normalizeURL } from '../utils/urlCanonicalizer';
 
 // Discovery Adapter Interface
 export interface DiscoveryAdapter {
@@ -566,34 +565,22 @@ export class AgentDiscoveryService {
     chunk: DiscoveredAgentRaw[],
     adapterId: string
   ): Promise<{ newAgents: number; duplicates: number }> {
-    // PHASE 1: Pre-select existing URLs with dual-column lookup (migration-safe)
-    const normalizedUrls = chunk.map(a => normalizeURL(a.url)).filter(Boolean) as string[];
-    const rawUrls = chunk.map(a => a.url.trim().toLowerCase()).filter(Boolean);
-    
+    // PHASE 1: Pre-select existing URLs for reliable accounting (replaces xmax trick)
+    const urls = chunk.map(agent => this.normalizeUrl(agent.url));
     const existingAgents = await db
-      .select({ url: discoveredAgents.url, canonicalUrl: discoveredAgents.canonicalUrl })
+      .select({ url: discoveredAgents.url })
       .from(discoveredAgents)
-      .where(
-        or(
-          inArray(discoveredAgents.canonicalUrl, normalizedUrls),
-          inArray(discoveredAgents.url, normalizedUrls),
-          inArray(discoveredAgents.url, rawUrls)
-        )
-      );
+      .where(inArray(discoveredAgents.url, urls));
+    
+    const existingUrls = new Set(existingAgents.map(agent => agent.url));
     
     // Separate true source from adapterId for analytics
     const agentDataArray = chunk.map(rawAgent => {
-      const canonicalUrl = normalizeURL(rawAgent.url);
-      if (!canonicalUrl) {
-        console.warn(`⚠️ Skipping agent with invalid URL: ${rawAgent.url}`);
-        return null;
-      }
-      
+      const normalizedUrl = this.normalizeUrl(rawAgent.url);
       const trueSource = this.extractTrueSource(rawAgent, adapterId);
       
       return {
-        url: canonicalUrl, // IMPORTANT: Use normalized URL for existing unique index
-        canonicalUrl, // Also store in canonical column for future migration
+        url: normalizedUrl,
         source: trueSource, // Store true source (registry/ENS) separate from adapterId 
         channels: rawAgent.channels || {},
         wallet: rawAgent.wallet,
@@ -606,24 +593,15 @@ export class AgentDiscoveryService {
         attempts: 0,
         successCount: 0
       };
-    }).filter(agent => agent !== null);
-    
-    // GUARD: Skip insert if all URLs were invalid
-    if (agentDataArray.length === 0) {
-      console.warn(`⚠️ All ${chunk.length} agents had invalid URLs, skipping insert`);
-      return { newAgents: 0, duplicates: chunk.length };
-    }
+    });
 
     // PHASE 2: Perform bulk upsert with proper JSONB merge
-    // NOTE: Still using url for conflict until canonicalUrl unique index is created
-    // After migration, this will be changed to use canonicalUrl
     const result = await db
       .insert(discoveredAgents)
       .values(agentDataArray)
       .onConflictDoUpdate({
-        target: discoveredAgents.url, // TODO: Change to canonicalUrl after unique index created
+        target: discoveredAgents.url,
         set: {
-          canonicalUrl: sql`EXCLUDED.canonical_url`, // Update canonical URL on conflict
           lastSeenAt: sql`NOW()`,
           // Proper JSONB merge for metadata (not simple overwrite)
           metadata: sql`${discoveredAgents.metadata} || EXCLUDED.metadata`,
@@ -643,11 +621,9 @@ export class AgentDiscoveryService {
       })
       .returning({ url: discoveredAgents.url });
 
-    // Reliable accounting aligned to filtered data
-    const attempted = agentDataArray.length;
-    const existingSet = new Set(existingAgents.map(a => a.canonicalUrl ?? a.url));
-    const insertedCount = agentDataArray.filter(a => !existingSet.has(a.canonicalUrl ?? a.url)).length;
-    const duplicateCount = attempted - insertedCount + (chunk.length - attempted); // Includes invalid URLs as duplicates
+    // Reliable accounting: Count by comparing with pre-selected existing URLs
+    const insertedCount = chunk.filter(agent => !existingUrls.has(this.normalizeUrl(agent.url))).length;
+    const duplicateCount = chunk.length - insertedCount;
 
     return { 
       newAgents: insertedCount, 
@@ -656,11 +632,34 @@ export class AgentDiscoveryService {
   }
 
   /**
-   * NORMALIZE URL - Now uses shared URL canonicalizer utility
-   * @deprecated Use normalizeURL from '../utils/urlCanonicalizer' directly
+   * NORMALIZE URL to prevent duplicate variants
+   * Handles trailing slashes, protocol variations, case sensitivity
    */
   private normalizeUrl(url: string): string {
-    return normalizeURL(url) || url;
+    if (!url) return url;
+    
+    try {
+      // Convert to lowercase for consistency
+      let normalized = url.toLowerCase().trim();
+      
+      // Add https:// if no protocol specified
+      if (!normalized.match(/^https?:\/\//)) {
+        normalized = 'https://' + normalized;
+      }
+      
+      // Remove trailing slash
+      if (normalized.endsWith('/') && normalized.length > 8) {
+        normalized = normalized.slice(0, -1);
+      }
+      
+      // Remove www. prefix for consistency
+      normalized = normalized.replace(/\/\/www\./, '//');
+      
+      return normalized;
+    } catch (error) {
+      // If URL parsing fails, return original
+      return url.toLowerCase().trim();
+    }
   }
 
   /**

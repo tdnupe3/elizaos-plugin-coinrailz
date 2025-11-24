@@ -3,7 +3,6 @@ import * as cheerio from 'cheerio';
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { sql } from 'drizzle-orm';
-import { persistDiscoveredAgent } from '../storage/discoveredAgentsStorage';
 
 interface X402Agent {
   name: string;

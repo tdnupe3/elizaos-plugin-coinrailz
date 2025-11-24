@@ -2,7 +2,6 @@ import axios from 'axios';
 import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
-import { persistDiscoveredAgent } from '../storage/discoveredAgentsStorage';
 
 interface X402Transaction {
   senderAddress: string;

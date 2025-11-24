@@ -134,25 +134,25 @@ export const SERVICE_CREDIT_COSTS: Record<string, number> = {
   "seamless-chain-bridge": 12,   // $2.00 → 12 credits
   "verified-agent-identity": 30, // $5.00 → 30 credits
   
-  // VERTICAL EXPANSION: Real Estate Services (30-91 credits, professional tier)
-  "property-valuation": 30,       // $5.00 → 30 credits
-  "lease-analysis": 48,           // $8.00 → 48 credits
-  "construction-progress": 91,    // $15.00 → 91 credits
+  // VERTICAL EXPANSION: Real Estate Services (5-9 credits, market-competitive tier)
+  "property-valuation": 5,        // $0.75 → 5 credits
+  "lease-analysis": 6,            // $1.00 → 6 credits
+  "construction-progress": 9,     // $1.50 → 9 credits
   
-  // VERTICAL EXPANSION: Banking/Finance Services (42-91 credits, professional tier)
-  "credit-risk-score": 73,        // $12.00 → 73 credits
-  "fraud-detection": 42,          // $7.00 → 42 credits
-  "compliance-check": 91,         // $15.00 → 91 credits
+  // VERTICAL EXPANSION: Banking/Finance Services (5-11 credits, market-competitive tier)
+  "fraud-detection": 5,           // $0.75 → 5 credits
+  "credit-risk-score": 8,         // $1.25 → 8 credits
+  "compliance-check": 11,         // $1.75 → 11 credits
   
-  // VERTICAL EXPANSION: Trading/Investment Services (36-91 credits, professional tier)
-  "trading-signal": 61,           // $10.00 → 61 credits
-  "portfolio-optimization": 91,   // $15.00 → 91 credits
-  "sentiment-analysis": 36,       // $6.00 → 36 credits
+  // VERTICAL EXPANSION: Trading/Investment Services (3-12 credits, market-competitive tier)
+  "sentiment-analysis": 3,        // $0.50 → 3 credits
+  "trading-signal": 6,            // $1.00 → 6 credits
+  "portfolio-optimization": 12,   // $2.00 → 12 credits
   
-  // VERTICAL EXPANSION: Market Intelligence Services (48-73 credits, professional tier)
-  "arbitrage-scanner": 73,        // $12.00 → 73 credits
-  "correlation-matrix": 48,       // $8.00 → 48 credits
-  "risk-metrics": 61,             // $10.00 → 61 credits
+  // VERTICAL EXPANSION: Market Intelligence Services (5-8 credits, market-competitive tier)
+  "correlation-matrix": 5,        // $0.75 → 5 credits
+  "risk-metrics": 6,              // $1.00 → 6 credits
+  "arbitrage-scanner": 8,         // $1.25 → 8 credits
 };
 
 export function getServiceCreditCost(serviceSlug: string, endpoint: string): number {

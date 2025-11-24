@@ -6,6 +6,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { SERVICE_PRICING_USD } from '@shared/pricing';
 
 const router = Router();
 
@@ -1051,7 +1052,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             marketAnalysis: { type: "string", title: "Market Analysis" }
           }
         },
-        pricing: { amount: 0.50, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["property-valuation"], currency: "USD" },
         category: "real_estate"
       },
       {
@@ -1075,7 +1076,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             recommendation: { type: "string", title: "AI Recommendation" }
           }
         },
-        pricing: { amount: 0.75, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["lease-analysis"], currency: "USD" },
         category: "real_estate"
       },
       {
@@ -1101,7 +1102,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             progressReport: { type: "string", title: "AI Progress Report" }
           }
         },
-        pricing: { amount: 1.00, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["construction-progress"], currency: "USD" },
         category: "real_estate"
       },
       // BANKING/FINANCE VERTICAL (3 services)
@@ -1127,7 +1128,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             recommendation: { type: "string", title: "Lending Recommendation" }
           }
         },
-        pricing: { amount: 0.50, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["credit-risk-score"], currency: "USD" },
         category: "banking"
       },
       {
@@ -1150,7 +1151,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             recommendation: { type: "string", enum: ["approve", "review", "decline"], title: "Action" }
           }
         },
-        pricing: { amount: 0.25, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["fraud-detection"], currency: "USD" },
         category: "banking"
       },
       {
@@ -1173,7 +1174,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             riskLevel: { type: "string", enum: ["low", "medium", "high"], title: "Risk Level" }
           }
         },
-        pricing: { amount: 0.40, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["compliance-check"], currency: "USD" },
         category: "banking"
       },
       // TRADING/INVESTMENT VERTICAL (3 services)
@@ -1200,7 +1201,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             stopLoss: { type: "number", title: "Stop Loss" }
           }
         },
-        pricing: { amount: 1.00, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["trading-signal"], currency: "USD" },
         category: "trading"
       },
       {
@@ -1225,7 +1226,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             riskMetrics: { type: "object", title: "Risk Analysis" }
           }
         },
-        pricing: { amount: 1.50, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["portfolio-optimization"], currency: "USD" },
         category: "trading"
       },
       {
@@ -1249,7 +1250,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             volumeChange: { type: "number", title: "Mention Volume Change %" }
           }
         },
-        pricing: { amount: 0.20, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["sentiment-analysis"], currency: "USD" },
         category: "trading"
       },
       // MARKET INTELLIGENCE VERTICAL (3 services)
@@ -1274,7 +1275,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             totalOpportunities: { type: "number", title: "Total Found" }
           }
         },
-        pricing: { amount: 0.75, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["arbitrage-scanner"], currency: "USD" },
         category: "intelligence"
       },
       {
@@ -1297,7 +1298,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             diversificationScore: { type: "number", title: "Portfolio Diversification Score" }
           }
         },
-        pricing: { amount: 0.50, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["correlation-matrix"], currency: "USD" },
         category: "intelligence"
       },
       {
@@ -1322,7 +1323,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
             riskGrade: { type: "string", enum: ["A", "B", "C", "D", "F"], title: "Overall Risk Grade" }
           }
         },
-        pricing: { amount: 0.60, currency: "USD" },
+        pricing: { amount: SERVICE_PRICING_USD["risk-metrics"], currency: "USD" },
         category: "intelligence"
       }
     ],

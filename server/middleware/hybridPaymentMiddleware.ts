@@ -3,8 +3,8 @@ import { ethers } from "ethers";
 import jwt from "jsonwebtoken";
 import { nanoid } from "nanoid";
 import { db } from "../db";
-import { usedTransactionHashes, x402Payments } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { usedTransactionHashes, x402Payments, x402PaymentIntents } from "@shared/schema";
+import { eq, and, or, sql } from "drizzle-orm";
 import { creditsService } from "../services/creditsService.js";
 
 // Alchemy provider for Base mainnet
@@ -257,10 +257,43 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
     const decoded = Buffer.from(xPayment, 'base64').toString('utf-8');
     const parsed = JSON.parse(decoded);
     
-    if (parsed.txHash) {
-      console.log("🔓 Decoded Base64 JSON payment proof");
-      txHash = parsed.txHash;
-      paymentAmount = parsed.amount;
+    // ARCHITECT FIX: Validate decoded payload structure
+    if (parsed && typeof parsed === 'object') {
+      // Validate txHash field
+      if (parsed.txHash && typeof parsed.txHash === 'string') {
+        // Validate hex format
+        if (!/^0x[a-fA-F0-9]{64}$/.test(parsed.txHash)) {
+          console.log(`❌ Invalid txHash format in Base64 JSON: ${parsed.txHash}`);
+          return res.status(400).json({
+            error: "Invalid payment proof format",
+            message: "txHash must be a valid 0x-prefixed hex string"
+          });
+        }
+        
+        txHash = parsed.txHash;
+        console.log("🔓 Decoded Base64 JSON payment proof");
+        
+        // Validate amount field (optional)
+        if (parsed.amount !== undefined) {
+          if (typeof parsed.amount !== 'number' || parsed.amount < 0) {
+            console.log(`❌ Invalid amount in Base64 JSON: ${parsed.amount}`);
+            return res.status(400).json({
+              error: "Invalid payment proof format",
+              message: "amount must be a positive number"
+            });
+          }
+          paymentAmount = parsed.amount;
+        }
+        
+        // Validate network field (optional, but must match if present)
+        if (parsed.network && parsed.network !== 'base') {
+          console.log(`❌ Invalid network in Base64 JSON: ${parsed.network}`);
+          return res.status(400).json({
+            error: "Invalid payment proof format",
+            message: "network must be 'base' for this service"
+          });
+        }
+      }
     }
   } catch {
     // Not Base64 JSON - treat as raw transaction hash
@@ -335,7 +368,15 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
 }
 
 /**
- * Verify a transaction on Base mainnet
+ * Verify a transaction on Base mainnet using Payment Intent Ledger Pattern
+ * ARCHITECT-APPROVED: Implements durable payment state with retry support
+ * 
+ * Flow:
+ * 1. Check for existing payment intent (SUCCEEDED blocks replay, FAILED allows retry)
+ * 2. Create PENDING intent before verification
+ * 3. Verify transaction on-chain
+ * 4. Return true if verified (handler will mark SUCCEEDED after completion)
+ * 
  * EXPORTED for use by payment orchestrator
  */
 export async function verifyTransactionPayment(
@@ -343,20 +384,63 @@ export async function verifyTransactionPayment(
   serviceName: string,
   requiredAmount: number
 ): Promise<boolean> {
+  const MAX_RETRIES = 3;
+  const INTENT_TTL_MS = 15 * 60 * 1000; // 15 minutes
+  
   try {
-    // Check if transaction hash has already been used
-    const existingUsage = await db
+    // STEP 1: Check for existing payment intent
+    const existingIntents = await db
       .select()
-      .from(usedTransactionHashes)
-      .where(eq(usedTransactionHashes.txHash, txHash))
+      .from(x402PaymentIntents)
+      .where(
+        and(
+          eq(x402PaymentIntents.txHash, txHash),
+          eq(x402PaymentIntents.serviceName, serviceName)
+        )
+      )
       .limit(1);
-
-    if (existingUsage.length > 0) {
-      console.log(`⚠️ Transaction hash already used: ${txHash}`);
-      return false;
+    
+    const existingIntent = existingIntents[0];
+    const now = new Date();
+    
+    if (existingIntent) {
+      // Check if intent is SUCCEEDED - block replay
+      if (existingIntent.status === "SUCCEEDED") {
+        console.log(`⚠️ Payment intent already SUCCEEDED for ${txHash} + ${serviceName}`);
+        return false;
+      }
+      
+      // Check if intent is expired
+      if (existingIntent.expiresAt && existingIntent.expiresAt < now) {
+        console.log(`⏰ Payment intent expired for ${txHash}, cleaning up...`);
+        // Clean up expired intent
+        await db.delete(x402PaymentIntents).where(eq(x402PaymentIntents.id, existingIntent.id));
+        // Continue to create new intent below
+      }
+      // Check if intent is FAILED and within retry limit
+      else if (existingIntent.status === "FAILED" || existingIntent.status === "ALLOW_RETRY") {
+        if (existingIntent.retries >= MAX_RETRIES) {
+          console.log(`❌ Max retries exceeded for ${txHash} + ${serviceName}`);
+          return false;
+        }
+        console.log(`🔄 Allowing retry ${existingIntent.retries + 1}/${MAX_RETRIES} for ${txHash}`);
+        // Will update to PENDING below
+      }
+      // Check if intent is PENDING (concurrent request)
+      else if (existingIntent.status === "PENDING") {
+        // Check if it's been pending for too long (likely stale)
+        const pendingDuration = now.getTime() - existingIntent.createdAt.getTime();
+        if (pendingDuration > 60000) { // 1 minute
+          console.log(`⚠️ Stale PENDING intent detected, allowing retry`);
+          // Will update to PENDING below with new timestamp
+        } else {
+          console.log(`⏳ Payment intent already PENDING for ${txHash}, rejecting concurrent request`);
+          return false;
+        }
+      }
     }
 
-    // Get transaction receipt from Base mainnet
+    // STEP 2: Verify transaction on-chain BEFORE creating/updating intent
     const receipt = await provider.getTransactionReceipt(txHash);
     
     if (!receipt) {
@@ -365,13 +449,11 @@ export async function verifyTransactionPayment(
     }
 
     if (receipt.status !== 1) {
-      console.log(`❌ Transaction failed: ${txHash}`);
+      console.log(`❌ Transaction failed on-chain: ${txHash}`);
       return false;
     }
 
     // Parse USDC Transfer event logs
-    // Transfer event signature: Transfer(address,address,uint256)
-    // Topic 0: keccak256("Transfer(address,address,uint256)")
     const transferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
     
     let paymentFound = false;
@@ -379,21 +461,15 @@ export async function verifyTransactionPayment(
     let senderAddress = "";
 
     for (const log of receipt.logs) {
-      // Check if this is a USDC Transfer event
       if (
         log.address.toLowerCase() === USDC_BASE.toLowerCase() &&
         log.topics[0] === transferEventSignature &&
         log.topics.length >= 3
       ) {
-        // Topic 1: from address (padded to 32 bytes)
-        // Topic 2: to address (padded to 32 bytes)
-        // Data: amount (uint256)
-        
-        const toAddress = "0x" + log.topics[2].slice(26); // Remove padding
+        const toAddress = "0x" + log.topics[2].slice(26);
         const fromAddress = "0x" + log.topics[1].slice(26);
         
         if (toAddress.toLowerCase() === PLATFORM_WALLET.toLowerCase()) {
-          // Payment to our wallet found!
           const amountHex = log.data;
           paymentAmount = parseInt(amountHex, 16);
           senderAddress = fromAddress;
@@ -418,42 +494,176 @@ export async function verifyTransactionPayment(
       return false;
     }
 
-    // Payment is valid! Mark transaction as used to prevent replay
-    await db.insert(usedTransactionHashes).values({
-      txHash,
-      network: "base",
-      serviceName,
-      amount: paymentAmount.toString(),
-      paidBy: senderAddress,
-    });
-
-    // ARCHITECT FIX: Also record to x402_payments table for analytics and tracking
-    await db.insert(x402Payments).values({
-      id: nanoid(),
-      agentId: senderAddress,
-      customerId: senderAddress, // Agent is also the customer in this case
-      amount: (paymentAmount / 1e6).toString(), // Convert from micro-USDC to USDC
-      currency: "USDC",
-      status: "completed",
-      x402TransactionId: txHash,
-      walletAddress: senderAddress,
-      network: "base",
-      paymentProof: txHash,
-      completedAt: new Date(),
-      metadata: {
+    // STEP 3: Create or update payment intent as PENDING
+    const intentId = existingIntent?.id || nanoid();
+    const expiresAt = new Date(now.getTime() + INTENT_TTL_MS);
+    
+    if (existingIntent) {
+      // Update existing intent to PENDING (retry scenario)
+      await db
+        .update(x402PaymentIntents)
+        .set({
+          status: "PENDING",
+          retries: (existingIntent.retries || 0) + 1,
+          updatedAt: now,
+          expiresAt,
+          lastError: null, // Clear previous error
+        })
+        .where(eq(x402PaymentIntents.id, existingIntent.id));
+      
+      console.log(`📝 Updated payment intent ${intentId} to PENDING (retry ${(existingIntent.retries || 0) + 1})`);
+    } else {
+      // Create new PENDING intent
+      await db.insert(x402PaymentIntents).values({
+        id: intentId,
+        txHash,
+        network: "base",
         serviceName,
-        requiredAmount,
-        actualAmount: paymentAmount,
-        verifiedAt: new Date().toISOString(),
-        verificationMethod: "on-chain-base",
-      },
-    });
+        payer: senderAddress,
+        amount: (paymentAmount / 1e6).toString(),
+        status: "PENDING",
+        retries: 0,
+        expiresAt,
+      });
+      
+      console.log(`📝 Created payment intent ${intentId} with status PENDING`);
+    }
 
-    console.log(`✅ Transaction verified and marked as used, payment recorded to x402_payments`);
+    // STEP 4: Return true - orchestrator will mark SUCCEEDED after handler completes
+    console.log(`✅ Payment verified on-chain, intent ${intentId} is PENDING`);
     return true;
 
   } catch (error: any) {
     console.error(`❌ Error verifying transaction:`, error);
     throw error;
+  }
+}
+
+/**
+ * Mark payment intent as SUCCEEDED after handler completes successfully
+ * Called by payment orchestrator after service handler returns
+ */
+export async function markPaymentIntentSucceeded(
+  txHash: string,
+  serviceName: string,
+  senderAddress?: string
+): Promise<void> {
+  try {
+    const intents = await db
+      .select()
+      .from(x402PaymentIntents)
+      .where(
+        and(
+          eq(x402PaymentIntents.txHash, txHash),
+          eq(x402PaymentIntents.serviceName, serviceName)
+        )
+      )
+      .limit(1);
+    
+    const intent = intents[0];
+    if (!intent) {
+      console.warn(`⚠️ No payment intent found for ${txHash} + ${serviceName}`);
+      return;
+    }
+
+    const now = new Date();
+    
+    // Mark intent as SUCCEEDED
+    await db
+      .update(x402PaymentIntents)
+      .set({
+        status: "SUCCEEDED",
+        succeededAt: now,
+        updatedAt: now,
+      })
+      .where(eq(x402PaymentIntents.id, intent.id));
+    
+    // Also record to usedTransactionHashes for backward compatibility
+    const existingHash = await db
+      .select()
+      .from(usedTransactionHashes)
+      .where(eq(usedTransactionHashes.txHash, txHash))
+      .limit(1);
+    
+    if (existingHash.length === 0) {
+      await db.insert(usedTransactionHashes).values({
+        txHash,
+        network: "base",
+        serviceName,
+        amount: (parseFloat(intent.amount) * 1e6).toString(),
+        paidBy: senderAddress || intent.payer,
+      });
+    }
+    
+    // Record to x402_payments table for analytics
+    await db.insert(x402Payments).values({
+      id: nanoid(),
+      agentId: senderAddress || intent.payer,
+      customerId: senderAddress || intent.payer,
+      amount: intent.amount,
+      currency: "USDC",
+      status: "completed",
+      x402TransactionId: txHash,
+      walletAddress: senderAddress || intent.payer,
+      network: "base",
+      paymentProof: txHash,
+      completedAt: now,
+      metadata: {
+        serviceName,
+        intentId: intent.id,
+        retries: intent.retries,
+        verifiedAt: now.toISOString(),
+        verificationMethod: "on-chain-base-intent",
+      },
+    });
+    
+    console.log(`✅ Payment intent ${intent.id} marked as SUCCEEDED, recorded to payments table`);
+  } catch (error: any) {
+    console.error(`❌ Error marking payment intent as succeeded:`, error);
+    // Don't throw - this is cleanup, shouldn't break the response
+  }
+}
+
+/**
+ * Mark payment intent as FAILED after handler throws error
+ * Called by payment orchestrator when service handler fails
+ */
+export async function markPaymentIntentFailed(
+  txHash: string,
+  serviceName: string,
+  errorMessage: string
+): Promise<void> {
+  try {
+    const intents = await db
+      .select()
+      .from(x402PaymentIntents)
+      .where(
+        and(
+          eq(x402PaymentIntents.txHash, txHash),
+          eq(x402PaymentIntents.serviceName, serviceName)
+        )
+      )
+      .limit(1);
+    
+    const intent = intents[0];
+    if (!intent) {
+      console.warn(`⚠️ No payment intent found for ${txHash} + ${serviceName}`);
+      return;
+    }
+
+    // Mark intent as ALLOW_RETRY so user can retry with same transaction
+    await db
+      .update(x402PaymentIntents)
+      .set({
+        status: "ALLOW_RETRY",
+        lastError: errorMessage,
+        updatedAt: new Date(),
+      })
+      .where(eq(x402PaymentIntents.id, intent.id));
+    
+    console.log(`⚠️ Payment intent ${intent.id} marked as ALLOW_RETRY due to handler failure`);
+  } catch (error: any) {
+    console.error(`❌ Error marking payment intent as failed:`, error);
+    // Don't throw - this is cleanup
   }
 }

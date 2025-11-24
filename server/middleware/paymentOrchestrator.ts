@@ -1,5 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { verifyTransactionPayment } from "./hybridPaymentMiddleware";
+import { 
+  verifyTransactionPayment, 
+  markPaymentIntentSucceeded, 
+  markPaymentIntentFailed 
+} from "./hybridPaymentMiddleware";
 
 /**
  * Payment Orchestrator - Routes payment verification before middleware chain
@@ -68,8 +72,20 @@ export function createPaymentOrchestrator(
           console.log(`✅ Orchestrator: Payment verified for ${serviceName}, executing handler directly`);
           // Store verification result for handler and tracking
           res.locals.payment = { method: "raw-hash", txHash, verified: true };
-          // Execute handler directly, skipping x402-express middleware
-          return await handler(req, res);
+          
+          // ARCHITECT FIX: Execute handler with proper intent tracking
+          try {
+            await handler(req, res);
+            // Handler succeeded - mark intent as SUCCEEDED
+            await markPaymentIntentSucceeded(txHash, serviceName);
+          } catch (handlerError: any) {
+            // Handler failed - mark intent as ALLOW_RETRY
+            console.error(`❌ Handler error for ${serviceName}:`, handlerError.message);
+            await markPaymentIntentFailed(txHash, serviceName, handlerError.message);
+            // Re-throw to let Express error handler deal with it
+            throw handlerError;
+          }
+          return;
         } else {
           console.log(`❌ Orchestrator: Payment verification failed for ${serviceName}, returning 402`);
           // Verification failed → let x402-express middleware generate 402 response

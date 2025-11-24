@@ -4007,6 +4007,46 @@ export const x402PaymentsSelectSchema = createSelectSchema(x402Payments);
 export type X402Payment = typeof x402Payments.$inferSelect;
 export type InsertX402Payment = z.infer<typeof x402PaymentsInsertSchema>;
 
+// x402 Payment Intents - Durable payment state with retry support (ARCHITECT-APPROVED)
+// Implements payment-intent ledger pattern for replay protection with graceful failure handling
+// Status transitions: PENDING → SUCCEEDED (handler completes) | FAILED (handler throws, allows retry)
+export const x402PaymentIntents = pgTable(
+  "x402_payment_intents",
+  {
+    id: varchar("id").primaryKey(), // Unique intent ID
+    txHash: varchar("tx_hash", { length: 66 }).notNull(), // Ethereum tx hash (0x + 64 chars)
+    network: varchar("network").notNull(), // base, ethereum, polygon, etc
+    serviceName: varchar("service_name").notNull(), // Which service being paid for
+    payer: varchar("payer").notNull(), // Sender wallet address
+    amount: numeric("amount", { precision: 18, scale: 6 }).notNull(), // Payment amount
+    status: varchar("status").notNull(), // PENDING, SUCCEEDED, FAILED, ALLOW_RETRY
+    retries: integer("retries").default(0).notNull(), // Retry attempt count
+    lastError: text("last_error"), // Error message if failed
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at").notNull(), // Intent expiration (15 min default)
+    succeededAt: timestamp("succeeded_at"), // When handler completed successfully
+  },
+  (table) => [
+    // Composite unique index for txHash + serviceName (one payment per service per tx)
+    uniqueIndex("IDX_payment_intents_tx_service").on(table.txHash, table.serviceName),
+    index("IDX_payment_intents_status").on(table.status),
+    index("IDX_payment_intents_payer").on(table.payer),
+    index("IDX_payment_intents_expires").on(table.expiresAt),
+    index("IDX_payment_intents_created").on(table.createdAt),
+  ],
+);
+
+export const x402PaymentIntentsInsertSchema = createInsertSchema(x402PaymentIntents).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const x402PaymentIntentsSelectSchema = createSelectSchema(x402PaymentIntents);
+
+export type X402PaymentIntent = typeof x402PaymentIntents.$inferSelect;
+export type InsertX402PaymentIntent = z.infer<typeof x402PaymentIntentsInsertSchema>;
+
 // x402 Discovery Metrics - Daily aggregated discovery analytics
 export const x402DiscoveryMetrics = pgTable(
   "x402_discovery_metrics",

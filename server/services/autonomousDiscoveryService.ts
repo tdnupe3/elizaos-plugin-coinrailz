@@ -91,7 +91,44 @@ class AutonomousDiscoveryService {
       const x402Endpoints = [
         '/api/x402/capabilities',
         '/api/x402/create-payment',
-        '/.well-known/x402.json'
+        '/.well-known/x402.json',
+        '/.well-known/agent.json',
+        // Original 21 x402 services
+        '/x402/multi-chain-balance',
+        '/x402/gas-price-oracle',
+        '/x402/token-price',
+        '/x402/contract-scan',
+        '/x402/wallet-risk',
+        '/x402/trade-signals',
+        '/x402/token-sentiment',
+        '/x402/trending-tokens',
+        '/x402/portfolio-tracker',
+        '/x402/batch-quote',
+        '/x402/whale-alerts',
+        '/x402/transaction-builder',
+        '/x402/token-metadata',
+        '/x402/dex-liquidity',
+        '/x402/approval-manager',
+        '/x402/payment-processing',
+        '/x402/instant-agent-wallet',
+        '/x402/seamless-chain-bridge',
+        '/x402/verified-agent-identity',
+        '/x402/service/smart-contract-audit',
+        '/x402/service/payment-processing',
+        '/x402/service/compliance-consultation',
+        // New 12 vertical expansion services
+        '/x402/property-valuation',
+        '/x402/lease-analysis',
+        '/x402/construction-progress',
+        '/x402/credit-risk-score',
+        '/x402/fraud-detection',
+        '/x402/compliance-check',
+        '/x402/trading-signal',
+        '/x402/portfolio-optimization',
+        '/x402/sentiment-analysis',
+        '/x402/arbitrage-scanner',
+        '/x402/correlation-matrix',
+        '/x402/risk-metrics'
       ];
       
       for (const endpoint of x402Endpoints) {

@@ -159,6 +159,7 @@ const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
 const CreditsPage = lazy(() => import("@/pages/CreditsPage"));
 const APIKeysPage = lazy(() => import("@/pages/APIKeysPage"));
+const XMTPAdminPage = lazy(() => import("@/pages/XMTPAdminPage"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -281,6 +282,11 @@ function Router() {
 
       <Route path="/api-keys">
         {() => <LazyLoadWrapper><APIKeysPage /></LazyLoadWrapper>}
+      </Route>
+      
+      {/* XMTP Agent Outreach Admin */}
+      <Route path="/xmtp-admin">
+        {() => <LazyLoadWrapper><XMTPAdminPage /></LazyLoadWrapper>}
       </Route>
       
       {/* Enterprise section - separate from consumer platform */}

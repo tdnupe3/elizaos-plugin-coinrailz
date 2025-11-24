@@ -87,25 +87,25 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "compliance-consultation": 5000000,  // $5.00
   "smart-contract-audit": 10000000,    // $10.00
   
-  // VERTICAL EXPANSION - Real Estate Services ($0.50-$1.00)
-  "property-valuation": 500000,        // $0.50
-  "lease-analysis": 750000,            // $0.75
-  "construction-progress": 1000000,    // $1.00
+  // VERTICAL EXPANSION - Real Estate Services ($5-$15)
+  "property-valuation": 5000000,       // $5.00
+  "lease-analysis": 8000000,           // $8.00
+  "construction-progress": 15000000,   // $15.00
   
-  // VERTICAL EXPANSION - Banking/Finance Services ($0.25-$0.50)
-  "credit-risk-score": 500000,         // $0.50
-  "fraud-detection": 250000,           // $0.25
-  "compliance-check": 400000,          // $0.40
+  // VERTICAL EXPANSION - Banking/Finance Services ($7-$15)
+  "credit-risk-score": 12000000,       // $12.00
+  "fraud-detection": 7000000,          // $7.00
+  "compliance-check": 15000000,        // $15.00
   
-  // VERTICAL EXPANSION - Trading/Investment Services ($0.20-$1.50)
-  "trading-signal": 1000000,           // $1.00
-  "portfolio-optimization": 1500000,   // $1.50
-  "sentiment-analysis": 200000,        // $0.20
+  // VERTICAL EXPANSION - Trading/Investment Services ($6-$15)
+  "trading-signal": 10000000,          // $10.00
+  "portfolio-optimization": 15000000,  // $15.00
+  "sentiment-analysis": 6000000,       // $6.00
   
-  // VERTICAL EXPANSION - Market Intelligence Services ($0.50-$0.75)
-  "arbitrage-scanner": 750000,         // $0.75
-  "correlation-matrix": 500000,        // $0.50
-  "risk-metrics": 600000,              // $0.60
+  // VERTICAL EXPANSION - Market Intelligence Services ($8-$12)
+  "arbitrage-scanner": 12000000,       // $12.00
+  "correlation-matrix": 8000000,       // $8.00
+  "risk-metrics": 10000000,            // $10.00
 };
 
 /**
@@ -140,24 +140,24 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "smart-contract-audit": 10.00,
   
   // Real Estate vertical
-  "property-valuation": 0.50,
-  "lease-analysis": 0.75,
-  "construction-progress": 1.00,
+  "property-valuation": 5.00,
+  "lease-analysis": 8.00,
+  "construction-progress": 15.00,
   
   // Banking/Finance vertical
-  "credit-risk-score": 0.50,
-  "fraud-detection": 0.25,
-  "compliance-check": 0.40,
+  "credit-risk-score": 12.00,
+  "fraud-detection": 7.00,
+  "compliance-check": 15.00,
   
   // Trading/Investment vertical
-  "trading-signal": 1.00,
-  "portfolio-optimization": 1.50,
-  "sentiment-analysis": 0.20,
+  "trading-signal": 10.00,
+  "portfolio-optimization": 15.00,
+  "sentiment-analysis": 6.00,
   
   // Market Intelligence vertical
-  "arbitrage-scanner": 0.75,
-  "correlation-matrix": 0.50,
-  "risk-metrics": 0.60,
+  "arbitrage-scanner": 12.00,
+  "correlation-matrix": 8.00,
+  "risk-metrics": 10.00,
 };
 
 /**

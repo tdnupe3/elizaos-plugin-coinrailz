@@ -3469,11 +3469,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     // Production: serve static files
     app.use(express.static('dist/public'));
   
-  // Catch-all handler for SPA routing - exclude API routes
+  // Catch-all handler for SPA routing - exclude API and x402 routes
   app.get('*', (req, res) => {
-    // Skip API routes - they should have been handled already
-    if (req.path.startsWith('/api/')) {
-      return res.status(404).json({ error: 'API endpoint not found' });
+    // Skip API and x402 routes - they should have been handled already
+    if (req.path.startsWith('/api/') || req.path.startsWith('/x402/')) {
+      return res.status(404).json({ error: 'Endpoint not found' });
     }
     res.sendFile(path.resolve('dist/public/index.html'));
   });

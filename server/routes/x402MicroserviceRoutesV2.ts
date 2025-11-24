@@ -958,6 +958,158 @@ const x402Routes = {
       maxTimeoutSeconds: 600,
     },
   },
+  
+  // === VERTICAL EXPANSION: REAL ESTATE SERVICES ===
+  "POST /property-valuation": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["property-valuation"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/property-valuation`,
+      name: "AI Property Valuation",
+      description: "AI-powered property valuation using GPT-4 analysis",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 180,
+    },
+  },
+  "POST /lease-analysis": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["lease-analysis"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/lease-analysis`,
+      name: "Lease Agreement Analyzer",
+      description: "AI analysis of lease terms and obligations",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 180,
+    },
+  },
+  "POST /construction-progress": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["construction-progress"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/construction-progress`,
+      name: "Construction Progress Tracker",
+      description: "Track construction milestones with AI photo analysis",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 240,
+    },
+  },
+  
+  // === VERTICAL EXPANSION: BANKING/FINANCE SERVICES ===
+  "POST /credit-risk-score": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["credit-risk-score"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/credit-risk-score`,
+      name: "Credit Risk Assessment",
+      description: "AI credit risk scoring using financial data",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+    },
+  },
+  "POST /fraud-detection": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["fraud-detection"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/fraud-detection`,
+      name: "Transaction Fraud Detection",
+      description: "Real-time fraud pattern detection",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 90,
+    },
+  },
+  "POST /compliance-check": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["compliance-check"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/compliance-check`,
+      name: "Regulatory Compliance Check",
+      description: "AML/KYC compliance verification",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 150,
+    },
+  },
+  
+  // === VERTICAL EXPANSION: TRADING/INVESTMENT SERVICES ===
+  "POST /trading-signal": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["trading-signal"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/trading-signal`,
+      name: "AI Trading Signal Generator",
+      description: "Generate trading signals using technical analysis",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+    },
+  },
+  "POST /portfolio-optimization": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["portfolio-optimization"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/portfolio-optimization`,
+      name: "Portfolio Optimizer",
+      description: "AI portfolio allocation and rebalancing",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 180,
+    },
+  },
+  "POST /sentiment-analysis": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["sentiment-analysis"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/sentiment-analysis`,
+      name: "Market Sentiment Analyzer",
+      description: "Analyze market sentiment from social/news data",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+    },
+  },
+  
+  // === VERTICAL EXPANSION: MARKET INTELLIGENCE SERVICES ===
+  "POST /arbitrage-scanner": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["arbitrage-scanner"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/arbitrage-scanner`,
+      name: "Cross-Exchange Arbitrage Scanner",
+      description: "Identify arbitrage opportunities across chains/exchanges",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 150,
+    },
+  },
+  "POST /correlation-matrix": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["correlation-matrix"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/correlation-matrix`,
+      name: "Asset Correlation Matrix",
+      description: "Correlation analysis between crypto assets",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+    },
+  },
+  "POST /risk-metrics": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["risk-metrics"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/risk-metrics`,
+      name: "Portfolio Risk Metrics",
+      description: "Comprehensive risk analysis: VaR, Sharpe, drawdown",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 150,
+    },
+  },
 };
 
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
@@ -1896,18 +2048,18 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
 
 // REAL ESTATE SERVICES
 router.post("/property-valuation",
-  createPaymentOrchestrator("property-valuation", 0.50, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("property-valuation", SERVICE_PRICING_MICRO["property-valuation"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = propertyValuationInputSchema.parse(req.body);
       const result = await propertyValuationService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("property-valuation", req.body, result, responseTime, 0.50, req.ip || "unknown");
+      await trackRequest("property-valuation", req.body, result, responseTime, SERVICE_PRICING_USD["property-valuation"], req.ip || "unknown");
       await trackBundleUsage(req, res, "property-valuation", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("property-valuation", req.body, null, responseTime, 0.50, req.ip || "unknown", error.message);
+      await trackRequest("property-valuation", req.body, null, responseTime, SERVICE_PRICING_USD["property-valuation"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -1915,18 +2067,18 @@ router.post("/property-valuation",
 );
 
 router.post("/lease-analysis",
-  createPaymentOrchestrator("lease-analysis", 0.75, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("lease-analysis", SERVICE_PRICING_MICRO["lease-analysis"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = leaseAnalysisInputSchema.parse(req.body);
       const result = await leaseAnalysisService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("lease-analysis", req.body, result, responseTime, 0.75, req.ip || "unknown");
+      await trackRequest("lease-analysis", req.body, result, responseTime, SERVICE_PRICING_USD["lease-analysis"], req.ip || "unknown");
       await trackBundleUsage(req, res, "lease-analysis", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("lease-analysis", req.body, null, responseTime, 0.75, req.ip || "unknown", error.message);
+      await trackRequest("lease-analysis", req.body, null, responseTime, SERVICE_PRICING_USD["lease-analysis"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -1934,18 +2086,18 @@ router.post("/lease-analysis",
 );
 
 router.post("/construction-progress",
-  createPaymentOrchestrator("construction-progress", 1.00, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("construction-progress", SERVICE_PRICING_MICRO["construction-progress"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = constructionProgressInputSchema.parse(req.body);
       const result = await constructionProgressService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("construction-progress", req.body, result, responseTime, 1.00, req.ip || "unknown");
+      await trackRequest("construction-progress", req.body, result, responseTime, SERVICE_PRICING_USD["construction-progress"], req.ip || "unknown");
       await trackBundleUsage(req, res, "construction-progress", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("construction-progress", req.body, null, responseTime, 1.00, req.ip || "unknown", error.message);
+      await trackRequest("construction-progress", req.body, null, responseTime, SERVICE_PRICING_USD["construction-progress"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -1954,18 +2106,18 @@ router.post("/construction-progress",
 
 // BANKING/FINANCE SERVICES
 router.post("/credit-risk-score",
-  createPaymentOrchestrator("credit-risk-score", 0.50, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("credit-risk-score", SERVICE_PRICING_MICRO["credit-risk-score"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = creditRiskScoreInputSchema.parse(req.body);
       const result = await creditRiskScoreService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("credit-risk-score", req.body, result, responseTime, 0.50, req.ip || "unknown");
+      await trackRequest("credit-risk-score", req.body, result, responseTime, SERVICE_PRICING_USD["credit-risk-score"], req.ip || "unknown");
       await trackBundleUsage(req, res, "credit-risk-score", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("credit-risk-score", req.body, null, responseTime, 0.50, req.ip || "unknown", error.message);
+      await trackRequest("credit-risk-score", req.body, null, responseTime, SERVICE_PRICING_USD["credit-risk-score"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -1973,18 +2125,18 @@ router.post("/credit-risk-score",
 );
 
 router.post("/fraud-detection",
-  createPaymentOrchestrator("fraud-detection", 0.25, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("fraud-detection", SERVICE_PRICING_MICRO["fraud-detection"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = fraudDetectionInputSchema.parse(req.body);
       const result = await fraudDetectionService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("fraud-detection", req.body, result, responseTime, 0.25, req.ip || "unknown");
+      await trackRequest("fraud-detection", req.body, result, responseTime, SERVICE_PRICING_USD["fraud-detection"], req.ip || "unknown");
       await trackBundleUsage(req, res, "fraud-detection", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("fraud-detection", req.body, null, responseTime, 0.25, req.ip || "unknown", error.message);
+      await trackRequest("fraud-detection", req.body, null, responseTime, SERVICE_PRICING_USD["fraud-detection"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -1992,18 +2144,18 @@ router.post("/fraud-detection",
 );
 
 router.post("/compliance-check",
-  createPaymentOrchestrator("compliance-check", 0.40, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("compliance-check", SERVICE_PRICING_MICRO["compliance-check"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = complianceCheckInputSchema.parse(req.body);
       const result = await complianceCheckService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("compliance-check", req.body, result, responseTime, 0.40, req.ip || "unknown");
+      await trackRequest("compliance-check", req.body, result, responseTime, SERVICE_PRICING_USD["compliance-check"], req.ip || "unknown");
       await trackBundleUsage(req, res, "compliance-check", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("compliance-check", req.body, null, responseTime, 0.40, req.ip || "unknown", error.message);
+      await trackRequest("compliance-check", req.body, null, responseTime, SERVICE_PRICING_USD["compliance-check"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -2012,18 +2164,18 @@ router.post("/compliance-check",
 
 // TRADING/INVESTMENT SERVICES
 router.post("/trading-signal",
-  createPaymentOrchestrator("trading-signal", 1.00, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("trading-signal", SERVICE_PRICING_MICRO["trading-signal"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = tradingSignalInputSchema.parse(req.body);
       const result = await tradingSignalService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("trading-signal", req.body, result, responseTime, 1.00, req.ip || "unknown");
+      await trackRequest("trading-signal", req.body, result, responseTime, SERVICE_PRICING_USD["trading-signal"], req.ip || "unknown");
       await trackBundleUsage(req, res, "trading-signal", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("trading-signal", req.body, null, responseTime, 1.00, req.ip || "unknown", error.message);
+      await trackRequest("trading-signal", req.body, null, responseTime, SERVICE_PRICING_USD["trading-signal"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -2031,18 +2183,18 @@ router.post("/trading-signal",
 );
 
 router.post("/portfolio-optimization",
-  createPaymentOrchestrator("portfolio-optimization", 1.50, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("portfolio-optimization", SERVICE_PRICING_MICRO["portfolio-optimization"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = portfolioOptimizationInputSchema.parse(req.body);
       const result = await portfolioOptimizationService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("portfolio-optimization", req.body, result, responseTime, 1.50, req.ip || "unknown");
+      await trackRequest("portfolio-optimization", req.body, result, responseTime, SERVICE_PRICING_USD["portfolio-optimization"], req.ip || "unknown");
       await trackBundleUsage(req, res, "portfolio-optimization", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("portfolio-optimization", req.body, null, responseTime, 1.50, req.ip || "unknown", error.message);
+      await trackRequest("portfolio-optimization", req.body, null, responseTime, SERVICE_PRICING_USD["portfolio-optimization"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -2050,18 +2202,18 @@ router.post("/portfolio-optimization",
 );
 
 router.post("/sentiment-analysis",
-  createPaymentOrchestrator("sentiment-analysis", 0.20, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("sentiment-analysis", SERVICE_PRICING_MICRO["sentiment-analysis"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = sentimentAnalysisInputSchema.parse(req.body);
       const result = await sentimentAnalysisService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("sentiment-analysis", req.body, result, responseTime, 0.20, req.ip || "unknown");
+      await trackRequest("sentiment-analysis", req.body, result, responseTime, SERVICE_PRICING_USD["sentiment-analysis"], req.ip || "unknown");
       await trackBundleUsage(req, res, "sentiment-analysis", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("sentiment-analysis", req.body, null, responseTime, 0.20, req.ip || "unknown", error.message);
+      await trackRequest("sentiment-analysis", req.body, null, responseTime, SERVICE_PRICING_USD["sentiment-analysis"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -2070,18 +2222,18 @@ router.post("/sentiment-analysis",
 
 // MARKET INTELLIGENCE SERVICES
 router.post("/arbitrage-scanner",
-  createPaymentOrchestrator("arbitrage-scanner", 0.75, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("arbitrage-scanner", SERVICE_PRICING_MICRO["arbitrage-scanner"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = arbitrageScannerInputSchema.parse(req.body);
       const result = await arbitrageScannerService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("arbitrage-scanner", req.body, result, responseTime, 0.75, req.ip || "unknown");
+      await trackRequest("arbitrage-scanner", req.body, result, responseTime, SERVICE_PRICING_USD["arbitrage-scanner"], req.ip || "unknown");
       await trackBundleUsage(req, res, "arbitrage-scanner", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("arbitrage-scanner", req.body, null, responseTime, 0.75, req.ip || "unknown", error.message);
+      await trackRequest("arbitrage-scanner", req.body, null, responseTime, SERVICE_PRICING_USD["arbitrage-scanner"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -2089,18 +2241,18 @@ router.post("/arbitrage-scanner",
 );
 
 router.post("/correlation-matrix",
-  createPaymentOrchestrator("correlation-matrix", 0.50, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("correlation-matrix", SERVICE_PRICING_MICRO["correlation-matrix"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = correlationMatrixInputSchema.parse(req.body);
       const result = await correlationMatrixService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("correlation-matrix", req.body, result, responseTime, 0.50, req.ip || "unknown");
+      await trackRequest("correlation-matrix", req.body, result, responseTime, SERVICE_PRICING_USD["correlation-matrix"], req.ip || "unknown");
       await trackBundleUsage(req, res, "correlation-matrix", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("correlation-matrix", req.body, null, responseTime, 0.50, req.ip || "unknown", error.message);
+      await trackRequest("correlation-matrix", req.body, null, responseTime, SERVICE_PRICING_USD["correlation-matrix"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),
@@ -2108,18 +2260,18 @@ router.post("/correlation-matrix",
 );
 
 router.post("/risk-metrics",
-  createPaymentOrchestrator("risk-metrics", 0.60, async (req: Request, res: Response) => {
+  createPaymentOrchestrator("risk-metrics", SERVICE_PRICING_MICRO["risk-metrics"], async (req: Request, res: Response) => {
     const startTime = Date.now();
     try {
       const validatedInput = riskMetricsInputSchema.parse(req.body);
       const result = await riskMetricsService(validatedInput);
       const responseTime = Date.now() - startTime;
-      await trackRequest("risk-metrics", req.body, result, responseTime, 0.60, req.ip || "unknown");
+      await trackRequest("risk-metrics", req.body, result, responseTime, SERVICE_PRICING_USD["risk-metrics"], req.ip || "unknown");
       await trackBundleUsage(req, res, "risk-metrics", validatedInput);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
-      await trackRequest("risk-metrics", req.body, null, responseTime, 0.60, req.ip || "unknown", error.message);
+      await trackRequest("risk-metrics", req.body, null, responseTime, SERVICE_PRICING_USD["risk-metrics"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   }),

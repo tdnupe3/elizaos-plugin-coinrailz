@@ -52,8 +52,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 21 x402 micropayment services across 7 chains: trading signals, security audits, wallet analytics, gas optimization, and DeFi intelligence.",
-    version: "0.3.0",
+    description: "Production-grade blockchain infrastructure for AI agents. 33 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, and DeFi intelligence.",
+    version: "0.4.0",
     agentId: "coinrailz-x402-infrastructure",
     
     // A2A v0.3 service endpoint
@@ -1023,6 +1023,307 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         },
         pricing: { amount: 10.00, currency: "USD" },
         category: "security"
+      },
+      // REAL ESTATE VERTICAL (3 services)
+      {
+        id: "property_valuation",
+        name: "AI Property Valuation",
+        description: "AI-powered property valuation using GPT-4 analysis. Use when user asks 'value my property', 'property appraisal', 'real estate value', 'home worth', or 'estimate property value'.",
+        inputSchema: {
+          type: "object",
+          title: "Property Valuation Request",
+          properties: {
+            address: { type: "string", title: "Property Address" },
+            propertyType: { type: "string", enum: ["residential", "commercial", "industrial", "land"], title: "Property Type" },
+            squareFeet: { type: "number", title: "Square Footage" },
+            bedrooms: { type: "number", title: "Bedrooms (optional)" },
+            bathrooms: { type: "number", title: "Bathrooms (optional)" },
+            yearBuilt: { type: "number", title: "Year Built (optional)" }
+          },
+          required: ["address", "propertyType", "squareFeet"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            estimatedValue: { type: "number", title: "Estimated Value (USD)" },
+            confidenceScore: { type: "number", title: "Confidence (0-100)" },
+            comparables: { type: "array", title: "Comparable Properties" },
+            marketAnalysis: { type: "string", title: "Market Analysis" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "real_estate"
+      },
+      {
+        id: "lease_analysis",
+        name: "Lease Agreement Analyzer",
+        description: "AI analysis of lease terms and obligations. Use when user asks 'review lease', 'analyze rental agreement', 'lease terms review', or 'check lease contract'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            leaseText: { type: "string", title: "Lease Agreement Text" },
+            analysisType: { type: "string", enum: ["comprehensive", "key-terms", "risks-only"], default: "comprehensive" }
+          },
+          required: ["leaseText"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            keyTerms: { type: "object", title: "Key Terms Summary" },
+            redFlags: { type: "array", title: "Potential Issues" },
+            obligations: { type: "object", title: "Tenant/Landlord Obligations" },
+            recommendation: { type: "string", title: "AI Recommendation" }
+          }
+        },
+        pricing: { amount: 0.75, currency: "USD" },
+        category: "real_estate"
+      },
+      {
+        id: "construction_progress",
+        name: "Construction Progress Tracker",
+        description: "Track construction milestones with AI photo analysis. Use when user asks 'analyze construction photos', 'track building progress', 'construction status', or 'verify construction work'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectName: { type: "string", title: "Project Name" },
+            phase: { type: "string", enum: ["foundation", "framing", "exterior", "interior", "finishing"], title: "Current Phase" },
+            photos: { type: "array", items: { type: "string" }, title: "Photo URLs or Base64" },
+            expectedCompletion: { type: "string", format: "date", title: "Expected Completion Date" }
+          },
+          required: ["projectName", "phase", "photos"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            completionEstimate: { type: "number", title: "% Complete" },
+            milestones: { type: "array", title: "Completed Milestones" },
+            issues: { type: "array", title: "Identified Issues" },
+            progressReport: { type: "string", title: "AI Progress Report" }
+          }
+        },
+        pricing: { amount: 1.00, currency: "USD" },
+        category: "real_estate"
+      },
+      // BANKING/FINANCE VERTICAL (3 services)
+      {
+        id: "credit_risk_score",
+        name: "Credit Risk Assessment",
+        description: "AI credit risk scoring using financial data. Use when user asks 'credit risk', 'assess creditworthiness', 'loan risk analysis', or 'credit score evaluation'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            financialData: { type: "object", title: "Financial Information" },
+            loanAmount: { type: "number", title: "Requested Loan Amount" },
+            purpose: { type: "string", enum: ["personal", "business", "mortgage", "auto"], title: "Loan Purpose" }
+          },
+          required: ["financialData", "loanAmount"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            creditScore: { type: "number", title: "Risk Score (0-100)" },
+            riskCategory: { type: "string", enum: ["low", "medium", "high"], title: "Risk Level" },
+            factors: { type: "array", title: "Key Risk Factors" },
+            recommendation: { type: "string", title: "Lending Recommendation" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "banking"
+      },
+      {
+        id: "fraud_detection",
+        name: "Transaction Fraud Detection",
+        description: "Real-time fraud pattern detection. Use when user asks 'check fraud', 'suspicious transaction', 'fraud analysis', or 'verify transaction'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            transaction: { type: "object", title: "Transaction Details" },
+            userHistory: { type: "array", items: { type: "object" }, title: "Historical Transactions (optional)" }
+          },
+          required: ["transaction"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            fraudScore: { type: "number", title: "Fraud Risk (0-100)" },
+            alerts: { type: "array", title: "Red Flags" },
+            recommendation: { type: "string", enum: ["approve", "review", "decline"], title: "Action" }
+          }
+        },
+        pricing: { amount: 0.25, currency: "USD" },
+        category: "banking"
+      },
+      {
+        id: "compliance_check",
+        name: "Regulatory Compliance Check",
+        description: "AML/KYC compliance verification. Use when user asks 'compliance check', 'AML verification', 'KYC analysis', or 'regulatory review'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            entityData: { type: "object", title: "Entity Information" },
+            checkTypes: { type: "array", items: { type: "string", enum: ["aml", "kyc", "sanctions", "pep"] }, title: "Compliance Checks" }
+          },
+          required: ["entityData", "checkTypes"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            complianceStatus: { type: "string", enum: ["pass", "review", "fail"], title: "Overall Status" },
+            findings: { type: "array", title: "Compliance Findings" },
+            riskLevel: { type: "string", enum: ["low", "medium", "high"], title: "Risk Level" }
+          }
+        },
+        pricing: { amount: 0.40, currency: "USD" },
+        category: "banking"
+      },
+      // TRADING/INVESTMENT VERTICAL (3 services)
+      {
+        id: "trading_signal",
+        name: "AI Trading Signal Generator",
+        description: "Generate trading signals using technical analysis. Use when user asks 'trading signal', 'should I buy/sell', 'trading recommendation', or 'market signal'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            symbol: { type: "string", title: "Token/Stock Symbol" },
+            timeframe: { type: "string", enum: ["1h", "4h", "1d", "1w"], default: "1d", title: "Analysis Timeframe" },
+            strategy: { type: "string", enum: ["momentum", "mean-reversion", "breakout", "trend-following"], default: "momentum" }
+          },
+          required: ["symbol"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            signal: { type: "string", enum: ["strong-buy", "buy", "hold", "sell", "strong-sell"], title: "Trading Signal" },
+            confidence: { type: "number", title: "Confidence (0-100)" },
+            entryPrice: { type: "number", title: "Suggested Entry" },
+            targets: { type: "array", items: { type: "number" }, title: "Price Targets" },
+            stopLoss: { type: "number", title: "Stop Loss" }
+          }
+        },
+        pricing: { amount: 1.00, currency: "USD" },
+        category: "trading"
+      },
+      {
+        id: "portfolio_optimization",
+        name: "Portfolio Optimizer",
+        description: "AI portfolio allocation and rebalancing. Use when user asks 'optimize portfolio', 'rebalance assets', 'portfolio allocation', or 'diversification strategy'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            currentHoldings: { type: "array", items: { type: "object" }, title: "Current Holdings" },
+            riskTolerance: { type: "string", enum: ["conservative", "moderate", "aggressive"], default: "moderate" },
+            investmentGoal: { type: "string", title: "Investment Goal (optional)" }
+          },
+          required: ["currentHoldings", "riskTolerance"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            recommendations: { type: "array", title: "Rebalancing Recommendations" },
+            targetAllocation: { type: "object", title: "Target Allocation %" },
+            expectedReturn: { type: "number", title: "Expected Annual Return %" },
+            riskMetrics: { type: "object", title: "Risk Analysis" }
+          }
+        },
+        pricing: { amount: 1.50, currency: "USD" },
+        category: "trading"
+      },
+      {
+        id: "sentiment_analysis",
+        name: "Market Sentiment Analyzer",
+        description: "Analyze market sentiment from social/news data. Use when user asks 'market sentiment', 'social sentiment', 'crypto news analysis', or 'sentiment score'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            symbol: { type: "string", title: "Asset Symbol" },
+            sources: { type: "array", items: { type: "string", enum: ["twitter", "reddit", "news", "telegram"] }, default: ["twitter", "reddit"] }
+          },
+          required: ["symbol"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            sentimentScore: { type: "number", title: "Sentiment (-100 to +100)" },
+            trend: { type: "string", enum: ["bullish", "neutral", "bearish"], title: "Overall Trend" },
+            keyMentions: { type: "array", title: "Top Mentions" },
+            volumeChange: { type: "number", title: "Mention Volume Change %" }
+          }
+        },
+        pricing: { amount: 0.20, currency: "USD" },
+        category: "trading"
+      },
+      // MARKET INTELLIGENCE VERTICAL (3 services)
+      {
+        id: "arbitrage_scanner",
+        name: "Cross-Exchange Arbitrage Scanner",
+        description: "Identify arbitrage opportunities across chains/exchanges. Use when user asks 'arbitrage opportunities', 'price differences', 'cross-exchange arbitrage', or 'profit opportunities'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            tokens: { type: "array", items: { type: "string" }, title: "Tokens to Scan" },
+            minProfit: { type: "number", default: 0.5, title: "Min Profit % Threshold" },
+            chains: { type: "array", items: { type: "string" }, title: "Chains to Compare (optional)" }
+          },
+          required: ["tokens"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            opportunities: { type: "array", title: "Arbitrage Opportunities" },
+            topOpportunity: { type: "object", title: "Best Opportunity" },
+            totalOpportunities: { type: "number", title: "Total Found" }
+          }
+        },
+        pricing: { amount: 0.75, currency: "USD" },
+        category: "intelligence"
+      },
+      {
+        id: "correlation_matrix",
+        name: "Asset Correlation Matrix",
+        description: "Correlation analysis between crypto assets. Use when user asks 'correlation analysis', 'asset correlation', 'price relationship', or 'correlated tokens'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            assets: { type: "array", items: { type: "string" }, title: "Assets to Analyze" },
+            timeframe: { type: "string", enum: ["7d", "30d", "90d", "1y"], default: "30d", title: "Analysis Period" }
+          },
+          required: ["assets"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            correlationMatrix: { type: "object", title: "Correlation Matrix" },
+            strongCorrelations: { type: "array", title: "Strong Correlations (>0.7)" },
+            diversificationScore: { type: "number", title: "Portfolio Diversification Score" }
+          }
+        },
+        pricing: { amount: 0.50, currency: "USD" },
+        category: "intelligence"
+      },
+      {
+        id: "risk_metrics",
+        name: "Portfolio Risk Metrics",
+        description: "Comprehensive risk analysis: VaR, Sharpe, drawdown. Use when user asks 'portfolio risk', 'risk metrics', 'value at risk', 'volatility analysis', or 'risk assessment'.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            portfolio: { type: "array", items: { type: "object" }, title: "Portfolio Holdings" },
+            timeHorizon: { type: "string", enum: ["1m", "3m", "6m", "1y"], default: "1m", title: "Time Horizon" }
+          },
+          required: ["portfolio"]
+        },
+        outputSchema: {
+          type: "object",
+          properties: {
+            valueAtRisk: { type: "number", title: "Value at Risk (95%)" },
+            sharpeRatio: { type: "number", title: "Sharpe Ratio" },
+            maxDrawdown: { type: "number", title: "Max Drawdown %" },
+            volatility: { type: "number", title: "Annualized Volatility %" },
+            riskGrade: { type: "string", enum: ["A", "B", "C", "D", "F"], title: "Overall Risk Grade" }
+          }
+        },
+        pricing: { amount: 0.60, currency: "USD" },
+        category: "intelligence"
       }
     ],
     

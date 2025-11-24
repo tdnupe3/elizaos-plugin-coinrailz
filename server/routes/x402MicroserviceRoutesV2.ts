@@ -3,6 +3,7 @@ import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
+import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
 import {
   multiChainBalanceService,
   gasPriceOracleService,
@@ -23,7 +24,6 @@ import {
   verifiedAgentIdentityService,
   seamlessChainBridgeService,
   trackRequest,
-  SERVICE_PRICING as SERVICE_PRICING_USD, // USD float values for analytics/display
   propertyValuationService,
   leaseAnalysisService,
   constructionProgressService,
@@ -55,19 +55,13 @@ import {
   riskMetricsInputSchema,
 } from "@shared/schema";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
-import { hybridPaymentMiddleware, SERVICE_PRICING } from "../middleware/hybridPaymentMiddleware";
+import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
 import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
 import { deductBundleCredits } from "../services/bundleCreditService";
 
 const router = Router();
-
-// Helper to convert micro-USDC (6 decimals) to USD for display
-// Example: 500000 micro-USDC → "$0.50"
-function microToUSD(microAmount: number): string {
-  return (microAmount / 1_000_000).toFixed(2);
-}
 
 // Helper function to track bundle credits after successful service execution
 async function trackBundleUsage(
@@ -167,7 +161,7 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
 const x402Routes = {
   // Original 10 trader-focused services
   "POST /multi-chain-balance": {
-    price: `$${microToUSD(SERVICE_PRICING["multi-chain-balance"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["multi-chain-balance"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -204,7 +198,7 @@ const x402Routes = {
     }
   },
   "POST /gas-price-oracle": {
-    price: `$${microToUSD(SERVICE_PRICING["gas-price-oracle"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["gas-price-oracle"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -235,7 +229,7 @@ const x402Routes = {
     }
   },
   "POST /token-price": {
-    price: `$${microToUSD(SERVICE_PRICING["token-price"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["token-price"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -271,7 +265,7 @@ const x402Routes = {
     }
   },
   "POST /contract-scan": {
-    price: `$${microToUSD(SERVICE_PRICING["contract-scan"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["contract-scan"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -306,7 +300,7 @@ const x402Routes = {
     }
   },
   "POST /wallet-risk": {
-    price: `$${microToUSD(SERVICE_PRICING["wallet-risk"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["wallet-risk"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -341,7 +335,7 @@ const x402Routes = {
     }
   },
   "POST /trade-signals": {
-    price: `$${microToUSD(SERVICE_PRICING["trade-signals"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["trade-signals"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -388,7 +382,7 @@ const x402Routes = {
     }
   },
   "POST /token-sentiment": {
-    price: `$${microToUSD(SERVICE_PRICING["token-sentiment"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["token-sentiment"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -432,7 +426,7 @@ const x402Routes = {
     }
   },
   "POST /trending-tokens": {
-    price: `$${microToUSD(SERVICE_PRICING["trending-tokens"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["trending-tokens"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -473,7 +467,7 @@ const x402Routes = {
     }
   },
   "POST /whale-alerts": {
-    price: `$${microToUSD(SERVICE_PRICING["whale-alerts"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["whale-alerts"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -514,7 +508,7 @@ const x402Routes = {
     }
   },
   "POST /dex-liquidity": {
-    price: `$${microToUSD(SERVICE_PRICING["dex-liquidity"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["dex-liquidity"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -557,7 +551,7 @@ const x402Routes = {
   },
   // 5 B2B2C infrastructure services
   "POST /transaction-builder": {
-    price: `$${microToUSD(SERVICE_PRICING["transaction-builder"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["transaction-builder"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -605,7 +599,7 @@ const x402Routes = {
     }
   },
   "POST /token-metadata": {
-    price: `$${microToUSD(SERVICE_PRICING["token-metadata"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["token-metadata"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -651,7 +645,7 @@ const x402Routes = {
     }
   },
   "POST /approval-manager": {
-    price: `$${microToUSD(SERVICE_PRICING["approval-manager"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["approval-manager"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -695,7 +689,7 @@ const x402Routes = {
     }
   },
   "POST /batch-quote": {
-    price: `$${microToUSD(SERVICE_PRICING["batch-quote"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["batch-quote"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -740,7 +734,7 @@ const x402Routes = {
     }
   },
   "POST /portfolio-tracker": {
-    price: `$${microToUSD(SERVICE_PRICING["portfolio-tracker"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["portfolio-tracker"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -783,7 +777,7 @@ const x402Routes = {
   },
   // 3 Premium B2B2C services
   "POST /instant-agent-wallet": {
-    price: `$${microToUSD(SERVICE_PRICING["instant-agent-wallet"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["instant-agent-wallet"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -829,7 +823,7 @@ const x402Routes = {
     }
   },
   "POST /verified-agent-identity": {
-    price: `$${microToUSD(SERVICE_PRICING["verified-agent-identity"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["verified-agent-identity"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -877,7 +871,7 @@ const x402Routes = {
     }
   },
   "POST /seamless-chain-bridge": {
-    price: `$${microToUSD(SERVICE_PRICING["seamless-chain-bridge"])}`,
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["seamless-chain-bridge"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -1062,7 +1056,7 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/multi-chain-balance",
-  createPaymentOrchestrator("multi-chain-balance", SERVICE_PRICING["multi-chain-balance"], multiChainBalanceHandler),
+  createPaymentOrchestrator("multi-chain-balance", SERVICE_PRICING_MICRO["multi-chain-balance"], multiChainBalanceHandler),
   x402Middleware,
   multiChainBalanceHandler
 );
@@ -1087,7 +1081,7 @@ const gasPriceOracleHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/gas-price-oracle", 
-  createPaymentOrchestrator("gas-price-oracle", SERVICE_PRICING["gas-price-oracle"], gasPriceOracleHandler),
+  createPaymentOrchestrator("gas-price-oracle", SERVICE_PRICING_MICRO["gas-price-oracle"], gasPriceOracleHandler),
   x402Middleware,
   gasPriceOracleHandler
 );
@@ -1117,7 +1111,7 @@ const tokenPriceHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/token-price",
-  createPaymentOrchestrator("token-price", SERVICE_PRICING["token-price"], tokenPriceHandler),
+  createPaymentOrchestrator("token-price", SERVICE_PRICING_MICRO["token-price"], tokenPriceHandler),
   x402Middleware,
   tokenPriceHandler
 );
@@ -1147,7 +1141,7 @@ const contractScanHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/contract-scan",
-  createPaymentOrchestrator("contract-scan", SERVICE_PRICING["contract-scan"], contractScanHandler),
+  createPaymentOrchestrator("contract-scan", SERVICE_PRICING_MICRO["contract-scan"], contractScanHandler),
   x402Middleware,
   contractScanHandler
 );
@@ -1177,7 +1171,7 @@ const walletRiskHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/wallet-risk",
-  createPaymentOrchestrator("wallet-risk", SERVICE_PRICING["wallet-risk"], walletRiskHandler),
+  createPaymentOrchestrator("wallet-risk", SERVICE_PRICING_MICRO["wallet-risk"], walletRiskHandler),
   x402Middleware,
   walletRiskHandler
 );
@@ -1201,7 +1195,7 @@ const tradeSignalsHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/trade-signals",
-  createPaymentOrchestrator("trade-signals", SERVICE_PRICING["trade-signals"], tradeSignalsHandler),
+  createPaymentOrchestrator("trade-signals", SERVICE_PRICING_MICRO["trade-signals"], tradeSignalsHandler),
   x402Middleware,
   tradeSignalsHandler
 );
@@ -1231,7 +1225,7 @@ const tokenSentimentHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/token-sentiment",
-  createPaymentOrchestrator("token-sentiment", SERVICE_PRICING["token-sentiment"], tokenSentimentHandler),
+  createPaymentOrchestrator("token-sentiment", SERVICE_PRICING_MICRO["token-sentiment"], tokenSentimentHandler),
   x402Middleware,
   tokenSentimentHandler
 );
@@ -1255,7 +1249,7 @@ const trendingTokensHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/trending-tokens",
-  createPaymentOrchestrator("trending-tokens", SERVICE_PRICING["trending-tokens"], trendingTokensHandler),
+  createPaymentOrchestrator("trending-tokens", SERVICE_PRICING_MICRO["trending-tokens"], trendingTokensHandler),
   x402Middleware,
   trendingTokensHandler
 );
@@ -1279,7 +1273,7 @@ const whaleAlertsHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/whale-alerts",
-  createPaymentOrchestrator("whale-alerts", SERVICE_PRICING["whale-alerts"], whaleAlertsHandler),
+  createPaymentOrchestrator("whale-alerts", SERVICE_PRICING_MICRO["whale-alerts"], whaleAlertsHandler),
   x402Middleware,
   whaleAlertsHandler
 );
@@ -1309,7 +1303,7 @@ const dexLiquidityHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/dex-liquidity",
-  createPaymentOrchestrator("dex-liquidity", SERVICE_PRICING["dex-liquidity"], dexLiquidityHandler),
+  createPaymentOrchestrator("dex-liquidity", SERVICE_PRICING_MICRO["dex-liquidity"], dexLiquidityHandler),
   x402Middleware,
   dexLiquidityHandler
 );
@@ -1338,7 +1332,7 @@ const transactionBuilderHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/transaction-builder",
-  createPaymentOrchestrator("transaction-builder", SERVICE_PRICING["transaction-builder"], transactionBuilderHandler),
+  createPaymentOrchestrator("transaction-builder", SERVICE_PRICING_MICRO["transaction-builder"], transactionBuilderHandler),
   x402Middleware,
   transactionBuilderHandler
 );
@@ -1368,7 +1362,7 @@ const tokenMetadataHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/token-metadata",
-  createPaymentOrchestrator("token-metadata", SERVICE_PRICING["token-metadata"], tokenMetadataHandler),
+  createPaymentOrchestrator("token-metadata", SERVICE_PRICING_MICRO["token-metadata"], tokenMetadataHandler),
   x402Middleware,
   tokenMetadataHandler
 );
@@ -1397,7 +1391,7 @@ const approvalManagerHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/approval-manager",
-  createPaymentOrchestrator("approval-manager", SERVICE_PRICING["approval-manager"], approvalManagerHandler),
+  createPaymentOrchestrator("approval-manager", SERVICE_PRICING_MICRO["approval-manager"], approvalManagerHandler),
   x402Middleware,
   approvalManagerHandler
 );
@@ -1426,7 +1420,7 @@ const batchQuoteHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/batch-quote",
-  createPaymentOrchestrator("batch-quote", SERVICE_PRICING["batch-quote"], batchQuoteHandler),
+  createPaymentOrchestrator("batch-quote", SERVICE_PRICING_MICRO["batch-quote"], batchQuoteHandler),
   x402Middleware,
   batchQuoteHandler
 );
@@ -1456,7 +1450,7 @@ const portfolioTrackerHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/portfolio-tracker",
-  createPaymentOrchestrator("portfolio-tracker", SERVICE_PRICING["portfolio-tracker"], portfolioTrackerHandler),
+  createPaymentOrchestrator("portfolio-tracker", SERVICE_PRICING_MICRO["portfolio-tracker"], portfolioTrackerHandler),
   x402Middleware,
   portfolioTrackerHandler
 );
@@ -1486,7 +1480,7 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/instant-agent-wallet",
-  createPaymentOrchestrator("instant-agent-wallet", SERVICE_PRICING["instant-agent-wallet"], instantAgentWalletHandler),
+  createPaymentOrchestrator("instant-agent-wallet", SERVICE_PRICING_MICRO["instant-agent-wallet"], instantAgentWalletHandler),
   x402Middleware,
   instantAgentWalletHandler
 );
@@ -1516,7 +1510,7 @@ const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/verified-agent-identity",
-  createPaymentOrchestrator("verified-agent-identity", SERVICE_PRICING["verified-agent-identity"], verifiedAgentIdentityHandler),
+  createPaymentOrchestrator("verified-agent-identity", SERVICE_PRICING_MICRO["verified-agent-identity"], verifiedAgentIdentityHandler),
   x402Middleware,
   verifiedAgentIdentityHandler
 );
@@ -1549,7 +1543,7 @@ const seamlessChainBridgeHandler = async (req: Request, res: Response) => {
 };
 
 router.post("/seamless-chain-bridge",
-  createPaymentOrchestrator("seamless-chain-bridge", SERVICE_PRICING["seamless-chain-bridge"], seamlessChainBridgeHandler),
+  createPaymentOrchestrator("seamless-chain-bridge", SERVICE_PRICING_MICRO["seamless-chain-bridge"], seamlessChainBridgeHandler),
   x402Middleware,
   seamlessChainBridgeHandler
 );
@@ -1700,19 +1694,19 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
 
 // Register enterprise gated service routes
 router.post("/service/smart-contract-audit",
-  createPaymentOrchestrator("smart-contract-audit", SERVICE_PRICING["smart-contract-audit"], smartContractAuditHandler),
+  createPaymentOrchestrator("smart-contract-audit", SERVICE_PRICING_MICRO["smart-contract-audit"], smartContractAuditHandler),
   x402Middleware,
   smartContractAuditHandler
 );
 
 router.post("/service/payment-processing",
-  createPaymentOrchestrator("payment-processing", SERVICE_PRICING["payment-processing"], paymentProcessingHandler),
+  createPaymentOrchestrator("payment-processing", SERVICE_PRICING_MICRO["payment-processing"], paymentProcessingHandler),
   x402Middleware,
   paymentProcessingHandler
 );
 
 router.post("/service/compliance-consultation",
-  createPaymentOrchestrator("compliance-consultation", SERVICE_PRICING["compliance-consultation"], complianceConsultationHandler),
+  createPaymentOrchestrator("compliance-consultation", SERVICE_PRICING_MICRO["compliance-consultation"], complianceConsultationHandler),
   x402Middleware,
   complianceConsultationHandler
 );
@@ -1851,7 +1845,7 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
           status: "ready",
           network: NETWORK,
           token: "USDC",
-          amount: SERVICE_PRICING[serviceId as keyof typeof SERVICE_PRICING] || 500000,
+          amount: SERVICE_PRICING_MICRO[serviceId as keyof typeof SERVICE_PRICING] || 500000,
           payTo: PLATFORM_WALLET,
           facilitator: "https://facilitator.x402.io",
         },

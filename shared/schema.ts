@@ -51,12 +51,28 @@ export const discoveredAgents = pgTable(
     metadata: jsonb("metadata"), // Additional agent metadata and platform info
     discoveredAt: timestamp("discovered_at").defaultNow(),
     verifiedAt: timestamp("verified_at"),
+    
+    // XMTP Discovery Fields (ChatGPT-recommended agent-card.json scanner)
+    xmtpAddress: varchar("xmtp_address"), // XMTP wallet address from agent-card.json contact.xmtp field
+    xmtpCanMessage: boolean("xmtp_can_message").default(false), // Result of xmtpClient.canMessage() verification
+    xmtpLastChecked: timestamp("xmtp_last_checked"), // Last XMTP reachability check timestamp
+    agentCardData: jsonb("agent_card_data"), // Cached agent-card.json for audit trail
+    
+    // Duplicate Prevention (Canonical URL enforcement)
+    // MIGRATION SAFETY: Nullable to allow backfilling existing records before enforcing uniqueness
+    canonicalUrl: varchar("canonical_url"), // Normalized URL (https, no www, no trailing slash, lowercase)
   },
   (table) => [
     uniqueIndex("IDX_discovered_agents_url_unique").on(table.url),
+    // NOTE: Canonical URL unique index commented out until migration is complete
+    // Run POST /api/xmtp/cleanup-duplicates FIRST to backfill and consolidate, then add index manually:
+    // CREATE UNIQUE INDEX IDX_discovered_agents_canonical_url_unique ON discovered_agents(canonical_url) WHERE canonical_url IS NOT NULL;
+    // uniqueIndex("IDX_discovered_agents_canonical_url_unique").on(table.canonicalUrl),
     index("IDX_discovered_agents_status").on(table.status),
     index("IDX_discovered_agents_source").on(table.source),
     index("IDX_discovered_agents_score").on(table.score),
+    index("IDX_discovered_agents_xmtp_address").on(table.xmtpAddress), // Index for XMTP filtering
+    index("IDX_discovered_agents_xmtp_can_message").on(table.xmtpCanMessage), // Fast filtering for XMTP-enabled agents
   ],
 );
 
@@ -2980,6 +2996,8 @@ export const insertDiscoveredAgentSchema = createInsertSchema(discoveredAgents).
   verifiedAt: true,
   lastSeenAt: true,
   lastContactAt: true,
+  xmtpLastChecked: true, // Auto-managed by scanner
+  canonicalUrl: true, // Auto-generated from URL normalization
 });
 
 // SDK License Types and Schemas

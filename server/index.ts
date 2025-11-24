@@ -3542,6 +3542,10 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('❌ SOL transactions still DISABLED');
         
         try {
+          // Start XMTP agent scanner (ChatGPT-recommended nightly scans at 2 AM)
+          const { startXMTPScanScheduler } = await import('./schedulers/xmtpScanScheduler');
+          startXMTPScanScheduler();
+          
           initializeAutomatedOutreach().catch(console.error); // RE-ENABLED for emergency revenue (no spending)
           console.log('✅ Emergency outreach orchestrator started');
           

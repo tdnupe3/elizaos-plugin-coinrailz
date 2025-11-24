@@ -342,6 +342,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   // Agent Discovery System Routes
   app.use('/api/discovery', agentDiscoveryRoutes);
 
+  // XMTP Discovery Routes (ChatGPT-recommended agent scanner)
+  app.use('/api/xmtp', await import('./routes/xmtpDiscoveryRoutes').then(m => m.default));
+
   // B2B Marketing Service Routes  
   app.use('/api/b2b-marketing', await import('./routes/b2bMarketingRoutes').then(m => m.default));
   app.use('/api/solana-outreach', await import('./routes/solanaOutreachRoutes').then(m => m.solanaOutreachRoutes));

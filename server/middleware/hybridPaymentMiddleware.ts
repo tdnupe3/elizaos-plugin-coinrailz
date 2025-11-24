@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
 import { ethers } from "ethers";
 import jwt from "jsonwebtoken";
+import { nanoid } from "nanoid";
 import { db } from "../db";
-import { usedTransactionHashes } from "@shared/schema";
+import { usedTransactionHashes, x402Payments } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { creditsService } from "../services/creditsService.js";
 
@@ -426,7 +427,29 @@ export async function verifyTransactionPayment(
       paidBy: senderAddress,
     });
 
-    console.log(`✅ Transaction verified and marked as used`);
+    // ARCHITECT FIX: Also record to x402_payments table for analytics and tracking
+    await db.insert(x402Payments).values({
+      id: nanoid(),
+      agentId: senderAddress,
+      customerId: senderAddress, // Agent is also the customer in this case
+      amount: (paymentAmount / 1e6).toString(), // Convert from micro-USDC to USDC
+      currency: "USDC",
+      status: "completed",
+      x402TransactionId: txHash,
+      walletAddress: senderAddress,
+      network: "base",
+      paymentProof: txHash,
+      completedAt: new Date(),
+      metadata: {
+        serviceName,
+        requiredAmount,
+        actualAmount: paymentAmount,
+        verifiedAt: new Date().toISOString(),
+        verificationMethod: "on-chain-base",
+      },
+    });
+
+    console.log(`✅ Transaction verified and marked as used, payment recorded to x402_payments`);
     return true;
 
   } catch (error: any) {

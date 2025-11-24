@@ -5,9 +5,10 @@ import { verifyTransactionPayment } from "./hybridPaymentMiddleware";
  * Payment Orchestrator - Routes payment verification before middleware chain
  * 
  * Decision tree:
- * 1. If Base64 JSON with txHash → verify on-chain, execute handler directly
- * 2. If EIP-712 signature → delegate to x402-express middleware
- * 3. If no payment → return 402 with payment requirements
+ * 1. If raw 0x transaction hash → verify on-chain, execute handler directly
+ * 2. If Base64 JSON with txHash → verify on-chain, execute handler directly
+ * 3. If EIP-712 signature → delegate to x402-express middleware
+ * 4. If no payment → return 402 with payment requirements
  * 
  * This prevents middleware conflict by choosing verification path upfront
  */
@@ -31,24 +32,42 @@ export function createPaymentOrchestrator(
       return next();
     }
 
-    // Try to decode as Base64 JSON (raw transaction hash)
-    try {
-      const decoded = JSON.parse(Buffer.from(xPayment, "base64").toString("utf-8"));
-      
-      if (decoded.txHash && typeof decoded.txHash === "string") {
-        // This is a raw transaction hash payment
-        console.log(`🔐 Orchestrator: Raw hash payment detected for ${serviceName}`);
-        
+    let txHash: string | null = null;
+
+    // ARCHITECT FIX: Accept both raw 0x hashes AND Base64 JSON
+    // Case 1: Raw transaction hash (what agents actually send)
+    if (xPayment.startsWith("0x")) {
+      txHash = xPayment;
+      console.log(`🔐 Orchestrator: Raw 0x hash payment detected for ${serviceName}: ${xPayment.substring(0, 10)}...`);
+    } 
+    // Case 2: Base64-encoded JSON (legacy format)
+    else {
+      try {
+        const decoded = JSON.parse(Buffer.from(xPayment, "base64").toString("utf-8"));
+        if (decoded.txHash && typeof decoded.txHash === "string") {
+          txHash = decoded.txHash;
+          console.log(`🔐 Orchestrator: Base64 JSON hash payment detected for ${serviceName}: ${decoded.txHash.substring(0, 10)}...`);
+        }
+      } catch (e) {
+        // Not Base64 JSON → probably EIP-712 signature, delegate to x402-express
+        console.log(`🔐 Orchestrator: Non-hash payment header for ${serviceName}, delegating to x402-express`);
+        return next();
+      }
+    }
+
+    // If we have a transaction hash, verify it on-chain
+    if (txHash) {
+      try {
         const verified = await verifyTransactionPayment(
-          decoded.txHash,
+          txHash,
           serviceName,
           requiredAmount
         );
 
         if (verified) {
-          console.log(`✅ Orchestrator: Raw hash payment verified for ${serviceName}, executing handler directly`);
-          // Store verification result for handler to use
-          res.locals.payment = { method: "raw-hash", txHash: decoded.txHash };
+          console.log(`✅ Orchestrator: Payment verified for ${serviceName}, executing handler directly`);
+          // Store verification result for handler and tracking
+          res.locals.payment = { method: "raw-hash", txHash, verified: true };
           // Execute handler directly, skipping x402-express middleware
           return await handler(req, res);
         } else {
@@ -56,12 +75,11 @@ export function createPaymentOrchestrator(
           // Verification failed → let x402-express middleware generate 402 response
           return next();
         }
+      } catch (error: any) {
+        console.error(`❌ Orchestrator: Payment verification error for ${serviceName}:`, error.message);
+        // Verification error → let x402-express middleware generate 402 response
+        return next();
       }
-    } catch (e) {
-      // Not Base64 JSON → probably EIP-712 signature
-      console.log(`🔐 Orchestrator: EIP-712 signature detected for ${serviceName}, delegating to x402-express`);
-      // Delegate to x402-express middleware by continuing
-      return next();
     }
 
     // Fallback → let x402-express handle it

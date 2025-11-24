@@ -21,7 +21,7 @@ const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2
 // Service pricing (MUST match agent-chat system prompt in telegramMiniAppRoutes.ts)
 // Updated 2025-11-24: Added vertical expansion services (Real Estate, Banking, Trading, Intelligence)
 // CRITICAL: USDC has 6 decimals, so $1.00 = 1,000,000 micro-USDC
-const SERVICE_PRICING: Record<string, number> = {
+export const SERVICE_PRICING: Record<string, number> = {
   // Trading Intelligence Services ($0.10-$0.75)
   "gas-price-oracle": 100000, // $0.10
   "token-metadata": 100000, // $0.10

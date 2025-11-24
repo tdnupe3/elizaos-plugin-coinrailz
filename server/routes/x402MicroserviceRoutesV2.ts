@@ -23,7 +23,7 @@ import {
   verifiedAgentIdentityService,
   seamlessChainBridgeService,
   trackRequest,
-  SERVICE_PRICING,
+  SERVICE_PRICING as SERVICE_PRICING_USD, // USD float values for analytics/display
   propertyValuationService,
   leaseAnalysisService,
   constructionProgressService,
@@ -55,13 +55,19 @@ import {
   riskMetricsInputSchema,
 } from "@shared/schema";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
-import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
+import { hybridPaymentMiddleware, SERVICE_PRICING } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
 import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
 import { deductBundleCredits } from "../services/bundleCreditService";
 
 const router = Router();
+
+// Helper to convert micro-USDC (6 decimals) to USD for display
+// Example: 500000 micro-USDC → "$0.50"
+function microToUSD(microAmount: number): string {
+  return (microAmount / 1_000_000).toFixed(2);
+}
 
 // Helper function to track bundle credits after successful service execution
 async function trackBundleUsage(
@@ -161,7 +167,7 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
 const x402Routes = {
   // Original 10 trader-focused services
   "POST /multi-chain-balance": {
-    price: `$${SERVICE_PRICING["multi-chain-balance"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["multi-chain-balance"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -198,7 +204,7 @@ const x402Routes = {
     }
   },
   "POST /gas-price-oracle": {
-    price: `$${SERVICE_PRICING["gas-price-oracle"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["gas-price-oracle"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -229,7 +235,7 @@ const x402Routes = {
     }
   },
   "POST /token-price": {
-    price: `$${SERVICE_PRICING["token-price"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["token-price"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -265,7 +271,7 @@ const x402Routes = {
     }
   },
   "POST /contract-scan": {
-    price: `$${SERVICE_PRICING["contract-scan"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["contract-scan"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -300,7 +306,7 @@ const x402Routes = {
     }
   },
   "POST /wallet-risk": {
-    price: `$${SERVICE_PRICING["wallet-risk"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["wallet-risk"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -335,7 +341,7 @@ const x402Routes = {
     }
   },
   "POST /trade-signals": {
-    price: `$${SERVICE_PRICING["trade-signals"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["trade-signals"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -382,7 +388,7 @@ const x402Routes = {
     }
   },
   "POST /token-sentiment": {
-    price: `$${SERVICE_PRICING["token-sentiment"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["token-sentiment"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -426,7 +432,7 @@ const x402Routes = {
     }
   },
   "POST /trending-tokens": {
-    price: `$${SERVICE_PRICING["trending-tokens"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["trending-tokens"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -467,7 +473,7 @@ const x402Routes = {
     }
   },
   "POST /whale-alerts": {
-    price: `$${SERVICE_PRICING["whale-alerts"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["whale-alerts"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -508,7 +514,7 @@ const x402Routes = {
     }
   },
   "POST /dex-liquidity": {
-    price: `$${SERVICE_PRICING["dex-liquidity"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["dex-liquidity"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -551,7 +557,7 @@ const x402Routes = {
   },
   // 5 B2B2C infrastructure services
   "POST /transaction-builder": {
-    price: `$${SERVICE_PRICING["transaction-builder"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["transaction-builder"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -599,7 +605,7 @@ const x402Routes = {
     }
   },
   "POST /token-metadata": {
-    price: `$${SERVICE_PRICING["token-metadata"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["token-metadata"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -645,7 +651,7 @@ const x402Routes = {
     }
   },
   "POST /approval-manager": {
-    price: `$${SERVICE_PRICING["approval-manager"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["approval-manager"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -689,7 +695,7 @@ const x402Routes = {
     }
   },
   "POST /batch-quote": {
-    price: `$${SERVICE_PRICING["batch-quote"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["batch-quote"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -734,7 +740,7 @@ const x402Routes = {
     }
   },
   "POST /portfolio-tracker": {
-    price: `$${SERVICE_PRICING["portfolio-tracker"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["portfolio-tracker"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -777,7 +783,7 @@ const x402Routes = {
   },
   // 3 Premium B2B2C services
   "POST /instant-agent-wallet": {
-    price: `$${SERVICE_PRICING["instant-agent-wallet"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["instant-agent-wallet"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -823,7 +829,7 @@ const x402Routes = {
     }
   },
   "POST /verified-agent-identity": {
-    price: `$${SERVICE_PRICING["verified-agent-identity"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["verified-agent-identity"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -871,7 +877,7 @@ const x402Routes = {
     }
   },
   "POST /seamless-chain-bridge": {
-    price: `$${SERVICE_PRICING["seamless-chain-bridge"]}`,
+    price: `$${microToUSD(SERVICE_PRICING["seamless-chain-bridge"])}`,
     network: NETWORK,
     config: {
       discoverable: true,
@@ -1044,13 +1050,13 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
     const result = await multiChainBalanceService(walletAddress, chains, includeTokens);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("multi-chain-balance", req.body, result, responseTime, SERVICE_PRICING["multi-chain-balance"], walletAddress);
+    await trackRequest("multi-chain-balance", req.body, result, responseTime, SERVICE_PRICING_USD["multi-chain-balance"], walletAddress);
     await trackBundleUsage(req, res, "multi-chain-balance", { walletAddress, chains });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("multi-chain-balance", req.body, null, responseTime, SERVICE_PRICING["multi-chain-balance"], req.body.walletAddress || "unknown", error.message);
+    await trackRequest("multi-chain-balance", req.body, null, responseTime, SERVICE_PRICING_USD["multi-chain-balance"], req.body.walletAddress || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1069,13 +1075,13 @@ const gasPriceOracleHandler = async (req: Request, res: Response) => {
     const result = await gasPriceOracleService(chains);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("gas-price-oracle", req.body, result, responseTime, SERVICE_PRICING["gas-price-oracle"], req.ip || "unknown");
+    await trackRequest("gas-price-oracle", req.body, result, responseTime, SERVICE_PRICING_USD["gas-price-oracle"], req.ip || "unknown");
     await trackBundleUsage(req, res, "gas-price-oracle", { chains });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("gas-price-oracle", req.body, null, responseTime, SERVICE_PRICING["gas-price-oracle"], req.ip || "unknown", error.message);
+    await trackRequest("gas-price-oracle", req.body, null, responseTime, SERVICE_PRICING_USD["gas-price-oracle"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1099,13 +1105,13 @@ const tokenPriceHandler = async (req: Request, res: Response) => {
     const result = await tokenPriceFeedService(tokenAddress, chain);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("token-price", req.body, result, responseTime, SERVICE_PRICING["token-price"], req.ip || "unknown");
+    await trackRequest("token-price", req.body, result, responseTime, SERVICE_PRICING_USD["token-price"], req.ip || "unknown");
     await trackBundleUsage(req, res, "token-price", { tokenAddress, chain });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("token-price", req.body, null, responseTime, SERVICE_PRICING["token-price"], req.ip || "unknown", error.message);
+    await trackRequest("token-price", req.body, null, responseTime, SERVICE_PRICING_USD["token-price"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1129,13 +1135,13 @@ const contractScanHandler = async (req: Request, res: Response) => {
     const result = await contractQuickScanService(contractAddress, chain);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("contract-scan", req.body, result, responseTime, SERVICE_PRICING["contract-scan"], req.ip || "unknown");
+    await trackRequest("contract-scan", req.body, result, responseTime, SERVICE_PRICING_USD["contract-scan"], req.ip || "unknown");
     await trackBundleUsage(req, res, "contract-scan", { contractAddress, chain });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("contract-scan", req.body, null, responseTime, SERVICE_PRICING["contract-scan"], req.ip || "unknown", error.message);
+    await trackRequest("contract-scan", req.body, null, responseTime, SERVICE_PRICING_USD["contract-scan"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1159,13 +1165,13 @@ const walletRiskHandler = async (req: Request, res: Response) => {
     const result = await walletRiskScoreService(walletAddress, chain);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("wallet-risk", req.body, result, responseTime, SERVICE_PRICING["wallet-risk"], walletAddress);
+    await trackRequest("wallet-risk", req.body, result, responseTime, SERVICE_PRICING_USD["wallet-risk"], walletAddress);
     await trackBundleUsage(req, res, "wallet-risk", { walletAddress, chain });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("wallet-risk", req.body, null, responseTime, SERVICE_PRICING["wallet-risk"], req.body.walletAddress || "unknown", error.message);
+    await trackRequest("wallet-risk", req.body, null, responseTime, SERVICE_PRICING_USD["wallet-risk"], req.body.walletAddress || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1183,13 +1189,13 @@ const tradeSignalsHandler = async (req: Request, res: Response) => {
     const result = await tradeSignalsService({ token, timeframe, riskLevel });
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("trade-signals", req.body, result, responseTime, SERVICE_PRICING["trade-signals"], req.ip || "unknown");
+    await trackRequest("trade-signals", req.body, result, responseTime, SERVICE_PRICING_USD["trade-signals"], req.ip || "unknown");
     await trackBundleUsage(req, res, "trade-signals", { token, timeframe, riskLevel });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("trade-signals", req.body, null, responseTime, SERVICE_PRICING["trade-signals"], req.ip || "unknown", error.message);
+    await trackRequest("trade-signals", req.body, null, responseTime, SERVICE_PRICING_USD["trade-signals"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1213,13 +1219,13 @@ const tokenSentimentHandler = async (req: Request, res: Response) => {
     const result = await tokenSocialSentimentService(req.body);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("token-sentiment", req.body, result, responseTime, SERVICE_PRICING["token-sentiment"], req.ip || "unknown");
+    await trackRequest("token-sentiment", req.body, result, responseTime, SERVICE_PRICING_USD["token-sentiment"], req.ip || "unknown");
     await trackBundleUsage(req, res, "token-sentiment", req.body);
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("token-sentiment", req.body, null, responseTime, SERVICE_PRICING["token-sentiment"], req.ip || "unknown", error.message);
+    await trackRequest("token-sentiment", req.body, null, responseTime, SERVICE_PRICING_USD["token-sentiment"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1237,13 +1243,13 @@ const trendingTokensHandler = async (req: Request, res: Response) => {
     const result = await trendingTokensFeedService(timeframe, chain);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("trending-tokens", req.body, result, responseTime, SERVICE_PRICING["trending-tokens"], req.ip || "unknown");
+    await trackRequest("trending-tokens", req.body, result, responseTime, SERVICE_PRICING_USD["trending-tokens"], req.ip || "unknown");
     await trackBundleUsage(req, res, "trending-tokens", { timeframe, chain });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("trending-tokens", req.body, null, responseTime, SERVICE_PRICING["trending-tokens"], req.ip || "unknown", error.message);
+    await trackRequest("trending-tokens", req.body, null, responseTime, SERVICE_PRICING_USD["trending-tokens"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1261,13 +1267,13 @@ const whaleAlertsHandler = async (req: Request, res: Response) => {
     const result = await whaleWalletAlertsService(chains, minValueUsd, tokenAddresses);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("whale-alerts", req.body, result, responseTime, SERVICE_PRICING["whale-alerts"], req.ip || "unknown");
+    await trackRequest("whale-alerts", req.body, result, responseTime, SERVICE_PRICING_USD["whale-alerts"], req.ip || "unknown");
     await trackBundleUsage(req, res, "whale-alerts", { chains, minValueUsd });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("whale-alerts", req.body, null, responseTime, SERVICE_PRICING["whale-alerts"], req.ip || "unknown", error.message);
+    await trackRequest("whale-alerts", req.body, null, responseTime, SERVICE_PRICING_USD["whale-alerts"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1291,13 +1297,13 @@ const dexLiquidityHandler = async (req: Request, res: Response) => {
     const result = await dexLiquidityMonitorService(tokenAddress, chain);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("dex-liquidity", req.body, result, responseTime, SERVICE_PRICING["dex-liquidity"], req.ip || "unknown");
+    await trackRequest("dex-liquidity", req.body, result, responseTime, SERVICE_PRICING_USD["dex-liquidity"], req.ip || "unknown");
     await trackBundleUsage(req, res, "dex-liquidity", { tokenAddress, chain });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("dex-liquidity", req.body, null, responseTime, SERVICE_PRICING["dex-liquidity"], req.ip || "unknown", error.message);
+    await trackRequest("dex-liquidity", req.body, null, responseTime, SERVICE_PRICING_USD["dex-liquidity"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1320,13 +1326,13 @@ const transactionBuilderHandler = async (req: Request, res: Response) => {
     const result = await transactionBuilderService(validationResult.data);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("transaction-builder", req.body, result, responseTime, SERVICE_PRICING["transaction-builder"], req.ip || "unknown");
+    await trackRequest("transaction-builder", req.body, result, responseTime, SERVICE_PRICING_USD["transaction-builder"], req.ip || "unknown");
     await trackBundleUsage(req, res, "transaction-builder", validationResult.data);
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("transaction-builder", req.body, null, responseTime, SERVICE_PRICING["transaction-builder"], req.ip || "unknown", error.message);
+    await trackRequest("transaction-builder", req.body, null, responseTime, SERVICE_PRICING_USD["transaction-builder"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1350,13 +1356,13 @@ const tokenMetadataHandler = async (req: Request, res: Response) => {
     const result = await tokenMetadataService(tokenAddress, chain);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("token-metadata", req.body, result, responseTime, SERVICE_PRICING["token-metadata"], req.ip || "unknown");
+    await trackRequest("token-metadata", req.body, result, responseTime, SERVICE_PRICING_USD["token-metadata"], req.ip || "unknown");
     await trackBundleUsage(req, res, "token-metadata", { tokenAddress, chain });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("token-metadata", req.body, null, responseTime, SERVICE_PRICING["token-metadata"], req.ip || "unknown", error.message);
+    await trackRequest("token-metadata", req.body, null, responseTime, SERVICE_PRICING_USD["token-metadata"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1379,13 +1385,13 @@ const approvalManagerHandler = async (req: Request, res: Response) => {
     const result = await approvalManagerService(validationResult.data);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("approval-manager", req.body, result, responseTime, SERVICE_PRICING["approval-manager"], req.ip || "unknown");
+    await trackRequest("approval-manager", req.body, result, responseTime, SERVICE_PRICING_USD["approval-manager"], req.ip || "unknown");
     await trackBundleUsage(req, res, "approval-manager", validationResult.data);
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("approval-manager", req.body, null, responseTime, SERVICE_PRICING["approval-manager"], req.ip || "unknown", error.message);
+    await trackRequest("approval-manager", req.body, null, responseTime, SERVICE_PRICING_USD["approval-manager"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1408,13 +1414,13 @@ const batchQuoteHandler = async (req: Request, res: Response) => {
     const result = await batchQuoteService(validationResult.data);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("batch-quote", req.body, result, responseTime, SERVICE_PRICING["batch-quote"], req.ip || "unknown");
+    await trackRequest("batch-quote", req.body, result, responseTime, SERVICE_PRICING_USD["batch-quote"], req.ip || "unknown");
     await trackBundleUsage(req, res, "batch-quote", validationResult.data);
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("batch-quote", req.body, null, responseTime, SERVICE_PRICING["batch-quote"], req.ip || "unknown", error.message);
+    await trackRequest("batch-quote", req.body, null, responseTime, SERVICE_PRICING_USD["batch-quote"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1438,13 +1444,13 @@ const portfolioTrackerHandler = async (req: Request, res: Response) => {
     const result = await portfolioTrackerService(walletAddress, chains || ["ethereum", "base", "polygon"]);
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("portfolio-tracker", req.body, result, responseTime, SERVICE_PRICING["portfolio-tracker"], walletAddress);
+    await trackRequest("portfolio-tracker", req.body, result, responseTime, SERVICE_PRICING_USD["portfolio-tracker"], walletAddress);
     await trackBundleUsage(req, res, "portfolio-tracker", { walletAddress, chains });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("portfolio-tracker", req.body, null, responseTime, SERVICE_PRICING["portfolio-tracker"], req.body.walletAddress || "unknown", error.message);
+    await trackRequest("portfolio-tracker", req.body, null, responseTime, SERVICE_PRICING_USD["portfolio-tracker"], req.body.walletAddress || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1468,13 +1474,13 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
     const result = await instantAgentWalletService({ agentId, description, initialFundingAmount });
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("instant-agent-wallet", req.body, result, responseTime, SERVICE_PRICING["instant-agent-wallet"], result.walletAddress);
+    await trackRequest("instant-agent-wallet", req.body, result, responseTime, SERVICE_PRICING_USD["instant-agent-wallet"], result.walletAddress);
     await trackBundleUsage(req, res, "instant-agent-wallet", { agentId });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("instant-agent-wallet", req.body, null, responseTime, SERVICE_PRICING["instant-agent-wallet"], req.ip || "unknown", error.message);
+    await trackRequest("instant-agent-wallet", req.body, null, responseTime, SERVICE_PRICING_USD["instant-agent-wallet"], req.ip || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1498,13 +1504,13 @@ const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {
     const result = await verifiedAgentIdentityService({ agentId, walletAddress, signature, metadata });
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("verified-agent-identity", req.body, result, responseTime, SERVICE_PRICING["verified-agent-identity"], walletAddress);
+    await trackRequest("verified-agent-identity", req.body, result, responseTime, SERVICE_PRICING_USD["verified-agent-identity"], walletAddress);
     await trackBundleUsage(req, res, "verified-agent-identity", { agentId, walletAddress });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("verified-agent-identity", req.body, null, responseTime, SERVICE_PRICING["verified-agent-identity"], req.body.walletAddress || "unknown", error.message);
+    await trackRequest("verified-agent-identity", req.body, null, responseTime, SERVICE_PRICING_USD["verified-agent-identity"], req.body.walletAddress || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1531,13 +1537,13 @@ const seamlessChainBridgeHandler = async (req: Request, res: Response) => {
     const result = await seamlessChainBridgeService({ fromChain, toChain, amount, fromAddress, toAddress, currency });
     const responseTime = Date.now() - startTime;
     
-    await trackRequest("seamless-chain-bridge", req.body, result, responseTime, SERVICE_PRICING["seamless-chain-bridge"], fromAddress);
+    await trackRequest("seamless-chain-bridge", req.body, result, responseTime, SERVICE_PRICING_USD["seamless-chain-bridge"], fromAddress);
     await trackBundleUsage(req, res, "seamless-chain-bridge", { fromChain, toChain, amount });
     
     res.json(result);
   } catch (error: any) {
     const responseTime = Date.now() - startTime;
-    await trackRequest("seamless-chain-bridge", req.body, null, responseTime, SERVICE_PRICING["seamless-chain-bridge"], req.body.fromAddress || "unknown", error.message);
+    await trackRequest("seamless-chain-bridge", req.body, null, responseTime, SERVICE_PRICING_USD["seamless-chain-bridge"], req.body.fromAddress || "unknown", error.message);
     res.status(500).json({ success: false, error: error.message });
   }
 };
@@ -1694,19 +1700,19 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
 
 // Register enterprise gated service routes
 router.post("/service/smart-contract-audit",
-  createPaymentOrchestrator("service/smart-contract-audit", 10, smartContractAuditHandler),
+  createPaymentOrchestrator("smart-contract-audit", SERVICE_PRICING["smart-contract-audit"], smartContractAuditHandler),
   x402Middleware,
   smartContractAuditHandler
 );
 
 router.post("/service/payment-processing",
-  createPaymentOrchestrator("service/payment-processing", 0.50, paymentProcessingHandler),
+  createPaymentOrchestrator("payment-processing", SERVICE_PRICING["payment-processing"], paymentProcessingHandler),
   x402Middleware,
   paymentProcessingHandler
 );
 
 router.post("/service/compliance-consultation",
-  createPaymentOrchestrator("service/compliance-consultation", 5, complianceConsultationHandler),
+  createPaymentOrchestrator("compliance-consultation", SERVICE_PRICING["compliance-consultation"], complianceConsultationHandler),
   x402Middleware,
   complianceConsultationHandler
 );

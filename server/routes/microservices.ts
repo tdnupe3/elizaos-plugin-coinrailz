@@ -2083,4 +2083,7 @@ export {
   SERVICE_PRICING,
 };
 
+// Export vertical expansion service modules
+export * from "./microservices/index";
+
 export default router;

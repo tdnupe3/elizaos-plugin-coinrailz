@@ -24,11 +24,35 @@ import {
   seamlessChainBridgeService,
   trackRequest,
   SERVICE_PRICING,
+  propertyValuationService,
+  leaseAnalysisService,
+  constructionProgressService,
+  creditRiskScoreService,
+  fraudDetectionService,
+  complianceCheckService,
+  tradingSignalService,
+  portfolioOptimizationService,
+  sentimentAnalysisService,
+  arbitrageScannerService,
+  correlationMatrixService,
+  riskMetricsService,
 } from "./microservices";
 import {
   transactionBuilderInputSchema,
   approvalManagerInputSchema,
   batchQuoteInputSchema,
+  propertyValuationInputSchema,
+  leaseAnalysisInputSchema,
+  constructionProgressInputSchema,
+  creditRiskScoreInputSchema,
+  fraudDetectionInputSchema,
+  complianceCheckInputSchema,
+  tradingSignalInputSchema,
+  portfolioOptimizationInputSchema,
+  sentimentAnalysisInputSchema,
+  arbitrageScannerInputSchema,
+  correlationMatrixInputSchema,
+  riskMetricsInputSchema,
 } from "@shared/schema";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
@@ -1864,5 +1888,242 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// ========================================
+// VERTICAL EXPANSION: 12 NEW SERVICES
+// Real Estate, Banking, Trading, Intelligence
+// ========================================
+
+// REAL ESTATE SERVICES
+router.post("/property-valuation",
+  createPaymentOrchestrator("property-valuation", 0.50, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = propertyValuationInputSchema.parse(req.body);
+      const result = await propertyValuationService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("property-valuation", req.body, result, responseTime, 0.50, req.ip || "unknown");
+      await trackBundleUsage(req, res, "property-valuation", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("property-valuation", req.body, null, responseTime, 0.50, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/lease-analysis",
+  createPaymentOrchestrator("lease-analysis", 0.75, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = leaseAnalysisInputSchema.parse(req.body);
+      const result = await leaseAnalysisService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("lease-analysis", req.body, result, responseTime, 0.75, req.ip || "unknown");
+      await trackBundleUsage(req, res, "lease-analysis", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("lease-analysis", req.body, null, responseTime, 0.75, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/construction-progress",
+  createPaymentOrchestrator("construction-progress", 1.00, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = constructionProgressInputSchema.parse(req.body);
+      const result = await constructionProgressService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("construction-progress", req.body, result, responseTime, 1.00, req.ip || "unknown");
+      await trackBundleUsage(req, res, "construction-progress", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("construction-progress", req.body, null, responseTime, 1.00, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+// BANKING/FINANCE SERVICES
+router.post("/credit-risk-score",
+  createPaymentOrchestrator("credit-risk-score", 0.50, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = creditRiskScoreInputSchema.parse(req.body);
+      const result = await creditRiskScoreService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("credit-risk-score", req.body, result, responseTime, 0.50, req.ip || "unknown");
+      await trackBundleUsage(req, res, "credit-risk-score", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("credit-risk-score", req.body, null, responseTime, 0.50, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/fraud-detection",
+  createPaymentOrchestrator("fraud-detection", 0.25, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = fraudDetectionInputSchema.parse(req.body);
+      const result = await fraudDetectionService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("fraud-detection", req.body, result, responseTime, 0.25, req.ip || "unknown");
+      await trackBundleUsage(req, res, "fraud-detection", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("fraud-detection", req.body, null, responseTime, 0.25, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/compliance-check",
+  createPaymentOrchestrator("compliance-check", 0.40, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = complianceCheckInputSchema.parse(req.body);
+      const result = await complianceCheckService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("compliance-check", req.body, result, responseTime, 0.40, req.ip || "unknown");
+      await trackBundleUsage(req, res, "compliance-check", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("compliance-check", req.body, null, responseTime, 0.40, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+// TRADING/INVESTMENT SERVICES
+router.post("/trading-signal",
+  createPaymentOrchestrator("trading-signal", 1.00, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = tradingSignalInputSchema.parse(req.body);
+      const result = await tradingSignalService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("trading-signal", req.body, result, responseTime, 1.00, req.ip || "unknown");
+      await trackBundleUsage(req, res, "trading-signal", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("trading-signal", req.body, null, responseTime, 1.00, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/portfolio-optimization",
+  createPaymentOrchestrator("portfolio-optimization", 1.50, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = portfolioOptimizationInputSchema.parse(req.body);
+      const result = await portfolioOptimizationService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("portfolio-optimization", req.body, result, responseTime, 1.50, req.ip || "unknown");
+      await trackBundleUsage(req, res, "portfolio-optimization", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("portfolio-optimization", req.body, null, responseTime, 1.50, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/sentiment-analysis",
+  createPaymentOrchestrator("sentiment-analysis", 0.20, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = sentimentAnalysisInputSchema.parse(req.body);
+      const result = await sentimentAnalysisService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("sentiment-analysis", req.body, result, responseTime, 0.20, req.ip || "unknown");
+      await trackBundleUsage(req, res, "sentiment-analysis", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("sentiment-analysis", req.body, null, responseTime, 0.20, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+// MARKET INTELLIGENCE SERVICES
+router.post("/arbitrage-scanner",
+  createPaymentOrchestrator("arbitrage-scanner", 0.75, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = arbitrageScannerInputSchema.parse(req.body);
+      const result = await arbitrageScannerService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("arbitrage-scanner", req.body, result, responseTime, 0.75, req.ip || "unknown");
+      await trackBundleUsage(req, res, "arbitrage-scanner", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("arbitrage-scanner", req.body, null, responseTime, 0.75, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/correlation-matrix",
+  createPaymentOrchestrator("correlation-matrix", 0.50, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = correlationMatrixInputSchema.parse(req.body);
+      const result = await correlationMatrixService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("correlation-matrix", req.body, result, responseTime, 0.50, req.ip || "unknown");
+      await trackBundleUsage(req, res, "correlation-matrix", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("correlation-matrix", req.body, null, responseTime, 0.50, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
+
+router.post("/risk-metrics",
+  createPaymentOrchestrator("risk-metrics", 0.60, async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const validatedInput = riskMetricsInputSchema.parse(req.body);
+      const result = await riskMetricsService(validatedInput);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("risk-metrics", req.body, result, responseTime, 0.60, req.ip || "unknown");
+      await trackBundleUsage(req, res, "risk-metrics", validatedInput);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("risk-metrics", req.body, null, responseTime, 0.60, req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  }),
+  x402Middleware
+);
 
 export default router;

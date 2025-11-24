@@ -19,7 +19,7 @@ const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
 
 // Service pricing (MUST match agent-chat system prompt in telegramMiniAppRoutes.ts)
-// Updated 2025-11-17: Aligned with Telegram Mini-App advertised pricing
+// Updated 2025-11-24: Added vertical expansion services (Real Estate, Banking, Trading, Intelligence)
 // CRITICAL: USDC has 6 decimals, so $1.00 = 1,000,000 micro-USDC
 const SERVICE_PRICING: Record<string, number> = {
   // Trading Intelligence Services ($0.10-$0.75)
@@ -39,15 +39,35 @@ const SERVICE_PRICING: Record<string, number> = {
   "trade-signals": 750000, // $0.75
   
   // Execution & Infrastructure Services ($0.50-$2.00)
-  "payment-processing": 500000, // $0.50 - ADDED (was missing)
+  "payment-processing": 500000, // $0.50
   "contract-scan": 1000000, // $1.00
   "instant-agent-wallet": 1000000, // $1.00
   "seamless-chain-bridge": 2000000, // $2.00
   
   // Premium Services ($5.00-$10.00)
   "verified-agent-identity": 5000000, // $5.00
-  "compliance-consultation": 5000000, // $5.00 - ADDED (was missing)
-  "smart-contract-audit": 10000000, // $10.00 - ADDED (was missing)
+  "compliance-consultation": 5000000, // $5.00
+  "smart-contract-audit": 10000000, // $10.00
+  
+  // VERTICAL EXPANSION - Real Estate Services ($0.50-$1.00)
+  "property-valuation": 500000, // $0.50
+  "lease-analysis": 750000, // $0.75
+  "construction-progress": 1000000, // $1.00
+  
+  // VERTICAL EXPANSION - Banking/Finance Services ($0.25-$0.50)
+  "credit-risk-score": 500000, // $0.50
+  "fraud-detection": 250000, // $0.25
+  "compliance-check": 400000, // $0.40
+  
+  // VERTICAL EXPANSION - Trading/Investment Services ($0.20-$1.50)
+  "trading-signal": 1000000, // $1.00
+  "portfolio-optimization": 1500000, // $1.50
+  "sentiment-analysis": 200000, // $0.20
+  
+  // VERTICAL EXPANSION - Market Intelligence Services ($0.50-$0.75)
+  "arbitrage-scanner": 750000, // $0.75
+  "correlation-matrix": 500000, // $0.50
+  "risk-metrics": 600000, // $0.60
 };
 
 interface TransactionReceipt {

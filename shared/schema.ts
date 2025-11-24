@@ -4496,3 +4496,156 @@ export const serviceBundleUsageSelectSchema = createSelectSchema(serviceBundleUs
 export type ServiceBundleUsage = typeof serviceBundleUsage.$inferSelect;
 export type InsertServiceBundleUsage = z.infer<typeof serviceBundleUsageInsertSchema>;
 
+// ========================================
+// NEW x402 VERTICAL EXPANSION SCHEMAS
+// ========================================
+
+// Real Estate Services Input Schemas
+export const propertyValuationInputSchema = z.object({
+  address: z.string().min(5, "Address is required"),
+  propertyType: z.string().optional(),
+  bedrooms: z.number().int().positive().optional(),
+  bathrooms: z.number().positive().optional(),
+  squareFootage: z.number().positive().optional(),
+  lotSize: z.number().positive().optional(),
+  yearBuilt: z.number().int().min(1800).max(new Date().getFullYear() + 1).optional(),
+  condition: z.enum(["poor", "fair", "average", "good", "excellent"]).optional(),
+  features: z.array(z.string()).optional(),
+});
+
+export const leaseAnalysisInputSchema = z.object({
+  leaseText: z.string().optional(),
+  propertyAddress: z.string().optional(),
+  leaseType: z.string().optional(),
+  termLength: z.string().optional(),
+  monthlyRent: z.number().positive().optional(),
+});
+
+export const constructionProgressInputSchema = z.object({
+  projectDescription: z.string().min(10, "Project description required"),
+  photoUrls: z.array(z.string().url()).optional(),
+  projectType: z.string().optional(),
+  targetCompletionDate: z.string().optional(),
+  currentPhase: z.string().optional(),
+});
+
+// Banking/Finance Services Input Schemas
+export const creditRiskScoreInputSchema = z.object({
+  applicantInfo: z.object({
+    annualIncome: z.number().positive().optional(),
+    employmentYears: z.number().nonnegative().optional(),
+    currentDebt: z.number().nonnegative().optional(),
+  }).optional(),
+  creditHistory: z.object({
+    paymentHistory: z.string().optional(),
+    creditUtilization: z.number().min(0).max(100).optional(),
+    accountAge: z.number().positive().optional(),
+    recentInquiries: z.number().nonnegative().optional(),
+  }).optional(),
+  transactionHistory: z.array(z.any()).optional(),
+  requestedAmount: z.number().positive().optional(),
+});
+
+export const fraudDetectionInputSchema = z.object({
+  transactionAmount: z.number().positive().optional(),
+  merchantCategory: z.string().optional(),
+  location: z.string().optional(),
+  deviceFingerprint: z.string().optional(),
+  accountHistory: z.object({
+    typicalSpending: z.number().nonnegative().optional(),
+    averageTransaction: z.number().nonnegative().optional(),
+    velocityPattern: z.string().optional(),
+  }).optional(),
+  recentActivity: z.array(z.any()).optional(),
+});
+
+export const complianceCheckInputSchema = z.object({
+  entityType: z.string().optional(),
+  jurisdiction: z.string().optional(),
+  transactionType: z.string().optional(),
+  amount: z.number().positive().optional(),
+  counterparty: z.object({
+    name: z.string().optional(),
+    country: z.string().optional(),
+    industry: z.string().optional(),
+  }).optional(),
+  kycData: z.any().optional(),
+  transactionPurpose: z.string().optional(),
+});
+
+// Trading/Investment Services Input Schemas
+export const tradingSignalInputSchema = z.object({
+  symbol: z.string().min(1, "Symbol is required"),
+  timeframe: z.string().optional(),
+  currentPrice: z.number().positive().optional(),
+  marketData: z.object({
+    volume: z.number().nonnegative().optional(),
+    high24h: z.number().positive().optional(),
+    low24h: z.number().positive().optional(),
+    priceChange24h: z.number().optional(),
+  }).optional(),
+  riskTolerance: z.enum(["conservative", "moderate", "aggressive"]).optional(),
+});
+
+export const portfolioOptimizationInputSchema = z.object({
+  currentHoldings: z.array(z.object({
+    asset: z.string(),
+    amount: z.number().nonnegative(),
+    currentValue: z.number().nonnegative(),
+  })).min(2, "At least 2 holdings required"),
+  investmentGoals: z.string().optional(),
+  riskTolerance: z.enum(["conservative", "moderate", "aggressive"]).optional(),
+  timeHorizon: z.string().optional(),
+  constraints: z.array(z.string()).optional(),
+});
+
+export const sentimentAnalysisInputSchema = z.object({
+  symbol: z.string().min(1, "Symbol is required"),
+  sources: z.array(z.string()).optional(),
+  timeframe: z.string().optional(),
+  includeNews: z.boolean().optional(),
+  includeSocial: z.boolean().optional(),
+});
+
+// Market Intelligence Services Input Schemas
+export const arbitrageScannerInputSchema = z.object({
+  assets: z.array(z.string()).optional(),
+  minProfitPercent: z.number().positive().optional(),
+  maxGasPrice: z.number().positive().optional(),
+  chains: z.array(z.string()).optional(),
+  includeGasCosts: z.boolean().optional(),
+});
+
+export const correlationMatrixInputSchema = z.object({
+  assets: z.array(z.string()).min(2, "At least 2 assets required"),
+  timeframe: z.string().optional(),
+  includeTraditionalMarkets: z.boolean().optional(),
+  benchmark: z.string().optional(),
+});
+
+export const riskMetricsInputSchema = z.object({
+  portfolioValue: z.number().positive().min(100, "Minimum portfolio value is $100"),
+  holdings: z.array(z.object({
+    asset: z.string(),
+    value: z.number().positive(),
+    volatility: z.number().nonnegative().optional(),
+  })).min(1, "At least 1 holding required"),
+  timeHorizon: z.number().int().positive().optional(),
+  confidenceLevel: z.enum([95, 99]).optional(),
+  benchmarkAsset: z.string().optional(),
+});
+
+// Export types
+export type PropertyValuationInput = z.infer<typeof propertyValuationInputSchema>;
+export type LeaseAnalysisInput = z.infer<typeof leaseAnalysisInputSchema>;
+export type ConstructionProgressInput = z.infer<typeof constructionProgressInputSchema>;
+export type CreditRiskScoreInput = z.infer<typeof creditRiskScoreInputSchema>;
+export type FraudDetectionInput = z.infer<typeof fraudDetectionInputSchema>;
+export type ComplianceCheckInput = z.infer<typeof complianceCheckInputSchema>;
+export type TradingSignalInput = z.infer<typeof tradingSignalInputSchema>;
+export type PortfolioOptimizationInput = z.infer<typeof portfolioOptimizationInputSchema>;
+export type SentimentAnalysisInput = z.infer<typeof sentimentAnalysisInputSchema>;
+export type ArbitrageScannerInput = z.infer<typeof arbitrageScannerInputSchema>;
+export type CorrelationMatrixInput = z.infer<typeof correlationMatrixInputSchema>;
+export type RiskMetricsInput = z.infer<typeof riskMetricsInputSchema>;
+

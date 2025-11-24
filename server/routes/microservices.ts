@@ -18,24 +18,42 @@ const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 // MUST match hybridPaymentMiddleware.ts micro-USDC values (converted to USD)
 const SERVICE_PRICING = {
   "multi-chain-balance": 0.50,       // 500,000 micro-USDC
-  "gas-price-oracle": 0.10,           // 100,000 micro-USDC (UPDATED from $0.01)
+  "gas-price-oracle": 0.10,           // 100,000 micro-USDC
   "token-price": 0.25,                // 250,000 micro-USDC
   "contract-scan": 1.0,                // 1,000,000 micro-USDC
   "wallet-risk": 0.5,                  // 500,000 micro-USDC
-  "trade-signals": 0.75,               // 750,000 micro-USDC (UPDATED from $2.00)
-  "token-sentiment": 0.25,             // 250,000 micro-USDC (UPDATED from $0.10)
-  "trending-tokens": 0.50,             // 500,000 micro-USDC (UPDATED from $0.25)
-  "whale-alerts": 0.35,                // 350,000 micro-USDC (UPDATED from $0.50)
+  "trade-signals": 0.75,               // 750,000 micro-USDC
+  "token-sentiment": 0.25,             // 250,000 micro-USDC
+  "trending-tokens": 0.50,             // 500,000 micro-USDC
+  "whale-alerts": 0.35,                // 350,000 micro-USDC
   "dex-liquidity": 0.20,               // 200,000 micro-USDC
   "transaction-builder": 0.30,         // 300,000 micro-USDC
   "token-metadata": 0.10,              // 100,000 micro-USDC
   "approval-manager": 0.20,            // 200,000 micro-USDC
   "batch-quote": 0.40,                 // 400,000 micro-USDC
   "portfolio-tracker": 0.50,           // 500,000 micro-USDC
-  // New B2B2C Infrastructure Services (High-end pricing)
+  // B2B2C Infrastructure Services
   "instant-agent-wallet": 1.00,        // 1,000,000 micro-USDC
   "verified-agent-identity": 5.00,     // 5,000,000 micro-USDC
   "seamless-chain-bridge": 2.00,       // 2,000,000 micro-USDC
+  
+  // VERTICAL EXPANSION SERVICES (2025-11-24)
+  // Real Estate Services
+  "property-valuation": 0.50,          // 500,000 micro-USDC
+  "lease-analysis": 0.75,              // 750,000 micro-USDC
+  "construction-progress": 1.00,       // 1,000,000 micro-USDC
+  // Banking/Finance Services
+  "credit-risk-score": 0.50,           // 500,000 micro-USDC
+  "fraud-detection": 0.25,             // 250,000 micro-USDC
+  "compliance-check": 0.40,            // 400,000 micro-USDC
+  // Trading/Investment Services
+  "trading-signal": 1.00,              // 1,000,000 micro-USDC
+  "portfolio-optimization": 1.50,      // 1,500,000 micro-USDC
+  "sentiment-analysis": 0.20,          // 200,000 micro-USDC
+  // Market Intelligence Services
+  "arbitrage-scanner": 0.75,           // 750,000 micro-USDC
+  "correlation-matrix": 0.50,          // 500,000 micro-USDC
+  "risk-metrics": 0.60,                // 600,000 micro-USDC
 };
 
 // Cache helper functions
@@ -1638,7 +1656,7 @@ async function verifiedAgentIdentityService(params: {
             fallback: BigInt(0)
           }
         );
-        const hasBalance = BigInt(balance.toString()) > 0n;
+        const hasBalance = BigInt(balance.toString()) > BigInt(0);
         walletActivityScore = hasBalance ? 20 : 0;
       }
     } catch (balanceError) {

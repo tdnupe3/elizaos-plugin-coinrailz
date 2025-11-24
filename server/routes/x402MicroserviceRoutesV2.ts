@@ -90,13 +90,18 @@ const NETWORK: Network = "base"; // Always use mainnet for production discoverab
 
 // Public base URL for Bazaar discovery (x402 crawler needs public URLs, not localhost)
 // CRITICAL: Use REPLIT_DOMAINS for workspace URLs (correct Replit env var)
-const PUBLIC_BASE_URL: `${string}://${string}` = (process.env.REPLIT_DEPLOYMENT === '1' 
-  ? 'https://coinrailz.com'
-  : process.env.REPLIT_DOMAINS
-    ? `https://${process.env.REPLIT_DOMAINS}`
-    : process.env.REPL_SLUG 
-      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-      : 'http://localhost:5000') as `${string}://${string}`;
+// OVERRIDE: Set PUBLIC_URL env var to force production URL (e.g., PUBLIC_URL=https://coinrailz.com)
+const PUBLIC_BASE_URL: `${string}://${string}` = (
+  process.env.PUBLIC_URL 
+    ? process.env.PUBLIC_URL
+    : process.env.REPLIT_DEPLOYMENT === '1' 
+      ? 'https://coinrailz.com'
+      : process.env.REPLIT_DOMAINS
+        ? `https://${process.env.REPLIT_DOMAINS}`
+        : process.env.REPL_SLUG 
+          ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+          : 'http://localhost:5000'
+) as `${string}://${string}`;
 
 // Helper function to create properly typed resource URLs
 function resourceUrl(path: string): `${string}://${string}` {

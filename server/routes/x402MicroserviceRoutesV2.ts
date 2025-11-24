@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 import {
   multiChainBalanceService,
   gasPriceOracleService,
@@ -1684,5 +1686,183 @@ router.post("/service/compliance-consultation",
   x402Middleware,
   complianceConsultationHandler
 );
+
+// ========================================
+// PAYMENT TESTING & DOCUMENTATION ENDPOINTS
+// ========================================
+
+router.get("/payment-status", async (req: Request, res: Response) => {
+  try {
+    const query = `
+      SELECT 
+        COUNT(*) FILTER (WHERE interaction_type = 'view') as total_views,
+        COUNT(*) FILTER (WHERE interaction_type = 'attempt') as payment_attempts,
+        COUNT(*) FILTER (WHERE interaction_type = 'payment') as successful_payments,
+        COUNT(*) FILTER (WHERE interaction_type = 'error') as errors,
+        COUNT(DISTINCT wallet_address) as unique_wallets,
+        ROUND(
+          100.0 * COUNT(*) FILTER (WHERE interaction_type = 'payment') / 
+          NULLIF(COUNT(*) FILTER (WHERE interaction_type = 'attempt'), 0),
+          2
+        ) as payment_success_rate
+      FROM x402_interactions
+      WHERE created_at > NOW() - INTERVAL '7 days';
+    `;
+    
+    const result = await db.execute(sql.raw(query));
+    const stats = result.rows[0];
+    
+    const recentPaymentsQuery = `
+      SELECT 
+        wallet_address,
+        amount,
+        currency,
+        status,
+        x402_transaction_id as tx_hash,
+        created_at,
+        network
+      FROM x402_payments
+      ORDER BY created_at DESC
+      LIMIT 20;
+    `;
+    
+    const recentPayments = await db.execute(sql.raw(recentPaymentsQuery));
+    
+    res.json({
+      success: true,
+      stats,
+      recentPayments: recentPayments.rows,
+      paymentInstructions: {
+        network: NETWORK,
+        token: "USDC",
+        tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        platformWallet: PLATFORM_WALLET,
+        facilitator: "https://facilitator.x402.io",
+        documentation: `${PUBLIC_BASE_URL}/x402/payment-docs`,
+      },
+    });
+  } catch (error: any) {
+    console.error("Payment status check failed:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get("/payment-docs", (req: Request, res: Response) => {
+  const docs = {
+    protocol: "x402",
+    version: 1,
+    title: "Coin Railz x402 Micropayment Services",
+    description: "Pay-per-use API services across 7 blockchains with USDC on Base",
+    baseUrl: PUBLIC_BASE_URL,
+    network: NETWORK,
+    paymentToken: {
+      symbol: "USDC",
+      address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      decimals: 6,
+      network: "base",
+    },
+    platformWallet: PLATFORM_WALLET,
+    facilitator: "https://facilitator.x402.io",
+    pricing: SERVICE_PRICING,
+    paymentFlow: {
+      step1: "Make API request to any service endpoint",
+      step2: "Receive 402 Payment Required with payment instructions",
+      step3: "Submit USDC payment on Base to platformWallet",
+      step4: "Include X-PAYMENT header with transaction hash",
+      step5: "Receive service response",
+    },
+    example: {
+      service: "multi-chain-balance",
+      price: "0.50 USDC",
+      endpoint: `${PUBLIC_BASE_URL}/x402/multi-chain-balance`,
+      method: "POST",
+      paymentAmount: "500000",
+      paymentAmountDescription: "500000 = $0.50 in USDC (6 decimals)",
+    },
+    troubleshooting: {
+      noPaymentReceived: "Check transaction was sent to correct wallet and confirmed on Base",
+      wrongNetwork: "Payment must be on Base mainnet, not Ethereum or other chains",
+      wrongToken: "Payment must be USDC, not ETH or other tokens",
+      facilitatorError: "Verify facilitator.x402.io is accessible",
+    },
+    support: {
+      statusEndpoint: `${PUBLIC_BASE_URL}/x402/payment-status`,
+      analyticsEndpoint: `${PUBLIC_BASE_URL}/api/x402-analytics/dashboard`,
+    },
+  };
+  
+  res.json(docs);
+});
+
+router.post("/test-payment-flow", async (req: Request, res: Response) => {
+  try {
+    const { walletAddress, serviceId } = req.body;
+    
+    if (!walletAddress || !serviceId) {
+      res.status(400).json({
+        success: false,
+        error: "walletAddress and serviceId are required",
+      });
+      return;
+    }
+    
+    const testResult = {
+      success: true,
+      walletAddress,
+      serviceId,
+      testSteps: {
+        step1_requestService: {
+          status: "ready",
+          endpoint: `${PUBLIC_BASE_URL}/x402/${serviceId}`,
+          method: "POST",
+          expectedResponse: "402 Payment Required",
+        },
+        step2_paymentInstructions: {
+          status: "ready",
+          network: NETWORK,
+          token: "USDC",
+          amount: SERVICE_PRICING[serviceId as keyof typeof SERVICE_PRICING]?.price || "500000",
+          payTo: PLATFORM_WALLET,
+          facilitator: "https://facilitator.x402.io",
+        },
+        step3_submitPayment: {
+          status: "pending",
+          instruction: "Send USDC on Base to platform wallet",
+          verify: "Wait for blockchain confirmation",
+        },
+        step4_retryWithProof: {
+          status: "pending",
+          instruction: "Retry request with X-PAYMENT header containing tx hash",
+          expectedResponse: "200 OK with service data",
+        },
+      },
+      currentStats: {
+        totalAttempts: 0,
+        successfulPayments: 0,
+        pendingPayments: 0,
+      },
+    };
+    
+    const statsQuery = await db.execute(sql.raw(`
+      SELECT 
+        COUNT(*) FILTER (WHERE interaction_type = 'attempt') as attempts,
+        COUNT(*) FILTER (WHERE interaction_type = 'payment') as successful
+      FROM x402_interactions
+      WHERE wallet_address = '${walletAddress}' AND service_id = '${serviceId}';
+    `));
+    if (statsQuery.rows[0]) {
+      testResult.currentStats = {
+        totalAttempts: Number(statsQuery.rows[0].attempts || 0),
+        successfulPayments: Number(statsQuery.rows[0].successful || 0),
+        pendingPayments: 0,
+      };
+    }
+    
+    res.json(testResult);
+  } catch (error: any) {
+    console.error("Test payment flow failed:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 export default router;

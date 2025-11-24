@@ -11,6 +11,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
+import { persistDiscoveredAgent, getAgentByURL } from '../services/persistence/discoveredAgentPersistence';
 
 const router = Router();
 
@@ -132,7 +133,7 @@ router.post('/self-register', async (req, res) => {
     
     console.log(`✅ Agent card verified: ${agentCard.name}`);
     
-    // Check if agent already exists (using canonical URL)
+    // Check if agent already exists (uses canonical URL lookup)
     const existingAgent = await getAgentByURL(domain);
     
     if (existingAgent) {
@@ -144,13 +145,13 @@ router.post('/self-register', async (req, res) => {
       });
     }
     
-    // Register the agent (uses canonical URL storage)
+    // Register the agent (uses centralized persistence with proper canonicalization)
     const newAgent = await persistDiscoveredAgent({
       url: domain,
       source: 'self-registration',
       wallet: walletAddress || null,
       status: 'pending-verification',
-      score: 50, // Default score for self-registered agents
+      score: 50,
       channels: {
         webhook: agentCard.endpoints?.['message/send'] || agentCardUrl,
         email: contactEmail,

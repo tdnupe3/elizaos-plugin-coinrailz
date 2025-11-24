@@ -38,6 +38,7 @@ export const discoveredAgents = pgTable(
   {
     id: serial("id").primaryKey(),
     url: varchar("url").notNull(),
+    canonicalUrl: varchar("canonical_url"), // Normalized URL for future deduplication (nullable for backward compatibility)
     source: varchar("source").notNull(), // registry, ens, discord, telegram, xmtp, etc
     channels: jsonb("channels"), // Available communication channels
     wallet: varchar("wallet"), // Associated wallet address if known

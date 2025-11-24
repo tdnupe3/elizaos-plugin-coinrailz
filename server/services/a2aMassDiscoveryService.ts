@@ -1,7 +1,5 @@
 import axios from 'axios';
-import { db } from '../db';
-import { discoveredAgents } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { persistDiscoveredAgent } from './persistence/discoveredAgentPersistence';
 
 /**
  * A2A MASS DISCOVERY SERVICE

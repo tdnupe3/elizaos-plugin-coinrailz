@@ -176,10 +176,13 @@ async function getEthPrice(): Promise<number> {
 }
 
 // Service 1: Multi-Chain Balance Checker
-async function multiChainBalanceService(walletAddress: string, chains: string[], includeTokens: boolean = true) {
+async function multiChainBalanceService(walletAddress: string, chains?: string[], includeTokens: boolean = true) {
   const results: any = { address: walletAddress, balances: {}, totalValueUSD: 0 };
+  
+  // Default to common chains if not specified
+  const chainsToCheck = chains && chains.length > 0 ? chains : ["ethereum", "polygon", "base", "arbitrum"];
 
-  const chainPromises = chains.map(async (chain) => {
+  const chainPromises = chainsToCheck.map(async (chain) => {
     try {
       // Check if Alchemy-supported chain
       const alchemy = alchemyConfigs[chain as keyof typeof alchemyConfigs];

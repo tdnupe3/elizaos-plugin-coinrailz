@@ -1383,7 +1383,7 @@ router.get('/.well-known/service-manifest.json', async (req: Request, res: Respo
   const manifest = {
     platform: "Coin Railz",
     version: "2.0.0",
-    total_services: 18,
+    total_services: 21,
     services: [
       {
         id: "contract-scanner",
@@ -1940,6 +1940,62 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
           },
           required: ["fromChain", "toChain", "amount", "fromAddress", "toAddress"]
         }
+      },
+      {
+        path: "/x402/payment-processing",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        description: "Process Stripe, PayPal, and crypto payments with instant settlement",
+        status: "healthy",
+        category: "payments",
+        input_schema: {
+          type: "object",
+          properties: {
+            amount: { type: "number", description: "Payment amount in USD" },
+            method: { type: "string", description: "Payment method (stripe/paypal/crypto)" },
+            recipientAddress: { type: "string", description: "Recipient wallet address (for crypto)" },
+            metadata: { type: "object", description: "Additional payment metadata (optional)" }
+          },
+          required: ["amount", "method"]
+        }
+      },
+      {
+        path: "/x402/compliance-consultation",
+        methods: ["POST"],
+        price_usd: 5.00,
+        auth: "x402",
+        description: "AI-powered KYC/AML compliance guidance and regulatory analysis",
+        status: "healthy",
+        category: "security",
+        input_schema: {
+          type: "object",
+          properties: {
+            jurisdiction: { type: "string", description: "Legal jurisdiction" },
+            transactionType: { type: "string", description: "Type of transaction" },
+            amount: { type: "number", description: "Transaction amount (optional)" },
+            parties: { type: "array", items: { type: "string" }, description: "Parties involved (optional)" }
+          },
+          required: ["jurisdiction", "transactionType"]
+        }
+      },
+      {
+        path: "/x402/smart-contract-audit",
+        methods: ["POST"],
+        price_usd: 10.00,
+        auth: "x402",
+        description: "Deep security audit using Slither static analysis and vulnerability detection",
+        status: "healthy",
+        category: "security",
+        input_schema: {
+          type: "object",
+          properties: {
+            contractAddress: { type: "string", description: "Smart contract address" },
+            chain: { type: "string", description: "Blockchain network" },
+            sourceCode: { type: "string", description: "Contract source code (optional)" }
+          },
+          required: ["contractAddress", "chain"]
+        }
       }
     ],
     x402: {
@@ -1959,8 +2015,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       discovery_enabled: true
     },
     commerce: {
-      total_services: 18,
-      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure"],
+      total_services: 21,
+      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure", "payments"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000
@@ -1991,13 +2047,13 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
         id: "ai_agent_bundle_launch",
         name: "AI Agent Pro Bundle - Launch Price",
         price_monthly: 49.00,
-        description: "All 18 x402 services included. Launch price locked in forever.",
+        description: "All 21 x402 services included. Launch price locked in forever.",
         features: [
           "Unlimited contract scans",
           "Real-time whale alerts",
           "Trade signal generation",
           "Smart contract auditing",
-          "All 18 AI services",
+          "All 21 AI services",
           "API access",
           "Priority support"
         ],

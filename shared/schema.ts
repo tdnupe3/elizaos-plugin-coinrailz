@@ -56,6 +56,8 @@ export const discoveredAgents = pgTable(
     // XMTP Discovery Fields (ChatGPT-recommended agent-card.json scanner)
     xmtpAddress: varchar("xmtp_address"), // XMTP wallet address from agent-card.json contact.xmtp field
     xmtpCanMessage: boolean("xmtp_can_message").default(false), // Result of xmtpClient.canMessage() verification
+    xmtpStatus: varchar("xmtp_status").default("unknown"), // reachable, unreachable, unknown, not_supported
+    xmtpQualityScore: integer("xmtp_quality_score").default(0), // 0-140 score based on XMTP+channels+activity
     xmtpLastChecked: timestamp("xmtp_last_checked"), // Last XMTP reachability check timestamp
     agentCardData: jsonb("agent_card_data"), // Cached agent-card.json for audit trail
   },

@@ -262,6 +262,81 @@ export class XMTPAgentScanner {
   }
 
   /**
+   * Calculate XMTP quality score (0-140)
+   * Based on ChatGPT recommendations for agent prioritization
+   * Fixed to prevent double-counting of Discord/GitHub across sources
+   */
+  private async calculateQualityScore(
+    agent: any,
+    xmtpAddress: string | null,
+    canMessage: boolean,
+    agentCardData: AgentCardJson | null
+  ): Promise<number> {
+    let score = 0;
+
+    // XMTP present (+30)
+    if (xmtpAddress) {
+      score += 30;
+    }
+
+    // canMessage true (+40)
+    if (canMessage) {
+      score += 40;
+    }
+
+    // Valid agent-card.json (+10)
+    if (agentCardData && agentCardData.name) {
+      score += 10;
+    }
+
+    // Has Discord (+10) - Check both sources but only count once
+    const hasDiscord = !!(agentCardData?.contact?.discord || (agent.channels as any)?.discord);
+    if (hasDiscord) {
+      score += 10;
+    }
+
+    // Active facilitator (+20) - check if agent has active status or recent activity
+    if (agent.status === 'verified' || agent.successCount > 0) {
+      score += 20;
+    }
+
+    // Has GitHub (+20) - Check both sources but only count once
+    const hasGitHub = !!(agentCardData?.contact?.github || (agent.channels as any)?.github);
+    if (hasGitHub) {
+      score += 20;
+    }
+
+    // Updated recently (+10) - within last 30 days
+    if (agent.lastSeenAt) {
+      const daysSinceUpdate = Math.floor(
+        (Date.now() - new Date(agent.lastSeenAt).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (daysSinceUpdate <= 30) {
+        score += 10;
+      }
+    }
+
+    // Ensure score stays within 0-140 range
+    return Math.min(Math.max(score, 0), 140);
+  }
+
+  /**
+   * Determine XMTP status based on scan results
+   */
+  private determineXMTPStatus(
+    xmtpAddress: string | null,
+    canMessage: boolean
+  ): string {
+    if (!xmtpAddress) {
+      return 'not_supported'; // No XMTP address found
+    }
+    if (canMessage) {
+      return 'reachable'; // XMTP enabled and can receive messages
+    }
+    return 'unreachable'; // XMTP address exists but cannot message
+  }
+
+  /**
    * Update agent's XMTP status in database
    * DUPLICATE PREVENTION: Uses UPDATE by unique ID (no duplicates possible)
    */
@@ -271,11 +346,33 @@ export class XMTPAgentScanner {
     canMessage: boolean,
     agentCardData: AgentCardJson | null
   ): Promise<void> {
+    // Get current agent data for quality score calculation
+    const [agent] = await db
+      .select()
+      .from(discoveredAgents)
+      .where(eq(discoveredAgents.id, agentId))
+      .limit(1);
+
+    if (!agent) return;
+
+    // Calculate quality score
+    const qualityScore = await this.calculateQualityScore(
+      agent,
+      xmtpAddress,
+      canMessage,
+      agentCardData
+    );
+
+    // Determine status
+    const xmtpStatus = this.determineXMTPStatus(xmtpAddress, canMessage);
+
     await db
       .update(discoveredAgents)
       .set({
         xmtpAddress,
         xmtpCanMessage: canMessage,
+        xmtpStatus,
+        xmtpQualityScore: qualityScore,
         xmtpLastChecked: new Date(),
         agentCardData: agentCardData as any,
       })

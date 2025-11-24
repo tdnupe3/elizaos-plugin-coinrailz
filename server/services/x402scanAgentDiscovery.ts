@@ -2,6 +2,7 @@ import axios from 'axios';
 import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { persistDiscoveredAgent } from '../storage/discoveredAgentsStorage';
 
 interface X402Transaction {
   senderAddress: string;
@@ -183,7 +184,7 @@ export class X402ScanAgentDiscovery {
           
           console.log(`🔄 Updated existing agent: ${profile.walletAddress.slice(0, 10)}...`);
         } else {
-          await db.insert(discoveredAgents).values({
+          await persistDiscoveredAgent({
             url: `https://basescan.org/address/${profile.walletAddress}`,
             source: 'x402scan',
             wallet: profile.walletAddress,
@@ -192,7 +193,6 @@ export class X402ScanAgentDiscovery {
             capabilities,
             metadata,
             lastSeenAt: new Date(),
-            discoveredAt: new Date(),
             attempts: 0,
             successCount: 0
           });

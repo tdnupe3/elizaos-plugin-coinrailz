@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { sql } from 'drizzle-orm';
+import { persistDiscoveredAgent } from '../storage/discoveredAgentsStorage';
 
 interface X402Agent {
   name: string;
@@ -85,49 +86,26 @@ export class X402ScanAgentScraper {
     
     for (const agent of agents) {
       try {
-        await db.insert(discoveredAgents)
-          .values({
-            url: agent.agentUrl || `https://x402scan.com/agent/${encodeURIComponent(agent.name)}`,
-            source: 'x402scan-top-agents',
-            status: 'new',
-            score: Math.round(agent.score * 10),
-            metadata: sql`${JSON.stringify({
-              name: agent.name,
-              resources: agent.resources,
-              score: agent.score,
-              messages: agent.messages,
-              toolCalls: agent.toolCalls,
-              users: agent.users,
-              chats: agent.chats,
-              scrapedAt: new Date().toISOString(),
-            })}::jsonb`,
-            capabilities: sql`${JSON.stringify({
-              toolCalls: agent.toolCalls,
-              resources: agent.resources,
-            })}::jsonb`,
-            discoveredAt: new Date(),
-          })
-          .onConflictDoUpdate({
-            target: [discoveredAgents.url],
-            set: {
-              score: Math.round(agent.score * 10),
-              metadata: sql`${JSON.stringify({
-                name: agent.name,
-                resources: agent.resources,
-                score: agent.score,
-                messages: agent.messages,
-                toolCalls: agent.toolCalls,
-                users: agent.users,
-                chats: agent.chats,
-                scrapedAt: new Date().toISOString(),
-              })}::jsonb`,
-              capabilities: sql`${JSON.stringify({
-                toolCalls: agent.toolCalls,
-                resources: agent.resources,
-              })}::jsonb`,
-              lastSeenAt: new Date(),
-            },
-          });
+        await persistDiscoveredAgent({
+          url: agent.agentUrl || `https://x402scan.com/agent/${encodeURIComponent(agent.name)}`,
+          source: 'x402scan-top-agents',
+          status: 'new',
+          score: Math.round(agent.score * 10),
+          metadata: {
+            name: agent.name,
+            resources: agent.resources,
+            score: agent.score,
+            messages: agent.messages,
+            toolCalls: agent.toolCalls,
+            users: agent.users,
+            chats: agent.chats,
+            scrapedAt: new Date().toISOString(),
+          },
+          capabilities: {
+            toolCalls: agent.toolCalls,
+            resources: agent.resources,
+          },
+        });
       } catch (error: any) {
         console.error(`❌ Failed to save agent ${agent.name}:`, error.message);
       }

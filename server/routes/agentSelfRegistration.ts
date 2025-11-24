@@ -11,6 +11,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
+import { persistDiscoveredAgent, getAgentByURL } from '../storage/discoveredAgentsStorage';
 
 const router = Router();
 
@@ -132,10 +133,8 @@ router.post('/self-register', async (req, res) => {
     
     console.log(`✅ Agent card verified: ${agentCard.name}`);
     
-    // Check if agent already exists
-    const existingAgent = await db.query.discoveredAgents.findFirst({
-      where: (agents, { eq }) => eq(agents.url, domain)
-    });
+    // Check if agent already exists (using canonical URL)
+    const existingAgent = await getAgentByURL(domain);
     
     if (existingAgent) {
       return res.status(409).json({
@@ -146,8 +145,8 @@ router.post('/self-register', async (req, res) => {
       });
     }
     
-    // Register the agent
-    const [newAgent] = await db.insert(discoveredAgents).values({
+    // Register the agent (uses canonical URL storage)
+    const newAgent = await persistDiscoveredAgent({
       url: domain,
       source: 'self-registration',
       wallet: walletAddress || null,
@@ -168,7 +167,7 @@ router.post('/self-register', async (req, res) => {
         contactEmail,
         registeredAt: new Date().toISOString()
       }
-    }).returning();
+    });
     
     console.log(`✅ Agent registered successfully: ${agentCard.name} (ID: ${newAgent.id})`);
     

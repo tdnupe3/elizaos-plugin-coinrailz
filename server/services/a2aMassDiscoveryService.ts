@@ -2,6 +2,7 @@ import axios from 'axios';
 import { db } from '../db';
 import { discoveredAgents } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { persistDiscoveredAgent } from '../storage/discoveredAgentsStorage';
 
 /**
  * A2A MASS DISCOVERY SERVICE
@@ -197,7 +198,7 @@ export class A2AMassDiscoveryService {
         console.log(`💾 A2A Discovery: Updated ${card.name} in database`);
       } else {
         // Insert new
-        await db.insert(discoveredAgents).values({
+        await persistDiscoveredAgent({
           url: card.url,
           source: 'a2a_protocol',
           channels: {

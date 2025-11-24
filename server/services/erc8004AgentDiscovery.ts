@@ -3,6 +3,7 @@ import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
 import { ERC8004_CONTRACTS, IDENTITY_REGISTRY_ABI } from '../config/blockchain';
+import { persistDiscoveredAgent } from '../storage/discoveredAgentsStorage';
 
 interface AgentRegistration {
   tokenId: number;
@@ -178,7 +179,7 @@ export class ERC8004AgentDiscovery {
           
           console.log(`🔄 Updated agent #${registration.tokenId}: ${registration.walletAddress.slice(0, 10)}...`);
         } else {
-          await db.insert(discoveredAgents).values({
+          await persistDiscoveredAgent({
             url,
             source: 'erc8004',
             wallet: registration.walletAddress.toLowerCase(),
@@ -192,7 +193,6 @@ export class ERC8004AgentDiscovery {
               xmtp: true
             } : null,
             lastSeenAt: new Date(),
-            discoveredAt: new Date(),
             verifiedAt: registration.isActive ? new Date() : null,
             attempts: 0,
             successCount: 0

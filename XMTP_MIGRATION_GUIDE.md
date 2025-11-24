@@ -80,6 +80,20 @@ uniqueIndex("IDX_discovered_agents_canonical_url_unique").on(table.canonicalUrl)
 
 Then run `npm run db:push` again to sync schema.
 
+### Step 6: Switch AgentDiscoveryService to Canonical URL Conflicts
+
+After the unique index is created, update `server/services/agentDiscoveryService.ts`:
+
+```typescript
+// Change line 615 from:
+target: discoveredAgents.url, // TODO: Change to canonicalUrl after unique index created
+
+// To:
+target: discoveredAgents.canonicalUrl, // DUPLICATE PREVENTION: Use canonical URL
+```
+
+This final step enables true duplicate prevention at the database level.
+
 ---
 
 ## Why This Migration Path?

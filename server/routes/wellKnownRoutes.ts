@@ -1996,6 +1996,126 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
           },
           required: ["contractAddress", "chain"]
         }
+      },
+      {
+        path: "/x402/property-valuation",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        description: "AI-powered real estate property valuation with market analysis",
+        status: "healthy",
+        category: "real-estate",
+        input_schema: { type: "object", properties: { address: { type: "string" } }, required: ["address"] }
+      },
+      {
+        path: "/x402/lease-analysis",
+        methods: ["POST"],
+        price_usd: 0.75,
+        auth: "x402",
+        description: "Commercial lease agreement analysis and risk assessment",
+        status: "healthy",
+        category: "real-estate",
+        input_schema: { type: "object", properties: { leaseText: { type: "string" } } }
+      },
+      {
+        path: "/x402/construction-progress",
+        methods: ["POST"],
+        price_usd: 1.00,
+        auth: "x402",
+        description: "Construction project progress tracking and completion estimation",
+        status: "healthy",
+        category: "real-estate",
+        input_schema: { type: "object", properties: { projectDescription: { type: "string" } }, required: ["projectDescription"] }
+      },
+      {
+        path: "/x402/credit-risk-score",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        description: "AI-powered credit risk assessment and scoring",
+        status: "healthy",
+        category: "banking",
+        input_schema: { type: "object", properties: { applicantInfo: { type: "object" } } }
+      },
+      {
+        path: "/x402/fraud-detection",
+        methods: ["POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        description: "Real-time fraud detection and transaction risk analysis",
+        status: "healthy",
+        category: "banking",
+        input_schema: { type: "object", properties: { transactionAmount: { type: "number" } } }
+      },
+      {
+        path: "/x402/compliance-check",
+        methods: ["POST"],
+        price_usd: 0.40,
+        auth: "x402",
+        description: "AML/KYC compliance verification and regulatory checks",
+        status: "healthy",
+        category: "banking",
+        input_schema: { type: "object", properties: { entityType: { type: "string" }, jurisdiction: { type: "string" } } }
+      },
+      {
+        path: "/x402/trading-signal",
+        methods: ["POST"],
+        price_usd: 1.00,
+        auth: "x402",
+        description: "AI-generated trading signals with technical and fundamental analysis",
+        status: "healthy",
+        category: "trading",
+        input_schema: { type: "object", properties: { symbol: { type: "string" } }, required: ["symbol"] }
+      },
+      {
+        path: "/x402/portfolio-optimization",
+        methods: ["POST"],
+        price_usd: 1.50,
+        auth: "x402",
+        description: "Modern Portfolio Theory-based asset allocation optimization",
+        status: "healthy",
+        category: "trading",
+        input_schema: { type: "object", properties: { currentHoldings: { type: "array" } }, required: ["currentHoldings"] }
+      },
+      {
+        path: "/x402/sentiment-analysis",
+        methods: ["POST"],
+        price_usd: 0.20,
+        auth: "x402",
+        description: "Market sentiment analysis from news and social media sources",
+        status: "healthy",
+        category: "trading",
+        input_schema: { type: "object", properties: { symbol: { type: "string" } }, required: ["symbol"] }
+      },
+      {
+        path: "/x402/arbitrage-scanner",
+        methods: ["POST"],
+        price_usd: 0.75,
+        auth: "x402",
+        description: "Cross-exchange and cross-chain arbitrage opportunity detection",
+        status: "healthy",
+        category: "intelligence",
+        input_schema: { type: "object", properties: { assets: { type: "array" } } }
+      },
+      {
+        path: "/x402/correlation-matrix",
+        methods: ["POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        description: "Asset correlation analysis for portfolio diversification",
+        status: "healthy",
+        category: "intelligence",
+        input_schema: { type: "object", properties: { assets: { type: "array" } }, required: ["assets"] }
+      },
+      {
+        path: "/x402/risk-metrics",
+        methods: ["POST"],
+        price_usd: 0.60,
+        auth: "x402",
+        description: "Portfolio risk metrics including VaR, Sharpe ratio, and volatility",
+        status: "healthy",
+        category: "intelligence",
+        input_schema: { type: "object", properties: { portfolioValue: { type: "number" }, holdings: { type: "array" } }, required: ["portfolioValue", "holdings"] }
       }
     ],
     x402: {
@@ -2015,8 +2135,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       discovery_enabled: true
     },
     commerce: {
-      total_services: 21,
-      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure", "payments"],
+      total_services: 33,
+      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000

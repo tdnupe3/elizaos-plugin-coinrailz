@@ -4631,7 +4631,9 @@ export const riskMetricsInputSchema = z.object({
     volatility: z.number().nonnegative().optional(),
   })).min(1, "At least 1 holding required"),
   timeHorizon: z.number().int().positive().optional(),
-  confidenceLevel: z.enum([95, 99]).optional(),
+  confidenceLevel: z.number().optional().refine(val => val === undefined || val === 95 || val === 99, {
+    message: "Confidence level must be 95 or 99"
+  }),
   benchmarkAsset: z.string().optional(),
 });
 

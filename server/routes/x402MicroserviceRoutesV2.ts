@@ -1694,19 +1694,19 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
 
 // Register enterprise gated service routes
 router.post("/service/smart-contract-audit",
-  createPaymentOrchestrator("service/smart-contract-audit", 1000, smartContractAuditHandler),
+  createPaymentOrchestrator("service/smart-contract-audit", 10, smartContractAuditHandler),
   x402Middleware,
   smartContractAuditHandler
 );
 
 router.post("/service/payment-processing",
-  createPaymentOrchestrator("service/payment-processing", 50, paymentProcessingHandler),
+  createPaymentOrchestrator("service/payment-processing", 0.50, paymentProcessingHandler),
   x402Middleware,
   paymentProcessingHandler
 );
 
 router.post("/service/compliance-consultation",
-  createPaymentOrchestrator("service/compliance-consultation", 500, complianceConsultationHandler),
+  createPaymentOrchestrator("service/compliance-consultation", 5, complianceConsultationHandler),
   x402Middleware,
   complianceConsultationHandler
 );
@@ -1845,7 +1845,7 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
           status: "ready",
           network: NETWORK,
           token: "USDC",
-          amount: SERVICE_PRICING[serviceId as keyof typeof SERVICE_PRICING]?.price || "500000",
+          amount: SERVICE_PRICING[serviceId as keyof typeof SERVICE_PRICING] || 500000,
           payTo: PLATFORM_WALLET,
           facilitator: "https://facilitator.x402.io",
         },

@@ -1,0 +1,40 @@
+Crawling for “.well-known/agent-card.json”
+
+AI agents using Google’s A2A protocol advertise an “agent card” at a well‑known URI (typically /.well-known/agent-card.json) on their host
+a2a-protocol.org
+discuss.google.dev
+. In principle one can scan for these files by probing domains or IP ranges. For example, AWS’s Bedrock AgentCore demo suggests testing an agent by curl http://<host>/.well-known/agent-card.json 
+docs.aws.amazon.com
+. In practice, however, there is no global index of hosts running A2A servers, so discovery requires domain lists or subdomain enumeration. Targeting known AI‑service providers (cloud AI platforms, ML tool makers, fintech agent sites, etc.) or common subdomain patterns (e.g. agent.*, ai.*, api.*) may yield hits. One can also use Internet scanning tools (ZMap, masscan) or Shodan/Censys with queries for agent-card.json. Some SDKs (e.g. the @artinet/agent-relay-mcp npm package) even mention “automatic discovery” by scanning networks for A2A agents, though no public dataset of discovered agents is known. In short, crawling “*.well-known/agent-card.json” is technically possible, but requires creative enumeration (certificates logs, domain lists, public DNS records) or reusing registries. A promising approach is to leverage any open agent registries (A2A meta‑services) to get seed URLs and then follow those links.
+
+Probing Agents via APIs (Ping/402)
+
+There is no single “ping” API defined for A2A agents; the usual way to make contact is via normal protocol requests. For example, one can GET the agent card or send an A2A JSON‑RPC message/send to the agent’s endpoint. AWS’s A2A quickstart shows using curl -X POST ... method":"message/send" to invoke an agent
+docs.aws.amazon.com
+. Alternatively, if an agent supports the x402 payment protocol, accessing its endpoints without payment will trigger a 402 response. In a Crossmint demo, curl http://localhost:3000/ping (with no payment) returned HTTP/1.1 402 Payment Required and a JSON body with payment details
+github.com
+. That behavior (reviving 402 for micropayments) is expected: x402‑enabled APIs respond with 402 to offer a payment bill
+github.com
+. Hitting an agent’s paywalled A2A or MCP endpoint in this way may cause the agent’s server to log the attempt. In practice, one can safely probe agent endpoints with read-only requests: fetching /.well-known/agent-card.json or sending a minimal A2A task (e.g. “ping” message) will not break anything and will at least show if the agent is live. However, be cautious: aggressive scanning could trigger rate limits or security blocks. Some providers (like Coinbase’s “x402 Echo Merchant” or PayAI’s “Freelance AI”) explicitly run test endpoints to help clients validate x402 behavior, so using such tools can also test compliance without targeting unknown agents. Overall, there is no magical “poke” that forces an agent to call back – the best you can do is call its exposed endpoints (agent‑card, task API) and see if it responds.
+
+Metadata Discovery: ERC‑8004, A2A & OpenAPI
+
+Beyond agent cards, agents often register themselves in other discovery systems. Notably, ERC-8004 (“Trustless Agents”) is a proposed Ethereum standard providing on‑chain registries for agents
+eips.ethereum.org
+. In ERC-8004, each agent is an ERC‑721 token whose metadata (URIStorage) points to a registration file (similar to an agent card)
+eips.ethereum.org
+. This means one can, in principle, scan blockchain explorers or NFT registries to find registered agents. For example, a deployed Identity Registry contract on a chain will list tokens (agent IDs) which you could query (via Etherscan API or web3) to fetch each token’s URI (often an IPFS or HTTPS URL to an agent registration JSON)
+eips.ethereum.org
+. Similarly, ERC-8004 defines “Reputation” and “Validation” registries, but the key for discovery is the Identity registry. No widely-known public front-end exists yet, but any ERC-8004 deployment would be visible on-chain.
+
+The A2A spec also envisions curated registries (like an “app store” of agents)
+a2a-protocol.org
+. Some enterprises set up internal A2A registry servers (a database of agent cards). For instance, Solo.io notes that a central “Agent Registry” can serve as a discovery hub
+solo.io
+. Python’s A2A SDK includes discovery utilities: one can use its AgentRegistry to fetch all registered agents (e.g. list(registry.get_all_agents()))
+truefoundry.com
+. These registry URLs (HTTP or DNS) could be crawled or queried to list agents.
+
+Other metadata channels: agents might also describe APIs via OpenAPI or AgentProtocol (AGI Inc.’s spec). For example, an “Agent Protocol” server exposes /ap/v1/agent/tasks
+truefoundry.com
+. In theory one could scan for these endpoints similarly. Agents may also announce themselves via decentralized ID (DID) or other service discovery (e.g. LangChain’s tool registries, NANDA DNS-like directories). Practically, the two most reliable structures today are agent cards at .well-known URIs and on-chain ERC-8004 entries.

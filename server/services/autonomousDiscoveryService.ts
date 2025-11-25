@@ -128,7 +128,11 @@ class AutonomousDiscoveryService {
         '/x402/sentiment-analysis',
         '/x402/arbitrage-scanner',
         '/x402/correlation-matrix',
-        '/x402/risk-metrics'
+        '/x402/risk-metrics',
+        // Polymarket prediction market services (3 new)
+        '/x402/polymarket-events',
+        '/x402/polymarket-odds',
+        '/x402/polymarket-search'
       ];
       
       for (const endpoint of x402Endpoints) {

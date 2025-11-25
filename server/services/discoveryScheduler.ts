@@ -3,15 +3,22 @@
  * 
  * Runs master-agent-discovery every 6 hours and stores results in PostgreSQL
  * Handles deduplication, XMTP verification, and automated outreach
+ * 
+ * Automated Outreach Flow:
+ * 1. Discovery run completes → finds new agents
+ * 2. Auto-outreach targets agents with XMTP addresses (programmatic inboxes)
+ * 3. Messages tracked in agent_outreach_messages table
+ * 4. Rate-limited to avoid spam (1 message/second, max 50/campaign)
  */
 
 import cron from 'node-cron';
 import { spawn } from 'child_process';
 import { db } from '../db';
 import { discoveryRuns, discoveredAgents, agentOutreachMessages } from '@shared/schema';
-import { eq, and, isNotNull, sql } from 'drizzle-orm';
+import { eq, and, isNotNull, isNull, sql, desc, gte } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
+import { XMTPAgentOutreachService } from './xmtpAgentOutreach';
 
 interface DiscoveredAgent {
   source: string;
@@ -361,4 +368,207 @@ export function stopDiscoveryScheduler(): void {
 export async function runDiscoveryNow(): Promise<number> {
   console.log('🚀 Running discovery immediately...');
   return executeDiscoveryRun('manual');
+}
+
+/**
+ * Run automated outreach to newly discovered agents with XMTP
+ * Delegates to XMTPAgentOutreachService which handles:
+ * - Quality score filtering (xmtpQualityScore >= 60)
+ * - Personalized message generation
+ * - Multi-channel fallback (XMTP → Discord → Telegram → GitHub → Email)
+ * - Rate limiting (1 msg/sec)
+ * 
+ * NOTE: Manual API trigger only - not auto-triggered after discovery runs
+ * This ensures human oversight until XMTP delivery is verified in production
+ */
+export async function runAutomatedOutreach(options: {
+  minQualityScore?: number;
+  maxAgents?: number;
+  onlyXMTP?: boolean;
+} = {}): Promise<{
+  targeted: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  creditsOffered: number;
+}> {
+  const {
+    minQualityScore = 60,
+    maxAgents = 50,
+    onlyXMTP = true,  // Default to XMTP-only for automated campaigns
+  } = options;
+  
+  console.log(`\n🤖 Starting automated outreach campaign`);
+  console.log(`   Quality filter: score >= ${minQualityScore}`);
+  console.log(`   Max agents: ${maxAgents}`);
+  console.log(`   XMTP only: ${onlyXMTP}`);
+  
+  try {
+    // Use existing XMTPAgentOutreachService for proven logic
+    const outreachService = XMTPAgentOutreachService.getInstance();
+    
+    const campaign = await outreachService.runOutreachCampaign({
+      minQualityScore,
+      maxAgents,
+      onlyXMTP,
+    });
+    
+    // Record campaign in database for tracking
+    const campaignId = `auto-${Date.now()}`;
+    for (const result of campaign.results) {
+      if (result.status === 'sent') {
+        await recordOutreachMessage(
+          result.agentId,
+          result.channel,
+          result.agentUrl,
+          'partnership_offer',
+          result.message || 'Message sent via XMTPAgentOutreachService',
+          campaignId
+        ).then(messageId => updateOutreachStatus(messageId, 'sent'))
+         .catch(err => console.error('Failed to record outreach:', err));
+      }
+    }
+    
+    console.log(`\n📊 Automated outreach campaign completed:`);
+    console.log(`   Targeted: ${campaign.totalTargeted}`);
+    console.log(`   Sent: ${campaign.messagesSent}`);
+    console.log(`   Failed: ${campaign.messagesFailed}`);
+    console.log(`   Skipped: ${campaign.messagesSkipped}`);
+    console.log(`   Credits offered: $${campaign.creditsOffered}`);
+    
+    return {
+      targeted: campaign.totalTargeted,
+      sent: campaign.messagesSent,
+      failed: campaign.messagesFailed,
+      skipped: campaign.messagesSkipped,
+      creditsOffered: campaign.creditsOffered,
+    };
+    
+  } catch (error) {
+    console.error('❌ Automated outreach failed:', error);
+    return {
+      targeted: 0,
+      sent: 0,
+      failed: 0,
+      skipped: 0,
+      creditsOffered: 0,
+    };
+  }
+}
+
+/**
+ * Get outreach campaign statistics
+ */
+export async function getOutreachStats(): Promise<{
+  totalMessages: number;
+  sent: number;
+  delivered: number;
+  failed: number;
+  pending: number;
+  byChannel: Record<string, number>;
+  recentCampaigns: Array<{
+    campaignId: string;
+    messagesCount: number;
+    sentAt: Date | null;
+  }>;
+}> {
+  const [totalCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(agentOutreachMessages);
+  
+  const [sentCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(agentOutreachMessages)
+    .where(eq(agentOutreachMessages.status, 'sent'));
+  
+  const [deliveredCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(agentOutreachMessages)
+    .where(eq(agentOutreachMessages.status, 'delivered'));
+  
+  const [failedCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(agentOutreachMessages)
+    .where(eq(agentOutreachMessages.status, 'failed'));
+  
+  const [pendingCount] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(agentOutreachMessages)
+    .where(eq(agentOutreachMessages.status, 'pending'));
+  
+  // Get messages by channel
+  const channelStats = await db
+    .select({
+      channel: agentOutreachMessages.channel,
+      count: sql<number>`count(*)`
+    })
+    .from(agentOutreachMessages)
+    .groupBy(agentOutreachMessages.channel);
+  
+  const byChannel: Record<string, number> = {};
+  for (const stat of channelStats) {
+    byChannel[stat.channel] = Number(stat.count);
+  }
+  
+  // Get recent campaigns
+  const recentCampaigns = await db
+    .select({
+      campaignId: agentOutreachMessages.campaignId,
+      messagesCount: sql<number>`count(*)`,
+      sentAt: sql<Date>`min(${agentOutreachMessages.sentAt})`
+    })
+    .from(agentOutreachMessages)
+    .groupBy(agentOutreachMessages.campaignId)
+    .orderBy(sql`min(${agentOutreachMessages.sentAt}) DESC`)
+    .limit(10);
+  
+  return {
+    totalMessages: Number(totalCount?.count || 0),
+    sent: Number(sentCount?.count || 0),
+    delivered: Number(deliveredCount?.count || 0),
+    failed: Number(failedCount?.count || 0),
+    pending: Number(pendingCount?.count || 0),
+    byChannel,
+    recentCampaigns: recentCampaigns.map(c => ({
+      campaignId: c.campaignId || 'unknown',
+      messagesCount: Number(c.messagesCount),
+      sentAt: c.sentAt,
+    })),
+  };
+}
+
+/**
+ * Get agents ready for outreach (have XMTP, quality score >= 60, not yet contacted)
+ */
+export async function getAgentsReadyForOutreach(options: {
+  limit?: number;
+  minQualityScore?: number;
+  onlyXMTPReachable?: boolean;
+} = {}): Promise<any[]> {
+  const { limit = 100, minQualityScore = 60, onlyXMTPReachable = false } = options;
+  
+  const conditions = [
+    isNotNull(discoveredAgents.xmtpAddress),
+    isNull(discoveredAgents.lastContactAt),
+    gte(discoveredAgents.xmtpQualityScore, minQualityScore),
+  ];
+  
+  if (onlyXMTPReachable) {
+    conditions.push(eq(discoveredAgents.xmtpStatus, 'reachable'));
+  }
+  
+  return db
+    .select()
+    .from(discoveredAgents)
+    .where(and(...conditions))
+    .orderBy(desc(discoveredAgents.xmtpQualityScore))
+    .limit(limit);
+}
+
+/**
+ * Get outreach recommendations using XMTPAgentOutreachService
+ */
+export async function getOutreachRecommendations(limit = 20): Promise<any[]> {
+  const outreachService = XMTPAgentOutreachService.getInstance();
+  return outreachService.getOutreachRecommendations(limit);
 }

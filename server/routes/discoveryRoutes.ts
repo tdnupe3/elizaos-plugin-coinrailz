@@ -14,6 +14,10 @@ import {
   runDiscoveryNow,
   getAgentsForOutreach,
   getXmtpReachableAgents,
+  runAutomatedOutreach,
+  getOutreachStats,
+  getAgentsReadyForOutreach,
+  getOutreachRecommendations,
 } from '../services/discoveryScheduler';
 import { db } from '../db';
 import { discoveryRuns, discoveredAgents, agentOutreachMessages } from '@shared/schema';
@@ -771,6 +775,112 @@ router.post('/api/discovery/scheduler/stop', async (req: Request, res: Response)
     res.status(500).json({
       success: false,
       error: 'Failed to stop scheduler',
+    });
+  }
+});
+
+// ============================================
+// AUTOMATED OUTREACH ROUTES
+// ============================================
+
+/**
+ * POST /api/discovery/outreach/run
+ * Trigger automated outreach campaign to discovered agents
+ * Uses XMTPAgentOutreachService for proven messaging logic
+ */
+router.post('/api/discovery/outreach/run', async (req: Request, res: Response) => {
+  try {
+    const { minQualityScore, maxAgents, onlyXMTP } = req.body || {};
+    
+    const result = await runAutomatedOutreach({
+      minQualityScore: minQualityScore ? parseInt(minQualityScore) : undefined,
+      maxAgents: maxAgents ? parseInt(maxAgents) : undefined,
+      onlyXMTP: onlyXMTP !== undefined ? Boolean(onlyXMTP) : undefined,
+    });
+    
+    res.json({
+      success: true,
+      message: 'Outreach campaign completed',
+      data: result,
+    });
+  } catch (error) {
+    console.error('Error running outreach:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run outreach campaign',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/outreach/stats
+ * Get outreach campaign statistics
+ */
+router.get('/api/discovery/outreach/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await getOutreachStats();
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error('Error getting outreach stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get outreach stats',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/outreach/ready
+ * Get agents ready for outreach (have XMTP, quality score >= 60, not yet contacted)
+ */
+router.get('/api/discovery/outreach/ready', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const minQualityScore = parseInt(req.query.minQualityScore as string) || 60;
+    const onlyXMTPReachable = req.query.onlyXMTPReachable === 'true';
+    
+    const agents = await getAgentsReadyForOutreach({
+      limit,
+      minQualityScore,
+      onlyXMTPReachable,
+    });
+    
+    res.json({
+      success: true,
+      count: agents.length,
+      data: agents,
+    });
+  } catch (error) {
+    console.error('Error getting agents ready for outreach:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get agents ready for outreach',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/outreach/recommendations
+ * Get outreach recommendations (high-quality XMTP-reachable agents)
+ */
+router.get('/api/discovery/outreach/recommendations', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+    const agents = await getOutreachRecommendations(limit);
+    
+    res.json({
+      success: true,
+      count: agents.length,
+      data: agents,
+    });
+  } catch (error) {
+    console.error('Error getting outreach recommendations:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get outreach recommendations',
     });
   }
 });

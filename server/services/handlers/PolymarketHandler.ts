@@ -195,65 +195,222 @@ export class PolymarketOddsHandler implements ServiceHandler {
 }
 
 export class PolymarketSearchHandler implements ServiceHandler {
+  private fetchStats = { pagesRequested: 0, pagesFailed: 0, apiExhausted: false, hardLimitReached: false };
+  
+  private async fetchAllEvents(includeArchived: boolean = false, exhaustive: boolean = false): Promise<PolymarketEvent[]> {
+    const allEvents: PolymarketEvent[] = [];
+    const batchSize = 100;
+    // Standard mode: top 5000 by volume (fast, covers most popular markets)
+    // Exhaustive mode: NO LIMIT - fetches until API exhausted
+    const maxPages = exhaustive ? Infinity : 50;
+    const absoluteMaxPages = 500; // Safety limit to prevent infinite loops (50,000 events)
+    const seenIds = new Set<string>();
+    
+    this.fetchStats = { pagesRequested: 0, pagesFailed: 0, apiExhausted: false, hardLimitReached: false };
+    
+    let consecutiveFailures = 0;
+    const maxConsecutiveFailures = 3;
+    
+    for (let page = 0; page < maxPages && page < absoluteMaxPages; page++) {
+      this.fetchStats.pagesRequested++;
+      
+      try {
+        const params = new URLSearchParams({
+          limit: String(batchSize),
+          offset: String(page * batchSize),
+          ascending: 'false',
+          order: 'volume',
+        });
+        
+        if (!includeArchived) {
+          params.append('closed', 'false');
+        }
+        
+        const response = await fetch(`${GAMMA_API_BASE}/events?${params}`, {
+          headers: {
+            'Accept': 'application/json',
+            'User-Agent': 'CoinRailz-x402/1.0',
+          },
+        });
+        
+        if (!response.ok) {
+          this.fetchStats.pagesFailed++;
+          consecutiveFailures++;
+          console.error(`Polymarket API page ${page} failed: HTTP ${response.status}`);
+          
+          if (consecutiveFailures >= maxConsecutiveFailures) {
+            console.error('Too many consecutive failures, stopping pagination');
+            break;
+          }
+          continue;
+        }
+        
+        consecutiveFailures = 0; // Reset on success
+        const events: PolymarketEvent[] = await response.json();
+        
+        if (events.length === 0) {
+          this.fetchStats.apiExhausted = true;
+          break; // API exhausted - all data fetched
+        }
+        
+        for (const event of events) {
+          if (!seenIds.has(event.id)) {
+            seenIds.add(event.id);
+            allEvents.push(event);
+          }
+        }
+        
+        if (events.length < batchSize) {
+          this.fetchStats.apiExhausted = true;
+          break; // Last page - API exhausted
+        }
+        
+        // Check if we hit the absolute safety limit
+        if (page === absoluteMaxPages - 1) {
+          this.fetchStats.hardLimitReached = true;
+        }
+      } catch (error) {
+        this.fetchStats.pagesFailed++;
+        consecutiveFailures++;
+        console.error(`Polymarket fetch page ${page} error:`, error);
+        
+        if (consecutiveFailures >= maxConsecutiveFailures) {
+          console.error('Too many consecutive failures, stopping pagination');
+          break;
+        }
+        continue;
+      }
+    }
+    
+    return allEvents;
+  }
+  
+  private searchScore(event: PolymarketEvent, queryTerms: string[]): number {
+    let score = 0;
+    const titleLower = event.title?.toLowerCase() || '';
+    const descLower = event.description?.toLowerCase() || '';
+    const slugLower = event.slug?.toLowerCase() || '';
+    
+    for (const term of queryTerms) {
+      // Title matches are highest priority
+      if (titleLower.includes(term)) {
+        score += 10;
+        // Bonus for exact word match
+        if (titleLower.split(/\s+/).some(w => w === term || w.startsWith(term))) {
+          score += 5;
+        }
+      }
+      // Slug matches (often contains key topic)
+      if (slugLower.includes(term)) {
+        score += 5;
+      }
+      // Description matches
+      if (descLower.includes(term)) {
+        score += 2;
+      }
+    }
+    
+    // Bonus for higher volume (more popular markets)
+    if (event.volume && event.volume > 1000000) {
+      score += 3;
+    }
+    
+    // Bonus for active markets
+    if (event.active && !event.closed) {
+      score += 2;
+    }
+    
+    return score;
+  }
+  
   async execute(request: ServiceRequest): Promise<any> {
-    const { query, limit = 10 } = request;
+    const { query, limit = 10, includeArchived = false, exhaustive = false } = request;
     
     if (!query) {
       return {
         success: false,
         service: 'polymarket-search',
         error: 'Search query is required',
-        example: { query: 'bitcoin', limit: 10 },
+        example: { query: 'bitcoin', limit: 10, exhaustive: true },
         timestamp: new Date().toISOString(),
       };
     }
     
     try {
-      const params = new URLSearchParams({
-        limit: String(Math.min(limit, 50)),
-        active: 'true',
-      });
+      // Fetch event dataset: standard (5000 top by volume) or exhaustive (all ~15,000+)
+      const allEvents = await this.fetchAllEvents(includeArchived, exhaustive);
       
-      const response = await fetch(`${GAMMA_API_BASE}/events?${params}`, {
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'CoinRailz-x402/1.0',
-        },
-      });
+      // Parse query into search terms
+      const queryTerms = query.toLowerCase().split(/\s+/).filter((t: string) => t.length > 2);
       
-      if (!response.ok) {
-        throw new Error(`Polymarket API error: ${response.status}`);
+      if (queryTerms.length === 0) {
+        return {
+          success: false,
+          service: 'polymarket-search',
+          error: 'Search query must contain meaningful terms (3+ characters)',
+          timestamp: new Date().toISOString(),
+        };
       }
       
-      const events: PolymarketEvent[] = await response.json();
+      // Score and rank all events by relevance
+      const scoredEvents = allEvents
+        .map(event => ({
+          event,
+          score: this.searchScore(event, queryTerms),
+        }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, Math.min(limit, 50));
       
-      const queryLower = query.toLowerCase();
-      const matchingEvents = events.filter((event) => {
-        const titleMatch = event.title?.toLowerCase().includes(queryLower);
-        const descMatch = event.description?.toLowerCase().includes(queryLower);
-        const slugMatch = event.slug?.toLowerCase().includes(queryLower);
-        return titleMatch || descMatch || slugMatch;
-      }).slice(0, limit);
-      
-      const formattedResults = matchingEvents.map((event) => ({
+      const formattedResults = scoredEvents.map(({ event, score }) => ({
         id: event.id,
         title: event.title,
         slug: event.slug,
         description: event.description?.slice(0, 150),
         volume: event.volume ? `$${(event.volume / 1e6).toFixed(2)}M` : 'N/A',
+        liquidity: event.liquidity ? `$${(event.liquidity / 1e6).toFixed(2)}M` : 'N/A',
         status: event.closed ? 'closed' : event.active ? 'active' : 'inactive',
+        relevanceScore: score,
         url: `https://polymarket.com/event/${event.slug}`,
       }));
+      
+      // Build detailed coverage info
+      const coverage = {
+        eventsSearched: allEvents.length,
+        pagesRequested: this.fetchStats.pagesRequested,
+        pagesFailed: this.fetchStats.pagesFailed,
+        apiExhausted: this.fetchStats.apiExhausted,
+        hardLimitReached: this.fetchStats.hardLimitReached,
+        searchMode: exhaustive ? 'exhaustive (until API exhausted)' : 'standard (top 5000 by volume)',
+        fullCatalogSearched: exhaustive && this.fetchStats.apiExhausted,
+      };
+      
+      let note = undefined;
+      if (this.fetchStats.hardLimitReached) {
+        note = `WARNING: Hit safety limit at ${allEvents.length} markets. Some events may be missing.`;
+      } else if (exhaustive && !this.fetchStats.apiExhausted) {
+        note = `WARNING: Exhaustive search stopped early (API errors). ${allEvents.length} markets searched, results may be incomplete.`;
+      } else if (formattedResults.length === 0 && exhaustive && this.fetchStats.apiExhausted) {
+        note = `No matching events found in entire catalog (${allEvents.length} markets). Try different search terms.`;
+      } else if (formattedResults.length === 0 && !exhaustive) {
+        note = `No matches in top ${allEvents.length} markets. Try exhaustive:true to search full catalog.`;
+      } else if (!exhaustive) {
+        note = `Searched top ${allEvents.length} markets by volume. Use exhaustive:true for full catalog.`;
+      } else if (this.fetchStats.pagesFailed > 0) {
+        note = `Some API pages failed (${this.fetchStats.pagesFailed}/${this.fetchStats.pagesRequested}). Results may be incomplete.`;
+      }
       
       return {
         success: true,
         service: 'polymarket-search',
         timestamp: new Date().toISOString(),
         query,
+        searchTerms: queryTerms,
+        coverage,
         count: formattedResults.length,
         results: formattedResults,
         source: 'Polymarket Gamma API',
-        note: formattedResults.length === 0 ? 'No matching events found. Try broader search terms.' : undefined,
+        note,
       };
     } catch (error: any) {
       console.error('Polymarket search error:', error);

@@ -1225,13 +1225,15 @@ const x402Routes = {
       discoverable: true,
       resource: `${PUBLIC_BASE_URL}/x402/polymarket-search`,
       name: "Polymarket Search",
-      description: "Search Polymarket prediction markets by keyword (crypto, politics, sports, etc.)",
+      description: "Search Polymarket prediction markets by keyword. Standard mode searches top 5000 markets by volume. Use exhaustive:true for full catalog search (~15,000+ markets).",
       mimeType: "application/json",
-      maxTimeoutSeconds: 60,
+      maxTimeoutSeconds: 120, // Exhaustive search may take longer
       inputSchema: {
         bodyFields: {
           query: { type: "string", description: "Search keyword (e.g., 'bitcoin', 'election')", required: true },
-          limit: { type: "number", description: "Number of results to return (max 50)", required: false }
+          limit: { type: "number", description: "Number of results to return (max 50)", required: false },
+          exhaustive: { type: "boolean", description: "Search all ~15,000+ markets (slower) instead of top 5000", required: false },
+          includeArchived: { type: "boolean", description: "Include closed/archived markets in search", required: false }
         }
       },
       schema: {
@@ -1239,15 +1241,18 @@ const x402Routes = {
           type: "object",
           properties: {
             query: { type: "string", description: "Search keyword (e.g., 'bitcoin', 'election')" },
-            limit: { type: "number", description: "Number of results to return (max 50)" }
+            limit: { type: "number", description: "Number of results to return (max 50)" },
+            exhaustive: { type: "boolean", description: "Search all markets instead of top 5000 by volume" },
+            includeArchived: { type: "boolean", description: "Include closed/archived markets" }
           },
           required: ["query"]
         },
         output: {
           type: "object",
           properties: {
-            results: { type: "array", description: "Array of matching prediction markets" },
-            count: { type: "number", description: "Number of results found" }
+            results: { type: "array", description: "Array of matching prediction markets with relevance scores" },
+            count: { type: "number", description: "Number of results found" },
+            coverage: { type: "object", description: "Search coverage statistics" }
           }
         }
       }

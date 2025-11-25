@@ -1190,6 +1190,108 @@ router.use((req: Request, res: Response, next) => {
   next();
 });
 
+// ============================================================================
+// GET REQUEST HANDLER FOR BAZAAR DISCOVERY
+// Coinbase Bazaar crawler uses GET requests to discover x402 services
+// We must return proper 402 Payment Required responses for GET (not just POST)
+// ============================================================================
+function generate402ResponseForGet(serviceKey: string, req: Request, res: Response): void {
+  const routeConfig = x402Routes[serviceKey as keyof typeof x402Routes];
+  if (!routeConfig) {
+    res.status(404).json({ error: "Service not found" });
+    return;
+  }
+
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+  const isWorkspace = process.env.REPL_SLUG && process.env.REPL_OWNER;
+  let publicBaseUrl = 'http://localhost:5000';
+  
+  if (isProduction) {
+    publicBaseUrl = 'https://coinrailz.com';
+  } else if (isWorkspace) {
+    publicBaseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+  }
+
+  const priceMatch = routeConfig.price.match(/\$([\d.]+)/);
+  const priceUsd = priceMatch ? parseFloat(priceMatch[1]) : 0.01;
+  const priceInMicroUnits = Math.round(priceUsd * 1_000_000).toString();
+
+  const servicePath = serviceKey.replace('POST ', '');
+  const config = routeConfig.config;
+
+  const response = {
+    x402Version: 1,
+    error: "X-PAYMENT header is required",
+    accepts: [{
+      scheme: "exact",
+      network: routeConfig.network,
+      maxAmountRequired: priceInMicroUnits,
+      resource: `${publicBaseUrl}/x402${servicePath}`,
+      description: config.description || `x402 service: ${servicePath}`,
+      payTo: PLATFORM_WALLET,
+      asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      maxTimeoutSeconds: config.maxTimeoutSeconds || 60,
+      mimeType: config.mimeType || "application/json",
+      discoverable: true,
+      category: "API Access",
+      tags: ["Crypto", "Blockchain", "AI", "x402", "USDC"],
+      extra: {
+        name: "USD Coin",
+        version: "2"
+      },
+      outputSchema: {
+        input: {
+          type: "http",
+          method: "GET",
+          discoverable: true,
+          ...(config.inputSchema?.bodyFields ? { bodyFields: config.inputSchema.bodyFields } : {})
+        },
+        output: config.schema?.output || { type: "object", properties: {} }
+      },
+      type: "http",
+      x402Version: 1,
+      metadata: {}
+    }],
+    facilitatorUrl: "https://facilitator.x402.io"
+  };
+
+  res.status(402).json(response);
+}
+
+const serviceEndpoints = [
+  "ping", "multi-chain-balance", "gas-price-oracle", "token-price", "contract-scan",
+  "wallet-risk", "trade-signals", "token-sentiment", "trending-tokens", "whale-alerts",
+  "dex-liquidity", "transaction-builder", "token-metadata", "approval-manager", "batch-quote",
+  "portfolio-tracker", "instant-agent-wallet", "verified-agent-identity", "seamless-chain-bridge",
+  "property-valuation", "lease-analysis", "construction-progress",
+  "credit-risk-score", "fraud-detection", "compliance-check",
+  "trading-signal", "portfolio-optimization", "sentiment-analysis",
+  "arbitrage-scanner", "correlation-matrix", "risk-metrics"
+];
+
+serviceEndpoints.forEach(endpoint => {
+  router.get(`/${endpoint}`, (req: Request, res: Response) => {
+    console.log(`📡 GET request for /${endpoint} - returning 402 for Bazaar discovery`);
+    generate402ResponseForGet(`POST /${endpoint}`, req, res);
+  });
+});
+
+const enterpriseEndpoints = [
+  "service/smart-contract-audit",
+  "service/payment-processing", 
+  "service/compliance-consultation"
+];
+
+enterpriseEndpoints.forEach(endpoint => {
+  router.get(`/${endpoint}`, (req: Request, res: Response) => {
+    console.log(`📡 GET request for /${endpoint} - returning 402 for Bazaar discovery`);
+    generate402ResponseForGet(`POST /${endpoint}`, req, res);
+  });
+});
+
+const totalServices = serviceEndpoints.length + enterpriseEndpoints.length;
+console.log(`✅ GET handlers registered for ${totalServices} x402 services (Bazaar discovery support)`);
+
 // Payment orchestrator applied per-route (see individual service registrations below)
 // This decides between raw hash verification and EIP-712 verification upfront
 // Prevents middleware conflict by choosing verification path before x402-express runs

@@ -408,6 +408,81 @@ const tokenPriceLookupHandler = async (req: Request, res: Response) => {
   }
 };
 
+// ============================================================================
+// GET REQUEST HANDLER FOR BAZAAR DISCOVERY
+// Coinbase Bazaar crawler uses GET requests to discover x402 services
+// We must return proper 402 Payment Required responses for GET (not just POST)
+// ============================================================================
+function generate402ResponseForGet(serviceKey: string, req: Request, res: Response): void {
+  const routeConfig = x402Routes[serviceKey as keyof typeof x402Routes];
+  if (!routeConfig) {
+    res.status(404).json({ error: "Service not found" });
+    return;
+  }
+
+  const config = routeConfig.config;
+  const priceUsd = typeof routeConfig.price === 'string' 
+    ? parseFloat(routeConfig.price.replace('$', ''))
+    : routeConfig.price;
+  const priceInMicroUnits = Math.round(priceUsd * 1_000_000).toString();
+
+  const response = {
+    x402Version: 1,
+    error: "X-PAYMENT header is required",
+    accepts: [{
+      scheme: "exact",
+      network: routeConfig.network,
+      maxAmountRequired: priceInMicroUnits,
+      resource: config.resource,
+      description: config.description,
+      payTo: PLATFORM_WALLET,
+      asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      maxTimeoutSeconds: config.maxTimeoutSeconds || 60,
+      mimeType: config.mimeType || "application/json",
+      discoverable: true,
+      category: "Enterprise Services",
+      tags: ["Enterprise", "AI", "x402", "USDC", "Audit", "Compliance"],
+      extra: {
+        name: "USD Coin",
+        version: "2"
+      },
+      outputSchema: {
+        input: {
+          type: "http",
+          method: "GET",
+          discoverable: true,
+        },
+        output: { type: "object", properties: {} }
+      },
+      type: "http",
+      x402Version: 1,
+      metadata: {}
+    }],
+    facilitatorUrl: "https://facilitator.x402.io"
+  };
+
+  res.status(402).json(response);
+}
+
+// GET handlers for Bazaar discovery (must be before POST handlers)
+const gatedServiceEndpoints = [
+  'smart-contract-audit',
+  'payment-processing',
+  'compliance-consultation',
+  'multi-chain-balance',
+  'gas-price-oracle',
+  'token-price-lookup'
+];
+
+gatedServiceEndpoints.forEach(endpoint => {
+  router.get(`/${endpoint}`, (req: Request, res: Response) => {
+    console.log(`📡 GET request for /service/${endpoint} - returning 402 for Bazaar discovery`);
+    generate402ResponseForGet(`POST /${endpoint}`, req, res);
+  });
+});
+
+console.log(`✅ GET handlers registered for ${gatedServiceEndpoints.length} x402 gated enterprise services`);
+
 // Register routes with payment orchestrator + x402 middleware
 // Paths are relative to /x402/service mount point in server/index.ts
 router.post('/smart-contract-audit',

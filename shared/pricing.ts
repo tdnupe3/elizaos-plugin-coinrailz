@@ -53,7 +53,11 @@ export type ServiceName =
   // Market Intelligence vertical (3 services)
   | "arbitrage-scanner"
   | "correlation-matrix"
-  | "risk-metrics";
+  | "risk-metrics"
+  // Prediction Markets vertical (3 services)
+  | "polymarket-events"
+  | "polymarket-odds"
+  | "polymarket-search";
 
 /**
  * Micro-USDC pricing (integers) for on-chain payment verification
@@ -111,6 +115,11 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "correlation-matrix": 750000,        // $0.75
   "risk-metrics": 1000000,             // $1.00
   "arbitrage-scanner": 1250000,        // $1.25
+  
+  // VERTICAL EXPANSION - Prediction Markets Services ($0.25-$0.50)
+  "polymarket-events": 250000,         // $0.25 - trending prediction markets
+  "polymarket-odds": 500000,           // $0.50 - current odds for specific market
+  "polymarket-search": 250000,         // $0.25 - search prediction markets
 };
 
 /**
@@ -166,6 +175,11 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "correlation-matrix": 0.75,
   "risk-metrics": 1.00,
   "arbitrage-scanner": 1.25,
+  
+  // Prediction Markets vertical
+  "polymarket-events": 0.25,
+  "polymarket-odds": 0.50,
+  "polymarket-search": 0.25,
 };
 
 /**

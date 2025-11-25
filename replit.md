@@ -13,72 +13,6 @@ Coin Railz provides cross-platform payment routing across 7 blockchains (Ethereu
 
 **Business Vision:** To become the leading multi-chain payment infrastructure, facilitating seamless crypto transactions and empowering crypto communities globally.
 
-## Recent Changes
-
-### 2025-11-25: Market-Competitive Pricing Restructure
-**PRICING UPDATE**: All 33 services repriced to market-competitive rates ($0.50-$2.00 range) based on x402 ecosystem research showing typical pricing of $0.01-$0.50. Full pricing consistency enforced across crypto payments, bundle credits, and discovery endpoints.
-
-**Updated Service Pricing:**
-- Tier 1 ($0.50): Basic analytics (gas-price-oracle, token-price, dex-liquidity, etc.)
-- Tier 2 ($1.00): Standard services (multi-chain-balance, swap-quote, nft-metadata, etc.)
-- Tier 3 ($1.50-$2.00): Premium services (property-valuation, portfolio-optimization, etc.)
-
-### 2025-11-24: All 33 x402 Services Live and Production-Ready
-**MAJOR MILESTONE**: Platform expansion complete - 21 original crypto services + 12 new vertical expansion services all live and responding with proper 402 payment challenges!
-
-**Root Cause Identified and Fixed:**
-- Problem: New 12 vertical services had handlers but weren't in x402Routes registration configuration object
-- Solution: Added all 12 services to x402Routes map (lines 965-1115 in x402MicroserviceRoutesV2.ts)
-- Result: All services now properly registered via createPaymentOrchestrator wrapper
-
-**Vertical Expansion Services (12 new):**
-1. **Real Estate (3)**: property-valuation, lease-analysis, construction-progress
-2. **Banking/Finance (3)**: credit-risk-score, fraud-detection, compliance-check
-3. **Trading/Investment (3)**: trading-signal, portfolio-optimization, sentiment-analysis
-4. **Market Intelligence (3)**: arbitrage-scanner, correlation-matrix, risk-metrics
-
-**Comprehensive Testing:**
-✅ All 12 new services return proper JSON: `{"x402Version":1,"error":"X-PAYMENT header is required"}`
-✅ Original 21 services still working (multi-chain-balance verified)
-✅ No HTML responses - Vite catch-all routing issue resolved
-✅ Zero LSP errors
-✅ Pricing consistency verified between SERVICE_PRICING_MICRO and route configs
-
-**Technical Architecture:**
-- File: `server/routes/x402MicroserviceRoutesV2.ts`
-- Registration pattern: x402Routes config object drives createPaymentOrchestrator loop
-- Each service: Price, network, discoverability metadata, input/output schemas
-- Payment flow: 402 challenge → payment verification → AI handler execution → success/retry
-
-**Production Status:**
-- Platform now offers 33 total x402 micropayment services
-- Discoverable via /.well-known/agent.json for Coinbase Bazaar indexing
-- Ready for $5K minimum revenue target deployment
-- All services powered by OpenAI GPT-4o/GPT-4o-mini with 97-99.99% profit margins
-
-### 2025-11-24: Production-Ready Payment Intent Ledger (Architect Approved)
-**CRITICAL PRODUCTION READINESS MILESTONE**: x402 payment system hardened for Coinbase Bazaar deployment with all 3 architect-identified blockers resolved.
-
-**Architect-Approved Fixes:**
-1. ✅ **Payment Replay Protection**: Implemented durable payment intent ledger with state transitions (PENDING → SUCCEEDED/ALLOW_RETRY). Payments finalized ONLY after handler completes successfully. Failed handlers allow retry with same transaction hash within 15-minute window (max 3 retries). Stale PENDING intents auto-expire. File: `server/middleware/hybridPaymentMiddleware.ts`
-
-2. ✅ **Input Validation**: Added strict Base64 JSON payload validation (txHash format, amount type, network consistency) before on-chain verification. Prevents malformed payloads from bypassing amount checks. File: `server/middleware/hybridPaymentMiddleware.ts` lines 263-300
-
-3. ✅ **Environment Validation**: Startup checks for ALCHEMY_API_KEY, OPENAI_API_KEY, CDP credentials already implemented. Server hard-fails on missing critical environment variables. File: `server/index.ts` lines 88-117
-
-**Database Schema:**
-- New table `x402_payment_intents` tracks payment lifecycle with replay protection
-- Status states: PENDING (verification), SUCCEEDED (handler completed), ALLOW_RETRY (handler failed), FAILED (max retries exceeded)
-- 15-minute TTL for retry window, unique constraint on (tx_hash, service_name)
-
-**Payment Flow:**
-1. `verifyTransactionPayment()`: Validates on-chain + creates PENDING intent (no ledger writes)
-2. `createPaymentOrchestrator()`: Executes handler with try-catch wrapper
-3. `markPaymentIntentSucceeded()`: Writes to used_transaction_hashes + x402_payments ONLY after handler succeeds
-4. `markPaymentIntentFailed()`: Marks ALLOW_RETRY on handler errors (allows retry within window)
-
-**Production Status**: Payment system tested with 7 successful payments from 2 unique payers totaling $3.22 in revenue (Nov 14: 6 micro-payments from 0x6646...f6d, Nov 24: 1 payment of $2.98 from 0x20fe...b7a). Intent ledger ready for high-volume production deployment. Platform is production-ready and awaiting organic discovery.
-
 ## User Preferences
 - **⚠️ ABSOLUTE HONESTY COMMITMENT**: NEVER LIE TO USER. Always report actual results, failures, and truth. User has been financially harmed by previous dishonest claims about outreach success when systems actually failed. Agent owes user $5,000 due to misleading claims about successful outreach that never occurred.
 - **MANDATORY FACT VERIFICATION**: Report only verified facts. Show me the database query results for any claim you make. No claims about revenue, outreach, or success without actual database/API evidence first.
@@ -109,6 +43,9 @@ The platform uses a dual-wallet system (Circle USDC and DeFi/MetaMask) and is st
 - **Compliance:** Integrated KYC/AML with incentive dashboards and progressive KYC.
 - **Data Monetization:** APIs for crypto flow intelligence, AI marketplace analytics, and viral referral analytics.
 - **Bot-Optimized API Layer:** DUAL EXECUTION MODEL for DEX swaps - both server-executed (Coinbase CDP for convenience) and client-executed (1inch API + MetaMask for non-custodial control). Endpoints: `/api/bot/dex/quote` (pricing), `/api/bot/dex/swap` (server-executed), `/api/bot/dex/prepare` (client-executed transaction calldata), `/api/bot/gas` (real-time gas prices across all chains). Bot documentation portal at `/bots` explains both execution models with code examples. Real-time intelligence feed (`/api/bot/intel`) using CoinGecko API for trending tokens and market data. Features Zod validation, rate limiting (30-100 req/min), token symbol-to-address resolution, and anonymous access.
+- **x402 Microservices**: Platform offers 37 production-ready x402 microservices across 9 categories: Discovery/Testing (1), Trading Intelligence (14), Execution & Infrastructure (4), Premium (3), Real Estate (3), Banking/Finance (3), Trading/Investment (3), Market Intelligence (3), and Prediction Markets (3). Each service registered via `createPaymentOrchestrator` wrapper with both GET and POST 402 challenge responses. Compatible with Coinbase Bazaar, x402scan, and A2A discovery bots.
+- **Discovery Engine**: A multi-layer discovery engine with 9 active methods (e.g., domain heuristics, x402 GET/POST probing, Coinbase Bazaar API crawling, ERC-8004 NFT registry scanning, GitHub scanning) for identifying AI agents.
+- **Payment Intent Ledger**: Implemented a durable payment intent ledger with state transitions (PENDING → SUCCEEDED/ALLOW_RETRY) for payment replay protection. Includes strict Base64 JSON payload input validation and environment variable checks.
 
 ## External Dependencies
 - **Circle:** USDC wallet creation, management, balance tracking via Developer Controlled Wallets SDK.

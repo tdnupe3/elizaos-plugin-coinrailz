@@ -48,7 +48,7 @@ function resourceUrl(path: string): `${string}://${string}` {
 
 // Service pricing (in USD for x402-express, converted internally)
 const SERVICE_PRICING = {
-  'ping': 0.001,                     // $0.001 USD - discovery/testing endpoint
+  'ping': 0.01,                      // $0.01 USD - discovery/testing endpoint (matches shared/pricing.ts)
   'smart-contract-audit': 1000,      // $1000 USD
   'payment-processing': 50,          // $50 USD
   'compliance-consultation': 500,    // $500 USD

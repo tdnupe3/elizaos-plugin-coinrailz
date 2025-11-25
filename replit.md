@@ -15,7 +15,15 @@ Coin Railz provides cross-platform payment routing across 7 blockchains (Ethereu
 
 ## Recent Changes
 
-### 2025-11-24: All 33 x402 Services Live and Production-Ready 🎉
+### 2025-11-25: Market-Competitive Pricing Restructure
+**PRICING UPDATE**: All 33 services repriced to market-competitive rates ($0.50-$2.00 range) based on x402 ecosystem research showing typical pricing of $0.01-$0.50. Full pricing consistency enforced across crypto payments, bundle credits, and discovery endpoints.
+
+**Updated Service Pricing:**
+- Tier 1 ($0.50): Basic analytics (gas-price-oracle, token-price, dex-liquidity, etc.)
+- Tier 2 ($1.00): Standard services (multi-chain-balance, swap-quote, nft-metadata, etc.)
+- Tier 3 ($1.50-$2.00): Premium services (property-valuation, portfolio-optimization, etc.)
+
+### 2025-11-24: All 33 x402 Services Live and Production-Ready
 **MAJOR MILESTONE**: Platform expansion complete - 21 original crypto services + 12 new vertical expansion services all live and responding with proper 402 payment challenges!
 
 **Root Cause Identified and Fixed:**
@@ -24,10 +32,10 @@ Coin Railz provides cross-platform payment routing across 7 blockchains (Ethereu
 - Result: All services now properly registered via createPaymentOrchestrator wrapper
 
 **Vertical Expansion Services (12 new):**
-1. **Real Estate (3)**: property-valuation ($5), lease-analysis ($8), construction-progress ($15)
-2. **Banking/Finance (3)**: credit-risk-score ($12), fraud-detection ($7), compliance-check ($15)
-3. **Trading/Investment (3)**: trading-signal ($10), portfolio-optimization ($15), sentiment-analysis ($6)
-4. **Market Intelligence (3)**: arbitrage-scanner ($12), correlation-matrix ($8), risk-metrics ($10)
+1. **Real Estate (3)**: property-valuation, lease-analysis, construction-progress
+2. **Banking/Finance (3)**: credit-risk-score, fraud-detection, compliance-check
+3. **Trading/Investment (3)**: trading-signal, portfolio-optimization, sentiment-analysis
+4. **Market Intelligence (3)**: arbitrage-scanner, correlation-matrix, risk-metrics
 
 **Comprehensive Testing:**
 ✅ All 12 new services return proper JSON: `{"x402Version":1,"error":"X-PAYMENT header is required"}`
@@ -69,7 +77,7 @@ Coin Railz provides cross-platform payment routing across 7 blockchains (Ethereu
 3. `markPaymentIntentSucceeded()`: Writes to used_transaction_hashes + x402_payments ONLY after handler succeeds
 4. `markPaymentIntentFailed()`: Marks ALLOW_RETRY on handler errors (allows retry within window)
 
-**Production Status**: Payment system tested with 7 successful payments from 2 unique payers. Intent ledger ready for high-volume production deployment. Previous blocking issues ($242 blocked revenue from 484 failed attempts) now resolved.
+**Production Status**: Payment system tested with 7 successful payments from 2 unique payers totaling $3.22 in revenue (Nov 14: 6 micro-payments from 0x6646...f6d, Nov 24: 1 payment of $2.98 from 0x20fe...b7a). Intent ledger ready for high-volume production deployment. Platform is production-ready and awaiting organic discovery.
 
 ## User Preferences
 - **⚠️ ABSOLUTE HONESTY COMMITMENT**: NEVER LIE TO USER. Always report actual results, failures, and truth. User has been financially harmed by previous dishonest claims about outreach success when systems actually failed. Agent owes user $5,000 due to misleading claims about successful outreach that never occurred.

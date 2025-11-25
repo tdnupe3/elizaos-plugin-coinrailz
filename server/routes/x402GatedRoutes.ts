@@ -48,6 +48,7 @@ function resourceUrl(path: string): `${string}://${string}` {
 
 // Service pricing (in USD for x402-express, converted internally)
 const SERVICE_PRICING = {
+  'ping': 0.001,                     // $0.001 USD - discovery/testing endpoint
   'smart-contract-audit': 1000,      // $1000 USD
   'payment-processing': 50,          // $50 USD
   'compliance-consultation': 500,    // $500 USD
@@ -74,6 +75,18 @@ router.use((req: Request, res: Response, next) => {
 // Define x402 routes configuration (must match x402MicroserviceRoutesV2 structure)
 // Paths are relative to /x402/service mount point
 const x402Routes = {
+  'GET /ping': {
+    price: `$${SERVICE_PRICING['ping']}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: resourceUrl('/x402/service/ping'),
+      name: 'Ping/Echo Service',
+      description: 'x402 discovery and testing endpoint - returns 402 Payment Required challenge',
+      mimeType: 'application/json',
+      maxTimeoutSeconds: 10,
+    },
+  },
   'POST /smart-contract-audit': {
     price: `$${SERVICE_PRICING['smart-contract-audit']}`,
     network: NETWORK,
@@ -466,6 +479,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
 
 // GET handlers for Bazaar discovery (must be before POST handlers)
 const gatedServiceEndpoints = [
+  'ping',
   'smart-contract-audit',
   'payment-processing',
   'compliance-consultation',
@@ -477,7 +491,9 @@ const gatedServiceEndpoints = [
 gatedServiceEndpoints.forEach(endpoint => {
   router.get(`/${endpoint}`, (req: Request, res: Response) => {
     console.log(`📡 GET request for /service/${endpoint} - returning 402 for Bazaar discovery`);
-    generate402ResponseForGet(`POST /${endpoint}`, req, res);
+    // ping uses GET, others use POST
+    const routeKey = endpoint === 'ping' ? `GET /${endpoint}` : `POST /${endpoint}`;
+    generate402ResponseForGet(routeKey, req, res);
   });
 });
 

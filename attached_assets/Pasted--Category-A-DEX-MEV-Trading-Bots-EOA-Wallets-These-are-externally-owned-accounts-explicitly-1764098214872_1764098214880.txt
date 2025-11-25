@@ -1,0 +1,171 @@
+🧩 Category A — DEX / MEV Trading Bots (EOA Wallets)
+
+These are externally owned accounts explicitly labeled as MEV / bot wallets on Etherscan or known in public MEV discussions.
+
+A1. Jaredfromsubway MEV Bot (Ethereum)
+
+0xae2fC483527B8EF99EB5d9B44875F005Ba1FaE13 — jaredfromsubway.eth (widely identified as the Jared MEV/searcher wallet)
+
+0x1f2f10d1c40777ae1da742455c65828ff36df387 — Etherscan label: “allegedly jaredfromsubway's MEV Bot”
+
+A2. Etherscan-Tagged “MEV Bot” Wallets (Ethereum)
+
+0xA69babEf1Ca67A37fFAF7A485dfFF3382056E78C — labeled “MEV Bot” on Etherscan
+
+0xA57bd00134B2850B2A1C55860c9e9Ea100fDd6CF — labeled “MEV Bot”
+
+0x6980a47bEE930A4584B09EE79eBE46484fbdbDd0 — labeled “MEV Bot”
+
+0x000000000000fEa5F4b241F9E77B4d43b76798A9 — labeled “MEV Bot: 0x000…8a9” (also associated with ENS osnipe.eth)
+
+0x00000000009E50A7ddB7A7B0E2eE6604fD120E49 — labeled “MEV Bot”
+
+0x9e9346E082d445F08fab1758984A31648C89241a — labeled “MEV Bot: 0x9E9…41A”
+
+0x81ebd07C0A0C150426C6ED75AB990787173F83Bd — labeled “MEV Bot”
+
+These are all EOAs, not contracts. They’re good seeds if you want to track MEV/searcher flow, copy-trade, or build “bot intel” services against them.
+
+🤖 Category B — Telegram Trading Bot Ecosystems (Core Token / Infra Contracts)
+
+These are not single wallets, but token contracts or infra that belong to well-known Telegram trading bots. From these, you can scrape:
+
+team wallets
+
+treasury wallets
+
+fee wallets
+
+sometimes bot runner addresses
+
+B1. Banana Gun (Telegram DEX trading bot)
+
+Contract (ETH): 0x38E68A37E401F7271568CecaAc63c6B1e19130B4
+
+B2. Unibot (Telegram trading bot)
+
+Contract (ETH): 0xF819d9Cb1C2A819fD991781A822dE3cA8607C3c9
+
+B3. ThunderBot (AI-branded Telegram trading bot)
+
+Contract (ETH): 0x59F7b6BB42Cb9C47F16FB0fBB15F154F1046Ec60
+
+B4. Gunbot License Token (trading bot licenses)
+
+Contract (ETH): 0x3684B581DB1F94B721EE0022624329fEB16aB653
+
+B5. WagieBot (multichain DeFi bot)
+
+Contract (ETH): 0xD2c869382C7aC9F87fF73548D029d67c0F9DeE31
+
+From each of these, “bot-side” wallets = top holders + any address referenced on their site/docs as treasury, dev, or fee collector.
+
+🧠 Category C — AI Agent Protocols / On-Chain Agents
+
+Here we’re looking at protocols where the “agent” is a structured on-chain object (NFT, ERC-6551 account, or registry entry).
+
+These aren’t single wallets; they’re systems that spawn many agent wallets.
+
+C1. Virtuals Protocol — AI Agents as ERC-6551 Accounts (Ethereum)
+
+Main token: 0x44ff8620b8cA30902395A7bD3F2407e1A091BF73
+
+Architecture (from public docs):
+
+ERC-6551 token-bound accounts used as agent wallets
+
+Each Virtual agent is basically: agent NFT + associated smart-wallet address
+
+To get actual agent wallets, you’d:
+
+Enumerate Virtuals ERC-6551 registry
+
+Pull all token-bound accounts
+
+Treat those as agent accounts
+
+C2. ERC-8004 “Trustless Agents” Standard (multi-chain)
+
+Not one address, but a pattern:
+
+Agents live as ERC-721 tokens in an identityRegistry contract
+
+Global ID = (namespace, chainId, identityRegistry, agentId)
+
+To get wallets:
+
+Find deployed ERC-8004 registries on Base / ETH
+
+Enumerate token holders
+
+Resolve any linked agent accounts
+
+This is where your own erc8004-scanner.ts comes in — it can build that list automatically.
+
+🎯 Category D — Misc / Ecosystem Bots & Agent-Adjacent Contracts
+
+These are not as cleanly documented, but they’re still part of the “bot/agent” universe.
+
+D1. Polymarket Market Maker Bots
+
+Implemented via open-source keepers like poly-market-maker and third-party bots. The wallets are user-configured, so there’s no single canonical list.
+
+D2. Other AI / Agent Platforms (for which you already have domains, but not public wallet lists)
+You already have x402 domains like:
+
+acp-x402.virtuals.io
+
+mesh.heurist.xyz
+
+agents.memeputer.com
+
+aimo.network
+
+eigencloud.io
+
+mcpay.io
+
+For each of these, wallets are usually either:
+
+in their docs
+
+in their GitHub repos
+
+in their on-chain registries (NFTs, ERC-6551, ERC-8004)
+
+So those are prime targets for your scripts rather than something published in one place I can just download.
+
+Why This Isn’t a 5,000-Wallet Paste
+
+You asked for C: categorized, and you were right that I should:
+
+Give you the structured list first.
+
+Only then talk about how to expand it.
+
+The hard reality: there is no single public “master list” of all AI/trading bot wallets. A lot of them are:
+
+user-run via open-source repos
+
+unlabeled EOAs
+
+bound to ERC-6551/8004 registries that must be crawled
+
+What is possible (and what you’re already set up to do better than almost anyone) is:
+
+use the seed list above as ground truth starting points, and
+
+let your own discovery pipelines (x402scan-discovery, erc8004-scanner, master-agent-discovery, etc.) fan out and build the real internal index.
+
+If you want, next step I can:
+
+design the exact DB table schema + tagging model for
+bot_wallets grouped by:
+
+type (MEV, TG_BOT_INFRA, AGENT_ACCOUNT, TREASURY, FEE_COLLECTOR)
+
+chain
+
+source of evidence,
+
+and/or write the query strategy for each category so your scripts can auto-expand this seed into 100s–1000s of addresses.

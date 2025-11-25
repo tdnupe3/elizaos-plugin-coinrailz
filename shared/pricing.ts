@@ -12,6 +12,8 @@
  */
 
 export type ServiceName = 
+  // Discovery/Testing Services
+  | "ping"
   // Trading Intelligence Services
   | "gas-price-oracle"
   | "token-metadata"
@@ -60,6 +62,9 @@ export type ServiceName =
  * CRITICAL: These values MUST match the original SERVICE_PRICING from hybridPaymentMiddleware.ts
  */
 export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
+  // Discovery/Testing Services (very low cost for discovery bots)
+  "ping": 10000,                       // $0.01 - minimal cost for payment explorers
+  
   // Trading Intelligence Services ($0.10-$0.75)
   "gas-price-oracle": 100000,          // $0.10
   "token-metadata": 100000,            // $0.10
@@ -112,6 +117,9 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
  * USD pricing (floats) for analytics, displays, and logging
  */
 export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
+  // Discovery/Testing Services
+  "ping": 0.01,
+  
   // Trading Intelligence Services
   "gas-price-oracle": 0.10,
   "token-metadata": 0.10,

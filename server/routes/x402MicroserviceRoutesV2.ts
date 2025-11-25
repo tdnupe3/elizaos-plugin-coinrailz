@@ -159,6 +159,42 @@ function checkRateLimit(key: string, maxRequests: number, windowMs: number): boo
 // FIX: Use HTTP method + path format for proper route matching
 // Paths are relative to /x402 mount point (e.g., 'POST /multi-chain-balance' = POST /x402/multi-chain-balance)
 const x402Routes = {
+  // Discovery/Echo service for payment explorers (like PayAI's echo merchant)
+  "POST /ping": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["ping"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/ping`,
+      name: "Ping/Echo Service",
+      description: "Lowest-cost test endpoint to verify x402 payment flow. Returns platform info and echoes your message.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 30,
+      inputSchema: {
+        bodyFields: {
+          message: { type: "string", description: "Optional message to echo back" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            message: { type: "string", description: "Optional message to echo back" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            success: { type: "boolean", description: "Request success status" },
+            service: { type: "string", description: "Platform name" },
+            version: { type: "string", description: "API version" },
+            echo: { type: "string", description: "Echoed message or 'pong'" },
+            servicesAvailable: { type: "number", description: "Number of x402 services available" }
+          }
+        }
+      }
+    }
+  },
   // Original 10 trader-focused services
   "POST /multi-chain-balance": {
     price: `$${microToUSD(SERVICE_PRICING_MICRO["multi-chain-balance"])}`,
@@ -1171,6 +1207,44 @@ const x402Middleware = paymentMiddleware(
   PLATFORM_WALLET,
   x402Routes,
   facilitator // Use the imported CDP facilitator (auto-registers with Bazaar)
+);
+
+// ============================================================================
+// PING/ECHO SERVICE - Discovery endpoint for payment explorers
+// Lowest-cost service to verify x402 payment flow works
+// ============================================================================
+const pingHandler = async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  try {
+    const { message } = req.body;
+    const responseTime = Date.now() - startTime;
+    
+    const result = {
+      success: true,
+      service: "Coin Railz x402 Payment Infrastructure",
+      version: "0.4.0",
+      timestamp: new Date().toISOString(),
+      echo: message || "pong",
+      chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
+      servicesAvailable: 33,
+      documentation: "https://coinrailz.com/developers",
+      agentCard: "https://coinrailz.com/.well-known/agent.json",
+      responseTimeMs: responseTime,
+    };
+    
+    await trackRequest("ping", req.body, result, responseTime, SERVICE_PRICING_USD["ping"], req.ip || "discovery-bot");
+    await trackBundleUsage(req, res, "ping", { message });
+    
+    res.json(result);
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+router.post("/ping",
+  createPaymentOrchestrator("ping", SERVICE_PRICING_MICRO["ping"], pingHandler),
+  x402Middleware,
+  pingHandler
 );
 
 // Service handler implementations with payment orchestrator

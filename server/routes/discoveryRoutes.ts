@@ -1,10 +1,23 @@
 /**
  * Discovery Routes
  * Autonomous discovery endpoints for web crawlers and AI agents
+ * + Agent Discovery Scheduler endpoints for finding x402 agents
  */
 
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { autonomousDiscoveryService } from '../services/autonomousDiscoveryService';
+import {
+  executeDiscoveryRun,
+  getDiscoveryStats,
+  startDiscoveryScheduler,
+  stopDiscoveryScheduler,
+  runDiscoveryNow,
+  getAgentsForOutreach,
+  getXmtpReachableAgents,
+} from '../services/discoveryScheduler';
+import { db } from '../db';
+import { discoveryRuns, discoveredAgents, agentOutreachMessages } from '@shared/schema';
+import { eq, desc, sql, isNotNull, and } from 'drizzle-orm';
 
 const router = express.Router();
 
@@ -413,6 +426,352 @@ router.get('/.well-known/openapi.json', (req, res) => {
   } catch (error) {
     console.error('OpenAPI schema generation failed:', error);
     res.status(500).json({ error: 'Failed to generate OpenAPI schema' });
+  }
+});
+
+// ============================================================================
+// AGENT DISCOVERY SCHEDULER ROUTES
+// ============================================================================
+
+/**
+ * GET /api/discovery/scheduler/stats
+ * Get discovery statistics
+ */
+router.get('/api/discovery/scheduler/stats', async (req: Request, res: Response) => {
+  try {
+    const stats = await getDiscoveryStats();
+    res.json({
+      success: true,
+      data: stats,
+    });
+  } catch (error) {
+    console.error('Error getting discovery stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get discovery stats',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/scheduler/runs
+ * Get discovery run history
+ */
+router.get('/api/discovery/scheduler/runs', async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+    
+    const runs = await db
+      .select({
+        id: discoveryRuns.id,
+        runType: discoveryRuns.runType,
+        status: discoveryRuns.status,
+        startedAt: discoveryRuns.startedAt,
+        completedAt: discoveryRuns.completedAt,
+        totalRaw: discoveryRuns.totalRaw,
+        totalUnique: discoveryRuns.totalUnique,
+        newAgents: discoveryRuns.newAgents,
+        updatedAgents: discoveryRuns.updatedAgents,
+        bySource: discoveryRuns.bySource,
+        durationMs: discoveryRuns.durationMs,
+      })
+      .from(discoveryRuns)
+      .orderBy(desc(discoveryRuns.startedAt))
+      .limit(limit);
+    
+    res.json({
+      success: true,
+      data: runs,
+    });
+  } catch (error) {
+    console.error('Error getting discovery runs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get discovery runs',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/scheduler/runs/:id
+ * Get specific discovery run details
+ */
+router.get('/api/discovery/scheduler/runs/:id', async (req: Request, res: Response) => {
+  try {
+    const runId = parseInt(req.params.id);
+    
+    const [run] = await db
+      .select()
+      .from(discoveryRuns)
+      .where(eq(discoveryRuns.id, runId))
+      .limit(1);
+    
+    if (!run) {
+      return res.status(404).json({
+        success: false,
+        error: 'Discovery run not found',
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: run,
+    });
+  } catch (error) {
+    console.error('Error getting discovery run:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get discovery run',
+    });
+  }
+});
+
+/**
+ * POST /api/discovery/scheduler/run
+ * Trigger immediate discovery run
+ */
+router.post('/api/discovery/scheduler/run', async (req: Request, res: Response) => {
+  try {
+    console.log('🚀 Manual discovery run triggered via API');
+    const runId = await runDiscoveryNow();
+    
+    if (runId === -1) {
+      return res.status(409).json({
+        success: false,
+        error: 'Discovery is already running',
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Discovery run started',
+      data: { runId },
+    });
+  } catch (error) {
+    console.error('Error starting discovery run:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start discovery run',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/agents
+ * Get discovered agents list
+ */
+router.get('/api/discovery/agents', async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 500);
+    const status = req.query.status as string;
+    const hasXmtp = req.query.hasXmtp === 'true';
+    
+    const agents = await db
+      .select({
+        id: discoveredAgents.id,
+        url: discoveredAgents.url,
+        canonicalUrl: discoveredAgents.canonicalUrl,
+        source: discoveredAgents.source,
+        status: discoveredAgents.status,
+        score: discoveredAgents.score,
+        xmtpAddress: discoveredAgents.xmtpAddress,
+        xmtpCanMessage: discoveredAgents.xmtpCanMessage,
+        lastSeenAt: discoveredAgents.lastSeenAt,
+        discoveredAt: discoveredAgents.discoveredAt,
+      })
+      .from(discoveredAgents)
+      .orderBy(desc(discoveredAgents.score))
+      .limit(limit);
+    
+    let filteredAgents = agents;
+    if (status) {
+      filteredAgents = filteredAgents.filter(a => a.status === status);
+    }
+    if (hasXmtp) {
+      filteredAgents = filteredAgents.filter(a => a.xmtpAddress);
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        count: filteredAgents.length,
+        agents: filteredAgents,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting discovered agents:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get discovered agents',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/agents/xmtp-reachable
+ * Get agents with verified XMTP reachability
+ */
+router.get('/api/discovery/agents/xmtp-reachable', async (req: Request, res: Response) => {
+  try {
+    const agents = await getXmtpReachableAgents();
+    res.json({
+      success: true,
+      data: {
+        count: agents.length,
+        agents,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting XMTP-reachable agents:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get XMTP-reachable agents',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/agents/for-outreach
+ * Get agents ready for automated outreach
+ */
+router.get('/api/discovery/agents/for-outreach', async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    const agents = await getAgentsForOutreach(limit);
+    res.json({
+      success: true,
+      data: {
+        count: agents.length,
+        agents,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting agents for outreach:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get agents for outreach',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/agents/:id
+ * Get specific agent details
+ */
+router.get('/api/discovery/agents/:id', async (req: Request, res: Response) => {
+  try {
+    const agentId = parseInt(req.params.id);
+    
+    const [agent] = await db
+      .select()
+      .from(discoveredAgents)
+      .where(eq(discoveredAgents.id, agentId))
+      .limit(1);
+    
+    if (!agent) {
+      return res.status(404).json({
+        success: false,
+        error: 'Agent not found',
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: agent,
+    });
+  } catch (error) {
+    console.error('Error getting agent:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get agent',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/outreach
+ * Get outreach message history
+ */
+router.get('/api/discovery/outreach', async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+    
+    const messages = await db
+      .select()
+      .from(agentOutreachMessages)
+      .orderBy(desc(agentOutreachMessages.createdAt))
+      .limit(limit);
+    
+    const [totalCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(agentOutreachMessages);
+    
+    const [sentCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(agentOutreachMessages)
+      .where(eq(agentOutreachMessages.status, 'sent'));
+    
+    const [deliveredCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(agentOutreachMessages)
+      .where(eq(agentOutreachMessages.status, 'delivered'));
+    
+    res.json({
+      success: true,
+      data: {
+        total: Number(totalCount?.count || 0),
+        sent: Number(sentCount?.count || 0),
+        delivered: Number(deliveredCount?.count || 0),
+        messages,
+      },
+    });
+  } catch (error) {
+    console.error('Error getting outreach messages:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get outreach messages',
+    });
+  }
+});
+
+/**
+ * POST /api/discovery/scheduler/start
+ * Start the discovery scheduler
+ */
+router.post('/api/discovery/scheduler/start', async (req: Request, res: Response) => {
+  try {
+    const intervalHours = parseInt(req.body?.intervalHours as string) || 6;
+    startDiscoveryScheduler(intervalHours);
+    res.json({
+      success: true,
+      message: `Discovery scheduler started (every ${intervalHours} hours)`,
+    });
+  } catch (error) {
+    console.error('Error starting scheduler:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to start scheduler',
+    });
+  }
+});
+
+/**
+ * POST /api/discovery/scheduler/stop
+ * Stop the discovery scheduler
+ */
+router.post('/api/discovery/scheduler/stop', async (req: Request, res: Response) => {
+  try {
+    stopDiscoveryScheduler();
+    res.json({
+      success: true,
+      message: 'Discovery scheduler stopped',
+    });
+  } catch (error) {
+    console.error('Error stopping scheduler:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to stop scheduler',
+    });
   }
 });
 

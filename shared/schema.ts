@@ -71,6 +71,60 @@ export const discoveredAgents = pgTable(
   ],
 );
 
+// Discovery Runs table for tracking scheduled discovery executions
+export const discoveryRuns = pgTable(
+  "discovery_runs",
+  {
+    id: serial("id").primaryKey(),
+    runType: varchar("run_type").notNull().default("scheduled"), // scheduled, manual, triggered
+    status: varchar("status").notNull().default("running"), // running, completed, failed
+    startedAt: timestamp("started_at").defaultNow(),
+    completedAt: timestamp("completed_at"),
+    totalRaw: integer("total_raw").default(0), // Total discoveries before deduplication
+    totalUnique: integer("total_unique").default(0), // Unique agents found
+    newAgents: integer("new_agents").default(0), // New agents added to discovered_agents
+    updatedAgents: integer("updated_agents").default(0), // Existing agents updated
+    bySource: jsonb("by_source"), // Count breakdown by source
+    errors: jsonb("errors"), // Array of error messages if any
+    rawOutput: jsonb("raw_output"), // Full discovery output for audit
+    durationMs: integer("duration_ms"), // Run duration in milliseconds
+  },
+  (table) => [
+    index("IDX_discovery_runs_status").on(table.status),
+    index("IDX_discovery_runs_started_at").on(table.startedAt),
+    index("IDX_discovery_runs_run_type").on(table.runType),
+  ],
+);
+
+// Agent Outreach Messages table for tracking automated outreach
+export const agentOutreachMessages = pgTable(
+  "agent_outreach_messages",
+  {
+    id: serial("id").primaryKey(),
+    agentId: integer("agent_id").notNull(), // Reference to discovered_agents.id
+    channel: varchar("channel").notNull(), // xmtp, webhook, email, etc
+    recipientAddress: varchar("recipient_address"), // XMTP address or webhook URL
+    messageType: varchar("message_type").notNull(), // introduction, service_offer, follow_up
+    messageContent: text("message_content").notNull(),
+    status: varchar("status").notNull().default("pending"), // pending, sent, delivered, failed, replied
+    sentAt: timestamp("sent_at"),
+    deliveredAt: timestamp("delivered_at"),
+    errorMessage: text("error_message"),
+    responseReceived: boolean("response_received").default(false),
+    responseContent: text("response_content"),
+    responseAt: timestamp("response_at"),
+    campaignId: varchar("campaign_id"), // For grouping outreach campaigns
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_outreach_agent").on(table.agentId),
+    index("IDX_outreach_status").on(table.status),
+    index("IDX_outreach_channel").on(table.channel),
+    index("IDX_outreach_campaign").on(table.campaignId),
+    index("IDX_outreach_sent_at").on(table.sentAt),
+  ],
+);
+
 // Transaction proofs table for storing real blockchain transaction signatures
 export const transactionProofs = pgTable(
   "transaction_proofs",

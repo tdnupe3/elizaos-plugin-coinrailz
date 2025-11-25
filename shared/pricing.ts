@@ -67,7 +67,7 @@ export type ServiceName =
  */
 export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   // Discovery/Testing Services (very low cost for discovery bots)
-  "ping": 10000,                       // $0.01 - minimal cost for payment explorers
+  "ping": 250000,                      // $0.25 - industry standard discovery endpoint
   
   // Trading Intelligence Services ($0.10-$0.75)
   "gas-price-oracle": 100000,          // $0.10
@@ -127,7 +127,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
  */
 export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   // Discovery/Testing Services
-  "ping": 0.01,
+  "ping": 0.25,
   
   // Trading Intelligence Services
   "gas-price-oracle": 0.10,

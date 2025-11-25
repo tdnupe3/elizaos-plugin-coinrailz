@@ -1039,7 +1039,7 @@ ${batchResults
   startScheduler(): void {
     if (this.cronJob) {
       this.cronJob.start();
-      console.log('✅ Discovery scheduler started (runs hourly)');
+      console.log('✅ Discovery scheduler started (runs twice daily at 8am/8pm)');
     }
   }
 

@@ -46,7 +46,7 @@ export function initializeDiscoveryAdapters(): void {
 
   // Start the discovery scheduler
   agentDiscoveryService.startScheduler();
-  console.log('⏰ Discovery scheduler started (runs hourly)');
+  console.log('⏰ Discovery scheduler started (runs twice daily at 8am/8pm)');
 }
 
 // Export individual adapters for testing

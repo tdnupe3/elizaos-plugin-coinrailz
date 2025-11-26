@@ -110,35 +110,20 @@ export class OnChainX402Outreach {
 
   /**
    * Generate message data for on-chain transaction
-   * OPTIMIZED: Max 1000 chars, maximum information density
+   * PROFESSIONAL: Concise, respectful outreach for ecosystem leaders
    */
   private generateMessageData(): string {
-    // Platform wallet from environment
-    const platformWallet = process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
-    
-    // Optimized message: fits within 1000 character limit
+    // Professional message for VIP targets
     const message = 
-      '🤖 Coin Railz - 8 x402 Services Live\n\n' +
-      'PRODUCTION APIs (x402scan listed):\n' +
-      '1. Balance ($0.01) coinrailz.com/x402/service/multi-chain-balance\n' +
-      '2. Gas ($0.05) coinrailz.com/x402/service/gas-price-oracle\n' +
-      '3. Price ($0.50) coinrailz.com/x402/service/token-price\n' +
-      '4. ContractScan ($2) coinrailz.com/x402/service/contract-scan\n' +
-      '5. WalletRisk ($2) coinrailz.com/x402/service/wallet-risk\n' +
-      '6. Payment ($50) coinrailz.com/x402/service/payment-processing\n' +
-      '7. Compliance ($500) coinrailz.com/x402/service/compliance-consultation\n' +
-      '8. Audit ($1000) coinrailz.com/x402/service/smart-contract-audit\n\n' +
-      'TRY NOW:\n' +
-      'Request→coinrailz.com/x402/service/gas-price-oracle\n' +
-      'Get 402→Send payment→Receive data instantly\n\n' +
-      `PAYMENT: ${platformWallet}\n` +
-      'BASE mainnet | USDC, ETH, USDT accepted\n' +
-      'Multi-chain: Base, Ethereum, Polygon, Arbitrum, BNB supported\n\n' +
-      'Zero signup|Instant delivery|Production ready\n' +
-      'Docs+examples: coinrailz.com/x402\n\n' +
-      'Copy URLs at landing page. Start earning.';
+      'Hi - Coin Railz here.\n\n' +
+      'We built x402 payment infrastructure for AI agents on Base:\n' +
+      '- 37 micropayment services ($0.25-$500)\n' +
+      '- USDC settlements via Coinbase CDP\n' +
+      '- Listed on x402scan, Coinbase Bazaar compatible\n\n' +
+      'Live at coinrailz.com - would love your feedback.\n\n' +
+      'Best,\nCoin Railz Team';
     
-    console.log(`📏 Message length: ${message.length} characters (limit: 1000)`);
+    console.log(`📏 Message length: ${message.length} characters`);
     
     // Convert to hex for transaction data
     return ethers.hexlify(ethers.toUtf8Bytes(message));
@@ -157,15 +142,21 @@ export class OnChainX402Outreach {
       // Get message data
       const messageData = this.generateMessageData();
       
-      // Get platform signer using CDP service (properly derives from CDP_PRIVATE_KEY)
-      const wallet = await CoinbaseCDPService.getPlatformSigner('base');
+      // Use the funded XMTP EOA wallet (has $34+ ETH)
+      const privateKey = process.env.XMTP_EOA_PRIVATE_KEY;
+      if (!privateKey) {
+        throw new Error('XMTP_EOA_PRIVATE_KEY not configured');
+      }
       
-      console.log(`💼 Using platform wallet: ${wallet.address}`);
+      const wallet = new ethers.Wallet(privateKey, this.baseProvider);
+      console.log(`💼 Using funded wallet: ${wallet.address}`);
       
       // Check balance
       const balance = await this.baseProvider.getBalance(wallet.address);
       const valueWei = ethers.parseEther(amountETH.toString());
       const gasEstimate = ethers.parseEther('0.0001'); // Conservative gas estimate
+      
+      console.log(`💰 Wallet balance: ${ethers.formatEther(balance)} ETH`);
       
       if (balance < valueWei + gasEstimate) {
         console.error(`❌ Insufficient balance: ${ethers.formatEther(balance)} ETH`);

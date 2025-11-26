@@ -1481,6 +1481,13 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
   const servicePath = serviceKey.replace('POST ', '');
   const config = routeConfig.config;
 
+  // CRITICAL: Preserve offer_tracking param in resource URL for attribution
+  // When agent pays, they POST to this resource URL - tracking must survive
+  const offerTracking = req.query.offer_tracking as string;
+  const resourceUrl = offerTracking 
+    ? `${publicBaseUrl}/x402${servicePath}?offer_tracking=${offerTracking}`
+    : `${publicBaseUrl}/x402${servicePath}`;
+
   const response = {
     x402Version: 1,
     error: "X-PAYMENT header is required",
@@ -1488,7 +1495,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       scheme: "exact",
       network: routeConfig.network,
       maxAmountRequired: priceInMicroUnits,
-      resource: `${publicBaseUrl}/x402${servicePath}`,
+      resource: resourceUrl,
       description: config.description || `x402 service: ${servicePath}`,
       payTo: PLATFORM_WALLET,
       asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",

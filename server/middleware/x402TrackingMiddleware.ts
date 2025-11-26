@@ -1,7 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { x402InteractionTracker } from '../services/x402InteractionTracker';
 import { serviceCatalogService } from '../services/serviceCatalogService';
+import { offerLinkService } from '../services/offerLinkService';
 import { nanoid } from 'nanoid';
+
+// Service pricing in USD for conversion tracking (EIP-712 path)
+const SERVICE_PRICING_USD: Record<string, number> = {
+  "ping": 0.25,
+  "multi-chain-balance": 1.00,
+  "gas-price-oracle": 0.50,
+  "token-price": 0.75,
+  "contract-scan": 2.50,
+  "wallet-risk": 5.00,
+  "trade-signals": 10.00,
+  "default": 1.00
+};
 
 export function x402TrackingMiddleware(req: Request, res: Response, next: NextFunction) {
   const startTime = Date.now();
@@ -40,6 +53,19 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     if (paid) {
       interactionType = 'payment';
       eventType = 'authorized';
+      
+      // CONVERSION TRACKING: Record conversion for EIP-712 payments (x402-express path)
+      // Only record if not already recorded by orchestrator (check for raw-hash method)
+      const offerTrackingId = (req.query?.offer_tracking as string) || (req as any).offerTrackingId;
+      const wasHandledByOrchestrator = res.locals.payment?.method === 'raw-hash' || res.locals.payment?.method === 'bundle-subscription';
+      
+      if (offerTrackingId && !wasHandledByOrchestrator) {
+        const priceUsd = SERVICE_PRICING_USD[serviceId] || SERVICE_PRICING_USD["default"];
+        console.log(`💰 EIP-712 CONVERSION: ${serviceId} paid via offer ${offerTrackingId} ($${priceUsd})`);
+        offerLinkService.recordConversion(offerTrackingId, priceUsd)
+          .then(() => console.log(`✅ EIP-712 conversion recorded for offer ${offerTrackingId}`))
+          .catch((err: any) => console.error(`⚠️ Failed to record EIP-712 conversion: ${err.message}`));
+      }
     } else if (responseStatus === 402) {
       interactionType = 'attempt';
       eventType = 'challenge-issued';

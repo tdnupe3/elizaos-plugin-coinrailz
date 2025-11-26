@@ -4,6 +4,19 @@ import {
   markPaymentIntentSucceeded, 
   markPaymentIntentFailed 
 } from "./hybridPaymentMiddleware";
+import { offerLinkService } from "../services/offerLinkService";
+
+// Service pricing in USD for conversion tracking
+const SERVICE_PRICING_USD: Record<string, number> = {
+  "ping": 0.25,
+  "multi-chain-balance": 1.00,
+  "gas-price-oracle": 0.50,
+  "token-price": 0.75,
+  "contract-scan": 2.50,
+  "wallet-risk": 5.00,
+  "trade-signals": 10.00,
+  "default": 1.00
+};
 
 /**
  * Payment Orchestrator - Routes payment verification before middleware chain
@@ -26,7 +39,21 @@ export function createPaymentOrchestrator(
     if (req.bundleSubscription) {
       console.log(`🎫 Bundle subscription detected for ${serviceName}, executing handler directly`);
       res.locals.payment = { method: "bundle-subscription", subscriptionId: req.bundleSubscription.id };
-      return await handler(req, res);
+      await handler(req, res);
+      
+      // CONVERSION TRACKING: Record conversion for offer attribution (bundle payments)
+      const offerTrackingId = req.query?.offer_tracking as string;
+      if (offerTrackingId) {
+        const priceUsd = SERVICE_PRICING_USD[serviceName] || SERVICE_PRICING_USD["default"];
+        console.log(`💰 BUNDLE CONVERSION: ${serviceName} via offer ${offerTrackingId} ($${priceUsd})`);
+        try {
+          await offerLinkService.recordConversion(offerTrackingId, priceUsd);
+          console.log(`✅ Bundle conversion recorded for offer ${offerTrackingId}`);
+        } catch (convErr: any) {
+          console.error(`⚠️ Failed to record bundle conversion: ${convErr.message}`);
+        }
+      }
+      return;
     }
 
     const xPayment = req.headers["x-payment"] as string | undefined;
@@ -78,6 +105,19 @@ export function createPaymentOrchestrator(
             await handler(req, res);
             // Handler succeeded - mark intent as SUCCEEDED
             await markPaymentIntentSucceeded(txHash, serviceName);
+            
+            // CONVERSION TRACKING: Record conversion for offer attribution
+            const offerTrackingId = req.query?.offer_tracking as string;
+            if (offerTrackingId) {
+              const priceUsd = SERVICE_PRICING_USD[serviceName] || SERVICE_PRICING_USD["default"];
+              console.log(`💰 ORCHESTRATOR CONVERSION: ${serviceName} paid via offer ${offerTrackingId} ($${priceUsd})`);
+              try {
+                await offerLinkService.recordConversion(offerTrackingId, priceUsd);
+                console.log(`✅ Conversion recorded for offer ${offerTrackingId}`);
+              } catch (convErr: any) {
+                console.error(`⚠️ Failed to record conversion: ${convErr.message}`);
+              }
+            }
           } catch (handlerError: any) {
             // Handler failed - mark intent as ALLOW_RETRY
             console.error(`❌ Handler error for ${serviceName}:`, handlerError.message);

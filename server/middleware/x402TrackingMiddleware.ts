@@ -45,6 +45,10 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     const x402ClientHeader = req.get('x-402-client') || req.get('x-agent-id') || req.get('x-coinrailz-client');
     const referer = req.get('referer') || req.get('origin');
     
+    // Get offer tracking ID if this request came from an offer link
+    // Priority: query param (survives redirects) > request property (internal routing)
+    const offerTrackingId = (req.query?.offer_tracking as string) || (req as any).offerTrackingId || undefined;
+    
     x402InteractionTracker.trackInteraction({
       serviceId,
       serviceName: serviceId,
@@ -65,10 +69,12 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
       retryCount: 0,
       paymentReceived: paid,
       paymentAmount: res.locals.payment?.amount || undefined,
+      offerTrackingId,
       metadata: {
         originalUrl: req.originalUrl,
         hasPaymentHeader: !!req.get('x-payment'),
         paymentMethod: res.locals.payment?.method,
+        offerAttribution: offerTrackingId ? true : false,
       },
     }).catch(err => {
       console.error('❌ Interaction tracking failed:', err.message);

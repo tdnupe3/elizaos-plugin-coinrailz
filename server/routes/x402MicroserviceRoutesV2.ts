@@ -61,6 +61,7 @@ import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
 import { deductBundleCredits } from "../services/bundleCreditService";
 import { serviceCatalogService } from "../services/serviceCatalogService";
+import { offerLinkService } from "../services/offerLinkService";
 
 const router = Router();
 
@@ -137,6 +138,135 @@ function resourceUrl(path: string): `${string}://${string}` {
 
 // Rate limiting storage (in-memory for now)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+
+// ============================================================================
+// OFFER LANDING ROUTE - Entry point for tracked outreach links
+// When agents click offer links, this records the click and redirects to the service
+// ============================================================================
+router.get('/offer/:trackingId', async (req: Request, res: Response) => {
+  const { trackingId } = req.params;
+  
+  try {
+    // Look up the offer
+    const offer = await offerLinkService.getOfferByTrackingId(trackingId);
+    
+    if (!offer) {
+      return res.status(404).json({
+        success: false,
+        error: 'Offer not found or expired',
+        suggestion: 'Visit /x402/catalog for available services',
+      });
+    }
+    
+    // Check if offer is active
+    if (!offer.isActive) {
+      return res.status(410).json({
+        success: false,
+        error: 'This offer has been deactivated',
+        suggestion: 'Visit /x402/catalog for available services',
+      });
+    }
+    
+    // Check expiration
+    if (offer.expiresAt && new Date(offer.expiresAt) < new Date()) {
+      return res.status(410).json({
+        success: false,
+        error: 'This offer has expired',
+        suggestion: 'Visit /x402/catalog for available services',
+      });
+    }
+    
+    // Record the click
+    await offerLinkService.recordClick(trackingId, {
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent'),
+      requestId: req.get('x-request-id'),
+    });
+    
+    // Store tracking ID in request for attribution in x402TrackingMiddleware
+    (req as any).offerTrackingId = trackingId;
+    
+    // Look up the service endpoint
+    const service = serviceCatalogService.getService(offer.serviceId);
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service no longer available',
+        offeredService: offer.serviceId,
+      });
+    }
+    
+    // Redirect to the actual service endpoint which will serve the 402 challenge
+    // Using 307 to preserve the request method
+    // CRITICAL: Pass tracking ID as query param so it survives the redirect for attribution
+    const baseEndpoint = service.endpoint;
+    const separator = baseEndpoint.includes('?') ? '&' : '?';
+    const serviceEndpoint = `${baseEndpoint}${separator}offer_tracking=${trackingId}`;
+    console.log(`📍 Offer ${trackingId} clicked -> redirecting to ${serviceEndpoint}`);
+    
+    res.redirect(307, serviceEndpoint);
+    
+  } catch (error: any) {
+    console.error('Offer landing error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process offer link',
+    });
+  }
+});
+
+// Also handle POST for offer links (in case agent sends POST)
+router.post('/offer/:trackingId', async (req: Request, res: Response) => {
+  const { trackingId } = req.params;
+  
+  try {
+    const offer = await offerLinkService.getOfferByTrackingId(trackingId);
+    
+    if (!offer || !offer.isActive) {
+      return res.status(404).json({
+        success: false,
+        error: 'Offer not found, expired, or deactivated',
+        suggestion: 'Visit /x402/catalog for available services',
+      });
+    }
+    
+    // Check expiration
+    if (offer.expiresAt && new Date(offer.expiresAt) < new Date()) {
+      return res.status(410).json({
+        success: false,
+        error: 'This offer has expired',
+      });
+    }
+    
+    // Record click
+    await offerLinkService.recordClick(trackingId);
+    (req as any).offerTrackingId = trackingId;
+    
+    const service = serviceCatalogService.getService(offer.serviceId);
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        error: 'Service no longer available',
+      });
+    }
+    
+    // Pass tracking ID as query param for attribution
+    const baseEndpoint = service.endpoint;
+    const separator = baseEndpoint.includes('?') ? '&' : '?';
+    const serviceEndpoint = `${baseEndpoint}${separator}offer_tracking=${trackingId}`;
+    console.log(`📍 Offer ${trackingId} POST -> redirecting to ${serviceEndpoint}`);
+    res.redirect(307, serviceEndpoint);
+    
+  } catch (error: any) {
+    console.error('Offer landing POST error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process offer link',
+    });
+  }
+});
+
+// ============================================================================
 
 // Helper: Check rate limit
 function checkRateLimit(key: string, maxRequests: number, windowMs: number): boolean {

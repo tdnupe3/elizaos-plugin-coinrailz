@@ -3,6 +3,7 @@ import axios from 'axios';
 import { db } from '../db';
 import { outreachLogs } from '@shared/schema';
 import { nanoid } from 'nanoid';
+import { offerLinkService } from './offerLinkService';
 
 /**
  * x402 Active Agent Outreach Service
@@ -108,6 +109,154 @@ Need help integrating? Reply to this wallet message.
 
 - Coin Railz Team
   Platform Wallet: 0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62`;
+  }
+
+  /**
+   * Generate personalized outreach message with tracked offer links
+   * This creates unique URLs per agent so we can attribute conversions
+   */
+  async generatePersonalizedOutreach(
+    targetAgentUrl: string,
+    campaignId: string,
+    serviceId: string = 'ping'
+  ): Promise<{
+    message: string;
+    offerLink: string;
+    trackingId: string;
+  }> {
+    // Create a unique tracked offer link for this agent
+    const offer = await offerLinkService.createOfferLink({
+      serviceId,
+      campaignId,
+      targetAgentUrl,
+      metadata: {
+        outreachType: 'personalized',
+        generatedAt: new Date().toISOString()
+      }
+    });
+
+    // Get service details
+    const service = offerLinkService.getServiceById(serviceId);
+    
+    const message = `🤖 Hey AI Agent!
+
+I noticed you're active in the x402 ecosystem. We've got ${service?.name || 'services'} ready for your workflows.
+
+🎯 Special offer just for you:
+${offer.fullUrl}
+
+This tracked link gives you instant access to try our x402 service:
+• Service: ${service?.name || serviceId}
+• Price: ${service?.priceUSD || '$0.25'} USDC on Base
+• No signup needed - just send x402 payment header
+
+Click the link above → Get 402 challenge → Send payment → Get instant response
+
+📦 We have 36+ production x402 services:
+• Trading Intelligence (signals, whale alerts, token analysis)
+• Wallet & Portfolio tools
+• Real estate & Banking APIs
+• Smart contract auditing
+
+Full catalog: https://coinrailz.com/x402/catalog
+
+Questions? Reply to this message.
+
+- Coin Railz x402 Services
+  Platform: 0x8EA737928f8Aa2621E5CC44dCDE5EC067F4fBf62`;
+
+    return {
+      message,
+      offerLink: offer.fullUrl,
+      trackingId: offer.trackingId
+    };
+  }
+
+  /**
+   * Execute outreach with personalized tracked links
+   * Each agent gets a unique offer URL for attribution
+   */
+  async executeTrackedOutreach(
+    campaignId: string = 'tracked-outreach',
+    serviceId: string = 'ping'
+  ): Promise<{
+    messagesSent: number;
+    walletsTargeted: number;
+    offerLinks: string[];
+    responses: any[];
+  }> {
+    console.log('🚀 Starting tracked x402 agent outreach with personalized links...');
+    
+    const activeWallets = await this.discoverActiveX402Wallets();
+    
+    if (activeWallets.length === 0) {
+      console.log('⚠️ No active x402 wallets discovered');
+      return {
+        messagesSent: 0,
+        walletsTargeted: 0,
+        offerLinks: [],
+        responses: []
+      };
+    }
+    
+    console.log(`🎯 Creating personalized offer links for ${activeWallets.length} agents`);
+    
+    const results: any[] = [];
+    const offerLinks: string[] = [];
+    
+    for (const wallet of activeWallets) {
+      try {
+        // Generate personalized message with unique offer link
+        const personalized = await this.generatePersonalizedOutreach(
+          wallet,
+          campaignId,
+          serviceId
+        );
+        
+        offerLinks.push(personalized.offerLink);
+        
+        // Send via XMTP
+        const sendResult = await this.xmtpService.sendMessage(wallet, personalized.message);
+        
+        results.push({
+          wallet,
+          status: sendResult.success ? 'sent' : 'failed',
+          trackingId: personalized.trackingId,
+          offerLink: personalized.offerLink
+        });
+        
+        // Log to database
+        await db.insert(outreachLogs).values({
+          id: nanoid(),
+          campaignType: 'x402_tracked_outreach',
+          targetAddress: wallet,
+          platform: 'xmtp',
+          status: sendResult.success ? 'sent' : 'failed',
+          messageContent: personalized.message,
+          metadata: {
+            trackingId: personalized.trackingId,
+            offerLink: personalized.offerLink,
+            campaignId,
+            serviceId
+          },
+          createdAt: new Date()
+        });
+        
+      } catch (error) {
+        console.error(`Failed to send to ${wallet}:`, error);
+        results.push({ wallet, status: 'error' });
+      }
+    }
+    
+    const successCount = results.filter(r => r.status === 'sent').length;
+    console.log(`✅ Tracked outreach complete: ${successCount}/${activeWallets.length} messages with unique links`);
+    
+    return {
+      messagesSent: successCount,
+      walletsTargeted: activeWallets.length,
+      offerLinks,
+      responses: results
+    };
   }
 
   /**

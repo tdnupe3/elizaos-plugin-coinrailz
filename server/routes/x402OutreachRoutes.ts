@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { x402ActiveAgentOutreach } from '../services/x402ActiveAgentOutreach';
+import { offerLinkService } from '../services/offerLinkService';
 
 const router = Router();
 
@@ -98,6 +99,96 @@ router.get('/discover', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Wallet discovery failed',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/x402-outreach/execute-tracked
+ * Execute outreach with personalized tracked offer links
+ * Each agent gets a unique URL so we can attribute conversions
+ */
+router.post('/execute-tracked', async (req, res) => {
+  try {
+    const { campaignId, serviceId } = req.body;
+    
+    console.log('🚀 Starting tracked x402 outreach campaign...');
+    console.log(`   Campaign: ${campaignId || 'tracked-outreach'}`);
+    console.log(`   Service: ${serviceId || 'ping'}`);
+    
+    const results = await x402ActiveAgentOutreach.executeTrackedOutreach(
+      campaignId || 'tracked-outreach',
+      serviceId || 'ping'
+    );
+    
+    res.json({
+      success: true,
+      campaign: 'x402_tracked_outreach',
+      results: {
+        walletsTargeted: results.walletsTargeted,
+        messagesSent: results.messagesSent,
+        offerLinksGenerated: results.offerLinks.length,
+        successRate: results.walletsTargeted > 0 
+          ? `${Math.round((results.messagesSent / results.walletsTargeted) * 100)}%`
+          : '0%',
+      },
+      offerLinks: results.offerLinks,
+      message: `Created ${results.offerLinks.length} unique offer links for attribution tracking`,
+      nextSteps: [
+        'Monitor offer link clicks at /api/outreach/offers/stats',
+        'View individual offer performance at /api/outreach/offers/:trackingId',
+        'Check x402 interactions with offer_tracking_id for attribution'
+      ]
+    });
+    
+  } catch (error: any) {
+    console.error('❌ Tracked outreach failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Tracked outreach execution failed',
+      details: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/x402-outreach/generate-offer
+ * Generate a single personalized offer link for manual outreach
+ */
+router.post('/generate-offer', async (req, res) => {
+  try {
+    const { targetAgentUrl, campaignId, serviceId } = req.body;
+    
+    if (!targetAgentUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'targetAgentUrl is required'
+      });
+    }
+    
+    const personalized = await x402ActiveAgentOutreach.generatePersonalizedOutreach(
+      targetAgentUrl,
+      campaignId || 'manual-outreach',
+      serviceId || 'ping'
+    );
+    
+    res.json({
+      success: true,
+      message: personalized.message,
+      offerLink: personalized.offerLink,
+      trackingId: personalized.trackingId,
+      usage: {
+        instruction: 'Send this message to the target agent. The offer link will track clicks and conversions.',
+        monitorAt: `/api/outreach/offers/${personalized.trackingId}`
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('❌ Generate offer failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate personalized offer',
       details: error.message
     });
   }

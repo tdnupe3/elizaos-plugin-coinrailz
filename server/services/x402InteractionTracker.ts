@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { sql } from 'drizzle-orm';
+import { offerLinkService } from './offerLinkService';
 
 interface InteractionData {
   serviceId: string;
@@ -23,6 +24,7 @@ interface InteractionData {
   paymentReceived?: boolean;
   paymentAmount?: number;
   errorMessage?: string;
+  offerTrackingId?: string;
   metadata?: object;
 }
 
@@ -53,6 +55,7 @@ export class X402InteractionTracker {
           payment_received,
           payment_amount,
           error_message,
+          offer_tracking_id,
           metadata,
           created_at
         ) VALUES (
@@ -77,10 +80,21 @@ export class X402InteractionTracker {
           ${data.paymentReceived || false},
           ${data.paymentAmount || null},
           ${data.errorMessage || null},
+          ${data.offerTrackingId || null},
           ${data.metadata ? JSON.stringify(data.metadata) : null}::jsonb,
           NOW()
         )
       `);
+      
+      // Record conversion in offer tracking if this is a paid interaction with an offer tracking ID
+      if (data.paid && data.offerTrackingId) {
+        try {
+          await offerLinkService.recordConversion(data.offerTrackingId, data.paymentAmount);
+          console.log(`💰 Offer conversion recorded: ${data.offerTrackingId} → ${data.paymentAmount || 'no amount'} USDC`);
+        } catch (conversionError: any) {
+          console.error('⚠️ Failed to record offer conversion:', conversionError.message);
+        }
+      }
     } catch (error: any) {
       console.error('❌ Failed to track x402 interaction:', error.message);
     }

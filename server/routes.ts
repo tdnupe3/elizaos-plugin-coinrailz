@@ -371,6 +371,9 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 🤖 x402 Active Agent Outreach (XMTP wallet messaging)
   app.use('/api/x402-outreach', await import('./routes/x402OutreachRoutes').then(m => m.default));
   
+  // 🎯 x402 Offer Links - Trackable unique links for outreach attribution
+  app.use('/api/outreach', await import('./routes/offerLinkRoutes').then(m => m.default));
+  
   // 💎 On-Chain x402 Outreach (direct blockchain messages to agent wallets)
   app.use('/api/onchain-outreach', await import('./routes/onChainOutreachRoutes').then(m => m.default));
   

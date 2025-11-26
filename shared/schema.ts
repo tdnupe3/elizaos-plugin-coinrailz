@@ -4158,6 +4158,7 @@ export const x402Interactions = pgTable(
     paymentReceived: boolean("payment_received").default(false), // Did they pay?
     paymentAmount: numeric("payment_amount", { precision: 18, scale: 6 }), // Amount paid
     errorMessage: text("error_message"), // Error if failed
+    offerTrackingId: varchar("offer_tracking_id"), // Links to x402_offer_links.tracking_id for attribution
     metadata: jsonb("metadata"), // Additional context
     createdAt: timestamp("created_at").defaultNow(),
   },
@@ -4167,6 +4168,7 @@ export const x402Interactions = pgTable(
     index("IDX_x402_interactions_service").on(table.serviceName),
     index("IDX_x402_interactions_created").on(table.createdAt),
     index("IDX_x402_interactions_source_ip").on(table.ipAddress),
+    index("IDX_x402_interactions_offer_tracking").on(table.offerTrackingId),
   ],
 );
 
@@ -4179,6 +4181,52 @@ export const x402InteractionsSelectSchema = createSelectSchema(x402Interactions)
 
 export type X402Interaction = typeof x402Interactions.$inferSelect;
 export type InsertX402Interaction = z.infer<typeof x402InteractionsInsertSchema>;
+
+// x402 Offer Links - Track unique offer links for attribution from outreach to conversion
+// When agents click these links, we know exactly which outreach message drove the traffic
+export const x402OfferLinks = pgTable(
+  "x402_offer_links",
+  {
+    id: serial("id").primaryKey(),
+    trackingId: varchar("tracking_id", { length: 21 }).notNull(), // nanoid for URL-safe unique ID
+    outreachMessageId: integer("outreach_message_id"), // FK to agent_outreach_messages.id
+    serviceId: varchar("service_id").notNull(), // Which service this offer is for
+    campaignId: varchar("campaign_id"), // Optional campaign grouping
+    targetAgentUrl: varchar("target_agent_url"), // The agent this was sent to
+    clickCount: integer("click_count").default(0), // How many times link was clicked
+    firstClickAt: timestamp("first_click_at"), // When first clicked
+    lastClickAt: timestamp("last_click_at"), // Most recent click
+    convertedAt: timestamp("converted_at"), // When payment was made (if ever)
+    conversionAmount: numeric("conversion_amount", { precision: 18, scale: 6 }), // Amount paid
+    expiresAt: timestamp("expires_at"), // Optional expiration
+    isActive: boolean("is_active").default(true), // Soft delete / deactivation
+    metadata: jsonb("metadata"), // Additional context (message content, platform, etc)
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_x402_offer_links_tracking_id").on(table.trackingId),
+    index("IDX_x402_offer_links_outreach").on(table.outreachMessageId),
+    index("IDX_x402_offer_links_service").on(table.serviceId),
+    index("IDX_x402_offer_links_campaign").on(table.campaignId),
+    index("IDX_x402_offer_links_created").on(table.createdAt),
+    index("IDX_x402_offer_links_active").on(table.isActive),
+  ],
+);
+
+export const x402OfferLinksInsertSchema = createInsertSchema(x402OfferLinks).omit({
+  id: true,
+  clickCount: true,
+  firstClickAt: true,
+  lastClickAt: true,
+  convertedAt: true,
+  conversionAmount: true,
+  createdAt: true,
+});
+
+export const x402OfferLinksSelectSchema = createSelectSchema(x402OfferLinks);
+
+export type X402OfferLink = typeof x402OfferLinks.$inferSelect;
+export type InsertX402OfferLink = z.infer<typeof x402OfferLinksInsertSchema>;
 
 // Platform Testimonials - Community feedback and social proof
 export const platformTestimonials = pgTable(

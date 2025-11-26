@@ -1,0 +1,264 @@
+You haven’t done everything you can yet — you’ve built the receiving station, but you haven’t really turned on any broadcast beacons.
+
+There’s no magical “do this one transaction and every bot will come running” standard (yet), but we can design some very real, experimental signals that:
+
+show up in places bots already watch (HTTP, on-chain logs, x402scan-style registries), and
+
+give them a reason to register with you (directory, traffic, revenue).
+
+I’ll give you concrete things you can build right now, not vague advice.
+
+1️⃣ Add a “Register as Agent” x402 Service (Pull + Incentive)
+
+Right now you discover them. You don’t yet give them a way to say:
+
+“Hey Coin Railz, I’m an agent. Index me. Send me traffic.”
+
+Add a new x402 microservice:
+
+POST /x402/register-agent
+
+How it behaves:
+
+Returns 402 like your other services
+
+Price is cheap: e.g. $0.05 – $0.10
+
+Required fields:
+
+agentName
+
+agentUrl or baseUrl
+
+x402Endpoint (if different)
+
+chain / walletAddress (optional)
+
+category (trading / prediction / compliance / infra / etc.)
+
+When they pay:
+
+You store them in agent_registry in your DB.
+
+You show them publicly on:
+
+/agents page (human & bot readable)
+
+/.well-known/agents.json for bots
+
+That way the “beacon” is:
+
+Incentive: “Pay a few cents, get listed in the Coin Railz directory that other agents query.”
+
+Signal: The act of calling /x402/register-agent is itself proof they’re agent-y and compatible.
+
+You can then:
+
+Build another service: GET /x402/agent-directory which returns a list of registered agents — agents love other agents as data sources.
+
+Promote that one line in your x402 metadata:
+recommendedServices: ["POST /x402/register-agent", "GET /x402/agent-directory"]
+
+That’s a real, concrete attractor.
+
+2️⃣ Launch an Agent Referral / Revenue-Share Field in Your 402 Metadata
+
+Agents respond to money.
+
+You can invent a simple convention today that no one else has, but is backwards-compatible:
+
+In your 402 challenge body, add something like:
+
+{
+  "x402Version": "1.0",
+  "facilitatorUrl": "https://coinrailz.com",
+  "accepts": ["USDC", "ETH", "BASE"],
+  "referralInfo": {
+    "referrerField": "agentRef",
+    "model": "5% of paid volume for referred agents for 90 days"
+  }
+}
+
+
+Then support an optional field on any paid call:
+
+{
+  "agentRef": "https://their-agent-url-or-id"
+}
+
+
+You track:
+
+which agents send you new agents
+
+how much those downstream agents spend
+
+and send tiny rebates / credits back via:
+
+your own internal credit system, or
+
+on-chain micropayments (Base USDC transfers).
+
+This creates a viral incentive:
+
+Agents that list you and push other agents to you get a cut.
+
+It’s not just “hey please register” — it’s “help me, and you get paid.”
+
+3️⃣ Build an On-Chain AgentBeacon Contract on Base (Hard Beacon)
+
+This is exactly the “transaction / script” concept you were asking for.
+
+You deploy a simple contract on Base, e.g. AgentBeacon, with:
+
+event AgentServiceAdvertised(address indexed emitter, string facilitatorUrl, string[] services, string metadataURI);
+
+event AgentRegistered(address indexed agent, string agentUrl, string metadataURI);
+
+How you use it:
+
+Every time you deploy or upgrade a service, you call:
+
+emit AgentServiceAdvertised(
+    msg.sender,
+    "https://coinrailz.com",
+    ["/x402/polymarket-events", "/x402/arbitrage-scanner"],
+    "ipfs://Qm...json"
+);
+
+
+You publish a simple spec on your docs:
+
+“If you’re an autonomous agent running on Base and you want to be discovered:
+call registerAgent(string agentUrl, string metadataURI) on AgentBeacon.”
+
+Your off-chain system:
+
+Monitors AgentRegistered events
+
+Reads their metadata (agent card / x402 endpoints)
+
+Adds them to your registry & sitemap
+
+Now any agent that:
+
+already watches Base logs,
+
+or wants to join an ecosystem,
+
+can just fire a cheap transaction to this contract, and you automatically see them.
+
+Is anyone else doing this yet? No.
+Does that matter? No — someone has to invent v0.1 of “Agent Beacon,” and you’re perfectly positioned to do it.
+
+Worst case: no one uses it and you spent a day.
+Best case: it becomes the unofficial standard others copy.
+
+4️⃣ Turn Your Own Discovery Script Into a Two-Way Ping
+
+Right now, master-agent-discovery.ts pulls from other people:
+
+x402scan
+
+Bazaar
+
+ERC-8004
+
+Domains
+
+Make it also push a tiny signal:
+
+For each discovered domain:
+
+Check for /.well-known/agent.json or /.well-known/x402.json.
+
+Issue a harmless GET to a likely x402 endpoint with:
+
+Custom header:
+X-Agent-Discovery: https://coinrailz.com
+
+Or query param:
+?discoveredBy=https%3A%2F%2Fcoinrailz.com
+
+This does not guarantee they’ll parse it, but:
+
+It puts “coinrailz.com” into their access logs.
+
+Any dev watching logs / metrics sees Coin Railz show up.
+
+Some agents literally monitor HTTP logs as data sources.
+
+So your discovery script becomes a mutual discovery probe:
+
+“If I see you, I’ll ping you and drop a breadcrumb with my URL.”
+
+5️⃣ Expose a “Service-of-Services” Endpoint (Agent Yellow Pages)
+
+Create a single high-level x402 service that agents can call as a capability oracle:
+
+POST /x402/agent-intel-hub
+
+Request:
+
+{ "need": "trading_signals | prediction_markets | wallets | compliance" }
+
+
+Response:
+
+{
+  "services": [
+    {
+      "name": "polymarket-odds",
+      "endpoint": "POST /x402/polymarket-odds",
+      "priceUSD": 0.50
+    },
+    {
+      "name": "arbitrage-scanner",
+      "endpoint": "POST /x402/arbitrage-scanner",
+      "priceUSD": 1.00
+    }
+  ]
+}
+
+
+Why this is a beacon:
+
+Any agent that discovers one of your endpoints now has a programmatic way to discover all the others.
+
+You can sprinkle a line in every 402 body:
+
+"meta": {
+  "serviceIndex": "POST /x402/agent-intel-hub"
+}
+
+
+That’s like embedding a “Start here for everything we offer” breadcrumb inside your 402 challenges.
+
+6️⃣ Answering Your Real Question: “So have I basically done everything?”
+
+No. You’ve done the hard foundational stuff:
+
+✅ GET + POST 402 correct
+
+✅ .well-known/agent.json
+
+✅ Dynamic sitemap
+
+✅ 37 services across multiple domains
+
+✅ Bazarr + x402scan + A2A + ERC-8004 discovery scripts
+
+New “beacon” things you can still add:
+
+/x402/register-agent + /x402/agent-directory (pull + incentive)
+
+Referral / revenue-share hint in 402 metadata (viral incentive)
+
+On-chain AgentBeacon contract on Base that logs service ads + agent registrations
+
+Mutually-aware discovery script that pings agents with your URL in headers/params
+
+A “service-of-services” endpoint = Agent Yellow Pages
+
+None of these exist as standards yet.
+That’s fine. You don’t need permission to start broadcasting.

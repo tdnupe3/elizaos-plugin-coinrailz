@@ -7,6 +7,12 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
   const startTime = Date.now();
   const requestId = nanoid(12);
   
+  // Debug: Log when middleware is entered
+  const offerTracking = req.query?.offer_tracking as string;
+  if (offerTracking || req.path.includes('ping')) {
+    console.log(`📊 TRACKING MW ENTRY: path=${req.path}, hasOffer=${!!offerTracking}, offerTracking=${offerTracking || 'none'}`);
+  }
+  
   res.locals.x402RequestId = requestId;
   res.locals.x402StartTime = startTime;
   
@@ -92,7 +98,24 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
         challengePayload = JSON.parse(body);
       } catch (e) {}
     }
-    trackInteraction(res.statusCode, false, challengePayload);
+    
+    // FIX: Also detect paid status for send() calls (x402-express uses send for some responses)
+    // Check for payment header + 2xx success status = paid request
+    // Also check for x-payment-response header which x402-express sets on successful payments
+    const hasPaymentHeader = !!req.get('x-payment');
+    const hasPaymentResponseHeader = !!res.getHeader('x-payment-response');
+    const isSuccessStatus = res.statusCode >= 200 && res.statusCode < 300;
+    const paymentFromLocals = res.locals.payment?.status === 'paid' || res.locals.payment?.verified === true;
+    const paymentFromResponseHeader = isSuccessStatus && hasPaymentResponseHeader;
+    const isPaid = paymentFromLocals || paymentFromResponseHeader || (hasPaymentHeader && isSuccessStatus);
+    
+    // Debug logging
+    const offerTrackingId = (req.query?.offer_tracking as string) || (req as any).offerTrackingId;
+    if (offerTrackingId || hasPaymentHeader || hasPaymentResponseHeader) {
+      console.log(`📊 TRACKING DEBUG [send]: path=${req.path}, status=${res.statusCode}, hasPaymentHeader=${hasPaymentHeader}, hasPaymentResponseHeader=${hasPaymentResponseHeader}, isSuccess=${isSuccessStatus}, isPaid=${isPaid}, offerTracking=${offerTrackingId || 'none'}`);
+    }
+    
+    trackInteraction(res.statusCode, isPaid, challengePayload);
     return originalSend(body);
   };
   
@@ -101,10 +124,21 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     // 1. res.locals.payment (set by x402 middleware after payment verification)
     // 2. body.paid === true (explicit flag from handler)
     // 3. body.success && 2xx status with payment header present
+    // 4. x-payment-response header present on response (x402-express sets this on successful payment)
+    const hasPaymentHeader = !!req.get('x-payment');
+    const hasPaymentResponseHeader = !!res.getHeader('x-payment-response');
+    const isSuccessStatus = res.statusCode >= 200 && res.statusCode < 300;
     const paymentFromLocals = res.locals.payment?.status === 'paid' || res.locals.payment?.verified === true;
     const paymentFromBody = body?.success === true && body?.paid === true;
-    const paymentFromContext = body?.success === true && res.statusCode >= 200 && res.statusCode < 300 && req.get('x-payment');
-    const isPaid = paymentFromLocals || paymentFromBody || paymentFromContext;
+    const paymentFromContext = body?.success === true && isSuccessStatus && hasPaymentHeader;
+    const paymentFromResponseHeader = isSuccessStatus && hasPaymentResponseHeader;
+    const isPaid = paymentFromLocals || paymentFromBody || paymentFromContext || paymentFromResponseHeader;
+    
+    // Debug logging
+    const offerTrackingId = (req.query?.offer_tracking as string) || (req as any).offerTrackingId;
+    if (offerTrackingId || hasPaymentHeader || hasPaymentResponseHeader) {
+      console.log(`📊 TRACKING DEBUG [json]: path=${req.path}, status=${res.statusCode}, hasPaymentHeader=${hasPaymentHeader}, hasPaymentResponseHeader=${hasPaymentResponseHeader}, isSuccess=${isSuccessStatus}, bodySuccess=${body?.success}, isPaid=${isPaid}, offerTracking=${offerTrackingId || 'none'}`);
+    }
     
     const challengePayload = res.statusCode === 402 ? body : undefined;
     trackInteraction(res.statusCode, isPaid, challengePayload);

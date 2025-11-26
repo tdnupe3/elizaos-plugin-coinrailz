@@ -1591,6 +1591,19 @@ const pingHandler = async (req: Request, res: Response) => {
     const { message } = req.body;
     const responseTime = Date.now() - startTime;
     
+    // CONVERSION TRACKING: If we got here, payment was successful
+    // Check for offer tracking parameter and record conversion
+    const offerTrackingId = (req.query?.offer_tracking as string) || (req as any).offerTrackingId;
+    if (offerTrackingId) {
+      console.log(`💰 CONVERSION: ping service paid via offer ${offerTrackingId}`);
+      try {
+        await offerLinkService.recordConversion(offerTrackingId, SERVICE_PRICING_USD["ping"]);
+        console.log(`✅ Conversion recorded for offer ${offerTrackingId}`);
+      } catch (convErr: any) {
+        console.error(`⚠️ Failed to record conversion for ${offerTrackingId}:`, convErr.message);
+      }
+    }
+    
     const result = {
       success: true,
       service: "Coin Railz x402 Payment Infrastructure",

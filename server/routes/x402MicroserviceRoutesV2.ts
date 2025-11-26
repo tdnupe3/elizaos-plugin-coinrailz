@@ -60,6 +60,7 @@ import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware
 import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
 import { deductBundleCredits } from "../services/bundleCreditService";
+import { serviceCatalogService } from "../services/serviceCatalogService";
 
 const router = Router();
 
@@ -1292,6 +1293,25 @@ router.use((req: Request, res: Response, next) => {
         discoverable: true,
         resource: paymentReq.resource?.replace(/http:\/\/localhost:\d+\//, `${publicBaseUrl}/x402/`) || paymentReq.resource,
       }));
+      
+      // Inject service catalog recommendations for cross-sell
+      try {
+        const servicePath = req.path.replace(/^\/service\//, '').replace(/^\//, '').replace(/\/$/, '');
+        const recommendations = serviceCatalogService.getRecommendedServices(servicePath);
+        const catalogSummary = serviceCatalogService.getCatalogSummary();
+        
+        body.recommendedServices = recommendations.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          priceUSD: s.priceUSD,
+          endpoint: s.endpoint
+        }));
+        body.catalogUrl = catalogSummary.catalogUrl;
+        body.totalServicesAvailable = catalogSummary.totalServices;
+        console.log(`📚 Added ${recommendations.length} recommendations to 402 response for ${servicePath}`);
+      } catch (e: any) {
+        console.log(`⚠️ Catalog recommendations failed: ${e.message}`);
+      }
       
       console.log(`✅ Injected: facilitatorUrl=${body.facilitatorUrl}, discoverable=true for ${body.accepts.length} payment requirements`);
     }

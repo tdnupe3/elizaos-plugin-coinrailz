@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { persistDiscoveredAgent } from './persistence/discoveredAgentPersistence';
+import { discoveryPingService } from './discoveryPingService';
 
 /**
  * A2A MASS DISCOVERY SERVICE
@@ -8,6 +9,9 @@ import { persistDiscoveredAgent } from './persistence/discoveredAgentPersistence
  * via .well-known/agent-card.json endpoints (Google A2A Protocol)
  * 
  * Saves discovered agents to database for outreach campaigns
+ * 
+ * Now with RECIPROCAL DISCOVERY: Pings discovered agents with our URL
+ * so they can discover us in return (feature-flagged via DISCOVERY_PING_ENABLED)
  */
 
 interface A2AAgentCard {
@@ -243,6 +247,8 @@ export class A2AMassDiscoveryService {
     console.log(`🎯 A2A Mass Discovery: Checking ${targets.length} target domains...`);
 
     // Discover agents from all targets
+    const discoveredUrls: string[] = [];
+    
     for (const target of targets) {
       const card = await this.discoverAgentCard(target);
       if (card) {
@@ -258,8 +264,17 @@ export class A2AMassDiscoveryService {
             capabilities: card.capabilities || [],
             status: 'verified',
           });
+          discoveredUrls.push(card.url);
         }
       }
+    }
+
+    // Ping all discovered agents to leave our URL in their logs (reciprocal discovery)
+    if (discoveredUrls.length > 0) {
+      console.log(`🔔 A2A Discovery: Pinging ${discoveredUrls.length} discovered agents for reciprocal discovery...`);
+      const pingResults = await discoveryPingService.pingBatch(discoveredUrls);
+      const pingStats = discoveryPingService.getStats();
+      console.log(`🔔 A2A Discovery: Ping complete - ${pingStats.success}/${pingStats.total} successful (${pingStats.rate})`);
     }
 
     console.log(`✅ A2A Mass Discovery: Complete - ${results.discovered}/${targets.length} agents discovered`);

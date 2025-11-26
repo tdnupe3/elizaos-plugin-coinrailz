@@ -430,4 +430,47 @@ router.post('/agent-service-payment', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/x402/catalog
+ * Service catalog for discovery - lists all x402 services with pricing
+ */
+router.get('/catalog', async (req, res) => {
+  try {
+    const { serviceCatalogService } = await import('../services/serviceCatalogService');
+    const catalog = serviceCatalogService.getCatalog();
+    
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.json(catalog);
+  } catch (error: any) {
+    console.error('Failed to get service catalog:', error);
+    res.status(500).json({ error: 'Failed to retrieve service catalog' });
+  }
+});
+
+/**
+ * GET /api/x402/catalog/:serviceId
+ * Get single service details with recommendations
+ */
+router.get('/catalog/:serviceId', async (req, res) => {
+  try {
+    const { serviceCatalogService } = await import('../services/serviceCatalogService');
+    const service = serviceCatalogService.getService(req.params.serviceId);
+    
+    if (!service) {
+      return res.status(404).json({ error: 'Service not found' });
+    }
+    
+    const recommendations = serviceCatalogService.getRecommendedServices(req.params.serviceId);
+    
+    res.json({
+      service,
+      recommendedServices: recommendations,
+      catalogUrl: serviceCatalogService.getCatalogSummary().catalogUrl
+    });
+  } catch (error: any) {
+    console.error('Failed to get service details:', error);
+    res.status(500).json({ error: 'Failed to retrieve service details' });
+  }
+});
+
 export default router;

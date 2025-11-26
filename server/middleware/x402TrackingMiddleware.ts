@@ -93,6 +93,29 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     const isPaid = body?.success === true && body?.paid === true;
     const challengePayload = res.statusCode === 402 ? body : undefined;
     trackInteraction(res.statusCode, isPaid, challengePayload);
+    
+    if (res.statusCode === 402 && body && typeof body === 'object') {
+      try {
+        const { serviceCatalogService } = require('../services/serviceCatalogService');
+        const serviceId = extractServiceId(req.path) || extractServiceId(req.originalUrl || '');
+        
+        if (serviceId) {
+          const recommendations = serviceCatalogService.getRecommendedServices(serviceId);
+          const catalogSummary = serviceCatalogService.getCatalogSummary();
+          
+          body.recommendedServices = recommendations.map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            priceUSD: s.priceUSD,
+            endpoint: s.endpoint
+          }));
+          body.catalogUrl = catalogSummary.catalogUrl;
+          body.totalServicesAvailable = catalogSummary.totalServices;
+        }
+      } catch (e) {
+      }
+    }
+    
     return originalJson(body);
   };
   

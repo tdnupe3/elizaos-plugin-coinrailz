@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { x402InteractionTracker } from '../services/x402InteractionTracker';
+import { serviceCatalogService } from '../services/serviceCatalogService';
 import { nanoid } from 'nanoid';
 
 export function x402TrackingMiddleware(req: Request, res: Response, next: NextFunction) {
@@ -94,12 +95,12 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     const challengePayload = res.statusCode === 402 ? body : undefined;
     trackInteraction(res.statusCode, isPaid, challengePayload);
     
+    // Enrich 402 responses with catalog recommendations for cross-sell
     if (res.statusCode === 402 && body && typeof body === 'object') {
       try {
-        const { serviceCatalogService } = require('../services/serviceCatalogService');
         const serviceId = extractServiceId(req.path) || extractServiceId(req.originalUrl || '');
         
-        if (serviceId) {
+        if (serviceId && !body.recommendedServices) {
           const recommendations = serviceCatalogService.getRecommendedServices(serviceId);
           const catalogSummary = serviceCatalogService.getCatalogSummary();
           
@@ -113,6 +114,7 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
           body.totalServicesAvailable = catalogSummary.totalServices;
         }
       } catch (e) {
+        // Silent fail - enrichment is optional
       }
     }
     

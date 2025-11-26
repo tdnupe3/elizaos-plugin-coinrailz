@@ -113,15 +113,16 @@ export class OnChainX402Outreach {
    * PROFESSIONAL: Concise, respectful outreach for ecosystem leaders
    */
   private generateMessageData(): string {
-    // Professional message for VIP targets
+    // Professional message for VIP targets with clear link
     const message = 
       'Hi - Coin Railz here.\n\n' +
       'We built x402 payment infrastructure for AI agents on Base:\n' +
       '- 37 micropayment services ($0.25-$500)\n' +
       '- USDC settlements via Coinbase CDP\n' +
       '- Listed on x402scan, Coinbase Bazaar compatible\n\n' +
-      'Live at coinrailz.com - would love your feedback.\n\n' +
-      'Best,\nCoin Railz Team';
+      'Try it: https://coinrailz.com/x402/ping\n\n' +
+      'Would love your feedback.\n\n' +
+      'Best,\nCoin Railz Team\nhttps://coinrailz.com';
     
     console.log(`📏 Message length: ${message.length} characters`);
     

@@ -4131,6 +4131,55 @@ export const x402DiscoveryMetricsSelectSchema = createSelectSchema(x402Discovery
 export type X402DiscoveryMetric = typeof x402DiscoveryMetrics.$inferSelect;
 export type InsertX402DiscoveryMetric = z.infer<typeof x402DiscoveryMetricsInsertSchema>;
 
+// x402 Funnel Interactions - Track who hits endpoints, headers, retry behavior
+// Used for funnel instrumentation to understand where agents drop off
+export const x402Interactions = pgTable(
+  "x402_interactions",
+  {
+    id: serial("id").primaryKey(),
+    serviceId: varchar("service_id"), // Legacy: service identifier
+    walletAddress: varchar("wallet_address"), // Legacy: wallet if present
+    ipAddress: varchar("ip_address"), // Source IP
+    userAgent: text("user_agent"), // User-Agent header
+    requestPath: varchar("request_path"), // Full request path
+    requestMethod: varchar("request_method"), // GET, POST
+    responseStatus: integer("response_status"), // HTTP status code
+    paid: boolean("paid").default(false), // Legacy: payment flag
+    amount: numeric("amount", { precision: 18, scale: 6 }), // Legacy: amount
+    interactionType: varchar("interaction_type"), // Legacy: type of interaction
+    requestId: varchar("request_id"), // Correlation ID for tracking retries
+    eventType: varchar("event_type"), // request-start, challenge-issued, retry, authorized
+    serviceName: varchar("service_name"), // Which x402 service was hit
+    x402ClientHeader: varchar("x402_client_header"), // Custom x-402-client header
+    referer: varchar("referer"), // Referer header
+    challengePayload: jsonb("challenge_payload"), // 402 response payload sent
+    latencyMs: integer("latency_ms"), // Request processing time
+    retryCount: integer("retry_count").default(0), // Retry count
+    paymentReceived: boolean("payment_received").default(false), // Did they pay?
+    paymentAmount: numeric("payment_amount", { precision: 18, scale: 6 }), // Amount paid
+    errorMessage: text("error_message"), // Error if failed
+    metadata: jsonb("metadata"), // Additional context
+    createdAt: timestamp("created_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_x402_interactions_request_id").on(table.requestId),
+    index("IDX_x402_interactions_event_type").on(table.eventType),
+    index("IDX_x402_interactions_service").on(table.serviceName),
+    index("IDX_x402_interactions_created").on(table.createdAt),
+    index("IDX_x402_interactions_source_ip").on(table.ipAddress),
+  ],
+);
+
+export const x402InteractionsInsertSchema = createInsertSchema(x402Interactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const x402InteractionsSelectSchema = createSelectSchema(x402Interactions);
+
+export type X402Interaction = typeof x402Interactions.$inferSelect;
+export type InsertX402Interaction = z.infer<typeof x402InteractionsInsertSchema>;
+
 // Platform Testimonials - Community feedback and social proof
 export const platformTestimonials = pgTable(
   "platform_testimonials",

@@ -12,6 +12,18 @@ interface InteractionData {
   paid: boolean;
   amount?: number;
   interactionType: 'view' | 'attempt' | 'payment' | 'error';
+  requestId?: string;
+  eventType?: string;
+  serviceName?: string;
+  x402ClientHeader?: string;
+  referer?: string;
+  challengePayload?: object;
+  latencyMs?: number;
+  retryCount?: number;
+  paymentReceived?: boolean;
+  paymentAmount?: number;
+  errorMessage?: string;
+  metadata?: object;
 }
 
 export class X402InteractionTracker {
@@ -30,6 +42,18 @@ export class X402InteractionTracker {
           paid,
           amount,
           interaction_type,
+          request_id,
+          event_type,
+          service_name,
+          x402_client_header,
+          referer,
+          challenge_payload,
+          latency_ms,
+          retry_count,
+          payment_received,
+          payment_amount,
+          error_message,
+          metadata,
           created_at
         ) VALUES (
           ${data.serviceId},
@@ -42,6 +66,18 @@ export class X402InteractionTracker {
           ${data.paid},
           ${data.amount || null},
           ${data.interactionType},
+          ${data.requestId || null},
+          ${data.eventType || null},
+          ${data.serviceName || data.serviceId},
+          ${data.x402ClientHeader || null},
+          ${data.referer || null},
+          ${data.challengePayload ? JSON.stringify(data.challengePayload) : null}::jsonb,
+          ${data.latencyMs || null},
+          ${data.retryCount || 0},
+          ${data.paymentReceived || false},
+          ${data.paymentAmount || null},
+          ${data.errorMessage || null},
+          ${data.metadata ? JSON.stringify(data.metadata) : null}::jsonb,
           NOW()
         )
       `);

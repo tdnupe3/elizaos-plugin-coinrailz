@@ -81,6 +81,14 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     // Priority: query param (survives redirects) > request property (internal routing)
     const offerTrackingId = (req.query?.offer_tracking as string) || (req as any).offerTrackingId || undefined;
     
+    // FIX: Always compute payment amount for paid transactions
+    // Either from res.locals.payment.amount (orchestrator path) or from service pricing (EIP-712 path)
+    let paymentAmount: number | undefined = res.locals.payment?.amount;
+    if (paid && !paymentAmount) {
+      paymentAmount = SERVICE_PRICING_USD[serviceId] || SERVICE_PRICING_USD["default"];
+      console.log(`💵 Payment amount computed from service pricing: $${paymentAmount} for ${serviceId}`);
+    }
+    
     x402InteractionTracker.trackInteraction({
       serviceId,
       serviceName: serviceId,
@@ -100,12 +108,12 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
       latencyMs,
       retryCount: 0,
       paymentReceived: paid,
-      paymentAmount: res.locals.payment?.amount || undefined,
+      paymentAmount,
       offerTrackingId,
       metadata: {
         originalUrl: req.originalUrl,
         hasPaymentHeader: !!req.get('x-payment'),
-        paymentMethod: res.locals.payment?.method,
+        paymentMethod: res.locals.payment?.method || (paid ? 'eip-712' : undefined),
         offerAttribution: offerTrackingId ? true : false,
       },
     }).catch(err => {

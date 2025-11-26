@@ -37,8 +37,9 @@ export function createPaymentOrchestrator(
   return async (req: Request, res: Response, next: NextFunction) => {
     // Check if bundle subscription exists (set by bundleAuthMiddleware)
     if (req.bundleSubscription) {
+      const priceUsd = SERVICE_PRICING_USD[serviceName] || SERVICE_PRICING_USD["default"];
       console.log(`🎫 Bundle subscription detected for ${serviceName}, executing handler directly`);
-      res.locals.payment = { method: "bundle-subscription", subscriptionId: req.bundleSubscription.id };
+      res.locals.payment = { method: "bundle-subscription", subscriptionId: req.bundleSubscription.id, amount: priceUsd, status: 'paid' };
       await handler(req, res);
       
       // CONVERSION TRACKING: Record conversion for offer attribution (bundle payments)
@@ -96,9 +97,10 @@ export function createPaymentOrchestrator(
         );
 
         if (verified) {
-          console.log(`✅ Orchestrator: Payment verified for ${serviceName}, executing handler directly`);
-          // Store verification result for handler and tracking
-          res.locals.payment = { method: "raw-hash", txHash, verified: true };
+          const priceUsd = SERVICE_PRICING_USD[serviceName] || SERVICE_PRICING_USD["default"];
+          console.log(`✅ Orchestrator: Payment verified for ${serviceName} ($${priceUsd}), executing handler directly`);
+          // Store verification result for handler and tracking - INCLUDE AMOUNT FOR TRACKING
+          res.locals.payment = { method: "raw-hash", txHash, verified: true, amount: priceUsd, status: 'paid' };
           
           // ARCHITECT FIX: Execute handler with proper intent tracking
           try {

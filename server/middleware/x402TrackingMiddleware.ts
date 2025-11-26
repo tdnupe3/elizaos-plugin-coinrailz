@@ -97,7 +97,15 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
   };
   
   res.json = function(body: any) {
-    const isPaid = body?.success === true && body?.paid === true;
+    // Detect paid interactions from multiple sources:
+    // 1. res.locals.payment (set by x402 middleware after payment verification)
+    // 2. body.paid === true (explicit flag from handler)
+    // 3. body.success && 2xx status with payment header present
+    const paymentFromLocals = res.locals.payment?.status === 'paid' || res.locals.payment?.verified === true;
+    const paymentFromBody = body?.success === true && body?.paid === true;
+    const paymentFromContext = body?.success === true && res.statusCode >= 200 && res.statusCode < 300 && req.get('x-payment');
+    const isPaid = paymentFromLocals || paymentFromBody || paymentFromContext;
+    
     const challengePayload = res.statusCode === 402 ? body : undefined;
     trackInteraction(res.statusCode, isPaid, challengePayload);
     

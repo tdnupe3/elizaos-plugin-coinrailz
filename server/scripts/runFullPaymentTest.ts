@@ -60,23 +60,34 @@ const ALL_SERVICES = [
   { name: "compliance-consultation", endpoint: "/x402/compliance-consultation", priceUSD: 5.00, payload: { jurisdiction: "US", businessType: "crypto-exchange" }, tested: true },
   { name: "smart-contract-audit", endpoint: "/x402/smart-contract-audit", priceUSD: 10.00, payload: { contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: true },
   
-  // Not yet tested - with FIXED payloads
-  { name: "dex-liquidity", endpoint: "/x402/dex-liquidity", priceUSD: 0.20, payload: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" }, tested: false },
-  { name: "approval-manager", endpoint: "/x402/approval-manager", priceUSD: 0.20, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", chain: "base" }, tested: false },
-  { name: "token-sentiment", endpoint: "/x402/token-sentiment", priceUSD: 0.25, payload: { tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: false },
-  { name: "whale-alerts", endpoint: "/x402/whale-alerts", priceUSD: 0.35, payload: { chain: "base", minValue: 100000 }, tested: false },
-  { name: "batch-quote", endpoint: "/x402/batch-quote", priceUSD: 0.40, payload: { fromToken: "ETH", toToken: "USDC", amount: "1", chain: "base" }, tested: false },
-  { name: "wallet-risk", endpoint: "/x402/wallet-risk", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", chain: "base" }, tested: false },
-  { name: "sentiment-analysis", endpoint: "/x402/sentiment-analysis", priceUSD: 0.50, payload: { asset: "ETH", sources: ["twitter", "reddit"] }, tested: false },
-  { name: "polymarket-odds", endpoint: "/x402/polymarket-odds", priceUSD: 0.50, payload: { marketId: "0x1234", slug: "will-btc-reach-100k" }, tested: false },
+  // Verified in last run
+  { name: "dex-liquidity", endpoint: "/x402/dex-liquidity", priceUSD: 0.20, payload: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" }, tested: true },
+  { name: "wallet-risk", endpoint: "/x402/wallet-risk", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", chain: "base" }, tested: true },
+  { name: "polymarket-odds", endpoint: "/x402/polymarket-odds", priceUSD: 0.50, payload: { marketId: "0x1234", slug: "will-btc-reach-100k" }, tested: true },
+  
+  // FIXED payloads based on actual schema requirements
+  // Verified with fixed payloads
+  { name: "approval-manager", endpoint: "/x402/approval-manager", priceUSD: 0.20, payload: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender: "0x1111111254EEB25477B68fb85Ed929f73A960582", amount: "1000", chain: "base" }, tested: true },
+  { name: "batch-quote", endpoint: "/x402/batch-quote", priceUSD: 0.40, payload: { fromToken: "0x4200000000000000000000000000000000000006", toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "1", chain: "base" }, tested: true },
+  
+  // Internal service errors (HTTP 500) - need service fixes, not payload fixes
+  { name: "token-sentiment", endpoint: "/x402/token-sentiment", priceUSD: 0.25, payload: { tokenSymbol: "ETH" }, tested: false },
+  { name: "whale-alerts", endpoint: "/x402/whale-alerts", priceUSD: 0.35, payload: { chains: ["base", "ethereum"], minValueUsd: 100000 }, tested: false },
+  
+  // OpenAI quota blocked - skipping for now per user request
+  { name: "sentiment-analysis", endpoint: "/x402/sentiment-analysis", priceUSD: 0.50, payload: { symbol: "ETH", sources: ["twitter", "reddit"] }, tested: false },
   { name: "property-valuation", endpoint: "/x402/property-valuation", priceUSD: 0.75, payload: { address: "123 Main St, New York, NY 10001", propertyType: "residential" }, tested: false },
   { name: "fraud-detection", endpoint: "/x402/fraud-detection", priceUSD: 0.75, payload: { transactionHash: "0x123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", amount: 1000 }, tested: false },
   { name: "correlation-matrix", endpoint: "/x402/correlation-matrix", priceUSD: 0.75, payload: { assets: ["BTC", "ETH", "SOL"], period: "30d" }, tested: false },
   { name: "lease-analysis", endpoint: "/x402/lease-analysis", priceUSD: 1.00, payload: { propertyType: "commercial", sqft: 5000, location: "Manhattan, NY", monthlyRent: 10000 }, tested: false },
-  { name: "trading-signal", endpoint: "/x402/trading-signal", priceUSD: 1.00, payload: { asset: "ETH", strategy: "momentum", timeframe: "4h" }, tested: false },
-  { name: "risk-metrics", endpoint: "/x402/risk-metrics", priceUSD: 1.00, payload: { portfolio: ["BTC", "ETH"], weights: [0.6, 0.4] }, tested: false },
   { name: "credit-risk-score", endpoint: "/x402/credit-risk-score", priceUSD: 1.25, payload: { entityId: "entity-123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
   { name: "arbitrage-scanner", endpoint: "/x402/arbitrage-scanner", priceUSD: 1.25, payload: { token: "USDC", fromChain: "ethereum", toChain: "base" }, tested: false },
+  
+  // FIXED payloads for trading-signal and risk-metrics
+  { name: "trading-signal", endpoint: "/x402/trading-signal", priceUSD: 1.00, payload: { symbol: "ETH", timeframe: "4h", riskTolerance: "moderate" }, tested: false },
+  { name: "risk-metrics", endpoint: "/x402/risk-metrics", priceUSD: 1.00, payload: { portfolioValue: 10000, holdings: [{ asset: "BTC", value: 6000 }, { asset: "ETH", value: 4000 }] }, tested: false },
+  
+  // Remaining services needing funds or OpenAI quota
   { name: "construction-progress", endpoint: "/x402/construction-progress", priceUSD: 1.50, payload: { projectId: "project-123", location: "New York", phase: "foundation" }, tested: false },
   { name: "compliance-check", endpoint: "/x402/compliance-check", priceUSD: 1.75, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", jurisdiction: "US" }, tested: false },
   { name: "seamless-chain-bridge", endpoint: "/x402/seamless-chain-bridge", priceUSD: 2.00, payload: { fromChain: "ethereum", toChain: "base", amount: "100", fromAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", toAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },

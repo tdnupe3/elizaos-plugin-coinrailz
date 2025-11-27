@@ -1808,14 +1808,15 @@ router.post("/trade-signals",
 const tokenSentimentHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
-    const { tokenSymbol, chain } = req.body;
+    const { tokenSymbol, chain = "ethereum" } = req.body;
     
     if (!tokenSymbol) {
       res.status(400).json({ success: false, error: "tokenSymbol is required" });
       return;
     }
 
-    const result = await tokenSocialSentimentService(req.body);
+    // Fixed: pass individual params instead of req.body object
+    const result = await tokenSocialSentimentService(tokenSymbol, chain);
     const responseTime = Date.now() - startTime;
     
     await trackRequest("token-sentiment", req.body, result, responseTime, SERVICE_PRICING_USD["token-sentiment"], req.ip || "unknown");
@@ -1862,12 +1863,19 @@ router.post("/trending-tokens",
 const whaleAlertsHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
-    const { chains, minValueUsd, tokenAddresses } = req.body;
-    const result = await whaleWalletAlertsService(chains, minValueUsd, tokenAddresses);
+    // Service expects: (tokenAddress: string, chain: string, threshold: number)
+    const { tokenAddress, chain = "ethereum", threshold = 100000 } = req.body;
+    
+    if (!tokenAddress) {
+      res.status(400).json({ success: false, error: "tokenAddress is required" });
+      return;
+    }
+    
+    const result = await whaleWalletAlertsService(tokenAddress, chain, threshold);
     const responseTime = Date.now() - startTime;
     
     await trackRequest("whale-alerts", req.body, result, responseTime, SERVICE_PRICING_USD["whale-alerts"], req.ip || "unknown");
-    await trackBundleUsage(req, res, "whale-alerts", { chains, minValueUsd });
+    await trackBundleUsage(req, res, "whale-alerts", { tokenAddress, chain, threshold });
     
     res.json(result);
   } catch (error: any) {

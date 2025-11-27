@@ -70,9 +70,9 @@ const ALL_SERVICES = [
   { name: "approval-manager", endpoint: "/x402/approval-manager", priceUSD: 0.20, payload: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", spender: "0x1111111254EEB25477B68fb85Ed929f73A960582", amount: "1000", chain: "base" }, tested: true },
   { name: "batch-quote", endpoint: "/x402/batch-quote", priceUSD: 0.40, payload: { fromToken: "0x4200000000000000000000000000000000000006", toToken: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", amount: "1", chain: "base" }, tested: true },
   
-  // Internal service errors (HTTP 500) - need service fixes, not payload fixes
-  { name: "token-sentiment", endpoint: "/x402/token-sentiment", priceUSD: 0.25, payload: { tokenSymbol: "ETH" }, tested: false },
-  { name: "whale-alerts", endpoint: "/x402/whale-alerts", priceUSD: 0.35, payload: { chains: ["base", "ethereum"], minValueUsd: 100000 }, tested: false },
+  // FIXED: Handler bugs corrected - verified with real payments
+  { name: "token-sentiment", endpoint: "/x402/token-sentiment", priceUSD: 0.25, payload: { tokenSymbol: "ETH", chain: "ethereum" }, tested: true },
+  { name: "whale-alerts", endpoint: "/x402/whale-alerts", priceUSD: 0.35, payload: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base", threshold: 100000 }, tested: true },
   
   // Verified with OpenAI credits
   { name: "sentiment-analysis", endpoint: "/x402/sentiment-analysis", priceUSD: 0.50, payload: { symbol: "ETH", sources: ["twitter", "reddit"] }, tested: true },
@@ -91,8 +91,8 @@ const ALL_SERVICES = [
   // Verified
   { name: "construction-progress", endpoint: "/x402/construction-progress", priceUSD: 1.50, payload: { projectDescription: "Commercial building construction in Manhattan, 50-story office tower with modern amenities", projectType: "commercial", currentPhase: "foundation" }, tested: true },
   
-  // Needs $2 more to test
-  { name: "portfolio-optimization", endpoint: "/x402/portfolio-optimization", priceUSD: 2.00, payload: { currentHoldings: [{ asset: "BTC", amount: 0.5, currentValue: 25000 }, { asset: "ETH", amount: 10, currentValue: 20000 }], riskTolerance: "moderate" }, tested: false },
+  // Verified with real payment
+  { name: "portfolio-optimization", endpoint: "/x402/portfolio-optimization", priceUSD: 2.00, payload: { currentHoldings: [{ asset: "BTC", amount: 0.5, currentValue: 25000 }, { asset: "ETH", amount: 10, currentValue: 20000 }], riskTolerance: "moderate" }, tested: true },
 ];
 
 async function runFullTest() {

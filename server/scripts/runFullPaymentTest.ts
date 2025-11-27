@@ -20,11 +20,24 @@ const BASE_URL = process.env.TEST_PROD === "true"
   ? "https://coinrailz.com" 
   : "https://b9c7a16b-b90f-4d3c-b73c-bb8d49f9a8fd-00-2zmwe913s9fbf.picard.replit.dev";
 
-// Command line args
+// Command line args - REQUIRE explicit budget to prevent accidental fund drain
 const args = process.argv.slice(2);
 const budgetIdx = args.indexOf("--budget");
-const BUDGET_LIMIT = budgetIdx >= 0 ? parseFloat(args[budgetIdx + 1] || "999") : 999;
+const BUDGET_LIMIT = budgetIdx >= 0 ? parseFloat(args[budgetIdx + 1] || "0") : -1;
 const TEST_ALL = args.includes("--all");
+
+// Safety check - REQUIRE budget flag to prevent accidental fund drain
+if (BUDGET_LIMIT < 0) {
+  console.log("═══════════════════════════════════════════════════════════════");
+  console.log("  ❌ SAFETY: --budget flag REQUIRED");
+  console.log("═══════════════════════════════════════════════════════════════");
+  console.log("");
+  console.log("  Usage: npx tsx server/scripts/runFullPaymentTest.ts --budget 5");
+  console.log("");
+  console.log("  This prevents accidental fund drain. Specify max USDC to spend.");
+  console.log("═══════════════════════════════════════════════════════════════");
+  process.exit(1);
+}
 
 // All 34 x402 services - sorted by price for budget-aware testing
 // 'tested: true' means already verified with real payment

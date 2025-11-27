@@ -1663,7 +1663,14 @@ router.post("/multi-chain-balance",
 const gasPriceOracleHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
-    const { chains } = req.body;
+    // Accept either 'chains' (array) or 'chain' (single), with default
+    let chains = req.body.chains;
+    if (!chains && req.body.chain) {
+      chains = [req.body.chain];
+    }
+    if (!chains || !Array.isArray(chains) || chains.length === 0) {
+      chains = ["ethereum", "base", "polygon"];
+    }
     const result = await gasPriceOracleService(chains);
     const responseTime = Date.now() - startTime;
     

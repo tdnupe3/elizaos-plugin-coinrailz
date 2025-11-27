@@ -90,7 +90,7 @@ const ALL_SERVICES = [
   // Remaining services needing funds or OpenAI quota
   { name: "construction-progress", endpoint: "/x402/construction-progress", priceUSD: 1.50, payload: { projectId: "project-123", location: "New York", phase: "foundation" }, tested: false },
   { name: "compliance-check", endpoint: "/x402/compliance-check", priceUSD: 1.75, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", jurisdiction: "US" }, tested: false },
-  { name: "seamless-chain-bridge", endpoint: "/x402/seamless-chain-bridge", priceUSD: 2.00, payload: { fromChain: "ethereum", toChain: "base", amount: "100", fromAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", toAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
+  { name: "seamless-chain-bridge", endpoint: "/x402/seamless-chain-bridge", priceUSD: 2.00, payload: { fromChain: "ethereum", toChain: "base", amount: "100", fromAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", toAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: true },
   { name: "portfolio-optimization", endpoint: "/x402/portfolio-optimization", priceUSD: 2.00, payload: { assets: ["BTC", "ETH", "USDC"], riskTolerance: "medium", targetReturn: 0.15 }, tested: false },
   { name: "verified-agent-identity", endpoint: "/x402/verified-agent-identity", priceUSD: 5.00, payload: { agentId: "test-agent-001", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", agentName: "TestAgent", agentUrl: "https://test.com" }, tested: false },
 ];

@@ -39,50 +39,49 @@ if (BUDGET_LIMIT < 0) {
   process.exit(1);
 }
 
-// All 34 x402 services - sorted by price for budget-aware testing
+// All 34 x402 services - with CORRECT payloads based on handler requirements
 // 'tested: true' means already verified with real payment
 const ALL_SERVICES = [
-  // Already tested ($0.45 total)
+  // Already tested and verified
   { name: "gas-price-oracle", endpoint: "/x402/gas-price-oracle", priceUSD: 0.10, payload: { chain: "ethereum" }, tested: true },
   { name: "token-metadata", endpoint: "/x402/token-metadata", priceUSD: 0.10, payload: { tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: true },
   { name: "ping", endpoint: "/x402/ping", priceUSD: 0.25, payload: { message: "full-test" }, tested: true },
+  { name: "token-price", endpoint: "/x402/token-price", priceUSD: 0.25, payload: { tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: true },
+  { name: "polymarket-events", endpoint: "/x402/polymarket-events", priceUSD: 0.25, payload: { category: "crypto" }, tested: true },
+  { name: "polymarket-search", endpoint: "/x402/polymarket-search", priceUSD: 0.25, payload: { query: "bitcoin" }, tested: true },
+  { name: "transaction-builder", endpoint: "/x402/transaction-builder", priceUSD: 0.30, payload: { chain: "base", type: "transfer", from: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", to: "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91", amount: "0.001" }, tested: true },
+  { name: "multi-chain-balance", endpoint: "/x402/multi-chain-balance", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: true },
+  { name: "trending-tokens", endpoint: "/x402/trending-tokens", priceUSD: 0.50, payload: { chain: "ethereum", limit: 10 }, tested: true },
+  { name: "portfolio-tracker", endpoint: "/x402/portfolio-tracker", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: true },
+  { name: "payment-processing", endpoint: "/x402/payment-processing", priceUSD: 0.50, payload: { amount: 10, currency: "USDC", destination: "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91" }, tested: true },
+  { name: "trade-signals", endpoint: "/x402/trade-signals", priceUSD: 0.75, payload: { token: "ETH", timeframe: "1h" }, tested: true },
+  { name: "contract-scan", endpoint: "/x402/contract-scan", priceUSD: 1.00, payload: { contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: true },
+  { name: "instant-agent-wallet", endpoint: "/x402/instant-agent-wallet", priceUSD: 1.00, payload: { agentId: "test-agent-full" }, tested: true },
+  { name: "compliance-consultation", endpoint: "/x402/compliance-consultation", priceUSD: 5.00, payload: { jurisdiction: "US", businessType: "crypto-exchange" }, tested: true },
+  { name: "smart-contract-audit", endpoint: "/x402/smart-contract-audit", priceUSD: 10.00, payload: { contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: true },
   
-  // Not yet tested - sorted by price (cheapest first)
-  { name: "dex-liquidity", endpoint: "/x402/dex-liquidity", priceUSD: 0.20, payload: { tokenA: "0x4200000000000000000000000000000000000006", tokenB: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" }, tested: false },
+  // Not yet tested - with FIXED payloads
+  { name: "dex-liquidity", endpoint: "/x402/dex-liquidity", priceUSD: 0.20, payload: { tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", chain: "base" }, tested: false },
   { name: "approval-manager", endpoint: "/x402/approval-manager", priceUSD: 0.20, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", chain: "base" }, tested: false },
-  { name: "token-price", endpoint: "/x402/token-price", priceUSD: 0.25, payload: { tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: false },
-  { name: "token-sentiment", endpoint: "/x402/token-sentiment", priceUSD: 0.25, payload: { tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" }, tested: false },
-  { name: "polymarket-events", endpoint: "/x402/polymarket-events", priceUSD: 0.25, payload: { category: "crypto" }, tested: false },
-  { name: "polymarket-search", endpoint: "/x402/polymarket-search", priceUSD: 0.25, payload: { query: "bitcoin" }, tested: false },
-  { name: "transaction-builder", endpoint: "/x402/transaction-builder", priceUSD: 0.30, payload: { chain: "base", type: "transfer", from: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", to: "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91", amount: "0.001" }, tested: false },
-  { name: "whale-alerts", endpoint: "/x402/whale-alerts", priceUSD: 0.35, payload: { chain: "ethereum", minAmount: 1000000 }, tested: false },
-  { name: "batch-quote", endpoint: "/x402/batch-quote", priceUSD: 0.40, payload: { tokens: ["0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"], chain: "ethereum" }, tested: false },
-  { name: "multi-chain-balance", endpoint: "/x402/multi-chain-balance", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
-  { name: "trending-tokens", endpoint: "/x402/trending-tokens", priceUSD: 0.50, payload: { chain: "ethereum", limit: 10 }, tested: false },
-  { name: "portfolio-tracker", endpoint: "/x402/portfolio-tracker", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
-  { name: "wallet-risk", endpoint: "/x402/wallet-risk", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
-  { name: "payment-processing", endpoint: "/x402/payment-processing", priceUSD: 0.50, payload: { amount: 10, currency: "USDC", destination: "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91" }, tested: false },
-  { name: "sentiment-analysis", endpoint: "/x402/sentiment-analysis", priceUSD: 0.50, payload: { token: "ETH" }, tested: false },
-  { name: "polymarket-odds", endpoint: "/x402/polymarket-odds", priceUSD: 0.50, payload: { eventId: "will-btc-reach-100k" }, tested: false },
-  { name: "trade-signals", endpoint: "/x402/trade-signals", priceUSD: 0.75, payload: { token: "ETH", timeframe: "1h" }, tested: false },
-  { name: "property-valuation", endpoint: "/x402/property-valuation", priceUSD: 0.75, payload: { address: "123 Main St, New York, NY" }, tested: false },
-  { name: "fraud-detection", endpoint: "/x402/fraud-detection", priceUSD: 0.75, payload: { transactionId: "tx-123", amount: 1000 }, tested: false },
-  { name: "correlation-matrix", endpoint: "/x402/correlation-matrix", priceUSD: 0.75, payload: { tokens: ["ETH", "BTC", "USDC"] }, tested: false },
-  { name: "contract-scan", endpoint: "/x402/contract-scan", priceUSD: 1.00, payload: { contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: false },
-  { name: "instant-agent-wallet", endpoint: "/x402/instant-agent-wallet", priceUSD: 1.00, payload: { agentId: "test-agent-full" }, tested: false },
-  { name: "lease-analysis", endpoint: "/x402/lease-analysis", priceUSD: 1.00, payload: { propertyType: "commercial", sqft: 5000, location: "Manhattan" }, tested: false },
-  { name: "trading-signal", endpoint: "/x402/trading-signal", priceUSD: 1.00, payload: { token: "ETH", timeframe: "4h" }, tested: false },
-  { name: "risk-metrics", endpoint: "/x402/risk-metrics", priceUSD: 1.00, payload: { token: "ETH" }, tested: false },
-  { name: "credit-risk-score", endpoint: "/x402/credit-risk-score", priceUSD: 1.25, payload: { entityId: "entity-123" }, tested: false },
-  { name: "arbitrage-scanner", endpoint: "/x402/arbitrage-scanner", priceUSD: 1.25, payload: { token: "USDC", chains: ["ethereum", "base"] }, tested: false },
-  { name: "construction-progress", endpoint: "/x402/construction-progress", priceUSD: 1.50, payload: { projectId: "test-project-1" }, tested: false },
-  { name: "compliance-check", endpoint: "/x402/compliance-check", priceUSD: 1.75, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
-  { name: "seamless-chain-bridge", endpoint: "/x402/seamless-chain-bridge", priceUSD: 2.00, payload: { fromChain: "ethereum", toChain: "base", amount: 100, token: "USDC" }, tested: false },
-  { name: "portfolio-optimization", endpoint: "/x402/portfolio-optimization", priceUSD: 2.00, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
-  // Premium Services ($5.00-$10.00) - Enterprise gated, test last
-  { name: "verified-agent-identity", endpoint: "/x402/verified-agent-identity", priceUSD: 5.00, payload: { agentName: "TestAgent", agentUrl: "https://test.com" }, tested: false },
-  { name: "compliance-consultation", endpoint: "/x402/compliance-consultation", priceUSD: 5.00, payload: { jurisdiction: "US", businessType: "crypto-exchange" }, tested: false },
-  { name: "smart-contract-audit", endpoint: "/x402/smart-contract-audit", priceUSD: 10.00, payload: { contractAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: false },
+  { name: "token-sentiment", endpoint: "/x402/token-sentiment", priceUSD: 0.25, payload: { tokenAddress: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", chain: "ethereum" }, tested: false },
+  { name: "whale-alerts", endpoint: "/x402/whale-alerts", priceUSD: 0.35, payload: { chain: "base", minValue: 100000 }, tested: false },
+  { name: "batch-quote", endpoint: "/x402/batch-quote", priceUSD: 0.40, payload: { fromToken: "ETH", toToken: "USDC", amount: "1", chain: "base" }, tested: false },
+  { name: "wallet-risk", endpoint: "/x402/wallet-risk", priceUSD: 0.50, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", chain: "base" }, tested: false },
+  { name: "sentiment-analysis", endpoint: "/x402/sentiment-analysis", priceUSD: 0.50, payload: { asset: "ETH", sources: ["twitter", "reddit"] }, tested: false },
+  { name: "polymarket-odds", endpoint: "/x402/polymarket-odds", priceUSD: 0.50, payload: { marketId: "0x1234", slug: "will-btc-reach-100k" }, tested: false },
+  { name: "property-valuation", endpoint: "/x402/property-valuation", priceUSD: 0.75, payload: { address: "123 Main St, New York, NY 10001", propertyType: "residential" }, tested: false },
+  { name: "fraud-detection", endpoint: "/x402/fraud-detection", priceUSD: 0.75, payload: { transactionHash: "0x123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", amount: 1000 }, tested: false },
+  { name: "correlation-matrix", endpoint: "/x402/correlation-matrix", priceUSD: 0.75, payload: { assets: ["BTC", "ETH", "SOL"], period: "30d" }, tested: false },
+  { name: "lease-analysis", endpoint: "/x402/lease-analysis", priceUSD: 1.00, payload: { propertyType: "commercial", sqft: 5000, location: "Manhattan, NY", monthlyRent: 10000 }, tested: false },
+  { name: "trading-signal", endpoint: "/x402/trading-signal", priceUSD: 1.00, payload: { asset: "ETH", strategy: "momentum", timeframe: "4h" }, tested: false },
+  { name: "risk-metrics", endpoint: "/x402/risk-metrics", priceUSD: 1.00, payload: { portfolio: ["BTC", "ETH"], weights: [0.6, 0.4] }, tested: false },
+  { name: "credit-risk-score", endpoint: "/x402/credit-risk-score", priceUSD: 1.25, payload: { entityId: "entity-123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
+  { name: "arbitrage-scanner", endpoint: "/x402/arbitrage-scanner", priceUSD: 1.25, payload: { token: "USDC", fromChain: "ethereum", toChain: "base" }, tested: false },
+  { name: "construction-progress", endpoint: "/x402/construction-progress", priceUSD: 1.50, payload: { projectId: "project-123", location: "New York", phase: "foundation" }, tested: false },
+  { name: "compliance-check", endpoint: "/x402/compliance-check", priceUSD: 1.75, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", jurisdiction: "US" }, tested: false },
+  { name: "seamless-chain-bridge", endpoint: "/x402/seamless-chain-bridge", priceUSD: 2.00, payload: { fromChain: "ethereum", toChain: "base", amount: "100", fromAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", toAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
+  { name: "portfolio-optimization", endpoint: "/x402/portfolio-optimization", priceUSD: 2.00, payload: { assets: ["BTC", "ETH", "USDC"], riskTolerance: "medium", targetReturn: 0.15 }, tested: false },
+  { name: "verified-agent-identity", endpoint: "/x402/verified-agent-identity", priceUSD: 5.00, payload: { agentId: "test-agent-001", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", agentName: "TestAgent", agentUrl: "https://test.com" }, tested: false },
 ];
 
 async function runFullTest() {
@@ -212,8 +211,8 @@ async function runFullTest() {
       failures.push(`${service.name}: ${error.message.slice(0, 50)}`);
     }
     
-    // Small delay between requests
-    await new Promise(r => setTimeout(r, 800));
+    // Longer delay between requests to avoid nonce conflicts
+    await new Promise(r => setTimeout(r, 2000));
   }
   
   const endUSDC = parseFloat((await cdpWallet.getBalance("usdc")).toString());

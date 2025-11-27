@@ -1615,7 +1615,7 @@ const pingHandler = async (req: Request, res: Response) => {
 
 router.post("/ping",
   createPaymentOrchestrator("ping", SERVICE_PRICING_MICRO["ping"], pingHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   pingHandler
 );
 
@@ -1655,7 +1655,7 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
 
 router.post("/multi-chain-balance",
   createPaymentOrchestrator("multi-chain-balance", SERVICE_PRICING_MICRO["multi-chain-balance"], multiChainBalanceHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   multiChainBalanceHandler
 );
 
@@ -1687,7 +1687,7 @@ const gasPriceOracleHandler = async (req: Request, res: Response) => {
 
 router.post("/gas-price-oracle", 
   createPaymentOrchestrator("gas-price-oracle", SERVICE_PRICING_MICRO["gas-price-oracle"], gasPriceOracleHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   gasPriceOracleHandler
 );
 
@@ -1717,7 +1717,7 @@ const tokenPriceHandler = async (req: Request, res: Response) => {
 
 router.post("/token-price",
   createPaymentOrchestrator("token-price", SERVICE_PRICING_MICRO["token-price"], tokenPriceHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   tokenPriceHandler
 );
 
@@ -1747,7 +1747,7 @@ const contractScanHandler = async (req: Request, res: Response) => {
 
 router.post("/contract-scan",
   createPaymentOrchestrator("contract-scan", SERVICE_PRICING_MICRO["contract-scan"], contractScanHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   contractScanHandler
 );
 
@@ -1777,7 +1777,7 @@ const walletRiskHandler = async (req: Request, res: Response) => {
 
 router.post("/wallet-risk",
   createPaymentOrchestrator("wallet-risk", SERVICE_PRICING_MICRO["wallet-risk"], walletRiskHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   walletRiskHandler
 );
 
@@ -1801,7 +1801,7 @@ const tradeSignalsHandler = async (req: Request, res: Response) => {
 
 router.post("/trade-signals",
   createPaymentOrchestrator("trade-signals", SERVICE_PRICING_MICRO["trade-signals"], tradeSignalsHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   tradeSignalsHandler
 );
 
@@ -1831,7 +1831,7 @@ const tokenSentimentHandler = async (req: Request, res: Response) => {
 
 router.post("/token-sentiment",
   createPaymentOrchestrator("token-sentiment", SERVICE_PRICING_MICRO["token-sentiment"], tokenSentimentHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   tokenSentimentHandler
 );
 
@@ -1855,7 +1855,7 @@ const trendingTokensHandler = async (req: Request, res: Response) => {
 
 router.post("/trending-tokens",
   createPaymentOrchestrator("trending-tokens", SERVICE_PRICING_MICRO["trending-tokens"], trendingTokensHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   trendingTokensHandler
 );
 
@@ -1879,7 +1879,7 @@ const whaleAlertsHandler = async (req: Request, res: Response) => {
 
 router.post("/whale-alerts",
   createPaymentOrchestrator("whale-alerts", SERVICE_PRICING_MICRO["whale-alerts"], whaleAlertsHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   whaleAlertsHandler
 );
 
@@ -1909,7 +1909,7 @@ const dexLiquidityHandler = async (req: Request, res: Response) => {
 
 router.post("/dex-liquidity",
   createPaymentOrchestrator("dex-liquidity", SERVICE_PRICING_MICRO["dex-liquidity"], dexLiquidityHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   dexLiquidityHandler
 );
 
@@ -1938,7 +1938,7 @@ const transactionBuilderHandler = async (req: Request, res: Response) => {
 
 router.post("/transaction-builder",
   createPaymentOrchestrator("transaction-builder", SERVICE_PRICING_MICRO["transaction-builder"], transactionBuilderHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   transactionBuilderHandler
 );
 
@@ -1968,7 +1968,7 @@ const tokenMetadataHandler = async (req: Request, res: Response) => {
 
 router.post("/token-metadata",
   createPaymentOrchestrator("token-metadata", SERVICE_PRICING_MICRO["token-metadata"], tokenMetadataHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   tokenMetadataHandler
 );
 
@@ -1997,7 +1997,7 @@ const approvalManagerHandler = async (req: Request, res: Response) => {
 
 router.post("/approval-manager",
   createPaymentOrchestrator("approval-manager", SERVICE_PRICING_MICRO["approval-manager"], approvalManagerHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   approvalManagerHandler
 );
 
@@ -2026,7 +2026,7 @@ const batchQuoteHandler = async (req: Request, res: Response) => {
 
 router.post("/batch-quote",
   createPaymentOrchestrator("batch-quote", SERVICE_PRICING_MICRO["batch-quote"], batchQuoteHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   batchQuoteHandler
 );
 
@@ -2056,7 +2056,7 @@ const portfolioTrackerHandler = async (req: Request, res: Response) => {
 
 router.post("/portfolio-tracker",
   createPaymentOrchestrator("portfolio-tracker", SERVICE_PRICING_MICRO["portfolio-tracker"], portfolioTrackerHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   portfolioTrackerHandler
 );
 
@@ -2086,7 +2086,7 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
 
 router.post("/instant-agent-wallet",
   createPaymentOrchestrator("instant-agent-wallet", SERVICE_PRICING_MICRO["instant-agent-wallet"], instantAgentWalletHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   instantAgentWalletHandler
 );
 
@@ -2116,7 +2116,7 @@ const verifiedAgentIdentityHandler = async (req: Request, res: Response) => {
 
 router.post("/verified-agent-identity",
   createPaymentOrchestrator("verified-agent-identity", SERVICE_PRICING_MICRO["verified-agent-identity"], verifiedAgentIdentityHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   verifiedAgentIdentityHandler
 );
 
@@ -2149,7 +2149,7 @@ const seamlessChainBridgeHandler = async (req: Request, res: Response) => {
 
 router.post("/seamless-chain-bridge",
   createPaymentOrchestrator("seamless-chain-bridge", SERVICE_PRICING_MICRO["seamless-chain-bridge"], seamlessChainBridgeHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   seamlessChainBridgeHandler
 );
 
@@ -2300,19 +2300,19 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
 // Register enterprise gated service routes
 router.post("/service/smart-contract-audit",
   createPaymentOrchestrator("smart-contract-audit", SERVICE_PRICING_MICRO["smart-contract-audit"], smartContractAuditHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   smartContractAuditHandler
 );
 
 router.post("/service/payment-processing",
   createPaymentOrchestrator("payment-processing", SERVICE_PRICING_MICRO["payment-processing"], paymentProcessingHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   paymentProcessingHandler
 );
 
 router.post("/service/compliance-consultation",
   createPaymentOrchestrator("compliance-consultation", SERVICE_PRICING_MICRO["compliance-consultation"], complianceConsultationHandler),
-  x402Middleware,
+  // x402Middleware removed - orchestrator handles 402 responses directly
   complianceConsultationHandler
 );
 
@@ -2515,8 +2515,7 @@ router.post("/property-valuation",
       await trackRequest("property-valuation", req.body, null, responseTime, SERVICE_PRICING_USD["property-valuation"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/lease-analysis",
@@ -2534,8 +2533,7 @@ router.post("/lease-analysis",
       await trackRequest("lease-analysis", req.body, null, responseTime, SERVICE_PRICING_USD["lease-analysis"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/construction-progress",
@@ -2553,8 +2551,7 @@ router.post("/construction-progress",
       await trackRequest("construction-progress", req.body, null, responseTime, SERVICE_PRICING_USD["construction-progress"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 // BANKING/FINANCE SERVICES
@@ -2573,8 +2570,7 @@ router.post("/credit-risk-score",
       await trackRequest("credit-risk-score", req.body, null, responseTime, SERVICE_PRICING_USD["credit-risk-score"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/fraud-detection",
@@ -2592,8 +2588,7 @@ router.post("/fraud-detection",
       await trackRequest("fraud-detection", req.body, null, responseTime, SERVICE_PRICING_USD["fraud-detection"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/compliance-check",
@@ -2611,8 +2606,7 @@ router.post("/compliance-check",
       await trackRequest("compliance-check", req.body, null, responseTime, SERVICE_PRICING_USD["compliance-check"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 // TRADING/INVESTMENT SERVICES
@@ -2631,8 +2625,7 @@ router.post("/trading-signal",
       await trackRequest("trading-signal", req.body, null, responseTime, SERVICE_PRICING_USD["trading-signal"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/portfolio-optimization",
@@ -2650,8 +2643,7 @@ router.post("/portfolio-optimization",
       await trackRequest("portfolio-optimization", req.body, null, responseTime, SERVICE_PRICING_USD["portfolio-optimization"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/sentiment-analysis",
@@ -2669,8 +2661,7 @@ router.post("/sentiment-analysis",
       await trackRequest("sentiment-analysis", req.body, null, responseTime, SERVICE_PRICING_USD["sentiment-analysis"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 // MARKET INTELLIGENCE SERVICES
@@ -2689,8 +2680,7 @@ router.post("/arbitrage-scanner",
       await trackRequest("arbitrage-scanner", req.body, null, responseTime, SERVICE_PRICING_USD["arbitrage-scanner"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/correlation-matrix",
@@ -2708,8 +2698,7 @@ router.post("/correlation-matrix",
       await trackRequest("correlation-matrix", req.body, null, responseTime, SERVICE_PRICING_USD["correlation-matrix"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/risk-metrics",
@@ -2727,8 +2716,7 @@ router.post("/risk-metrics",
       await trackRequest("risk-metrics", req.body, null, responseTime, SERVICE_PRICING_USD["risk-metrics"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 // ========================================
@@ -2755,8 +2743,7 @@ router.post("/polymarket-events",
       await trackRequest("polymarket-events", req.body, null, responseTime, SERVICE_PRICING_USD["polymarket-events"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/polymarket-odds",
@@ -2773,8 +2760,7 @@ router.post("/polymarket-odds",
       await trackRequest("polymarket-odds", req.body, null, responseTime, SERVICE_PRICING_USD["polymarket-odds"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 router.post("/polymarket-search",
@@ -2791,8 +2777,7 @@ router.post("/polymarket-search",
       await trackRequest("polymarket-search", req.body, null, responseTime, SERVICE_PRICING_USD["polymarket-search"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
-  }),
-  x402Middleware
+  })
 );
 
 export default router;

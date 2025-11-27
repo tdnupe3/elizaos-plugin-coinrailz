@@ -6,12 +6,46 @@ import {
 } from "./hybridPaymentMiddleware";
 import { offerLinkService } from "../services/offerLinkService";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "../../shared/pricing";
+import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "viem";
+import { base } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
 
 // Platform wallet to receive payments
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
 
 // USDC on Base mainnet
-const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
+
+// EIP-3009 ABI for USDC transferWithAuthorization
+const EIP3009_ABI = parseAbi([
+  "function transferWithAuthorization(address from, address to, uint256 value, uint256 validAfter, uint256 validBefore, bytes32 nonce, uint8 v, bytes32 r, bytes32 s) external"
+]);
+
+// Initialize platform wallet client for EIP-3009 execution
+let platformWalletClient: ReturnType<typeof createWalletClient> | null = null;
+let platformPublicClient: ReturnType<typeof createPublicClient> | null = null;
+
+function getPlatformWalletClient() {
+  if (!platformWalletClient) {
+    const privateKey = process.env.XMTP_EOA_PRIVATE_KEY || process.env.CDP_PRIVATE_KEY;
+    if (!privateKey) {
+      console.error("❌ No platform wallet private key available for EIP-3009 execution");
+      return null;
+    }
+    const account = privateKeyToAccount(privateKey.startsWith("0x") ? privateKey as Hex : `0x${privateKey}` as Hex);
+    platformWalletClient = createWalletClient({
+      account,
+      chain: base,
+      transport: http("https://mainnet.base.org"),
+    });
+    platformPublicClient = createPublicClient({
+      chain: base,
+      transport: http("https://mainnet.base.org"),
+    });
+    console.log(`✅ Platform wallet initialized for EIP-3009: ${account.address}`);
+  }
+  return platformWalletClient;
+}
 
 // Helper to get the correct public URL from request headers
 function getPublicBaseUrl(req: Request): string {
@@ -76,15 +110,20 @@ export function createPaymentOrchestrator(
     else {
       try {
         const decoded = JSON.parse(Buffer.from(xPayment, "base64").toString("utf-8"));
-        console.log(`🔐 Orchestrator: Decoded payment payload keys for ${serviceName}: ${Object.keys(decoded).join(', ')}`);
+        console.log(`🔐 Orchestrator: Decoded payment payload for ${serviceName}:`, JSON.stringify(decoded, null, 2).substring(0, 500));
+        
+        // x402-fetch sends: { x402Version, scheme, network, payload: { signature, ... } }
+        // The actual txHash may be in nested structures
+        const payloadObj = decoded.payload || {};
         
         // Extract txHash from various possible locations in x402-fetch payload
         txHash = decoded.txHash 
-          || decoded.payload?.txHash 
-          || decoded.payload?.authorization?.txHash
+          || payloadObj.txHash 
+          || payloadObj.authorization?.txHash
+          || payloadObj.receipt?.transactionHash
+          || payloadObj.transactionHash
           || decoded.authorization?.txHash
           || decoded.transactionHash
-          || decoded.payload?.transactionHash
           || decoded.receipt?.transactionHash;
         
         // Also check for x402 facilitator format
@@ -93,19 +132,91 @@ export function createPaymentOrchestrator(
         }
         
         // Check for signature-based auth that includes tx hash
-        if (!txHash && decoded.signature && decoded.message) {
+        if (!txHash && payloadObj.signature && payloadObj.message) {
           try {
-            const msgData = typeof decoded.message === 'string' 
-              ? JSON.parse(decoded.message) 
-              : decoded.message;
+            const msgData = typeof payloadObj.message === 'string' 
+              ? JSON.parse(payloadObj.message) 
+              : payloadObj.message;
             txHash = msgData.txHash || msgData.transactionHash;
           } catch {}
         }
         
+        // Check if this is an EIP-3009 authorization that we need to execute
+        if (!txHash && payloadObj.signature && payloadObj.authorization) {
+          console.log(`🔐 Orchestrator: EIP-3009 authorization detected for ${serviceName}, executing transferWithAuthorization...`);
+          
+          try {
+            const walletClient = getPlatformWalletClient();
+            if (!walletClient) {
+              console.error(`❌ Orchestrator: No wallet client available for EIP-3009 execution`);
+              return generate402Response(req, res, serviceName, requiredAmount);
+            }
+            
+            const auth = payloadObj.authorization;
+            const sig = payloadObj.signature as string;
+            
+            // Parse v, r, s from the signature (65 bytes: r=32, s=32, v=1)
+            const sigHex = sig.startsWith("0x") ? sig.slice(2) : sig;
+            
+            // Validate signature length
+            if (sigHex.length !== 130) {
+              console.error(`❌ Invalid signature length: ${sigHex.length}, expected 130`);
+              return generate402Response(req, res, serviceName, requiredAmount);
+            }
+            
+            const r = `0x${sigHex.slice(0, 64)}` as Hex;
+            const s = `0x${sigHex.slice(64, 128)}` as Hex;
+            let v = parseInt(sigHex.slice(128, 130), 16);
+            if (v < 27) v += 27; // Normalize v value
+            
+            // Ensure nonce is properly padded to bytes32
+            const nonceHex = auth.nonce.startsWith('0x') ? auth.nonce.slice(2) : auth.nonce;
+            const paddedNonce = `0x${nonceHex.padStart(64, '0')}` as Hex;
+            
+            console.log(`🔐 EIP-3009 params: from=${auth.from}, to=${auth.to}, value=${auth.value}`);
+            console.log(`🔐 EIP-3009 validity: after=${auth.validAfter}, before=${auth.validBefore}, nonce=${paddedNonce}`);
+            
+            // Execute the transferWithAuthorization
+            const hash = await walletClient.writeContract({
+              address: USDC_BASE,
+              abi: EIP3009_ABI,
+              functionName: "transferWithAuthorization",
+              args: [
+                auth.from as Hex,
+                auth.to as Hex,
+                BigInt(auth.value),
+                BigInt(auth.validAfter),
+                BigInt(auth.validBefore),
+                paddedNonce,
+                v,
+                r,
+                s
+              ],
+            });
+            
+            console.log(`✅ Orchestrator: EIP-3009 transfer executed! TxHash: ${hash}`);
+            txHash = hash;
+            
+            // Wait for confirmation
+            if (platformPublicClient) {
+              const receipt = await platformPublicClient.waitForTransactionReceipt({ hash });
+              console.log(`✅ Orchestrator: EIP-3009 confirmed in block ${receipt.blockNumber}`);
+            }
+          } catch (eip3009Error: any) {
+            console.error(`❌ Orchestrator: EIP-3009 execution failed:`, eip3009Error.message);
+            // Could be already executed, expired, or invalid signature
+            return res.status(402).json({
+              x402Version: 1,
+              error: `Payment authorization failed: ${eip3009Error.message}`,
+              hint: "The authorization may have expired or already been used. Please retry the request."
+            });
+          }
+        }
+        
         if (txHash) {
-          console.log(`🔐 Orchestrator: Extracted txHash from payload for ${serviceName}: ${txHash.substring(0, 10)}...`);
+          console.log(`🔐 Orchestrator: Extracted/executed txHash for ${serviceName}: ${txHash.substring(0, 10)}...`);
         } else {
-          console.log(`🔐 Orchestrator: No txHash found in payload for ${serviceName}, returning 402`);
+          console.log(`🔐 Orchestrator: No txHash found in payload for ${serviceName}, payload keys: ${Object.keys(payloadObj).join(', ')}`);
           // No txHash found - return 402 to request raw tx hash payment
           return generate402Response(req, res, serviceName, requiredAmount);
         }
@@ -170,7 +281,8 @@ export function createPaymentOrchestrator(
 function generate402Response(req: Request, res: Response, serviceName: string, requiredAmount: number) {
   const priceUsd = microToUSD(requiredAmount);
   const endpoint = req.originalUrl || `/x402/${serviceName}`;
-  const resource = `${PUBLIC_BASE_URL}${endpoint}`;
+  const baseUrl = getPublicBaseUrl(req);
+  const resource = `${baseUrl}${endpoint}`;
   
   // Service descriptions
   const descriptions: Record<string, string> = {
@@ -237,7 +349,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       { id: "token-price", name: "Token Price Feed", priceUSD: "$0.25", endpoint: "/x402/token-price" },
       { id: "trending-tokens", name: "Trending Tokens", priceUSD: "$0.50", endpoint: "/x402/trending-tokens" },
     ],
-    catalogUrl: `${PUBLIC_BASE_URL}/x402/catalog`,
+    catalogUrl: `${baseUrl}/x402/catalog`,
     totalServicesAvailable: 37
   };
 

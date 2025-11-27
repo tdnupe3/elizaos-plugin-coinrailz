@@ -74,25 +74,25 @@ const ALL_SERVICES = [
   { name: "token-sentiment", endpoint: "/x402/token-sentiment", priceUSD: 0.25, payload: { tokenSymbol: "ETH" }, tested: false },
   { name: "whale-alerts", endpoint: "/x402/whale-alerts", priceUSD: 0.35, payload: { chains: ["base", "ethereum"], minValueUsd: 100000 }, tested: false },
   
-  // OpenAI quota blocked - skipping for now per user request
-  { name: "sentiment-analysis", endpoint: "/x402/sentiment-analysis", priceUSD: 0.50, payload: { symbol: "ETH", sources: ["twitter", "reddit"] }, tested: false },
-  { name: "property-valuation", endpoint: "/x402/property-valuation", priceUSD: 0.75, payload: { address: "123 Main St, New York, NY 10001", propertyType: "residential" }, tested: false },
-  { name: "fraud-detection", endpoint: "/x402/fraud-detection", priceUSD: 0.75, payload: { transactionHash: "0x123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", amount: 1000 }, tested: false },
-  { name: "correlation-matrix", endpoint: "/x402/correlation-matrix", priceUSD: 0.75, payload: { assets: ["BTC", "ETH", "SOL"], period: "30d" }, tested: false },
-  { name: "lease-analysis", endpoint: "/x402/lease-analysis", priceUSD: 1.00, payload: { propertyType: "commercial", sqft: 5000, location: "Manhattan, NY", monthlyRent: 10000 }, tested: false },
-  { name: "credit-risk-score", endpoint: "/x402/credit-risk-score", priceUSD: 1.25, payload: { entityId: "entity-123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: false },
-  { name: "arbitrage-scanner", endpoint: "/x402/arbitrage-scanner", priceUSD: 1.25, payload: { token: "USDC", fromChain: "ethereum", toChain: "base" }, tested: false },
-  
-  // FIXED payloads for trading-signal and risk-metrics
-  { name: "trading-signal", endpoint: "/x402/trading-signal", priceUSD: 1.00, payload: { symbol: "ETH", timeframe: "4h", riskTolerance: "moderate" }, tested: false },
-  { name: "risk-metrics", endpoint: "/x402/risk-metrics", priceUSD: 1.00, payload: { portfolioValue: 10000, holdings: [{ asset: "BTC", value: 6000 }, { asset: "ETH", value: 4000 }] }, tested: false },
-  
-  // Remaining services needing funds or OpenAI quota
-  { name: "construction-progress", endpoint: "/x402/construction-progress", priceUSD: 1.50, payload: { projectId: "project-123", location: "New York", phase: "foundation" }, tested: false },
-  { name: "compliance-check", endpoint: "/x402/compliance-check", priceUSD: 1.75, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", jurisdiction: "US" }, tested: false },
+  // Verified with OpenAI credits
+  { name: "sentiment-analysis", endpoint: "/x402/sentiment-analysis", priceUSD: 0.50, payload: { symbol: "ETH", sources: ["twitter", "reddit"] }, tested: true },
+  { name: "property-valuation", endpoint: "/x402/property-valuation", priceUSD: 0.75, payload: { address: "123 Main St, New York, NY 10001", propertyType: "residential" }, tested: true },
+  { name: "fraud-detection", endpoint: "/x402/fraud-detection", priceUSD: 0.75, payload: { transactionHash: "0x123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", amount: 1000 }, tested: true },
+  { name: "correlation-matrix", endpoint: "/x402/correlation-matrix", priceUSD: 0.75, payload: { assets: ["BTC", "ETH", "SOL"], period: "30d" }, tested: true },
+  { name: "lease-analysis", endpoint: "/x402/lease-analysis", priceUSD: 1.00, payload: { propertyType: "commercial", sqft: 5000, location: "Manhattan, NY", monthlyRent: 10000 }, tested: true },
+  { name: "credit-risk-score", endpoint: "/x402/credit-risk-score", priceUSD: 1.25, payload: { entityId: "entity-123", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: true },
+  { name: "arbitrage-scanner", endpoint: "/x402/arbitrage-scanner", priceUSD: 1.25, payload: { token: "USDC", fromChain: "ethereum", toChain: "base" }, tested: true },
+  { name: "trading-signal", endpoint: "/x402/trading-signal", priceUSD: 1.00, payload: { symbol: "ETH", timeframe: "4h", riskTolerance: "moderate" }, tested: true },
+  { name: "risk-metrics", endpoint: "/x402/risk-metrics", priceUSD: 1.00, payload: { portfolioValue: 10000, holdings: [{ asset: "BTC", value: 6000 }, { asset: "ETH", value: 4000 }] }, tested: true },
+  { name: "compliance-check", endpoint: "/x402/compliance-check", priceUSD: 1.75, payload: { walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", jurisdiction: "US" }, tested: true },
   { name: "seamless-chain-bridge", endpoint: "/x402/seamless-chain-bridge", priceUSD: 2.00, payload: { fromChain: "ethereum", toChain: "base", amount: "100", fromAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", toAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9" }, tested: true },
-  { name: "portfolio-optimization", endpoint: "/x402/portfolio-optimization", priceUSD: 2.00, payload: { assets: ["BTC", "ETH", "USDC"], riskTolerance: "medium", targetReturn: 0.15 }, tested: false },
-  { name: "verified-agent-identity", endpoint: "/x402/verified-agent-identity", priceUSD: 5.00, payload: { agentId: "test-agent-001", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", agentName: "TestAgent", agentUrl: "https://test.com" }, tested: false },
+  { name: "verified-agent-identity", endpoint: "/x402/verified-agent-identity", priceUSD: 5.00, payload: { agentId: "test-agent-001", walletAddress: "0x92Ca4CEF1Ba55a218F88e0318Cfa015ea92Db6f9", agentName: "TestAgent", agentUrl: "https://test.com" }, tested: true },
+  
+  // Verified
+  { name: "construction-progress", endpoint: "/x402/construction-progress", priceUSD: 1.50, payload: { projectDescription: "Commercial building construction in Manhattan, 50-story office tower with modern amenities", projectType: "commercial", currentPhase: "foundation" }, tested: true },
+  
+  // Needs $2 more to test
+  { name: "portfolio-optimization", endpoint: "/x402/portfolio-optimization", priceUSD: 2.00, payload: { currentHoldings: [{ asset: "BTC", amount: 0.5, currentValue: 25000 }, { asset: "ETH", amount: 10, currentValue: 20000 }], riskTolerance: "moderate" }, tested: false },
 ];
 
 async function runFullTest() {

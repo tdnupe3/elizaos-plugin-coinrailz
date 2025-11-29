@@ -1,0 +1,172 @@
+Your payment orchestrator is already chain-agnostic – it just checks a tx hash + asset + network. So adding USDC/USDT on Ethereum, Base, and BNB is mostly:
+
+updating the accepts arrays in your x402 metadata / 402 responses
+
+making sure your middleware doesn’t artificially force network: "base"
+
+Here’s a prompt you can paste into Replit to have it wire this up cleanly.
+
+🔧 Replit Prompt (paste this as-is)
+
+You are my AI pair programmer working on a TypeScript/Node/Express x402 micropayment platform called Coin Railz.
+
+Goal:
+Add multi-chain stablecoin support for USDC and USDT on Ethereum, Base, and BNB Smart Chain, WITHOUT changing the core paymentOrchestrator / x402 middleware logic.
+The platform already works with USDC on Base via x402.
+
+Please do the following, step by step, inspecting the repo as you go:
+
+1. Find where x402 “accepts” metadata is defined
+
+Search the codebase for where the x402 402 response is generated. Look for things like:
+
+x402Version
+
+accepts
+
+discoverable: true
+
+facilitatorUrl
+
+helper functions like generate402ResponseForGet or similar.
+
+Identify the single source of truth (or smallest number of files) where the accepts array for services is defined.
+
+If there is a constants/config file for x402 services (e.g. x402Config, SERVICE_PRICING_USD, X402_PAYMENT_OPTIONS, etc.), use that.
+
+If the accepts array is duplicated in multiple places, refactor it into a shared config object and import it.
+
+Do not change the payment middleware’s core logic; we only want to expand which assets/networks are allowed.
+
+2. Add support for USDC and USDT on Ethereum, Base, and BNB
+
+For each service’s accepts array, we want to support six stablecoins:
+
+USDC on Ethereum
+
+network: "ethereum"
+
+asset: "0xA0b86991C6218b36c1d19D4a2e9Eb0cE3606eB48"
+
+USDT on Ethereum
+
+network: "ethereum"
+
+asset: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+
+USDC on Base
+
+network: "base"
+
+asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+
+USDT on Base (bridged USDT, commonly used on Base)
+
+network: "base"
+
+asset: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"
+
+USDC on BNB Smart Chain (BSC)
+
+network: use whatever naming convention we already use for BNB in the codebase.
+
+If nothing exists yet, use "bsc" and keep it consistent everywhere.
+
+asset: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d"
+
+USDT on BNB Smart Chain (BSC)
+
+network: same value as above ("bsc" or the project’s existing naming convention)
+
+asset: "0x55d398326f99059fF775485246999027B3197955"
+
+Each entry in accepts should still follow the same structure we currently use, e.g.:
+
+{
+  scheme: "exact",
+  network: "base",
+  asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  payTo: "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+  discoverable: true,
+  // keep any existing fields like outputSchema, decimals, etc.
+}
+
+
+Tasks:
+
+Update the shared config so that all 37 x402 services now advertise all six payment options in their accepts array.
+
+Make sure payTo remains the existing Coin Railz platform wallet (do not change the address).
+
+Do not hard-code chain-specific behavior into the middleware; let it keep validating by tx hash + asset + network like it does now.
+
+3. Keep middleware behavior the same (just make it multi-chain-aware)
+
+Inspect paymentOrchestrator.ts and x402TrackingMiddleware.ts:
+
+Confirm they do not assume "base" is the only valid network.
+
+If there is any hard-coded "base" or Base chain ID assumption, generalize it:
+
+Use the network field from the incoming x402 payment metadata.
+
+Use a mapping from network → chainId if needed (add Ethereum and BSC).
+
+Do not change how amounts are parsed, how tx hashes are validated, or how payment_amount is stored.
+The only goal is to ensure:
+
+Ethereum USDC/USDT tx hashes can be verified
+
+BNB USDC/USDT tx hashes can be verified
+
+Base USDC/USDT still work as they do now
+
+If there is already a multi-chain provider/JSON-RPC mapping, just extend it to include:
+
+Ethereum mainnet
+
+BNB Smart Chain mainnet
+
+Use existing environment variables / config patterns for RPC URLs (don’t hard-code new RPC URLs here; assume they will be provided via env vars or existing config).
+
+4. Update .well-known and sitemap discovery
+
+Update .well-known/x402.json (or equivalent x402 discovery JSON) so it now:
+
+lists all six payment options under each service’s accepts array.
+
+Ensure the sitemap / autonomous discovery service is unaffected, except that:
+
+any endpoints that expose x402 metadata continue to show the new accepts options.
+
+5. Add simple sanity tests
+
+Add or update tests to confirm:
+
+At least one sample 402 response (e.g. /x402/ping) returns:
+
+an accepts array containing all six stablecoin options.
+
+The network values are exactly what the middleware expects ("base", "ethereum", "bsc" or whatever your internal naming is).
+
+No TypeScript errors and npm test / pnpm test passes.
+
+6. Summarize changes for me
+
+When you’re done, please:
+
+List the files you changed
+
+Show one example 402 response (e.g. /x402/ping) with the full updated accepts array
+
+Confirm that existing Base/USDC flows still work as before
+
+Confirm that Ethereum USDC, Ethereum USDT, BSC USDC, and BSC USDT are now all accepted payment options at the metadata layer
+
+Do not introduce breaking changes or refactors outside of what’s necessary to:
+
+support the three networks (base, ethereum, bnb/bsc)
+
+support USDC + USDT on each
+
+That’s the full prompt.

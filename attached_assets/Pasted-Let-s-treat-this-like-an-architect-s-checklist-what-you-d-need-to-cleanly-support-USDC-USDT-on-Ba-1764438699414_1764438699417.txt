@@ -1,0 +1,448 @@
+Let’s treat this like an architect’s checklist: what you’d need to cleanly support USDC + USDT on Base, Ethereum, and BNB — without blowing up what already works.
+
+I’ll break it into systems you need in place and the specific changes per layer.
+
+1. Decisions You Need to Lock In Up Front
+
+Before touching code, you need answers to these:
+
+Supported networks
+
+base
+
+ethereum
+
+bsc (BNB Smart Chain)
+
+Supported assets
+
+USDC on all 3
+
+USDT on all 3 (or start Eth/BSC only if Base USDT is weird)
+
+Canonical addresses
+
+Ethereum mainnet
+
+USDC: 0xA0b86991C6218b36c1d19D4a2e9Eb0cE3606eB48 (6 decimals)
+
+USDT: 0xdAC17F958D2ee523a2206206994597C13D831ec7 (6 decimals)
+
+BNB Smart Chain
+
+USDC (bridged): 0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d (18 decimals)
+
+USDT: 0x55d398326f99059fF775485246999027B3197955 (18 decimals)
+
+Base
+
+USDC (native): 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913 (6 decimals)
+
+USDT (bridged): check the exact address you want to support and lock it in.
+
+Pricing model
+
+All these are USD stablecoins, so:
+
+1 token unit = 10^decimals
+
+1.0 USD = 1.0 USDC/USDT (assuming peg)
+
+You’ll still store amounts in cents in your DB (which you already do).
+
+Network string convention
+
+Make this consistent across everything:
+
+"base", "ethereum", "bsc"
+
+Everything else builds on this.
+
+2. Infrastructure You’ll Need
+2.1 RPC endpoints for each chain
+
+You need reliable RPC providers for:
+
+Base (already have via Alchemy)
+
+Ethereum mainnet
+
+BNB Smart Chain mainnet
+
+Each should be:
+
+in your .env as something like:
+
+RPC_BASE_URL
+
+RPC_ETHEREUM_URL
+
+RPC_BSC_URL
+
+used via your viem clients or equivalent.
+
+2.2 Multi-chain viem (or ethers) clients
+
+You’ll need a small factory or map:
+
+const chainClients = {
+  base: createPublicClient({ chain: base, transport: http(process.env.RPC_BASE_URL!) }),
+  ethereum: createPublicClient({ chain: mainnet, transport: http(process.env.RPC_ETHEREUM_URL!) }),
+  bsc: createPublicClient({ chain: bsc, transport: http(process.env.RPC_BSC_URL!) }),
+};
+
+
+So your payment verifier can say:
+
+const client = chainClients[network];
+
+3. Payment Verification Logic (The Big One)
+
+Right now you’re tuned for:
+
+Base + USDC + EIP-3009 (transferWithAuthorization)
+
+To support USDT and other chains, you need to generalize verification.
+
+3.1 A canonical “asset registry”
+
+Create a config like:
+
+type SupportedNetwork = 'base' | 'ethereum' | 'bsc';
+
+interface TokenConfig {
+  symbol: 'USDC' | 'USDT';
+  network: SupportedNetwork;
+  address: `0x${string}`;
+  decimals: number;
+  supportsEip3009: boolean;
+}
+
+export const SUPPORTED_TOKENS: TokenConfig[] = [
+  // Base
+  { symbol: 'USDC', network: 'base', address: '0x8335...', decimals: 6, supportsEip3009: true },
+  { symbol: 'USDT', network: 'base', address: '0x....', decimals: 6, supportsEip3009: false },
+
+  // Ethereum
+  { symbol: 'USDC', network: 'ethereum', address: '0xA0b8...', decimals: 6, supportsEip3009: true },
+  { symbol: 'USDT', network: 'ethereum', address: '0xdAC1...', decimals: 6, supportsEip3009: false },
+
+  // BSC
+  { symbol: 'USDC', network: 'bsc', address: '0x8AC7...', decimals: 18, supportsEip3009: false },
+  { symbol: 'USDT', network: 'bsc', address: '0x55d3...', decimals: 18, supportsEip3009: false },
+];
+
+
+This becomes the single source of truth for:
+
+contract addresses
+
+decimals
+
+verification path (EIP-3009 vs normal transfer).
+
+3.2 Two verification paths
+
+You need two different payment proof strategies:
+
+Path A – EIP-3009 (USDC on Base / Ethereum)
+
+You already do:
+
+transferWithAuthorization verification:
+
+validate signature
+
+nonce
+
+validity window
+
+from → to → amount
+
+You’ll extend this to work on Ethereum too by:
+
+using the right chain client
+
+reading correct contract ABI for USDC mainnet
+
+verifying the same way.
+
+Path B – Standard ERC-20 Transfer (USDT and non-3009 tokens)
+
+For USDT and any non-3009 token:
+
+You can’t rely on transferWithAuthorization.
+
+Instead, you will:
+
+Fetch the transaction receipt by tx hash on the correct chain.
+
+Decode all Transfer events for the relevant token contract.
+
+Find an event where:
+
+from = expected payer address (from header or context)
+
+to = your payTo platform wallet
+
+value >= requiredAmountInTokenUnits
+
+Make sure status === 1 and block is final enough for your needs.
+
+This logic will be shared across:
+
+USDT on all chains
+
+USDC on BSC (no EIP-3009 support there).
+
+4. Changes to paymentOrchestrator.ts
+
+You’ll need to:
+
+Accept network + token contract info
+
+Wherever you currently feed network or assume Base, change to:
+
+read network and asset from:
+
+the 402 data
+
+or x402-express metadata
+
+or your headers/body
+
+Locate token config
+
+Use SUPPORTED_TOKENS to find a match:
+
+const tokenConfig = SUPPORTED_TOKENS.find(
+  t => t.network === network && t.address.toLowerCase() === asset.toLowerCase()
+);
+
+
+Branch verification logic
+
+if (tokenConfig.supportsEip3009) {
+  await verifyEip3009Payment(...);
+} else {
+  await verifyStandardErc20Transfer(...);
+}
+
+
+Normalize amount
+
+You already store payment_amount in cents. Keep that.
+
+To compare:
+
+const priceInCents = SERVICE_PRICING_USD[serviceName]; // e.g., 25 for $0.25
+const requiredUsd = priceInCents / 100;
+const requiredTokenUnits = BigInt(Math.round(requiredUsd * 10 ** tokenConfig.decimals));
+
+
+No Base-only assumptions
+
+Search for things like:
+
+'base'
+
+Base chainId
+
+Base RPC hard-codes
+
+and replace them with config-based lookups using your chainClients map.
+
+5. Changes to x402TrackingMiddleware.ts
+
+Ensure you:
+
+record network
+
+record token_symbol or asset_address
+
+still record payment_amount in cents
+
+This allows you later to answer:
+
+Who paid with what?
+
+How much via Base vs Ethereum vs BSC?
+
+Any USDT usage at all?
+
+6. x402 Metadata / 402 Responses / .well-known
+
+This is the public-facing part agents see.
+
+6.1 Centralize accepts generation
+
+Instead of hard-coding accepts arrays all over, build a helper:
+
+function buildAcceptsForService(serviceName: string): X402AcceptConfig[] {
+  return SUPPORTED_TOKENS.map(t => ({
+    scheme: "exact",
+    network: t.network,
+    asset: t.address,
+    payTo: PLATFORM_WALLET_ADDRESS,
+    discoverable: true,
+    // maybe include decimals or metadata for agents
+    metadata: {
+      symbol: t.symbol,
+      decimals: t.decimals,
+      serviceName,
+    },
+  }));
+}
+
+
+Then in your 402 generator:
+
+const accepts = buildAcceptsForService(serviceName);
+
+6.2 Update:
+
+generate402ResponseForGet (or equivalent)
+
+.well-known/x402.json
+
+any discovery endpoints that show accepts
+
+So for /x402/ping, accepts will show 6 payment options, not just Base USDC.
+
+7. Facilitator / x402-express Considerations
+
+You’ll need to:
+
+Confirm which networks the official facilitator supports.
+
+If facilitator.x402.io only supports Base right now, you have two choices:
+
+Use the facilitator only for Base, and use your own manual verification for Ethereum/BSC.
+
+Or eventually run your own facilitator that supports all three.
+
+Ensure your code doesn’t assume a single network when working with the facilitator.
+
+If it passes through network, make sure it sends the correct one.
+
+If it ignores network, you may need to fork/override some behavior.
+
+This is more doc-reading and testing than coding, but it’s part of “everything you’d need.”
+
+8. Tests You’d Need Before Touching Production
+
+You’ll want all of this before flipping the switch:
+
+8.1 Unit tests
+
+verifyEip3009Payment with:
+
+Base USDC
+
+Ethereum USDC (if you adopt 3009 there)
+
+verifyStandardErc20Transfer with:
+
+mock receipts for:
+
+Ethereum USDT
+
+BSC USDT
+
+BSC USDC
+
+buildAcceptsForService returns correct array (networks, addresses, decimals).
+
+8.2 Integration tests (testnets or mainnet with tiny amounts)
+
+For each chain:
+
+Send a real small transfer from a test wallet to your platform wallet using:
+
+USDC
+
+USDT
+
+Hit your x402 endpoint with a tx hash proof.
+
+Confirm:
+
+200 OK and service result returned.
+
+DB row with paid: true, correct payment_amount, correct network, correct token.
+
+8.3 Regression tests
+
+Verify that existing Base USDC flows still work:
+
+no changes to service logic,
+
+no changes to pricing,
+
+no double-charging.
+
+9. Monitoring & Safety
+
+To not blow up a working system, you should:
+
+Log per-chain payment failures
+
+network, asset, txHash, error reason (no Transfer found, wrong amount, etc.)
+
+Add sane timeouts:
+
+don’t hang on a stuck RPC call.
+
+Add feature flags:
+
+e.g. ENABLE_ETHEREUM_PAYMENTS, ENABLE_BSC_PAYMENTS
+
+you can deploy code but only flip them on when ready.
+
+10. Compliance / Risk Notes (Short)
+
+All three are USD stablecoins, but:
+
+BSC is more scammy → whitelisting addresses matters.
+
+USDT has more blacklist / freeze powers + weird contract semantics.
+
+Your whitelisting in SUPPORTED_TOKENS is your primary defense:
+
+never treat arbitrary ERC-20s as valid payment tokens.
+
+TL;DR – “Everything You’d Need”
+
+To cleanly support USDC + USDT on Base, Ethereum, and BNB, you’d need:
+
+A clear token + network registry (addresses, decimals, supportsEip3009).
+
+RPC connections for Base, Ethereum, BSC.
+
+Multi-chain viem clients.
+
+Two verification paths:
+
+EIP-3009 for USDC (Base/Eth)
+
+standard ERC-20 Transfer event verification for USDT and BSC USDC.
+
+Refactored paymentOrchestrator to:
+
+route by network + asset,
+
+use the right client,
+
+normalize amounts with decimals,
+
+store amounts in cents as today.
+
+Updated x402 402 responses + .well-known using a centralized accepts generator.
+
+Check/align with the x402 facilitator (whether it supports multi-chain; if not, partially bypass for non-Base payments).
+
+Unit + integration tests across all 3 chains and tokens.
+
+Monitoring, logging, and feature flags so you can turn ETH/BNB support on or off safely.
+
+That’s the full “real” scope.

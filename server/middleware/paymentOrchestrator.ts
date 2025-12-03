@@ -350,7 +350,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       { id: "trending-tokens", name: "Trending Tokens", priceUSD: "$0.50", endpoint: "/x402/trending-tokens" },
     ],
     catalogUrl: `${baseUrl}/x402/catalog`,
-    totalServicesAvailable: 39
+    totalServicesAvailable: 37
   };
 
   console.log(`📊 x402 Funnel: challenge-issued for ${serviceName} | IP: ${req.ip} | Agent: ${req.headers['user-agent']?.substring(0, 20) || 'none'}`);

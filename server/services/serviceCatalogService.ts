@@ -540,6 +540,19 @@ export class ServiceCatalogService {
         capabilities: ['arbitrage', 'cross-platform', 'profit-opportunities'],
         x402Compatible: true,
         stripeCompatible: true
+      },
+      {
+        id: 'prediction-market-odds',
+        name: 'Prediction Market Odds Lookup',
+        description: 'Get current odds and probability for any prediction market event including Polymarket',
+        endpoint: '/x402/prediction-market-odds',
+        priceUSD: '$0.50',
+        priceUSDC: '0.50 USDC',
+        network: 'base',
+        category: 'prediction-markets',
+        capabilities: ['prediction-markets', 'odds-lookup', 'polymarket', 'probability'],
+        x402Compatible: true,
+        stripeCompatible: true
       }
     ];
 

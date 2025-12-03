@@ -320,6 +320,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
     "polymarket-events": "Trending prediction market events",
     "polymarket-odds": "Current odds for prediction markets",
     "polymarket-search": "Search prediction markets by keyword",
+    "prediction-market-odds": "Current odds for any prediction market event",
   };
 
   const response = {

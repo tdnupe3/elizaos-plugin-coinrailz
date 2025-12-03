@@ -1389,6 +1389,40 @@ const x402Routes = {
       }
     },
   },
+  "POST /prediction-market-odds": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["prediction-market-odds"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/prediction-market-odds`,
+      name: "Prediction Market Odds",
+      description: "Get current odds and probability for any prediction market event. Supports Polymarket and other prediction market platforms.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          slug: { type: "string", description: "Event slug (e.g., 'will-trump-win-2024')", required: false },
+          eventId: { type: "string", description: "Event ID", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            slug: { type: "string", description: "Event slug (e.g., 'will-trump-win-2024')" },
+            eventId: { type: "string", description: "Event ID" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            event: { type: "object", description: "Event details" },
+            odds: { type: "array", description: "Array of outcomes with probabilities and implied odds" }
+          }
+        }
+      }
+    },
+  },
 };
 
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
@@ -1536,7 +1570,7 @@ const serviceEndpoints = [
   "credit-risk-score", "fraud-detection", "compliance-check",
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
-  "polymarket-events", "polymarket-odds", "polymarket-search"
+  "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds"
 ];
 
 serviceEndpoints.forEach(endpoint => {
@@ -2783,6 +2817,23 @@ router.post("/polymarket-search",
     } catch (error: any) {
       const responseTime = Date.now() - startTime;
       await trackRequest("polymarket-search", req.body, null, responseTime, SERVICE_PRICING_USD["polymarket-search"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/prediction-market-odds",
+  createPaymentOrchestrator("prediction-market-odds", SERVICE_PRICING_MICRO["prediction-market-odds"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await polymarketOddsHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("prediction-market-odds", req.body, result, responseTime, SERVICE_PRICING_USD["prediction-market-odds"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "prediction-market-odds", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("prediction-market-odds", req.body, null, responseTime, SERVICE_PRICING_USD["prediction-market-odds"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
     }
   })

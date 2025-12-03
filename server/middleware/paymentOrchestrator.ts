@@ -341,7 +341,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       },
       discoverable: true
     }],
-    facilitatorUrl: "https://facilitator.x402.io",
+    facilitatorUrl: "https://api.cdp.coinbase.com/x402/facilitator",
     recommendedServices: [
       { id: "ping", name: "x402 Discovery Ping", priceUSD: "$0.25", endpoint: "/x402/ping" },
       { id: "trade-signals", name: "AI Trade Signals", priceUSD: "$0.75", endpoint: "/x402/trade-signals" },
@@ -350,7 +350,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       { id: "trending-tokens", name: "Trending Tokens", priceUSD: "$0.50", endpoint: "/x402/trending-tokens" },
     ],
     catalogUrl: `${baseUrl}/x402/catalog`,
-    totalServicesAvailable: 37
+    totalServicesAvailable: 39
   };
 
   console.log(`📊 x402 Funnel: challenge-issued for ${serviceName} | IP: ${req.ip} | Agent: ${req.headers['user-agent']?.substring(0, 20) || 'none'}`);

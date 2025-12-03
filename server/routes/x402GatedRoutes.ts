@@ -471,7 +471,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       x402Version: 1,
       metadata: {}
     }],
-    facilitatorUrl: "https://facilitator.x402.io"
+    facilitatorUrl: "https://api.cdp.coinbase.com/x402/facilitator"
   };
 
   res.status(402).json(response);

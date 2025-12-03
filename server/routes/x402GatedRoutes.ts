@@ -18,6 +18,7 @@ import { nanoid } from 'nanoid';
 import { createPaymentOrchestrator } from '../middleware/paymentOrchestrator';
 import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { usageAnalyticsMiddleware } from '../middleware/usageAnalyticsMiddleware';
+import { X402_FACILITATOR_URL } from '@shared/pricing';
 
 const router = Router();
 
@@ -471,7 +472,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       x402Version: 1,
       metadata: {}
     }],
-    facilitatorUrl: "https://api.cdp.coinbase.com/x402/facilitator"
+    facilitatorUrl: X402_FACILITATOR_URL
   };
 
   res.status(402).json(response);

@@ -11,6 +11,18 @@
  * IMPORTANT: Service names MUST exactly match the slugs used in createPaymentOrchestrator() calls
  */
 
+/**
+ * x402 Facilitator URL - SINGLE SOURCE OF TRUTH
+ * 
+ * The facilitator handles payment verification and settlement.
+ * - Official Coinbase CDP mainnet: https://api.cdp.coinbase.com/x402/facilitator
+ * - Community/test endpoint: https://x402.org/facilitator (testnet only)
+ * 
+ * This URL is embedded in 402 responses for client discovery.
+ * Actual server-side verification uses the `facilitator` SDK from @coinbase/x402.
+ */
+export const X402_FACILITATOR_URL = "https://api.cdp.coinbase.com/x402/facilitator";
+
 export type ServiceName = 
   // Discovery/Testing Services
   | "ping"

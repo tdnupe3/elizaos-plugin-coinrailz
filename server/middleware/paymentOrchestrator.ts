@@ -5,7 +5,7 @@ import {
   markPaymentIntentFailed 
 } from "./hybridPaymentMiddleware";
 import { offerLinkService } from "../services/offerLinkService";
-import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "../../shared/pricing";
+import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, X402_FACILITATOR_URL } from "../../shared/pricing";
 import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
@@ -341,7 +341,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       },
       discoverable: true
     }],
-    facilitatorUrl: "https://api.cdp.coinbase.com/x402/facilitator",
+    facilitatorUrl: X402_FACILITATOR_URL,
     recommendedServices: [
       { id: "ping", name: "x402 Discovery Ping", priceUSD: "$0.25", endpoint: "/x402/ping" },
       { id: "trade-signals", name: "AI Trade Signals", priceUSD: "$0.75", endpoint: "/x402/trade-signals" },

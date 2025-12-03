@@ -3,7 +3,7 @@ import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
-import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
+import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, X402_FACILITATOR_URL } from "@shared/pricing";
 import {
   multiChainBalanceService,
   gasPriceOracleService,
@@ -1528,7 +1528,7 @@ router.use((req: Request, res: Response, next) => {
       }
       
       // Inject facilitatorUrl at top level (x402scan requirement)
-      body.facilitatorUrl = 'https://api.cdp.coinbase.com/x402/facilitator'; // Official Coinbase CDP facilitator (mainnet)
+      body.facilitatorUrl = X402_FACILITATOR_URL; // Single source of truth from shared/pricing.ts
       
       // Inject discoverable:true into each payment requirement (x402scan requirement)
       body.accepts = body.accepts.map((paymentReq: any) => ({
@@ -1634,7 +1634,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       x402Version: 1,
       metadata: {}
     }],
-    facilitatorUrl: "https://api.cdp.coinbase.com/x402/facilitator"
+    facilitatorUrl: X402_FACILITATOR_URL
   };
 
   res.status(402).json(response);
@@ -2488,7 +2488,7 @@ router.get("/payment-status", async (req: Request, res: Response) => {
         token: "USDC",
         tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         platformWallet: PLATFORM_WALLET,
-        facilitator: "https://api.cdp.coinbase.com/x402/facilitator",
+        facilitator: X402_FACILITATOR_URL,
         documentation: `${PUBLIC_BASE_URL}/x402/payment-docs`,
       },
     });
@@ -2513,7 +2513,7 @@ router.get("/payment-docs", (req: Request, res: Response) => {
       network: "base",
     },
     platformWallet: PLATFORM_WALLET,
-    facilitator: "https://api.cdp.coinbase.com/x402/facilitator",
+    facilitator: X402_FACILITATOR_URL,
     pricing: SERVICE_PRICING,
     paymentFlow: {
       step1: "Make API request to any service endpoint",
@@ -2534,7 +2534,7 @@ router.get("/payment-docs", (req: Request, res: Response) => {
       noPaymentReceived: "Check transaction was sent to correct wallet and confirmed on Base",
       wrongNetwork: "Payment must be on Base mainnet, not Ethereum or other chains",
       wrongToken: "Payment must be USDC, not ETH or other tokens",
-      facilitatorError: "Verify api.cdp.coinbase.com/x402/facilitator is accessible",
+      facilitatorError: `Verify ${X402_FACILITATOR_URL} is accessible`,
     },
     support: {
       statusEndpoint: `${PUBLIC_BASE_URL}/x402/payment-status`,
@@ -2574,7 +2574,7 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
           token: "USDC",
           amount: SERVICE_PRICING_MICRO[serviceId as keyof typeof SERVICE_PRICING] || 500000,
           payTo: PLATFORM_WALLET,
-          facilitator: "https://api.cdp.coinbase.com/x402/facilitator",
+          facilitator: X402_FACILITATOR_URL,
         },
         step3_submitPayment: {
           status: "pending",

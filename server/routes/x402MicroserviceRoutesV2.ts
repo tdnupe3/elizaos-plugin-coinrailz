@@ -1389,6 +1389,119 @@ const x402Routes = {
       }
     },
   },
+  
+  // === GENERIC PREDICTION MARKET ALIASES (for discoverability) ===
+  // These map to the same Polymarket handlers but use generic naming for better AI agent discovery
+  "POST /prediction-market-events": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["polymarket-events"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/prediction-market-events`,
+      name: "Prediction Market Events (via Polymarket)",
+      description: "Get trending prediction market events with volume and odds. Returns data from Polymarket, the leading prediction market platform.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          limit: { type: "number", description: "Number of events to return (max 50)", required: false },
+          active: { type: "boolean", description: "Filter for active markets only", required: false },
+          sortBy: { type: "string", enum: ["volume", "startDate"], description: "Sort by volume or date", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            limit: { type: "number", description: "Number of events to return (max 50)" },
+            active: { type: "boolean", description: "Filter for active markets only" },
+            sortBy: { type: "string", enum: ["volume", "startDate"], description: "Sort by volume or date" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            events: { type: "array", description: "Array of prediction market events with odds and volume" },
+            count: { type: "number", description: "Number of events returned" }
+          }
+        }
+      }
+    },
+  },
+  "POST /prediction-market-odds": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["polymarket-odds"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/prediction-market-odds`,
+      name: "Prediction Market Odds (via Polymarket)",
+      description: "Get current odds and probability for a specific prediction market event. Returns data from Polymarket.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 60,
+      inputSchema: {
+        bodyFields: {
+          slug: { type: "string", description: "Event slug (e.g., 'will-trump-win-2024')", required: false },
+          eventId: { type: "string", description: "Event ID", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            slug: { type: "string", description: "Event slug (e.g., 'will-trump-win-2024')" },
+            eventId: { type: "string", description: "Event ID" }
+          }
+        },
+        output: {
+          type: "object",
+          properties: {
+            event: { type: "object", description: "Event details" },
+            odds: { type: "array", description: "Array of outcomes with probabilities and implied odds" }
+          }
+        }
+      }
+    },
+  },
+  "POST /prediction-market-search": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["polymarket-search"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/prediction-market-search`,
+      name: "Prediction Market Search (via Polymarket)",
+      description: "Search prediction markets by keyword. Returns results from Polymarket with relevance scoring. Standard mode searches top 5000 markets by volume. Use exhaustive:true for full catalog search (~15,000+ markets).",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          query: { type: "string", description: "Search keyword (e.g., 'bitcoin', 'election')", required: true },
+          limit: { type: "number", description: "Number of results to return (max 50)", required: false },
+          exhaustive: { type: "boolean", description: "Search all ~15,000+ markets (slower) instead of top 5000", required: false },
+          includeArchived: { type: "boolean", description: "Include closed/archived markets in search", required: false }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search keyword (e.g., 'bitcoin', 'election')" },
+            limit: { type: "number", description: "Number of results to return (max 50)" },
+            exhaustive: { type: "boolean", description: "Search all markets instead of top 5000 by volume" },
+            includeArchived: { type: "boolean", description: "Include closed/archived markets" }
+          },
+          required: ["query"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            results: { type: "array", description: "Array of matching prediction markets with relevance scores" },
+            count: { type: "number", description: "Number of results found" },
+            coverage: { type: "object", description: "Search coverage statistics" }
+          }
+        }
+      }
+    },
+  },
 };
 
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses
@@ -1536,7 +1649,8 @@ const serviceEndpoints = [
   "credit-risk-score", "fraud-detection", "compliance-check",
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
-  "polymarket-events", "polymarket-odds", "polymarket-search"
+  "polymarket-events", "polymarket-odds", "polymarket-search",
+  "prediction-market-events", "prediction-market-odds", "prediction-market-search"
 ];
 
 serviceEndpoints.forEach(endpoint => {
@@ -2779,6 +2893,61 @@ router.post("/polymarket-search",
       const responseTime = Date.now() - startTime;
       await trackRequest("polymarket-search", req.body, result, responseTime, SERVICE_PRICING_USD["polymarket-search"], req.ip || "unknown");
       await trackBundleUsage(req, res, "polymarket-search", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("polymarket-search", req.body, null, responseTime, SERVICE_PRICING_USD["polymarket-search"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ========================================
+// GENERIC PREDICTION MARKET ALIASES
+// Same handlers as polymarket-*, generic naming for discoverability
+// ========================================
+router.post("/prediction-market-events",
+  createPaymentOrchestrator("polymarket-events", SERVICE_PRICING_MICRO["polymarket-events"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await polymarketEventsHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("polymarket-events", req.body, result, responseTime, SERVICE_PRICING_USD["polymarket-events"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "prediction-market-events", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("polymarket-events", req.body, null, responseTime, SERVICE_PRICING_USD["polymarket-events"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/prediction-market-odds",
+  createPaymentOrchestrator("polymarket-odds", SERVICE_PRICING_MICRO["polymarket-odds"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await polymarketOddsHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("polymarket-odds", req.body, result, responseTime, SERVICE_PRICING_USD["polymarket-odds"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "prediction-market-odds", req.body);
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("polymarket-odds", req.body, null, responseTime, SERVICE_PRICING_USD["polymarket-odds"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+router.post("/prediction-market-search",
+  createPaymentOrchestrator("polymarket-search", SERVICE_PRICING_MICRO["polymarket-search"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const result = await polymarketSearchHandler.execute(req.body);
+      const responseTime = Date.now() - startTime;
+      await trackRequest("polymarket-search", req.body, result, responseTime, SERVICE_PRICING_USD["polymarket-search"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "prediction-market-search", req.body);
       res.json(result);
     } catch (error: any) {
       const responseTime = Date.now() - startTime;

@@ -18,12 +18,18 @@ import { nanoid } from 'nanoid';
 import { createPaymentOrchestrator } from '../middleware/paymentOrchestrator';
 import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { usageAnalyticsMiddleware } from '../middleware/usageAnalyticsMiddleware';
+import { x402ResponseEnricher } from '../middleware/x402ResponseEnricher';
 
 const router = Router();
 
 // Apply analytics and interaction tracking to all x402 routes (MUST be first)
 router.use(usageAnalyticsMiddleware);
 router.use(x402TrackingMiddleware);
+
+// Apply 402 response enricher BEFORE x402 middleware
+// This wraps res.json to add canonical URLs, maxAmountRequiredUSD, paymentInstructions
+// SAFE: Only modifies 402 responses, doesn't touch verification logic
+router.use(x402ResponseEnricher());
 
 // Platform wallet for receiving payments
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91') as `0x${string}`;

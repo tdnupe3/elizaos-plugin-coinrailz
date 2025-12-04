@@ -1448,15 +1448,63 @@ router.use((req: Request, res: Response, next) => {
         publicBaseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
       }
       
+      // OVERRIDE: Use PUBLIC_URL env var if set (production canonical URL)
+      if (process.env.PUBLIC_URL) {
+        publicBaseUrl = process.env.PUBLIC_URL;
+      }
+      
       // Inject facilitatorUrl at top level (x402scan requirement)
       body.facilitatorUrl = 'https://facilitator.x402.io'; // Coinbase CDP facilitator
       
-      // Inject discoverable:true into each payment requirement (x402scan requirement)
-      body.accepts = body.accepts.map((paymentReq: any) => ({
-        ...paymentReq,
-        discoverable: true,
-        resource: paymentReq.resource?.replace(/http:\/\/localhost:\d+\//, `${publicBaseUrl}/x402/`) || paymentReq.resource,
-      }));
+      // Inject discoverable:true + enriched fields into each payment requirement
+      body.accepts = body.accepts.map((paymentReq: any) => {
+        const enriched = {
+          ...paymentReq,
+          discoverable: true,
+        };
+        
+        // Fix resource URL to use canonical domain
+        if (paymentReq.resource) {
+          enriched.resource = paymentReq.resource
+            .replace(/http:\/\/localhost:\d+\//, `${publicBaseUrl}/`)
+            .replace(/https:\/\/[^\/]+\.repl\.co\//, `${publicBaseUrl}/`)
+            .replace(/https:\/\/[^\/]+\.replit\.dev\//, `${publicBaseUrl}/`);
+        }
+        
+        // Add maxAmountRequiredUSD if not present (convert from micro units)
+        if (paymentReq.maxAmountRequired && !paymentReq.maxAmountRequiredUSD) {
+          const microUnits = parseInt(paymentReq.maxAmountRequired, 10);
+          enriched.maxAmountRequiredUSD = `$${(microUnits / 1_000_000).toFixed(2)}`;
+        }
+        
+        // Ensure extra metadata is complete
+        if (!enriched.extra) {
+          enriched.extra = {};
+        }
+        enriched.extra.name = enriched.extra.name || "USD Coin";
+        enriched.extra.version = enriched.extra.version || "2";
+        enriched.extra.decimals = enriched.extra.decimals || 6;
+        enriched.extra.chainId = enriched.extra.chainId || 8453;
+        enriched.extra.chainName = enriched.extra.chainName || "Base";
+        
+        return enriched;
+      });
+      
+      // Add payment instructions if not present
+      if (!body.paymentInstructions) {
+        body.paymentInstructions = {
+          step1: "Obtain USDC on Base chain (chainId: 8453)",
+          step2: "Sign EIP-3009 authorization for the exact amount",
+          step3: "Include Base64-encoded authorization in X-PAYMENT header",
+          step4: "Retry the request with X-PAYMENT header",
+          alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
+          supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
+          network: "base",
+          chainId: 8453,
+          token: "USDC",
+          tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+        };
+      }
       
       // Inject service catalog recommendations for cross-sell
       try {
@@ -1498,14 +1546,14 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     return;
   }
 
-  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
-  const isWorkspace = process.env.REPL_SLUG && process.env.REPL_OWNER;
-  let publicBaseUrl = 'http://localhost:5000';
-  
-  if (isProduction) {
-    publicBaseUrl = 'https://coinrailz.com';
-  } else if (isWorkspace) {
-    publicBaseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+  // Determine canonical base URL - prioritize PUBLIC_URL env var
+  let publicBaseUrl = process.env.PUBLIC_URL || 'http://localhost:5000';
+  if (!process.env.PUBLIC_URL) {
+    if (process.env.REPLIT_DEPLOYMENT === '1') {
+      publicBaseUrl = 'https://coinrailz.com';
+    } else if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+      publicBaseUrl = `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+    }
   }
 
   const priceMatch = routeConfig.price.match(/\$([\d.]+)/);
@@ -1529,6 +1577,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       scheme: "exact",
       network: routeConfig.network,
       maxAmountRequired: priceInMicroUnits,
+      maxAmountRequiredUSD: `$${priceUsd.toFixed(2)}`,
       resource: resourceUrl,
       description: config.description || `x402 service: ${servicePath}`,
       payTo: PLATFORM_WALLET,
@@ -1540,7 +1589,10 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       tags: ["Crypto", "Blockchain", "AI", "x402", "USDC"],
       extra: {
         name: "USD Coin",
-        version: "2"
+        version: "2",
+        decimals: 6,
+        chainId: 8453,
+        chainName: "Base"
       },
       outputSchema: {
         input: {
@@ -1555,7 +1607,19 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       x402Version: 1,
       metadata: {}
     }],
-    facilitatorUrl: "https://facilitator.x402.io"
+    facilitatorUrl: "https://facilitator.x402.io",
+    paymentInstructions: {
+      step1: "Obtain USDC on Base chain (chainId: 8453)",
+      step2: "Sign EIP-3009 authorization for the exact amount",
+      step3: "Include Base64-encoded authorization in X-PAYMENT header",
+      step4: "Retry the request with X-PAYMENT header",
+      alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
+      supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
+      network: "base",
+      chainId: 8453,
+      token: "USDC",
+      tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    }
   };
 
   res.status(402).json(response);

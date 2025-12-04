@@ -1,0 +1,59 @@
+I want to explore a new capability direction, but this is NOT a request to build anything yet — just technical and architectural exploration.
+
+Context:
+Coin Railz already has a Coinbase CDP integration and wallet functionality (for account login, balances, transaction-builder, etc). I want to explore whether it is feasible, safe, and strategically sound to introduce a new x402 service category:
+
+**“Agent Wallet Provisioning”**  
+— programmatic wallet creation for AI agents  
+— per-wallet micropayment (x402)  
+— blockchain-specific wallets (Base, Ethereum, BNB)  
+— optional compliance check or KYC-lite metadata  
+— ephemeral or persistent wallets  
+— ability for the agent to request a signing session later  
+— ability for the agent to receive/hold/send on-chain assets  
+— ability for our platform to log or classify the wallets created
+
+This is purely exploratory.
+
+Questions I need answered:
+
+1. Given our current architecture (Node + Express, Coinbase CDP, viem, Base chain default infra):
+   - What APIs or SDKs do we *already* have that could support programmatic wallet creation?
+   - Does Coinbase CDP (or Coinbase Wallet SDK) allow automated wallet creation for services?
+   - Would we need to shift toward Safe, Privy, or another custody layer to support agent wallets?
+
+2. For an x402 service like “/x402/agent-create-wallet”:
+   - What would the 402 response object need to include?
+   - What schema should we define for agent parameters?
+   - Should we generate wallets locally (ECDSA), or use Smart Wallet infrastructure?
+
+3. Security considerations:
+   - How do we ensure agents cannot access private keys directly?
+   - Should wallets be MPC, smart wallets, or locally generated and encrypted?
+   - What are the regulatory implications, considering KHLLC’s MTL?
+
+4. How would we store created wallets?
+   - Postgres table schema recommendations
+   - Mapping agent_id → wallet_address
+   - Logging for compliance or auditing
+
+5. Should wallets be chain-specific or unified under an abstraction?
+   - Base only (v1)
+   - Optional support for ETH or BNB later
+
+6. What guardrails or risk controls are required before building this?
+
+7. Architect opinion:
+   - Does this direction align with the long-term vision of Coin Railz as an AI-agent infrastructure platform?
+   - Are there easier or safer ways to provide “wallet creation” functionality (ex: referring agents to Coinbase Smart Wallet instead)?
+   - What is the lowest-risk prototype version of this idea?
+
+Please provide:
+
+- A feasibility review  
+- High-level implementation pathways (multiple options)  
+- Risks, constraints, and unknowns  
+- Any corrections to my assumptions  
+- A recommended decision tree: when should we build this, if ever?
+
+Again, this is EXPLORATION ONLY. No code changes yet.

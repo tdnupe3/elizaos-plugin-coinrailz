@@ -207,9 +207,15 @@ export class X402FundsSweepService {
       const allWallets: any[] = [];
       let walletsPage = await Wallet.listWallets();
       
-      // Iterate through pagination using SDK's async iterator
-      for await (const wallet of walletsPage) {
-        allWallets.push(wallet);
+      // Iterate through pagination using SDK's page-based API
+      while (walletsPage) {
+        // CDP SDK returns paginated results with data/items array
+        const pageItems = (walletsPage as any).data ?? (walletsPage as any).items ?? [];
+        allWallets.push(...pageItems);
+        
+        // Check if there are more pages
+        if (!(walletsPage as any).hasNextPage?.()) break;
+        walletsPage = await (walletsPage as any).getNextPage();
       }
       
       console.log(`📋 Found ${allWallets.length} wallets in CDP account`);

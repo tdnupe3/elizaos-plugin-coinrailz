@@ -111,6 +111,7 @@ class AutonomousDiscoveryService {
         '/x402/approval-manager',
         '/x402/payment-processing',
         '/x402/instant-agent-wallet',
+        '/x402/agent-create-wallet',
         '/x402/seamless-chain-bridge',
         '/x402/verified-agent-identity',
         '/x402/service/smart-contract-audit',

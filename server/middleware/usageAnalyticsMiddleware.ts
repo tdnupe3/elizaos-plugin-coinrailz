@@ -12,12 +12,29 @@ export interface AnalyticsContext {
   userAgent?: string;
 }
 
+function getClientIp(req: Request): string {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  if (xForwardedFor) {
+    const ips = Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor;
+    return ips.split(',')[0].trim();
+  }
+  const xRealIp = req.headers['x-real-ip'];
+  if (xRealIp) {
+    return Array.isArray(xRealIp) ? xRealIp[0] : xRealIp;
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+}
+
 export function usageAnalyticsMiddleware(req: Request, res: Response, next: NextFunction) {
   const requestId = nanoid();
   const startTime = Date.now();
   
   const serviceId = extractServiceId(req.path);
   const userAgent = req.headers['user-agent'] || null;
+  const requestMethod = req.method;
+  const requestPath = req.originalUrl || req.path;
+  const clientIp = getClientIp(req);
+  const paymentAttempted = !!req.headers['x-payment'];
   
   const analyticsContext: AnalyticsContext = {
     requestId,
@@ -59,6 +76,10 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
         responseTime,
         paymentMethod,
         userAgent: userAgent || null,
+        requestMethod,
+        requestPath: requestPath.substring(0, 255),
+        clientIp,
+        paymentAttempted,
         paymentStatus: statusCode === 200 ? 'completed' : statusCode === 402 ? 'pending' : 'failed',
         walletAddress: analyticsContext.walletAddress || null,
         error: statusCode >= 400 && statusCode !== 402 ? JSON.stringify(responseData) : null,

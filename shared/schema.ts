@@ -3971,6 +3971,10 @@ export const microserviceRequests = pgTable(
     walletAddress: varchar("wallet_address"),
     paymentMethod: varchar("payment_method", { length: 20 }), // 'eip712', 'tx_hash', null (no payment)
     userAgent: text("user_agent"), // User-Agent header for SDK detection
+    requestMethod: varchar("request_method", { length: 10 }), // GET, POST, etc
+    requestPath: varchar("request_path", { length: 255 }), // Full request path like /x402/ping
+    clientIp: varchar("client_ip", { length: 45 }), // IPv4 or IPv6 address
+    paymentAttempted: boolean("payment_attempted").default(false), // Was X-PAYMENT header present?
     createdAt: timestamp("created_at").defaultNow(),
     error: text("error"),
   },
@@ -3980,6 +3984,8 @@ export const microserviceRequests = pgTable(
     index("IDX_microservice_requests_created").on(table.createdAt),
     index("IDX_microservice_requests_wallet").on(table.walletAddress),
     index("IDX_microservice_requests_payment_method").on(table.paymentMethod),
+    index("IDX_microservice_requests_client_ip").on(table.clientIp),
+    index("IDX_microservice_requests_user_agent").on(table.userAgent),
   ],
 );
 

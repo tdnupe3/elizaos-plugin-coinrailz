@@ -327,6 +327,125 @@ export function setupAnalyticsRoutes(app: Express) {
       });
     }
   });
+
+  // x402 Funnel Report - 402 challenges vs paid requests by user agent
+  // PUBLIC endpoint for monitoring conversion funnel
+  app.get("/api/analytics/x402-funnel", async (req, res) => {
+    try {
+      const hours = parseInt(req.query.hours as string) || 24;
+      const startTime = new Date(Date.now() - hours * 60 * 60 * 1000);
+      
+      // Get requests with new structured logging fields
+      const requests = await db.query.microserviceRequests.findMany({
+        where: (table, { gte }) => gte(table.createdAt, startTime),
+        orderBy: (table, { desc }) => [desc(table.createdAt)],
+      });
+
+      // Build funnel analysis
+      const byUserAgent: Record<string, { 
+        total: number; 
+        challenges402: number; 
+        paid: number; 
+        paymentAttempts: number;
+        paths: Record<string, number>;
+        methods: { GET: number; POST: number; other: number };
+        uniqueIPs: Set<string>;
+        firstSeen: Date | null;
+        lastSeen: Date | null;
+      }> = {};
+
+      requests.forEach(req => {
+        const ua = req.userAgent || 'unknown';
+        if (!byUserAgent[ua]) {
+          byUserAgent[ua] = { 
+            total: 0, 
+            challenges402: 0, 
+            paid: 0, 
+            paymentAttempts: 0,
+            paths: {},
+            methods: { GET: 0, POST: 0, other: 0 },
+            uniqueIPs: new Set(),
+            firstSeen: null,
+            lastSeen: null,
+          };
+        }
+        
+        const stats = byUserAgent[ua];
+        stats.total++;
+        
+        if (req.paymentStatus === 'pending') stats.challenges402++;
+        if (req.paymentStatus === 'completed') stats.paid++;
+        if (req.paymentMethod || (req as any).paymentAttempted) stats.paymentAttempts++;
+        
+        // Track paths
+        const path = (req as any).requestPath || req.serviceId || 'unknown';
+        stats.paths[path] = (stats.paths[path] || 0) + 1;
+        
+        // Track methods
+        const method = ((req as any).requestMethod || 'GET').toUpperCase();
+        if (method === 'GET') stats.methods.GET++;
+        else if (method === 'POST') stats.methods.POST++;
+        else stats.methods.other++;
+        
+        // Track unique IPs
+        const ip = (req as any).clientIp;
+        if (ip) stats.uniqueIPs.add(ip);
+        
+        // Track time range
+        if (req.createdAt) {
+          if (!stats.firstSeen || req.createdAt < stats.firstSeen) stats.firstSeen = req.createdAt;
+          if (!stats.lastSeen || req.createdAt > stats.lastSeen) stats.lastSeen = req.createdAt;
+        }
+      });
+
+      // Convert to array and serialize Sets
+      const funnelData = Object.entries(byUserAgent)
+        .map(([ua, stats]) => ({
+          userAgent: ua,
+          sdk: detectSDK(ua),
+          total: stats.total,
+          challenges402: stats.challenges402,
+          paid: stats.paid,
+          paymentAttempts: stats.paymentAttempts,
+          conversionRate: stats.total > 0 ? ((stats.paid / stats.total) * 100).toFixed(2) + '%' : '0%',
+          topPaths: Object.entries(stats.paths)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5)
+            .map(([path, count]) => ({ path, count })),
+          methods: stats.methods,
+          uniqueIPs: stats.uniqueIPs.size,
+          firstSeen: stats.firstSeen,
+          lastSeen: stats.lastSeen,
+        }))
+        .sort((a, b) => b.total - a.total);
+
+      // Summary stats
+      const totalRequests = requests.length;
+      const total402 = requests.filter(r => r.paymentStatus === 'pending').length;
+      const totalPaid = requests.filter(r => r.paymentStatus === 'completed').length;
+      const totalPaymentAttempts = requests.filter(r => r.paymentMethod || (r as any).paymentAttempted).length;
+      
+      res.json({
+        timeframe: `${hours} hours`,
+        generatedAt: new Date().toISOString(),
+        summary: {
+          totalRequests,
+          total402Challenges: total402,
+          totalPaidRequests: totalPaid,
+          totalPaymentAttempts,
+          overallConversionRate: totalRequests > 0 ? ((totalPaid / totalRequests) * 100).toFixed(2) + '%' : '0%',
+          uniqueUserAgents: Object.keys(byUserAgent).length,
+        },
+        byUserAgent: funnelData,
+      });
+    } catch (error: any) {
+      console.error('Error fetching x402 funnel data:', error);
+      res.status(500).json({
+        error: 'Failed to fetch x402 funnel data',
+        message: error.message,
+      });
+    }
+  });
 }
 
 // Helper functions

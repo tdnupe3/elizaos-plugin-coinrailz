@@ -47,12 +47,15 @@ function getPlatformWalletClient() {
   return platformWalletClient;
 }
 
-// Helper to get the correct public URL from request headers
+// CANONICAL_BASE_URL - Always use production domain for 402 responses
+// This ensures agents receive consistent resource URLs regardless of which environment serves the request
+const CANONICAL_BASE_URL = process.env.PUBLIC_URL || 'https://coinrailz.com';
+
+// Helper to get the canonical public URL - always returns production domain
 function getPublicBaseUrl(req: Request): string {
-  // Use X-Forwarded-Host or Host header to get actual request URL
-  const host = req.get('X-Forwarded-Host') || req.get('Host') || 'coinrailz.com';
-  const protocol = req.get('X-Forwarded-Proto') || 'https';
-  return `${protocol}://${host}`;
+  // Always return canonical production URL for 402 resource consistency
+  // Agents need stable URLs to match payment verification
+  return CANONICAL_BASE_URL;
 }
 
 /**
@@ -330,6 +333,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       scheme: "exact",
       network: "base",
       maxAmountRequired: requiredAmount.toString(),
+      maxAmountRequiredUSD: priceUsd,
       resource: resource,
       description: descriptions[serviceName] || `${serviceName} micropayment service`,
       mimeType: "application/json",
@@ -338,11 +342,22 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       asset: USDC_BASE,
       extra: {
         name: "USD Coin",
-        version: "2"
+        version: "2",
+        decimals: 6,
+        chainId: 8453,
+        chainName: "Base"
       },
       discoverable: true
     }],
     facilitatorUrl: "https://facilitator.x402.io",
+    paymentInstructions: {
+      step1: "Obtain USDC on Base chain",
+      step2: "Sign EIP-3009 authorization for the exact amount",
+      step3: "Include Base64-encoded authorization in X-PAYMENT header",
+      step4: "Retry the request with X-PAYMENT header",
+      alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
+      supportedMethods: ["eip3009-authorization", "raw-transaction-hash"]
+    },
     recommendedServices: [
       { id: "ping", name: "x402 Discovery Ping", priceUSD: "$0.25", endpoint: "/x402/ping" },
       { id: "trade-signals", name: "AI Trade Signals", priceUSD: "$0.75", endpoint: "/x402/trade-signals" },

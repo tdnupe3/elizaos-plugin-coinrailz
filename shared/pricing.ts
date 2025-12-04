@@ -33,6 +33,7 @@ export type ServiceName =
   | "payment-processing"
   | "contract-scan"
   | "instant-agent-wallet"
+  | "agent-create-wallet"  // Agent Wallet Provisioning via CDP
   | "seamless-chain-bridge"
   // Premium Services
   | "verified-agent-identity"
@@ -90,6 +91,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "payment-processing": 500000,        // $0.50
   "contract-scan": 1000000,            // $1.00
   "instant-agent-wallet": 1000000,     // $1.00
+  "agent-create-wallet": 2000000,      // $2.00 - Agent Wallet Provisioning via CDP
   "seamless-chain-bridge": 2000000,    // $2.00
   
   // Premium Services ($5.00-$10.00)
@@ -151,6 +153,7 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "payment-processing": 0.50,
   "contract-scan": 1.00,
   "instant-agent-wallet": 1.00,
+  "agent-create-wallet": 2.00,  // Agent Wallet Provisioning via CDP
   "seamless-chain-bridge": 2.00,
   
   // Premium Services

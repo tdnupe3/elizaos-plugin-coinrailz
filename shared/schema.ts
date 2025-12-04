@@ -307,6 +307,75 @@ export const coinbaseOAuthTokens = pgTable("coinbase_oauth_tokens", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Agent Wallets table for x402 Agent Wallet Provisioning service
+// Tracks wallets created for AI agents via CDP (Coinbase Developer Platform)
+export const agentWallets = pgTable("agent_wallets", {
+  id: serial("id").primaryKey(),
+  agentId: varchar("agent_id").notNull(), // Logical agent identifier provided by caller
+  walletId: varchar("wallet_id").notNull().unique(), // CDP provider wallet ID
+  address: varchar("address").notNull().unique(), // Wallet address (0x...)
+  chain: varchar("chain").notNull().default("base-mainnet"), // Blockchain network
+  custodyType: varchar("custody_type").notNull().default("cdp"), // cdp, self-custody, etc
+  purpose: varchar("purpose").notNull().default("persistent"), // ephemeral, persistent
+  status: varchar("status").notNull().default("active"), // active, disabled, error
+  labels: text("labels").array(), // Optional classification labels
+  tags: text("tags").array(), // Optional tags for categorization
+  metadata: jsonb("metadata"), // Additional agent metadata
+  paymentTxHash: varchar("payment_tx_hash"), // x402 payment transaction hash
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("IDX_agent_wallets_agent_id").on(table.agentId),
+  index("IDX_agent_wallets_chain").on(table.chain),
+  index("IDX_agent_wallets_status").on(table.status),
+  index("IDX_agent_wallets_purpose").on(table.purpose),
+]);
+
+// Agent Wallet Events table for audit logging
+export const agentWalletEvents = pgTable("agent_wallet_events", {
+  id: serial("id").primaryKey(),
+  walletId: varchar("wallet_id").notNull(), // Reference to agent_wallets.walletId
+  eventType: varchar("event_type").notNull(), // created, funded, disabled, error
+  actor: varchar("actor"), // Caller ID, API key hash, or agent identifier
+  requestId: varchar("request_id"), // Unique request ID for tracing
+  offerTracking: varchar("offer_tracking"), // x402 offer tracking ID
+  payload: jsonb("payload"), // Request payload (sanitized)
+  response: jsonb("response"), // Response payload (sanitized)
+  errorMessage: text("error_message"), // Error details if applicable
+  ipAddress: varchar("ip_address"), // Caller IP for compliance
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("IDX_agent_wallet_events_wallet_id").on(table.walletId),
+  index("IDX_agent_wallet_events_event_type").on(table.eventType),
+  index("IDX_agent_wallet_events_created_at").on(table.createdAt),
+]);
+
+// Agent Wallet Insert/Select Schemas
+export const insertAgentWalletSchema = createInsertSchema(agentWallets).omit({
+  id: true,
+  createdAt: true,
+});
+export const selectAgentWalletSchema = createSelectSchema(agentWallets);
+export type InsertAgentWallet = z.infer<typeof insertAgentWalletSchema>;
+export type AgentWallet = typeof agentWallets.$inferSelect;
+
+export const insertAgentWalletEventSchema = createInsertSchema(agentWalletEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertAgentWalletEvent = z.infer<typeof insertAgentWalletEventSchema>;
+export type AgentWalletEvent = typeof agentWalletEvents.$inferSelect;
+
+// Agent Wallet Provisioning API Input Schema (for x402 endpoint)
+export const agentCreateWalletInputSchema = z.object({
+  agent_id: z.string().min(1, "Agent ID is required").max(255),
+  purpose: z.enum(["ephemeral", "persistent"]).default("persistent"),
+  chain: z.enum(["base-mainnet", "ethereum-mainnet", "polygon-mainnet", "arbitrum-mainnet"]).default("base-mainnet"),
+  labels: z.array(z.string().max(50)).max(10).optional(),
+  tags: z.array(z.string().max(50)).max(10).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+export type AgentCreateWalletInput = z.infer<typeof agentCreateWalletInputSchema>;
+
 // Digital Wallet Balances - Support multiple currencies
 export const walletBalances = pgTable("wallet_balances", {
   id: serial("id").primaryKey(),

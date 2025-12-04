@@ -307,6 +307,7 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
     "payment-processing": "Instant USDC payment processing",
     "contract-scan": "Smart contract security scanning",
     "instant-agent-wallet": "Create CDP-managed agent wallet instantly",
+    "agent-create-wallet": "Provision persistent CDP-managed wallet for AI agents ($2.00 USDC)",
     "seamless-chain-bridge": "Cross-chain bridging quotes and execution",
     "property-valuation": "AI-powered real estate property valuation",
     "lease-analysis": "Commercial lease analysis and recommendations",

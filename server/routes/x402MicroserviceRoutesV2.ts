@@ -53,7 +53,11 @@ import {
   arbitrageScannerInputSchema,
   correlationMatrixInputSchema,
   riskMetricsInputSchema,
+  agentCreateWalletInputSchema,
+  agentWallets,
+  agentWalletEvents,
 } from "@shared/schema";
+import { CoinbaseCDPService } from "../services/coinbaseCDPService";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
 import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
@@ -985,6 +989,66 @@ const x402Routes = {
           walletAddress: { type: "string", description: "New wallet address" },
           walletId: { type: "string", description: "Circle wallet ID" },
           network: { type: "string", description: "Blockchain network" }
+        }
+      }
+    }
+  },
+  "POST /agent-create-wallet": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["agent-create-wallet"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/agent-create-wallet`,
+      name: "Agent Wallet Provisioning",
+      description: "Programmatic wallet creation for AI agents via Coinbase CDP - Base chain default, persistent/ephemeral options, full audit logging",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 180,
+      inputSchema: {
+        bodyFields: {
+          agent_id: { type: "string", description: "Unique AI agent identifier", required: true },
+          purpose: { type: "string", enum: ["ephemeral", "persistent"], description: "Wallet purpose (default: persistent)" },
+          chain: { type: "string", enum: ["base-mainnet", "ethereum-mainnet", "polygon-mainnet", "arbitrum-mainnet"], description: "Blockchain network (default: base-mainnet)" },
+          labels: { type: "array", items: { type: "string" }, description: "Optional classification labels" },
+          tags: { type: "array", items: { type: "string" }, description: "Optional tags for categorization" },
+          metadata: { type: "object", description: "Optional metadata for the wallet" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            agent_id: { type: "string", description: "Unique AI agent identifier" },
+            purpose: { type: "string", enum: ["ephemeral", "persistent"], description: "Wallet purpose (default: persistent)" },
+            chain: { type: "string", enum: ["base-mainnet", "ethereum-mainnet", "polygon-mainnet", "arbitrum-mainnet"], description: "Blockchain network (default: base-mainnet)" },
+            labels: { type: "array", items: { type: "string" }, description: "Optional classification labels" },
+            tags: { type: "array", items: { type: "string" }, description: "Optional tags for categorization" },
+            metadata: { type: "object", description: "Optional metadata for the wallet" }
+          },
+          required: ["agent_id"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            wallet_address: { type: "string", description: "New wallet address (0x...)" },
+            wallet_id: { type: "string", description: "CDP wallet ID" },
+            chain: { type: "string", description: "Blockchain network" },
+            custody_type: { type: "string", description: "Custody type (cdp)" },
+            purpose: { type: "string", description: "Wallet purpose" },
+            status: { type: "string", description: "Wallet status" },
+            created_at: { type: "string", description: "Creation timestamp" }
+          }
+        }
+      },
+      outputSchema: {
+        type: "object",
+        properties: {
+          wallet_address: { type: "string", description: "New wallet address (0x...)" },
+          wallet_id: { type: "string", description: "CDP wallet ID" },
+          chain: { type: "string", description: "Blockchain network" },
+          custody_type: { type: "string", description: "Custody type (cdp)" },
+          purpose: { type: "string", description: "Wallet purpose" },
+          status: { type: "string", description: "Wallet status" },
+          created_at: { type: "string", description: "Creation timestamp" }
         }
       }
     }
@@ -2901,6 +2965,141 @@ router.post("/prediction-market-odds",
       res.status(400).json({ success: false, error: error.message });
     }
   })
+);
+
+// ========================================
+// AGENT WALLET PROVISIONING SERVICE
+// CDP-managed wallet creation for AI agents
+// $2.00 USDC per wallet - Base chain default
+// ========================================
+
+const agentCreateWalletHandler = async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const requestId = `awp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  
+  try {
+    // Validate input using Zod schema
+    const validationResult = agentCreateWalletInputSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      const errors = validationResult.error.errors.map(e => e.message).join(', ');
+      res.status(400).json({ 
+        success: false, 
+        error: `Validation failed: ${errors}`,
+        requestId 
+      });
+      return;
+    }
+    
+    const { agent_id, purpose = "persistent", chain = "base-mainnet", labels, tags, metadata } = validationResult.data;
+    
+    // Get CDP service instance
+    const cdpService = CoinbaseCDPService.getInstance();
+    
+    // Check if CDP service is initialized
+    const status = await cdpService.getServiceStatus();
+    if (!status.initialized) {
+      // Log the error event
+      await db.insert(agentWalletEvents).values({
+        walletId: "pending",
+        eventType: "error",
+        actor: agent_id,
+        requestId,
+        payload: { agent_id, purpose, chain },
+        errorMessage: "CDP service not initialized - credentials may be missing",
+        ipAddress: req.ip || undefined,
+      });
+      
+      res.status(503).json({
+        success: false,
+        error: "Wallet provisioning service temporarily unavailable",
+        requestId,
+        suggestion: "Please try again later or contact support"
+      });
+      return;
+    }
+    
+    // Create wallet via CDP
+    const cdpWallet = await cdpService.createWallet(agent_id, chain);
+    
+    // Persist to agent_wallets table
+    const [insertedWallet] = await db.insert(agentWallets).values({
+      agentId: agent_id,
+      walletId: cdpWallet.id,
+      address: cdpWallet.address,
+      chain: chain,
+      custodyType: "cdp",
+      purpose: purpose,
+      status: "active",
+      labels: labels || null,
+      tags: tags || null,
+      metadata: metadata || null,
+      paymentTxHash: res.locals.payment?.txHash || null,
+    }).returning();
+    
+    // Log the creation event for audit
+    await db.insert(agentWalletEvents).values({
+      walletId: cdpWallet.id,
+      eventType: "created",
+      actor: agent_id,
+      requestId,
+      offerTracking: req.query.offer_tracking as string || null,
+      payload: { agent_id, purpose, chain, labels, tags },
+      response: { wallet_address: cdpWallet.address, wallet_id: cdpWallet.id },
+      ipAddress: req.ip || undefined,
+    });
+    
+    const responseTime = Date.now() - startTime;
+    
+    // Track request for analytics
+    await trackRequest("agent-create-wallet", req.body, { wallet_address: cdpWallet.address }, responseTime, SERVICE_PRICING_USD["agent-create-wallet"], cdpWallet.address);
+    await trackBundleUsage(req, res, "agent-create-wallet", { agent_id, chain });
+    
+    // Return wallet info (NEVER expose private keys)
+    res.json({
+      success: true,
+      wallet_address: cdpWallet.address,
+      wallet_id: cdpWallet.id,
+      chain: chain,
+      custody_type: "cdp",
+      purpose: purpose,
+      status: "active",
+      created_at: insertedWallet.createdAt?.toISOString() || new Date().toISOString(),
+      requestId,
+    });
+    
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    console.error(`❌ Agent wallet creation failed:`, error);
+    
+    // Log the error event
+    try {
+      await db.insert(agentWalletEvents).values({
+        walletId: "error",
+        eventType: "error",
+        actor: req.body?.agent_id || "unknown",
+        requestId,
+        payload: req.body,
+        errorMessage: error.message,
+        ipAddress: req.ip || undefined,
+      });
+    } catch (logError) {
+      console.error("Failed to log error event:", logError);
+    }
+    
+    await trackRequest("agent-create-wallet", req.body, null, responseTime, SERVICE_PRICING_USD["agent-create-wallet"], req.ip || "unknown", error.message);
+    
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      requestId,
+      suggestion: "Check agent_id format and try again"
+    });
+  }
+};
+
+router.post("/agent-create-wallet",
+  createPaymentOrchestrator("agent-create-wallet", SERVICE_PRICING_MICRO["agent-create-wallet"], agentCreateWalletHandler),
+  agentCreateWalletHandler
 );
 
 export default router;

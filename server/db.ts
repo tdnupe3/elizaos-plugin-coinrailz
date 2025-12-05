@@ -4,15 +4,11 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 
 // Configure Neon based on environment
-// Production: Use HTTP fetch mode to avoid WebSocket bundling issues with esbuild
-// Development: Use WebSocket for better performance
+// Production uses HTTP fetch mode to avoid the Neon/esbuild WebSocket bundling bug:
+// "Cannot set property message of # which has only a getter"
+// See: https://github.com/brianc/node-postgres/issues/3373
 if (process.env.NODE_ENV === 'production') {
-  // In production, use fetch mode (HTTP) to avoid the WebSocket error:
-  // "Cannot set property message of # which has only a getter"
-  // This is a known issue with @neondatabase/serverless + esbuild bundling
   neonConfig.fetchConnectionCache = true;
-  neonConfig.useSecureWebSocket = false;
-  neonConfig.wsProxy = undefined;
   neonConfig.poolQueryViaFetch = true;
 } else {
   // Development: Use WebSocket for better performance

@@ -3,8 +3,21 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
-// Simple Neon configuration
-neonConfig.webSocketConstructor = ws;
+// Configure Neon based on environment
+// Production: Use HTTP fetch mode to avoid WebSocket bundling issues with esbuild
+// Development: Use WebSocket for better performance
+if (process.env.NODE_ENV === 'production') {
+  // In production, use fetch mode (HTTP) to avoid the WebSocket error:
+  // "Cannot set property message of # which has only a getter"
+  // This is a known issue with @neondatabase/serverless + esbuild bundling
+  neonConfig.fetchConnectionCache = true;
+  neonConfig.useSecureWebSocket = false;
+  neonConfig.wsProxy = undefined;
+  neonConfig.poolQueryViaFetch = true;
+} else {
+  // Development: Use WebSocket for better performance
+  neonConfig.webSocketConstructor = ws;
+}
 
 if (!process.env.DATABASE_URL) {
   throw new Error(

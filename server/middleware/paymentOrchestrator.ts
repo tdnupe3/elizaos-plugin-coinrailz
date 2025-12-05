@@ -9,6 +9,72 @@ import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "../../sh
 import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
+import { x402InteractionTracker } from "../services/x402InteractionTracker";
+import { nanoid } from "nanoid";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
+
+// Known agent user-agents that are probing our endpoints
+const KNOWN_AGENT_PATTERNS = [
+  { pattern: /python-httpx/i, name: "Python HTTPX Agent", partnerOffer: true },
+  { pattern: /x402-fetch/i, name: "x402 Native Client", partnerOffer: true },
+  { pattern: /coinbase/i, name: "Coinbase Agent", partnerOffer: true },
+  { pattern: /eliza/i, name: "ElizaOS Agent", partnerOffer: true },
+  { pattern: /virtuals/i, name: "Virtuals Protocol", partnerOffer: true },
+  { pattern: /fere/i, name: "FereAI Agent", partnerOffer: true },
+  { pattern: /langchain/i, name: "LangChain Agent", partnerOffer: true },
+  { pattern: /autogpt/i, name: "AutoGPT Agent", partnerOffer: true },
+  { pattern: /^node$/i, name: "Node.js Agent", partnerOffer: true },
+  { pattern: /curl/i, name: "Curl Client", partnerOffer: false },
+];
+
+// First-call free eligibility - cheapest services at $0.10
+const FIRST_CALL_FREE_SERVICES = ["gas-price-oracle", "token-metadata"];
+const FIRST_CALL_FREE_CACHE = new Map<string, { granted: boolean; timestamp: number }>();
+
+// Check if user-agent is a known agent
+function detectKnownAgent(userAgent: string | undefined): { isKnown: boolean; name: string; partnerOffer: boolean } {
+  if (!userAgent) return { isKnown: false, name: "unknown", partnerOffer: false };
+  
+  for (const agent of KNOWN_AGENT_PATTERNS) {
+    if (agent.pattern.test(userAgent)) {
+      return { isKnown: true, name: agent.name, partnerOffer: agent.partnerOffer };
+    }
+  }
+  return { isKnown: false, name: "unknown", partnerOffer: false };
+}
+
+// Check if IP/User-Agent combo is eligible for first-call free
+async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string | undefined): Promise<boolean> {
+  const cacheKey = `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
+  
+  // Check in-memory cache first
+  const cached = FIRST_CALL_FREE_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 3600000) { // 1 hour cache
+    return !cached.granted; // If already granted, not eligible
+  }
+  
+  try {
+    // Check database for previous free calls from this IP/UA combo
+    const result = await db.execute(sql`
+      SELECT COUNT(*) as count 
+      FROM x402_interactions 
+      WHERE ip_address = ${ipAddress}
+        AND (user_agent = ${userAgent || ''} OR ${!userAgent})
+        AND metadata->>'first_call_free' = 'granted'
+        AND created_at > NOW() - INTERVAL '30 days'
+    `);
+    
+    const count = parseInt(String((result.rows[0] as any)?.count || '0'));
+    const eligible = count === 0;
+    
+    FIRST_CALL_FREE_CACHE.set(cacheKey, { granted: !eligible, timestamp: Date.now() });
+    return eligible;
+  } catch (error) {
+    console.error("Error checking first-call-free eligibility:", error);
+    return false; // Fail closed
+  }
+}
 
 // Platform wallet to receive payments
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
@@ -59,15 +125,16 @@ function getPublicBaseUrl(req: Request): string {
 }
 
 /**
- * Payment Orchestrator - SELF-CONTAINED x402 payment handling
+ * Payment Orchestrator - SELF-CONTAINED x402 payment handling with full funnel instrumentation
  * 
- * FIXED: Generates its own 402 responses instead of relying on flaky x402-express facilitator
+ * ENHANCED: Full funnel tracking for Discovery → Probe → Pay conversion analysis
  * 
  * Decision tree:
+ * 0. If first-call free eligible + cheapest service → execute handler directly (with tracking)
  * 1. If bundle subscription → execute handler directly
- * 2. If no X-PAYMENT header → generate 402 with payment requirements
- * 3. If raw 0x transaction hash → verify on-chain, execute handler
- * 4. If Base64 JSON with txHash → verify on-chain, execute handler
+ * 2. If no X-PAYMENT header → generate 402 with payment requirements (TRACKED)
+ * 3. If raw 0x transaction hash → verify on-chain, execute handler (TRACKED)
+ * 4. If Base64 JSON with txHash → verify on-chain, execute handler (TRACKED)
  * 5. If EIP-712 signature → verify via facilitator (fallback to next middleware)
  */
 export function createPaymentOrchestrator(
@@ -76,6 +143,13 @@ export function createPaymentOrchestrator(
   handler: (req: Request, res: Response) => Promise<void>
 ) {
   return async (req: Request, res: Response, next: NextFunction) => {
+    const requestId = nanoid();
+    const startTime = Date.now();
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'];
+    const offerTrackingId = req.query?.offer_tracking as string;
+    const knownAgent = detectKnownAgent(userAgent);
+    
     // Check if bundle subscription exists (set by bundleAuthMiddleware)
     if (req.bundleSubscription) {
       const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
@@ -83,7 +157,27 @@ export function createPaymentOrchestrator(
       res.locals.payment = { method: "bundle-subscription", subscriptionId: req.bundleSubscription.id, amount: priceUsd, status: 'paid' };
       await handler(req, res);
       
-      const offerTrackingId = req.query?.offer_tracking as string;
+      // Track bundle payment
+      await x402InteractionTracker.trackInteraction({
+        serviceId: serviceName,
+        ipAddress,
+        userAgent,
+        requestPath: req.originalUrl,
+        requestMethod: req.method,
+        responseStatus: 200,
+        paid: true,
+        amount: priceUsd,
+        interactionType: 'payment',
+        requestId,
+        eventType: 'bundle-payment',
+        serviceName,
+        latencyMs: Date.now() - startTime,
+        paymentReceived: true,
+        paymentAmount: priceUsd,
+        offerTrackingId,
+        metadata: { method: 'bundle-subscription', knownAgent: knownAgent.name }
+      });
+      
       if (offerTrackingId) {
         try {
           await offerLinkService.recordConversion(offerTrackingId, priceUsd);
@@ -96,10 +190,84 @@ export function createPaymentOrchestrator(
 
     const xPayment = req.headers["x-payment"] as string | undefined;
 
+    // FIRST-CALL FREE: Check if eligible for free call on cheapest services
+    if (!xPayment && FIRST_CALL_FREE_SERVICES.includes(serviceName)) {
+      const eligible = await isEligibleForFirstCallFree(ipAddress, userAgent);
+      
+      if (eligible) {
+        console.log(`🎁 First-call FREE granted for ${serviceName} to ${knownAgent.name} (${ipAddress})`);
+        
+        res.locals.payment = { method: "first-call-free", amount: 0, status: 'complimentary' };
+        
+        try {
+          await handler(req, res);
+          
+          // Track the free call for future eligibility checks
+          await x402InteractionTracker.trackInteraction({
+            serviceId: serviceName,
+            ipAddress,
+            userAgent,
+            requestPath: req.originalUrl,
+            requestMethod: req.method,
+            responseStatus: 200,
+            paid: false,
+            amount: 0,
+            interactionType: 'payment',
+            requestId,
+            eventType: 'first-call-free',
+            serviceName,
+            latencyMs: Date.now() - startTime,
+            paymentReceived: false,
+            paymentAmount: 0,
+            offerTrackingId,
+            metadata: { 
+              first_call_free: 'granted', 
+              knownAgent: knownAgent.name,
+              originalPrice: SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD]
+            }
+          });
+          
+          // Update cache
+          const cacheKey = `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
+          FIRST_CALL_FREE_CACHE.set(cacheKey, { granted: true, timestamp: Date.now() });
+          
+          return;
+        } catch (handlerError: any) {
+          console.error(`❌ First-call-free handler error for ${serviceName}:`, handlerError.message);
+          // Continue to 402 on error
+        }
+      }
+    }
+
     // No payment header → Generate 402 response ourselves (don't rely on x402-express)
     if (!xPayment) {
       console.log(`📊 Orchestrator: No payment for ${serviceName}, generating 402`);
-      return generate402Response(req, res, serviceName, requiredAmount);
+      
+      // FUNNEL TRACKING: Log 402 challenge issuance
+      await x402InteractionTracker.trackInteraction({
+        serviceId: serviceName,
+        ipAddress,
+        userAgent,
+        requestPath: req.originalUrl,
+        requestMethod: req.method,
+        responseStatus: 402,
+        paid: false,
+        interactionType: 'attempt',
+        requestId,
+        eventType: 'challenge-issued',
+        serviceName,
+        latencyMs: Date.now() - startTime,
+        paymentReceived: false,
+        offerTrackingId,
+        metadata: { 
+          reason: 'no-payment-header',
+          knownAgent: knownAgent.name,
+          isKnownAgent: knownAgent.isKnown,
+          priceUsd: SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD]
+        }
+      });
+      
+      return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
     }
 
     let txHash: string | null = null;
@@ -152,7 +320,7 @@ export function createPaymentOrchestrator(
             const walletClient = getPlatformWalletClient();
             if (!walletClient) {
               console.error(`❌ Orchestrator: No wallet client available for EIP-3009 execution`);
-              return generate402Response(req, res, serviceName, requiredAmount);
+              return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
             }
             
             const auth = payloadObj.authorization;
@@ -164,7 +332,7 @@ export function createPaymentOrchestrator(
             // Validate signature length
             if (sigHex.length !== 130) {
               console.error(`❌ Invalid signature length: ${sigHex.length}, expected 130`);
-              return generate402Response(req, res, serviceName, requiredAmount);
+              return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
             }
             
             const r = `0x${sigHex.slice(0, 64)}` as Hex;
@@ -220,13 +388,61 @@ export function createPaymentOrchestrator(
           console.log(`🔐 Orchestrator: Extracted/executed txHash for ${serviceName}: ${txHash.substring(0, 10)}...`);
         } else {
           console.log(`🔐 Orchestrator: No txHash found in payload for ${serviceName}, payload keys: ${Object.keys(payloadObj).join(', ')}`);
-          // No txHash found - return 402 to request raw tx hash payment
-          return generate402Response(req, res, serviceName, requiredAmount);
+          
+          // FUNNEL TRACKING: Payment header parse failure - no txHash found
+          await x402InteractionTracker.trackInteraction({
+            serviceId: serviceName,
+            ipAddress,
+            userAgent,
+            requestPath: req.originalUrl,
+            requestMethod: req.method,
+            responseStatus: 402,
+            paid: false,
+            interactionType: 'error',
+            requestId,
+            eventType: 'payment-parse-failed',
+            serviceName,
+            latencyMs: Date.now() - startTime,
+            paymentReceived: false,
+            errorMessage: `No txHash found in payload. Keys: ${Object.keys(payloadObj).join(', ')}`,
+            offerTrackingId,
+            metadata: { 
+              reason: 'no-txhash-in-payload',
+              knownAgent: knownAgent.name,
+              payloadKeys: Object.keys(payloadObj)
+            }
+          });
+          
+          return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
         }
       } catch (e) {
         console.log(`🔐 Orchestrator: Failed to decode payment header for ${serviceName}: ${(e as Error).message}`);
-        // Can't decode - return 402
-        return generate402Response(req, res, serviceName, requiredAmount);
+        
+        // FUNNEL TRACKING: Payment header decode failure
+        await x402InteractionTracker.trackInteraction({
+          serviceId: serviceName,
+          ipAddress,
+          userAgent,
+          requestPath: req.originalUrl,
+          requestMethod: req.method,
+          responseStatus: 402,
+          paid: false,
+          interactionType: 'error',
+          requestId,
+          eventType: 'payment-decode-failed',
+          serviceName,
+          latencyMs: Date.now() - startTime,
+          paymentReceived: false,
+          errorMessage: (e as Error).message,
+          offerTrackingId,
+          metadata: { 
+            reason: 'base64-decode-failed',
+            knownAgent: knownAgent.name,
+            headerLength: xPayment.length
+          }
+        });
+        
+        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
       }
     }
 
@@ -248,7 +464,31 @@ export function createPaymentOrchestrator(
             await handler(req, res);
             await markPaymentIntentSucceeded(txHash, serviceName);
             
-            const offerTrackingId = req.query?.offer_tracking as string;
+            // FUNNEL TRACKING: Successful payment and service delivery
+            await x402InteractionTracker.trackInteraction({
+              serviceId: serviceName,
+              ipAddress,
+              userAgent,
+              requestPath: req.originalUrl,
+              requestMethod: req.method,
+              responseStatus: 200,
+              paid: true,
+              amount: priceUsd,
+              interactionType: 'payment',
+              requestId,
+              eventType: 'payment-verified',
+              serviceName,
+              latencyMs: Date.now() - startTime,
+              paymentReceived: true,
+              paymentAmount: priceUsd,
+              offerTrackingId,
+              metadata: { 
+                txHash: txHash.substring(0, 20),
+                knownAgent: knownAgent.name,
+                verificationMethod: 'on-chain'
+              }
+            });
+            
             if (offerTrackingId) {
               try {
                 await offerLinkService.recordConversion(offerTrackingId, priceUsd);
@@ -264,24 +504,82 @@ export function createPaymentOrchestrator(
           return;
         } else {
           console.log(`❌ Orchestrator: Payment verification failed for ${serviceName}, returning 402`);
-          return generate402Response(req, res, serviceName, requiredAmount);
+          
+          // FUNNEL TRACKING: Payment verification failed
+          await x402InteractionTracker.trackInteraction({
+            serviceId: serviceName,
+            ipAddress,
+            userAgent,
+            requestPath: req.originalUrl,
+            requestMethod: req.method,
+            responseStatus: 402,
+            paid: false,
+            interactionType: 'error',
+            requestId,
+            eventType: 'verification-failed',
+            serviceName,
+            latencyMs: Date.now() - startTime,
+            paymentReceived: false,
+            errorMessage: 'On-chain verification returned false',
+            offerTrackingId,
+            metadata: { 
+              reason: 'verification-failed',
+              knownAgent: knownAgent.name,
+              txHash: txHash?.substring(0, 20)
+            }
+          });
+          
+          return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
         }
       } catch (error: any) {
         console.error(`❌ Orchestrator: Payment verification error for ${serviceName}:`, error.message);
-        return generate402Response(req, res, serviceName, requiredAmount);
+        
+        // FUNNEL TRACKING: Verification threw error
+        await x402InteractionTracker.trackInteraction({
+          serviceId: serviceName,
+          ipAddress,
+          userAgent,
+          requestPath: req.originalUrl,
+          requestMethod: req.method,
+          responseStatus: 402,
+          paid: false,
+          interactionType: 'error',
+          requestId,
+          eventType: 'verification-error',
+          serviceName,
+          latencyMs: Date.now() - startTime,
+          paymentReceived: false,
+          errorMessage: error.message,
+          offerTrackingId,
+          metadata: { 
+            reason: 'verification-exception',
+            knownAgent: knownAgent.name,
+            txHash: txHash?.substring(0, 20)
+          }
+        });
+        
+        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
       }
     }
 
     // No valid payment found - return 402
     console.log(`❌ Orchestrator: No valid payment found for ${serviceName}, returning 402`);
-    return generate402Response(req, res, serviceName, requiredAmount);
+    return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
   };
 }
 
 /**
  * Generate a proper x402 402 response with payment requirements
+ * Enhanced with partner CTA for known agents and first-call-free info
  */
-function generate402Response(req: Request, res: Response, serviceName: string, requiredAmount: number) {
+function generate402Response(
+  req: Request, 
+  res: Response, 
+  serviceName: string, 
+  requiredAmount: number,
+  knownAgent: { isKnown: boolean; name: string; partnerOffer: boolean } = { isKnown: false, name: 'unknown', partnerOffer: false },
+  requestId?: string
+) {
   const priceUsd = microToUSD(requiredAmount);
   const endpoint = req.originalUrl || `/x402/${serviceName}`;
   const baseUrl = getPublicBaseUrl(req);
@@ -327,7 +625,8 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
     "prediction-market-odds": "Current odds for any prediction market event",
   };
 
-  const response = {
+  // Build base response
+  const response: any = {
     x402Version: 1,
     error: "X-PAYMENT header is required",
     accepts: [{
@@ -360,17 +659,54 @@ function generate402Response(req: Request, res: Response, serviceName: string, r
       supportedMethods: ["eip3009-authorization", "raw-transaction-hash"]
     },
     recommendedServices: [
-      { id: "ping", name: "x402 Discovery Ping", priceUSD: "$0.25", endpoint: "/x402/ping" },
+      { id: "gas-price-oracle", name: "Gas Price Oracle", priceUSD: "$0.10", endpoint: "/x402/gas-price-oracle", note: "FIRST CALL FREE for new agents!" },
+      { id: "token-metadata", name: "Token Metadata", priceUSD: "$0.10", endpoint: "/x402/token-metadata", note: "FIRST CALL FREE for new agents!" },
       { id: "trade-signals", name: "AI Trade Signals", priceUSD: "$0.75", endpoint: "/x402/trade-signals" },
       { id: "wallet-risk", name: "Wallet Risk Analysis", priceUSD: "$0.50", endpoint: "/x402/wallet-risk" },
-      { id: "token-price", name: "Token Price Feed", priceUSD: "$0.25", endpoint: "/x402/token-price" },
-      { id: "trending-tokens", name: "Trending Tokens", priceUSD: "$0.50", endpoint: "/x402/trending-tokens" },
+      { id: "agent-create-wallet", name: "Agent Wallet Provisioning", priceUSD: "$2.00", endpoint: "/x402/agent-create-wallet" },
     ],
     catalogUrl: `${baseUrl}/x402/catalog`,
-    totalServicesAvailable: 37
+    totalServicesAvailable: 37,
+    requestId: requestId,
+    
+    // FIRST-CALL FREE promotion
+    firstCallFree: {
+      eligible: FIRST_CALL_FREE_SERVICES.includes(serviceName),
+      services: ["gas-price-oracle", "token-metadata"],
+      priceNormally: "$0.10",
+      note: "New agents get their first call FREE on gas-price-oracle or token-metadata! Just make the request - no payment needed."
+    },
+    
+    // Quick start script for agents
+    quickStart: {
+      curlExample: `curl -X GET "${baseUrl}/x402/gas-price-oracle" -H "Content-Type: application/json"`,
+      note: "First call is FREE - try it now! After that, include X-PAYMENT header with your transaction hash.",
+      docsUrl: `${baseUrl}/docs/x402-quick-start`
+    }
   };
 
-  console.log(`📊 x402 Funnel: challenge-issued for ${serviceName} | IP: ${req.ip} | Agent: ${req.headers['user-agent']?.substring(0, 20) || 'none'}`);
+  // Add partner CTA for known agents
+  if (knownAgent.isKnown && knownAgent.partnerOffer) {
+    response.partnerProgram = {
+      detected: knownAgent.name,
+      message: `Welcome ${knownAgent.name}! We've detected you as a known AI agent platform.`,
+      offer: {
+        type: "partner-integration",
+        benefits: [
+          "Priority API access with higher rate limits",
+          "10% revenue share on referred agent payments",
+          "Custom integration support",
+          "Featured listing in our agent directory"
+        ],
+        contact: "partners@coinrailz.com",
+        quickOnboard: `${baseUrl}/partners/onboard?agent=${encodeURIComponent(knownAgent.name)}`
+      }
+    };
+    
+    console.log(`🤝 Partner CTA injected for ${knownAgent.name}`);
+  }
+
+  console.log(`📊 x402 Funnel: challenge-issued for ${serviceName} | IP: ${req.ip} | Agent: ${knownAgent.name} | RequestId: ${requestId || 'none'}`);
   
   res.status(402).json(response);
 }

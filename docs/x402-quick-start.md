@@ -229,12 +229,14 @@ async function makeX402Request(endpoint: string, privateKey?: `0x${string}`, pay
   await publicClient.waitForTransactionReceipt({ hash });
   console.log(`Payment sent! TxHash: ${hash}`);
   
-  // Step 4: Retry with payment proof
+  // Step 4: Retry with payment proof - Use POST
   response = await fetch(url, {
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-PAYMENT": hash
-    }
+    },
+    body: JSON.stringify(payload)
   });
   
   if (response.ok) {

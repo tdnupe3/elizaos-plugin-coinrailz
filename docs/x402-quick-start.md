@@ -13,24 +13,25 @@ Get your first successful x402 payment working in under 5 minutes.
 New agents get their **first call FREE** on our cheapest services:
 
 ```bash
-# This is FREE for first-time callers!
-curl -X GET "https://coinrailz.com/x402/gas-price-oracle" \
-  -H "Content-Type: application/json"
+# This is FREE for first-time callers! (Use POST method)
+curl -X POST "https://coinrailz.com/x402/gas-price-oracle" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 **Expected Response (200 OK):**
 ```json
 {
-  "success": true,
-  "chains": {
-    "ethereum": { "fast": 25, "standard": 15, "slow": 10 },
-    "base": { "fast": 0.005, "standard": 0.003, "slow": 0.001 }
-  },
+  "ethereum": { "slow": { "gwei": "1.05", "usd": "$0.067" }, "standard": { "gwei": "3.05", "usd": "$0.196" }, "fast": { "gwei": "5.05", "usd": "$0.324" } },
+  "base": { "slow": { "gwei": "1.00", "usd": "$0.064" }, "standard": { "gwei": "3.00", "usd": "$0.193" }, "fast": { "gwei": "5.00", "usd": "$0.321" } },
+  "polygon": { "slow": { "gwei": "21.00", "usd": "$1.348" }, "standard": { "gwei": "23.00", "usd": "$1.476" }, "fast": { "gwei": "25.00", "usd": "$1.605" } },
   "timestamp": "2025-12-05T12:00:00.000Z"
 }
 ```
 
 Congratulations! You just made your first successful x402 call!
+
+> **Note:** GET requests return 402 for service discovery. Use POST for actual service calls.
 
 ---
 
@@ -41,8 +42,9 @@ After your free call, you'll need to pay. Here's the complete flow:
 ### 2a. Get the 402 Challenge
 
 ```bash
-curl -X GET "https://coinrailz.com/x402/gas-price-oracle" \
-  -H "Content-Type: application/json"
+curl -X POST "https://coinrailz.com/x402/gas-price-oracle" \
+  -H "Content-Type: application/json" \
+  -d '{}'
 ```
 
 **Response (402 Payment Required):**
@@ -71,16 +73,17 @@ Send **0.10 USDC** (100,000 micro-USDC) to the `payTo` address on Base mainnet.
 
 ```bash
 # Replace YOUR_TX_HASH with your actual transaction hash
-curl -X GET "https://coinrailz.com/x402/gas-price-oracle" \
+curl -X POST "https://coinrailz.com/x402/gas-price-oracle" \
   -H "Content-Type: application/json" \
-  -H "X-PAYMENT: 0xYOUR_TRANSACTION_HASH_HERE"
+  -H "X-PAYMENT: 0xYOUR_TRANSACTION_HASH_HERE" \
+  -d '{}'
 ```
 
 **Success Response (200 OK):**
 ```json
 {
-  "success": true,
-  "chains": { ... },
+  "ethereum": { "slow": { "gwei": "1.05", "usd": "$0.067" }, ... },
+  "base": { ... },
   "payment": { "verified": true, "txHash": "0x..." }
 }
 ```
@@ -98,13 +101,14 @@ COINRAILZ_BASE = "https://coinrailz.com"
 USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 PLATFORM_WALLET = "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91"
 
-def make_x402_request(endpoint: str, private_key: str = None):
+def make_x402_request(endpoint: str, private_key: str = None, payload: dict = None):
     """Make an x402 request with automatic payment handling"""
     
     url = f"{COINRAILZ_BASE}{endpoint}"
+    payload = payload or {}
     
-    # Step 1: Try the request (might be free!)
-    response = requests.get(url, headers={"Content-Type": "application/json"})
+    # Step 1: Try the request (might be free!) - Use POST for service calls
+    response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
     
     if response.status_code == 200:
         print("Success! (Free call or payment already verified)")
@@ -143,8 +147,8 @@ def make_x402_request(endpoint: str, private_key: str = None):
     
     print(f"Payment sent! TxHash: {tx_hash.hex()}")
     
-    # Step 4: Retry with payment proof
-    response = requests.get(url, headers={
+    # Step 4: Retry with payment proof - Use POST
+    response = requests.post(url, json=payload, headers={
         "Content-Type": "application/json",
         "X-PAYMENT": tx_hash.hex()
     })
@@ -172,12 +176,14 @@ import { privateKeyToAccount } from 'viem/accounts';
 const COINRAILZ_BASE = "https://coinrailz.com";
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
-async function makeX402Request(endpoint: string, privateKey?: `0x${string}`) {
+async function makeX402Request(endpoint: string, privateKey?: `0x${string}`, payload: object = {}) {
   const url = `${COINRAILZ_BASE}${endpoint}`;
   
-  // Step 1: Try the request
+  // Step 1: Try the request - Use POST for service calls
   let response = await fetch(url, {
-    headers: { "Content-Type": "application/json" }
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
   });
   
   if (response.ok) {

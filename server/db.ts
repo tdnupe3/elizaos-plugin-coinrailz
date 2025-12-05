@@ -50,11 +50,11 @@ pool.on('connect', () => {
 export const db = drizzle({ client: pool, schema });
 
 // Database health check function
+// Uses pool.query() directly which works with HTTP fetch mode in production
+// (pool.connect() requires WebSocket which doesn't work with Neon HTTP mode)
 export async function checkDatabaseHealth() {
   try {
-    const client = await pool.connect();
-    await client.query('SELECT 1');
-    client.release();
+    await pool.query('SELECT 1');
     return true;
   } catch (error) {
     console.error('Database health check failed:', error);

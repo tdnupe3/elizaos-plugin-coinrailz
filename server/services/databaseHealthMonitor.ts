@@ -52,12 +52,12 @@ export class DatabaseHealthMonitor {
 
   /**
    * Perform health check
+   * Uses pool.query() directly for HTTP fetch mode compatibility in production
+   * (pool.connect() requires WebSocket which doesn't work with Neon HTTP mode)
    */
   private async performHealthCheck(): Promise<void> {
     try {
-      const client = await pool.connect();
-      await client.query('SELECT 1');
-      client.release();
+      await pool.query('SELECT 1');
 
       this.consecutiveFailures = 0;
       this.circuitBreakerOpen = false;

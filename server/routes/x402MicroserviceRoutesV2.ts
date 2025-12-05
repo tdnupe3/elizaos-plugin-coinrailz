@@ -219,6 +219,53 @@ router.get('/offer/:trackingId', async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================================
+// CATALOG ENDPOINT - Machine-readable service catalog for AI agents and crawlers
+// Returns JSON service list for x402/Bazaar/A2A protocol discoverability
+// ============================================================================
+router.get('/catalog', async (req: Request, res: Response) => {
+  try {
+    const catalog = serviceCatalogService.getCatalog();
+    const summary = serviceCatalogService.getCatalogSummary();
+    
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'application/json');
+    
+    res.json({
+      x402Version: 1,
+      catalogUrl: summary.catalogUrl,
+      facilitatorUrl: 'https://facilitator.x402.io',
+      totalServices: summary.totalServices,
+      network: 'base',
+      paymentAsset: {
+        symbol: 'USDC',
+        address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        decimals: 6,
+        chainId: 8453,
+      },
+      services: catalog.services.map(service => ({
+        id: service.id,
+        name: service.name,
+        description: service.description,
+        endpoint: service.endpoint,
+        priceUSD: service.priceUSD,
+        priceMicro: service.priceMicro,
+        category: service.category,
+        discoverable: true,
+        firstCallFree: ['gas-price-oracle', 'token-metadata'].includes(service.id),
+      })),
+      firstCallFreeServices: ['gas-price-oracle', 'token-metadata'],
+      quickStart: {
+        docsUrl: `${PUBLIC_BASE_URL}/docs/x402-quick-start`,
+        note: 'First call is FREE on gas-price-oracle and token-metadata services!',
+      },
+    });
+  } catch (error: any) {
+    console.error('Failed to get service catalog:', error);
+    res.status(500).json({ error: 'Failed to retrieve service catalog' });
+  }
+});
+
 // Also handle POST for offer links (in case agent sends POST)
 router.post('/offer/:trackingId', async (req: Request, res: Response) => {
   const { trackingId } = req.params;

@@ -12,7 +12,8 @@ import { privateKeyToAccount } from "viem/accounts";
 import { x402InteractionTracker } from "../services/x402InteractionTracker";
 import { nanoid } from "nanoid";
 import { db } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
+import { x402Interactions } from "@shared/schema";
 
 // Known agent user-agents that are probing our endpoints
 const KNOWN_AGENT_PATTERNS = [
@@ -56,22 +57,39 @@ async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string |
   
   try {
     // Check database for previous free calls from this IP/UA combo
-    const result = await db.execute(sql`
-      SELECT COUNT(*) as count 
-      FROM x402_interactions 
-      WHERE ip_address = ${ipAddress}
-        AND (user_agent = ${userAgent || ''} OR ${!userAgent})
-        AND metadata->>'first_call_free' = 'granted'
-        AND created_at > NOW() - INTERVAL '30 days'
-    `);
+    // Using Drizzle ORM to avoid raw SQL issues in Neon HTTP fetch mode
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const normalizedUserAgent = userAgent || '';
     
-    const count = parseInt(String((result.rows[0] as any)?.count || '0'));
+    // Build user-agent predicate: match exact UA, or if no UA provided, match null/empty
+    const userAgentPredicate = normalizedUserAgent 
+      ? eq(x402Interactions.userAgent, normalizedUserAgent)
+      : or(isNull(x402Interactions.userAgent), eq(x402Interactions.userAgent, ''));
+    
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(x402Interactions)
+      .where(
+        and(
+          eq(x402Interactions.ipAddress, ipAddress),
+          userAgentPredicate,
+          eq(sql`metadata->>'first_call_free'`, 'granted'),
+          gt(x402Interactions.createdAt, thirtyDaysAgo)
+        )
+      );
+    
+    const count = Number(result[0]?.count || 0);
     const eligible = count === 0;
     
     FIRST_CALL_FREE_CACHE.set(cacheKey, { granted: !eligible, timestamp: Date.now() });
+    
+    if (eligible) {
+      console.log(`🎁 First-call-free eligibility CHECK: IP=${ipAddress.substring(0, 15)}... UA=${normalizedUserAgent.substring(0, 30) || '(none)'}... → ELIGIBLE (0 previous grants)`);
+    }
+    
     return eligible;
-  } catch (error) {
-    console.error("Error checking first-call-free eligibility:", error);
+  } catch (error: any) {
+    console.error(`❌ First-call-free eligibility check FAILED: ${error.message}`, { ipAddress: ipAddress.substring(0, 15), userAgent: userAgent?.substring(0, 30) });
     return false; // Fail closed
   }
 }

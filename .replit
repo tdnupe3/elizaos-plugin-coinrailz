@@ -40,6 +40,10 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
+localPort = 33311
+externalPort = 6800
+
+[[ports]]
 localPort = 34113
 externalPort = 3000
 
@@ -52,20 +56,12 @@ localPort = 34531
 externalPort = 3003
 
 [[ports]]
-localPort = 34951
-externalPort = 8000
-
-[[ports]]
 localPort = 38731
 externalPort = 4200
 
 [[ports]]
 localPort = 41723
 externalPort = 3002
-
-[[ports]]
-localPort = 44669
-externalPort = 6800
 
 [[ports]]
 localPort = 45095
@@ -83,3 +79,7 @@ externalPort = 3001
 
 [userenv.production]
 PUBLIC_URL = "https://coinrailz.com"
+
+[userenv.shared]
+TESTING_VITE_STRIPE_PUBLIC_KEY = "pk_test_51K9D4gLfxiQk11F0IicaifXTVOSJFK9o9wiuhUQNX90ZeOY5vabDGHuZnkor5WgKb8hisuOuzA5gJ1tO6if3aiwA00OCemyuMW"
+TESTING_STRIPE_SECRET_KEY = "sk_test_51K9D4gLfxiQk11F0lBXifQcU54o25r7Pe0co2NVYnsScIoxNVLC4j3tjWyVPcARfAYF7JlGiiDIS4emE84rl94dg00m7IO6K7S"

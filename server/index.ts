@@ -1,212 +1,88 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { createServer } from "http";
+import { setupVite, serveStatic } from "./vite";
+import { setupSimpleRoutes } from "./simpleRoutes";
 
-// CRITICAL STARTUP FIX: Minimal imports for fast server startup
-// Heavy services are loaded lazily AFTER the port is open
+// CRITICAL: Import nuclear build mode detection
+import { DISABLE_BACKGROUND_SERVICES } from './buildModeDetection';
+import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
+// Initialize automated revenue generation systems
+import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
+import { telegramTradingBot } from './services/telegramTradingBot.js';
+import { initializeAffiliateSystem } from './services/automatedAffiliate';
+import { realA2AFailoverPipeline } from './services/a2aFailoverPipeline.js';
+import emergencyRevenueRoutes from './routes/emergencyRevenueRoutes';
+import competitionRoutes from './routes/competitionRoutes.js';
+import { sdkLeadGenerationService } from './services/sdkLeadGenerationService';
+import { setupReferralRoutes } from "./referralRoutes";
+import { setupCriticalAPIRoutes } from "./apiRoutes";
+import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
+import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
+import { db } from "./db";
+import { globalAIAgents, users } from "../shared/schema";
+import { eq } from "drizzle-orm";
 
-// Create and start the server IMMEDIATELY before any heavy imports
-const app = express();
-const httpServer = createServer(app);
-const port = 5000;
-
-// Production mode detection (synchronous, fast)
-const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DEPLOYMENT;
-
-console.log('🔧 STARTUP MODE CHECK:', { 
-  NODE_ENV: process.env.NODE_ENV, 
-  REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
-  isProduction 
-});
-
-// Start listening IMMEDIATELY - port opens before any heavy initialization
-httpServer.listen(port, '0.0.0.0', async () => {
-  console.log(`${isProduction ? 'Production' : 'Development'} server running on 0.0.0.0:${port}`);
-  console.log('🚀 PORT OPEN - loading services in background...');
-  
-  // Now load all the heavy imports asynchronously
-  await loadHeavyServicesAndRoutes();
-});
-
-// All heavy initialization happens in this async function AFTER the port is open
-async function loadHeavyServicesAndRoutes() {
-  try {
-    // Import Vite setup for development
-    const { setupVite, serveStatic } = await import("./vite");
-    
-    if (isProduction) {
-      console.log('🚀 PRODUCTION MODE');
-      serveStatic(app);
-      console.log('✅ Static file serving configured');
-    } else {
-      try {
-        await setupVite(app, httpServer);
-        console.log('✅ Vite HMR ready');
-      } catch (error) {
-        console.warn('⚠️ Vite setup failed:', error);
-      }
-    }
-    
-    // Now import all the heavy services that were blocking startup
-    console.log('🔄 Loading heavy services...');
-    
-    // Import critical modules first
-    const { setupSimpleRoutes } = await import("./simpleRoutes");
-    const { DISABLE_BACKGROUND_SERVICES } = await import('./buildModeDetection');
-    const { aiMarketplaceSimpleRoutes } = await import("./routes/aiMarketplaceSimple");
-    
-    // These were the heavy imports causing slow startup - now loaded lazily
-    const { initializeAutomatedOutreach } = await import('./services/automatedOutreachOrchestrator');
-    const { realA2AFailoverPipeline } = await import('./services/a2aFailoverPipeline.js');
-    const emergencyRevenueRoutes = (await import('./routes/emergencyRevenueRoutes')).default;
-    const competitionRoutes = (await import('./routes/competitionRoutes.js')).default;
-    const { ProviderCapabilityService } = await import('./services/providerCapabilityService.js');
-    
-    // Import all other routes
-    const { setupEnhancedBusinessLogicRoutes } = await import("./routes/enhancedBusinessLogicRoutes");
-    const { setupReferralRoutes } = await import("./referralRoutes");
-    const { setupCriticalAPIRoutes } = await import("./apiRoutes");
-    const { dataMonetizationRoutes } = await import("./routes/dataMonetizationRoutes");
-    const { enterpriseDataRoutes } = await import("./routes/enterpriseDataRoutes");
-    const { db } = await import("./db");
-    const { globalAIAgents, users } = await import("../shared/schema");
-    const { eq } = await import("drizzle-orm");
-    
-    const p2pRoutes = (await import("./routes/p2pRoutes")).default;
-    const aiAgentProductRoutesProduction = (await import("./routes/aiAgentProductRoutesProduction")).default;
-    const smartContractAuditRoutes = (await import('./routes/smartContractAuditRoutes')).default;
-    const { registerAuthRoutes } = await import("./authRoutes");
-    const gasStationRoutes = (await import('./routes/gasStationRoutes')).default;
-    const plaidRoutes = (await import('./routes/plaidRoutes')).default;
-    const agentPaymentsRoutes = (await import('./routes/agentPaymentsRoutes')).default;
-    const x402Routes = (await import('./routes/x402Routes')).default;
-    const x402MicroserviceRoutes = (await import('./routes/x402MicroserviceRoutesV2')).default;
-    const x402FundsSweepRoutes = (await import('./routes/x402FundsSweepRoutes')).default;
-    const x402scanScraperRoutes = (await import('./routes/x402scanScraperRoutes')).default;
-    const x402AnalyticsRoutes = (await import('./routes/x402AnalyticsRoutes')).default;
-    const automatedCampaignRoutes = (await import('./routes/automatedCampaignRoutes')).default;
-    const revenueAttributionRoutes = (await import('./routes/revenueAttributionRoutes')).default;
-    const automatedFollowUpRoutes = (await import('./routes/automatedFollowUpRoutes')).default;
-    const contactExtractionRoutes = (await import('./routes/contactExtractionRoutes')).default;
-    const sdkLicensingRoutes = (await import('./routes/sdkLicensingRoutes')).default;
-    const realSDKLicensingRoutes = (await import('./routes/realSDKLicensingRoutes')).default;
-    const customerPortalRoutes = (await import('./routes/customerPortalRoutes')).default;
-    const stripeWebhookRoutes = (await import('./routes/stripeWebhookRoutes')).default;
-    const immediateRevenueRoutes = (await import('./routes/immediateRevenueRoutes')).default;
-    const enterpriseOutreachRoutes = (await import('./routes/enterpriseOutreachRoutes')).default;
-    const experimentalOutreachRoutes = (await import('./routes/experimentalOutreachRoutes')).default;
-    const walletBalanceRoutes = (await import('./routes/walletBalanceRoutes')).default;
-    const { redditAuthRouter } = await import('./routes/redditAuth');
-    const automatedOutreachRouter = (await import('./routes/automatedOutreachRoutes')).default;
-    const virtualsOutreachRouter = (await import('./routes/virtualsOutreachRoutes')).default;
-    const coinflipRoutes = (await import('./routes/coinflipRoutes')).default;
-    const pumpfunCopyTradingRoutes = (await import('./routes/pumpfunCopyTradingRoutes')).default;
-    const realWalletDiscoveryRoutes = (await import('./routes/realWalletDiscoveryRoutes')).default;
-    const targetedOutreachRoutes = (await import('./routes/targetedOutreachRoutes')).default;
-    const outreachRoutes = (await import('./routes/outreach')).default;
-    const autoJoinerRoutes = (await import('./routes/autoJoinerFixed')).default;
-    const subscriptionPayments = (await import('./routes/subscriptionPayments')).default;
-    const aiAgentServices = (await import('./routes/aiAgentServices')).default;
-    const agentServiceRoutes = (await import('./routes/agentServiceRoutes')).default;
-    const microservicesRoutes = (await import('./routes/microservices')).default;
-    const telegramMiniAppRoutes = (await import('./routes/telegramMiniAppRoutes')).default;
-    const a2aWrapperRoutes = (await import('./routes/a2aWrapperRoutes')).default;
-    const a2aBridgeRoutes = (await import('./routes/a2aBridgeRoutes.js')).default;
-    const agentCardRoutes = (await import('./routes/agentCardRoutes')).default;
-    const wellKnownRoutes = (await import('./routes/wellKnownRoutes')).default;
-    const discoveryRoutes = (await import('./routes/discoveryRoutes')).default;
-    const erc8004DiscoveryRoutes = (await import('./routes/erc8004DiscoveryRoutes')).default;
-    const a2aMassDiscoveryRoutes = (await import('./routes/a2aMassDiscoveryRoutes')).default;
-    const fastRevenueRoutes = (await import('./routes/fastRevenueRoutes.js')).default;
-    const stripePaymentRoutes = (await import('./routes/stripePaymentRoutes.js')).default;
-    const campaignConversionRoutes = (await import('./routes/campaignConversionRoutes.js')).default;
-    const { createAllProviderRouters } = await import('./routes/a2aProviderRoutes.js');
-    const { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } = await import('./paypal.js');
-    const rateLimitImport = (await import('express-rate-limit')).default;
-    const { initializeServiceHandlers } = await import('./services/handlers');
-    
-    console.log('✅ All heavy services imported');
-    
-    // Continue with rest of initialization - call the deferred setup function
-    await setupRoutesAndServices({
-      setupSimpleRoutes,
-      DISABLE_BACKGROUND_SERVICES,
-      aiMarketplaceSimpleRoutes,
-      initializeAutomatedOutreach,
-      realA2AFailoverPipeline,
-      emergencyRevenueRoutes,
-      competitionRoutes,
-      ProviderCapabilityService,
-      setupEnhancedBusinessLogicRoutes,
-      // Pass all other imports as needed
-      p2pRoutes,
-      smartContractAuditRoutes,
-      gasStationRoutes,
-      agentPaymentsRoutes,
-      x402Routes,
-      x402MicroserviceRoutes,
-      fastRevenueRoutes,
-      stripePaymentRoutes,
-      campaignConversionRoutes,
-      a2aWrapperRoutes,
-      a2aBridgeRoutes,
-      agentCardRoutes,
-      wellKnownRoutes,
-      discoveryRoutes,
-      erc8004DiscoveryRoutes,
-      a2aMassDiscoveryRoutes,
-      sdkLicensingRoutes,
-      realSDKLicensingRoutes,
-      customerPortalRoutes,
-      stripeWebhookRoutes,
-      enterpriseOutreachRoutes,
-      automatedOutreachRouter,
-      virtualsOutreachRouter,
-      x402scanScraperRoutes,
-      x402FundsSweepRoutes,
-      x402AnalyticsRoutes,
-      createAllProviderRouters,
-      createPaypalOrder,
-      capturePaypalOrder,
-      loadPaypalDefault,
-      initializeServiceHandlers,
-      rateLimitImport,
-      db,
-      globalAIAgents,
-      users,
-      eq,
-      registerAuthRoutes,
-      setupReferralRoutes,
-      setupCriticalAPIRoutes,
-      dataMonetizationRoutes,
-      enterpriseDataRoutes
-    });
-    
-  } catch (error) {
-    console.error('❌ Failed to load services:', error);
-  }
-}
-
-// Deferred setup function that receives all dynamically imported modules
-async function setupRoutesAndServices(imports: any) {
-  const { 
-    setupSimpleRoutes, 
-    DISABLE_BACKGROUND_SERVICES, 
-    aiMarketplaceSimpleRoutes,
-    initializeAutomatedOutreach,
-    realA2AFailoverPipeline,
-    emergencyRevenueRoutes,
-    competitionRoutes,
-    ProviderCapabilityService,
-    setupEnhancedBusinessLogicRoutes,
-    initializeServiceHandlers,
-    createPaypalOrder,
-    capturePaypalOrder,
-    loadPaypalDefault
-  } = imports;
-  
-  // Continue with the original initialization flow below...
+import p2pRoutes from "./routes/p2pRoutes";
+import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
+import aiAgentProductRoutesProduction from "./routes/aiAgentProductRoutesProduction";
+import smartContractAuditRoutes from './routes/smartContractAuditRoutes';
+import { registerAuthRoutes } from "./authRoutes";
+import { registerRoutes as registerMainRoutes } from "./routes";
+import gasStationRoutes from './routes/gasStationRoutes';
+import plaidRoutes from './routes/plaidRoutes';
+import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
+import x402Routes from './routes/x402Routes';
+import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2';
+import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
+import x402scanScraperRoutes from './routes/x402scanScraperRoutes';
+import x402AnalyticsRoutes from './routes/x402AnalyticsRoutes';
+import automatedCampaignRoutes from './routes/automatedCampaignRoutes';
+import revenueAttributionRoutes from './routes/revenueAttributionRoutes';
+import automatedFollowUpRoutes from './routes/automatedFollowUpRoutes';
+import contactExtractionRoutes from './routes/contactExtractionRoutes';
+import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
+import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
+import customerPortalRoutes from './routes/customerPortalRoutes';
+import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
+import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
+import enterpriseOutreachRoutes from './routes/enterpriseOutreachRoutes';
+import experimentalOutreachRoutes from './routes/experimentalOutreachRoutes';
+import walletBalanceRoutes from './routes/walletBalanceRoutes';
+import { redditAuthRouter } from './routes/redditAuth';
+import automatedOutreachRouter from './routes/automatedOutreachRoutes';
+import virtualsOutreachRouter from './routes/virtualsOutreachRoutes';
+import coinflipRoutes from './routes/coinflipRoutes';
+import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
+import realWalletDiscoveryRoutes from './routes/realWalletDiscoveryRoutes';
+import targetedOutreachRoutes from './routes/targetedOutreachRoutes';
+import outreachRoutes from './routes/outreach';
+import autoJoinerRoutes from './routes/autoJoinerFixed';
+import subscriptionPayments from './routes/subscriptionPayments';
+import aiAgentServices from './routes/aiAgentServices';
+import agentServiceRoutes from './routes/agentServiceRoutes';
+import microservicesRoutes from './routes/microservices';
+import { telegramOutreachService } from './services/telegramOutreachService.js';
+import telegramMiniAppRoutes from './routes/telegramMiniAppRoutes';
+import { bnbChainService } from "./services/bnbChainService";
+import { pulseChainService } from "./services/pulseChainService";
+import { connectionManager } from "./services/connectionManager";
+import { peezyService } from './services/peezyIntegrationService';
+import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
+import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
+import agentCardRoutes from './routes/agentCardRoutes';
+import wellKnownRoutes from './routes/wellKnownRoutes';
+import discoveryRoutes from './routes/discoveryRoutes';
+import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
+import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
+import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
+import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
+import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
+import { ProviderCapabilityService } from './services/providerCapabilityService.js';
+import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
+import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from './paypal.js';
+import rateLimitImport from 'express-rate-limit';
+import { initializeServiceHandlers } from './services/handlers';
 
 // ============= BOOT-TIME VALIDATION =============
 // Verify required environment variables before starting server

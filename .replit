@@ -36,8 +36,16 @@ waitForPort = 5000
 integrations = ["javascript_sendgrid==1.0.0", "javascript_paypal==1.0.0", "javascript_stripe==1.0.0", "javascript_google_analytics==1.0.0", "javascript_websocket==1.0.0"]
 
 [[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
 localPort = 5010
 externalPort = 80
+
+[[ports]]
+localPort = 32907
+externalPort = 3000
 
 [userenv]
 

@@ -697,6 +697,42 @@ for service in catalog["services"]:
     print(f"{service['id']}: ${service['price']} USDC")`}
               </pre>
             </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">Python: Agent Wallet Creation ($1.00 USDC)</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                Create a Coinbase CDP wallet for your AI agent. Paid service - requires x402 payment.
+              </p>
+              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-x402-wallet">
+{`import httpx
+
+# Step 1: Request wallet (will return 402 with payment details)
+response = httpx.post(
+    "https://coinrailz.replit.app/x402/instant-agent-wallet",
+    json={"agentId": "my-trading-bot", "description": "Production trading wallet"}
+)
+
+if response.status_code == 402:
+    # Get payment details from 402 response
+    payment = response.json()
+    pay_to = payment["accepts"][0]["payTo"]
+    amount = payment["accepts"][0]["maxAmountRequired"]  # 1000000 = $1.00 USDC
+    print(f"Send {int(amount)/1e6} USDC to {pay_to} on Base")
+    
+    # Step 2: After sending USDC, retry with payment proof
+    # response = httpx.post(
+    #     "https://coinrailz.replit.app/x402/instant-agent-wallet",
+    #     json={"agentId": "my-trading-bot"},
+    #     headers={"X-PAYMENT": "0xYourTransactionHash"}
+    # )
+
+elif response.status_code == 200:
+    wallet = response.json()
+    print(f"Wallet created: {wallet['walletAddress']}")
+    print(f"Network: {wallet['network']}")  # base-mainnet
+    print(f"Capabilities: {wallet['capabilities']}")`}
+              </pre>
+            </div>
           </CardContent>
         </Card>
 

@@ -10,8 +10,8 @@ import { storage } from "./storage";
 import { pool } from "./db";
 import { z } from 'zod';
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
+if (!process.env.REPLIT_DOMAINS && !process.env.REPLIT_DEPLOYMENT) {
+  console.warn("Warning: REPLIT_DOMAINS not set. Replit OAuth will be disabled in this environment.");
 }
 
 const getOidcConfig = memoize(
@@ -122,7 +122,15 @@ export async function setupAuth(app: Express) {
   };
 
   // Register strategies for all domains AND localhost
-  const domains = process.env.REPLIT_DOMAINS!.split(",");
+  // In production deployments, REPLIT_DOMAINS may not be set
+  const domainsEnv = process.env.REPLIT_DOMAINS;
+  if (!domainsEnv) {
+    console.log('⚠️ REPLIT_DOMAINS not set - Replit OAuth disabled in this environment');
+    console.log('   Users can still authenticate via other methods (email, Coinbase, etc.)');
+    return; // Skip OAuth setup in production deployments without REPLIT_DOMAINS
+  }
+  
+  const domains = domainsEnv.split(",");
   const allDomains = [...domains, 'localhost'];
   
   console.log('Registering authentication strategies for domains:', allDomains);

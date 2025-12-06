@@ -626,6 +626,80 @@ const tx = await signer.sendTransaction(transaction);`}
           </CardContent>
         </Card>
 
+        {/* x402 Micropayment Services */}
+        <Card data-testid="card-x402-services">
+          <CardHeader>
+            <CardTitle>💰 x402 Micropayment Services (AI Agents)</CardTitle>
+            <CardDescription>
+              Pay-per-call blockchain microservices for AI agents. First call is free for discovery services.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Alert data-testid="alert-x402-info">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <strong>x402 Protocol:</strong> HTTP 402 Payment Required responses with USDC payment details.
+                First call to discovery services (gas-price-oracle, token-metadata) is free for new agents.
+              </AlertDescription>
+            </Alert>
+
+            <div>
+              <h3 className="font-semibold mb-2">Python: First-Call-Free Example</h3>
+              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-x402-python">
+{`import httpx
+
+# First call is FREE (no payment required)
+response = httpx.post(
+    "https://coinrailz.replit.app/x402/gas-price-oracle",
+    json={"chains": ["ethereum", "base"]}
+)
+
+if response.status_code == 200:
+    data = response.json()
+    print("Gas prices:", data)
+elif response.status_code == 402:
+    # Payment required for subsequent calls
+    payment_info = response.json()
+    print("Payment required:", payment_info["x402"]["price"])`}
+              </pre>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">Python: Token Metadata Service</h3>
+              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-x402-token-metadata">
+{`import httpx
+
+# Get token metadata (first call free)
+response = httpx.post(
+    "https://coinrailz.replit.app/x402/token-metadata",
+    json={
+        "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+        "chain": "ethereum"
+    }
+)
+
+if response.status_code == 200:
+    token = response.json()
+    print(f"Token: {token['name']} ({token['symbol']})")
+    print(f"Decimals: {token['decimals']}")`}
+              </pre>
+            </div>
+
+            <div>
+              <h3 className="font-semibold mb-2">Service Catalog</h3>
+              <pre className="bg-muted p-4 rounded-lg overflow-x-auto text-sm" data-testid="code-x402-catalog">
+{`import httpx
+
+# Get full catalog of 37 paid services
+catalog = httpx.get("https://coinrailz.replit.app/x402/catalog").json()
+
+for service in catalog["services"]:
+    print(f"{service['id']}: ${service['price']} USDC")`}
+              </pre>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Features */}
         <Card data-testid="card-features">
           <CardHeader>

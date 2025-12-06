@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { setupVite } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 
@@ -3479,6 +3480,23 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   if (isProduction) {
     // Production: serve static files IMMEDIATELY (no Vite)
     console.log('🚀 Starting in PRODUCTION mode - serving static files from dist/public');
+    
+    // CRITICAL: Verify dist/public exists before trying to serve it
+    const distPublicPath = path.resolve('dist/public');
+    const indexHtmlPath = path.resolve('dist/public/index.html');
+    
+    if (!fs.existsSync(distPublicPath)) {
+      console.error('❌ CRITICAL ERROR: dist/public folder does not exist!');
+      console.error('   Current working directory:', process.cwd());
+      console.error('   Looking for:', distPublicPath);
+      console.error('   Directory contents:', fs.readdirSync('.').join(', '));
+    } else if (!fs.existsSync(indexHtmlPath)) {
+      console.error('❌ CRITICAL ERROR: dist/public/index.html does not exist!');
+      console.error('   dist/public contents:', fs.readdirSync(distPublicPath).join(', '));
+    } else {
+      console.log('✅ dist/public/index.html verified - frontend assets ready');
+    }
+    
     app.use(express.static('dist/public'));
   
   // Catch-all handler for SPA routing - exclude API and x402 routes

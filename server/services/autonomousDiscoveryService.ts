@@ -60,15 +60,24 @@ class AutonomousDiscoveryService {
   /**
    * Generate XML sitemap for our agent cards
    * Makes us discoverable by web crawlers
+   * Falls back to static sitemap if database is unavailable (autoscale cold start)
    */
   async generateAgentSitemap(hostname?: string): Promise<string> {
+    const now = new Date().toISOString();
+    const baseUrl = this.getBaseUrl(hostname);
+    
+    // Try to get agents from database, but don't fail if unavailable
+    let agents: any[] = [];
     try {
-      const agents = await db
+      agents = await db
         .select()
         .from(globalAIAgents);
+    } catch (dbError) {
+      console.warn('⚠️ Database unavailable for sitemap, using static endpoints only:', dbError);
+      // Continue with empty agents array - sitemap will still include static endpoints
+    }
 
-      const now = new Date().toISOString();
-      const baseUrl = this.getBaseUrl(hostname);
+    try {
 
       let sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n';
       sitemap += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';

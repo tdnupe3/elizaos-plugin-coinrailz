@@ -1,3 +1,11 @@
+console.log('🚀 SERVER STARTUP - VERSION v2-fix-replit-domains');
+console.log('🔧 ENV CHECK:', { 
+  NODE_ENV: process.env.NODE_ENV, 
+  REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
+  HAS_DATABASE_URL: !!process.env.DATABASE_URL,
+  HAS_REPLIT_DOMAINS: !!process.env.REPLIT_DOMAINS
+});
+
 import express from "express";
 import path from "path";
 import fs from "fs";
@@ -149,7 +157,7 @@ console.log('🚀 REGISTERING ORDER CREATION AT SERVER STARTUP - HIGHEST PRIORIT
 // Simple test endpoint to verify basic routing works
 app.get('/api/test-route', (req, res) => {
   console.log('✅ BASIC TEST ROUTE HIT');
-  res.json({ success: true, message: 'Basic routing works', timestamp: new Date().toISOString() });
+  res.json({ success: true, message: 'Basic routing works', version: 'v2-fix-replit-domains', timestamp: new Date().toISOString() });
 });
 
 app.post('/api/test-route', (req, res) => {

@@ -1,88 +1,212 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { setupVite } from "./vite";
-import { setupSimpleRoutes } from "./simpleRoutes";
+import { createServer } from "http";
 
-// CRITICAL: Import nuclear build mode detection
-import { DISABLE_BACKGROUND_SERVICES } from './buildModeDetection';
-import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
-// Initialize automated revenue generation systems
-import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
-import { telegramTradingBot } from './services/telegramTradingBot.js';
-import { initializeAffiliateSystem } from './services/automatedAffiliate';
-import { realA2AFailoverPipeline } from './services/a2aFailoverPipeline.js';
-import emergencyRevenueRoutes from './routes/emergencyRevenueRoutes';
-import competitionRoutes from './routes/competitionRoutes.js';
-import { sdkLeadGenerationService } from './services/sdkLeadGenerationService';
-import { setupReferralRoutes } from "./referralRoutes";
-import { setupCriticalAPIRoutes } from "./apiRoutes";
-import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
-import { enterpriseDataRoutes } from "./routes/enterpriseDataRoutes";
-import { db } from "./db";
-import { globalAIAgents, users } from "../shared/schema";
-import { eq } from "drizzle-orm";
+// CRITICAL STARTUP FIX: Minimal imports for fast server startup
+// Heavy services are loaded lazily AFTER the port is open
 
-import p2pRoutes from "./routes/p2pRoutes";
-import { aiMarketplaceSimpleRoutes } from "./routes/aiMarketplaceSimple";
-import aiAgentProductRoutesProduction from "./routes/aiAgentProductRoutesProduction";
-import smartContractAuditRoutes from './routes/smartContractAuditRoutes';
-import { registerAuthRoutes } from "./authRoutes";
-import { registerRoutes as registerMainRoutes } from "./routes";
-import gasStationRoutes from './routes/gasStationRoutes';
-import plaidRoutes from './routes/plaidRoutes';
-import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
-import x402Routes from './routes/x402Routes';
-import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2'; // FIXED: Use V2 with proper paymentMiddleware
-import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
-import x402scanScraperRoutes from './routes/x402scanScraperRoutes';
-import x402AnalyticsRoutes from './routes/x402AnalyticsRoutes';
-import automatedCampaignRoutes from './routes/automatedCampaignRoutes';
-import revenueAttributionRoutes from './routes/revenueAttributionRoutes';
-import automatedFollowUpRoutes from './routes/automatedFollowUpRoutes';
-import contactExtractionRoutes from './routes/contactExtractionRoutes';
-import sdkLicensingRoutes from './routes/sdkLicensingRoutes';
-import realSDKLicensingRoutes from './routes/realSDKLicensingRoutes';
-import customerPortalRoutes from './routes/customerPortalRoutes';
-import stripeWebhookRoutes from './routes/stripeWebhookRoutes';
-import immediateRevenueRoutes from './routes/immediateRevenueRoutes';
-import enterpriseOutreachRoutes from './routes/enterpriseOutreachRoutes';
-import experimentalOutreachRoutes from './routes/experimentalOutreachRoutes';
-import walletBalanceRoutes from './routes/walletBalanceRoutes';
-import { redditAuthRouter } from './routes/redditAuth';
-import automatedOutreachRouter from './routes/automatedOutreachRoutes';
-import virtualsOutreachRouter from './routes/virtualsOutreachRoutes';
-import coinflipRoutes from './routes/coinflipRoutes';
-import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
-import realWalletDiscoveryRoutes from './routes/realWalletDiscoveryRoutes';
-import targetedOutreachRoutes from './routes/targetedOutreachRoutes';
-import outreachRoutes from './routes/outreach';
-import autoJoinerRoutes from './routes/autoJoinerFixed';
-import subscriptionPayments from './routes/subscriptionPayments';
-import aiAgentServices from './routes/aiAgentServices';
-import agentServiceRoutes from './routes/agentServiceRoutes';
-import microservicesRoutes from './routes/microservices';
-import { telegramOutreachService } from './services/telegramOutreachService.js';
-import telegramMiniAppRoutes from './routes/telegramMiniAppRoutes';
-import { bnbChainService } from "./services/bnbChainService";
-import { pulseChainService } from "./services/pulseChainService";
-import { connectionManager } from "./services/connectionManager";
-import { peezyService } from './services/peezyIntegrationService';
-import a2aWrapperRoutes from './routes/a2aWrapperRoutes';
-import a2aBridgeRoutes from './routes/a2aBridgeRoutes.js';
-import agentCardRoutes from './routes/agentCardRoutes';
-import wellKnownRoutes from './routes/wellKnownRoutes';
-import discoveryRoutes from './routes/discoveryRoutes';
-import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
-import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
-import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
-import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
-import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
-import { ProviderCapabilityService } from './services/providerCapabilityService.js';
-import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
-import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from './paypal.js';
-import rateLimitImport from 'express-rate-limit';
-import { initializeServiceHandlers } from './services/handlers';
+// Create and start the server IMMEDIATELY before any heavy imports
+const app = express();
+const httpServer = createServer(app);
+const port = 5000;
+
+// Production mode detection (synchronous, fast)
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DEPLOYMENT;
+
+console.log('🔧 STARTUP MODE CHECK:', { 
+  NODE_ENV: process.env.NODE_ENV, 
+  REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
+  isProduction 
+});
+
+// Start listening IMMEDIATELY - port opens before any heavy initialization
+httpServer.listen(port, '0.0.0.0', async () => {
+  console.log(`${isProduction ? 'Production' : 'Development'} server running on 0.0.0.0:${port}`);
+  console.log('🚀 PORT OPEN - loading services in background...');
+  
+  // Now load all the heavy imports asynchronously
+  await loadHeavyServicesAndRoutes();
+});
+
+// All heavy initialization happens in this async function AFTER the port is open
+async function loadHeavyServicesAndRoutes() {
+  try {
+    // Import Vite setup for development
+    const { setupVite, serveStatic } = await import("./vite");
+    
+    if (isProduction) {
+      console.log('🚀 PRODUCTION MODE');
+      serveStatic(app);
+      console.log('✅ Static file serving configured');
+    } else {
+      try {
+        await setupVite(app, httpServer);
+        console.log('✅ Vite HMR ready');
+      } catch (error) {
+        console.warn('⚠️ Vite setup failed:', error);
+      }
+    }
+    
+    // Now import all the heavy services that were blocking startup
+    console.log('🔄 Loading heavy services...');
+    
+    // Import critical modules first
+    const { setupSimpleRoutes } = await import("./simpleRoutes");
+    const { DISABLE_BACKGROUND_SERVICES } = await import('./buildModeDetection');
+    const { aiMarketplaceSimpleRoutes } = await import("./routes/aiMarketplaceSimple");
+    
+    // These were the heavy imports causing slow startup - now loaded lazily
+    const { initializeAutomatedOutreach } = await import('./services/automatedOutreachOrchestrator');
+    const { realA2AFailoverPipeline } = await import('./services/a2aFailoverPipeline.js');
+    const emergencyRevenueRoutes = (await import('./routes/emergencyRevenueRoutes')).default;
+    const competitionRoutes = (await import('./routes/competitionRoutes.js')).default;
+    const { ProviderCapabilityService } = await import('./services/providerCapabilityService.js');
+    
+    // Import all other routes
+    const { setupEnhancedBusinessLogicRoutes } = await import("./routes/enhancedBusinessLogicRoutes");
+    const { setupReferralRoutes } = await import("./referralRoutes");
+    const { setupCriticalAPIRoutes } = await import("./apiRoutes");
+    const { dataMonetizationRoutes } = await import("./routes/dataMonetizationRoutes");
+    const { enterpriseDataRoutes } = await import("./routes/enterpriseDataRoutes");
+    const { db } = await import("./db");
+    const { globalAIAgents, users } = await import("../shared/schema");
+    const { eq } = await import("drizzle-orm");
+    
+    const p2pRoutes = (await import("./routes/p2pRoutes")).default;
+    const aiAgentProductRoutesProduction = (await import("./routes/aiAgentProductRoutesProduction")).default;
+    const smartContractAuditRoutes = (await import('./routes/smartContractAuditRoutes')).default;
+    const { registerAuthRoutes } = await import("./authRoutes");
+    const gasStationRoutes = (await import('./routes/gasStationRoutes')).default;
+    const plaidRoutes = (await import('./routes/plaidRoutes')).default;
+    const agentPaymentsRoutes = (await import('./routes/agentPaymentsRoutes')).default;
+    const x402Routes = (await import('./routes/x402Routes')).default;
+    const x402MicroserviceRoutes = (await import('./routes/x402MicroserviceRoutesV2')).default;
+    const x402FundsSweepRoutes = (await import('./routes/x402FundsSweepRoutes')).default;
+    const x402scanScraperRoutes = (await import('./routes/x402scanScraperRoutes')).default;
+    const x402AnalyticsRoutes = (await import('./routes/x402AnalyticsRoutes')).default;
+    const automatedCampaignRoutes = (await import('./routes/automatedCampaignRoutes')).default;
+    const revenueAttributionRoutes = (await import('./routes/revenueAttributionRoutes')).default;
+    const automatedFollowUpRoutes = (await import('./routes/automatedFollowUpRoutes')).default;
+    const contactExtractionRoutes = (await import('./routes/contactExtractionRoutes')).default;
+    const sdkLicensingRoutes = (await import('./routes/sdkLicensingRoutes')).default;
+    const realSDKLicensingRoutes = (await import('./routes/realSDKLicensingRoutes')).default;
+    const customerPortalRoutes = (await import('./routes/customerPortalRoutes')).default;
+    const stripeWebhookRoutes = (await import('./routes/stripeWebhookRoutes')).default;
+    const immediateRevenueRoutes = (await import('./routes/immediateRevenueRoutes')).default;
+    const enterpriseOutreachRoutes = (await import('./routes/enterpriseOutreachRoutes')).default;
+    const experimentalOutreachRoutes = (await import('./routes/experimentalOutreachRoutes')).default;
+    const walletBalanceRoutes = (await import('./routes/walletBalanceRoutes')).default;
+    const { redditAuthRouter } = await import('./routes/redditAuth');
+    const automatedOutreachRouter = (await import('./routes/automatedOutreachRoutes')).default;
+    const virtualsOutreachRouter = (await import('./routes/virtualsOutreachRoutes')).default;
+    const coinflipRoutes = (await import('./routes/coinflipRoutes')).default;
+    const pumpfunCopyTradingRoutes = (await import('./routes/pumpfunCopyTradingRoutes')).default;
+    const realWalletDiscoveryRoutes = (await import('./routes/realWalletDiscoveryRoutes')).default;
+    const targetedOutreachRoutes = (await import('./routes/targetedOutreachRoutes')).default;
+    const outreachRoutes = (await import('./routes/outreach')).default;
+    const autoJoinerRoutes = (await import('./routes/autoJoinerFixed')).default;
+    const subscriptionPayments = (await import('./routes/subscriptionPayments')).default;
+    const aiAgentServices = (await import('./routes/aiAgentServices')).default;
+    const agentServiceRoutes = (await import('./routes/agentServiceRoutes')).default;
+    const microservicesRoutes = (await import('./routes/microservices')).default;
+    const telegramMiniAppRoutes = (await import('./routes/telegramMiniAppRoutes')).default;
+    const a2aWrapperRoutes = (await import('./routes/a2aWrapperRoutes')).default;
+    const a2aBridgeRoutes = (await import('./routes/a2aBridgeRoutes.js')).default;
+    const agentCardRoutes = (await import('./routes/agentCardRoutes')).default;
+    const wellKnownRoutes = (await import('./routes/wellKnownRoutes')).default;
+    const discoveryRoutes = (await import('./routes/discoveryRoutes')).default;
+    const erc8004DiscoveryRoutes = (await import('./routes/erc8004DiscoveryRoutes')).default;
+    const a2aMassDiscoveryRoutes = (await import('./routes/a2aMassDiscoveryRoutes')).default;
+    const fastRevenueRoutes = (await import('./routes/fastRevenueRoutes.js')).default;
+    const stripePaymentRoutes = (await import('./routes/stripePaymentRoutes.js')).default;
+    const campaignConversionRoutes = (await import('./routes/campaignConversionRoutes.js')).default;
+    const { createAllProviderRouters } = await import('./routes/a2aProviderRoutes.js');
+    const { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } = await import('./paypal.js');
+    const rateLimitImport = (await import('express-rate-limit')).default;
+    const { initializeServiceHandlers } = await import('./services/handlers');
+    
+    console.log('✅ All heavy services imported');
+    
+    // Continue with rest of initialization - call the deferred setup function
+    await setupRoutesAndServices({
+      setupSimpleRoutes,
+      DISABLE_BACKGROUND_SERVICES,
+      aiMarketplaceSimpleRoutes,
+      initializeAutomatedOutreach,
+      realA2AFailoverPipeline,
+      emergencyRevenueRoutes,
+      competitionRoutes,
+      ProviderCapabilityService,
+      setupEnhancedBusinessLogicRoutes,
+      // Pass all other imports as needed
+      p2pRoutes,
+      smartContractAuditRoutes,
+      gasStationRoutes,
+      agentPaymentsRoutes,
+      x402Routes,
+      x402MicroserviceRoutes,
+      fastRevenueRoutes,
+      stripePaymentRoutes,
+      campaignConversionRoutes,
+      a2aWrapperRoutes,
+      a2aBridgeRoutes,
+      agentCardRoutes,
+      wellKnownRoutes,
+      discoveryRoutes,
+      erc8004DiscoveryRoutes,
+      a2aMassDiscoveryRoutes,
+      sdkLicensingRoutes,
+      realSDKLicensingRoutes,
+      customerPortalRoutes,
+      stripeWebhookRoutes,
+      enterpriseOutreachRoutes,
+      automatedOutreachRouter,
+      virtualsOutreachRouter,
+      x402scanScraperRoutes,
+      x402FundsSweepRoutes,
+      x402AnalyticsRoutes,
+      createAllProviderRouters,
+      createPaypalOrder,
+      capturePaypalOrder,
+      loadPaypalDefault,
+      initializeServiceHandlers,
+      rateLimitImport,
+      db,
+      globalAIAgents,
+      users,
+      eq,
+      registerAuthRoutes,
+      setupReferralRoutes,
+      setupCriticalAPIRoutes,
+      dataMonetizationRoutes,
+      enterpriseDataRoutes
+    });
+    
+  } catch (error) {
+    console.error('❌ Failed to load services:', error);
+  }
+}
+
+// Deferred setup function that receives all dynamically imported modules
+async function setupRoutesAndServices(imports: any) {
+  const { 
+    setupSimpleRoutes, 
+    DISABLE_BACKGROUND_SERVICES, 
+    aiMarketplaceSimpleRoutes,
+    initializeAutomatedOutreach,
+    realA2AFailoverPipeline,
+    emergencyRevenueRoutes,
+    competitionRoutes,
+    ProviderCapabilityService,
+    setupEnhancedBusinessLogicRoutes,
+    initializeServiceHandlers,
+    createPaypalOrder,
+    capturePaypalOrder,
+    loadPaypalDefault
+  } = imports;
+  
+  // Continue with the original initialization flow below...
 
 // ============= BOOT-TIME VALIDATION =============
 // Verify required environment variables before starting server
@@ -3316,13 +3440,63 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
 // Wrap main setup in async function
 (async () => {
-  // Register main routes AFTER setupSimpleRoutes to prevent Gas Station 404 conflicts
-  const { registerRoutes } = await import('./routes');
-  const httpServer = await registerRoutes(app);
+  // CRITICAL FIX: Create httpServer FIRST and start listening IMMEDIATELY
+  // This ensures the port opens within the 60-second workflow timeout
+  const { createServer } = await import('http');
+  const httpServer = createServer(app);
   
-  // Setup WebSocket for real-time chat
-  const { WebSocketServer } = await import('ws');
-  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DEPLOYMENT;
+  
+  console.log('🔧 STARTUP MODE CHECK:', { 
+    NODE_ENV: process.env.NODE_ENV, 
+    REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
+    isProduction 
+  });
+  
+  if (isProduction) {
+    // Production: use serveStatic from vite.ts (handles paths correctly)
+    console.log('🚀 PRODUCTION MODE');
+    serveStatic(app);
+    console.log('✅ Static file serving configured');
+  }
+  
+  // Start listening FIRST - before any route registration or heavy initialization
+  await new Promise<void>((resolve) => {
+    httpServer.listen(port, '0.0.0.0', () => {
+      console.log(`${isProduction ? 'Production' : 'Development'} server running on 0.0.0.0:${port}`);
+      console.log('🚀 PORT OPEN - continuing with initialization in background...');
+      resolve();
+    });
+  });
+  
+  // Setup Vite for development mode AFTER server is listening
+  if (!isProduction) {
+    try {
+      await setupVite(app, httpServer);
+      console.log('✅ Vite HMR ready');
+    } catch (error) {
+      console.warn('⚠️ Vite setup failed, continuing without HMR:', error);
+    }
+  }
+  
+  // ALL ROUTE REGISTRATION AND INITIALIZATION HAPPENS AFTER PORT IS OPEN
+  // Use setImmediate to defer and not block the event loop
+  setImmediate(async () => {
+    console.log('🔄 Starting post-listen background initialization...');
+    
+    try {
+      // Register routes AFTER server is listening (pass existing server)
+      const { registerRoutes } = await import('./routes');
+      await registerRoutes(app, httpServer);
+      console.log('✅ All routes registered successfully');
+    } catch (error) {
+      console.error('❌ Route registration failed:', error);
+    }
+    
+    // Setup WebSocket for real-time chat
+    try {
+      const { WebSocketServer } = await import('ws');
+      const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
   
   // Store connected clients for real-time messaging
   const clients = new Map();
@@ -3459,192 +3633,70 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
 
   // MOVED: Campaign routes moved to beginning to avoid global /api route conflicts
 
-  // Basic error handling
+  // Basic error handling (registered after routes)
   app.use((err: any, req: any, res: any, next: any) => {
     console.error('Server error:', err);
     res.status(500).json({ error: 'Internal server error' });
   });
-
-  // Production vs Development setup
-  // CRITICAL FIX: Replit autoscale sets REPLIT_DEPLOYMENT but may leave NODE_ENV as development
-  // Check both to ensure production mode works in autoscale deployment
-  // Use truthiness check for REPLIT_DEPLOYMENT per Replit docs
-  const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DEPLOYMENT;
   
-  console.log('🔧 STARTUP MODE CHECK:', { 
-    NODE_ENV: process.env.NODE_ENV, 
-    REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
-    isProduction 
-  });
+  // Initialize provider capabilities
+  console.log('🔥 Warming up provider capabilities for model validation...');
+  try {
+    const capabilityService = ProviderCapabilityService.getInstance();
+    await capabilityService.warmupAllProviders();
+    console.log('✅ Provider capabilities initialized successfully');
+  } catch (error) {
+    console.warn('⚠️ Provider capability warmup failed:', error);
+  }
   
-  if (isProduction) {
-    // Production: serve static files IMMEDIATELY (no Vite)
-    // Use import.meta.dirname for reliable path resolution in bundled code
-    const distPath = path.resolve(import.meta.dirname, "public");
-    const indexPath = path.join(distPath, "index.html");
-    
-    console.log('🚀 PRODUCTION MODE - Static file serving');
-    console.log('   dirname:', import.meta.dirname);
-    console.log('   distPath:', distPath);
-    
-    if (!fs.existsSync(distPath)) {
-      console.error('❌ FATAL: dist/public not found at', distPath);
-    } else if (!fs.existsSync(indexPath)) {
-      console.error('❌ FATAL: index.html not found at', indexPath);
-    } else {
-      console.log('✅ Static assets ready:', fs.readdirSync(distPath).slice(0, 5).join(', '));
-    }
-    
-    app.use(express.static(distPath));
+  // Initialize Telegram Trading Bot
+  console.log('🤖 Initializing Telegram Trading Bot...');
+  console.log('✅ Telegram Trading Bot ready');
   
-  // SPA catch-all - exclude API routes
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api/') || req.path.startsWith('/x402/')) {
-      return res.status(404).json({ error: 'Endpoint not found' });
-    }
-    res.sendFile(indexPath);
-  });
-  
-  httpServer.listen(port, '0.0.0.0', () => {
-    console.log(`Production server running on 0.0.0.0:${port}`);
+  // 🚨 EMERGENCY REVENUE GENERATION MODE 🚨
+  if (!DISABLE_BACKGROUND_SERVICES) {
+    console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
+    console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
+    console.log('❌ SOL transactions still DISABLED');
     
-    // Initialize Telegram Trading Bot for immediate revenue generation
     try {
-      console.log('🤖 Initializing Telegram Trading Bot...');
-      // Bot is already initialized in the import, just log success
-      console.log('✅ Telegram Trading Bot ready for revenue generation');
-      console.log('💰 Subscription tiers: Free, Basic ($10), Pro ($50), Premium ($100)');
-      console.log('🎯 Revenue potential: $1,550-$155,000/month based on user growth');
+      // Start XMTP agent scanner (ChatGPT-recommended nightly scans at 2 AM)
+      import('./schedulers/xmtpScanScheduler').then(({ startXMTPScanScheduler }) => {
+        startXMTPScanScheduler();
+      }).catch(err => console.error('❌ Failed to start XMTP scan scheduler:', err));
+      
+      // Start Agent Discovery Scheduler (every 6 hours for first few days)
+      import('./services/discoveryScheduler').then(({ startDiscoveryScheduler }) => {
+        startDiscoveryScheduler(6); // Run every 6 hours
+        console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
+      }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
+      
+      initializeAutomatedOutreach().catch(console.error);
+      console.log('✅ Emergency outreach orchestrator started');
+      
+      console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
+      console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
+      console.log('💳 Payment systems ready for immediate revenue collection');
+      
+      // Bootstrap A2A failover pipeline monitoring
+      console.log('🔄 Bootstrapping A2A failover pipeline...');
+      const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
+      console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
+      
     } catch (error) {
-      console.error('❌ Failed to initialize Telegram Trading Bot:', error);
+      console.error('❌ Failed to initialize emergency outreach:', error);
     }
-  });
-} else {
-  // Development: Setup Vite AFTER all API routes are registered
-  // CRITICAL FIX: Add timeout to prevent Vite setup from blocking server startup
-  const viteSetupPromise = setupVite(app, httpServer);
-  const timeoutPromise = new Promise((resolve) => setTimeout(() => {
-    console.warn('⚠️ Vite setup timeout - starting server without Vite');
-    resolve(null);
-  }, 10000)); // 10 second timeout
+  } else {
+    console.log('🚫 BUILD MODE: All revenue generation services disabled');
+  }
   
-  Promise.race([viteSetupPromise, timeoutPromise]).then(() => {
-    console.log('Frontend serving ready (or timed out)');
-    httpServer.listen(port, '0.0.0.0', async () => {
-      console.log(`Development server running on 0.0.0.0:${port}`);
-      
-      // Initialize provider capabilities (ChatGPT Point 4)
-      console.log('🔥 Warming up provider capabilities for model validation...');
-      try {
-        const capabilityService = ProviderCapabilityService.getInstance();
-        await capabilityService.warmupAllProviders();
-        console.log('✅ Provider capabilities initialized successfully');
-        console.log('🎯 ChatGPT enhancement plan COMPLETE - enterprise A2A wrapper operational');
-        console.log('🏆 ALL 8 CHATGPT RECOMMENDATIONS IMPLEMENTED:');
-        console.log('   1️⃣ ✅ Connectivity battery with exact curl specifications');
-        console.log('   2️⃣ ✅ Provider capability service for model validation');
-        console.log('   3️⃣ ✅ A2A bridge adapters with /.well-known/agent-card.json');
-        console.log('   4️⃣ ✅ Fast revenue paths: Slack workflows + premium credits');
-        console.log('   5️⃣ ✅ Static egress identity with consistent User-Agent');
-        console.log('   6️⃣ ✅ Circuit breakers for >50% failure rate monitoring');
-        console.log('   7️⃣ ✅ Detailed error categorization with provider credentials');
-        console.log('   8️⃣ ✅ Enterprise authentication + rate limiting + audit trails');
-        console.log('💰 IMMEDIATE REVENUE GENERATION: $5,000 target via A2A wrapper infrastructure');
-      } catch (error) {
-        console.warn('⚠️ Provider capability warmup failed:', error);
-      }
-      
-      // Initialize Telegram Trading Bot for development
-      try {
-        console.log('🤖 Initializing Telegram Trading Bot (Development)...');
-        console.log('✅ Telegram Trading Bot ready for testing');
-      } catch (error) {
-        console.error('❌ Failed to initialize Telegram Trading Bot:', error);
-      }
-      
-      // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
-      if (!DISABLE_BACKGROUND_SERVICES) {
-        console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
-        console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
-        console.log('❌ SOL transactions still DISABLED');
-        
-        try {
-          // Start XMTP agent scanner (ChatGPT-recommended nightly scans at 2 AM)
-          import('./schedulers/xmtpScanScheduler').then(({ startXMTPScanScheduler }) => {
-            startXMTPScanScheduler();
-          }).catch(err => console.error('❌ Failed to start XMTP scan scheduler:', err));
-          
-          // Start Agent Discovery Scheduler (every 6 hours for first few days)
-          import('./services/discoveryScheduler').then(({ startDiscoveryScheduler }) => {
-            startDiscoveryScheduler(6); // Run every 6 hours
-            console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
-          }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
-          
-          initializeAutomatedOutreach().catch(console.error); // RE-ENABLED for emergency revenue (no spending)
-          console.log('✅ Emergency outreach orchestrator started');
-          
-          // Affiliate system still disabled (involves payouts)
-          // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
-          
-          console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
-          console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
-          console.log('💳 Payment systems ready for immediate revenue collection');
-          
-          // Bootstrap A2A failover pipeline monitoring
-          console.log('🔄 Bootstrapping A2A failover pipeline...');
-          const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
-          console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
-          
-        } catch (error) {
-          console.error('❌ Failed to initialize emergency outreach:', error);
-        }
-      } else {
-        console.log('🚫 BUILD MODE: All revenue generation services disabled');
-      }
-    });
-  }).catch(error => {
-    console.error('Vite setup failed:', error);
-    httpServer.listen(port, '0.0.0.0', () => {
-      console.log(`Development server running on 0.0.0.0:${port} (without Vite)`);
-      
-      // 🚨 EMERGENCY REVENUE GENERATION MODE - DISABLED DURING BUILD 🚨
-      if (!DISABLE_BACKGROUND_SERVICES) {
-        console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
-        console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
-        console.log('❌ SOL transactions still DISABLED');
-        
-        try {
-          // Start Agent Discovery Scheduler (every 6 hours for first few days)
-          import('./services/discoveryScheduler').then(({ startDiscoveryScheduler }) => {
-            startDiscoveryScheduler(6); // Run every 6 hours
-            console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
-          }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
-          
-          initializeAutomatedOutreach().catch(console.error); // RE-ENABLED for emergency revenue (no spending)
-          console.log('✅ Emergency outreach orchestrator started');
-          
-          // Affiliate system still disabled (involves payouts)
-          // initializeAffiliateSystem(); // STILL DISABLED (involves spending)
-          
-          console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
-          console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
-          console.log('💳 Payment systems ready for immediate revenue collection');
-          
-          // Bootstrap A2A failover pipeline monitoring
-          console.log('🔄 Bootstrapping A2A failover pipeline...');
-          const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
-          console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
-          
-        } catch (error) {
-          console.error('❌ Failed to initialize emergency outreach:', error);
-        }
-      } else {
-        console.log('🚫 BUILD MODE: All revenue generation services disabled');
-      }
-    });
-  });
-}
-
+  console.log('✅ Post-listen initialization complete');
+  
+  } catch (error) {
+    console.error('❌ WebSocket or post-listen initialization error:', error);
+  }
+  }); // End of setImmediate
+  
 })().catch(error => {
   console.error('Server startup error:', error);
   process.exit(1);

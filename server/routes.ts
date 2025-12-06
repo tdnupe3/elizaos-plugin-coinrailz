@@ -75,8 +75,9 @@ async function initializeStripe() {
 // Initialize payment gateway resolver
 const paymentResolver = new PaymentGatewayResolver();
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  const server = createServer(app);
+export async function registerRoutes(app: Express, existingServer?: Server): Promise<Server> {
+  // Use existing server if provided, otherwise create new one
+  const server = existingServer || createServer(app);
 
   // Direct Coinbase DeFi wallet endpoint bypassing auth middleware  
   app.get('/api/defi/status', (req, res) => {

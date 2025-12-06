@@ -3479,33 +3479,30 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   
   if (isProduction) {
     // Production: serve static files IMMEDIATELY (no Vite)
-    console.log('🚀 Starting in PRODUCTION mode - serving static files from dist/public');
+    // Use import.meta.dirname for reliable path resolution in bundled code
+    const distPath = path.resolve(import.meta.dirname, "public");
+    const indexPath = path.join(distPath, "index.html");
     
-    // CRITICAL: Verify dist/public exists before trying to serve it
-    const distPublicPath = path.resolve('dist/public');
-    const indexHtmlPath = path.resolve('dist/public/index.html');
+    console.log('🚀 PRODUCTION MODE - Static file serving');
+    console.log('   dirname:', import.meta.dirname);
+    console.log('   distPath:', distPath);
     
-    if (!fs.existsSync(distPublicPath)) {
-      console.error('❌ CRITICAL ERROR: dist/public folder does not exist!');
-      console.error('   Current working directory:', process.cwd());
-      console.error('   Looking for:', distPublicPath);
-      console.error('   Directory contents:', fs.readdirSync('.').join(', '));
-    } else if (!fs.existsSync(indexHtmlPath)) {
-      console.error('❌ CRITICAL ERROR: dist/public/index.html does not exist!');
-      console.error('   dist/public contents:', fs.readdirSync(distPublicPath).join(', '));
+    if (!fs.existsSync(distPath)) {
+      console.error('❌ FATAL: dist/public not found at', distPath);
+    } else if (!fs.existsSync(indexPath)) {
+      console.error('❌ FATAL: index.html not found at', indexPath);
     } else {
-      console.log('✅ dist/public/index.html verified - frontend assets ready');
+      console.log('✅ Static assets ready:', fs.readdirSync(distPath).slice(0, 5).join(', '));
     }
     
-    app.use(express.static('dist/public'));
+    app.use(express.static(distPath));
   
-  // Catch-all handler for SPA routing - exclude API and x402 routes
+  // SPA catch-all - exclude API routes
   app.get('*', (req, res) => {
-    // Skip API and x402 routes - they should have been handled already
     if (req.path.startsWith('/api/') || req.path.startsWith('/x402/')) {
       return res.status(404).json({ error: 'Endpoint not found' });
     }
-    res.sendFile(path.resolve('dist/public/index.html'));
+    res.sendFile(indexPath);
   });
   
   httpServer.listen(port, '0.0.0.0', () => {

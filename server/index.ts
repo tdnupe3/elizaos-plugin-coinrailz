@@ -3467,11 +3467,18 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   // Production vs Development setup
   // CRITICAL FIX: Replit autoscale sets REPLIT_DEPLOYMENT but may leave NODE_ENV as development
   // Check both to ensure production mode works in autoscale deployment
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+  // Use truthiness check for REPLIT_DEPLOYMENT per Replit docs
+  const isProduction = process.env.NODE_ENV === 'production' || !!process.env.REPLIT_DEPLOYMENT;
+  
+  console.log('🔧 STARTUP MODE CHECK:', { 
+    NODE_ENV: process.env.NODE_ENV, 
+    REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
+    isProduction 
+  });
   
   if (isProduction) {
-    // Production: serve static files
-    console.log('🚀 Starting in PRODUCTION mode (NODE_ENV:', process.env.NODE_ENV, ', REPLIT_DEPLOYMENT:', process.env.REPLIT_DEPLOYMENT, ')');
+    // Production: serve static files IMMEDIATELY (no Vite)
+    console.log('🚀 Starting in PRODUCTION mode - serving static files from dist/public');
     app.use(express.static('dist/public'));
   
   // Catch-all handler for SPA routing - exclude API and x402 routes

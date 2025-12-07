@@ -44,9 +44,8 @@ export function initializeDiscoveryAdapters(): void {
     platformAdapter.expectedYield
   } agents per discovery run (including ${bazaarAdapter.expectedYield} REAL paying agents from Coinbase Bazaar)`);
 
-  // Start the discovery scheduler
-  agentDiscoveryService.startScheduler();
-  console.log('⏰ Discovery scheduler started (runs twice daily at 8am/8pm)');
+  // NOTE: Scheduler is started from server/index.ts AFTER server is listening
+  // Do NOT start here to prevent health check timeout during deployment
 }
 
 // Export individual adapters for testing

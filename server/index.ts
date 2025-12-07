@@ -3574,6 +3574,13 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.log('❌ SOL transactions still DISABLED');
     
     try {
+      // CRITICAL: Initialize AgentDiscoveryService AFTER server is listening
+      // This prevents health check timeout during deployment
+      import('./services/agentDiscoveryService').then(async ({ agentDiscoveryService }) => {
+        await agentDiscoveryService.deferredInitialize();
+        console.log('✅ AgentDiscoveryService initialized post-listen');
+      }).catch(err => console.error('❌ Failed to initialize AgentDiscoveryService:', err));
+      
       // Start XMTP agent scanner (ChatGPT-recommended nightly scans at 2 AM)
       import('./schedulers/xmtpScanScheduler').then(({ startXMTPScanScheduler }) => {
         startXMTPScanScheduler();

@@ -100,6 +100,8 @@ export class AgentDiscoveryService {
   private heartbeatInterval: NodeJS.Timeout | null = null;
   private readonly HEARTBEAT_INTERVAL = 1800000; // 30 minutes heartbeat
 
+  private isInitialized: boolean = false;
+
   constructor() {
     if (AgentDiscoveryService.instance) {
       console.log('⚠️ AgentDiscoveryService already exists, returning existing instance');
@@ -108,12 +110,47 @@ export class AgentDiscoveryService {
     
     this.communicationOrchestrator = new CommunicationOrchestrator();
     this.processId = `discovery_${process.pid}_${Date.now()}`;
-    this.initializeRedis();
-    this.initializeAdapters().catch(console.error);
-    this.initializeScheduler().catch(console.error);
+    
+    // CRITICAL FIX: Don't do heavy initialization in constructor
+    // Call deferredInitialize() explicitly AFTER server is listening
     
     AgentDiscoveryService.instance = this;
-    console.log('✅ AgentDiscoveryService singleton instance created');
+    console.log('✅ AgentDiscoveryService singleton instance created (awaiting post-listen initialization)');
+  }
+
+  /**
+   * DEFERRED INITIALIZATION - Call this AFTER server is listening
+   * This prevents health check timeout during deployment
+   */
+  async deferredInitialize(): Promise<void> {
+    try {
+      // Skip if already initialized or during build phase
+      const { DISABLE_BACKGROUND_SERVICES } = await import('../buildModeDetection.js');
+      
+      if (DISABLE_BACKGROUND_SERVICES) {
+        console.log('🚫 AgentDiscoveryService: Skipping initialization during build phase');
+        return;
+      }
+      
+      if (this.isInitialized) {
+        console.log('⚠️ AgentDiscoveryService: Already initialized');
+        return;
+      }
+      
+      console.log('🔧 AgentDiscoveryService: Starting deferred initialization...');
+      
+      await this.initializeRedis();
+      await this.initializeAdapters();
+      await this.initializeScheduler();
+      
+      // Start the scheduler after initialization (cron job created with scheduled: false)
+      this.startScheduler();
+      
+      this.isInitialized = true;
+      console.log('✅ AgentDiscoveryService: Deferred initialization complete');
+    } catch (error) {
+      console.error('❌ AgentDiscoveryService: Deferred initialization failed:', error);
+    }
   }
 
   /**

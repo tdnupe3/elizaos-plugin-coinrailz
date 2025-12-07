@@ -14,7 +14,7 @@ import { MassiveBaseEcosystemThousandsService } from './massiveBaseEcosystemThou
 import { xmtpMessagingService } from './xmtpMessagingService.js';
 import { a2aProtocolService } from './a2aProtocolService.js';
 import { db } from '../db';
-import { globalAIAgents, outreachLogs } from '../../shared/schema.js';
+import { globalAIAgents, outreachLogs } from '@shared/schema';
 import { eq, sql, and, gt } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 

@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "../db";
 import { sql, eq, and } from "drizzle-orm";
-import { users, tradingFees } from "../../shared/schema.js";
+import { users, tradingFees } from "@shared/schema";
 import { isAuthenticated } from "../replitAuth.js";
 
 const router = Router();

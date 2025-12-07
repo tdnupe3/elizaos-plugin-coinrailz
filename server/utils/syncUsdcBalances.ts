@@ -3,9 +3,9 @@
  * Manually sync all Circle wallet balances with database
  */
 
-import { CircleService } from '../services/circleService.js';
-import { db } from '../db.js';
-import { users } from '../../shared/schema.js';
+import { CircleService } from '../services/circleService';
+import { db } from '../db';
+import { users } from '@shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 export async function syncAllUsdcBalances() {

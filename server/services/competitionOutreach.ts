@@ -1,5 +1,5 @@
 import { db } from '../db';
-import { discoveredAgents } from '../../shared/schema.js';
+import { discoveredAgents } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 /**

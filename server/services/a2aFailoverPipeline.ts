@@ -15,7 +15,7 @@
 import { CommunicationOrchestrator } from './communicationOrchestrator';
 import { XMTPMessagingService } from './xmtpMessagingService';
 import { db } from '../db';
-import { outreachLogs, globalAIAgents, a2aTasks } from '../../shared/schema.js';
+import { outreachLogs, globalAIAgents, a2aTasks } from '@shared/schema';
 import { nanoid } from 'nanoid';
 import { eq, and, sql, desc } from 'drizzle-orm';
 

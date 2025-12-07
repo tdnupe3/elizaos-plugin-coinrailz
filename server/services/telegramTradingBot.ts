@@ -10,7 +10,7 @@ import { pumpfunCopyTradingService } from './pumpfunCopyTradingService.js';
 import { RealTelegramPayments } from './realTelegramPayments.js';
 import { circleClient } from './circleClient.js';
 import { db } from '../db';
-import { telegramUsers, userWallets, subscriptions } from '../../shared/schema.js';
+import { telegramUsers, userWallets, subscriptions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';
 import bs58 from 'bs58';

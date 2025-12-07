@@ -6,6 +6,7 @@
 
 import express, { Request, Response } from 'express';
 import { autonomousDiscoveryService } from '../services/autonomousDiscoveryService';
+import { indexerNotificationService } from '../services/indexerNotificationService';
 import {
   executeDiscoveryRun,
   getDiscoveryStats,
@@ -74,6 +75,51 @@ router.post('/api/discovery/ping', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to ping search engines',
+    });
+  }
+});
+
+/**
+ * POST /api/discovery/notify-indexers
+ * Notify AI agent indexers (x402scan, Coinbase Bazaar) that we're back online
+ * Query params: force=true to retry even if already notified
+ */
+router.post('/api/discovery/notify-indexers', async (req, res) => {
+  try {
+    const force = req.query.force === 'true' || req.body?.force === true;
+    const result = await indexerNotificationService.notifyAllIndexers(force);
+    
+    res.json({
+      success: result.allSucceeded,
+      message: result.allSucceeded ? 'All indexers notified successfully' : 'Some indexers failed',
+      ...result
+    });
+  } catch (error) {
+    console.error('Indexer notification failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to notify indexers',
+    });
+  }
+});
+
+/**
+ * GET /api/discovery/self-check
+ * Verify our own discovery endpoints are accessible
+ */
+router.get('/api/discovery/self-check', async (req, res) => {
+  try {
+    const results = await indexerNotificationService.pingSpecificEndpoints();
+    
+    res.json({
+      success: results.every(r => r.success),
+      endpoints: results
+    });
+  } catch (error) {
+    console.error('Self-check failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to run self-check',
     });
   }
 });

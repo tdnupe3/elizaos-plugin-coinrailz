@@ -3533,6 +3533,28 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.warn('⚠️ Provider capability warmup failed:', error);
   }
   
+  // Notify AI agent indexers that we're back online (production only)
+  if (isProduction) {
+    console.log('📢 Notifying AI agent indexers that platform is back online...');
+    try {
+      const { indexerNotificationService } = await import('./services/indexerNotificationService');
+      setTimeout(async () => {
+        try {
+          const result = await indexerNotificationService.notifyAllIndexers();
+          if (result.allSucceeded) {
+            console.log('✅ Indexer notification complete - all indexers notified');
+          } else {
+            console.warn(`⚠️ Indexer notification partial: ${result.summary}`);
+          }
+        } catch (err) {
+          console.warn('⚠️ Indexer notification failed:', err);
+        }
+      }, 10000); // Wait 10 seconds for everything to stabilize
+    } catch (error) {
+      console.warn('⚠️ Failed to load indexer notification service:', error);
+    }
+  }
+  
   // Initialize Telegram Trading Bot
   console.log('🤖 Initializing Telegram Trading Bot...');
   console.log('✅ Telegram Trading Bot ready');

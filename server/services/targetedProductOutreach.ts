@@ -4,7 +4,7 @@
  * Based on agent capabilities and purchasing likelihood
  */
 
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema.js';
 import { eq, and, ne } from 'drizzle-orm';
 

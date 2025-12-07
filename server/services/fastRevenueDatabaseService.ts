@@ -3,7 +3,7 @@
  * FIXES CRITICAL ENTERPRISE GAPS - Replaces in-memory storage with real database persistence
  */
 
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { 
   fastRevenueRecords, 
   fastPremiumCredits, 

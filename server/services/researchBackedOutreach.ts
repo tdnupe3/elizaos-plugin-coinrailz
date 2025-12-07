@@ -16,7 +16,7 @@
 
 import { nanoid } from 'nanoid';
 import fetch from 'node-fetch';
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { globalAIAgents, outreachLogs } from '../../shared/schema.js';
 import { eq, sql } from 'drizzle-orm';
 

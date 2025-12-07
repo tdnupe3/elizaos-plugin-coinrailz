@@ -1,4 +1,4 @@
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { discoveredAgents } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 

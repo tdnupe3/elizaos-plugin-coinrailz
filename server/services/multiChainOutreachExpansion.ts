@@ -13,7 +13,7 @@ import { coinbaseAgentEcosystemService } from './coinbaseAgentEcosystemService.j
 import { MassiveBaseEcosystemThousandsService } from './massiveBaseEcosystemThousands.js';
 import { xmtpMessagingService } from './xmtpMessagingService.js';
 import { a2aProtocolService } from './a2aProtocolService.js';
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { globalAIAgents, outreachLogs } from '../../shared/schema.js';
 import { eq, sql, and, gt } from 'drizzle-orm';
 import { nanoid } from 'nanoid';

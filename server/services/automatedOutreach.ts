@@ -1,7 +1,7 @@
 import TelegramBot from 'node-telegram-bot-api';
 import { XMTPMessagingService } from './xmtpMessagingService.js';
 import { Client as DiscordClient, GatewayIntentBits, EmbedBuilder } from 'discord.js';
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { outreachLogs } from '../../shared/schema.js';
 
 /**

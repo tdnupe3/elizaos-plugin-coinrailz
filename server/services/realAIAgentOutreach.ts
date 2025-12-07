@@ -1,4 +1,4 @@
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { global_ai_agents } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 

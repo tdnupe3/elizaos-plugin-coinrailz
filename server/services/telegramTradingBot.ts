@@ -9,7 +9,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { pumpfunCopyTradingService } from './pumpfunCopyTradingService.js';
 import { RealTelegramPayments } from './realTelegramPayments.js';
 import { circleClient } from './circleClient.js';
-import { db } from '../db/index.js';
+import { db } from '../db';
 import { telegramUsers, userWallets, subscriptions } from '../../shared/schema.js';
 import { eq } from 'drizzle-orm';
 import { Connection, PublicKey, Keypair } from '@solana/web3.js';

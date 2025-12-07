@@ -2,7 +2,7 @@ import TelegramBot from 'node-telegram-bot-api';
 import { XMTPMessagingService } from './xmtpMessagingService.js';
 import { Client as DiscordClient, GatewayIntentBits, EmbedBuilder } from 'discord.js';
 import { db } from '../db';
-import { outreachLogs } from '@shared/schema';
+import { outreachLogs } from '../../shared/schema';
 
 /**
  * AUTOMATED OUTREACH SERVICE - REAL CAMPAIGNS USING ACTUAL APIS

@@ -6,7 +6,7 @@
 
 import { CircleService } from './circleService';
 import { db } from '../db';
-import { users } from '@shared/schema';
+import { users } from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 class CircleBalanceSyncer {

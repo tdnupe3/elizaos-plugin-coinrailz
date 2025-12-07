@@ -12,7 +12,7 @@ import {
   type InsertFastPremiumCredit,
   type InsertFastCreditUsage,
   type FastPremiumCredit
-} from '@shared/schema';
+} from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 export class FastRevenueDatabaseService {

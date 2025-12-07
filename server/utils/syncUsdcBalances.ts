@@ -5,7 +5,7 @@
 
 import { CircleService } from '../services/circleService';
 import { db } from '../db';
-import { users } from '@shared/schema';
+import { users } from '../../shared/schema';
 import { eq, sql } from 'drizzle-orm';
 
 export async function syncAllUsdcBalances() {

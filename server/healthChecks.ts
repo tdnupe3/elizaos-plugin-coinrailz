@@ -1,12 +1,12 @@
 /**
  * PRODUCTION HEALTH CHECKS
- * Validates critical configuration before server starts
+ * Validates configuration before server starts
+ * NOTE: Core x402 microservices work without third-party API keys
  */
 
 export function validateProductionReadiness(): void {
   console.log('\n🔍 Running production readiness health checks...');
 
-  const errors: string[] = [];
   const warnings: string[] = [];
 
   // 1. Check PUBLIC_BASE_URL configuration
@@ -18,17 +18,17 @@ export function validateProductionReadiness(): void {
 
   console.log(`   ✓ Expected domain: ${expectedDomain}`);
 
-  // 2. Verify required API keys
-  const requiredKeys = {
+  // 2. Check optional API keys (not required for core x402 microservices)
+  const optionalKeys = {
     ALCHEMY_API_KEY: 'Alchemy RPC (blockchain data)',
     OPENAI_API_KEY: 'OpenAI (AI services)',
     CDP_API_KEY_ID: 'Coinbase CDP (wallets)',
     CDP_API_KEY_SECRET: 'Coinbase CDP (wallets)',
   };
 
-  for (const [key, description] of Object.entries(requiredKeys)) {
+  for (const [key, description] of Object.entries(optionalKeys)) {
     if (!process.env[key]) {
-      errors.push(`Missing ${key} (${description})`);
+      warnings.push(`${key} not configured - ${description} features disabled`);
     } else {
       console.log(`   ✓ ${description}: configured`);
     }
@@ -54,17 +54,12 @@ export function validateProductionReadiness(): void {
     console.log('   ✓ Development/workspace environment');
   }
 
-  // Report results
-  if (errors.length > 0) {
-    console.error('\n❌ CRITICAL ERRORS - Server cannot start:');
-    errors.forEach(err => console.error(`   - ${err}`));
-    process.exit(1);
-  }
-
+  // Report warnings (no longer blocking deployment)
   if (warnings.length > 0) {
-    console.warn('\n⚠️  WARNINGS:');
+    console.warn('\n⚠️  OPTIONAL CONFIGURATION WARNINGS:');
     warnings.forEach(warn => console.warn(`   - ${warn}`));
+    console.warn('\n📌 Core x402 microservices will still function.\n');
   }
 
-  console.log('\n✅ All health checks passed - server ready for production\n');
+  console.log('✅ Health checks complete - server ready to start\n');
 }

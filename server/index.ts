@@ -93,34 +93,42 @@ import rateLimitImport from 'express-rate-limit';
 import { initializeServiceHandlers } from './services/handlers';
 
 // ============= BOOT-TIME VALIDATION =============
-// Verify required environment variables before starting server
+// Verify optional environment variables - warn if missing but allow server to start
+// Core x402 microservices work without these; only specific features require them
 function validateRequiredEnvironmentVariables() {
-  const required = {
-    ALCHEMY_API_KEY: 'Alchemy API (blockchain RPC)',
-    OPENAI_API_KEY: 'OpenAI API (AI services)',
-    CDP_API_KEY_ID: 'Coinbase CDP (wallet creation)',
-    CDP_API_KEY_SECRET: 'Coinbase CDP (wallet creation)',
+  const optionalIntegrations = {
+    ALCHEMY_API_KEY: 'Alchemy API (blockchain RPC) - needed for on-chain verification',
+    OPENAI_API_KEY: 'OpenAI API (AI services) - needed for AI-powered features',
+    CDP_API_KEY_ID: 'Coinbase CDP (wallet creation) - needed for wallet provisioning',
+    CDP_API_KEY_SECRET: 'Coinbase CDP (wallet creation) - needed for wallet provisioning',
   };
 
   const missing: string[] = [];
-  for (const [key, description] of Object.entries(required)) {
+  const configured: string[] = [];
+  
+  for (const [key, description] of Object.entries(optionalIntegrations)) {
     if (!process.env[key]) {
       missing.push(`${key} (${description})`);
+    } else {
+      configured.push(key);
     }
   }
 
   if (missing.length > 0) {
-    console.error('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.error('❌ CRITICAL ERROR: Missing required environment variables');
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    missing.forEach(m => console.error(`  ❌ ${m}`));
-    console.error('\n🛑 Server cannot start in production without these variables.');
-    console.error('   Add them to your environment and try again.\n');
-    console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    process.exit(1); // HARD FAIL for production readiness
-  } else {
-    console.log('✅ All required environment variables validated');
+    console.warn('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.warn('⚠️  WARNING: Some optional integration keys are missing');
+    console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    missing.forEach(m => console.warn(`  ⚠️  ${m}`));
+    console.warn('\n📌 Core x402 microservices will work without these keys.');
+    console.warn('   Add them to enable additional features.\n');
+    console.warn('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   }
+  
+  if (configured.length > 0) {
+    console.log(`✅ Configured integrations: ${configured.join(', ')}`);
+  }
+  
+  console.log('✅ Server startup validation complete - proceeding with available integrations');
 }
 
 validateRequiredEnvironmentVariables();

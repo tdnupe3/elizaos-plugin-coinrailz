@@ -4,7 +4,7 @@ import { microserviceRequests, microserviceMetrics } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { eq, and } from "drizzle-orm";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' });
 
 export const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
 

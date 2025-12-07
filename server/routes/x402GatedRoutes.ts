@@ -19,6 +19,7 @@ import { createPaymentOrchestrator } from '../middleware/paymentOrchestrator';
 import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { usageAnalyticsMiddleware } from '../middleware/usageAnalyticsMiddleware';
 import { x402ResponseEnricher } from '../middleware/x402ResponseEnricher';
+import { SERVICE_PRICING_USD, SERVICE_PRICING_MICRO, ServiceName } from '@shared/pricing';
 
 const router = Router();
 
@@ -539,5 +540,173 @@ router.post('/token-price-lookup',
   x402Middleware,
   tokenPriceLookupHandler
 );
+
+// ============================================================================
+// DYNAMIC CATCH-ALL HANDLER FOR ALL x402 SERVICES
+// This ensures ALL 37 services work at /x402/service/<slug> URL pattern
+// Services are defined in shared/pricing.ts as the single source of truth
+// ============================================================================
+
+// Service descriptions for dynamic 402 responses
+const SERVICE_DESCRIPTIONS: Record<string, string> = {
+  'ping': 'x402 discovery and testing endpoint - returns 402 Payment Required challenge',
+  'gas-price-oracle': 'Real-time gas prices across multiple chains with AI-powered timing recommendations',
+  'token-metadata': 'Unified token info across all chains - essential for trading agent UIs',
+  'dex-liquidity': 'Real-time DEX liquidity pool monitoring across multiple exchanges',
+  'approval-manager': 'Token approval transaction generator - required for DeFi agents',
+  'token-price': 'Token pricing with 24h change, volume, market cap',
+  'token-sentiment': 'Social sentiment analysis for tokens with momentum indicators',
+  'transaction-builder': 'Pre-validated transaction encoding for agent-to-agent transfers',
+  'whale-alerts': 'Track large wallet movements with on-chain monitoring',
+  'batch-quote': 'Multi-DEX price quotes in single call',
+  'multi-chain-balance': 'Query wallet balances across 7+ EVM chains in a single API call',
+  'trending-tokens': 'Top gaining and losing tokens across DEXs',
+  'portfolio-tracker': 'Real-time multi-chain portfolio valuation',
+  'wallet-risk': 'Wallet risk analysis with compliance flags',
+  'trade-signals': 'AI-powered crypto trading signals with entry/exit points',
+  'payment-processing': 'Multi-chain payment processing service',
+  'contract-scan': 'Basic smart contract security scan with safety score',
+  'instant-agent-wallet': 'Create MPC-secured USDC wallets instantly via Circle CDP',
+  'agent-create-wallet': 'Agent Wallet Provisioning via Coinbase CDP',
+  'seamless-chain-bridge': 'Cross-chain USDC routing via Circle CCTP',
+  'verified-agent-identity': 'KYA identity verification with on-chain reputation',
+  'compliance-consultation': 'AML/KYC compliance consultation and risk assessment',
+  'smart-contract-audit': 'Comprehensive smart contract security audit',
+  'property-valuation': 'AI-powered real estate property valuation',
+  'lease-analysis': 'Commercial lease analysis and optimization',
+  'construction-progress': 'Construction project progress tracking',
+  'credit-risk-score': 'Credit risk scoring and analysis',
+  'fraud-detection': 'Transaction fraud detection and prevention',
+  'compliance-check': 'Regulatory compliance verification',
+  'trading-signal': 'Advanced trading signal generation',
+  'portfolio-optimization': 'Portfolio optimization recommendations',
+  'sentiment-analysis': 'Market sentiment analysis',
+  'arbitrage-scanner': 'Cross-exchange arbitrage opportunity scanner',
+  'correlation-matrix': 'Asset correlation matrix analysis',
+  'risk-metrics': 'Portfolio risk metrics calculation',
+  'polymarket-events': 'Trending prediction market events',
+  'polymarket-odds': 'Current odds for prediction markets',
+  'polymarket-search': 'Search prediction markets',
+  'prediction-market-odds': 'Generic prediction market odds lookup',
+};
+
+// All services from the centralized pricing (single source of truth)
+const ALL_SERVICE_SLUGS = Object.keys(SERVICE_PRICING_USD) as ServiceName[];
+
+// Generate dynamic 402 response for any service
+function generateDynamic402Response(serviceSlug: string, req: Request, res: Response): void {
+  const priceUsd = SERVICE_PRICING_USD[serviceSlug as ServiceName];
+  const priceMicro = SERVICE_PRICING_MICRO[serviceSlug as ServiceName];
+  
+  if (!priceUsd || !priceMicro) {
+    res.status(404).json({ 
+      error: 'Service not found',
+      availableServices: ALL_SERVICE_SLUGS,
+      catalogUrl: `${PUBLIC_BASE_URL}/x402/catalog`,
+    });
+    return;
+  }
+
+  const description = SERVICE_DESCRIPTIONS[serviceSlug] || `${serviceSlug} x402 micropayment service`;
+  
+  const response = {
+    x402Version: 1,
+    error: "X-PAYMENT header is required",
+    accepts: [{
+      scheme: "exact",
+      network: NETWORK,
+      maxAmountRequired: priceMicro.toString(),
+      maxAmountRequiredUSD: `$${priceUsd.toFixed(2)}`,
+      resource: resourceUrl(`/x402/service/${serviceSlug}`),
+      description: description,
+      payTo: PLATFORM_WALLET,
+      asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      maxTimeoutSeconds: 120,
+      mimeType: "application/json",
+      discoverable: true,
+      category: "API Access",
+      tags: ["Crypto", "Blockchain", "AI", "x402", "USDC"],
+      extra: {
+        name: "USD Coin",
+        version: "2",
+        decimals: 6,
+        chainId: 8453,
+        chainName: "Base",
+      },
+      outputSchema: {
+        input: { type: "http", method: "GET", discoverable: true },
+        output: { type: "object", properties: {} }
+      },
+      type: "http",
+      x402Version: 1,
+      metadata: {}
+    }],
+    facilitatorUrl: "https://facilitator.x402.io",
+    paymentInstructions: {
+      step1: "Obtain USDC on Base chain (chainId: 8453)",
+      step2: "Sign EIP-3009 authorization for the exact amount",
+      step3: "Include Base64-encoded authorization in X-PAYMENT header",
+      step4: "Retry the request with X-PAYMENT header",
+      alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
+      supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
+      network: "base",
+      chainId: 8453,
+      token: "USDC",
+      tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    },
+    recommendedServices: [
+      { id: "ping", name: "x402 Discovery Ping", priceUSD: "$0.25", endpoint: "/x402/ping" },
+      { id: "trade-signals", name: "AI Trade Signals", priceUSD: "$0.75", endpoint: "/x402/trade-signals" },
+      { id: "wallet-risk", name: "Wallet Risk Analysis", priceUSD: "$0.50", endpoint: "/x402/wallet-risk" },
+      { id: "instant-agent-wallet", name: "Agent Wallet Creation", priceUSD: "$1.00", endpoint: "/x402/instant-agent-wallet" },
+    ],
+    catalogUrl: `${PUBLIC_BASE_URL}/x402/catalog`,
+    totalServicesAvailable: ALL_SERVICE_SLUGS.length,
+  };
+
+  res.status(402).json(response);
+}
+
+// ============================================================================
+// CATCH-ALL ROUTE: Handle ALL service slugs dynamically
+// This MUST be registered AFTER explicit handlers to allow overrides
+// ============================================================================
+router.get('/:serviceSlug', (req: Request, res: Response) => {
+  const { serviceSlug } = req.params;
+  
+  // Skip if already handled by explicit routes above
+  if (gatedServiceEndpoints.includes(serviceSlug)) {
+    return; // Let the explicit handler above deal with it
+  }
+  
+  console.log(`📡 Dynamic GET for /x402/service/${serviceSlug} - generating 402 response`);
+  generateDynamic402Response(serviceSlug, req, res);
+});
+
+router.post('/:serviceSlug', (req: Request, res: Response) => {
+  const { serviceSlug } = req.params;
+  
+  // Skip if already handled by explicit routes above
+  if (gatedServiceEndpoints.includes(serviceSlug)) {
+    return; // Let the explicit handler above deal with it
+  }
+  
+  // For POST requests without payment, return 402
+  // The actual service execution happens at /x402/<slug> (primary routes)
+  const paymentHeader = req.headers['x-payment'] || req.headers['x-payment-proof'];
+  
+  if (!paymentHeader) {
+    console.log(`📡 Dynamic POST for /x402/service/${serviceSlug} - returning 402 (no payment)`);
+    generateDynamic402Response(serviceSlug, req, res);
+    return;
+  }
+  
+  // If payment is provided, redirect to the primary endpoint
+  // This maintains a single execution path for services
+  console.log(`🔄 Redirecting /x402/service/${serviceSlug} to /x402/${serviceSlug}`);
+  res.redirect(307, `/x402/${serviceSlug}`);
+});
+
+console.log(`✅ Dynamic catch-all registered for ${ALL_SERVICE_SLUGS.length} x402 services at /x402/service/*`);
 
 export default router;

@@ -2430,6 +2430,16 @@ Reply with donation amount and preferred chain for instant processing.`;
   // Agent Card Discovery endpoint (/.well-known/agent.json)
   app.use('/.well-known', express.static('server/public/.well-known'));
   
+  // OpenAPI Specification for thirdweb Nexus and other API discovery platforms
+  app.get('/openapi-x402-services.json', (req, res) => {
+    res.sendFile('openapi-x402-services.json', { root: 'public' });
+  });
+  
+  // Alternate path for OpenAPI spec
+  app.get('/openapi.json', (req, res) => {
+    res.sendFile('openapi-x402-services.json', { root: 'public' });
+  });
+  
   // A2A Protocol Task endpoint (with authentication)
   app.post('/api/a2a/task', (req, res, next) => {
     // Basic API key authentication for A2A endpoints

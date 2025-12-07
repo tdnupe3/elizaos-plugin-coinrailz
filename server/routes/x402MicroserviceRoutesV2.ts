@@ -220,6 +220,25 @@ router.get('/offer/:trackingId', async (req: Request, res: Response) => {
 });
 
 // ============================================================================
+// OPENAPI SPECIFICATION - For thirdweb Nexus and other API discovery platforms
+// Returns OpenAPI 3.0 specification for all x402 services
+// ============================================================================
+router.get('/openapi.json', async (req: Request, res: Response) => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const specPath = path.join(process.cwd(), 'public', 'openapi-x402-services.json');
+    const spec = JSON.parse(fs.readFileSync(specPath, 'utf-8'));
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.json(spec);
+  } catch (error: any) {
+    console.error('Failed to serve OpenAPI spec:', error);
+    res.status(500).json({ error: 'Failed to retrieve OpenAPI specification' });
+  }
+});
+
+// ============================================================================
 // CATALOG ENDPOINT - Machine-readable service catalog for AI agents and crawlers
 // Returns JSON service list for x402/Bazaar/A2A protocol discoverability
 // ============================================================================

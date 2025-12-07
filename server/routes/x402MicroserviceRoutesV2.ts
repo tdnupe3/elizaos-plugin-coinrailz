@@ -1212,6 +1212,18 @@ const x402Routes = {
       maxTimeoutSeconds: 900,
     },
   },
+  "POST /smart-contract-audit": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["smart-contract-audit"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/smart-contract-audit`,
+      name: "Smart Contract Auditor",
+      description: "Comprehensive smart contract security audit with vulnerability detection",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 900,
+    },
+  },
   "POST /service/payment-processing": {
     price: "$50",
     network: NETWORK,
@@ -1224,12 +1236,36 @@ const x402Routes = {
       maxTimeoutSeconds: 300,
     },
   },
+  "POST /payment-processing": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["payment-processing"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/payment-processing`,
+      name: "Payment Processor",
+      description: "Multi-chain payment processing service (hourly rate)",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 300,
+    },
+  },
   "POST /service/compliance-consultation": {
     price: "$500",
     network: NETWORK,
     config: {
       discoverable: true,
       resource: `${PUBLIC_BASE_URL}/x402/service/compliance-consultation`,
+      name: "Compliance Consultant",
+      description: "AML/KYC compliance consultation and risk assessment",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 600,
+    },
+  },
+  "POST /compliance-consultation": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["compliance-consultation"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/compliance-consultation`,
       name: "Compliance Consultant",
       description: "AML/KYC compliance consultation and risk assessment",
       mimeType: "application/json",
@@ -1745,7 +1781,8 @@ const serviceEndpoints = [
   "credit-risk-score", "fraud-detection", "compliance-check",
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
-  "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds"
+  "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds",
+  "smart-contract-audit", "payment-processing", "compliance-consultation", "agent-create-wallet"
 ];
 
 serviceEndpoints.forEach(endpoint => {

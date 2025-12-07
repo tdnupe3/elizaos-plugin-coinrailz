@@ -36,6 +36,9 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
   const clientIp = getClientIp(req);
   const paymentAttempted = !!req.headers['x-payment'];
   
+  // DIAGNOSTIC: Log every x402 request to verify middleware is executing in production
+  console.log(`📊 ANALYTICS MW: ${requestMethod} ${requestPath} | UA: ${userAgent?.substring(0, 50)} | IP: ${clientIp} | ENV: ${process.env.NODE_ENV || 'dev'} | DEPLOY: ${process.env.REPLIT_DEPLOYMENT || 'workspace'}`);
+  
   const analyticsContext: AnalyticsContext = {
     requestId,
     serviceId,
@@ -68,6 +71,7 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
     }
     
     try {
+      console.log(`📊 ANALYTICS DB INSERT: serviceId=${serviceId} requestId=${requestId} status=${statusCode}`);
       await db.insert(microserviceRequests).values({
         id: requestId,
         serviceId,
@@ -84,8 +88,9 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
         walletAddress: analyticsContext.walletAddress || null,
         error: statusCode >= 400 && statusCode !== 402 ? JSON.stringify(responseData) : null,
       });
-    } catch (error) {
-      console.error('❌ Failed to log analytics:', error);
+      console.log(`✅ ANALYTICS DB INSERT SUCCESS: ${requestId}`);
+    } catch (error: any) {
+      console.error(`❌ ANALYTICS DB INSERT FAILED: ${error.message} | ${error.code || 'no-code'}`);
     }
   };
   

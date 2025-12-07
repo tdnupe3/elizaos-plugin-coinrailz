@@ -1200,78 +1200,9 @@ const x402Routes = {
   },
   
   // === ENTERPRISE GATED SERVICES ===
-  "POST /service/smart-contract-audit": {
-    price: "$1000",
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: `${PUBLIC_BASE_URL}/x402/service/smart-contract-audit`,
-      name: "Smart Contract Auditor",
-      description: "Comprehensive smart contract security audit with vulnerability detection",
-      mimeType: "application/json",
-      maxTimeoutSeconds: 900,
-    },
-  },
-  "POST /smart-contract-audit": {
-    price: `$${microToUSD(SERVICE_PRICING_MICRO["smart-contract-audit"])}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: `${PUBLIC_BASE_URL}/x402/smart-contract-audit`,
-      name: "Smart Contract Auditor",
-      description: "Comprehensive smart contract security audit with vulnerability detection",
-      mimeType: "application/json",
-      maxTimeoutSeconds: 900,
-    },
-  },
-  "POST /service/payment-processing": {
-    price: "$50",
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: `${PUBLIC_BASE_URL}/x402/service/payment-processing`,
-      name: "Payment Processor",
-      description: "Multi-chain payment processing service (hourly rate)",
-      mimeType: "application/json",
-      maxTimeoutSeconds: 300,
-    },
-  },
-  "POST /payment-processing": {
-    price: `$${microToUSD(SERVICE_PRICING_MICRO["payment-processing"])}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: `${PUBLIC_BASE_URL}/x402/payment-processing`,
-      name: "Payment Processor",
-      description: "Multi-chain payment processing service (hourly rate)",
-      mimeType: "application/json",
-      maxTimeoutSeconds: 300,
-    },
-  },
-  "POST /service/compliance-consultation": {
-    price: "$500",
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: `${PUBLIC_BASE_URL}/x402/service/compliance-consultation`,
-      name: "Compliance Consultant",
-      description: "AML/KYC compliance consultation and risk assessment",
-      mimeType: "application/json",
-      maxTimeoutSeconds: 600,
-    },
-  },
-  "POST /compliance-consultation": {
-    price: `$${microToUSD(SERVICE_PRICING_MICRO["compliance-consultation"])}`,
-    network: NETWORK,
-    config: {
-      discoverable: true,
-      resource: `${PUBLIC_BASE_URL}/x402/compliance-consultation`,
-      name: "Compliance Consultant",
-      description: "AML/KYC compliance consultation and risk assessment",
-      mimeType: "application/json",
-      maxTimeoutSeconds: 600,
-    },
-  },
+  // NOTE: Enterprise services (smart-contract-audit, payment-processing, compliance-consultation)
+  // are handled by x402GatedRoutes.ts with premium pricing ($1000, $50, $500)
+  // They are NOT registered here to avoid pricing conflicts
   
   // === VERTICAL EXPANSION: REAL ESTATE SERVICES ===
   "POST /property-valuation": {
@@ -1782,7 +1713,7 @@ const serviceEndpoints = [
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
   "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds",
-  "smart-contract-audit", "payment-processing", "compliance-consultation", "agent-create-wallet"
+  "agent-create-wallet"
 ];
 
 serviceEndpoints.forEach(endpoint => {
@@ -1792,20 +1723,50 @@ serviceEndpoints.forEach(endpoint => {
   });
 });
 
-const enterpriseEndpoints = [
-  "service/smart-contract-audit",
-  "service/payment-processing", 
-  "service/compliance-consultation"
+// NOTE: Enterprise endpoints (smart-contract-audit, payment-processing, compliance-consultation)
+// are handled by x402GatedRoutes.ts which is mounted at /x402/service
+// They are NOT registered here to prevent route conflicts
+
+const enterpriseDirectEndpoints: Array<{slug: string, price: string, name: string, description: string}> = [
+  { slug: "smart-contract-audit", price: "$1000", name: "Smart Contract Auditor", description: "Comprehensive smart contract security audit with vulnerability detection" },
+  { slug: "payment-processing", price: "$50", name: "Payment Processor", description: "Multi-chain payment processing service (hourly rate)" },
+  { slug: "compliance-consultation", price: "$500", name: "Compliance Consultant", description: "AML/KYC compliance consultation and risk assessment" }
 ];
 
-enterpriseEndpoints.forEach(endpoint => {
-  router.get(`/${endpoint}`, (req: Request, res: Response) => {
-    console.log(`📡 GET request for /${endpoint} - returning 402 for Bazaar discovery`);
-    generate402ResponseForGet(`POST /${endpoint}`, req, res);
+enterpriseDirectEndpoints.forEach(service => {
+  router.get(`/${service.slug}`, (req: Request, res: Response) => {
+    console.log(`📡 GET request for /${service.slug} - returning 402 with enterprise pricing, redirecting to /x402/service/${service.slug}`);
+    const priceInMicro = parseFloat(service.price.replace('$', '')) * 1000000;
+    res.status(402).json({
+      x402Version: 1,
+      error: "X-PAYMENT header is required",
+      accepts: [{
+        scheme: "exact",
+        network: NETWORK,
+        maxAmountRequired: String(priceInMicro),
+        maxAmountRequiredUSD: service.price,
+        resource: `${PUBLIC_BASE_URL}/x402/service/${service.slug}`,
+        description: service.description,
+        payTo: PLATFORM_WALLET,
+        asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        maxTimeoutSeconds: 900,
+        mimeType: "application/json",
+        discoverable: true,
+        category: "Enterprise",
+        tags: ["Enterprise", "AI", "x402", "USDC"],
+        extra: { name: "USD Coin", version: "2", decimals: 6, chainId: 8453, chainName: "Base" },
+        type: "http",
+        x402Version: 1,
+        metadata: {}
+      }],
+      facilitatorUrl: "https://facilitator.x402.io",
+      note: `This is an enterprise service. POST requests should be sent to /x402/service/${service.slug}`,
+      enterpriseEndpoint: `/x402/service/${service.slug}`
+    });
   });
 });
 
-const totalServices = serviceEndpoints.length + enterpriseEndpoints.length;
+const totalServices = serviceEndpoints.length + enterpriseDirectEndpoints.length;
 console.log(`✅ GET handlers registered for ${totalServices} x402 services (Bazaar discovery support)`);
 
 // Payment orchestrator applied per-route (see individual service registrations below)

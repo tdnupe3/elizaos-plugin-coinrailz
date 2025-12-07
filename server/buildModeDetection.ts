@@ -30,6 +30,17 @@ export const DISABLE_BACKGROUND_SERVICES =
   IS_REPLIT_CONTAINER ||             // Replit production container
   IS_AUTOSCALE_DEPLOYMENT;
 
+// OPTIONAL INTEGRATIONS FLAG - Only enable if credentials are confirmed available
+// This protects against crashes when CDP/OpenAI credentials are missing in deployment
+// Note: CDP uses either CDP_PRIVATE_KEY or CDP_API_KEY_SECRET depending on configuration
+const HAS_CDP_CREDENTIALS = !!(process.env.CDP_API_KEY_ID && (process.env.CDP_PRIVATE_KEY || process.env.CDP_API_KEY_SECRET));
+const HAS_OPENAI_CREDENTIALS = !!process.env.OPENAI_API_KEY;
+const EXPLICITLY_ENABLED = process.env.ENABLE_OPTIONAL_INTEGRATIONS === 'true';
+
+export const ENABLE_OPTIONAL_INTEGRATIONS = 
+  !DISABLE_BACKGROUND_SERVICES && 
+  (EXPLICITLY_ENABLED || (HAS_CDP_CREDENTIALS && HAS_OPENAI_CREDENTIALS));
+
 // Global flag that can be checked anywhere
 export const isBackgroundServicesDisabled = () => DISABLE_BACKGROUND_SERVICES;
 
@@ -45,7 +56,10 @@ console.log('🔍 NUCLEAR BUILD DETECTION:', {
   IS_BUNDLED_EXECUTION,
   IS_REPLIT_CONTAINER,
   IS_AUTOSCALE_DEPLOYMENT,
-  FINAL_RESULT: DISABLE_BACKGROUND_SERVICES
+  DISABLE_BACKGROUND_SERVICES,
+  HAS_CDP_CREDENTIALS,
+  HAS_OPENAI_CREDENTIALS,
+  ENABLE_OPTIONAL_INTEGRATIONS
 });
 
 if (DISABLE_BACKGROUND_SERVICES) {

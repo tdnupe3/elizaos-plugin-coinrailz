@@ -13,7 +13,7 @@ import { setupVite, serveStatic } from "./vite";
 import { setupSimpleRoutes } from "./simpleRoutes";
 
 // CRITICAL: Import nuclear build mode detection
-import { DISABLE_BACKGROUND_SERVICES } from './buildModeDetection';
+import { DISABLE_BACKGROUND_SERVICES, ENABLE_OPTIONAL_INTEGRATIONS } from './buildModeDetection';
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
 // Initialize automated revenue generation systems
 import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
@@ -3531,14 +3531,18 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     res.status(500).json({ error: 'Internal server error' });
   });
   
-  // Initialize provider capabilities
-  console.log('🔥 Warming up provider capabilities for model validation...');
-  try {
-    const capabilityService = ProviderCapabilityService.getInstance();
-    await capabilityService.warmupAllProviders();
-    console.log('✅ Provider capabilities initialized successfully');
-  } catch (error) {
-    console.warn('⚠️ Provider capability warmup failed:', error);
+  // Initialize provider capabilities (only if credentials available)
+  if (ENABLE_OPTIONAL_INTEGRATIONS) {
+    console.log('🔥 Warming up provider capabilities for model validation...');
+    try {
+      const capabilityService = ProviderCapabilityService.getInstance();
+      await capabilityService.warmupAllProviders();
+      console.log('✅ Provider capabilities initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ Provider capability warmup failed:', error);
+    }
+  } else {
+    console.log('⚠️ Provider capability warmup SKIPPED - credentials not available');
   }
   
   // Notify AI agent indexers that we're back online (production only)
@@ -3585,8 +3589,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
       }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
       
-      initializeAutomatedOutreach().catch(console.error);
-      console.log('✅ Emergency outreach orchestrator started');
+      // GUARD: Only initialize outreach if CDP/OpenAI credentials are available
+      // This prevents crashes in autoscale deployments where secrets may be missing
+      if (ENABLE_OPTIONAL_INTEGRATIONS) {
+        initializeAutomatedOutreach().catch(console.error);
+        console.log('✅ Emergency outreach orchestrator started');
+      } else {
+        console.log('⚠️ Automated outreach SKIPPED - CDP/OpenAI credentials not available');
+        console.log('   Set ENABLE_OPTIONAL_INTEGRATIONS=true after confirming secrets in deployment');
+      }
       
       console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
       console.log('📞 Targeting trading bot operators, AI developers, profitable traders');

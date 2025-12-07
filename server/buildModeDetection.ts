@@ -17,12 +17,6 @@ const IS_BUNDLED_EXECUTION = process.argv[1]?.endsWith('dist/index.js');
 const IS_REPLIT_CONTAINER = process.env.REPL_ID && process.env.NODE_ENV === 'production';
 const IS_AUTOSCALE_DEPLOYMENT = process.env.deploymentTarget === 'autoscale' || process.env.DEPLOYMENT_TARGET === 'autoscale';
 
-// CREDENTIAL-BASED DETECTION - Disable services if required credentials are missing
-// This catches autoscale deployments where env flags aren't set but credentials are absent
-const MISSING_CDP_CREDENTIALS = !process.env.CDP_API_KEY_ID || !process.env.CDP_PRIVATE_KEY;
-const MISSING_OPENAI_CREDENTIALS = !process.env.OPENAI_API_KEY;
-const MISSING_CRITICAL_CREDENTIALS = MISSING_CDP_CREDENTIALS || MISSING_OPENAI_CREDENTIALS;
-
 // ULTRA NUCLEAR: Disable if ANY condition is detected  
 export const DISABLE_BACKGROUND_SERVICES = 
   IS_DEPLOYMENT_BUILD || 
@@ -34,8 +28,7 @@ export const DISABLE_BACKGROUND_SERVICES =
   IS_DIST_EXECUTION ||               // Running from dist folder
   IS_BUNDLED_EXECUTION ||            // Bundled output execution
   IS_REPLIT_CONTAINER ||             // Replit production container
-  IS_AUTOSCALE_DEPLOYMENT ||
-  MISSING_CRITICAL_CREDENTIALS;      // Missing required credentials
+  IS_AUTOSCALE_DEPLOYMENT;
 
 // Global flag that can be checked anywhere
 export const isBackgroundServicesDisabled = () => DISABLE_BACKGROUND_SERVICES;

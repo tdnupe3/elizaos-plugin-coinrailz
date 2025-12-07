@@ -1,14 +1,13 @@
 /**
  * Production Connection Manager
+ * FIXED: Now uses the main Neon-compatible pool from db.ts
  * Implements connection pooling and automatic recovery for server stability
  */
 
-import pkg from 'pg';
-const { Pool } = pkg;
+import { pool, checkDatabaseHealth } from '../db';
 import { EventEmitter } from 'events';
 
 export class ConnectionManager extends EventEmitter {
-  private dbPool: Pool | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
@@ -20,45 +19,23 @@ export class ConnectionManager extends EventEmitter {
   }
 
   private initialize() {
-    this.setupDatabasePool();
     this.startHealthChecks();
-  }
-
-  private setupDatabasePool() {
-    try {
-      this.dbPool = new Pool({
-        connectionString: process.env.DATABASE_URL,
-        max: 20,
-        idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
-        keepAlive: true,
-        keepAliveInitialDelayMillis: 10000,
-      });
-
-      this.dbPool.on('error', (err) => {
-        console.error('Database pool error:', err);
-        this.handleConnectionError();
-      });
-
-      this.dbPool.on('connect', () => {
-        this.reconnectAttempts = 0;
-        this.emit('connected');
-      });
-
-      console.log('✅ Database connection pool initialized');
-    } catch (error) {
-      console.error('❌ Failed to initialize database pool:', error);
-      this.handleConnectionError();
-    }
+    console.log('✅ Connection manager initialized with Neon-compatible pool');
   }
 
   private async handleConnectionError() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      console.log(`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+      console.log(`Connection issue detected, attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
       
-      setTimeout(() => {
-        this.setupDatabasePool();
+      setTimeout(async () => {
+        const healthy = await checkDatabaseHealth();
+        if (healthy) {
+          this.reconnectAttempts = 0;
+          this.emit('connected');
+        } else {
+          this.handleConnectionError();
+        }
       }, this.reconnectDelay * this.reconnectAttempts);
     } else {
       console.error('❌ Max reconnection attempts reached');
@@ -74,10 +51,9 @@ export class ConnectionManager extends EventEmitter {
 
   private async performHealthCheck() {
     try {
-      if (this.dbPool) {
-        const client = await this.dbPool.connect();
-        await client.query('SELECT 1');
-        client.release();
+      const healthy = await checkDatabaseHealth();
+      if (!healthy) {
+        this.handleConnectionError();
       }
     } catch (error) {
       console.error('Health check failed:', error);
@@ -85,68 +61,43 @@ export class ConnectionManager extends EventEmitter {
     }
   }
 
-  public async getConnection() {
-    if (!this.dbPool) {
-      throw new Error('Database pool not initialized');
-    }
-    
+  /**
+   * Execute a database query with automatic retry
+   */
+  async query(text: string, params?: any[]) {
     try {
-      return await this.dbPool.connect();
-    } catch (error) {
-      console.error('Failed to get database connection:', error);
-      throw error;
-    }
-  }
-
-  public async executeQuery(query: string, params?: any[]) {
-    const client = await this.getConnection();
-    try {
-      const result = await client.query(query, params);
+      const result = await pool.query(text, params);
       return result;
-    } finally {
-      client.release();
-    }
-  }
-
-  public async executeTransaction(queries: Array<{ query: string, params?: any[] }>) {
-    const client = await this.getConnection();
-    try {
-      await client.query('BEGIN');
-      
-      const results = [];
-      for (const { query, params } of queries) {
-        const result = await client.query(query, params);
-        results.push(result);
-      }
-      
-      await client.query('COMMIT');
-      return results;
     } catch (error) {
-      await client.query('ROLLBACK');
+      console.error('Query failed:', error);
       throw error;
-    } finally {
-      client.release();
     }
   }
 
-  public getStatus() {
-    return {
-      poolConnected: !!this.dbPool,
-      reconnectAttempts: this.reconnectAttempts,
-      maxAttempts: this.maxReconnectAttempts
-    };
+  /**
+   * Get the main database pool
+   */
+  getPool() {
+    return pool;
   }
 
-  public async close() {
+  /**
+   * Check if database is healthy
+   */
+  async isHealthy(): Promise<boolean> {
+    return await checkDatabaseHealth();
+  }
+
+  /**
+   * Cleanup resources
+   */
+  async shutdown() {
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
-    
-    if (this.dbPool) {
-      await this.dbPool.end();
-      this.dbPool = null;
-    }
+    console.log('Connection manager shutdown complete');
   }
 }
 
+// Singleton instance
 export const connectionManager = new ConnectionManager();

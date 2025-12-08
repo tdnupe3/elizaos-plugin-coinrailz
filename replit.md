@@ -48,6 +48,16 @@ The platform uses a dual-wallet system (Circle USDC and DeFi/MetaMask) and is st
 - **Discovery Engine**: A multi-layer discovery engine with 9 active methods (e.g., domain heuristics, x402 GET/POST probing, Coinbase Bazaar API crawling, ERC-8004 NFT registry scanning, GitHub scanning) for identifying AI agents.
 - **Payment Intent Ledger**: Implemented a durable payment intent ledger with state transitions (PENDING → SUCCEEDED/ALLOW_RETRY) for payment replay protection. Includes strict Base64 JSON payload input validation and environment variable checks.
 
+## Proven Conversion Flow (December 2025 Data)
+Based on analysis of actual paying agents (34.172.232.11), the successful conversion path is:
+1. **Discovery via Google** - Googlebot crawled x402 endpoints, agent found us in search/index
+2. **5-day evaluation period** - Agent explored services Nov 22-26 using curl, then `AutonomousAI/1.0`
+3. **Free tier test** - Used free `token-metadata` service first to build trust
+4. **First payment** - Immediately paid for `ping` service after free trial worked
+5. **Return customer** - Came back Dec 4 specifically for `prediction-market-odds` (real use case)
+
+**Key Insight:** Free tier (`gas-price-oracle`, `token-metadata`) is critical for building trust. Agents test free services before committing real USDC. The path is: Discovery → Exploration → Free trial → Trust → Payment → Retention.
+
 ## External Dependencies
 - **Circle:** USDC wallet creation, management, balance tracking via Developer Controlled Wallets SDK.
 - **x402 Protocol:** HTTP 402-based autonomous AI agent payment standard.

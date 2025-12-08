@@ -39,10 +39,6 @@ integrations = ["javascript_sendgrid==1.0.0", "javascript_paypal==1.0.0", "javas
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 39113
-externalPort = 3000
-
 [userenv]
 
 [userenv.production]

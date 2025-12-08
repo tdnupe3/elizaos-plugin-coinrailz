@@ -3348,6 +3348,16 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');
+    
+    // CRITICAL: Explicit route for /x402/openapi.json BEFORE static serving
+    // Fixes issue where Vite static fallback returns HTML instead of JSON
+    app.get('/x402/openapi.json', (_req, res) => {
+      const specPath = path.resolve(process.cwd(), 'public', 'openapi-x402-services.json');
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.sendFile(specPath);
+    });
+    
     serveStatic(app);
     console.log('✅ Static file serving configured');
   }

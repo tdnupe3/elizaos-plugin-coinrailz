@@ -908,8 +908,8 @@ async def request_compliance_consultation(
     return json.dumps(result, indent=2)
 
 
-async def main():
-    """Run the MCP server."""
+async def _run_server():
+    """Run the MCP server (async implementation)."""
     async with stdio_server() as (read_stream, write_stream):
         await app.run(
             read_stream,
@@ -917,5 +917,11 @@ async def main():
             app.create_initialization_options()
         )
 
+
+def main():
+    """Run the MCP server (synchronous entry point for CLI)."""
+    asyncio.run(_run_server())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

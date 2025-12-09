@@ -1,0 +1,445 @@
+Nice, let’s ship a JS SDK.
+Below is a ready-to-paste prompt for Replit that walks it step-by-step through building the NPM package.
+
+👉 Prompt to paste into Replit
+
+You are my senior TypeScript SDK architect.
+I’m building Coin Railz, an x402 micropayment-enabled AI agent platform that already has:
+
+37+ x402 services live at https://coinrailz.com/x402/...
+
+A machine-readable catalog at /x402/catalog
+
+API-key support (X-API-KEY / Authorization: Bearer) in the 402 responses
+
+A Python MCP server published to PyPI (coinrailz-mcp) and MCP Registry
+
+I now want to create an official JavaScript/TypeScript SDK and NPM package so bots, agents, and Node.js developers can use Coin Railz easily.
+
+Please follow these instructions step by step and explain what you’re doing as you go.
+
+0. High-Level Requirements
+
+Package name (tentative): coinrailz
+
+If that’s already taken on NPM, use @coinrailz/sdk instead (but default to coinrailz in code unless I say otherwise).
+
+Language: TypeScript
+
+Target envs: Node.js 18+ (server-side bots/agents), compatible with bundlers.
+
+HTTP client: Use the built-in fetch (Node 18+ has global fetch) or a very light wrapper. No heavy dependencies unless necessary.
+
+Primary auth method for this SDK:
+
+API key (X-API-KEY or Authorization: Bearer)
+
+We are not implementing x402 signing/verification in the SDK right now — that logic remains on the Coin Railz backend.
+
+Core responsibilities of the SDK:
+
+Provide a simple CoinRailzClient with a clean interface.
+
+Allow calling any x402 service via a generic method.
+
+Provide nice, typed helpers for the most important services (gas-price-oracle, token-metadata, prediction-market-odds, agent-create-wallet, etc.).
+
+Handle errors and response parsing in a consistent way.
+
+Be publishable to NPM as a standard TS library (CJS + ESM + types).
+
+1. Inspect Existing Repo & Plan SDK Location
+
+Inspect the current project structure in Replit.
+
+Identify where the server code lives (e.g., server/, server/routes/x402MicroserviceRoutesV2.ts, server/services/serviceCatalogService.ts, etc.).
+
+Confirm where x402/catalog is implemented (should be somewhere in the server code as a service catalog).
+
+Propose the best place to put the SDK code, for example:
+
+sdk/js/coinrailz
+OR
+
+packages/coinrailz-js
+
+✅ Deliverable:
+Tell me what directory you’ll create for the NPM package and why (e.g., monorepo-friendly structure).
+
+Then go ahead and create that directory.
+
+2. Initialize the NPM Package (package.json + tsconfig)
+
+Inside the SDK directory you chose (let’s call it <sdk-root>):
+
+Create a package.json with (initially) something like:
+
+"name": "coinrailz" (or @coinrailz/sdk if conflict later)
+
+"version": "0.1.0"
+
+"main": "dist/index.cjs"
+
+"module": "dist/index.mjs"
+
+"types": "dist/index.d.ts"
+
+"type": "module"
+
+"scripts":
+
+"build": "tsc"
+
+"clean": "rm -rf dist"
+
+"prepare": "npm run build"
+
+"files": ["dist"]
+
+Reasonable keywords:
+
+["coinrailz", "x402", "micropayments", "base", "usdc", "prediction-markets", "ai-agents"]
+
+Add a tsconfig.json for library build:
+
+Target: ES2019 or ES2020
+
+Module: ESNext
+
+declaration: true
+
+outDir: "dist"
+
+moduleResolution: "node"
+
+strict: true
+
+esModuleInterop: true
+
+Install dev dependencies:
+
+typescript
+
+@types/node (if needed)
+
+✅ Deliverable:
+Show me the initial package.json and tsconfig.json content you created.
+
+3. Design the SDK API (TypeScript Interfaces)
+
+Create a file: <sdk-root>/src/types.ts and define:
+
+Config types:
+
+export interface CoinRailzClientConfig {
+  apiKey: string;
+  baseUrl?: string; // default: "https://coinrailz.com"
+  timeoutMs?: number; // default, e.g., 10_000
+}
+
+
+Generic service call types:
+
+export interface X402ServiceRequest {
+  service: string;           // e.g. "gas-price-oracle", "token-metadata"
+  payload?: unknown;         // JSON-serializable
+}
+
+export interface X402ServiceResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  status: number;
+  raw?: any;
+}
+
+
+Some basic response shapes for key services (keep it light, we can refine later), e.g.:
+
+export interface GasPriceOracleResponse {
+  chain: string;
+  slow: number;
+  standard: number;
+  fast: number;
+  estimatedFeeUsd?: number;
+}
+
+export interface TokenMetadataResponse {
+  chain: string;
+  address: string;
+  symbol: string;
+  name: string;
+  decimals: number;
+  // allow extra stuff
+  [key: string]: unknown;
+}
+
+export interface PredictionMarketOddsResponse {
+  marketId: string;
+  marketTitle: string;
+  outcomes: Array<{
+    name: string;
+    odds: number;
+    impliedProbability: number;
+  }>;
+  source: "polymarket";
+}
+
+export interface AgentWalletProvisionResponse {
+  walletId: string;
+  address: string;
+  chain: string;   // "base"
+  createdAt: string;
+  // optional metadata
+  [key: string]: unknown;
+}
+
+
+✅ Deliverable:
+Implement types.ts with these interfaces (it’s okay to extend or tweak fields based on what you see in your backend code).
+
+4. Implement CoinRailzClient Core (src/client.ts)
+
+Create src/client.ts implementing:
+
+import { CoinRailzClientConfig, X402ServiceRequest, X402ServiceResponse, GasPriceOracleResponse, TokenMetadataResponse, PredictionMarketOddsResponse, AgentWalletProvisionResponse } from "./types";
+
+export class CoinRailzClient {
+  private apiKey: string;
+  private baseUrl: string;
+  private timeoutMs: number;
+
+  constructor(config: CoinRailzClientConfig) {
+    if (!config.apiKey) {
+      throw new Error("CoinRailzClient: apiKey is required");
+    }
+    this.apiKey = config.apiKey;
+    this.baseUrl = config.baseUrl ?? "https://coinrailz.com";
+    this.timeoutMs = config.timeoutMs ?? 10_000;
+  }
+
+  private async request<T = unknown>(service: string, payload?: unknown): Promise<X402ServiceResponse<T>> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const res = await fetch(`${this.baseUrl}/x402/${service}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-KEY": this.apiKey,
+        },
+        body: payload ? JSON.stringify(payload) : "{}",
+        signal: controller.signal,
+      });
+
+      const status = res.status;
+      let json: any = null;
+      try {
+        json = await res.json();
+      } catch {
+        // ignore json parse errors, keep json = null
+      }
+
+      if (!res.ok) {
+        return {
+          success: false,
+          status,
+          raw: json ?? res.statusText,
+        };
+      }
+
+      return {
+        success: true,
+        status,
+        data: json as T,
+        raw: json,
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // Generic call
+  public async call<T = unknown>(service: string, payload?: unknown): Promise<X402ServiceResponse<T>> {
+    return this.request<T>(service, payload);
+  }
+
+  // Convenience helpers (examples below, more to add)
+
+  public async gasPriceOracle(params?: { chain?: string }): Promise<X402ServiceResponse<GasPriceOracleResponse>> {
+    return this.request<GasPriceOracleResponse>("gas-price-oracle", params);
+  }
+
+  public async tokenMetadata(params: { chain: string; address: string }): Promise<X402ServiceResponse<TokenMetadataResponse>> {
+    return this.request<TokenMetadataResponse>("token-metadata", params);
+  }
+
+  public async predictionMarketOdds(params: { marketSlug: string }): Promise<X402ServiceResponse<PredictionMarketOddsResponse>> {
+    return this.request<PredictionMarketOddsResponse>("prediction-market-odds", params);
+  }
+
+  public async createAgentWallet(params?: { label?: string; metadata?: Record<string, unknown> }): Promise<X402ServiceResponse<AgentWalletProvisionResponse>> {
+    return this.request<AgentWalletProvisionResponse>("agent-create-wallet", params);
+  }
+}
+
+
+Important:
+
+Use POST, not GET (your docs and first-call-free logic are POST-based).
+
+Use X-API-KEY header by default (align with your current server).
+
+Make sure this works with Node 18 global fetch. If needed, add a tiny isomorphic-fetch or undici polyfill – but only if absolutely required.
+
+✅ Deliverable:
+Implement CoinRailzClient like above, then create src/index.ts that simply re-exports:
+
+export * from "./types";
+export * from "./client";
+
+5. Wire Up Build Pipeline
+
+Ensure tsconfig.json includes "rootDir": "src" and "outDir": "dist".
+
+Make sure package.json scripts work:
+
+npm run build → compiles TS into dist/.
+
+Generate type declarations into dist/ as index.d.ts (TS declaration flag).
+
+Run a test build in Replit and confirm there are no TypeScript errors.
+
+✅ Deliverable:
+Show the build output structure (dist folder with .js and .d.ts files).
+
+6. Add README with Usage Examples
+
+Create <sdk-root>/README.md with:
+
+Short description:
+
+"Official JavaScript/TypeScript SDK for Coin Railz – an x402 micropayment-enabled financial microservice platform for AI agents."
+
+Install:
+
+npm install coinrailz
+# or
+npm install @coinrailz/sdk
+
+
+Basic usage:
+
+import { CoinRailzClient } from "coinrailz";
+
+const client = new CoinRailzClient({
+  apiKey: process.env.COINRAILZ_API_KEY!,
+});
+
+async function main() {
+  const gas = await client.gasPriceOracle({ chain: "base" });
+  console.log("Gas prices:", gas.data);
+
+  const token = await client.tokenMetadata({
+    chain: "base",
+    address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", // USDC on Base
+  });
+  console.log("Token metadata:", token.data);
+}
+
+main().catch(console.error);
+
+
+Example for calling ANY service generically:
+
+const result = await client.call("whale-alerts", {
+  chain: "ethereum",
+  tokenAddress: "0x...",
+  threshold: 100000, // USD
+});
+
+
+✅ Deliverable:
+Add a solid README focused on:
+
+What Coin Railz is
+
+How to install
+
+How to use CoinRailzClient
+
+How to call specific services
+
+7. Optional: Catalog-Aware Helpers
+
+If it’s easy within this repo:
+
+Add a method client.getCatalog() that just calls:
+
+GET ${baseUrl}/x402/catalog
+
+Return the JSON so agents can see all available services and their pricing.
+
+Example:
+
+public async getCatalog(): Promise<any> {
+  const res = await fetch(`${this.baseUrl}/x402/catalog`, {
+    method: "GET",
+    headers: {
+      "X-API-KEY": this.apiKey,
+    },
+  });
+  return res.json();
+}
+
+
+This is optional but very nice for discoverability.
+
+8. Prepare for NPM Publish (But Don’t Actually Publish Yet)
+
+I’ll handle npm login and npm publish myself.
+
+Your job:
+
+Make sure package.json has:
+
+"files": ["dist"]
+
+Correct "main", "module", "types" paths.
+
+Confirm npm run build works cleanly.
+
+Confirm the compiled JS can be required/imported from a simple test script.
+
+For example, create <sdk-root>/test/test-client.ts (or .js) that:
+
+Imports CoinRailzClient
+
+Constructs it with a fake API key
+
+Calls client.call("ping") (or similar) and just logs that the call was made (we don’t need real network calls in this test).
+
+✅ Deliverable:
+Run a local test script in Replit to prove the built package can be imported and used without TS/runtime errors.
+
+9. Final Summary for Me
+
+When you’re done, give me a short summary including:
+
+Final package name
+
+SDK directory path
+
+Key files (package.json, tsconfig.json, src/client.ts, src/types.ts, README.md)
+
+How I will:
+
+Build it (npm run build)
+
+Publish it (npm publish --access public)
+
+Import and use it from another Node project
+
+Do not actually run npm publish — just prepare everything so I can run it later.
+
+End of instructions.

@@ -1,0 +1,301 @@
+/**
+ * Coin Railz Client
+ * Lightweight x402 micropayment SDK for AI agents and bots
+ */
+
+import type {
+  CoinRailzConfig,
+  ServiceResponse,
+  GasPriceResponse,
+  TokenMetadataResponse,
+  TokenPriceResponse,
+  TradeSignalResponse,
+  WhaleAlertResponse,
+  SentimentResponse,
+  DexLiquidityResponse,
+  ArbitrageScannerResponse,
+  PredictionMarketResponse,
+  AgentWalletResponse,
+  ContractScanResponse,
+  PortfolioOptimizationResponse,
+  ServiceCatalog,
+} from './types.js';
+
+export class CoinRailzClient {
+  private readonly apiKey: string;
+  private readonly baseUrl: string;
+  private readonly timeoutMs: number;
+
+  constructor(config: CoinRailzConfig) {
+    if (!config.apiKey) {
+      throw new Error('CoinRailzClient: apiKey is required');
+    }
+    this.apiKey = config.apiKey;
+    this.baseUrl = config.baseUrl ?? 'https://coinrailz.com';
+    this.timeoutMs = config.timeoutMs ?? 30000;
+  }
+
+  private async request<T = unknown>(
+    service: string,
+    payload?: unknown,
+    method: 'GET' | 'POST' = 'POST'
+  ): Promise<ServiceResponse<T>> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const url = `${this.baseUrl}/x402/${service}`;
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-API-KEY': this.apiKey,
+      };
+
+      const options: RequestInit = {
+        method,
+        headers,
+        signal: controller.signal,
+      };
+
+      if (method === 'POST') {
+        options.body = payload ? JSON.stringify(payload) : '{}';
+      }
+
+      const res = await fetch(url, options);
+      const status = res.status;
+
+      let json: unknown = null;
+      try {
+        json = await res.json();
+      } catch {
+        // Ignore JSON parse errors
+      }
+
+      if (!res.ok) {
+        return {
+          success: false,
+          status,
+          error: typeof json === 'object' && json !== null && 'error' in json 
+            ? String((json as Record<string, unknown>).error) 
+            : res.statusText,
+          raw: json,
+        };
+      }
+
+      return {
+        success: true,
+        status,
+        data: json as T,
+        raw: json,
+      };
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return {
+          success: false,
+          status: 0,
+          error: 'Request timed out',
+        };
+      }
+      return {
+        success: false,
+        status: 0,
+        error: err instanceof Error ? err.message : 'Unknown error',
+      };
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  /**
+   * Call any x402 service by name
+   */
+  async call<T = unknown>(service: string, payload?: unknown): Promise<ServiceResponse<T>> {
+    return this.request<T>(service, payload);
+  }
+
+  /**
+   * Get the full service catalog
+   */
+  async getCatalog(): Promise<ServiceResponse<ServiceCatalog>> {
+    return this.request<ServiceCatalog>('catalog', undefined, 'GET');
+  }
+
+  // ==================== Discovery ====================
+
+  /**
+   * Ping endpoint - verify API connectivity
+   */
+  async ping(): Promise<ServiceResponse<{ message: string; timestamp: string }>> {
+    return this.request('ping', { message: 'ping' });
+  }
+
+  // ==================== Trading Intelligence ====================
+
+  /**
+   * Get real-time gas prices across chains
+   */
+  async gasPriceOracle(params?: { chain?: string }): Promise<ServiceResponse<GasPriceResponse>> {
+    return this.request<GasPriceResponse>('gas-price-oracle', params);
+  }
+
+  /**
+   * Get token metadata (symbol, name, decimals, etc.)
+   */
+  async tokenMetadata(params: { chain: string; address: string }): Promise<ServiceResponse<TokenMetadataResponse>> {
+    return this.request<TokenMetadataResponse>('token-metadata', params);
+  }
+
+  /**
+   * Get token price in USD
+   */
+  async tokenPrice(params: { chain: string; address: string }): Promise<ServiceResponse<TokenPriceResponse>> {
+    return this.request<TokenPriceResponse>('token-price', params);
+  }
+
+  /**
+   * Get AI-powered trade signals
+   */
+  async tradeSignals(params: { token: string; chain?: string }): Promise<ServiceResponse<TradeSignalResponse>> {
+    return this.request<TradeSignalResponse>('trade-signals', params);
+  }
+
+  /**
+   * Get whale movement alerts
+   */
+  async whaleAlerts(params?: { chain?: string; minValueUsd?: number }): Promise<ServiceResponse<WhaleAlertResponse>> {
+    return this.request<WhaleAlertResponse>('whale-alerts', params);
+  }
+
+  /**
+   * Get social sentiment analysis
+   */
+  async sentimentAnalysis(params: { token: string }): Promise<ServiceResponse<SentimentResponse>> {
+    return this.request<SentimentResponse>('sentiment-analysis', params);
+  }
+
+  /**
+   * Get DEX liquidity analysis
+   */
+  async dexLiquidity(params: { chain: string; token: string }): Promise<ServiceResponse<DexLiquidityResponse>> {
+    return this.request<DexLiquidityResponse>('dex-liquidity', params);
+  }
+
+  /**
+   * Scan for cross-chain arbitrage opportunities
+   */
+  async arbitrageScanner(params?: { minSpreadPercent?: number }): Promise<ServiceResponse<ArbitrageScannerResponse>> {
+    return this.request<ArbitrageScannerResponse>('arbitrage-scanner', params);
+  }
+
+  /**
+   * Scan smart contract for vulnerabilities
+   */
+  async contractScan(params: { chain: string; address: string }): Promise<ServiceResponse<ContractScanResponse>> {
+    return this.request<ContractScanResponse>('contract-scan', params);
+  }
+
+  /**
+   * Get portfolio optimization recommendations
+   */
+  async portfolioOptimization(params: { 
+    holdings: Array<{ token: string; amount: number }>;
+    riskTolerance?: 'low' | 'medium' | 'high';
+  }): Promise<ServiceResponse<PortfolioOptimizationResponse>> {
+    return this.request<PortfolioOptimizationResponse>('portfolio-optimization', params);
+  }
+
+  /**
+   * Get trending tokens
+   */
+  async trendingTokens(params?: { chain?: string; limit?: number }): Promise<ServiceResponse<unknown>> {
+    return this.request('trending-tokens', params);
+  }
+
+  /**
+   * Get token correlation matrix
+   */
+  async correlationMatrix(params: { tokens: string[] }): Promise<ServiceResponse<unknown>> {
+    return this.request('correlation-matrix', params);
+  }
+
+  // ==================== Prediction Markets ====================
+
+  /**
+   * Get prediction market odds
+   */
+  async predictionMarketOdds(params: { marketSlug?: string; query?: string }): Promise<ServiceResponse<PredictionMarketResponse>> {
+    return this.request<PredictionMarketResponse>('prediction-market-odds', params);
+  }
+
+  /**
+   * Get Polymarket events
+   */
+  async polymarketEvents(params?: { category?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('polymarket-events', params);
+  }
+
+  /**
+   * Get prediction market analysis
+   */
+  async predictionAnalysis(params: { marketId: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('prediction-analysis', params);
+  }
+
+  // ==================== Agent Infrastructure ====================
+
+  /**
+   * Create an instant agent wallet (USDC on Base)
+   */
+  async createAgentWallet(params?: { label?: string; metadata?: Record<string, unknown> }): Promise<ServiceResponse<AgentWalletResponse>> {
+    return this.request<AgentWalletResponse>('instant-agent-wallet', params);
+  }
+
+  /**
+   * Build a transaction
+   */
+  async transactionBuilder(params: {
+    chain: string;
+    from: string;
+    to: string;
+    value?: string;
+    data?: string;
+  }): Promise<ServiceResponse<unknown>> {
+    return this.request('transaction-builder', params);
+  }
+
+  /**
+   * Get batch quote for multiple swaps
+   */
+  async batchQuote(params: { swaps: Array<{ tokenIn: string; tokenOut: string; amount: string }> }): Promise<ServiceResponse<unknown>> {
+    return this.request('batch-quote', params);
+  }
+
+  /**
+   * Cross-chain bridge routing
+   */
+  async chainBridge(params: { 
+    fromChain: string; 
+    toChain: string; 
+    token: string; 
+    amount: string 
+  }): Promise<ServiceResponse<unknown>> {
+    return this.request('seamless-chain-bridge', params);
+  }
+
+  // ==================== Risk & Compliance ====================
+
+  /**
+   * Get wallet risk analysis
+   */
+  async walletRisk(params: { address: string; chain?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('wallet-risk', params);
+  }
+
+  /**
+   * Get risk metrics
+   */
+  async riskMetrics(params: { token: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('risk-metrics', params);
+  }
+}
+
+export default CoinRailzClient;

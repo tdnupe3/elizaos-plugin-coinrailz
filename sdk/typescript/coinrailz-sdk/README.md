@@ -77,6 +77,31 @@ console.log('Signal:', signals.data?.signal, 'Confidence:', signals.data?.confid
 ### Risk & Compliance
 - `walletRisk()` - Wallet risk scoring
 - `riskMetrics()` - Token risk analysis
+- `creditRiskScore()` - Credit risk scoring for addresses
+- `fraudDetection()` - Fraud detection analysis
+- `complianceCheck()` - Regulatory compliance check
+- `complianceConsultation()` - Compliance advisory
+
+### Real Estate
+- `propertyValuation()` - AI property valuation
+- `leaseAnalysis()` - Lease agreement analysis
+- `constructionProgress()` - Construction monitoring
+
+### Additional Trading
+- `tokenSentiment()` - Token social sentiment
+- `tradingSignal()` - Trading signal (alternative)
+- `portfolioTracker()` - Multi-chain portfolio tracking
+- `approvalManager()` - Token approval management
+- `multiChainBalance()` - Cross-chain balance lookup
+- `smartContractAudit()` - Deep contract security audit
+
+### Polymarket Extended
+- `polymarketOdds()` - Direct odds lookup
+- `polymarketSearch()` - Search prediction markets
+
+### Agent Identity
+- `instantAgentWallet()` - Instant wallet creation
+- `verifiedAgentIdentity()` - ERC-8004 identity verification
 
 ### Generic Call
 ```typescript
@@ -137,6 +162,20 @@ console.log('Signal:', result.data?.signal);
 - Optimism
 - BSC (BNB Chain)
 - PulseChain
+
+## Payment Methods
+
+### 1. Prepaid Credits (Recommended for SDK users)
+Purchase credits with credit card (Stripe) or USDC, then use your API key:
+```typescript
+const client = new CoinRailzClient({ apiKey: 'your-api-key' });
+```
+
+### 2. x402 Protocol (Direct USDC payments)
+For agents with wallets, pay per request with USDC on Base Chain via HTTP 402:
+- No API key needed
+- Autonomous agent compatible
+- See [x402.io](https://x402.io) for protocol details
 
 ## Pricing
 

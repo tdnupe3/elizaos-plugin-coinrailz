@@ -243,10 +243,10 @@ export class CoinRailzClient {
   // ==================== Agent Infrastructure ====================
 
   /**
-   * Create an instant agent wallet (USDC on Base)
+   * Create an agent wallet (standard method)
    */
   async createAgentWallet(params?: { label?: string; metadata?: Record<string, unknown> }): Promise<ServiceResponse<AgentWalletResponse>> {
-    return this.request<AgentWalletResponse>('instant-agent-wallet', params);
+    return this.request<AgentWalletResponse>('agent-create-wallet', params);
   }
 
   /**
@@ -295,6 +295,139 @@ export class CoinRailzClient {
    */
   async riskMetrics(params: { token: string }): Promise<ServiceResponse<unknown>> {
     return this.request('risk-metrics', params);
+  }
+
+  /**
+   * Credit risk score
+   */
+  async creditRiskScore(params: { address: string; chain?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('credit-risk-score', params);
+  }
+
+  /**
+   * Fraud detection analysis
+   */
+  async fraudDetection(params: { address: string; chain?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('fraud-detection', params);
+  }
+
+  /**
+   * Compliance check for address
+   */
+  async complianceCheck(params: { address: string; chain?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('compliance-check', params);
+  }
+
+  /**
+   * Compliance consultation
+   */
+  async complianceConsultation(params: { query: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('compliance-consultation', params);
+  }
+
+  // ==================== Real Estate ====================
+
+  /**
+   * Property valuation analysis
+   */
+  async propertyValuation(params: { address?: string; propertyId?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('property-valuation', params);
+  }
+
+  /**
+   * Lease analysis
+   */
+  async leaseAnalysis(params: { propertyId: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('lease-analysis', params);
+  }
+
+  /**
+   * Construction progress monitoring
+   */
+  async constructionProgress(params: { projectId: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('construction-progress', params);
+  }
+
+  // ==================== Additional Trading ====================
+
+  /**
+   * Token sentiment analysis (alternative endpoint)
+   */
+  async tokenSentiment(params: { tokenSymbol: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('token-sentiment', params);
+  }
+
+  /**
+   * Trading signal (alternative endpoint)
+   */
+  async tradingSignal(params: { token: string; chain?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('trading-signal', params);
+  }
+
+  /**
+   * Portfolio tracker
+   */
+  async portfolioTracker(params: { address: string; chains?: string[] }): Promise<ServiceResponse<unknown>> {
+    return this.request('portfolio-tracker', params);
+  }
+
+  /**
+   * Token approval manager
+   */
+  async approvalManager(params: { 
+    tokenAddress: string; 
+    spenderAddress: string; 
+    ownerAddress: string; 
+    chain: string;
+    amount?: string;
+  }): Promise<ServiceResponse<unknown>> {
+    return this.request('approval-manager', params);
+  }
+
+  /**
+   * Multi-chain balance lookup
+   */
+  async multiChainBalance(params: { address: string; chains?: string[] }): Promise<ServiceResponse<unknown>> {
+    return this.request('multi-chain-balance', params);
+  }
+
+  /**
+   * Smart contract security audit
+   */
+  async smartContractAudit(params: { address: string; chain: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('smart-contract-audit', params);
+  }
+
+  // ==================== Polymarket Extended ====================
+
+  /**
+   * Polymarket odds lookup
+   */
+  async polymarketOdds(params: { marketId?: string; slug?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('polymarket-odds', params);
+  }
+
+  /**
+   * Polymarket search
+   */
+  async polymarketSearch(params: { query: string; category?: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('polymarket-search', params);
+  }
+
+  // ==================== Agent Identity ====================
+
+  /**
+   * Create instant agent wallet
+   */
+  async instantAgentWallet(params?: { label?: string }): Promise<ServiceResponse<AgentWalletResponse>> {
+    return this.request('instant-agent-wallet', params);
+  }
+
+  /**
+   * Verified agent identity (ERC-8004)
+   */
+  async verifiedAgentIdentity(params: { agentAddress: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('verified-agent-identity', params);
   }
 }
 

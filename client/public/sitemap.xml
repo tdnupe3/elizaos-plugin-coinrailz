@@ -159,6 +159,35 @@
   <priority>0.5</priority>
 </url>
 
+<!-- Developer SDK Pages -->
+<url>
+  <loc>https://coinrailz.com/developers</loc>
+  <lastmod>2025-12-09</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.9</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/quickstart</loc>
+  <lastmod>2025-12-09</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.9</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/x402</loc>
+  <lastmod>2025-12-09</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/credits</loc>
+  <lastmod>2025-12-09</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.7</priority>
+</url>
+
 <!-- AI Agent Pages -->
 <url>
   <loc>https://coinrailz.com/ai-agent-registration</loc>

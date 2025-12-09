@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +14,8 @@ import {
   ExternalLink,
   Copy,
   ChevronRight,
-  Rocket
+  Rocket,
+  Terminal
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -451,14 +453,24 @@ async function safeApiCall(endpoint, payload, txHash) {
               18 blockchain APIs powered by the x402 protocol. Pay per request with USDC on Base. No API keys, no registration, no subscriptions.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
+              <Link href="/quickstart" data-testid="link-quickstart">
+                <Button 
+                  size="lg" 
+                  className="bg-white text-blue-600 hover:bg-blue-50"
+                  data-testid="button-sdk-install"
+                >
+                  <Terminal className="mr-2 h-5 w-5" />
+                  SDK Install
+                </Button>
+              </Link>
               <Button 
                 size="lg" 
-                className="bg-white text-blue-600 hover:bg-blue-50"
+                className="bg-emerald-500 text-white hover:bg-emerald-600"
                 onClick={() => document.getElementById('quickstart')?.scrollIntoView({ behavior: 'smooth' })}
                 data-testid="button-quickstart"
               >
                 <Zap className="mr-2 h-5 w-5" />
-                Quickstart Guide
+                x402 Guide
               </Button>
               <Button 
                 size="lg" 

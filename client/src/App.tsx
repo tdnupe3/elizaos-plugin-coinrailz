@@ -263,6 +263,18 @@ function Router() {
         {() => <LazyLoadWrapper><DevelopersPage /></LazyLoadWrapper>}
       </Route>
 
+      {/* SDK Quickstart Guide - Developer Onboarding */}
+      <Route path="/quickstart">
+        {() => {
+          const QuickstartPage = lazy(() => import("@/pages/QuickstartPage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <QuickstartPage />
+            </Suspense>
+          );
+        }}
+      </Route>
+
       {/* Prepaid Credits System - Conversion Optimization */}
       <Route path="/credits">
         {() => <LazyLoadWrapper><CreditsPage /></LazyLoadWrapper>}

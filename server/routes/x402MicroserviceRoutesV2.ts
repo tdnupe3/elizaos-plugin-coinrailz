@@ -1711,11 +1711,26 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       step3: "Include Base64-encoded authorization in X-PAYMENT header",
       step4: "Retry the request with X-PAYMENT header",
       alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
-      supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
+      supportedMethods: ["eip3009-authorization", "raw-transaction-hash", "api-key"],
       network: "base",
       chainId: 8453,
       token: "USDC",
       tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    },
+    alternativePaymentMethods: {
+      apiKey: {
+        description: "Use prepaid credits with an API key (EASIEST - no blockchain required)",
+        howToGet: "Purchase credits at https://coinrailz.com/credits with Stripe (credit card) or USDC",
+        usage: "Include X-API-KEY header or Authorization: Bearer <api-key> header",
+        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 37 services", "50-70% higher conversion than manual USDC"],
+        getStarted: `${publicBaseUrl}/credits`,
+        example: `curl -X GET "${resourceUrl}" -H "X-API-KEY: your-api-key-here"`
+      },
+      rawTransaction: {
+        description: "Send USDC directly to platform wallet, include tx hash in X-PAYMENT header",
+        usage: "X-PAYMENT: 0x... (raw transaction hash)",
+        platformWallet: PLATFORM_WALLET
+      }
     }
   };
 

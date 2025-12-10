@@ -268,7 +268,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
         description: service.description,
         endpoint: service.endpoint,
         priceUSD: service.priceUSD,
-        priceMicro: service.priceMicro,
+        priceUSDC: service.priceUSDC,
         category: service.category,
         discoverable: true,
         firstCallFree: ['gas-price-oracle', 'token-metadata'].includes(service.id),
@@ -2413,15 +2413,16 @@ router.post("/seamless-chain-bridge",
 
 // === ENTERPRISE GATED SERVICE HANDLERS ===
 
-const smartContractAuditHandler = async (req: Request, res: Response) => {
+const smartContractAuditHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const { contractCode, contractName } = req.body;
 
     if (!contractCode) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Contract code is required',
       });
+      return;
     }
 
     const { nanoid } = await import('nanoid');
@@ -2458,15 +2459,16 @@ const smartContractAuditHandler = async (req: Request, res: Response) => {
   }
 };
 
-const paymentProcessingHandler = async (req: Request, res: Response) => {
+const paymentProcessingHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const { amount, currency, network, recipientAddress } = req.body;
 
     if (!amount || !currency || !network || !recipientAddress) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Missing required fields: amount, currency, network, recipientAddress',
       });
+      return;
     }
 
     const { nanoid } = await import('nanoid');
@@ -2507,15 +2509,16 @@ const paymentProcessingHandler = async (req: Request, res: Response) => {
   }
 };
 
-const complianceConsultationHandler = async (req: Request, res: Response) => {
+const complianceConsultationHandler = async (req: Request, res: Response): Promise<void> => {
   try {
     const { businessType, jurisdiction, transactionVolume } = req.body;
 
     if (!businessType || !jurisdiction) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         error: 'Missing required fields: businessType, jurisdiction',
       });
+      return;
     }
 
     const { nanoid } = await import('nanoid');
@@ -2650,7 +2653,7 @@ router.get("/payment-docs", (req: Request, res: Response) => {
     },
     platformWallet: PLATFORM_WALLET,
     facilitator: "https://facilitator.x402.io",
-    pricing: SERVICE_PRICING,
+    pricing: SERVICE_PRICING_USD,
     paymentFlow: {
       step1: "Make API request to any service endpoint",
       step2: "Receive 402 Payment Required with payment instructions",
@@ -2708,7 +2711,7 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
           status: "ready",
           network: NETWORK,
           token: "USDC",
-          amount: SERVICE_PRICING_MICRO[serviceId as keyof typeof SERVICE_PRICING] || 500000,
+          amount: SERVICE_PRICING_MICRO[serviceId as ServiceName] || 500000,
           payTo: PLATFORM_WALLET,
           facilitator: "https://facilitator.x402.io",
         },

@@ -109,50 +109,102 @@ function sanitizeAIResponse(content: string): string {
 }
 
 /**
- * Safely parse JSON with error recovery
+ * Extract the first balanced JSON object from a string using brace counting
+ * Handles nested objects correctly unlike simple regex
  */
-export function safeParseJSON(content: string): { success: boolean; data: any; error?: string } {
+function extractFirstBalancedJSON(text: string): string | null {
+  const startIdx = text.indexOf('{');
+  if (startIdx === -1) return null;
+  
+  let braceCount = 0;
+  let inString = false;
+  let escapeNext = false;
+  
+  for (let i = startIdx; i < text.length; i++) {
+    const char = text[i];
+    
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    
+    if (char === '\\' && inString) {
+      escapeNext = true;
+      continue;
+    }
+    
+    if (char === '"' && !escapeNext) {
+      inString = !inString;
+      continue;
+    }
+    
+    if (!inString) {
+      if (char === '{') braceCount++;
+      else if (char === '}') {
+        braceCount--;
+        if (braceCount === 0) {
+          return text.slice(startIdx, i + 1);
+        }
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Safely parse JSON with error recovery
+ * Includes telemetry for tracking recovery paths
+ */
+export function safeParseJSON(content: string): { success: boolean; data: any; error?: string; recoveryPath?: string } {
   const sanitized = sanitizeAIResponse(content);
   
   if (!sanitized) {
-    return { success: false, data: null, error: "Empty response from AI" };
+    console.log(`📊 TELEMETRY: safeParseJSON | result=failure | path=empty_response`);
+    return { success: false, data: null, error: "Empty response from AI", recoveryPath: "empty_response" };
   }
   
   try {
     const data = JSON.parse(sanitized);
-    return { success: true, data };
+    console.log(`📊 TELEMETRY: safeParseJSON | result=success | path=direct_parse`);
+    return { success: true, data, recoveryPath: "direct_parse" };
   } catch (e: any) {
     // Try to extract JSON from the response (sometimes AI adds markdown code blocks)
     const jsonMatch = sanitized.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
       try {
         const data = JSON.parse(jsonMatch[1].trim());
-        return { success: true, data };
+        console.log(`📊 TELEMETRY: safeParseJSON | result=success | path=fenced_block_extraction`);
+        return { success: true, data, recoveryPath: "fenced_block_extraction" };
       } catch {
-        // Fall through to error
+        // Fall through to brace-balanced extraction
       }
     }
     
-    // Try to find JSON object in the response
-    const objectMatch = sanitized.match(/\{[\s\S]*\}/);
-    if (objectMatch) {
+    // Try to find the first balanced JSON object using brace counting (handles nested objects)
+    const balancedJSON = extractFirstBalancedJSON(sanitized);
+    if (balancedJSON) {
       try {
-        const data = JSON.parse(objectMatch[0]);
-        return { success: true, data };
+        const data = JSON.parse(balancedJSON);
+        console.log(`📊 TELEMETRY: safeParseJSON | result=success | path=brace_balanced_extraction`);
+        return { success: true, data, recoveryPath: "brace_balanced_extraction" };
       } catch {
         // Fall through to error
       }
     }
     
-    return { success: false, data: null, error: `JSON parse failed: ${e.message}` };
+    console.log(`📊 TELEMETRY: safeParseJSON | result=failure | path=all_recovery_failed | error=${e.message}`);
+    return { success: false, data: null, error: `JSON parse failed: ${e.message}`, recoveryPath: "all_recovery_failed" };
   }
 }
 
 export async function callOpenAI(systemPrompt: string, userPrompt: string, responseFormat?: "json_object"): Promise<string> {
   const maxRetries = 2;
   let lastError: Error | null = null;
+  const callStartTime = Date.now();
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const attemptStartTime = Date.now();
     try {
       const response = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -166,12 +218,15 @@ export async function callOpenAI(systemPrompt: string, userPrompt: string, respo
       
       const content = response.choices[0].message.content || "";
       const sanitized = sanitizeAIResponse(content);
+      const attemptLatency = Date.now() - attemptStartTime;
+      const tokensUsed = response.usage?.total_tokens || 0;
       
       // If JSON format requested, validate it's actually valid JSON
       if (responseFormat === "json_object") {
         const parseResult = safeParseJSON(sanitized);
         if (!parseResult.success) {
           console.warn(`[OpenAI] Attempt ${attempt}/${maxRetries} - Invalid JSON response: ${parseResult.error}`);
+          console.log(`📊 TELEMETRY: callOpenAI | attempt=${attempt} | result=invalid_json | latency=${attemptLatency}ms | tokens=${tokensUsed}`);
           lastError = new Error(parseResult.error);
           if (attempt < maxRetries) {
             continue; // Retry
@@ -180,9 +235,13 @@ export async function callOpenAI(systemPrompt: string, userPrompt: string, respo
         }
       }
       
+      const totalLatency = Date.now() - callStartTime;
+      console.log(`📊 TELEMETRY: callOpenAI | attempt=${attempt} | result=success | latency=${attemptLatency}ms | total_latency=${totalLatency}ms | tokens=${tokensUsed} | retries_needed=${attempt - 1}`);
       return sanitized;
     } catch (error: any) {
+      const attemptLatency = Date.now() - attemptStartTime;
       console.error(`[OpenAI] Attempt ${attempt}/${maxRetries} failed:`, error.message);
+      console.log(`📊 TELEMETRY: callOpenAI | attempt=${attempt} | result=error | latency=${attemptLatency}ms | error=${error.message?.slice(0, 100)}`);
       lastError = error;
       
       if (attempt < maxRetries) {
@@ -193,6 +252,8 @@ export async function callOpenAI(systemPrompt: string, userPrompt: string, respo
     }
   }
   
+  const totalLatency = Date.now() - callStartTime;
+  console.log(`📊 TELEMETRY: callOpenAI | result=exhausted | total_latency=${totalLatency}ms | max_retries=${maxRetries} | final_error=${lastError?.message?.slice(0, 100)}`);
   throw new Error(`AI analysis failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
 }
 

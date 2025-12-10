@@ -1903,12 +1903,15 @@ router.post("/instant-agent-wallet", async (req: Request, res: Response) => {
     if (!agentId) {
       const analyticsContext = (req as any).analytics;
       const payerAddress = analyticsContext?.walletAddress;
+      // Add nonce suffix to prevent collisions when same payer creates multiple wallets
+      const nonce = Date.now().toString(36).slice(-4);
       if (payerAddress) {
-        agentId = `agent-${payerAddress.slice(0, 10).toLowerCase()}`;
+        agentId = `agent-${payerAddress.slice(0, 10).toLowerCase()}-${nonce}`;
+        console.log(`📊 TELEMETRY: agentId auto-generated from payerAddress | agentId=${agentId} | source=payer_wallet | payer=${payerAddress.slice(0, 10)}`);
       } else {
         agentId = `agent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+        console.log(`📊 TELEMETRY: agentId auto-generated randomly | agentId=${agentId} | source=random | note=analytics_context_missing`);
       }
-      console.log(`📝 Auto-generated agentId for wallet creation: ${agentId}`);
     }
 
     const result = await instantAgentWalletService({ agentId, description, initialFundingAmount });

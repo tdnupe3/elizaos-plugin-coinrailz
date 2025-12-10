@@ -2,23 +2,32 @@
  * Production Connection Manager
  * FIXED: Now uses the main Neon-compatible pool from db.ts
  * Implements connection pooling and automatic recovery for server stability
+ * 
+ * BUILD MODE FIX: Respects DISABLE_BACKGROUND_SERVICES to prevent deployment stalls
  */
 
 import { pool, checkDatabaseHealth } from '../db';
 import { EventEmitter } from 'events';
+import { DISABLE_BACKGROUND_SERVICES } from '../buildModeDetection';
 
 export class ConnectionManager extends EventEmitter {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
   private healthCheckInterval: NodeJS.Timeout | null = null;
+  private disabled = false;
 
   constructor() {
     super();
+    this.disabled = DISABLE_BACKGROUND_SERVICES;
     this.initialize();
   }
 
   private initialize() {
+    if (this.disabled) {
+      console.log('🚫 Connection manager: Health checks disabled during build phase');
+      return;
+    }
     this.startHealthChecks();
     console.log('✅ Connection manager initialized with Neon-compatible pool');
   }

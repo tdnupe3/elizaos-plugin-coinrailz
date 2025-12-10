@@ -14,7 +14,9 @@ import {
   ArrowRight,
   ExternalLink,
   Rocket,
-  DollarSign
+  DollarSign,
+  Wallet,
+  Bot
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -96,6 +98,51 @@ const signals = await client.tradeSignals({
   chain: 'ethereum'
 });
 console.log('Trade signals:', signals.data);`;
+
+  const walletExample = `import { CoinRailzClient } from 'coinrailz';
+
+const client = new CoinRailzClient({
+  apiKey: process.env.COINRAILZ_API_KEY
+});
+
+// Create a new USDC wallet on Base for your AI agent ($0.50)
+const wallet = await client.createAgentWallet({
+  label: 'trading-bot-wallet'
+});
+
+if (wallet.success) {
+  console.log('Wallet Address:', wallet.data.address);
+  console.log('Chain:', wallet.data.chain); // 'base'
+  // Store wallet.data.walletId securely for future operations
+}`;
+
+  const tradingBotExample = `import { CoinRailzClient } from 'coinrailz';
+
+const client = new CoinRailzClient({
+  apiKey: process.env.COINRAILZ_API_KEY
+});
+
+async function runTradingBot() {
+  // 1. Check gas before trading
+  const gas = await client.gasPriceOracle({ chain: 'base' });
+  if (gas.data.gasPrice > 50) {
+    console.log('Gas too high, waiting...');
+    return;
+  }
+
+  // 2. Get AI trading signal
+  const signal = await client.tradeSignals({ token: 'ETH' });
+  console.log('Signal:', signal.data?.signal); // 'buy', 'sell', or 'hold'
+  console.log('Confidence:', signal.data?.confidence);
+
+  // 3. Check whale activity
+  const whales = await client.whaleAlerts({ chain: 'ethereum' });
+  console.log('Recent whale moves:', whales.data?.alerts?.length);
+
+  // 4. Execute based on signals...
+}
+
+runTradingBot();`;
 
   const pythonExample = `# Claude Desktop configuration (claude_desktop_config.json)
 {
@@ -356,6 +403,80 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
                     data-testid="button-copy-curl"
                   >
                     {copiedCode === 'cURL example' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-slate-800/50 border-slate-700 mb-8">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Bot className="w-5 h-5" />
+              Runnable Examples
+            </CardTitle>
+            <CardDescription>Copy-paste code for common use cases</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="wallet" className="w-full">
+              <TabsList className="bg-slate-700/50 mb-4">
+                <TabsTrigger value="wallet" data-testid="tab-wallet">
+                  <Wallet className="w-3 h-3 mr-1" />
+                  Create Wallet
+                </TabsTrigger>
+                <TabsTrigger value="trading-bot" data-testid="tab-trading-bot">
+                  <Bot className="w-3 h-3 mr-1" />
+                  Trading Bot
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="wallet">
+                <div className="mb-3">
+                  <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20">
+                    Most Valuable Service
+                  </Badge>
+                  <p className="text-slate-400 text-sm mt-2">
+                    Create a USDC wallet on Base for your AI agent. Costs $0.50 per wallet.
+                  </p>
+                </div>
+                <div className="relative">
+                  <pre className="bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto">
+                    <code className="text-slate-300" data-testid="code-wallet-example">{walletExample}</code>
+                  </pre>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                    onClick={() => copyToClipboard(walletExample, 'Wallet example')}
+                    data-testid="button-copy-wallet"
+                  >
+                    {copiedCode === 'Wallet example' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="trading-bot">
+                <div className="mb-3">
+                  <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20">
+                    Complete Bot Example
+                  </Badge>
+                  <p className="text-slate-400 text-sm mt-2">
+                    A trading bot that checks gas, gets signals, and monitors whale activity.
+                  </p>
+                </div>
+                <div className="relative">
+                  <pre className="bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto">
+                    <code className="text-slate-300" data-testid="code-trading-bot-example">{tradingBotExample}</code>
+                  </pre>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                    onClick={() => copyToClipboard(tradingBotExample, 'Trading bot example')}
+                    data-testid="button-copy-trading-bot"
+                  >
+                    {copiedCode === 'Trading bot example' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
               </TabsContent>

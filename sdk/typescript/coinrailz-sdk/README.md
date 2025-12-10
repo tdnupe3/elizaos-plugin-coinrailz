@@ -41,6 +41,62 @@ const signals = await client.tradeSignals({ token: 'ETH' });
 console.log('Signal:', signals.data?.signal, 'Confidence:', signals.data?.confidence);
 ```
 
+## Create an Agent Wallet (Most Valuable Service)
+
+```typescript
+import { CoinRailzClient } from 'coinrailz';
+
+const client = new CoinRailzClient({
+  apiKey: process.env.COINRAILZ_API_KEY!,
+});
+
+// Create a USDC wallet on Base for your AI agent ($0.50 per wallet)
+const wallet = await client.createAgentWallet({
+  label: 'my-trading-bot-wallet'
+});
+
+if (wallet.success) {
+  console.log('Wallet Address:', wallet.data.address);
+  console.log('Chain:', wallet.data.chain); // 'base'
+  console.log('Wallet ID:', wallet.data.walletId);
+  // Store walletId securely for future operations
+}
+```
+
+## Trading Bot Example
+
+```typescript
+import { CoinRailzClient } from 'coinrailz';
+
+const client = new CoinRailzClient({
+  apiKey: process.env.COINRAILZ_API_KEY!,
+});
+
+async function runTradingBot() {
+  // 1. Check gas before trading
+  const gas = await client.gasPriceOracle({ chain: 'base' });
+  if (gas.data.gasPrice > 50) {
+    console.log('Gas too high, waiting...');
+    return;
+  }
+
+  // 2. Get AI trading signal
+  const signal = await client.tradeSignals({ token: 'ETH' });
+  console.log('Signal:', signal.data?.signal); // 'buy', 'sell', or 'hold'
+  console.log('Confidence:', signal.data?.confidence);
+
+  // 3. Check whale activity
+  const whales = await client.whaleAlerts({ chain: 'ethereum' });
+  console.log('Recent whale moves:', whales.data?.alerts?.length);
+
+  // 4. Execute based on signals...
+}
+
+runTradingBot();
+```
+
+> **More examples:** Visit [coinrailz.com/quickstart](https://coinrailz.com/quickstart) for complete runnable examples
+
 ## Getting an API Key
 
 1. Visit [coinrailz.com/credits](https://coinrailz.com/credits)

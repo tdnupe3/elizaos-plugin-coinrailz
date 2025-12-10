@@ -588,6 +588,8 @@ const SERVICE_DESCRIPTIONS: Record<string, string> = {
   'polymarket-odds': 'Current odds for prediction markets',
   'polymarket-search': 'Search prediction markets',
   'prediction-market-odds': 'Generic prediction market odds lookup',
+  'stock-sentiment': 'AI-powered stock market sentiment analysis with news, technicals, and institutional activity',
+  'forex-sentiment': 'AI-powered forex currency pair sentiment analysis with economic and central bank insights',
 };
 
 // All services from the centralized pricing (single source of truth)

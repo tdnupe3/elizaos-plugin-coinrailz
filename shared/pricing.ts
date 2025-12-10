@@ -59,7 +59,10 @@ export type ServiceName =
   | "polymarket-events"
   | "polymarket-odds"
   | "polymarket-search"
-  | "prediction-market-odds";
+  | "prediction-market-odds"
+  // Traditional Markets vertical (2 services) - Stocks & Forex
+  | "stock-sentiment"
+  | "forex-sentiment";
 
 /**
  * Micro-USDC pricing (integers) for on-chain payment verification
@@ -124,6 +127,10 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "polymarket-odds": 500000,           // $0.50 - current odds for specific market
   "polymarket-search": 250000,         // $0.25 - search prediction markets
   "prediction-market-odds": 500000,    // $0.50 - generic prediction market odds (alias for polymarket-odds)
+  
+  // VERTICAL EXPANSION - Traditional Markets Services ($0.40)
+  "stock-sentiment": 400000,           // $0.40 - AI stock sentiment analysis
+  "forex-sentiment": 400000,           // $0.40 - AI forex sentiment analysis
 };
 
 /**
@@ -186,6 +193,10 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "polymarket-odds": 0.50,
   "polymarket-search": 0.25,
   "prediction-market-odds": 0.50,
+  
+  // Traditional Markets vertical
+  "stock-sentiment": 0.40,
+  "forex-sentiment": 0.40,
 };
 
 /**

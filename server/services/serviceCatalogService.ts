@@ -46,7 +46,8 @@ const CATEGORY_ORDER = [
   'banking',
   'trading',
   'market-intelligence',
-  'prediction-markets'
+  'prediction-markets',
+  'traditional-markets'
 ];
 
 export class ServiceCatalogService {
@@ -540,6 +541,33 @@ export class ServiceCatalogService {
         capabilities: ['prediction-markets', 'odds', 'polymarket', 'probability'],
         x402Compatible: true,
         stripeCompatible: true
+      },
+      // Traditional Markets (2) - Stock & Forex Sentiment
+      {
+        id: 'stock-sentiment',
+        name: 'Stock Sentiment Analysis',
+        description: 'AI-powered stock market sentiment analysis with news, technicals, and institutional activity',
+        endpoint: '/x402/stock-sentiment',
+        priceUSD: '$0.40',
+        priceUSDC: '0.40 USDC',
+        network: 'base',
+        category: 'traditional-markets',
+        capabilities: ['stock-analysis', 'equity-sentiment', 'market-intelligence', 'ai-analysis'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'forex-sentiment',
+        name: 'Forex Sentiment Analysis',
+        description: 'AI-powered forex currency pair sentiment analysis with economic and central bank insights',
+        endpoint: '/x402/forex-sentiment',
+        priceUSD: '$0.40',
+        priceUSDC: '0.40 USDC',
+        network: 'base',
+        category: 'traditional-markets',
+        capabilities: ['forex-analysis', 'currency-sentiment', 'economic-analysis', 'ai-analysis'],
+        x402Compatible: true,
+        stripeCompatible: true
       }
     ];
 
@@ -592,8 +620,9 @@ export class ServiceCatalogService {
       'real-estate': ['banking', 'market-intelligence'],
       'banking': ['real-estate', 'trading-intelligence'],
       'trading': ['trading-intelligence', 'execution', 'market-intelligence'],
-      'market-intelligence': ['trading-intelligence', 'trading', 'prediction-markets'],
-      'prediction-markets': ['market-intelligence', 'trading'],
+      'market-intelligence': ['trading-intelligence', 'trading', 'prediction-markets', 'traditional-markets'],
+      'prediction-markets': ['market-intelligence', 'trading', 'traditional-markets'],
+      'traditional-markets': ['market-intelligence', 'trading', 'prediction-markets'],
       'discovery': ['trading-intelligence', 'execution']
     };
 

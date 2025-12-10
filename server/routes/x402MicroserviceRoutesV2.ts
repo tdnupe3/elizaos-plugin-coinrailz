@@ -36,6 +36,8 @@ import {
   arbitrageScannerService,
   correlationMatrixService,
   riskMetricsService,
+  stockSentimentService,
+  forexSentimentService,
 } from "./microservices";
 import {
   transactionBuilderInputSchema,
@@ -3195,6 +3197,77 @@ const agentCreateWalletHandler = async (req: Request, res: Response) => {
 router.post("/agent-create-wallet",
   createPaymentOrchestrator("agent-create-wallet", SERVICE_PRICING_MICRO["agent-create-wallet"], agentCreateWalletHandler),
   agentCreateWalletHandler
+);
+
+// ========================================
+// TRADITIONAL MARKETS SERVICES
+// Stock and Forex sentiment analysis for TradFi bots
+// ========================================
+
+// Stock Sentiment Analysis - AI-powered equity market sentiment
+router.post("/stock-sentiment",
+  createPaymentOrchestrator("stock-sentiment", SERVICE_PRICING_MICRO["stock-sentiment"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { symbol, includeNews, includeTechnicals, includeInstitutional } = req.body;
+      
+      if (!symbol || typeof symbol !== 'string') {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Stock symbol is required (e.g., AAPL, TSLA, MSFT)" 
+        });
+      }
+      
+      const result = await stockSentimentService({
+        symbol: symbol.toUpperCase(),
+        includeNews: includeNews !== false,
+        includeTechnicals: includeTechnicals !== false,
+        includeInstitutional: includeInstitutional !== false
+      });
+      
+      const responseTime = Date.now() - startTime;
+      await trackRequest("stock-sentiment", req.body, result, responseTime, SERVICE_PRICING_USD["stock-sentiment"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "stock-sentiment", { symbol });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("stock-sentiment", req.body, null, responseTime, SERVICE_PRICING_USD["stock-sentiment"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// Forex Sentiment Analysis - AI-powered currency pair sentiment
+router.post("/forex-sentiment",
+  createPaymentOrchestrator("forex-sentiment", SERVICE_PRICING_MICRO["forex-sentiment"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { pair, includeEconomic, includeCentralBank, includeGeopolitical } = req.body;
+      
+      if (!pair || typeof pair !== 'string') {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Currency pair is required (e.g., EURUSD, GBPJPY, USDJPY)" 
+        });
+      }
+      
+      const result = await forexSentimentService({
+        pair: pair.toUpperCase(),
+        includeEconomic: includeEconomic !== false,
+        includeCentralBank: includeCentralBank !== false,
+        includeGeopolitical: includeGeopolitical !== false
+      });
+      
+      const responseTime = Date.now() - startTime;
+      await trackRequest("forex-sentiment", req.body, result, responseTime, SERVICE_PRICING_USD["forex-sentiment"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "forex-sentiment", { pair });
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("forex-sentiment", req.body, null, responseTime, SERVICE_PRICING_USD["forex-sentiment"], req.ip || "unknown", error.message);
+      res.status(400).json({ success: false, error: error.message });
+    }
+  })
 );
 
 export default router;

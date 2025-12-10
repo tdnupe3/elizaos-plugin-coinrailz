@@ -29,6 +29,12 @@ export {
   riskMetricsService
 } from "./intelligence";
 
+// Export Traditional Markets services (Stocks & Forex)
+export {
+  stockSentimentService,
+  forexSentimentService
+} from "./markets";
+
 // Updated pricing configuration with new services
 export const NEW_SERVICE_PRICING = {
   // Real Estate Services

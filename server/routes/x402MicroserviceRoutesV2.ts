@@ -1523,6 +1523,93 @@ const x402Routes = {
       }
     },
   },
+  // Traditional Markets Services - Stock & Forex Sentiment
+  "POST /stock-sentiment": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["stock-sentiment"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/stock-sentiment`,
+      name: "Stock Sentiment Analysis",
+      description: "AI-powered stock market sentiment analysis with news, technical outlook, and institutional activity insights.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          symbol: { type: "string", description: "Stock ticker symbol (e.g., AAPL, TSLA, MSFT)", required: true },
+          includeNews: { type: "boolean", description: "Include recent news and headlines analysis" },
+          includeTechnicals: { type: "boolean", description: "Include technical analysis and chart patterns" },
+          includeInstitutional: { type: "boolean", description: "Include institutional and insider activity" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            symbol: { type: "string", description: "Stock ticker symbol (e.g., AAPL, TSLA, MSFT)" },
+            includeNews: { type: "boolean", description: "Include recent news and headlines analysis" },
+            includeTechnicals: { type: "boolean", description: "Include technical analysis and chart patterns" },
+            includeInstitutional: { type: "boolean", description: "Include institutional and insider activity" }
+          },
+          required: ["symbol"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            symbol: { type: "string", description: "Stock symbol analyzed" },
+            overallSentiment: { type: "string", description: "Overall sentiment (Bullish/Bearish/Neutral)" },
+            sentimentScore: { type: "number", description: "Sentiment score from -100 to 100" },
+            confidence: { type: "number", description: "Analysis confidence 0-100%" },
+            keyDrivers: { type: "array", description: "Key drivers of the sentiment" },
+            recommendation: { type: "string", description: "Trading recommendation" }
+          }
+        }
+      }
+    },
+  },
+  "POST /forex-sentiment": {
+    price: `$${microToUSD(SERVICE_PRICING_MICRO["forex-sentiment"])}`,
+    network: NETWORK,
+    config: {
+      discoverable: true,
+      resource: `${PUBLIC_BASE_URL}/x402/forex-sentiment`,
+      name: "Forex Sentiment Analysis",
+      description: "AI-powered forex currency pair sentiment analysis with economic factors, central bank policy, and geopolitical insights.",
+      mimeType: "application/json",
+      maxTimeoutSeconds: 120,
+      inputSchema: {
+        bodyFields: {
+          pair: { type: "string", description: "Currency pair (e.g., EURUSD, GBPJPY, USDJPY)", required: true },
+          includeEconomic: { type: "boolean", description: "Include economic factors analysis" },
+          includeCentralBank: { type: "boolean", description: "Include central bank policy outlook" },
+          includeGeopolitical: { type: "boolean", description: "Include geopolitical factors" }
+        }
+      },
+      schema: {
+        input: {
+          type: "object",
+          properties: {
+            pair: { type: "string", description: "Currency pair (e.g., EURUSD, GBPJPY, USDJPY)" },
+            includeEconomic: { type: "boolean", description: "Include economic factors analysis" },
+            includeCentralBank: { type: "boolean", description: "Include central bank policy outlook" },
+            includeGeopolitical: { type: "boolean", description: "Include geopolitical factors" }
+          },
+          required: ["pair"]
+        },
+        output: {
+          type: "object",
+          properties: {
+            pair: { type: "string", description: "Currency pair analyzed" },
+            overallSentiment: { type: "string", description: "Overall sentiment (Bullish/Bearish/Neutral)" },
+            sentimentScore: { type: "number", description: "Sentiment score from -100 to 100" },
+            confidence: { type: "number", description: "Analysis confidence 0-100%" },
+            keyDrivers: { type: "array", description: "Key drivers of the sentiment" },
+            tradingRecommendation: { type: "string", description: "Trading recommendation" }
+          }
+        }
+      }
+    },
+  },
 };
 
 // CRITICAL FIX: x402-express never writes `discoverable` or `facilitatorUrl` into 402 responses

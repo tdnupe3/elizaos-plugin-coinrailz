@@ -1,4 +1,66 @@
-import { callOpenAI, formatJSONResponse, getCachedData, setCachedData } from "./common";
+import { callOpenAI, formatJSONResponse, getCachedData, setCachedData, safeParseJSON } from "./common";
+import { z } from "zod";
+
+// Zod schemas for validating AI responses
+const arbitrageOpportunitySchema = z.object({
+  asset: z.string(),
+  buyExchange: z.string(),
+  sellExchange: z.string(),
+  priceDiff: z.number(),
+  profitPercentage: z.number(),
+  estimatedProfit: z.number(),
+  executionRisk: z.string()
+}).partial();
+
+const arbitrageResponseSchema = z.object({
+  opportunities: z.array(arbitrageOpportunitySchema).default([]),
+  totalOpportunities: z.number().default(0),
+  bestOpportunity: z.object({
+    asset: z.string(),
+    profit: z.number(),
+    confidence: z.number()
+  }).partial().optional(),
+  marketConditions: z.string().optional(),
+  gasEstimate: z.number().optional(),
+  netProfitAfterFees: z.number().optional(),
+  recommendations: z.string().optional()
+});
+
+const correlationResponseSchema = z.object({
+  correlationPairs: z.array(z.object({
+    asset1: z.string(),
+    asset2: z.string(),
+    correlation: z.number(),
+    strength: z.string().optional(),
+    relationship: z.string().optional()
+  })).default([]),
+  strongCorrelations: z.array(z.any()).optional(),
+  divergences: z.array(z.any()).optional(),
+  hedgingOpportunities: z.array(z.any()).optional(),
+  portfolioInsights: z.string().optional(),
+  riskImplications: z.string().optional()
+});
+
+const riskMetricsResponseSchema = z.object({
+  valueAtRisk: z.object({
+    var95: z.number(),
+    var99: z.number(),
+    cvar: z.number().optional(),
+    timeHorizon: z.string().optional()
+  }).partial().optional(),
+  sharpeRatio: z.number().optional(),
+  sortinoRatio: z.number().optional(),
+  maxDrawdown: z.number().optional(),
+  beta: z.number().optional(),
+  volatility: z.object({
+    daily: z.number(),
+    monthly: z.number(),
+    annualized: z.number()
+  }).partial().optional(),
+  riskLevel: z.string().optional(),
+  stressScenarios: z.array(z.any()).optional(),
+  recommendations: z.string().optional()
+});
 import axios from "axios";
 
 const INTELLIGENCE_SYSTEM_PROMPTS = {
@@ -78,7 +140,31 @@ Provide actionable opportunities with net profit estimates.`;
     "json_object"
   );
   
-  const result = formatJSONResponse(JSON.parse(response));
+  // Safe parsing with validation
+  const parseResult = safeParseJSON(response);
+  if (!parseResult.success) {
+    console.error(`[arbitrage-scanner] JSON parse failed: ${parseResult.error}`);
+    throw new Error(`AI response parsing failed: ${parseResult.error}`);
+  }
+  
+  // Validate against schema with coercion for missing fields
+  const validated = arbitrageResponseSchema.safeParse(parseResult.data);
+  if (!validated.success) {
+    console.warn(`[arbitrage-scanner] Schema validation warning:`, validated.error.message);
+    // Return raw data with defaults if validation fails (graceful degradation)
+    const fallbackData = {
+      opportunities: parseResult.data.opportunities || [],
+      totalOpportunities: parseResult.data.totalOpportunities || 0,
+      marketConditions: parseResult.data.marketConditions || "Analysis completed",
+      recommendations: parseResult.data.recommendations || "See opportunities above",
+      ...parseResult.data
+    };
+    const result = formatJSONResponse(fallbackData);
+    setCachedData(cacheKey, result, 2 * 60 * 1000);
+    return result;
+  }
+  
+  const result = formatJSONResponse(validated.data);
   setCachedData(cacheKey, result, 2 * 60 * 1000); // 2 min cache (volatile data)
   return result;
 }
@@ -116,7 +202,21 @@ Provide comprehensive correlation insights for risk management and portfolio con
     "json_object"
   );
   
-  const result = formatJSONResponse(JSON.parse(response));
+  // Safe parsing with validation
+  const parseResult = safeParseJSON(response);
+  if (!parseResult.success) {
+    console.error(`[correlation-matrix] JSON parse failed: ${parseResult.error}`);
+    throw new Error(`AI response parsing failed: ${parseResult.error}`);
+  }
+  
+  const validated = correlationResponseSchema.safeParse(parseResult.data);
+  const resultData = validated.success ? validated.data : {
+    correlationPairs: parseResult.data.correlationPairs || [],
+    portfolioInsights: parseResult.data.portfolioInsights || "Analysis completed",
+    ...parseResult.data
+  };
+  
+  const result = formatJSONResponse(resultData);
   setCachedData(cacheKey, result, 15 * 60 * 1000); // 15 min cache
   return result;
 }
@@ -166,5 +266,19 @@ Provide actionable risk management recommendations.`;
     "json_object"
   );
   
-  return formatJSONResponse(JSON.parse(response));
+  // Safe parsing with validation
+  const parseResult = safeParseJSON(response);
+  if (!parseResult.success) {
+    console.error(`[risk-metrics] JSON parse failed: ${parseResult.error}`);
+    throw new Error(`AI response parsing failed: ${parseResult.error}`);
+  }
+  
+  const validated = riskMetricsResponseSchema.safeParse(parseResult.data);
+  const resultData = validated.success ? validated.data : {
+    riskLevel: parseResult.data.riskLevel || "Analysis completed",
+    recommendations: parseResult.data.recommendations || "See metrics above",
+    ...parseResult.data
+  };
+  
+  return formatJSONResponse(resultData);
 }

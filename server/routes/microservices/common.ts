@@ -87,23 +87,113 @@ export async function trackRequest(
   }
 }
 
-export async function callOpenAI(systemPrompt: string, userPrompt: string, responseFormat?: "json_object"): Promise<string> {
-  try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      temperature: 0.7,
-      response_format: responseFormat ? { type: responseFormat } : undefined
-    });
-    
-    return response.choices[0].message.content || "";
-  } catch (error: any) {
-    console.error("OpenAI API error:", error);
-    throw new Error(`AI analysis failed: ${error.message}`);
+/**
+ * Sanitize AI response by removing BOM, control characters, and invalid UTF-8
+ */
+function sanitizeAIResponse(content: string): string {
+  if (!content) return "";
+  
+  // Remove BOM (Byte Order Mark)
+  let sanitized = content.replace(/^\uFEFF/, '');
+  
+  // Remove null bytes and other control characters (except newlines and tabs)
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  
+  // Remove any non-printable unicode characters that might corrupt JSON
+  sanitized = sanitized.replace(/[\uFFFD\uFFFE\uFFFF]/g, '');
+  
+  // Trim whitespace
+  sanitized = sanitized.trim();
+  
+  return sanitized;
+}
+
+/**
+ * Safely parse JSON with error recovery
+ */
+export function safeParseJSON(content: string): { success: boolean; data: any; error?: string } {
+  const sanitized = sanitizeAIResponse(content);
+  
+  if (!sanitized) {
+    return { success: false, data: null, error: "Empty response from AI" };
   }
+  
+  try {
+    const data = JSON.parse(sanitized);
+    return { success: true, data };
+  } catch (e: any) {
+    // Try to extract JSON from the response (sometimes AI adds markdown code blocks)
+    const jsonMatch = sanitized.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) {
+      try {
+        const data = JSON.parse(jsonMatch[1].trim());
+        return { success: true, data };
+      } catch {
+        // Fall through to error
+      }
+    }
+    
+    // Try to find JSON object in the response
+    const objectMatch = sanitized.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      try {
+        const data = JSON.parse(objectMatch[0]);
+        return { success: true, data };
+      } catch {
+        // Fall through to error
+      }
+    }
+    
+    return { success: false, data: null, error: `JSON parse failed: ${e.message}` };
+  }
+}
+
+export async function callOpenAI(systemPrompt: string, userPrompt: string, responseFormat?: "json_object"): Promise<string> {
+  const maxRetries = 2;
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ],
+        temperature: attempt === 1 ? 0.7 : 0.3, // Lower temperature on retry for more consistent output
+        response_format: responseFormat ? { type: responseFormat } : undefined
+      });
+      
+      const content = response.choices[0].message.content || "";
+      const sanitized = sanitizeAIResponse(content);
+      
+      // If JSON format requested, validate it's actually valid JSON
+      if (responseFormat === "json_object") {
+        const parseResult = safeParseJSON(sanitized);
+        if (!parseResult.success) {
+          console.warn(`[OpenAI] Attempt ${attempt}/${maxRetries} - Invalid JSON response: ${parseResult.error}`);
+          lastError = new Error(parseResult.error);
+          if (attempt < maxRetries) {
+            continue; // Retry
+          }
+          throw lastError;
+        }
+      }
+      
+      return sanitized;
+    } catch (error: any) {
+      console.error(`[OpenAI] Attempt ${attempt}/${maxRetries} failed:`, error.message);
+      lastError = error;
+      
+      if (attempt < maxRetries) {
+        // Brief delay before retry
+        await new Promise(resolve => setTimeout(resolve, 500));
+        continue;
+      }
+    }
+  }
+  
+  throw new Error(`AI analysis failed after ${maxRetries} attempts: ${lastError?.message || 'Unknown error'}`);
 }
 
 export function formatJSONResponse(data: any) {

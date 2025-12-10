@@ -2312,11 +2312,20 @@ router.post("/portfolio-tracker",
 const instantAgentWalletHandler = async (req: Request, res: Response) => {
   const startTime = Date.now();
   try {
-    const { agentId, description, initialFundingAmount } = req.body;
+    let { agentId, description, initialFundingAmount } = req.body;
     
+    // Auto-generate agentId if not provided - critical for x402 payments where agents may not send metadata
     if (!agentId) {
-      res.status(400).json({ success: false, error: "agentId is required" });
-      return;
+      // Try to derive from payer's wallet address (from analytics context) or generate random
+      const analyticsContext = (req as any).analytics;
+      const payerAddress = analyticsContext?.walletAddress;
+      if (payerAddress) {
+        agentId = `agent-${payerAddress.slice(0, 10).toLowerCase()}`;
+      } else {
+        // Generate random agentId using timestamp + random suffix
+        agentId = `agent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+      console.log(`📝 Auto-generated agentId for wallet creation: ${agentId}`);
     }
 
     const result = await instantAgentWalletService({ agentId, description, initialFundingAmount });

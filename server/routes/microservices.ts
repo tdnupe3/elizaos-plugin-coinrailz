@@ -1897,9 +1897,18 @@ router.post("/instant-agent-wallet", async (req: Request, res: Response) => {
   const serviceId = "instant-agent-wallet";
 
   try {
-    const { agentId, description, initialFundingAmount } = req.body;
+    let { agentId, description, initialFundingAmount } = req.body;
+    
+    // Auto-generate agentId if not provided - critical for x402 payments where agents may not send metadata
     if (!agentId) {
-      return res.status(400).json({ success: false, error: "agentId is required" });
+      const analyticsContext = (req as any).analytics;
+      const payerAddress = analyticsContext?.walletAddress;
+      if (payerAddress) {
+        agentId = `agent-${payerAddress.slice(0, 10).toLowerCase()}`;
+      } else {
+        agentId = `agent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      }
+      console.log(`📝 Auto-generated agentId for wallet creation: ${agentId}`);
     }
 
     const result = await instantAgentWalletService({ agentId, description, initialFundingAmount });

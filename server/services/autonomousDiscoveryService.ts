@@ -143,7 +143,10 @@ class AutonomousDiscoveryService {
         '/x402/polymarket-events',
         '/x402/polymarket-odds',
         '/x402/polymarket-search',
-        '/x402/prediction-market-odds'
+        '/x402/prediction-market-odds',
+        // Traditional markets services (2 services) - added Dec 2025
+        '/x402/stock-sentiment',
+        '/x402/forex-sentiment'
       ];
       
       for (const endpoint of x402Endpoints) {

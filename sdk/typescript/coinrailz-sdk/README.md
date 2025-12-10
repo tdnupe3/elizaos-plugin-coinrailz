@@ -4,7 +4,7 @@ Official JavaScript/TypeScript SDK for [Coin Railz](https://coinrailz.com) - x40
 
 ## Features
 
-- 🚀 **37+ Microservices** - Trading intelligence, prediction markets, gas oracles, and more
+- 🚀 **38 Microservices** - Trading intelligence, prediction markets, gas oracles, traditional markets, and more
 - 💳 **Simple API Key Auth** - No blockchain wallet required
 - 📦 **TypeScript First** - Full type definitions included
 - ⚡ **Zero Dependencies** - Uses native fetch (Node 18+)
@@ -142,6 +142,10 @@ runTradingBot();
 - `propertyValuation()` - AI property valuation
 - `leaseAnalysis()` - Lease agreement analysis
 - `constructionProgress()` - Construction monitoring
+
+### Traditional Markets
+- `stockSentiment()` - AI-powered stock market sentiment ($0.40/call)
+- `forexSentiment()` - AI-powered forex sentiment analysis ($0.40/call)
 
 ### Additional Trading
 - `tokenSentiment()` - Token social sentiment

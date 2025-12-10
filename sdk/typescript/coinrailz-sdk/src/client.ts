@@ -398,6 +398,26 @@ export class CoinRailzClient {
     return this.request('smart-contract-audit', params);
   }
 
+  // ==================== Traditional Markets ====================
+
+  /**
+   * Stock market sentiment analysis
+   * AI-powered stock sentiment with news, technicals, and institutional activity
+   * $0.40 per request
+   */
+  async stockSentiment(params: { symbol: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('stock-sentiment', params);
+  }
+
+  /**
+   * Forex sentiment analysis
+   * AI-powered forex sentiment with central bank policy and economic indicators
+   * $0.40 per request
+   */
+  async forexSentiment(params: { pair: string }): Promise<ServiceResponse<unknown>> {
+    return this.request('forex-sentiment', params);
+  }
+
   // ==================== Polymarket Extended ====================
 
   /**

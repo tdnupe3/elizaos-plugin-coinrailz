@@ -53,7 +53,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 33 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, and DeFi intelligence.",
+    description: "Production-grade blockchain infrastructure for AI agents. 35 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis.",
     version: "0.4.0",
     agentId: "coinrailz-x402-infrastructure",
     
@@ -1325,6 +1325,75 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
         },
         pricing: { amount: SERVICE_PRICING_USD["risk-metrics"], currency: "USD" },
         category: "intelligence"
+      },
+      // TRADITIONAL MARKETS VERTICAL (2 services)
+      {
+        id: "stock_sentiment",
+        name: "Stock Market Sentiment Analysis",
+        description: "AI-powered stock market sentiment analysis with news sentiment, technical indicators, and institutional activity. Use when user asks 'stock sentiment', 'market sentiment', 'stock news analysis', 'equity sentiment', or 'stock market outlook'.",
+        inputSchema: {
+          type: "object",
+          title: "Stock Sentiment Request",
+          description: "Request stock market sentiment analysis",
+          additionalProperties: false,
+          properties: {
+            symbol: { 
+              type: "string", 
+              title: "Stock Symbol",
+              description: "Stock ticker symbol (e.g., AAPL, GOOGL, MSFT)"
+            }
+          },
+          required: ["symbol"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Stock Sentiment Response",
+          additionalProperties: false,
+          properties: {
+            symbol: { type: "string", title: "Stock Symbol" },
+            overallSentiment: { type: "string", enum: ["bullish", "bearish", "neutral"], title: "Overall Sentiment" },
+            sentimentScore: { type: "number", title: "Sentiment Score (-1 to 1)" },
+            newsAnalysis: { type: "object", title: "News Sentiment Analysis" },
+            technicalIndicators: { type: "object", title: "Technical Indicators" },
+            recommendation: { type: "string", title: "AI Recommendation" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["stock-sentiment"], currency: "USD" },
+        category: "traditional-markets"
+      },
+      {
+        id: "forex_sentiment",
+        name: "Forex Sentiment Analysis",
+        description: "AI-powered forex/currency sentiment analysis with central bank policy, economic indicators, and cross-rate analysis. Use when user asks 'forex sentiment', 'currency outlook', 'FX analysis', 'exchange rate sentiment', or 'currency pair analysis'.",
+        inputSchema: {
+          type: "object",
+          title: "Forex Sentiment Request",
+          description: "Request forex market sentiment analysis",
+          additionalProperties: false,
+          properties: {
+            pair: { 
+              type: "string", 
+              title: "Currency Pair",
+              description: "Forex pair (e.g., EUR/USD, GBP/JPY, USD/CHF)"
+            }
+          },
+          required: ["pair"]
+        },
+        outputSchema: {
+          type: "object",
+          title: "Forex Sentiment Response",
+          additionalProperties: false,
+          properties: {
+            pair: { type: "string", title: "Currency Pair" },
+            overallSentiment: { type: "string", enum: ["bullish", "bearish", "neutral"], title: "Overall Sentiment" },
+            sentimentScore: { type: "number", title: "Sentiment Score (-1 to 1)" },
+            centralBankAnalysis: { type: "object", title: "Central Bank Policy Analysis" },
+            economicIndicators: { type: "object", title: "Economic Indicators" },
+            recommendation: { type: "string", title: "AI Recommendation" }
+          }
+        },
+        pricing: { amount: SERVICE_PRICING_USD["forex-sentiment"], currency: "USD" },
+        category: "traditional-markets"
       }
     ],
     
@@ -1462,16 +1531,16 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
  * Main platform agent card - describes Coin Railz as a service provider
  * Discoverable by ChatGPT, Google AI, x402 indexers, A2A Registry, and other A2A platforms
  * 
- * UPDATED: Nov 2024 - Now includes all 33 x402 services with correct pricing
+ * UPDATED: Dec 2024 - Now includes all 35 x402 services with correct pricing
  */
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   
-  // A2A Protocol v0.3.0 compliant agent card - ALL 33 SERVICES
+  // A2A Protocol v0.3.0 compliant agent card - ALL 35 SERVICES
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 33 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, and market intelligence. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
+    description: "Multi-chain x402 micropayment infrastructure for AI agents. 35 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, market intelligence, and traditional markets. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
     url: baseUrl,
     version: "3.0.0",
     
@@ -1750,6 +1819,23 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         name: "Arbitrage Scanner",
         description: "Detect arbitrage opportunities across exchanges and chains. $1.25 per request.",
         tags: ["market-intelligence", "arbitrage", "trading", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      // Traditional Markets Services ($0.40 each)
+      {
+        id: "stock-sentiment",
+        name: "Stock Market Sentiment",
+        description: "AI-powered stock market sentiment analysis with news, technicals, and institutional activity. $0.40 per request.",
+        tags: ["traditional-markets", "stocks", "sentiment", "equities", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "forex-sentiment",
+        name: "Forex Sentiment Analysis",
+        description: "AI-powered forex sentiment analysis with central bank policy and economic indicators. $0.40 per request.",
+        tags: ["traditional-markets", "forex", "sentiment", "currency", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
       }
@@ -2535,6 +2621,26 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         status: "healthy",
         category: "intelligence",
         input_schema: { type: "object", properties: { portfolioValue: { type: "number" }, holdings: { type: "array" } }, required: ["portfolioValue", "holdings"] }
+      },
+      {
+        path: "/x402/stock-sentiment",
+        methods: ["GET", "POST"],
+        price_usd: 0.40,
+        auth: "x402",
+        description: "AI-powered stock market sentiment analysis with news, technicals, and institutional activity",
+        status: "healthy",
+        category: "traditional-markets",
+        input_schema: { type: "object", properties: { symbol: { type: "string" } }, required: ["symbol"] }
+      },
+      {
+        path: "/x402/forex-sentiment",
+        methods: ["GET", "POST"],
+        price_usd: 0.40,
+        auth: "x402",
+        description: "AI-powered forex sentiment analysis with central bank policy and economic indicators",
+        status: "healthy",
+        category: "traditional-markets",
+        input_schema: { type: "object", properties: { pair: { type: "string" } }, required: ["pair"] }
       }
     ],
     x402: {
@@ -2554,8 +2660,8 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       discovery_enabled: true
     },
     commerce: {
-      total_services: 33,
-      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence"],
+      total_services: 35,
+      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "traditional-markets"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000

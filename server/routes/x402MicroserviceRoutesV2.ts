@@ -269,6 +269,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
         endpoint: service.endpoint,
         priceUSD: service.priceUSD,
         priceUSDC: service.priceUSDC,
+        priceMicro: SERVICE_PRICING_MICRO[service.id as ServiceName] || 0,
         category: service.category,
         discoverable: true,
         firstCallFree: ['gas-price-oracle', 'token-metadata'].includes(service.id),

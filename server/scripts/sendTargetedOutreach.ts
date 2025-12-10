@@ -27,7 +27,7 @@ const TARGETS = {
     message: `🤖 AI AGENT PAYMENT INFRASTRUCTURE
 
 Coin Railz offers x402 micropayment APIs for AI agents:
-• 37 services: trading signals, market intel, predictions
+• 38 services: trading signals, market intel, predictions
 • Pay-per-call with Base USDC (0.001-0.50 per request)
 • A2A protocol compatible
 
@@ -44,7 +44,7 @@ Reply or visit: coinrailz.com`
     message: `🤝 PARTNERSHIP PROPOSAL: AI Agent Payment Rails
 
 Coin Railz provides x402 payment infrastructure for Virtuals agents:
-• 37 micropayment APIs (trading, intel, predictions)
+• 38 micropayment APIs (trading, intel, predictions)
 • Native Base USDC integration
 • ERC-6551 agent wallet compatible
 

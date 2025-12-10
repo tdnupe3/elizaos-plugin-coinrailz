@@ -681,7 +681,7 @@ function generate402Response(
         description: "Use prepaid credits with an API key (EASIEST - no blockchain required)",
         howToGet: "Purchase credits at https://coinrailz.com/credits with Stripe (credit card) or USDC",
         usage: "Include X-API-KEY header or Authorization: Bearer <api-key> header",
-        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 37 services", "50-70% higher conversion than manual USDC"],
+        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 38 services", "50-70% higher conversion than manual USDC"],
         getStarted: `${baseUrl}/credits`,
         example: `curl -X GET "${resource}" -H "X-API-KEY: your-api-key-here"`
       },
@@ -699,7 +699,7 @@ function generate402Response(
       { id: "agent-create-wallet", name: "Agent Wallet Provisioning", priceUSD: "$2.00", endpoint: "/x402/agent-create-wallet" },
     ],
     catalogUrl: `${baseUrl}/x402/catalog`,
-    totalServicesAvailable: 37,
+    totalServicesAvailable: 38,
     requestId: requestId,
     
     // FIRST-CALL FREE promotion

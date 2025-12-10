@@ -1725,7 +1725,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         description: "Use prepaid credits with an API key (EASIEST - no blockchain required)",
         howToGet: "Purchase credits at https://coinrailz.com/credits with Stripe (credit card) or USDC",
         usage: "Include X-API-KEY header or Authorization: Bearer <api-key> header",
-        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 37 services", "50-70% higher conversion than manual USDC"],
+        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 38 services", "50-70% higher conversion than manual USDC"],
         getStarted: `${publicBaseUrl}/credits`,
         example: `curl -X GET "${resourceUrl}" -H "X-API-KEY: your-api-key-here"`
       },
@@ -1750,7 +1750,8 @@ const serviceEndpoints = [
   "trading-signal", "portfolio-optimization", "sentiment-analysis",
   "arbitrage-scanner", "correlation-matrix", "risk-metrics",
   "polymarket-events", "polymarket-odds", "polymarket-search", "prediction-market-odds",
-  "agent-create-wallet"
+  "agent-create-wallet",
+  "stock-sentiment", "forex-sentiment"
 ];
 
 serviceEndpoints.forEach(endpoint => {

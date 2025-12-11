@@ -19,6 +19,12 @@ interface SweepResult {
   error?: string;
 }
 
+// Legacy wallets that cannot be swept (created with different CDP credentials)
+// These wallets are permanently inaccessible - payments must be marked as manually swept
+const LEGACY_UNSWEEPABLE_WALLETS = [
+  '0x2f5134f7cb98af03099fa682555ca1dd70d7d688', // Created before current CDP credentials
+];
+
 export class X402FundsSweepService {
   private platformWalletAddress: string | null = null;
   private coinbaseClient: typeof Coinbase | null = null;
@@ -168,6 +174,32 @@ export class X402FundsSweepService {
       const paymentId = payment.id;
       const amount = parseFloat(payment.amount);
       const walletAddress = payment.walletAddress;
+
+      // Check if this is a legacy wallet that cannot be swept
+      if (LEGACY_UNSWEEPABLE_WALLETS.includes(walletAddress.toLowerCase())) {
+        console.log(`⚠️ Skipping legacy wallet ${walletAddress} - marking as manually swept (funds inaccessible)`);
+        
+        // Auto-mark as swept to prevent repeated attempts
+        await db.update(x402Payments).set({
+          metadata: {
+            ...(payment.metadata || {}),
+            swept: true,
+            sweptAt: new Date().toISOString(),
+            sweptManually: true,
+            legacyWallet: true,
+            manualNote: 'Legacy wallet created with different CDP credentials - funds inaccessible',
+          },
+        }).where(eq(x402Payments.id, paymentId));
+
+        // Return success=false so it doesn't count toward swept totals
+        // But the metadata update prevents future retry attempts
+        return {
+          success: false,
+          paymentId,
+          amountSwept: '0',
+          error: 'Legacy wallet - marked as swept (funds permanently inaccessible)',
+        };
+      }
 
       // Get associated marketplace order for commission calculation
       const order = payment.orderId

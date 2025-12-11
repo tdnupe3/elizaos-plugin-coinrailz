@@ -570,15 +570,17 @@ export async function markPaymentIntentSucceeded(
     }
     
     // Record to x402_payments table for analytics
+    // FIX: walletAddress should be the RECEIVING wallet (platform), not the payer
+    const payerAddress = senderAddress || intent.payer;
     await db.insert(x402Payments).values({
       id: nanoid(),
-      agentId: senderAddress || intent.payer,
-      customerId: senderAddress || intent.payer,
+      agentId: payerAddress,
+      customerId: payerAddress,
       amount: intent.amount,
       currency: "USDC",
       status: "completed",
       x402TransactionId: txHash,
-      walletAddress: senderAddress || intent.payer,
+      walletAddress: PLATFORM_WALLET,
       network: "base",
       paymentProof: txHash,
       completedAt: now,
@@ -588,6 +590,7 @@ export async function markPaymentIntentSucceeded(
         retries: intent.retries,
         verifiedAt: now.toISOString(),
         verificationMethod: "on-chain-base-intent",
+        payer: payerAddress,
       },
     });
     

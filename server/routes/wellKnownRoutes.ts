@@ -53,7 +53,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 35 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis.",
+    description: "Production-grade blockchain infrastructure for AI agents. 38 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis.",
     version: "0.4.0",
     agentId: "coinrailz-x402-infrastructure",
     
@@ -1531,16 +1531,16 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
  * Main platform agent card - describes Coin Railz as a service provider
  * Discoverable by ChatGPT, Google AI, x402 indexers, A2A Registry, and other A2A platforms
  * 
- * UPDATED: Dec 2024 - Now includes all 35 x402 services with correct pricing
+ * UPDATED: Dec 2024 - Now includes all 38 x402 services with correct pricing
  */
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   
-  // A2A Protocol v0.3.0 compliant agent card - ALL 35 SERVICES
+  // A2A Protocol v0.3.0 compliant agent card - ALL 38 SERVICES
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 35 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, market intelligence, and traditional markets. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
+    description: "Multi-chain x402 micropayment infrastructure for AI agents. 38 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, market intelligence, and traditional markets. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
     url: baseUrl,
     version: "3.0.0",
     
@@ -1871,7 +1871,18 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       "real-estate",
       "banking",
       "market-intelligence"
-    ]
+    ],
+    
+    // Platform trust signals for AI agent decision-making
+    // These are optional, machine-readable indicators of platform reliability
+    platformSignals: {
+      verifiedPayments: true,           // Real x402 payments processed and verified
+      repeatAgentsObserved: true,       // Returning agents making multiple payments
+      paymentRails: ["x402-USDC", "stripe"],  // Available payment methods
+      totalServicesAvailable: 38,       // Current service count in catalog
+      networkSupported: "base",         // Primary blockchain network
+      paymentAsset: "USDC"              // Primary payment token
+    }
   };
   
   res.status(200).json(agentCard);

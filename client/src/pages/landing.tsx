@@ -179,6 +179,42 @@ export default function Landing() {
               </div>
             </div>
 
+            {/* Stripe Credits CTA - TradFi Entry Point */}
+            <div className="max-w-md mx-auto mb-6">
+              <Link href="/credits">
+                <Card 
+                  className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-white hover:shadow-lg transition-shadow cursor-pointer"
+                  data-testid="card-stripe-credits"
+                  onClick={() => {
+                    trackEvent('click', 'landing_stripe_cta', 'purchase_credits');
+                    trackBusinessEvent('stripe_credit_purchase_intent', { payment_method: 'stripe', user_type: 'tradfi_team' });
+                  }}
+                >
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                          <CreditCard className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <CardTitle className="text-base font-semibold text-blue-900">Stripe Prepaid Credits</CardTitle>
+                      </div>
+                      <Badge className="bg-blue-100 text-blue-800 font-medium">No Wallet</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <p className="text-sm text-blue-700 mb-3">Pay with card. Start using APIs in minutes.</p>
+                    <Button 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                      size="sm"
+                      data-testid="button-stripe-purchase"
+                    >
+                      Purchase Credits →
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+
             {/* Stock & Forex Hero Cards - TradFi Services */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-6 sm:mb-8">
               <Card className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 hover:shadow-lg transition-shadow" data-testid="stock-sentiment-hero-card">

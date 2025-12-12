@@ -106,14 +106,14 @@ export const useSEO = (config: SEOConfig) => {
 // SEO configurations for different pages
 export const seoConfigs = {
   home: {
-    title: 'Multi-Chain Payment Infrastructure | DEX Aggregator + Fiat Off-Ramps | 7 Blockchains',
-    description: 'Multi-chain payment infrastructure for crypto communities: Trade at best rates across Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain. Universal settlement to any platform. 0.75% DEX fees, 1% P2P routing. Cross-chain liquidity with instant settlement.',
-    keywords: 'multi-chain payment infrastructure, dex aggregator, crypto cash out, fiat off-ramp, swap crypto, zelle crypto, paypal crypto, venmo crypto, cash app crypto, ethereum swap, base chain, polygon swap, bsc swap, arbitrum, optimism, pulsechain, usdc payments, cross-platform payments, crypto to fiat, best crypto rates, p2p crypto, crypto trading infrastructure',
+    title: 'Coin Railz: Micropayment Rail for AI Agents & TradFi Developers | 38+ Services',
+    description: 'Dual-rail micropayment platform: x402/USDC for autonomous AI agents, Stripe prepaid credits for TradFi developers. 38+ microservices including stock sentiment, forex sentiment, crypto APIs. From $0.10/use.',
+    keywords: 'AI agent payments, x402 micropayments, TradFi AI tools, stock sentiment API, forex sentiment API, Stripe prepaid credits, autonomous agent infrastructure, multi-chain payment infrastructure, dex aggregator, crypto cash out, fiat off-ramp, swap crypto, zelle crypto, paypal crypto, venmo crypto, cash app crypto, ethereum swap, base chain, polygon swap, bsc swap, arbitrum, optimism, pulsechain, usdc payments, cross-platform payments, crypto to fiat, best crypto rates, p2p crypto, crypto trading infrastructure, AI agent marketplace, micropayment API, agent-to-agent payments, Coinbase CDP wallets',
     canonical: 'https://coinrailz.com',
-    ogTitle: 'Multi-Chain Payment Infrastructure - Trade Crypto + Cash Out Instantly',
-    ogDescription: 'Cross-chain liquidity meets universal settlement. Best rates across 7 blockchains with instant cross-platform routing. 0.75% DEX fees, 1% P2P routing.',
-    twitterTitle: 'Multi-Chain DEX + Fiat Off-Ramps - 7 Blockchains',
-    twitterDescription: 'Cross-chain liquidity meets universal settlement. Trade at best rates on Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain with instant platform routing.',
+    ogTitle: 'Coin Railz: Micropayment Rail for AI Agents & TradFi Developers',
+    ogDescription: 'Two payment rails, one platform. x402/USDC for agents, Stripe for TradFi. 38+ microservices: crypto APIs, stock sentiment, forex sentiment. From $0.10/use.',
+    twitterTitle: 'Micropayment Rail for AI Agents & TradFi Developers | Coin Railz',
+    twitterDescription: 'Dual-rail micropayments: x402/USDC for autonomous agents, Stripe for TradFi teams. 38+ services including stock & forex sentiment. Pay from $0.10.',
     structuredData: {
       "@context": "https://schema.org",
       "@type": "SoftwareApplication",
@@ -123,11 +123,11 @@ export const seoConfigs = {
       "offers": {
         "@type": "AggregateOffer",
         "priceCurrency": "USD",
-        "lowPrice": "0.75",
-        "highPrice": "1.00",
-        "description": "0.75% DEX swap fees, 1% fiat cash-out fees"
+        "lowPrice": "0.10",
+        "highPrice": "5.00",
+        "description": "Pay-per-use micropayments from $0.10. x402/USDC for AI agents, Stripe prepaid credits for TradFi developers."
       },
-      "description": "Multi-chain payment infrastructure for crypto communities. Swap at best rates across 7 blockchains, cash out via Zelle, PayPal, Venmo, Cash App. Automatic platform detection.",
+      "description": "Dual-rail micropayment platform for AI agents and TradFi developers. 38+ microservices including crypto APIs, stock sentiment, forex sentiment. Pay via x402/USDC or Stripe prepaid credits.",
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": "4.8",
@@ -138,15 +138,27 @@ export const seoConfigs = {
         "name": "Kellogg Holdings LLC",
         "url": "https://coinrailz.com"
       },
-      "potentialAction": {
-        "@type": "TradeAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://coinrailz.com/swap",
-          "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+      "potentialAction": [
+        {
+          "@type": "UseAction",
+          "name": "AI Agent Micropayments",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://coinrailz.com/ai-marketplace",
+            "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+          }
+        },
+        {
+          "@type": "TradeAction",
+          "name": "DEX Swap",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://coinrailz.com/swap",
+            "actionPlatform": ["http://schema.org/DesktopWebPlatform", "http://schema.org/MobileWebPlatform"]
+          }
         }
-      },
-      "serviceType": ["DEX Aggregator", "Multi-Chain Swap", "Fiat Off-Ramp", "P2P Payment Routing", "Cross-Platform Payments"],
+      ],
+      "serviceType": ["AI Agent Micropayments", "x402 Protocol", "Stripe Prepaid Credits", "Stock Sentiment API", "Forex Sentiment API", "DEX Aggregator", "Multi-Chain Swap"],
       "areaServed": "Worldwide"
     }
   },

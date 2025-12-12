@@ -156,39 +156,70 @@ export default function Landing() {
             
             {/* Main Value Proposition */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-gray-900 mb-4 sm:mb-6 leading-tight px-2">
-              Multi-Chain Payment<br />Infrastructure
+              Micropayment Rail for<br />AI Agents & TradFi Developers
             </h1>
             
             <p className="text-xl sm:text-2xl text-gray-600 mb-6 sm:mb-8 px-4 max-w-3xl mx-auto">
-              Cross-chain liquidity meets universal settlement. Trade at best rates across 7 blockchains, settle to any platform instantly.
+              Two payment rails, one platform. x402/USDC for autonomous agents. Stripe prepaid credits for TradFi teams. 38+ microservices from crypto to stock & forex sentiment.
             </p>
             
-            {/* Trust Badges */}
-            <div className="flex flex-wrap items-center justify-center gap-4 mb-8 text-sm text-gray-700">
+            {/* Trust Badges - Dual Rail Focus with Crypto Proof */}
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-8 text-sm text-gray-700">
               <div className="flex items-center space-x-2">
-                <Badge className="bg-blue-100 text-blue-800">✓ 7 Blockchains</Badge>
+                <Badge className="bg-blue-100 text-blue-800">✓ x402/USDC on Base</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-green-100 text-green-800">✓ 0.75% DEX Fees</Badge>
+                <Badge className="bg-green-100 text-green-800">✓ Stripe Prepaid Credits</Badge>
               </div>
               <div className="flex items-center space-x-2">
-                <Badge className="bg-purple-100 text-purple-800">✓ Instant Settlement</Badge>
+                <Badge className="bg-orange-100 text-orange-800">✓ Coinbase CDP Wallets</Badge>
               </div>
+              <div className="flex items-center space-x-2">
+                <Badge className="bg-purple-100 text-purple-800">✓ Stock & Forex APIs</Badge>
+              </div>
+            </div>
+
+            {/* Stock & Forex Hero Cards - TradFi Services */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto mb-6 sm:mb-8">
+              <Card className="border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-green-50 hover:shadow-lg transition-shadow" data-testid="stock-sentiment-hero-card">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    <Badge className="bg-emerald-100 text-emerald-800 font-bold">$0.40</Badge>
+                  </div>
+                  <CardTitle className="text-sm font-semibold text-emerald-900">Stock Sentiment Signals</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-xs text-emerald-700">Real-time equities sentiment via Yahoo Finance</p>
+                </CardContent>
+              </Card>
+              <Card className="border-2 border-indigo-300 bg-gradient-to-br from-indigo-50 to-blue-50 hover:shadow-lg transition-shadow" data-testid="forex-sentiment-hero-card">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between mb-1">
+                    <Globe className="w-5 h-5 text-indigo-600" />
+                    <Badge className="bg-indigo-100 text-indigo-800 font-bold">$0.40</Badge>
+                  </div>
+                  <CardTitle className="text-sm font-semibold text-indigo-900">Forex Sentiment Pulse</CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-xs text-indigo-700">FX insights via ECB/Frankfurter data</p>
+                </CardContent>
+              </Card>
             </div>
             
             {/* Key Stats */}
             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-6 sm:mb-8">
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">7</div>
-                <div className="text-xs sm:text-sm text-gray-600">Blockchains</div>
+                <div className="text-2xl sm:text-3xl font-bold text-blue-600">38+</div>
+                <div className="text-xs sm:text-sm text-gray-600">Microservices</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-green-600">0.75%</div>
-                <div className="text-xs sm:text-sm text-gray-600">Swap Fees</div>
+                <div className="text-2xl sm:text-3xl font-bold text-green-600">2</div>
+                <div className="text-xs sm:text-sm text-gray-600">Payment Rails</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600">Universal</div>
-                <div className="text-xs sm:text-sm text-gray-600">Settlement</div>
+                <div className="text-2xl sm:text-3xl font-bold text-purple-600">$0.10</div>
+                <div className="text-xs sm:text-sm text-gray-600">Starting Price</div>
               </div>
             </div>
 

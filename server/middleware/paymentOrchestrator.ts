@@ -17,13 +17,84 @@ import { x402Interactions } from "@shared/schema";
 import * as cbor from "cbor";
 
 // Multi-format payment payload decoder
-// Supports: JSON, CBOR, and raw binary formats for x402 protocol compatibility
+// Supports: JSON, CBOR, and raw binary EIP-3009 formats for x402 protocol compatibility
 interface DecodedPayload {
   success: boolean;
-  format: 'json' | 'cbor' | 'unknown';
+  format: 'json' | 'cbor' | 'eip3009-binary' | 'unknown';
   data: any;
   error?: string;
   fingerprint?: string;
+}
+
+// EIP-3009 raw binary structure sizes (all values in bytes)
+// Binary layout: from(20) + to(20) + value(32) + validAfter(32) + validBefore(32) + nonce(32) + signature(65) = 233 bytes
+// Some implementations may use 64-byte signature (without v) = 232 bytes
+// Or with padding = 224-256 bytes range
+const EIP3009_MIN_SIZE = 220; // Minimum expected size
+const EIP3009_MAX_SIZE = 260; // Maximum expected size with padding
+
+// Parse raw binary EIP-3009 authorization payload
+// Returns null if not a valid EIP-3009 structure
+function parseRawEIP3009Binary(buffer: Buffer): { authorization: any; signature: string } | null {
+  const len = buffer.length;
+  
+  // Check size bounds
+  if (len < EIP3009_MIN_SIZE || len > EIP3009_MAX_SIZE) {
+    return null;
+  }
+  
+  try {
+    // Binary layout (standard EIP-3009 transferWithAuthorization):
+    // Offset 0:   from address (20 bytes)
+    // Offset 20:  to address (20 bytes) 
+    // Offset 40:  value (32 bytes, uint256)
+    // Offset 72:  validAfter (32 bytes, uint256)
+    // Offset 104: validBefore (32 bytes, uint256)
+    // Offset 136: nonce (32 bytes, bytes32)
+    // Offset 168: signature (65 bytes: r=32, s=32, v=1)
+    
+    const from = '0x' + buffer.slice(0, 20).toString('hex');
+    const to = '0x' + buffer.slice(20, 40).toString('hex');
+    const value = '0x' + buffer.slice(40, 72).toString('hex');
+    const validAfter = '0x' + buffer.slice(72, 104).toString('hex');
+    const validBefore = '0x' + buffer.slice(104, 136).toString('hex');
+    const nonce = '0x' + buffer.slice(136, 168).toString('hex');
+    
+    // Signature is the remaining bytes (typically 65: r(32) + s(32) + v(1))
+    const sigBytes = buffer.slice(168);
+    const signature = '0x' + sigBytes.toString('hex');
+    
+    // Validate addresses look valid (non-zero)
+    const fromNum = BigInt(from);
+    const toNum = BigInt(to);
+    if (fromNum === 0n || toNum === 0n) {
+      console.log(`⚠️ EIP-3009 binary parse: zero address detected, rejecting`);
+      return null;
+    }
+    
+    // Validate signature length (64 or 65 bytes expected)
+    if (sigBytes.length < 64 || sigBytes.length > 66) {
+      console.log(`⚠️ EIP-3009 binary parse: unexpected signature length ${sigBytes.length}`);
+      return null;
+    }
+    
+    console.log(`🔓 EIP-3009 binary parsed: from=${from.slice(0,10)}..., to=${to.slice(0,10)}..., sigLen=${sigBytes.length}`);
+    
+    return {
+      authorization: {
+        from,
+        to,
+        value,
+        validAfter,
+        validBefore,
+        nonce
+      },
+      signature
+    };
+  } catch (parseError: any) {
+    console.log(`⚠️ EIP-3009 binary parse failed: ${parseError.message}`);
+    return null;
+  }
 }
 
 // Convert CBOR Map objects to plain JavaScript objects recursively
@@ -85,7 +156,22 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
         console.log(`🔓 Payment payload decoded as CBOR (non-standard header, ${buffer.length} bytes)`);
         return { success: true, format: 'cbor', data };
       } catch (cborFallbackError) {
-        // Neither JSON nor CBOR worked - log fingerprint for debugging
+        // Neither JSON nor CBOR worked - try raw binary EIP-3009 format
+        // This handles agents sending raw EIP-3009 transferWithAuthorization data
+        const eip3009Data = parseRawEIP3009Binary(buffer);
+        if (eip3009Data) {
+          console.log(`🔓 Payment payload decoded as raw EIP-3009 binary (${buffer.length} bytes)`);
+          // Return in the format expected by the EIP-3009 executor downstream
+          return { 
+            success: true, 
+            format: 'eip3009-binary', 
+            data: {
+              payload: eip3009Data  // { authorization, signature }
+            }
+          };
+        }
+        
+        // All formats failed - log fingerprint for debugging
         const fingerprint = `len=${buffer.length}, first4bytes=${buffer.slice(0, 4).toString('hex')}, firstChar=${String.fromCharCode(firstByte) || '?'}`;
         console.log(`❌ Unknown payment format: ${fingerprint}`);
         
@@ -93,7 +179,7 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
           success: false, 
           format: 'unknown', 
           data: null, 
-          error: `Unsupported payment format. Expected JSON or CBOR.`,
+          error: `Unsupported payment format. Expected JSON, CBOR, or EIP-3009 binary.`,
           fingerprint 
         };
       }

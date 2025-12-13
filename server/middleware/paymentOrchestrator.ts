@@ -14,6 +14,99 @@ import { nanoid } from "nanoid";
 import { db } from "../db";
 import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
 import { x402Interactions } from "@shared/schema";
+import * as cbor from "cbor";
+
+// Multi-format payment payload decoder
+// Supports: JSON, CBOR, and raw binary formats for x402 protocol compatibility
+interface DecodedPayload {
+  success: boolean;
+  format: 'json' | 'cbor' | 'unknown';
+  data: any;
+  error?: string;
+  fingerprint?: string;
+}
+
+// Convert CBOR Map objects to plain JavaScript objects recursively
+function normalizeCborData(data: any): any {
+  if (data instanceof Map) {
+    const obj: Record<string, any> = {};
+    for (const [key, value] of data.entries()) {
+      obj[String(key)] = normalizeCborData(value);
+    }
+    return obj;
+  }
+  if (Array.isArray(data)) {
+    return data.map(normalizeCborData);
+  }
+  if (data instanceof Buffer) {
+    return data.toString('hex');
+  }
+  return data;
+}
+
+function decodePaymentPayload(base64Header: string): DecodedPayload {
+  try {
+    const buffer = Buffer.from(base64Header, "base64");
+    
+    // Try JSON first (most common, backwards compatible)
+    try {
+      const jsonStr = buffer.toString("utf-8");
+      const data = JSON.parse(jsonStr);
+      console.log(`🔓 Payment payload decoded as JSON (${buffer.length} bytes)`);
+      return { success: true, format: 'json', data };
+    } catch (jsonError) {
+      // JSON failed, check for CBOR magic bytes
+      const firstByte = buffer[0];
+      
+      // CBOR magic bytes: 0xBF (indefinite map), 0xA0-0xBF (finite maps), 0xD9 (tagged item)
+      const isCborLikely = (
+        firstByte === 0xBF || 
+        (firstByte >= 0xA0 && firstByte <= 0xBF) ||
+        firstByte === 0xD9 ||
+        firstByte === 0xDA ||
+        firstByte === 0xDB
+      );
+      
+      if (isCborLikely) {
+        try {
+          const rawData = cbor.decodeFirstSync(buffer);
+          const data = normalizeCborData(rawData);
+          console.log(`🔓 Payment payload decoded as CBOR (${buffer.length} bytes, first byte: 0x${firstByte.toString(16)})`);
+          return { success: true, format: 'cbor', data };
+        } catch (cborError: any) {
+          console.log(`⚠️ CBOR decode failed despite magic bytes: ${cborError.message}`);
+        }
+      }
+      
+      // Try CBOR anyway for edge cases where first byte doesn't match common patterns
+      try {
+        const rawData = cbor.decodeFirstSync(buffer);
+        const data = normalizeCborData(rawData);
+        console.log(`🔓 Payment payload decoded as CBOR (non-standard header, ${buffer.length} bytes)`);
+        return { success: true, format: 'cbor', data };
+      } catch (cborFallbackError) {
+        // Neither JSON nor CBOR worked - log fingerprint for debugging
+        const fingerprint = `len=${buffer.length}, first4bytes=${buffer.slice(0, 4).toString('hex')}, firstChar=${String.fromCharCode(firstByte) || '?'}`;
+        console.log(`❌ Unknown payment format: ${fingerprint}`);
+        
+        return { 
+          success: false, 
+          format: 'unknown', 
+          data: null, 
+          error: `Unsupported payment format. Expected JSON or CBOR.`,
+          fingerprint 
+        };
+      }
+    }
+  } catch (base64Error: any) {
+    return { 
+      success: false, 
+      format: 'unknown', 
+      data: null, 
+      error: `Base64 decode failed: ${base64Error.message}` 
+    };
+  }
+}
 
 // Known agent user-agents that are probing our endpoints
 const KNOWN_AGENT_PATTERNS = [
@@ -295,11 +388,44 @@ export function createPaymentOrchestrator(
       txHash = xPayment;
       console.log(`🔐 Orchestrator: Raw 0x hash payment detected for ${serviceName}: ${xPayment.substring(0, 10)}...`);
     } 
-    // Case 2: Base64-encoded JSON with txHash (various formats from x402-fetch)
+    // Case 2: Base64-encoded payload (JSON or CBOR) with txHash
     else {
-      try {
-        const decoded = JSON.parse(Buffer.from(xPayment, "base64").toString("utf-8"));
-        console.log(`🔐 Orchestrator: Decoded payment payload for ${serviceName}:`, JSON.stringify(decoded, null, 2).substring(0, 500));
+      const decodeResult = decodePaymentPayload(xPayment);
+      
+      if (!decodeResult.success) {
+        console.log(`🔐 Orchestrator: Failed to decode payment header for ${serviceName}: ${decodeResult.error}`);
+        
+        // FUNNEL TRACKING: Payment header decode failure with format info
+        await x402InteractionTracker.trackInteraction({
+          serviceId: serviceName,
+          ipAddress,
+          userAgent,
+          requestPath: req.originalUrl,
+          requestMethod: req.method,
+          responseStatus: 402,
+          paid: false,
+          interactionType: 'error',
+          requestId,
+          eventType: 'payment-decode-failed',
+          serviceName,
+          latencyMs: Date.now() - startTime,
+          paymentReceived: false,
+          errorMessage: decodeResult.error,
+          offerTrackingId,
+          metadata: { 
+            reason: 'multi-format-decode-failed',
+            detectedFormat: decodeResult.format,
+            fingerprint: decodeResult.fingerprint,
+            knownAgent: knownAgent.name,
+            headerLength: xPayment.length
+          }
+        });
+        
+        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+      }
+      
+      const decoded = decodeResult.data;
+      console.log(`🔐 Orchestrator: Decoded ${decodeResult.format.toUpperCase()} payment payload for ${serviceName}:`, JSON.stringify(decoded, null, 2).substring(0, 500));
         
         // x402-fetch sends: { x402Version, scheme, network, payload: { signature, ... } }
         // The actual txHash may be in nested structures
@@ -433,35 +559,6 @@ export function createPaymentOrchestrator(
           
           return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
         }
-      } catch (e) {
-        console.log(`🔐 Orchestrator: Failed to decode payment header for ${serviceName}: ${(e as Error).message}`);
-        
-        // FUNNEL TRACKING: Payment header decode failure
-        await x402InteractionTracker.trackInteraction({
-          serviceId: serviceName,
-          ipAddress,
-          userAgent,
-          requestPath: req.originalUrl,
-          requestMethod: req.method,
-          responseStatus: 402,
-          paid: false,
-          interactionType: 'error',
-          requestId,
-          eventType: 'payment-decode-failed',
-          serviceName,
-          latencyMs: Date.now() - startTime,
-          paymentReceived: false,
-          errorMessage: (e as Error).message,
-          offerTrackingId,
-          metadata: { 
-            reason: 'base64-decode-failed',
-            knownAgent: knownAgent.name,
-            headerLength: xPayment.length
-          }
-        });
-        
-        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
-      }
     }
 
     // If we have a transaction hash, verify it on-chain

@@ -29,6 +29,22 @@ interface DecodedPayload {
   fingerprint?: string;
 }
 
+// OBSERVABILITY: Decode-path metrics counter (ChatGPT recommendation)
+// Tracks which payment formats are being used for monitoring and analysis
+const DECODE_PATH_METRICS = {
+  json: 0,
+  cbor: 0,
+  'eip3009-binary': 0,
+  unknown: 0,
+  total: 0,
+  lastReset: new Date().toISOString()
+};
+
+// Get current decode metrics (can be exposed via /api/metrics if needed)
+export function getDecodePathMetrics() {
+  return { ...DECODE_PATH_METRICS };
+}
+
 // EIP-3009 raw binary structure sizes (all values in bytes)
 // Binary layout: from(20) + to(20) + value(32) + validAfter(32) + validBefore(32) + nonce(32) + signature(65) = 233 bytes
 // Some implementations may use 64-byte signature (without v) = 232 bytes
@@ -81,6 +97,16 @@ function parseRawEIP3009Binary(buffer: Buffer): { authorization: any; signature:
       return null;
     }
     
+    // OBSERVABILITY: Log signature-length anomalies for monitoring (ChatGPT recommendation)
+    if (sigBytes.length === 64) {
+      console.warn(`⚠️ EIP-3009 signature missing recovery byte (v)`, {
+        sigLength: sigBytes.length,
+        from: from.slice(0, 12),
+        to: to.slice(0, 12),
+        note: 'Agent may need v-recovery logic in Phase 2'
+      });
+    }
+    
     console.log(`🔓 EIP-3009 binary parsed: from=${from.slice(0,10)}..., to=${to.slice(0,10)}..., sigLen=${sigBytes.length}`);
     
     return {
@@ -119,6 +145,8 @@ function normalizeCborData(data: any): any {
 }
 
 function decodePaymentPayload(base64Header: string): DecodedPayload {
+  DECODE_PATH_METRICS.total++;
+  
   try {
     const buffer = Buffer.from(base64Header, "base64");
     
@@ -126,7 +154,8 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
     try {
       const jsonStr = buffer.toString("utf-8");
       const data = JSON.parse(jsonStr);
-      console.log(`🔓 Payment payload decoded as JSON (${buffer.length} bytes)`);
+      DECODE_PATH_METRICS.json++;
+      console.log(`🔓 Payment payload decoded as JSON (${buffer.length} bytes) [metrics: json=${DECODE_PATH_METRICS.json}/${DECODE_PATH_METRICS.total}]`);
       return { success: true, format: 'json', data };
     } catch (jsonError) {
       // JSON failed, check for CBOR magic bytes
@@ -145,7 +174,8 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
         try {
           const rawData = cbor.decodeFirstSync(buffer);
           const data = normalizeCborData(rawData);
-          console.log(`🔓 Payment payload decoded as CBOR (${buffer.length} bytes, first byte: 0x${firstByte.toString(16)})`);
+          DECODE_PATH_METRICS.cbor++;
+          console.log(`🔓 Payment payload decoded as CBOR (${buffer.length} bytes) [metrics: cbor=${DECODE_PATH_METRICS.cbor}/${DECODE_PATH_METRICS.total}]`);
           return { success: true, format: 'cbor', data };
         } catch (cborError: any) {
           console.log(`⚠️ CBOR decode failed despite magic bytes: ${cborError.message}`);
@@ -156,14 +186,16 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
       try {
         const rawData = cbor.decodeFirstSync(buffer);
         const data = normalizeCborData(rawData);
-        console.log(`🔓 Payment payload decoded as CBOR (non-standard header, ${buffer.length} bytes)`);
+        DECODE_PATH_METRICS.cbor++;
+        console.log(`🔓 Payment payload decoded as CBOR (non-standard, ${buffer.length} bytes) [metrics: cbor=${DECODE_PATH_METRICS.cbor}/${DECODE_PATH_METRICS.total}]`);
         return { success: true, format: 'cbor', data };
       } catch (cborFallbackError) {
         // Neither JSON nor CBOR worked - try raw binary EIP-3009 format
         // This handles agents sending raw EIP-3009 transferWithAuthorization data
         const eip3009Data = parseRawEIP3009Binary(buffer);
         if (eip3009Data) {
-          console.log(`🔓 Payment payload decoded as raw EIP-3009 binary (${buffer.length} bytes)`);
+          DECODE_PATH_METRICS['eip3009-binary']++;
+          console.log(`🔓 Payment payload decoded as raw EIP-3009 binary (${buffer.length} bytes) [metrics: eip3009=${DECODE_PATH_METRICS['eip3009-binary']}/${DECODE_PATH_METRICS.total}]`);
           // Return in the format expected by the EIP-3009 executor downstream
           return { 
             success: true, 
@@ -175,8 +207,9 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
         }
         
         // All formats failed - log fingerprint for debugging
+        DECODE_PATH_METRICS.unknown++;
         const fingerprint = `len=${buffer.length}, first4bytes=${buffer.slice(0, 4).toString('hex')}, firstChar=${String.fromCharCode(firstByte) || '?'}`;
-        console.log(`❌ Unknown payment format: ${fingerprint}`);
+        console.log(`❌ Unknown payment format: ${fingerprint} [metrics: unknown=${DECODE_PATH_METRICS.unknown}/${DECODE_PATH_METRICS.total}]`);
         
         return { 
           success: false, 

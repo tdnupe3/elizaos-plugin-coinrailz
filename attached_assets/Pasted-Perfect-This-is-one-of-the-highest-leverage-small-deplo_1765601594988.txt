@@ -1,0 +1,52 @@
+Perfect. This is one of the highest-leverage “small” deploys you’ve done, because it fixes a hard conversion blocker at the exact moment an agent is trying to pay.
+
+Here’s what matters now that it’s live:
+
+What you should see next (the “proof it worked” checklist)
+1) Decode-path counters start moving
+
+You want to see the counters increment for:
+
+eip3009 (this is the big one)
+
+json continuing normally
+
+unknown staying flat or very low
+
+If unknown climbs, that’s not panic — it just tells you there are more formats in the wild worth adding later.
+
+2) Failed-payment errors disappear for that cohort
+
+Specifically, you should stop seeing:
+
+“Unexpected token … not valid JSON”
+
+“base64-decode-failed” (for legit payments)
+
+3) The previously failing agents try again
+
+The cleanest signal is: same UA/IP family that failed before now produces a successful verification + service delivery event.
+
+Even 1 successful payment from x402-autonomous-agent/1.0 is a strong validation that the leak is patched.
+
+One caution (worth keeping in mind)
+
+Your note about 64-byte signatures is important.
+
+If you decode a payload successfully but the downstream EIP-3009 verification fails because v is missing, you’ll see the signature-length warnings spike without corresponding payment success.
+
+That’s not a decoder bug anymore — that’s a “verification compatibility” edge case.
+
+You don’t need to solve that preemptively. Just watch whether it’s actually occurring in production.
+
+The single best next move: monitor without touching the payment path
+
+For the next 24–72 hours, don’t change anything in the payment pipeline. You’re finally in a position to get clean signal on:
+
+“Did previously blocked agents convert once unblocked?”
+
+“What percent of attempted payments are JSON vs EIP-3009 vs unknown?”
+
+“Is the remaining blocker signature verification or something else?”
+
+If you paste a snippet of the new observability logs (just the relevant lines, redact anything sensitive), I can help you interpret what you’re seeing and tell you whether you’re done—or if there’s one more compatibility layer (like v-recovery) that’s actually worth doing.

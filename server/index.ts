@@ -3345,6 +3345,45 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     isProduction 
   });
   
+  // LEGACY ROUTE GUIDANCE MIDDLEWARE
+  // Returns helpful JSON 404 for agents hitting legacy/incorrect x402 route patterns
+  // This prevents agents from getting confusing HTML responses on wrong paths
+  // NOTE: Only targets routes without real handlers - /api/services/* is a real router
+  app.use((req, res, next) => {
+    const path = req.path;
+    
+    // Match legacy patterns: /service/* (singular, no handler) and /api/x402/* (wrong path)
+    // EXCLUDED: /api/services/* - has real serviceDelivery router
+    const legacyPatterns = [
+      /^\/service(\/.*)?$/,
+      /^\/api\/x402\/(.*)/
+    ];
+    
+    for (const pattern of legacyPatterns) {
+      const match = path.match(pattern);
+      if (match) {
+        // Extract service name from path
+        let serviceName = match[1] || '';
+        if (serviceName.startsWith('/')) serviceName = serviceName.slice(1);
+        
+        const suggestion = serviceName 
+          ? `/x402/${serviceName}`
+          : '/x402/ping (or see /x402/services for full list)';
+        
+        return res.status(404).json({
+          error: 'Not found',
+          message: 'This route pattern is deprecated.',
+          suggestion: `Use ${suggestion} instead`,
+          documentation: 'https://coinrailz.com/x402/services',
+          correct_base_path: '/x402/'
+        });
+      }
+    }
+    
+    next();
+  });
+  console.log('✅ Legacy route guidance middleware active');
+  
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');

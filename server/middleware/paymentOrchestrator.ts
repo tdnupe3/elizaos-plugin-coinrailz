@@ -14,7 +14,10 @@ import { nanoid } from "nanoid";
 import { db } from "../db";
 import { sql, and, eq, gt, or, isNull } from "drizzle-orm";
 import { x402Interactions } from "@shared/schema";
-import * as cbor from "cbor";
+// CBOR library - use createRequire for ESM compatibility
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
+const cbor = require("cbor");
 
 // Multi-format payment payload decoder
 // Supports: JSON, CBOR, and raw binary EIP-3009 formats for x402 protocol compatibility

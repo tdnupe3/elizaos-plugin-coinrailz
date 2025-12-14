@@ -2,7 +2,8 @@ import { Router, Request, Response } from "express";
 import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
-import { sql } from "drizzle-orm";
+import { sql, and, eq, gt } from "drizzle-orm";
+import { x402Interactions } from "@shared/schema";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
 import {
   multiChainBalanceService,
@@ -1841,8 +1842,110 @@ const serviceEndpoints = [
   "stock-sentiment", "forex-sentiment"
 ];
 
+// First-call-free services - these get free first call on GET requests too
+const FIRST_CALL_FREE_SERVICES_GET = ["gas-price-oracle", "token-metadata"];
+
+// First-call-free cache for GET requests (same as POST)
+const firstCallFreeCacheGet = new Map<string, { granted: boolean; timestamp: number }>();
+
+// Check if eligible for first-call-free on GET
+async function isEligibleForFirstCallFreeGet(ipAddress: string, userAgent: string | undefined): Promise<boolean> {
+  const cacheKey = `${ipAddress}:${userAgent?.substring(0, 50) || 'none'}`;
+  
+  // Check in-memory cache first
+  const cached = firstCallFreeCacheGet.get(cacheKey);
+  if (cached && Date.now() - cached.timestamp < 3600000) { // 1 hour cache
+    return !cached.granted;
+  }
+  
+  try {
+    // Check database for previous free calls from this IP/UA combo
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    
+    const result = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(x402Interactions)
+      .where(
+        and(
+          eq(x402Interactions.ipAddress, ipAddress),
+          eq(sql`metadata->>'first_call_free'`, 'granted'),
+          gt(x402Interactions.createdAt, thirtyDaysAgo)
+        )
+      );
+    
+    const count = Number(result[0]?.count || 0);
+    const eligible = count === 0;
+    
+    firstCallFreeCacheGet.set(cacheKey, { granted: !eligible, timestamp: Date.now() });
+    
+    if (eligible) {
+      console.log(`🎁 First-call-free GET eligibility CHECK: IP=${ipAddress.substring(0, 15)}... UA=${(userAgent || '(none)').substring(0, 30)}... → ELIGIBLE`);
+    }
+    
+    return eligible;
+  } catch (error: any) {
+    console.error(`❌ First-call-free GET eligibility check FAILED: ${error.message}`);
+    return false; // Fail closed
+  }
+}
+
 serviceEndpoints.forEach(endpoint => {
-  router.get(`/${endpoint}`, (req: Request, res: Response) => {
+  router.get(`/${endpoint}`, async (req: Request, res: Response) => {
+    const ipAddress = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+    const userAgent = req.headers['user-agent'] as string | undefined;
+    
+    // Check first-call-free eligibility for free services
+    if (FIRST_CALL_FREE_SERVICES_GET.includes(endpoint)) {
+      try {
+        const eligible = await isEligibleForFirstCallFreeGet(ipAddress, userAgent);
+        
+        if (eligible) {
+          console.log(`🎁 First-call FREE granted (GET) for ${endpoint} to ${userAgent?.substring(0, 30) || 'unknown'} (${ipAddress})`);
+          
+          // Execute the service and return data
+          let result: any;
+          if (endpoint === 'gas-price-oracle') {
+            result = await gasPriceOracleService(['ethereum', 'base', 'polygon']);
+          } else if (endpoint === 'token-metadata') {
+            // For token-metadata, we need parameters - return helpful error if missing
+            const tokenAddress = req.query.tokenAddress as string;
+            const chain = req.query.chain as string;
+            if (!tokenAddress || !chain) {
+              return res.status(400).json({
+                success: false,
+                error: "tokenAddress and chain query parameters required",
+                example: "/x402/token-metadata?tokenAddress=0x...&chain=ethereum",
+                note: "First call is FREE - just provide the required parameters!"
+              });
+            }
+            result = await tokenMetadataService(tokenAddress, chain);
+          }
+          
+          // Track the free call
+          await db.insert(x402Interactions).values({
+            serviceName: endpoint,
+            ipAddress,
+            userAgent: userAgent || '',
+            requestPath: req.originalUrl,
+            requestMethod: 'GET',
+            interactionType: 'attempt',
+            responseStatus: 200,
+            paymentReceived: false,
+            metadata: {
+              first_call_free: 'granted',
+              knownAgent: userAgent?.substring(0, 50) || 'unknown',
+              originalPrice: 0.10
+            }
+          });
+          
+          return res.json(result);
+        }
+      } catch (error: any) {
+        console.error(`❌ First-call-free GET execution failed for ${endpoint}: ${error.message}`);
+        // Fall through to 402 response
+      }
+    }
+    
     console.log(`📡 GET request for /${endpoint} - returning 402 for Bazaar discovery`);
     generate402ResponseForGet(`POST /${endpoint}`, req, res);
   });

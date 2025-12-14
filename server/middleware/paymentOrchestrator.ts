@@ -934,6 +934,27 @@ function generate402Response(
       curlExample: `curl -X GET "${baseUrl}/x402/gas-price-oracle" -H "Content-Type: application/json"`,
       note: "First call is FREE - try it now! After that, include X-PAYMENT header with your transaction hash.",
       docsUrl: `${baseUrl}/docs/x402-quick-start`
+    },
+    
+    // SDK integration options
+    sdkOptions: {
+      pythonMCP: {
+        install: "pip install coinrailz-mcp",
+        pypi: "https://pypi.org/project/coinrailz-mcp/",
+        note: "MCP server for Claude Desktop - access all 38 services via tools"
+      },
+      typescript: {
+        install: "npm install coinrailz",
+        npm: "https://www.npmjs.com/package/coinrailz",
+        note: "TypeScript/JavaScript SDK for Node.js and browser"
+      },
+      getDemoKey: {
+        endpoint: `${baseUrl}/api/sdk/demo-key`,
+        method: "POST",
+        body: '{"installId": "your-unique-id", "sdkType": "python-mcp"}',
+        credits: "$5 trial credits (72-hour expiry)",
+        note: "Get a free trial API key to test all services"
+      }
     }
   };
 

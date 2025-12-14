@@ -4877,3 +4877,79 @@ export type ArbitrageScannerInput = z.infer<typeof arbitrageScannerInputSchema>;
 export type CorrelationMatrixInput = z.infer<typeof correlationMatrixInputSchema>;
 export type RiskMetricsInput = z.infer<typeof riskMetricsInputSchema>;
 
+// =============================================================================
+// SDK TELEMETRY & DEMO KEY SYSTEM
+// Track SDK installations and provide trial access to increase conversion
+// =============================================================================
+
+export const sdkInstalls = pgTable("sdk_installs", {
+  id: serial("id").primaryKey(),
+  installId: varchar("install_id").notNull().unique(),
+  sdkType: varchar("sdk_type").notNull(),
+  sdkVersion: varchar("sdk_version").notNull(),
+  environment: jsonb("environment"),
+  ipAddress: varchar("ip_address"),
+  userAgent: varchar("user_agent"),
+  firstSeenAt: timestamp("first_seen_at").defaultNow(),
+  lastSeenAt: timestamp("last_seen_at").defaultNow(),
+  totalRequests: integer("total_requests").default(0),
+  freeCallsUsed: integer("free_calls_used").default(0),
+  demoKeyIssued: boolean("demo_key_issued").default(false),
+  convertedToPaid: boolean("converted_to_paid").default(false),
+}, (table) => [
+  index("IDX_sdk_installs_sdk_type").on(table.sdkType),
+  index("IDX_sdk_installs_first_seen").on(table.firstSeenAt),
+  index("IDX_sdk_installs_converted").on(table.convertedToPaid),
+]);
+
+export const sdkDemoKeys = pgTable("sdk_demo_keys", {
+  id: serial("id").primaryKey(),
+  installId: varchar("install_id").notNull(),
+  apiKey: varchar("api_key").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  creditsRemaining: integer("credits_remaining").default(500),
+  status: varchar("status").default("active"),
+  usageCount: integer("usage_count").default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  ipAddress: varchar("ip_address"),
+}, (table) => [
+  index("IDX_sdk_demo_keys_install_id").on(table.installId),
+  index("IDX_sdk_demo_keys_status").on(table.status),
+  index("IDX_sdk_demo_keys_expires").on(table.expiresAt),
+]);
+
+export const insertSdkInstallSchema = createInsertSchema(sdkInstalls).omit({
+  id: true,
+  firstSeenAt: true,
+  lastSeenAt: true,
+});
+export const insertSdkDemoKeySchema = createInsertSchema(sdkDemoKeys).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertSdkInstall = z.infer<typeof insertSdkInstallSchema>;
+export type SdkInstall = typeof sdkInstalls.$inferSelect;
+export type InsertSdkDemoKey = z.infer<typeof insertSdkDemoKeySchema>;
+export type SdkDemoKey = typeof sdkDemoKeys.$inferSelect;
+
+export const sdkTelemetryInputSchema = z.object({
+  installId: z.string().min(8).max(64),
+  sdkType: z.enum(["python-mcp", "typescript", "a2a-js"]),
+  sdkVersion: z.string().min(1).max(20),
+  event: z.enum(["install", "request", "error", "upgrade"]).default("request"),
+  environment: z.object({
+    os: z.string().optional(),
+    runtime: z.string().optional(),
+    runtimeVersion: z.string().optional(),
+  }).optional(),
+});
+
+export const sdkDemoKeyRequestSchema = z.object({
+  installId: z.string().min(8).max(64),
+  sdkType: z.enum(["python-mcp", "typescript", "a2a-js"]),
+});
+
+export type SdkTelemetryInput = z.infer<typeof sdkTelemetryInputSchema>;
+export type SdkDemoKeyRequest = z.infer<typeof sdkDemoKeyRequestSchema>;
+

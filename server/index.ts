@@ -3401,6 +3401,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.log('✅ Static file serving configured');
   }
   
+  // CRITICAL: Register SDK telemetry routes BEFORE Vite (which catches all unhandled requests)
+  try {
+    const sdkTelemetryRoutes = (await import('./routes/sdkTelemetryRoutes')).default;
+    app.use('/api/sdk', sdkTelemetryRoutes);
+    console.log('✅ SDK telemetry routes registered (pre-Vite)');
+  } catch (error) {
+    console.error('❌ SDK telemetry routes failed:', error);
+  }
+  
   // Start listening FIRST - before any route registration or heavy initialization
   await new Promise<void>((resolve) => {
     httpServer.listen(port, '0.0.0.0', () => {

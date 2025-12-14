@@ -394,6 +394,10 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 📦 Service Bundle Marketplace - Packaged microservice offerings
   app.use('/api/bundles', bundleRoutes);
 
+  // 📊 SDK Telemetry & Demo Keys - Track SDK installations and provide trial access
+  const sdkTelemetryRoutes = await import('./routes/sdkTelemetryRoutes').then(m => m.default);
+  app.use('/api/sdk', sdkTelemetryRoutes);
+
   // 🔐 x402 Protocol Micropayment Gateway - Payment-gated microservices (Official x402-express middleware)
   const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutesV2').then(m => m.default);
   app.use('/x402', x402MicroserviceRoutes);

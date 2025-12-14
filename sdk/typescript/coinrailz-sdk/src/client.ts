@@ -1,6 +1,12 @@
 /**
- * Coin Railz Client
+ * Coin Railz Client v1.0.3
  * Lightweight x402 micropayment SDK for AI agents and bots
+ * 
+ * Features:
+ * - Zero-config start: Works without API key for free-tier services
+ * - Auto demo key: Fetches trial credits on first 402 response
+ * - Telemetry: Anonymous usage tracking to improve SDK experience
+ * - Smart retries: Auto-retries with demo key on payment required
  */
 
 import type {
@@ -21,18 +27,110 @@ import type {
   ServiceCatalog,
 } from './types.js';
 
+export const SDK_VERSION = '1.0.3';
+
+const FREE_TIER_SERVICES = new Set(['gas-price-oracle', 'token-metadata']);
+
+let globalInstallId: string | null = null;
+let telemetrySent = false;
+let cachedDemoKey: string | null = null;
+
+function getInstallId(): string {
+  if (globalInstallId) return globalInstallId;
+  
+  if (typeof globalThis !== 'undefined' && (globalThis as Record<string, unknown>).__coinrailz_install_id) {
+    globalInstallId = (globalThis as Record<string, unknown>).__coinrailz_install_id as string;
+    return globalInstallId;
+  }
+  
+  globalInstallId = `ts-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  
+  if (typeof globalThis !== 'undefined') {
+    (globalThis as Record<string, unknown>).__coinrailz_install_id = globalInstallId;
+  }
+  
+  return globalInstallId;
+}
+
 export class CoinRailzClient {
-  private readonly apiKey: string;
+  private apiKey: string | null;
   private readonly baseUrl: string;
   private readonly timeoutMs: number;
+  private readonly disableTelemetry: boolean;
 
-  constructor(config: CoinRailzConfig) {
-    if (!config.apiKey) {
-      throw new Error('CoinRailzClient: apiKey is required');
+  constructor(config: CoinRailzConfig = {}) {
+    if (typeof fetch === 'undefined') {
+      throw new Error(
+        'CoinRailzClient requires global fetch. Node.js 18+ has built-in fetch. ' +
+        'For older Node versions, use node-fetch or upgrade to Node 18+.'
+      );
     }
-    this.apiKey = config.apiKey;
+    
+    this.apiKey = config.apiKey ?? null;
     this.baseUrl = config.baseUrl ?? 'https://coinrailz.com';
     this.timeoutMs = config.timeoutMs ?? 30000;
+    this.disableTelemetry = config.disableTelemetry ?? false;
+    
+    if (!this.disableTelemetry) {
+      this.sendTelemetry('install').catch(() => {});
+    }
+  }
+
+  private async sendTelemetry(event: string = 'usage'): Promise<void> {
+    if (this.disableTelemetry) return;
+    if (telemetrySent && event === 'install') return;
+    
+    try {
+      const installId = getInstallId();
+      await fetch(`${this.baseUrl}/api/sdk/telemetry`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': `CoinRailz-SDK/${SDK_VERSION}`,
+        },
+        body: JSON.stringify({
+          installId,
+          sdkType: 'typescript',
+          sdkVersion: SDK_VERSION,
+          event,
+          environment: {
+            hasApiKey: !!this.apiKey,
+            runtime: typeof process !== 'undefined' ? 'node' : 'browser',
+          },
+        }),
+      });
+      telemetrySent = true;
+    } catch {
+    }
+  }
+
+  private async fetchDemoKey(): Promise<string | null> {
+    if (cachedDemoKey) return cachedDemoKey;
+    
+    try {
+      const installId = getInstallId();
+      const res = await fetch(`${this.baseUrl}/api/sdk/demo-key`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'User-Agent': `CoinRailz-SDK/${SDK_VERSION}`,
+        },
+        body: JSON.stringify({
+          installId,
+          sdkType: 'typescript',
+        }),
+      });
+      
+      if (res.ok) {
+        const data = await res.json() as { api_key?: string };
+        if (data.api_key) {
+          cachedDemoKey = data.api_key;
+          return data.api_key;
+        }
+      }
+    } catch {
+    }
+    return null;
   }
 
   private async request<T = unknown>(
@@ -43,12 +141,18 @@ export class CoinRailzClient {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
+    this.sendTelemetry('usage').catch(() => {});
+
     try {
       const url = `${this.baseUrl}/x402/${service}`;
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'X-API-KEY': this.apiKey,
+        'User-Agent': `CoinRailz-SDK/${SDK_VERSION}`,
       };
+
+      if (this.apiKey) {
+        headers['X-API-KEY'] = this.apiKey;
+      }
 
       const options: RequestInit = {
         method,
@@ -67,7 +171,56 @@ export class CoinRailzClient {
       try {
         json = await res.json();
       } catch {
-        // Ignore JSON parse errors
+      }
+
+      if (status === 402) {
+        const parsedJson = json as { accepts?: Array<{ maxAmountRequiredUSD?: string }> } | null;
+        const price = parsedJson?.accepts?.[0]?.maxAmountRequiredUSD ?? 'Unknown';
+        
+        if (!this.apiKey) {
+          const demoKey = await this.fetchDemoKey();
+          if (demoKey) {
+            headers['X-API-KEY'] = demoKey;
+            const retryOptions: RequestInit = {
+              method,
+              headers,
+              signal: controller.signal,
+            };
+            if (method === 'POST') {
+              retryOptions.body = payload ? JSON.stringify(payload) : '{}';
+            }
+            
+            const retryRes = await fetch(url, retryOptions);
+            if (retryRes.ok) {
+              const retryJson = await retryRes.json() as T;
+              return {
+                success: true,
+                status: retryRes.status,
+                data: retryJson,
+                raw: retryJson,
+              };
+            }
+          }
+        }
+        
+        return {
+          success: false,
+          status: 402,
+          error: `Payment required: $${price}`,
+          raw: json,
+          data: {
+            error: 'Payment required',
+            service,
+            price_usd: price,
+            message: `This service costs $${price}. You need an API key with credits.`,
+            quick_fix: {
+              step_1: 'Try free services first: gas-price-oracle, token-metadata',
+              step_2: 'Get demo key: POST /api/sdk/demo-key',
+              step_3: 'Or buy credits: https://coinrailz.com/credits',
+            },
+            free_services: Array.from(FREE_TIER_SERVICES),
+          } as unknown as T,
+        };
       }
 
       if (!res.ok) {
@@ -106,6 +259,27 @@ export class CoinRailzClient {
   }
 
   /**
+   * Set or update the API key
+   */
+  setApiKey(apiKey: string): void {
+    this.apiKey = apiKey;
+  }
+
+  /**
+   * Check if client has an API key configured
+   */
+  hasApiKey(): boolean {
+    return !!this.apiKey;
+  }
+
+  /**
+   * Get the current install ID (for debugging)
+   */
+  getInstallId(): string {
+    return getInstallId();
+  }
+
+  /**
    * Call any x402 service by name
    */
   async call<T = unknown>(service: string, payload?: unknown): Promise<ServiceResponse<T>> {
@@ -131,14 +305,14 @@ export class CoinRailzClient {
   // ==================== Trading Intelligence ====================
 
   /**
-   * Get real-time gas prices across chains
+   * Get real-time gas prices across chains (FREE)
    */
   async gasPriceOracle(params?: { chain?: string }): Promise<ServiceResponse<GasPriceResponse>> {
     return this.request<GasPriceResponse>('gas-price-oracle', params);
   }
 
   /**
-   * Get token metadata (symbol, name, decimals, etc.)
+   * Get token metadata (FREE)
    */
   async tokenMetadata(params: { chain: string; address: string }): Promise<ServiceResponse<TokenMetadataResponse>> {
     return this.request<TokenMetadataResponse>('token-metadata', params);

@@ -16,29 +16,41 @@ Official JavaScript/TypeScript SDK for [Coin Railz](https://coinrailz.com) - x40
 npm install coinrailz
 ```
 
-## Quick Start
+## Quick Start (No API Key Required!)
 
 ```typescript
 import { CoinRailzClient } from 'coinrailz';
 
-const client = new CoinRailzClient({
-  apiKey: process.env.COINRAILZ_API_KEY!,
-});
+// Zero-config start - works without API key for free services!
+const client = new CoinRailzClient();
 
-// Get gas prices across chains
+// FREE: Get gas prices across chains
 const gas = await client.gasPriceOracle({ chain: 'base' });
 console.log('Gas prices:', gas.data);
 
-// Get token metadata
+// FREE: Get token metadata
 const token = await client.tokenMetadata({
   chain: 'base',
   address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // USDC on Base
 });
 console.log('Token:', token.data);
 
-// Get AI trade signals
+// Paid services auto-fetch a demo key with $5 trial credits!
 const signals = await client.tradeSignals({ token: 'ETH' });
 console.log('Signal:', signals.data?.signal, 'Confidence:', signals.data?.confidence);
+```
+
+### With API Key (Production)
+
+```typescript
+import { CoinRailzClient } from 'coinrailz';
+
+const client = new CoinRailzClient({
+  apiKey: process.env.COINRAILZ_API_KEY,
+});
+
+// All 38 services available with full credits
+const signals = await client.tradeSignals({ token: 'ETH' });
 ```
 
 ## Create an Agent Wallet (Most Valuable Service)

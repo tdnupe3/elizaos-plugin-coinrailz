@@ -4,9 +4,10 @@
  */
 
 export interface CoinRailzConfig {
-  apiKey: string;
+  apiKey?: string;
   baseUrl?: string;
   timeoutMs?: number;
+  disableTelemetry?: boolean;
 }
 
 export interface ServiceResponse<T = unknown> {

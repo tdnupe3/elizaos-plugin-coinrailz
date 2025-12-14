@@ -6,7 +6,7 @@
  * @packageDocumentation
  */
 
-export { CoinRailzClient } from './client.js';
+export { CoinRailzClient, SDK_VERSION } from './client.js';
 export { CoinRailzClient as default } from './client.js';
 
 export type {

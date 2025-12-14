@@ -78,7 +78,7 @@ router.post('/telemetry', telemetryLimiter, async (req: Request, res: Response) 
       free_services: FREE_TIER_SERVICES,
       quick_start: {
         free_tier: 'These services are free: gas-price-oracle, token-metadata',
-        get_demo_key: 'POST /api/sdk/demo-key to get a trial API key with $5 credits',
+        get_demo_key: 'POST /api/sdk/demo-key to get a trial API key with $1 credits',
         buy_credits: 'https://coinrailz.com/credits'
       }
     });
@@ -149,12 +149,13 @@ router.post('/demo-key', demoKeyLimiter, async (req: Request, res: Response) => 
 
     const apiKey = 'demo_' + crypto.randomBytes(24).toString('hex');
     const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
+    const DEMO_CREDITS = 100; // $1 worth of credits
 
     await db.insert(sdkDemoKeys).values({
       installId,
       apiKey,
       expiresAt,
-      creditsRemaining: 500,
+      creditsRemaining: DEMO_CREDITS,
       status: 'active',
       ipAddress,
     });
@@ -166,7 +167,7 @@ router.post('/demo-key', demoKeyLimiter, async (req: Request, res: Response) => 
     res.json({
       success: true,
       api_key: apiKey,
-      credits_remaining: 500,
+      credits_remaining: DEMO_CREDITS,
       expires_at: expiresAt.toISOString(),
       status: 'new',
       usage: {
@@ -197,7 +198,7 @@ router.get('/free-services', async (_req: Request, res: Response) => {
         : 'Token metadata (name, symbol, decimals, supply)'
     })),
     trial_offer: {
-      demo_key: 'POST /api/sdk/demo-key for $5 trial credits (72 hour expiry)',
+      demo_key: 'POST /api/sdk/demo-key for $1 trial credits (72 hour expiry)',
       full_access: 'https://coinrailz.com/credits'
     }
   });

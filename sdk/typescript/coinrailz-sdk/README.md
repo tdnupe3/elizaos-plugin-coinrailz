@@ -35,7 +35,7 @@ const token = await client.tokenMetadata({
 });
 console.log('Token:', token.data);
 
-// Paid services auto-fetch a demo key with $5 trial credits!
+// Paid services auto-fetch a demo key with $1 trial credits!
 const signals = await client.tradeSignals({ token: 'ETH' });
 console.log('Signal:', signals.data?.signal, 'Confidence:', signals.data?.confidence);
 ```

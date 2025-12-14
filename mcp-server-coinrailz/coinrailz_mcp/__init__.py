@@ -17,7 +17,7 @@ Usage:
 
 QUICK START (No API key needed!):
 - gas-price-oracle and token-metadata are FREE
-- Run once to auto-get a demo key with $5 trial credits
+- Run once to auto-get a demo key with $1 trial credits
 """
 
 __version__ = "1.0.4"
@@ -91,7 +91,7 @@ async def _send_telemetry(event: str = "usage"):
         pass
 
 async def _get_demo_key() -> Optional[str]:
-    """Automatically fetch a demo API key with $5 trial credits."""
+    """Automatically fetch a demo API key with $1 trial credits."""
     try:
         install_id = _get_install_id()
         async with httpx.AsyncClient(timeout=10.0) as client:

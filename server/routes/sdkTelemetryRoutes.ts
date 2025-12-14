@@ -126,35 +126,23 @@ router.post('/demo-key', demoKeyLimiter, async (req: Request, res: Response) => 
       }
       
       if (isExpired || key.status !== 'active') {
-        const newApiKey = 'demo_' + crypto.randomBytes(24).toString('hex');
-        const newExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000);
-        
         await db.update(sdkDemoKeys)
-          .set({
-            apiKey: newApiKey,
-            expiresAt: newExpiresAt,
-            creditsRemaining: 500,
-            status: 'active',
-            ipAddress,
-          })
+          .set({ status: 'expired' })
           .where(eq(sdkDemoKeys.installId, installId));
         
-        return res.json({
-          success: true,
-          api_key: newApiKey,
-          credits_remaining: 500,
-          expires_at: newExpiresAt.toISOString(),
-          status: 'renewed',
-          usage: {
-            header: 'X-API-KEY: ' + newApiKey,
-            env_var: `COINRAILZ_API_KEY=${newApiKey}`,
-            documentation: 'https://coinrailz.com/docs/sdk'
+        return res.status(403).json({
+          success: false,
+          error: 'Demo trial expired',
+          message: 'Your 72-hour demo trial has ended. Demo credits are single-use and cannot be renewed.',
+          upgrade: {
+            url: 'https://coinrailz.com/credits',
+            description: 'Purchase credits to continue using paid services',
+            minimum: '$10 for 1000 credits'
           },
-          next_steps: {
-            test: 'Try calling /x402/gas-price-oracle with your new API key',
-            upgrade: 'https://coinrailz.com/credits to buy more credits',
-            support: 'support@coinrailz.com'
-          }
+          free_alternatives: FREE_TIER_SERVICES.map(s => ({
+            service: s,
+            url: `https://coinrailz.com/x402/${s}`
+          }))
         });
       }
     }

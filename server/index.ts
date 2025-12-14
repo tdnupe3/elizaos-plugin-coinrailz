@@ -3384,6 +3384,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   console.log('✅ Legacy route guidance middleware active');
   
+  // CRITICAL: Register SDK telemetry routes BEFORE static serving (which catches all unhandled requests)
+  try {
+    const sdkTelemetryRoutes = (await import('./routes/sdkTelemetryRoutes')).default;
+    app.use('/api/sdk', sdkTelemetryRoutes);
+    console.log('✅ SDK telemetry routes registered (pre-static)');
+  } catch (error) {
+    console.error('❌ SDK telemetry routes failed:', error);
+  }
+  
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');
@@ -3399,15 +3408,6 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     
     serveStatic(app);
     console.log('✅ Static file serving configured');
-  }
-  
-  // CRITICAL: Register SDK telemetry routes BEFORE Vite (which catches all unhandled requests)
-  try {
-    const sdkTelemetryRoutes = (await import('./routes/sdkTelemetryRoutes')).default;
-    app.use('/api/sdk', sdkTelemetryRoutes);
-    console.log('✅ SDK telemetry routes registered (pre-Vite)');
-  } catch (error) {
-    console.error('❌ SDK telemetry routes failed:', error);
   }
   
   // Start listening FIRST - before any route registration or heavy initialization

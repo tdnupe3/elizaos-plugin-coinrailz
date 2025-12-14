@@ -3384,14 +3384,32 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   console.log('✅ Legacy route guidance middleware active');
   
-  // CRITICAL: Create placeholder routers BEFORE static serving to reserve paths
-  // These will be populated after server starts listening (deferred init)
-  // This prevents the SPA fallback from catching API routes
+  // ============================================================================
+  // CRITICAL: DEFERRED ROUTER PATTERN FOR SDK ROUTES
+  // ============================================================================
+  // IMPORTANT: SDK routes MUST be mounted BEFORE serveStatic() runs below.
+  // 
+  // WHY THIS EXISTS (December 2025 Production Bug Fix):
+  // - In production, serveStatic() includes a catch-all SPA fallback
+  // - Without this placeholder, requests to /api/sdk/* would match the fallback
+  // - The fallback returns index.html (HTTP 200 with HTML), not JSON
+  // - This caused SDK telemetry to silently fail in production only
+  // - Dev mode worked fine because Vite handles static files differently
+  //
+  // HOW IT WORKS:
+  // 1. We create an empty Router() here BEFORE serveStatic()
+  // 2. We mount it at /api/sdk so Express reserves that path
+  // 3. Later in server/routes.ts, we populate it with actual handlers
+  // 4. The router reference is passed via app._deferredSdkRouter
+  //
+  // DO NOT REMOVE OR MOVE THIS CODE without understanding the above.
+  // Moving it after serveStatic() will break SDK endpoints in production.
+  // ============================================================================
   const sdkRouter = Router();
   app.use('/api/sdk', sdkRouter);
   console.log('✅ SDK router placeholder registered (pre-static)');
   
-  // Store reference for deferred population
+  // Store reference for deferred population in server/routes.ts
   (app as any)._deferredSdkRouter = sdkRouter;
   
   if (isProduction) {

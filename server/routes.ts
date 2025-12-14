@@ -394,8 +394,25 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 📦 Service Bundle Marketplace - Packaged microservice offerings
   app.use('/api/bundles', bundleRoutes);
 
-  // 📊 SDK Telemetry & Demo Keys - Track SDK installations and provide trial access
-  // NOTE: In production, uses deferred router registered before static serving
+  // ============================================================================
+  // SDK TELEMETRY ROUTES - DEFERRED ROUTER PATTERN
+  // ============================================================================
+  // IMPORTANT: In production, these routes use a pre-registered router from
+  // server/index.ts to ensure they're mounted BEFORE serveStatic().
+  //
+  // See server/index.ts (search for "_deferredSdkRouter") for full explanation.
+  //
+  // Production flow:
+  //   1. server/index.ts creates empty Router() and mounts at /api/sdk
+  //   2. serveStatic() runs (with SPA fallback)
+  //   3. This code populates the already-mounted router with handlers
+  //
+  // Development flow:
+  //   - Vite handles static files differently, so direct mounting works fine
+  //
+  // If you're getting HTML instead of JSON from /api/sdk/* in production,
+  // the deferred router pattern is likely broken. Check server/index.ts.
+  // ============================================================================
   const sdkTelemetryRoutes = await import('./routes/sdkTelemetryRoutes').then(m => m.default);
   const deferredSdkRouter = (app as any)._deferredSdkRouter;
   if (deferredSdkRouter) {
@@ -403,7 +420,7 @@ Questions? Reply to this message or contact support@coinrailz.com
     deferredSdkRouter.use('/', sdkTelemetryRoutes);
     console.log('✅ SDK telemetry routes populated on deferred router');
   } else {
-    // Development fallback - register directly
+    // Development fallback - register directly (Vite handles static files differently)
     app.use('/api/sdk', sdkTelemetryRoutes);
   }
 

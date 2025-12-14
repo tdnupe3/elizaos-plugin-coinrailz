@@ -4177,6 +4177,43 @@ export const x402PaymentIntentsSelectSchema = createSelectSchema(x402PaymentInte
 export type X402PaymentIntent = typeof x402PaymentIntents.$inferSelect;
 export type InsertX402PaymentIntent = z.infer<typeof x402PaymentIntentsInsertSchema>;
 
+/**
+ * Typed metadata schema for x402 payment intents
+ * Standardizes what goes into the metadata JSONB column
+ * Prevents "JSONB junk" and ensures consistent analytics/auditing
+ */
+export interface PaymentIntentMetadata {
+  // Required fields - always include these
+  tokenAddress: string;       // Token contract address (USDC or USDT)
+  tokenSymbol: 'USDC' | 'USDT';  // Token symbol for clarity
+  chainId: number;            // Chain ID (8453 for Base)
+  
+  // Optional fields for analytics and debugging
+  pricingVersion?: string;    // e.g., "2025-12-14-a" for tracking pricing changes
+  userAgent?: string;         // Client user agent for debugging
+  ipHash?: string;            // Hashed IP for analytics (privacy-preserving)
+  quoteId?: string;           // If payment was for a quoted price
+  sdkVersion?: string;        // Client SDK version if applicable
+}
+
+/**
+ * Helper to create standardized payment intent metadata
+ * Ensures all required fields are present
+ */
+export function createPaymentIntentMetadata(
+  tokenAddress: string,
+  tokenSymbol: 'USDC' | 'USDT',
+  chainId: number = 8453,
+  extras?: Partial<Omit<PaymentIntentMetadata, 'tokenAddress' | 'tokenSymbol' | 'chainId'>>
+): PaymentIntentMetadata {
+  return {
+    tokenAddress,
+    tokenSymbol,
+    chainId,
+    ...extras,
+  };
+}
+
 // x402 Discovery Metrics - Daily aggregated discovery analytics
 export const x402DiscoveryMetrics = pgTable(
   "x402_discovery_metrics",

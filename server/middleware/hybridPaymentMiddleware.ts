@@ -6,7 +6,8 @@ import { db } from "../db";
 import { usedTransactionHashes, x402Payments, x402PaymentIntents } from "@shared/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { creditsService } from "../services/creditsService.js";
-import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, getServicePricing } from "@shared/pricing";
+import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, getServicePricing, getCanonicalResourceUrl } from "@shared/pricing";
+import { createPaymentIntentMetadata } from "@shared/schema";
 
 // Alchemy provider for Base mainnet
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
@@ -298,16 +299,13 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
   
   if (!requiredAmount) {
     console.log(`❌ Unknown service: ${serviceName}`);
-    return res.status(402).json({
-      x402Version: 1,
-      error: "Unknown service",
-      accepts: [{
-        scheme: "exact",
-        network: "base",
-        resource: `https://coinrailz.com/x402/${serviceName}`,
-        payTo: PLATFORM_WALLET,
-        asset: USDC_BASE,
-      }]
+    // Return 400 Bad Request for unknown services - not 402
+    // Agents need clear machine-readable errors for unknown endpoints
+    return res.status(400).json({
+      error: "unknown_service",
+      message: `Service '${serviceName}' is not a valid x402 endpoint`,
+      availableEndpoint: "/x402/catalog",
+      hint: "Check /x402/catalog for list of available services"
     });
   }
 
@@ -331,7 +329,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
             scheme: "exact",
             network: "base",
             maxAmountRequired: requiredAmount.toString(),
-            resource: `https://coinrailz.com/x402/${serviceName}`,
+            resource: getCanonicalResourceUrl(serviceName),
             payTo: PLATFORM_WALLET,
             asset: USDC_BASE,
           }]
@@ -440,7 +438,8 @@ export async function verifyTransactionPayment(
     let paymentFound = false;
     let paymentAmount = 0;
     let senderAddress = "";
-    let paymentToken = "";
+    let paymentToken = "" as 'USDC' | 'USDT' | "";
+    let paymentTokenAddress = "";
 
     for (const log of receipt.logs) {
       // Check if this log is from an accepted stablecoin (USDC or USDT)
@@ -460,7 +459,8 @@ export async function verifyTransactionPayment(
           const amountHex = log.data;
           paymentAmount = parseInt(amountHex, 16);
           senderAddress = fromAddress;
-          paymentToken = matchedToken.symbol;
+          paymentToken = matchedToken.symbol as 'USDC' | 'USDT';
+          paymentTokenAddress = matchedToken.address;
           paymentFound = true;
           
           console.log(`💰 ${matchedToken.symbol} Transfer found:`);
@@ -501,7 +501,17 @@ export async function verifyTransactionPayment(
       
       console.log(`📝 Updated payment intent ${intentId} to PENDING (retry ${(existingIntent.retries || 0) + 1})`);
     } else {
-      // Create new PENDING intent with token metadata
+      // Create new PENDING intent with typed metadata
+      // Only include typed metadata if we have valid token info
+      const intentMetadata = paymentToken && paymentTokenAddress
+        ? createPaymentIntentMetadata(
+            paymentTokenAddress,
+            paymentToken as 'USDC' | 'USDT',
+            8453, // Base chainId
+            { pricingVersion: "2025-12-14" }
+          )
+        : { token: "unknown" }; // Fallback for edge cases
+      
       await db.insert(x402PaymentIntents).values({
         id: intentId,
         txHash,
@@ -512,7 +522,7 @@ export async function verifyTransactionPayment(
         status: "PENDING",
         retries: 0,
         expiresAt,
-        metadata: { token: paymentToken },
+        metadata: intentMetadata,
       });
       
       console.log(`📝 Created payment intent ${intentId} with status PENDING (token: ${paymentToken})`);

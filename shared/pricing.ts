@@ -254,3 +254,30 @@ export function getServicePriceMicro(serviceName: ServiceName): number {
 export function formatUSD(amount: number): string {
   return `$${amount.toFixed(2)}`;
 }
+
+/**
+ * Get the canonical base URL for x402 services
+ * SERVER-ONLY: Uses process.env which is not available in browser
+ * 
+ * IMPORTANT: This ensures 402 responses always include the correct
+ * production URL that agents can use for payment and retry
+ */
+export function getCanonicalBaseUrl(): string {
+  // Only access process.env on server side
+  if (typeof process !== 'undefined' && process.env?.CANONICAL_BASE_URL) {
+    // Remove trailing slash for consistency
+    return process.env.CANONICAL_BASE_URL.replace(/\/$/, '');
+  }
+  
+  // Production default - ensures agents always get the right URL
+  return 'https://coinrailz.com';
+}
+
+/**
+ * Build canonical resource URL for a service
+ * SERVER-ONLY: Uses getCanonicalBaseUrl which requires process.env
+ * Example: getCanonicalResourceUrl('gas-price-oracle') => 'https://coinrailz.com/x402/gas-price-oracle'
+ */
+export function getCanonicalResourceUrl(serviceName: string): string {
+  return `${getCanonicalBaseUrl()}/x402/${serviceName}`;
+}

@@ -500,6 +500,34 @@ const gatedServiceEndpoints = [
 
 gatedServiceEndpoints.forEach(endpoint => {
   router.get(`/${endpoint}`, (req: Request, res: Response) => {
+    // CRITICAL: Check if payment was already verified by hybridPaymentMiddleware (USDC/USDT tx hash or API key)
+    if ((req as any).paymentAlreadyVerified) {
+      console.log(`✅ Payment already verified for /service/${endpoint} - executing service`);
+      
+      // For ping endpoint, return success immediately (it's a discovery/test service)
+      if (endpoint === 'ping') {
+        return res.json({
+          success: true,
+          service: 'ping',
+          message: 'x402 payment verified successfully',
+          timestamp: new Date().toISOString(),
+          platform: 'Coin Railz',
+          paymentMethod: 'hybrid', // Could be USDC, USDT, API key, or EIP-712
+          x402Version: 1,
+        });
+      }
+      
+      // For other endpoints, they typically use POST - redirect to POST handler
+      console.log(`🔄 Verified payment for GET /${endpoint} - but this endpoint typically uses POST`);
+      return res.json({
+        success: false,
+        error: 'Method not allowed',
+        message: `${endpoint} requires POST method. GET is only for discovery.`,
+        correctMethod: 'POST',
+        endpoint: `/x402/service/${endpoint}`,
+      });
+    }
+    
     console.log(`📡 GET request for /service/${endpoint} - returning 402 for Bazaar discovery`);
     // ping uses GET, others use POST
     const routeKey = endpoint === 'ping' ? `GET /${endpoint}` : `POST /${endpoint}`;

@@ -735,14 +735,18 @@ console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
 
 // === x402 PROTOCOL SERVICES (MICROSERVICES + GATED ENTERPRISE SERVICES) ===
-// Gated services now integrated into x402MicroserviceRoutesV2 for unified middleware
-console.log('🔒 Mounting x402 Routes (includes /service/* gated endpoints for x402scan/Bazaar discovery)...');
-app.use('/x402', x402MicroserviceRoutes); // All x402 services with official Coinbase CDP facilitator (V2)
-
-// Mount x402 gated enterprise services at /x402/service for x402scan/Coinbase Bazaar discovery
+// CRITICAL FIX: Mount more specific /x402/service BEFORE general /x402 route
+// Express matches routes in order - /x402 was catching /x402/service/* before hybridPaymentMiddleware could run
 import x402GatedRoutes from './routes/x402GatedRoutes.js';
-app.use('/x402/service', x402GatedRoutes); // Payment-gated services for AI agents
-console.log('✅ x402 gated enterprise services mounted at /x402/service/* with 402 payment challenges');
+import { hybridPaymentMiddleware } from './middleware/hybridPaymentMiddleware';
+// CRITICAL: hybridPaymentMiddleware handles raw USDC/USDT tx hash verification + API keys + EIP-712
+console.log('🔒 Mounting /x402/service with hybridPaymentMiddleware FIRST (before /x402)...');
+app.use('/x402/service', hybridPaymentMiddleware, x402GatedRoutes); // Payment-gated services for AI agents
+console.log('✅ x402 gated enterprise services mounted at /x402/service/* with hybrid payment verification');
+
+// General x402 routes - mounted AFTER /x402/service so it doesn't catch service requests
+console.log('🔒 Mounting /x402 routes (V2 microservices)...');
+app.use('/x402', x402MicroserviceRoutes); // All x402 services with official Coinbase CDP facilitator (V2)
 
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 app.use('/api/x402scan-scraper', x402scanScraperRoutes);

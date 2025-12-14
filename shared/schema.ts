@@ -4155,6 +4155,7 @@ export const x402PaymentIntents = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
     expiresAt: timestamp("expires_at").notNull(), // Intent expiration (15 min default)
     succeededAt: timestamp("succeeded_at"), // When handler completed successfully
+    metadata: jsonb("metadata"), // Additional context (e.g., token type USDC/USDT)
   },
   (table) => [
     // Composite unique index for txHash + serviceName (one payment per service per tx)

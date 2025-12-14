@@ -6,7 +6,7 @@ import { db } from "../db";
 import { usedTransactionHashes, x402Payments, x402PaymentIntents } from "@shared/schema";
 import { eq, and, or, sql } from "drizzle-orm";
 import { creditsService } from "../services/creditsService.js";
-import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
+import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD, getServicePricing } from "@shared/pricing";
 
 // Alchemy provider for Base mainnet
 const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
@@ -94,7 +94,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
       });
     }
     const serviceName = req.path.split("/").pop() || "unknown";
-    const requiredAmountUSDC = SERVICE_PRICING[serviceName];
+    const requiredAmountUSDC = getServicePricing(serviceName);
     
     if (!requiredAmountUSDC) {
       return res.status(400).json({
@@ -155,7 +155,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
   // OPTION 1: API Key authentication (prepaid credits)
   if (apiKey) {
     const serviceName = req.path.split("/").pop() || "unknown";
-    const requiredAmountUSDC = SERVICE_PRICING[serviceName];
+    const requiredAmountUSDC = getServicePricing(serviceName);
     
     if (!requiredAmountUSDC) {
       return res.status(400).json({
@@ -294,7 +294,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
   
   // Extract service name from URL path
   const serviceName = req.path.split("/").pop() || "unknown";
-  const requiredAmount = SERVICE_PRICING[serviceName];
+  const requiredAmount = getServicePricing(serviceName);
   
   if (!requiredAmount) {
     console.log(`❌ Unknown service: ${serviceName}`);

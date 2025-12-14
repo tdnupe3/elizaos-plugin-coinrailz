@@ -65,6 +65,24 @@ export type ServiceName =
   | "forex-sentiment";
 
 /**
+ * Type guard to check if a string is a valid ServiceName
+ * Use this to safely index SERVICE_PRICING_MICRO or SERVICE_PRICING_USD
+ */
+export function isServiceName(name: string): name is ServiceName {
+  return name in SERVICE_PRICING_MICRO;
+}
+
+/**
+ * Safely get pricing for a service, returns undefined if service doesn't exist
+ */
+export function getServicePricing(name: string): number | undefined {
+  if (isServiceName(name)) {
+    return SERVICE_PRICING_MICRO[name];
+  }
+  return undefined;
+}
+
+/**
  * Micro-USDC pricing (integers) for on-chain payment verification
  * USDC has 6 decimals: $1.00 = 1,000,000 micro-USDC
  * 

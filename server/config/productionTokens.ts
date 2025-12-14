@@ -22,6 +22,15 @@ export const PRODUCTION_TOKENS = {
     decimals: 6,
     coingeckoId: 'tether'
   },
+  // USDT on Base chain (bridged) - for x402 payments
+  USDT_BASE: {
+    address: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
+    symbol: 'USDT',
+    name: 'Tether USD (Base)',
+    decimals: 6,
+    coingeckoId: 'tether',
+    chain: 'base'
+  },
   WBTC: {
     address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
     symbol: 'WBTC',

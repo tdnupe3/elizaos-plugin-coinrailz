@@ -312,8 +312,12 @@ async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string |
 // Platform wallet to receive payments
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
 
-// USDC on Base mainnet
+// Stablecoin contract addresses on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
+const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2" as const; // Bridged USDT on Base
+
+// Accepted stablecoins for x402 payments
+const ACCEPTED_STABLECOINS = [USDC_BASE, USDT_BASE];
 
 // EIP-3009 ABI for USDC transferWithAuthorization
 const EIP3009_ABI = parseAbi([

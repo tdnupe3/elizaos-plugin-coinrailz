@@ -13,8 +13,15 @@ const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || "";
 const BASE_MAINNET_URL = `https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`;
 const provider = new ethers.JsonRpcProvider(BASE_MAINNET_URL);
 
-// USDC contract address on Base mainnet
+// Stablecoin contract addresses on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2"; // Bridged USDT on Base
+
+// Accepted stablecoins for x402 payments (USDC and USDT)
+const ACCEPTED_STABLECOINS = [
+  { address: USDC_BASE, symbol: "USDC", name: "USD Coin" },
+  { address: USDT_BASE, symbol: "USDT", name: "Tether USD" }
+];
 
 // Platform wallet address
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91";
@@ -427,16 +434,22 @@ export async function verifyTransactionPayment(
       return false;
     }
 
-    // Parse USDC Transfer event logs
+    // Parse stablecoin Transfer event logs (USDC or USDT)
     const transferEventSignature = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
     
     let paymentFound = false;
     let paymentAmount = 0;
     let senderAddress = "";
+    let paymentToken = "";
 
     for (const log of receipt.logs) {
+      // Check if this log is from an accepted stablecoin (USDC or USDT)
+      const matchedToken = ACCEPTED_STABLECOINS.find(
+        token => token.address.toLowerCase() === log.address.toLowerCase()
+      );
+      
       if (
-        log.address.toLowerCase() === USDC_BASE.toLowerCase() &&
+        matchedToken &&
         log.topics[0] === transferEventSignature &&
         log.topics.length >= 3
       ) {
@@ -447,19 +460,20 @@ export async function verifyTransactionPayment(
           const amountHex = log.data;
           paymentAmount = parseInt(amountHex, 16);
           senderAddress = fromAddress;
+          paymentToken = matchedToken.symbol;
           paymentFound = true;
           
-          console.log(`💰 USDC Transfer found:`);
+          console.log(`💰 ${matchedToken.symbol} Transfer found:`);
           console.log(`   From: ${fromAddress}`);
           console.log(`   To: ${toAddress}`);
-          console.log(`   Amount: ${paymentAmount} (${paymentAmount / 1e6} USDC)`);
+          console.log(`   Amount: ${paymentAmount} (${paymentAmount / 1e6} ${matchedToken.symbol})`);
           break;
         }
       }
     }
 
     if (!paymentFound) {
-      console.log(`❌ No USDC payment to platform wallet found in transaction`);
+      console.log(`❌ No USDC/USDT payment to platform wallet found in transaction`);
       return false;
     }
 
@@ -487,7 +501,7 @@ export async function verifyTransactionPayment(
       
       console.log(`📝 Updated payment intent ${intentId} to PENDING (retry ${(existingIntent.retries || 0) + 1})`);
     } else {
-      // Create new PENDING intent
+      // Create new PENDING intent with token metadata
       await db.insert(x402PaymentIntents).values({
         id: intentId,
         txHash,
@@ -498,9 +512,10 @@ export async function verifyTransactionPayment(
         status: "PENDING",
         retries: 0,
         expiresAt,
+        metadata: { token: paymentToken },
       });
       
-      console.log(`📝 Created payment intent ${intentId} with status PENDING`);
+      console.log(`📝 Created payment intent ${intentId} with status PENDING (token: ${paymentToken})`);
     }
 
     // STEP 4: Return true - orchestrator will mark SUCCEEDED after handler completes

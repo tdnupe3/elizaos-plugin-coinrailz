@@ -54,19 +54,33 @@ function normalizeResourceUrl(resource: string | undefined, endpoint: string): s
 
 /**
  * Creates payment instructions object for 402 responses
+ * Supports both USDC and USDT on Base chain
+ * 
+ * PAYMENT METHODS:
+ * - EIP-3009 (transferWithAuthorization): USDC only (USDT doesn't support EIP-3009)
+ * - Raw transaction hash: Both USDC and USDT supported
  */
 function createPaymentInstructions() {
   return {
-    step1: "Obtain USDC on Base chain (chainId: 8453)",
-    step2: "Sign EIP-3009 authorization for the exact amount",
-    step3: "Include Base64-encoded authorization in X-PAYMENT header",
+    step1: "Obtain USDC or USDT on Base chain (chainId: 8453)",
+    step2_eip3009: "For USDC: Sign EIP-3009 authorization for the exact amount (USDC only)",
+    step2_rawTx: "For USDT or USDC: Send stablecoin to payTo address",
+    step3: "Include payment proof in X-PAYMENT header",
+    step3_eip3009: "EIP-3009: Base64-encoded authorization JSON",
+    step3_rawTx: "Raw tx: Transaction hash (0x...) or Base64-encoded {txHash, amount, network} JSON",
     step4: "Retry the request with X-PAYMENT header",
-    alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC to payTo address",
-    supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
+    supportedMethods: [
+      { method: "eip3009-authorization", tokens: ["USDC"], description: "Gasless transfer via EIP-3009 signature" },
+      { method: "raw-transaction-hash", tokens: ["USDC", "USDT"], description: "Direct transfer verified on-chain" }
+    ],
     network: "base",
     chainId: 8453,
-    token: "USDC",
-    tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    acceptedTokens: [
+      { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", name: "USD Coin", supportsEIP3009: true },
+      { symbol: "USDT", address: "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", name: "Tether USD", supportsEIP3009: false }
+    ],
+    token: "USDC", // Default for backward compatibility
+    tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" // Default for backward compatibility
   };
 }
 
@@ -101,7 +115,15 @@ export function x402ResponseEnricher() {
           if (!enriched.extra) {
             enriched.extra = {};
           }
-          enriched.extra.name = enriched.extra.name || "USD Coin";
+          // Derive token name from asset address (don't hard-code)
+          const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+          const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2";
+          const assetLower = (enriched.asset || "").toLowerCase();
+          if (assetLower === USDT_BASE.toLowerCase()) {
+            enriched.extra.name = enriched.extra.name || "Tether USD";
+          } else {
+            enriched.extra.name = enriched.extra.name || "USD Coin"; // Default to USDC
+          }
           enriched.extra.version = enriched.extra.version || "2";
           enriched.extra.decimals = enriched.extra.decimals || 6;
           enriched.extra.chainId = enriched.extra.chainId || 8453;

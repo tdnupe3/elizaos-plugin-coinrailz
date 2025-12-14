@@ -6,7 +6,7 @@ console.log('🔧 ENV CHECK:', {
   HAS_REPLIT_DOMAINS: !!process.env.REPLIT_DOMAINS
 });
 
-import express from "express";
+import express, { Router } from "express";
 import path from "path";
 import fs from "fs";
 import { setupVite, serveStatic } from "./vite";
@@ -3384,14 +3384,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   });
   console.log('✅ Legacy route guidance middleware active');
   
-  // CRITICAL: Register SDK telemetry routes BEFORE static serving (which catches all unhandled requests)
-  try {
-    const sdkTelemetryRoutes = (await import('./routes/sdkTelemetryRoutes')).default;
-    app.use('/api/sdk', sdkTelemetryRoutes);
-    console.log('✅ SDK telemetry routes registered (pre-static)');
-  } catch (error) {
-    console.error('❌ SDK telemetry routes failed:', error);
-  }
+  // CRITICAL: Create placeholder routers BEFORE static serving to reserve paths
+  // These will be populated after server starts listening (deferred init)
+  // This prevents the SPA fallback from catching API routes
+  const sdkRouter = Router();
+  app.use('/api/sdk', sdkRouter);
+  console.log('✅ SDK router placeholder registered (pre-static)');
+  
+  // Store reference for deferred population
+  (app as any)._deferredSdkRouter = sdkRouter;
   
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)

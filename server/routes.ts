@@ -395,8 +395,17 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/bundles', bundleRoutes);
 
   // 📊 SDK Telemetry & Demo Keys - Track SDK installations and provide trial access
+  // NOTE: In production, uses deferred router registered before static serving
   const sdkTelemetryRoutes = await import('./routes/sdkTelemetryRoutes').then(m => m.default);
-  app.use('/api/sdk', sdkTelemetryRoutes);
+  const deferredSdkRouter = (app as any)._deferredSdkRouter;
+  if (deferredSdkRouter) {
+    // Populate the pre-registered router with actual handlers
+    deferredSdkRouter.use('/', sdkTelemetryRoutes);
+    console.log('✅ SDK telemetry routes populated on deferred router');
+  } else {
+    // Development fallback - register directly
+    app.use('/api/sdk', sdkTelemetryRoutes);
+  }
 
   // 🔐 x402 Protocol Micropayment Gateway - Payment-gated microservices (Official x402-express middleware)
   const x402MicroserviceRoutes = await import('./routes/x402MicroserviceRoutesV2').then(m => m.default);

@@ -193,13 +193,19 @@ export class CoinbaseCDPService {
    * Properly derives EVM private key from CDP API secret
    */
   static async getPlatformSigner(chain: 'base' | 'ethereum'): Promise<ethers.Wallet> {
-    // Check for explicit EVM private key first
-    if (process.env.EVM_PRIVATE_KEY && /^0x[0-9a-fA-F]{64}$/.test(process.env.EVM_PRIVATE_KEY)) {
-      const privateKey = process.env.EVM_PRIVATE_KEY;
-      const provider = chain === 'base' 
-        ? new ethers.JsonRpcProvider('https://mainnet.base.org')
-        : new ethers.JsonRpcProvider('https://eth-mainnet.g.alchemy.com/v2/your-api-key');
-      return new ethers.Wallet(privateKey, provider);
+    // Check for explicit EVM private key first (with or without 0x prefix)
+    const rawKey = process.env.EVM_PRIVATE_KEY;
+    if (rawKey) {
+      // Normalize: add 0x prefix if missing
+      const normalizedKey = rawKey.startsWith('0x') ? rawKey : `0x${rawKey}`;
+      if (/^0x[0-9a-fA-F]{64}$/.test(normalizedKey)) {
+        const provider = chain === 'base' 
+          ? new ethers.JsonRpcProvider('https://mainnet.base.org')
+          : new ethers.JsonRpcProvider('https://eth-mainnet.g.alchemy.com/v2/your-api-key');
+        const wallet = new ethers.Wallet(normalizedKey, provider);
+        console.log(`🔑 Using EVM_PRIVATE_KEY for ${chain}: ${wallet.address}`);
+        return wallet;
+      }
     }
 
     // Derive from CDP seed (CDP_PRIVATE_KEY is base64 API secret, not EVM key)

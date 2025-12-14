@@ -20,6 +20,7 @@ import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { usageAnalyticsMiddleware } from '../middleware/usageAnalyticsMiddleware';
 import { x402ResponseEnricher } from '../middleware/x402ResponseEnricher';
 import { SERVICE_PRICING_USD, SERVICE_PRICING_MICRO, ServiceName } from '@shared/pricing';
+import { markPaymentIntentSucceeded } from '../middleware/hybridPaymentMiddleware';
 
 const router = Router();
 
@@ -499,13 +500,30 @@ const gatedServiceEndpoints = [
 ];
 
 gatedServiceEndpoints.forEach(endpoint => {
-  router.get(`/${endpoint}`, (req: Request, res: Response) => {
+  router.get(`/${endpoint}`, async (req: Request, res: Response) => {
     // CRITICAL: Check if payment was already verified by hybridPaymentMiddleware (USDC/USDT tx hash or API key)
     if ((req as any).paymentAlreadyVerified) {
       console.log(`✅ Payment already verified for /service/${endpoint} - executing service`);
       
       // For ping endpoint, return success immediately (it's a discovery/test service)
       if (endpoint === 'ping') {
+        // Mark payment intent as SUCCEEDED before returning response
+        const xPayment = req.headers['x-payment'] as string | undefined;
+        if (xPayment) {
+          // Extract txHash from X-PAYMENT header (raw hash or Base64 JSON)
+          let txHash = xPayment.trim();
+          try {
+            const decoded = Buffer.from(xPayment, 'base64').toString('utf-8');
+            const parsed = JSON.parse(decoded);
+            if (parsed.txHash) txHash = parsed.txHash;
+          } catch { /* Use raw value */ }
+          
+          // Mark intent as SUCCEEDED asynchronously (don't block response)
+          markPaymentIntentSucceeded(txHash, 'ping').catch(err => {
+            console.error('Failed to mark payment intent as succeeded:', err);
+          });
+        }
+        
         return res.json({
           success: true,
           service: 'ping',

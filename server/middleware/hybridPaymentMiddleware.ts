@@ -587,12 +587,15 @@ export async function markPaymentIntentSucceeded(
     // Record to x402_payments table for analytics
     // FIX: walletAddress should be the RECEIVING wallet (platform), not the payer
     const payerAddress = senderAddress || intent.payer;
+    // Derive currency from intent metadata (USDC or USDT)
+    const intentMetadata = intent.metadata as { token?: string } | null;
+    const paymentCurrency = intentMetadata?.token || "USDC"; // Default to USDC for backward compatibility
     await db.insert(x402Payments).values({
       id: nanoid(),
       agentId: payerAddress,
       customerId: payerAddress,
       amount: intent.amount,
-      currency: "USDC",
+      currency: paymentCurrency,
       status: "completed",
       x402TransactionId: txHash,
       walletAddress: PLATFORM_WALLET,
@@ -606,6 +609,7 @@ export async function markPaymentIntentSucceeded(
         verifiedAt: now.toISOString(),
         verificationMethod: "on-chain-base-intent",
         payer: payerAddress,
+        token: paymentCurrency,
       },
     });
     

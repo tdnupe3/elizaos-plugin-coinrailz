@@ -73,7 +73,8 @@ const DECOMPRESS_METRICS = {
 
 // Try to decompress a buffer using common compression formats
 // Returns { success, format, decompressed } or { success: false } if not compressed
-// SECURITY: Includes size limits and heuristics to prevent resource exhaustion
+// SECURITY: Uses maxOutputLength to abort decompression MID-STREAM before memory is allocated
+// This prevents zip bomb attacks where a small compressed payload expands to gigabytes
 function tryDecompress(buffer: Buffer): { success: boolean; format?: string; decompressed?: Buffer; rejected?: string } {
   DECOMPRESS_METRICS.attempted++;
   DECOMPRESS_METRICS.bytes_in_total += buffer.length;
@@ -85,29 +86,25 @@ function tryDecompress(buffer: Buffer): { success: boolean; format?: string; dec
     return { success: false, rejected: 'input_too_large' };
   }
   
-  // Helper to validate decompressed size
-  const validateDecompressedSize = (decompressed: Buffer, format: string): boolean => {
-    if (decompressed.length > MAX_DECOMPRESSED_SIZE) {
-      DECOMPRESS_METRICS.rejected_output_too_large++;
-      console.warn(`🛡️ GUARDRAIL: Rejected ${format} decompressed output (${decompressed.length} > ${MAX_DECOMPRESSED_SIZE} bytes)`);
-      return false;
-    }
-    return true;
-  };
+  // CRITICAL: Use maxOutputLength option to abort decompression BEFORE full expansion
+  // This is the key security fix - Node.js zlib throws ERR_BUFFER_TOO_LARGE when limit hit
+  const safeDecompressOptions = { maxOutputLength: MAX_DECOMPRESSED_SIZE };
   
   // Check for gzip magic bytes (1f 8b)
   if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
     try {
-      const decompressed = zlib.gunzipSync(buffer);
-      if (!validateDecompressedSize(decompressed, 'gzip')) {
-        return { success: false, rejected: 'output_too_large' };
-      }
+      const decompressed = zlib.gunzipSync(buffer, safeDecompressOptions);
       DECOMPRESS_METRICS.succeeded++;
       DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
       DECOMPRESS_METRICS.by_format.gzip++;
       console.log(`🗜️ Decompressed gzip payload: ${buffer.length} → ${decompressed.length} bytes`);
       return { success: true, format: 'gzip', decompressed };
-    } catch (e) {
+    } catch (e: any) {
+      if (e.code === 'ERR_BUFFER_TOO_LARGE') {
+        DECOMPRESS_METRICS.rejected_output_too_large++;
+        console.warn(`🛡️ GUARDRAIL: Gzip decompression aborted - output exceeds ${MAX_DECOMPRESSED_SIZE} bytes (zip bomb blocked)`);
+        return { success: false, rejected: 'output_too_large' };
+      }
       console.log(`⚠️ Gzip magic bytes but decompress failed`);
     }
   }
@@ -115,16 +112,18 @@ function tryDecompress(buffer: Buffer): { success: boolean; format?: string; dec
   // Check for zlib/deflate header (78 01, 78 5e, 78 9c, 78 da)
   if (buffer.length >= 2 && buffer[0] === 0x78 && [0x01, 0x5e, 0x9c, 0xda].includes(buffer[1])) {
     try {
-      const decompressed = zlib.inflateSync(buffer);
-      if (!validateDecompressedSize(decompressed, 'deflate')) {
-        return { success: false, rejected: 'output_too_large' };
-      }
+      const decompressed = zlib.inflateSync(buffer, safeDecompressOptions);
       DECOMPRESS_METRICS.succeeded++;
       DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
       DECOMPRESS_METRICS.by_format.deflate++;
       console.log(`🗜️ Decompressed zlib/deflate payload: ${buffer.length} → ${decompressed.length} bytes`);
       return { success: true, format: 'deflate', decompressed };
-    } catch (e) {
+    } catch (e: any) {
+      if (e.code === 'ERR_BUFFER_TOO_LARGE') {
+        DECOMPRESS_METRICS.rejected_output_too_large++;
+        console.warn(`🛡️ GUARDRAIL: Deflate decompression aborted - output exceeds ${MAX_DECOMPRESSED_SIZE} bytes (zip bomb blocked)`);
+        return { success: false, rejected: 'output_too_large' };
+      }
       console.log(`⚠️ Zlib header but decompress failed`);
     }
   }
@@ -133,36 +132,40 @@ function tryDecompress(buffer: Buffer): { success: boolean; format?: string; dec
   // Brotli has no magic bytes, so we apply heuristics to avoid unnecessary CPU usage
   if (buffer.length >= MIN_BROTLI_SIZE) {
     try {
-      const decompressed = zlib.brotliDecompressSync(buffer);
+      const decompressed = zlib.brotliDecompressSync(buffer, safeDecompressOptions);
       if (decompressed.length > 0 && decompressed.length !== buffer.length) {
-        if (!validateDecompressedSize(decompressed, 'brotli')) {
-          return { success: false, rejected: 'output_too_large' };
-        }
         DECOMPRESS_METRICS.succeeded++;
         DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
         DECOMPRESS_METRICS.by_format.brotli++;
         console.log(`🗜️ Decompressed brotli payload: ${buffer.length} → ${decompressed.length} bytes`);
         return { success: true, format: 'brotli', decompressed };
       }
-    } catch (e) {
+    } catch (e: any) {
+      if (e.code === 'ERR_BUFFER_TOO_LARGE') {
+        DECOMPRESS_METRICS.rejected_output_too_large++;
+        console.warn(`🛡️ GUARDRAIL: Brotli decompression aborted - output exceeds ${MAX_DECOMPRESSED_SIZE} bytes (zip bomb blocked)`);
+        return { success: false, rejected: 'output_too_large' };
+      }
       // Brotli failed - not brotli compressed
     }
   }
   
   // Try raw deflate (no header)
   try {
-    const decompressed = zlib.inflateRawSync(buffer);
+    const decompressed = zlib.inflateRawSync(buffer, safeDecompressOptions);
     if (decompressed.length > buffer.length) {
-      if (!validateDecompressedSize(decompressed, 'deflate-raw')) {
-        return { success: false, rejected: 'output_too_large' };
-      }
       DECOMPRESS_METRICS.succeeded++;
       DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
       DECOMPRESS_METRICS.by_format['deflate-raw']++;
       console.log(`🗜️ Decompressed raw deflate payload: ${buffer.length} → ${decompressed.length} bytes`);
       return { success: true, format: 'deflate-raw', decompressed };
     }
-  } catch (e) {
+  } catch (e: any) {
+    if (e.code === 'ERR_BUFFER_TOO_LARGE') {
+      DECOMPRESS_METRICS.rejected_output_too_large++;
+      console.warn(`🛡️ GUARDRAIL: Raw deflate decompression aborted - output exceeds ${MAX_DECOMPRESSED_SIZE} bytes (zip bomb blocked)`);
+      return { success: false, rejected: 'output_too_large' };
+    }
     // Raw deflate failed
   }
   

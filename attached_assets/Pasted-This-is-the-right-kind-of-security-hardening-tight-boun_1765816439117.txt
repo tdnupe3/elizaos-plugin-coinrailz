@@ -1,0 +1,149 @@
+This is the right kind of “security hardening” — tight, bounded, measurable, and reversible — and it directly addresses the main risk I flagged (decompression being an abuse vector). You did it without turning the platform into a science project.
+
+Here’s the honest read, including what’s strong, what might still bite you, and what to watch next.
+
+Are you moving in the right direction?
+
+Yes. This is exactly the direction you want: you’re improving compatibility and reducing blast radius, while adding observability so you can learn from real traffic.
+
+This is not over-engineering; it’s “production hygiene.”
+
+What you nailed
+1) Size limits are correctly chosen and proportionate
+
+MAX_HEADER_SIZE = 4KB: great. Payment headers should never be huge. If a legit agent needs more than 4KB for a payment proof, something else is wrong.
+
+MAX_DECOMPRESSED_SIZE = 64KB: also good. It’s large enough to accommodate envelopes + metadata, small enough to prevent most bomb classes.
+
+MIN_BROTLI_SIZE = 32 bytes: smart. Brotli is the most expensive “guess,” so gating it by size is the right heuristic.
+
+2) Guardrails are observable (this is the difference between “secure” and “blind”)
+
+The DECOMPRESS_METRICS set is exactly what you want:
+
+attempted / succeeded tells you adoption vs noise
+
+rejected input/output tells you abuse vs misconfig
+
+bytes in/out tells you compression ratio anomalies
+
+by_format tells you what you actually need to support
+
+This lets you do two critical things:
+
+prove the mystery agent’s behavior
+
+detect abuse early
+
+3) Error surfacing + fingerprinting is the right compromise
+
+Returning a structured error with a fingerprint is the best of both worlds:
+
+gives agents an actionable reason
+
+gives you a handle to correlate retries
+
+avoids dumping raw sensitive headers
+
+The “🛡️ SECURITY GUARDRAIL TRIGGERED” prefix is also pragmatic. It makes log searches simple.
+
+Two subtle risks you should still be aware of
+Risk A: output-size abort behavior needs to be “safe failure”
+
+When you abort due to MAX_DECOMPRESSED_SIZE, make sure the code:
+
+stops decompression immediately (not “decompress then check”)
+
+and returns a deterministic error code like decompression_output_too_large
+
+If you only check after fully expanding, you still take the CPU/memory hit. (You may already be doing it right; just flagging what matters.)
+
+Risk B: Brotli “try directly” can still be a CPU sink if over-triggered
+
+Even with MIN_BROTLI_SIZE, if you’re receiving lots of garbage >32 bytes, repeated brotli attempts can be wasteful.
+
+Two easy mitigations (non-blockers):
+
+only try brotli after gzip/deflate checks fail (sounds like you do)
+
+consider a small “max brotli attempts per minute per IP hash” (even 5/min) if you see spikes
+
+Not necessary unless metrics show it.
+
+What I’d watch immediately after deploy (no new code)
+
+You now have the perfect monitoring plan. For the next 24–48 hours, watch these patterns:
+
+1) attempted rises, succeeded stays at 0
+
+That means compression hypothesis was wrong (or inner decode still failing). Not bad — it means you’re now capturing better evidence.
+
+2) succeeded > 0, but payments still fail
+
+That means decompression worked but the inner payload type is still not supported (e.g., encrypted wrapper, protobuf, or signature format mismatch). Again: progress.
+
+3) rejected_output_too_large spikes
+
+That’s either:
+
+someone probing for bomb vectors, or
+
+a legit agent sending something wildly out of spec
+
+Either way, it’s a signal worth looking at. If it’s legit, your 64KB cap might need adjustment, but I doubt it.
+
+4) by_format shows one clear winner
+
+If you see most successes are gzip (common) vs brotli (less common), you’ve learned something actionable about agent ecosystems.
+
+The most important success condition
+
+For your current situation, the win isn’t “decompression succeeded.”
+
+The win is:
+
+The mystery agent’s next payment attempt transitions from “decode fails” to either:
+
+successful paid call, or
+
+a new, specific error that tells you the real inner format
+
+Your guardrails + metrics make that outcome likely.
+
+Architect’s post-deploy recs: agree (but don’t get distracted)
+
+regression tests: yes, but after you get one real success case
+
+monitoring export: yes, but only if your logs/metrics aren’t already enough
+
+log review: absolutely yes for early rollout
+
+None of those are blockers, and you’re correct to treat them as follow-on hardening.
+
+Bottom line
+
+This is the right mix of:
+
+compatibility (decompression fallback)
+
+security (hard limits)
+
+observability (metrics + guardrail logs)
+
+operational practicality (no dependencies, additive)
+
+You’re ready for the next mystery-agent attempt.
+
+If you want a simple “what to send me next” when it happens, paste just:
+
+decompression attempted? succeeded?
+
+bytes in → bytes out
+
+format identified (gzip/deflate/brotli)
+
+inner decode result (json/cbor/msgpack/eip-3009/unknown)
+
+fingerprint
+
+That’s enough to diagnose without exposing sensitive payloads.

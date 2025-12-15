@@ -33,6 +33,12 @@ interface DecodedPayload {
   fingerprint?: string;
 }
 
+// SECURITY GUARDRAILS: Size limits to prevent resource exhaustion attacks
+// These values are conservative but allow legitimate x402 payment payloads
+const MAX_HEADER_SIZE = 4096;        // 4KB max base64 header size before decode
+const MAX_DECOMPRESSED_SIZE = 65536; // 64KB max decompressed payload size
+const MIN_BROTLI_SIZE = 32;          // Don't attempt brotli on tiny payloads
+
 // OBSERVABILITY: Decode-path metrics counter (ChatGPT recommendation)
 // Tracks which payment formats are being used for monitoring and analysis
 const DECODE_PATH_METRICS = {
@@ -48,13 +54,57 @@ const DECODE_PATH_METRICS = {
   lastReset: new Date().toISOString()
 };
 
+// OBSERVABILITY: Decompression-specific metrics for security monitoring
+const DECOMPRESS_METRICS = {
+  attempted: 0,
+  succeeded: 0,
+  rejected_input_too_large: 0,
+  rejected_output_too_large: 0,
+  bytes_in_total: 0,
+  bytes_out_total: 0,
+  by_format: {
+    gzip: 0,
+    deflate: 0,
+    'deflate-raw': 0,
+    brotli: 0
+  },
+  lastReset: new Date().toISOString()
+};
+
 // Try to decompress a buffer using common compression formats
 // Returns { success, format, decompressed } or { success: false } if not compressed
-function tryDecompress(buffer: Buffer): { success: boolean; format?: string; decompressed?: Buffer } {
+// SECURITY: Includes size limits and heuristics to prevent resource exhaustion
+function tryDecompress(buffer: Buffer): { success: boolean; format?: string; decompressed?: Buffer; rejected?: string } {
+  DECOMPRESS_METRICS.attempted++;
+  DECOMPRESS_METRICS.bytes_in_total += buffer.length;
+  
+  // GUARDRAIL: Reject oversized input buffers before any decompression attempt
+  if (buffer.length > MAX_HEADER_SIZE) {
+    DECOMPRESS_METRICS.rejected_input_too_large++;
+    console.warn(`🛡️ GUARDRAIL: Rejected oversized input buffer (${buffer.length} > ${MAX_HEADER_SIZE} bytes)`);
+    return { success: false, rejected: 'input_too_large' };
+  }
+  
+  // Helper to validate decompressed size
+  const validateDecompressedSize = (decompressed: Buffer, format: string): boolean => {
+    if (decompressed.length > MAX_DECOMPRESSED_SIZE) {
+      DECOMPRESS_METRICS.rejected_output_too_large++;
+      console.warn(`🛡️ GUARDRAIL: Rejected ${format} decompressed output (${decompressed.length} > ${MAX_DECOMPRESSED_SIZE} bytes)`);
+      return false;
+    }
+    return true;
+  };
+  
   // Check for gzip magic bytes (1f 8b)
   if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
     try {
       const decompressed = zlib.gunzipSync(buffer);
+      if (!validateDecompressedSize(decompressed, 'gzip')) {
+        return { success: false, rejected: 'output_too_large' };
+      }
+      DECOMPRESS_METRICS.succeeded++;
+      DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
+      DECOMPRESS_METRICS.by_format.gzip++;
       console.log(`🗜️ Decompressed gzip payload: ${buffer.length} → ${decompressed.length} bytes`);
       return { success: true, format: 'gzip', decompressed };
     } catch (e) {
@@ -66,6 +116,12 @@ function tryDecompress(buffer: Buffer): { success: boolean; format?: string; dec
   if (buffer.length >= 2 && buffer[0] === 0x78 && [0x01, 0x5e, 0x9c, 0xda].includes(buffer[1])) {
     try {
       const decompressed = zlib.inflateSync(buffer);
+      if (!validateDecompressedSize(decompressed, 'deflate')) {
+        return { success: false, rejected: 'output_too_large' };
+      }
+      DECOMPRESS_METRICS.succeeded++;
+      DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
+      DECOMPRESS_METRICS.by_format.deflate++;
       console.log(`🗜️ Decompressed zlib/deflate payload: ${buffer.length} → ${decompressed.length} bytes`);
       return { success: true, format: 'deflate', decompressed };
     } catch (e) {
@@ -73,22 +129,36 @@ function tryDecompress(buffer: Buffer): { success: boolean; format?: string; dec
     }
   }
   
-  // Try brotli (no magic bytes, but we can try if other methods fail)
-  // Brotli is commonly used by modern agents
-  try {
-    const decompressed = zlib.brotliDecompressSync(buffer);
-    if (decompressed.length > 0 && decompressed.length !== buffer.length) {
-      console.log(`🗜️ Decompressed brotli payload: ${buffer.length} → ${decompressed.length} bytes`);
-      return { success: true, format: 'brotli', decompressed };
+  // GUARDRAIL: Only try brotli on payloads >= MIN_BROTLI_SIZE bytes
+  // Brotli has no magic bytes, so we apply heuristics to avoid unnecessary CPU usage
+  if (buffer.length >= MIN_BROTLI_SIZE) {
+    try {
+      const decompressed = zlib.brotliDecompressSync(buffer);
+      if (decompressed.length > 0 && decompressed.length !== buffer.length) {
+        if (!validateDecompressedSize(decompressed, 'brotli')) {
+          return { success: false, rejected: 'output_too_large' };
+        }
+        DECOMPRESS_METRICS.succeeded++;
+        DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
+        DECOMPRESS_METRICS.by_format.brotli++;
+        console.log(`🗜️ Decompressed brotli payload: ${buffer.length} → ${decompressed.length} bytes`);
+        return { success: true, format: 'brotli', decompressed };
+      }
+    } catch (e) {
+      // Brotli failed - not brotli compressed
     }
-  } catch (e) {
-    // Brotli failed - not brotli compressed
   }
   
   // Try raw deflate (no header)
   try {
     const decompressed = zlib.inflateRawSync(buffer);
     if (decompressed.length > buffer.length) {
+      if (!validateDecompressedSize(decompressed, 'deflate-raw')) {
+        return { success: false, rejected: 'output_too_large' };
+      }
+      DECOMPRESS_METRICS.succeeded++;
+      DECOMPRESS_METRICS.bytes_out_total += decompressed.length;
+      DECOMPRESS_METRICS.by_format['deflate-raw']++;
       console.log(`🗜️ Decompressed raw deflate payload: ${buffer.length} → ${decompressed.length} bytes`);
       return { success: true, format: 'deflate-raw', decompressed };
     }
@@ -101,7 +171,10 @@ function tryDecompress(buffer: Buffer): { success: boolean; format?: string; dec
 
 // Get current decode metrics (can be exposed via /api/metrics if needed)
 export function getDecodePathMetrics() {
-  return { ...DECODE_PATH_METRICS };
+  return { 
+    decode: { ...DECODE_PATH_METRICS },
+    decompress: { ...DECOMPRESS_METRICS }
+  };
 }
 
 // EIP-3009 raw binary structure sizes (all values in bytes)
@@ -280,6 +353,23 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
         // All uncompressed formats failed - try DECOMPRESSION then re-decode
         // This handles agents that compress payloads (gzip, brotli, deflate) before base64 encoding
         const decompressResult = tryDecompress(buffer);
+        
+        // GUARDRAIL: Surface rejections from size limit checks
+        if (decompressResult.rejected) {
+          DECODE_PATH_METRICS.unknown++;
+          const rejectionReason = decompressResult.rejected === 'input_too_large' 
+            ? `Input payload exceeds ${MAX_HEADER_SIZE} bytes limit`
+            : `Decompressed output exceeds ${MAX_DECOMPRESSED_SIZE} bytes limit`;
+          console.error(`🛡️ SECURITY GUARDRAIL TRIGGERED: ${decompressResult.rejected} - ${rejectionReason}`);
+          return {
+            success: false,
+            format: 'unknown',
+            data: null,
+            error: `Security guardrail: ${rejectionReason}. Potential zip bomb or abuse attempt blocked.`,
+            fingerprint: `rejected=${decompressResult.rejected}, inputLen=${buffer.length}`
+          };
+        }
+        
         if (decompressResult.success && decompressResult.decompressed) {
           const decompressed = decompressResult.decompressed;
           const compressionFormat = decompressResult.format || 'unknown';

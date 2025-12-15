@@ -282,6 +282,24 @@ function normalizeCborData(data: any): any {
 function decodePaymentPayload(base64Header: string): DecodedPayload {
   DECODE_PATH_METRICS.total++;
   
+  // CRITICAL FIX: Check if header is already raw JSON (not base64 encoded)
+  // Some agents (e.g., x402-autonomous-agent) send raw JSON directly in X-PAYMENT header
+  // Without this check, raw JSON gets base64-decoded into garbage bytes
+  const trimmed = base64Header.trim();
+  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
+      (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+    try {
+      const data = JSON.parse(trimmed);
+      // Track raw JSON format separately for observability
+      (DECODE_PATH_METRICS as any).rawJson = ((DECODE_PATH_METRICS as any).rawJson || 0) + 1;
+      console.log(`🔓 Payment payload decoded as RAW JSON (not base64, ${trimmed.length} chars) [metrics: rawJson=${(DECODE_PATH_METRICS as any).rawJson}/${DECODE_PATH_METRICS.total}]`);
+      return { success: true, format: 'json', data };
+    } catch (rawJsonError) {
+      // Looks like JSON structure but invalid - continue with base64 decode
+      console.log(`⚠️ Header looks like JSON but failed to parse, trying base64 decode...`);
+    }
+  }
+  
   try {
     const buffer = Buffer.from(base64Header, "base64");
     

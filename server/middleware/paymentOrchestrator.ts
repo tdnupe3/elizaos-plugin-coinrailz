@@ -18,12 +18,14 @@ import { x402Interactions } from "@shared/schema";
 import { createRequire } from "module";
 const require = createRequire(import.meta.url);
 const cbor = require("cbor");
+// MessagePack library for agents using msgpack-encoded payloads
+import { decode as msgpackDecode } from "@msgpack/msgpack";
 
 // Multi-format payment payload decoder
-// Supports: JSON, CBOR, and raw binary EIP-3009 formats for x402 protocol compatibility
+// Supports: JSON, CBOR, MessagePack, and raw binary EIP-3009 formats for x402 protocol compatibility
 interface DecodedPayload {
   success: boolean;
-  format: 'json' | 'cbor' | 'eip3009-binary' | 'unknown';
+  format: 'json' | 'cbor' | 'msgpack' | 'eip3009-binary' | 'unknown';
   data: any;
   error?: string;
   fingerprint?: string;
@@ -34,6 +36,7 @@ interface DecodedPayload {
 const DECODE_PATH_METRICS = {
   json: 0,
   cbor: 0,
+  msgpack: 0,
   'eip3009-binary': 0,
   unknown: 0,
   total: 0,
@@ -190,7 +193,19 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
         console.log(`🔓 Payment payload decoded as CBOR (non-standard, ${buffer.length} bytes) [metrics: cbor=${DECODE_PATH_METRICS.cbor}/${DECODE_PATH_METRICS.total}]`);
         return { success: true, format: 'cbor', data };
       } catch (cborFallbackError) {
-        // Neither JSON nor CBOR worked - try raw binary EIP-3009 format
+        // CBOR failed - try MessagePack (some agents use msgpack encoding)
+        // MessagePack uses similar byte ranges to CBOR but different structure
+        // 0xA0-0xBF in msgpack = fixstr (fixed-length string), not map like CBOR
+        try {
+          const msgpackData = msgpackDecode(buffer);
+          DECODE_PATH_METRICS.msgpack++;
+          console.log(`🔓 Payment payload decoded as MessagePack (${buffer.length} bytes) [metrics: msgpack=${DECODE_PATH_METRICS.msgpack}/${DECODE_PATH_METRICS.total}]`);
+          return { success: true, format: 'msgpack', data: msgpackData };
+        } catch (msgpackError: any) {
+          console.log(`⚠️ MessagePack decode failed: ${msgpackError.message}`);
+        }
+        
+        // Neither JSON, CBOR, nor MessagePack worked - try raw binary EIP-3009 format
         // This handles agents sending raw EIP-3009 transferWithAuthorization data
         const eip3009Data = parseRawEIP3009Binary(buffer);
         if (eip3009Data) {
@@ -215,7 +230,7 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
           success: false, 
           format: 'unknown', 
           data: null, 
-          error: `Unsupported payment format. Expected JSON, CBOR, or EIP-3009 binary.`,
+          error: `Unsupported payment format. Expected JSON, CBOR, MessagePack, or EIP-3009 binary.`,
           fingerprint 
         };
       }
@@ -234,6 +249,7 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
 const KNOWN_AGENT_PATTERNS = [
   { pattern: /python-httpx/i, name: "Python HTTPX Agent", partnerOffer: true },
   { pattern: /x402-fetch/i, name: "x402 Native Client", partnerOffer: true },
+  { pattern: /x402-autonomous-agent/i, name: "x402 Autonomous Agent", partnerOffer: true },
   { pattern: /coinbase/i, name: "Coinbase Agent", partnerOffer: true },
   { pattern: /eliza/i, name: "ElizaOS Agent", partnerOffer: true },
   { pattern: /virtuals/i, name: "Virtuals Protocol", partnerOffer: true },

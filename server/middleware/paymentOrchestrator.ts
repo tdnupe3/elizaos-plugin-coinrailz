@@ -282,10 +282,31 @@ function normalizeCborData(data: any): any {
 function decodePaymentPayload(base64Header: string): DecodedPayload {
   DECODE_PATH_METRICS.total++;
   
-  // CRITICAL FIX: Check if header is already raw JSON (not base64 encoded)
+  const trimmed = base64Header.trim();
+  
+  // CRITICAL FIX #1: Check if header is a raw hex transaction hash (0x...)
+  // Our 402 response tells agents: "Include raw transaction hash (0x...) in X-PAYMENT header"
+  // When agents follow this instruction, we MUST accept the raw tx hash without base64 decoding
+  // Without this check, "0xabc123..." gets base64-decoded into garbage bytes and rejected
+  // This fix enables agents to pay using the direct transaction hash method
+  if (/^0x[0-9a-fA-F]{40,130}$/.test(trimmed)) {
+    // Track raw tx hash format for observability
+    (DECODE_PATH_METRICS as any).rawTxHash = ((DECODE_PATH_METRICS as any).rawTxHash || 0) + 1;
+    console.log(`🔓 Payment payload detected as RAW TRANSACTION HASH (${trimmed.slice(0, 20)}..., ${trimmed.length} chars) [metrics: rawTxHash=${(DECODE_PATH_METRICS as any).rawTxHash}/${DECODE_PATH_METRICS.total}]`);
+    return { 
+      success: true, 
+      format: 'json', // Use 'json' format for compatibility with downstream verification
+      data: { 
+        transactionHash: trimmed,
+        // Mark this as a raw tx hash payment for the verification logic
+        paymentMethod: 'raw-transaction-hash'
+      }
+    };
+  }
+  
+  // CRITICAL FIX #2: Check if header is already raw JSON (not base64 encoded)
   // Some agents (e.g., x402-autonomous-agent) send raw JSON directly in X-PAYMENT header
   // Without this check, raw JSON gets base64-decoded into garbage bytes
-  const trimmed = base64Header.trim();
   if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
       (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
     try {

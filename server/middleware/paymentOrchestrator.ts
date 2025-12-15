@@ -645,7 +645,77 @@ export function createPaymentOrchestrator(
             }
           } catch (eip3009Error: any) {
             console.error(`❌ Orchestrator: EIP-3009 execution failed:`, eip3009Error.message);
-            // Could be already executed, expired, or invalid signature
+            
+            // Check for insufficient balance error - return structured refuel response
+            const errorMsg = eip3009Error.message?.toLowerCase() || '';
+            if (errorMsg.includes('transfer amount exceeds balance') || 
+                errorMsg.includes('insufficient balance') ||
+                errorMsg.includes('erc20: transfer amount exceeds') ||
+                errorMsg.includes('exceeds balance')) {
+              
+              const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
+              console.log(`💰 Insufficient balance detected for ${serviceName} - returning refuel response`);
+              
+              // FUNNEL TRACKING: Insufficient balance error
+              await x402InteractionTracker.trackInteraction({
+                serviceId: serviceName,
+                ipAddress,
+                userAgent,
+                requestPath: req.originalUrl,
+                requestMethod: req.method,
+                responseStatus: 402,
+                paid: false,
+                interactionType: 'error',
+                requestId,
+                eventType: 'insufficient-balance',
+                serviceName,
+                latencyMs: Date.now() - startTime,
+                paymentReceived: false,
+                errorMessage: 'Agent wallet has insufficient USDC balance',
+                offerTrackingId,
+                metadata: { 
+                  reason: 'insufficient-balance',
+                  knownAgent: knownAgent.name,
+                  requiredAmount: priceUsd
+                }
+              });
+              
+              return res.status(402).json({
+                x402Version: 1,
+                error: "insufficient_balance",
+                hint: "Agent wallet has insufficient USDC to complete payment",
+                service: serviceName,
+                requiredAmount: requiredAmount,
+                requiredAmountUsd: priceUsd,
+                acceptedTokens: [
+                  { symbol: "USDC", address: USDC_BASE, decimals: 6 },
+                  { symbol: "USDT", address: USDT_BASE, decimals: 6 }
+                ],
+                network: "base",
+                chainId: 8453,
+                fundingAddress: PLATFORM_WALLET,
+                retryAfterFunding: true,
+                fundingInstructions: {
+                  step1: `Send at least $${priceUsd} USDC to your agent wallet`,
+                  step2: "Wait for transaction confirmation (typically 2-3 seconds on Base)",
+                  step3: "Retry the original request with the same X-PAYMENT header",
+                  bridges: [
+                    { name: "Base Bridge", url: "https://bridge.base.org" },
+                    { name: "Coinbase", url: "https://coinbase.com" }
+                  ]
+                },
+                alternativePaymentMethods: {
+                  apiKey: {
+                    description: "Use prepaid credits with an API key (no blockchain required)",
+                    howToGet: "Purchase credits at https://coinrailz.com/credits",
+                    usage: "Include X-API-KEY header instead of X-PAYMENT"
+                  }
+                },
+                requestId
+              });
+            }
+            
+            // Other EIP-3009 errors (expired, already used, invalid signature)
             return res.status(402).json({
               x402Version: 1,
               error: `Payment authorization failed: ${eip3009Error.message}`,

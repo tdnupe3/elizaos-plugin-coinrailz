@@ -221,10 +221,14 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
           };
         }
         
-        // All formats failed - log fingerprint for debugging
+        // All formats failed - log FULL details for debugging (critical for diagnosing mystery agents)
         DECODE_PATH_METRICS.unknown++;
         const fingerprint = `len=${buffer.length}, first4bytes=${buffer.slice(0, 4).toString('hex')}, firstChar=${String.fromCharCode(firstByte) || '?'}`;
+        // Log first 64 bytes hex dump and full base64 header for analysis
+        const hexDump = buffer.slice(0, Math.min(64, buffer.length)).toString('hex');
         console.log(`❌ Unknown payment format: ${fingerprint} [metrics: unknown=${DECODE_PATH_METRICS.unknown}/${DECODE_PATH_METRICS.total}]`);
+        console.log(`🔍 DEBUG: First 64 bytes (hex): ${hexDump}`);
+        console.log(`🔍 DEBUG: Full base64 header (first 400 chars): ${base64Header.substring(0, 400)}`);
         
         return { 
           success: false, 

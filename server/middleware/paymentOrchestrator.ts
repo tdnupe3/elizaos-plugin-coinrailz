@@ -20,6 +20,8 @@ const require = createRequire(import.meta.url);
 const cbor = require("cbor");
 // MessagePack library for agents using msgpack-encoded payloads
 import { decode as msgpackDecode } from "@msgpack/msgpack";
+// Node.js built-in zlib for gzip/deflate/brotli decompression (supports compressed payloads)
+import * as zlib from "zlib";
 
 // Multi-format payment payload decoder
 // Supports: JSON, CBOR, MessagePack, and raw binary EIP-3009 formats for x402 protocol compatibility
@@ -38,10 +40,64 @@ const DECODE_PATH_METRICS = {
   cbor: 0,
   msgpack: 0,
   'eip3009-binary': 0,
+  'compressed-gzip': 0,
+  'compressed-deflate': 0,
+  'compressed-brotli': 0,
   unknown: 0,
   total: 0,
   lastReset: new Date().toISOString()
 };
+
+// Try to decompress a buffer using common compression formats
+// Returns { success, format, decompressed } or { success: false } if not compressed
+function tryDecompress(buffer: Buffer): { success: boolean; format?: string; decompressed?: Buffer } {
+  // Check for gzip magic bytes (1f 8b)
+  if (buffer.length >= 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
+    try {
+      const decompressed = zlib.gunzipSync(buffer);
+      console.log(`🗜️ Decompressed gzip payload: ${buffer.length} → ${decompressed.length} bytes`);
+      return { success: true, format: 'gzip', decompressed };
+    } catch (e) {
+      console.log(`⚠️ Gzip magic bytes but decompress failed`);
+    }
+  }
+  
+  // Check for zlib/deflate header (78 01, 78 5e, 78 9c, 78 da)
+  if (buffer.length >= 2 && buffer[0] === 0x78 && [0x01, 0x5e, 0x9c, 0xda].includes(buffer[1])) {
+    try {
+      const decompressed = zlib.inflateSync(buffer);
+      console.log(`🗜️ Decompressed zlib/deflate payload: ${buffer.length} → ${decompressed.length} bytes`);
+      return { success: true, format: 'deflate', decompressed };
+    } catch (e) {
+      console.log(`⚠️ Zlib header but decompress failed`);
+    }
+  }
+  
+  // Try brotli (no magic bytes, but we can try if other methods fail)
+  // Brotli is commonly used by modern agents
+  try {
+    const decompressed = zlib.brotliDecompressSync(buffer);
+    if (decompressed.length > 0 && decompressed.length !== buffer.length) {
+      console.log(`🗜️ Decompressed brotli payload: ${buffer.length} → ${decompressed.length} bytes`);
+      return { success: true, format: 'brotli', decompressed };
+    }
+  } catch (e) {
+    // Brotli failed - not brotli compressed
+  }
+  
+  // Try raw deflate (no header)
+  try {
+    const decompressed = zlib.inflateRawSync(buffer);
+    if (decompressed.length > buffer.length) {
+      console.log(`🗜️ Decompressed raw deflate payload: ${buffer.length} → ${decompressed.length} bytes`);
+      return { success: true, format: 'deflate-raw', decompressed };
+    }
+  } catch (e) {
+    // Raw deflate failed
+  }
+  
+  return { success: false };
+}
 
 // Get current decode metrics (can be exposed via /api/metrics if needed)
 export function getDecodePathMetrics() {
@@ -219,6 +275,65 @@ function decodePaymentPayload(base64Header: string): DecodedPayload {
               payload: eip3009Data  // { authorization, signature }
             }
           };
+        }
+        
+        // All uncompressed formats failed - try DECOMPRESSION then re-decode
+        // This handles agents that compress payloads (gzip, brotli, deflate) before base64 encoding
+        const decompressResult = tryDecompress(buffer);
+        if (decompressResult.success && decompressResult.decompressed) {
+          const decompressed = decompressResult.decompressed;
+          const compressionFormat = decompressResult.format || 'unknown';
+          console.log(`🗜️ Trying to decode decompressed payload (${compressionFormat})...`);
+          
+          // Try JSON on decompressed data
+          try {
+            const jsonStr = decompressed.toString("utf-8");
+            const data = JSON.parse(jsonStr);
+            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
+              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            console.log(`🔓 Payment payload decoded as compressed JSON (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
+            return { success: true, format: 'json', data };
+          } catch (jsonError) {
+            // Not JSON
+          }
+          
+          // Try CBOR on decompressed data
+          try {
+            const rawData = cbor.decodeFirstSync(decompressed);
+            const data = normalizeCborData(rawData);
+            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
+              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            console.log(`🔓 Payment payload decoded as compressed CBOR (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
+            return { success: true, format: 'cbor', data };
+          } catch (cborError) {
+            // Not CBOR
+          }
+          
+          // Try MessagePack on decompressed data
+          try {
+            const msgpackData = msgpackDecode(decompressed);
+            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
+              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            console.log(`🔓 Payment payload decoded as compressed MessagePack (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
+            return { success: true, format: 'msgpack', data: msgpackData };
+          } catch (msgpackError) {
+            // Not MessagePack
+          }
+          
+          // Try EIP-3009 on decompressed data
+          const eip3009Decompressed = parseRawEIP3009Binary(decompressed);
+          if (eip3009Decompressed) {
+            DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] = 
+              ((DECODE_PATH_METRICS[`compressed-${compressionFormat}` as keyof typeof DECODE_PATH_METRICS] as number) || 0) + 1;
+            console.log(`🔓 Payment payload decoded as compressed EIP-3009 (${compressionFormat}: ${buffer.length} → ${decompressed.length} bytes)`);
+            return { 
+              success: true, 
+              format: 'eip3009-binary', 
+              data: { payload: eip3009Decompressed }
+            };
+          }
+          
+          console.log(`⚠️ Decompression succeeded (${compressionFormat}) but inner format still unknown`);
         }
         
         // All formats failed - log FULL details for debugging (critical for diagnosing mystery agents)

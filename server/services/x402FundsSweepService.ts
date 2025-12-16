@@ -25,6 +25,10 @@ const LEGACY_UNSWEEPABLE_WALLETS = [
   '0x2f5134f7cb98af03099fa682555ca1dd70d7d688', // Created before current CDP credentials
 ];
 
+// Platform wallet - payments here don't need sweeping (already at destination)
+// x402 protocol sends funds directly to this wallet, no transfer needed
+const PLATFORM_WALLET_ADDRESS = '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91'.toLowerCase();
+
 export class X402FundsSweepService {
   private platformWalletAddress: string | null = null;
   private coinbaseClient: typeof Coinbase | null = null;
@@ -174,6 +178,30 @@ export class X402FundsSweepService {
       const paymentId = payment.id;
       const amount = parseFloat(payment.amount);
       const walletAddress = payment.walletAddress;
+
+      // Check if payment is already at platform wallet (no sweep needed)
+      if (walletAddress.toLowerCase() === PLATFORM_WALLET_ADDRESS) {
+        console.log(`✅ Payment ${paymentId} already at platform wallet - marking as swept`);
+        
+        // Mark as swept (funds are already where they need to be)
+        await db.update(x402Payments).set({
+          metadata: {
+            ...(payment.metadata || {}),
+            swept: true,
+            sweptAt: new Date().toISOString(),
+            directToWallet: true,
+            note: 'x402 payment sent directly to platform wallet - no transfer needed',
+          },
+        }).where(eq(x402Payments.id, paymentId));
+
+        return {
+          success: true,
+          paymentId,
+          amountSwept: amount.toFixed(2),
+          platformFee: (amount * 0.15).toFixed(2),
+          agentCommission: (amount * 0.85).toFixed(2),
+        };
+      }
 
       // Check if this is a legacy wallet that cannot be swept
       if (LEGACY_UNSWEEPABLE_WALLETS.includes(walletAddress.toLowerCase())) {

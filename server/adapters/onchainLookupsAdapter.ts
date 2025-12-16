@@ -105,9 +105,10 @@ export class OnchainLookupsAdapter extends BaseDiscoveryAdapter {
       discoveryPromises.push(this.discoverXMTPAgentsEnhanced(lookupLimit));
     }
     
-    if (this.dataSources.circle.apiKey) {
-      discoveryPromises.push(this.discoverCircleAgents(lookupLimit));
-    }
+    // DISABLED: Circle agent discovery method not implemented
+    // if (this.dataSources.circle.apiKey) {
+    //   discoveryPromises.push(this.discoverCircleAgents(lookupLimit));
+    // }
 
     try {
       const results = await Promise.allSettled(discoveryPromises);

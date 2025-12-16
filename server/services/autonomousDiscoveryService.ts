@@ -102,6 +102,9 @@ class AutonomousDiscoveryService {
         '/api/x402/create-payment',
         '/.well-known/x402.json',
         '/.well-known/agent.json',
+        // x402 ping service
+        '/x402/ping',
+        '/x402',
         // Original 21 x402 services
         '/x402/multi-chain-balance',
         '/x402/gas-price-oracle',
@@ -149,11 +152,36 @@ class AutonomousDiscoveryService {
         '/x402/forex-sentiment'
       ];
       
+      // GPT Action endpoints for ChatGPT integration
+      const gptEndpoints = [
+        '/api/gpt/credits-info',
+        '/api/gpt/gas-prices',
+        '/api/gpt/token-info',
+        '/api/gpt/trending',
+        '/api/gpt/wallet-analysis',
+        '/api/gpt/trade-signals',
+        '/api/gpt/polymarket',
+        '/api/gpt/stock-sentiment',
+        '/api/gpt/forex-sentiment',
+        '/api/gpt/instant-wallet',
+        '/api/gpt/arbitrage-scanner',
+        '/api/gpt/multi-chain-balance',
+        '/openapi-chatgpt.json'
+      ];
+      
       for (const endpoint of x402Endpoints) {
         sitemap += `  <url>\n`;
         sitemap += `    <loc>${baseUrl}${endpoint}</loc>\n`;
         sitemap += `    <lastmod>${now}</lastmod>\n`;
         sitemap += `    <priority>0.9</priority>\n`;
+        sitemap += `  </url>\n`;
+      }
+      
+      for (const endpoint of gptEndpoints) {
+        sitemap += `  <url>\n`;
+        sitemap += `    <loc>${baseUrl}${endpoint}</loc>\n`;
+        sitemap += `    <lastmod>${now}</lastmod>\n`;
+        sitemap += `    <priority>0.8</priority>\n`;
         sitemap += `  </url>\n`;
       }
 
@@ -163,29 +191,49 @@ class AutonomousDiscoveryService {
         { path: '/products/ai-agent-bundle', priority: '0.9' },
         { path: '/bundles', priority: '0.9' },
         { path: '/marketplace', priority: '0.9' },
+        { path: '/ai-marketplace', priority: '0.9' },
         { path: '/x402-docs', priority: '0.8' },
         { path: '/developers', priority: '0.9' },
+        { path: '/quickstart', priority: '0.8' },
+        
+        // Agent Registration & Management
+        { path: '/ai-agent-registration', priority: '0.8' },
+        { path: '/free-agent-registration', priority: '0.8' },
+        { path: '/agent-dashboard', priority: '0.7' },
+        { path: '/credits', priority: '0.7' },
         
         // Trading & Exchange
         { path: '/swap', priority: '0.9' },
         { path: '/buy-sell', priority: '0.9' },
         { path: '/p2p-transfer', priority: '0.9' },
+        { path: '/dex-trading', priority: '0.8' },
         
-        // Cryptocurrency Features
+        // Cryptocurrency Features - XRP
         { path: '/xrp', priority: '0.8' },
         { path: '/xrp/buy-sell', priority: '0.8' },
         { path: '/xrp/trade', priority: '0.8' },
         { path: '/xrp/explorer', priority: '0.7' },
         { path: '/xrp/liquidity', priority: '0.7' },
         { path: '/xrp/cross-border', priority: '0.8' },
+        { path: '/xrp-ecosystem', priority: '0.7' },
+        { path: '/xrp-dex-trading', priority: '0.7' },
+        { path: '/xrp-cross-border-payments', priority: '0.7' },
+        { path: '/xrp-rlusd-trading', priority: '0.7' },
         
+        // Cryptocurrency Features - USDC
         { path: '/usdc', priority: '0.8' },
         { path: '/usdc/buy', priority: '0.8' },
         { path: '/usdc/send', priority: '0.8' },
         { path: '/usdc/bridge', priority: '0.7' },
+        { path: '/usdc-buy', priority: '0.7' },
+        { path: '/usdc-payments', priority: '0.7' },
+        { path: '/usdc-enterprise', priority: '0.7' },
+        { path: '/usdc-ecosystem-dashboard', priority: '0.7' },
         
         // User Dashboard & Wallet
         { path: '/wallet', priority: '0.8' },
+        { path: '/wallet-management', priority: '0.7' },
+        { path: '/cdp-wallet', priority: '0.7' },
         { path: '/dashboard', priority: '0.7' },
         { path: '/portfolio', priority: '0.7' },
         { path: '/transactions', priority: '0.7' },
@@ -199,6 +247,7 @@ class AutonomousDiscoveryService {
         // Authentication & Account
         { path: '/login', priority: '0.6' },
         { path: '/signup', priority: '0.6' },
+        { path: '/auth', priority: '0.6' },
         
         // Documentation & Support
         { path: '/docs', priority: '0.7' },
@@ -207,11 +256,14 @@ class AutonomousDiscoveryService {
         { path: '/docs/x402-protocol', priority: '0.8' },
         { path: '/faq', priority: '0.6' },
         { path: '/support', priority: '0.6' },
+        { path: '/contact', priority: '0.6' },
         
         // Legal & Company Info
         { path: '/about', priority: '0.5' },
         { path: '/privacy', priority: '0.5' },
+        { path: '/privacy-policy', priority: '0.5' },
         { path: '/terms', priority: '0.5' },
+        { path: '/terms-of-service', priority: '0.5' },
       ];
       
       for (const page of userPages) {

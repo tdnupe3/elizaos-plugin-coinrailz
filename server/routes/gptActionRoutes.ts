@@ -1,12 +1,36 @@
 import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
 import { creditsService } from '../services/creditsService';
+import { SERVICE_PRICING_USD, ServiceName, isServiceName } from '@shared/pricing';
 
 const router = Router();
 
 const SUPPORTED_CHAINS = ['ethereum', 'base', 'polygon', 'bsc', 'arbitrum', 'optimism'];
 
-const PREMIUM_SERVICE_COST = 0.10;
+// Map GPT endpoint slugs to canonical service names from shared/pricing.ts
+const GPT_TO_CANONICAL_SERVICE: Record<string, ServiceName> = {
+  'trade-signals': 'trade-signals',
+  'wallet-analysis': 'wallet-risk',  // wallet-analysis → wallet-risk canonical name
+  'polymarket': 'polymarket-odds',   // polymarket → polymarket-odds canonical name
+  'stock-sentiment': 'stock-sentiment',
+  'forex-sentiment': 'forex-sentiment',
+  'instant-wallet': 'instant-agent-wallet',  // instant-wallet → instant-agent-wallet
+  'arbitrage-scanner': 'arbitrage-scanner',
+  'multi-chain-balance': 'multi-chain-balance',
+};
+
+// Get pricing from canonical source (1 credit = $0.10)
+function getGptServicePricing(gptSlug: string): { usd: number; credits: number } {
+  const canonicalName = GPT_TO_CANONICAL_SERVICE[gptSlug];
+  if (canonicalName && isServiceName(canonicalName)) {
+    const usd = SERVICE_PRICING_USD[canonicalName];
+    // Round up to nearest whole credit (e.g., $0.75 = 7.5 → 8 credits)
+    const credits = Math.ceil(usd / 0.10);
+    return { usd, credits };
+  }
+  // Fallback for unknown services
+  return { usd: 0.10, credits: 1 };
+}
 
 router.get('/gas-prices', async (req: Request, res: Response) => {
   try {
@@ -136,7 +160,7 @@ router.get('/trending', async (req: Request, res: Response) => {
   }
 });
 
-async function validateAndChargeApiKey(req: Request, serviceName: string): Promise<{ valid: boolean; userId?: string; error?: string }> {
+async function validateAndChargeApiKey(req: Request, serviceName: string): Promise<{ valid: boolean; userId?: string; error?: string; chargedAmount?: number }> {
   const apiKey = req.headers['x-api-key'] as string || 
                  (req.headers['authorization'] as string)?.replace('Bearer ', '');
   
@@ -148,6 +172,11 @@ async function validateAndChargeApiKey(req: Request, serviceName: string): Promi
     return { valid: false, error: 'Invalid API key format. Keys must start with cr_live_' };
   }
   
+  // Get per-service cost from canonical pricing (1 credit = $0.10)
+  const pricing = getGptServicePricing(serviceName);
+  const serviceCostUSD = pricing.usd;
+  const serviceCostCredits = pricing.credits;
+  
   try {
     const validation = await creditsService.validateApiKey(apiKey);
     if (!validation.valid) {
@@ -155,20 +184,20 @@ async function validateAndChargeApiKey(req: Request, serviceName: string): Promi
     }
     
     const balance = await creditsService.getBalance(validation.userId!);
-    if (balance < PREMIUM_SERVICE_COST) {
-      return { valid: false, error: `Insufficient credits. Required: $${PREMIUM_SERVICE_COST}, Available: $${balance.toFixed(2)}. Purchase more at https://coinrailz.com/credits` };
+    if (balance < serviceCostUSD) {
+      return { valid: false, error: `Insufficient credits. Required: $${serviceCostUSD.toFixed(2)} (${serviceCostCredits} credits), Available: $${balance.toFixed(2)}. Purchase more at https://coinrailz.com/credits` };
     }
     
     await creditsService.deductCredits({
       userId: validation.userId!,
-      amount: PREMIUM_SERVICE_COST,
+      amount: serviceCostUSD,
       serviceName,
-      description: `GPT Action: ${serviceName}`
+      description: `GPT Action: ${serviceName} ($${serviceCostUSD.toFixed(2)})`
     });
     
-    console.log(`💳 GPT Premium: Charged $${PREMIUM_SERVICE_COST} for ${serviceName} (user: ${validation.userId})`);
+    console.log(`💳 GPT Premium: Charged $${serviceCostUSD.toFixed(2)} (${serviceCostCredits} credits) for ${serviceName} (user: ${validation.userId})`);
     
-    return { valid: true, userId: validation.userId };
+    return { valid: true, userId: validation.userId, chargedAmount: serviceCostUSD };
   } catch (error: any) {
     console.error('GPT API key validation error:', error.message);
     return { valid: false, error: error.message || 'Validation failed' };
@@ -211,7 +240,7 @@ router.get('/trade-signals', async (req: Request, res: Response) => {
         reasoning: `Based on technical analysis of ${symbol} on ${timeframe} timeframe. RSI at 55, MACD showing ${action === 'BUY' ? 'bullish' : action === 'SELL' ? 'bearish' : 'neutral'} divergence.`,
         disclaimer: 'Not financial advice. Always do your own research.'
       },
-      creditsCharged: PREMIUM_SERVICE_COST
+      creditsCharged: validation.chargedAmount
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -256,7 +285,7 @@ router.get('/wallet-analysis', async (req: Request, res: Response) => {
         ],
         disclaimer: 'Analysis based on public blockchain data. Not financial advice.'
       },
-      creditsCharged: PREMIUM_SERVICE_COST
+      creditsCharged: validation.chargedAmount
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -294,7 +323,7 @@ router.get('/polymarket', async (req: Request, res: Response) => {
       query: query || 'all',
       markets: filtered.slice(0, limit),
       disclaimer: 'Data sourced from public prediction markets. Not investment advice.',
-      creditsCharged: PREMIUM_SERVICE_COST
+      creditsCharged: validation.chargedAmount
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
@@ -324,7 +353,7 @@ router.get('/stock-sentiment', async (req: Request, res: Response) => {
     res.json({
       success: true,
       analysis: result,
-      creditsCharged: PREMIUM_SERVICE_COST,
+      creditsCharged: validation.chargedAmount,
       disclaimer: 'AI-powered analysis using Yahoo Finance data. Not financial advice.'
     });
   } catch (error: any) {
@@ -355,7 +384,7 @@ router.get('/forex-sentiment', async (req: Request, res: Response) => {
     res.json({
       success: true,
       analysis: result,
-      creditsCharged: PREMIUM_SERVICE_COST,
+      creditsCharged: validation.chargedAmount,
       disclaimer: 'AI-powered analysis using ECB/Frankfurter data. Not financial advice.'
     });
   } catch (error: any) {
@@ -390,7 +419,7 @@ router.get('/instant-wallet', async (req: Request, res: Response) => {
     res.json({
       success: true,
       wallet,
-      creditsCharged: PREMIUM_SERVICE_COST,
+      creditsCharged: validation.chargedAmount,
       note: 'This is a demo wallet. For production wallets with real funds, use our full API at coinrailz.com'
     });
   } catch (error: any) {
@@ -423,7 +452,7 @@ router.get('/arbitrage-scanner', async (req: Request, res: Response) => {
       scanTime: new Date().toISOString(),
       opportunities,
       totalOpportunitiesFound: opportunities.length,
-      creditsCharged: PREMIUM_SERVICE_COST,
+      creditsCharged: validation.chargedAmount,
       disclaimer: 'Arbitrage opportunities are time-sensitive. Execute quickly. Not financial advice.'
     });
   } catch (error: any) {
@@ -466,7 +495,7 @@ router.get('/multi-chain-balance', async (req: Request, res: Response) => {
       wallet,
       balances,
       totalValueUSD: `$${totalUSD.toFixed(2)}`,
-      creditsCharged: PREMIUM_SERVICE_COST,
+      creditsCharged: validation.chargedAmount,
       note: 'Demo data shown. Connect to live API for real balances.'
     });
   } catch (error: any) {
@@ -475,28 +504,42 @@ router.get('/multi-chain-balance', async (req: Request, res: Response) => {
 });
 
 router.get('/credits-info', async (_req: Request, res: Response) => {
+  // Build premium services list dynamically from canonical pricing
+  const premiumServices = [
+    { slug: 'instant-wallet', name: 'Instant Wallet', description: 'Create AI agent wallet instantly' },
+    { slug: 'arbitrage-scanner', name: 'Arbitrage Scanner', description: 'Find DEX arbitrage opportunities' },
+    { slug: 'trade-signals', name: 'Trade Signals', description: 'AI-powered crypto trading signals' },
+    { slug: 'multi-chain-balance', name: 'Multi-Chain Balance', description: 'Check wallet across all chains' },
+    { slug: 'wallet-analysis', name: 'Wallet Analysis', description: 'Deep wallet risk analysis' },
+    { slug: 'polymarket', name: 'Polymarket Odds', description: 'Prediction market data' },
+    { slug: 'stock-sentiment', name: 'Stock Sentiment', description: 'AI stock analysis with Yahoo Finance data' },
+    { slug: 'forex-sentiment', name: 'Forex Sentiment', description: 'AI forex analysis with ECB rates' }
+  ].map(svc => {
+    const pricing = getGptServicePricing(svc.slug);
+    return {
+      name: svc.name,
+      endpoint: `/api/gpt/${svc.slug}`,
+      cost: `$${pricing.usd.toFixed(2)} (${pricing.credits} credits)`,
+      usd: pricing.usd,
+      credits: pricing.credits,
+      description: svc.description
+    };
+  });
+  
   res.json({
     success: true,
     pricing: {
+      note: '1 credit = $0.10 USD. Prices shown in both USD and credits.',
       freeServices: [
-        { name: 'Gas Prices', endpoint: '/api/gpt/gas-prices', description: 'Real-time gas prices across 6 chains' },
-        { name: 'Token Info', endpoint: '/api/gpt/token-info', description: 'Token metadata and current price' },
-        { name: 'Trending Tokens', endpoint: '/api/gpt/trending', description: 'Currently trending cryptocurrencies' }
+        { name: 'Gas Prices', endpoint: '/api/gpt/gas-prices', cost: 'FREE', description: 'Real-time gas prices across 6 chains' },
+        { name: 'Token Info', endpoint: '/api/gpt/token-info', cost: 'FREE', description: 'Token metadata and current price' },
+        { name: 'Trending Tokens', endpoint: '/api/gpt/trending', cost: 'FREE', description: 'Currently trending cryptocurrencies' }
       ],
-      premiumServices: [
-        { name: 'Instant Wallet', endpoint: '/api/gpt/instant-wallet', cost: '1 credit', description: 'Create AI agent wallet instantly' },
-        { name: 'Arbitrage Scanner', endpoint: '/api/gpt/arbitrage-scanner', cost: '1 credit', description: 'Find DEX arbitrage opportunities' },
-        { name: 'Multi-Chain Balance', endpoint: '/api/gpt/multi-chain-balance', cost: '1 credit', description: 'Check wallet across all chains' },
-        { name: 'Trade Signals', endpoint: '/api/gpt/trade-signals', cost: '1 credit', description: 'AI-powered crypto trading signals' },
-        { name: 'Wallet Analysis', endpoint: '/api/gpt/wallet-analysis', cost: '1 credit', description: 'Deep wallet risk analysis' },
-        { name: 'Polymarket Odds', endpoint: '/api/gpt/polymarket', cost: '1 credit', description: 'Prediction market data' },
-        { name: 'Stock Sentiment', endpoint: '/api/gpt/stock-sentiment', cost: '1 credit', description: 'AI stock analysis with Yahoo Finance data' },
-        { name: 'Forex Sentiment', endpoint: '/api/gpt/forex-sentiment', cost: '1 credit', description: 'AI forex analysis with ECB rates' }
-      ],
+      premiumServices,
       creditPackages: [
-        { name: 'Starter', price: '$10', credits: 100 },
-        { name: 'Pro', price: '$50', credits: 600 },
-        { name: 'Enterprise', price: '$200', credits: 3000 }
+        { name: 'Starter', price: '$10', credits: 100, perCredit: '$0.10' },
+        { name: 'Pro', price: '$50', credits: 600, perCredit: '$0.083', savings: '17%' },
+        { name: 'Enterprise', price: '$200', credits: 3000, perCredit: '$0.067', savings: '33%' }
       ],
       purchaseUrl: 'https://coinrailz.com/credits',
       paymentMethods: ['Credit Card (Stripe)', 'USDC on Base Chain', 'PayPal']

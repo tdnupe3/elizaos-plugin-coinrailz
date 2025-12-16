@@ -3437,6 +3437,22 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       res.sendFile(specPath);
     });
     
+    // Explicit route for ChatGPT GPT Action OpenAPI schema
+    app.get('/openapi-chatgpt.json', (_req, res) => {
+      const specPath = path.resolve(process.cwd(), 'public', 'openapi-chatgpt.json');
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.sendFile(specPath);
+    });
+    
+    // Explicit route for ChatGPT GPT instructions
+    app.get('/gpt-instructions.md', (_req, res) => {
+      const specPath = path.resolve(process.cwd(), 'public', 'gpt-instructions.md');
+      res.setHeader('Content-Type', 'text/markdown');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.sendFile(specPath);
+    });
+    
     serveStatic(app);
     console.log('✅ Static file serving configured');
   }
@@ -3452,6 +3468,19 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   
   // Setup Vite for development mode AFTER server is listening
   if (!isProduction) {
+    // Add explicit routes for static files BEFORE Vite to prevent fallback to HTML
+    app.get('/openapi-chatgpt.json', (_req, res) => {
+      const specPath = path.resolve(process.cwd(), 'public', 'openapi-chatgpt.json');
+      res.setHeader('Content-Type', 'application/json');
+      res.sendFile(specPath);
+    });
+    
+    app.get('/gpt-instructions.md', (_req, res) => {
+      const specPath = path.resolve(process.cwd(), 'public', 'gpt-instructions.md');
+      res.setHeader('Content-Type', 'text/markdown');
+      res.sendFile(specPath);
+    });
+    
     try {
       await setupVite(app, httpServer);
       console.log('✅ Vite HMR ready');

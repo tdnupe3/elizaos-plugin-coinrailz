@@ -381,6 +381,18 @@ Questions? Reply to this message or contact support@coinrailz.com
   // 💰 Real-time Crypto Pricing Routes (CoinGecko)
   app.use('/api/prices', await import('./routes/pricingRoutes').then(m => m.default));
 
+  // 🤖 ChatGPT GPT Action API Routes - Hybrid free/premium model
+  // Uses deferred router pattern (same as SDK routes) to work with Vite in dev mode
+  const gptActionRoutes = await import('./routes/gptActionRoutes').then(m => m.default);
+  const deferredGptRouter = (app as any)._deferredGptRouter;
+  if (deferredGptRouter) {
+    deferredGptRouter.use('/', gptActionRoutes);
+    console.log('✅ ChatGPT GPT Action routes populated on deferred router');
+  } else {
+    app.use('/api/gpt', gptActionRoutes);
+    console.log('✅ ChatGPT GPT Action routes registered directly at /api/gpt');
+  }
+
   // 🎯 Lead Scoring System for Outreach Optimization (Authenticated)
   const leadScoringRoutes = await import('./routes/leadScoringRoutes').then(m => m.default);
   app.use('/api/leads', isAuthenticated, leadScoringRoutes);

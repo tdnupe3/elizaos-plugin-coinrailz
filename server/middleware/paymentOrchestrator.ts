@@ -35,9 +35,34 @@ interface DecodedPayload {
 
 // SECURITY GUARDRAILS: Size limits to prevent resource exhaustion attacks
 // These values are conservative but allow legitimate x402 payment payloads
-const MAX_HEADER_SIZE = 4096;        // 4KB max base64 header size before decode
-const MAX_DECOMPRESSED_SIZE = 65536; // 64KB max decompressed payload size
-const MIN_BROTLI_SIZE = 32;          // Don't attempt brotli on tiny payloads
+const MAX_HEADER_SIZE = 4096;              // 4KB max for uncompressed payloads
+const MAX_COMPRESSED_INPUT_SIZE = 12288;   // 12KB max for compressed payloads (Coinbase facilitator uses ~5.8KB msgpack+gzip)
+const MAX_DECOMPRESSED_SIZE = 65536;       // 64KB max decompressed payload size
+const MIN_BROTLI_SIZE = 32;                // Don't attempt brotli on tiny payloads
+
+// Helper to detect if buffer starts with compression magic bytes
+// Used to allow larger inputs for known-compressed payloads (security-safe path)
+function hasCompressionSignature(buffer: Buffer): { isCompressed: boolean; format?: string } {
+  if (buffer.length < 2) return { isCompressed: false };
+  
+  // Gzip magic bytes: 0x1f 0x8b
+  if (buffer[0] === 0x1f && buffer[1] === 0x8b) {
+    return { isCompressed: true, format: 'gzip' };
+  }
+  
+  // Zlib/deflate header: 0x78 followed by 0x01, 0x5e, 0x9c, or 0xda
+  if (buffer[0] === 0x78 && [0x01, 0x5e, 0x9c, 0xda].includes(buffer[1])) {
+    return { isCompressed: true, format: 'deflate' };
+  }
+  
+  // CBOR/MessagePack prefixes that Coinbase facilitator uses
+  // 0x82-0x9f = msgpack fixarray, 0xa0-0xbf = msgpack fixmap/fixstr, 0xb6 = specific facilitator prefix
+  if ((buffer[0] >= 0x80 && buffer[0] <= 0xbf) || buffer[0] === 0xd9 || buffer[0] === 0xda || buffer[0] === 0xdb) {
+    return { isCompressed: true, format: 'cbor-msgpack' };
+  }
+  
+  return { isCompressed: false };
+}
 
 // OBSERVABILITY: Decode-path metrics counter (ChatGPT recommendation)
 // Tracks which payment formats are being used for monitoring and analysis
@@ -79,11 +104,21 @@ function tryDecompress(buffer: Buffer): { success: boolean; format?: string; dec
   DECOMPRESS_METRICS.attempted++;
   DECOMPRESS_METRICS.bytes_in_total += buffer.length;
   
+  // SMART SIZE LIMIT: Use higher limit for buffers with compression/CBOR/msgpack signatures
+  // This allows Coinbase facilitator payloads (~5.8KB msgpack+gzip) while blocking random large inputs
+  const compressionCheck = hasCompressionSignature(buffer);
+  const effectiveMaxSize = compressionCheck.isCompressed ? MAX_COMPRESSED_INPUT_SIZE : MAX_HEADER_SIZE;
+  
   // GUARDRAIL: Reject oversized input buffers before any decompression attempt
-  if (buffer.length > MAX_HEADER_SIZE) {
+  if (buffer.length > effectiveMaxSize) {
     DECOMPRESS_METRICS.rejected_input_too_large++;
-    console.warn(`🛡️ GUARDRAIL: Rejected oversized input buffer (${buffer.length} > ${MAX_HEADER_SIZE} bytes)`);
+    console.warn(`🛡️ GUARDRAIL: Rejected oversized input buffer (${buffer.length} > ${effectiveMaxSize} bytes, format=${compressionCheck.format || 'unknown'})`);
     return { success: false, rejected: 'input_too_large' };
+  }
+  
+  // Log when we're allowing a larger payload through the compressed path
+  if (buffer.length > MAX_HEADER_SIZE && compressionCheck.isCompressed) {
+    console.log(`✅ Allowing larger payload (${buffer.length} bytes) - detected ${compressionCheck.format} signature`);
   }
   
   // CRITICAL: Use maxOutputLength option to abort decompression BEFORE full expansion

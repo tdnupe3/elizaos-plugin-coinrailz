@@ -3416,6 +3416,14 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   // Store reference for deferred population in server/routes.ts
   (app as any)._deferredSdkRouter = sdkRouter;
   
+  // ============================================================================
+  // GPT ACTION ROUTES - Same deferred pattern for ChatGPT integration
+  // ============================================================================
+  const gptRouter = Router();
+  app.use('/api/gpt', gptRouter);
+  console.log('✅ GPT Action router placeholder registered (pre-static)');
+  (app as any)._deferredGptRouter = gptRouter;
+  
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');

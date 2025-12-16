@@ -301,6 +301,68 @@ router.get('/polymarket', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/stock-sentiment', async (req: Request, res: Response) => {
+  const symbol = (req.query.symbol as string)?.toUpperCase();
+  
+  if (!symbol) {
+    return res.status(400).json({ success: false, error: 'Stock symbol is required (e.g., AAPL, TSLA, MSFT)' });
+  }
+  
+  const validation = await validateAndChargeApiKey(req, 'stock-sentiment');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const { stockSentimentService } = await import('./microservices/markets');
+    const result = await stockSentimentService({ symbol });
+    
+    res.json({
+      success: true,
+      analysis: result,
+      creditsCharged: PREMIUM_SERVICE_COST,
+      disclaimer: 'AI-powered analysis using Yahoo Finance data. Not financial advice.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/forex-sentiment', async (req: Request, res: Response) => {
+  const pair = (req.query.pair as string)?.toUpperCase();
+  
+  if (!pair) {
+    return res.status(400).json({ success: false, error: 'Currency pair is required (e.g., EURUSD, GBPJPY)' });
+  }
+  
+  const validation = await validateAndChargeApiKey(req, 'forex-sentiment');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const { forexSentimentService } = await import('./microservices/markets');
+    const result = await forexSentimentService({ pair });
+    
+    res.json({
+      success: true,
+      analysis: result,
+      creditsCharged: PREMIUM_SERVICE_COST,
+      disclaimer: 'AI-powered analysis using ECB/Frankfurter data. Not financial advice.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.get('/credits-info', async (_req: Request, res: Response) => {
   res.json({
     success: true,
@@ -311,9 +373,11 @@ router.get('/credits-info', async (_req: Request, res: Response) => {
         { name: 'Trending Tokens', endpoint: '/api/gpt/trending', description: 'Currently trending cryptocurrencies' }
       ],
       premiumServices: [
-        { name: 'Trade Signals', endpoint: '/api/gpt/trade-signals', cost: '1 credit', description: 'AI-powered trading signals' },
+        { name: 'Trade Signals', endpoint: '/api/gpt/trade-signals', cost: '1 credit', description: 'AI-powered crypto trading signals' },
         { name: 'Wallet Analysis', endpoint: '/api/gpt/wallet-analysis', cost: '1 credit', description: 'Deep wallet risk analysis' },
-        { name: 'Polymarket Odds', endpoint: '/api/gpt/polymarket', cost: '1 credit', description: 'Prediction market data' }
+        { name: 'Polymarket Odds', endpoint: '/api/gpt/polymarket', cost: '1 credit', description: 'Prediction market data' },
+        { name: 'Stock Sentiment', endpoint: '/api/gpt/stock-sentiment', cost: '1 credit', description: 'AI stock analysis with Yahoo Finance data' },
+        { name: 'Forex Sentiment', endpoint: '/api/gpt/forex-sentiment', cost: '1 credit', description: 'AI forex analysis with ECB rates' }
       ],
       creditPackages: [
         { name: 'Starter', price: '$10', credits: 100 },

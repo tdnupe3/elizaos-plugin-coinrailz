@@ -536,6 +536,42 @@
   <priority>0.7</priority>
 </url>
 
+<!-- ChatGPT GPT Action API Endpoints -->
+<url>
+  <loc>https://coinrailz.com/openapi-chatgpt.json</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/api/gpt/gas-prices</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.6</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/api/gpt/token-info</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.6</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/api/gpt/trending</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.6</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/api/gpt/credits-info</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.6</priority>
+</url>
+
 <!-- Legal & Information Pages -->
 <url>
   <loc>https://coinrailz.com/privacy-policy</loc>

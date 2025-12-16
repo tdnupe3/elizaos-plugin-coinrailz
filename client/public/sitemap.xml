@@ -58,6 +58,13 @@
 </url>
 
 <url>
+  <loc>https://coinrailz.com/api/gpt/arbitrage-scanner</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
   <loc>https://coinrailz.com/api/gpt/credits-info</loc>
   <lastmod>2025-12-16</lastmod>
   <changefreq>daily</changefreq>
@@ -73,6 +80,20 @@
 
 <url>
   <loc>https://coinrailz.com/api/gpt/gas-prices</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/api/gpt/instant-wallet</loc>
+  <lastmod>2025-12-16</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/api/gpt/multi-chain-balance</loc>
   <lastmod>2025-12-16</lastmod>
   <changefreq>daily</changefreq>
   <priority>0.8</priority>

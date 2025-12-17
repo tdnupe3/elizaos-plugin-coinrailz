@@ -31,18 +31,18 @@ function createTestApp() {
   // Apply tracking middleware
   app.use('/x402', x402TrackingMiddleware);
   
-  // Test endpoint that returns 402
+  // Test endpoint that returns 402 (V2 format)
   app.get('/x402/test-service', (req: Request, res: Response) => {
     res.status(402).json({
-      x402Version: 1,
+      x402Version: 2,
       error: 'X-PAYMENT header is required',
       accepts: [{
         scheme: 'exact',
-        network: 'base',
+        network: 'eip155:8453',
         maxAmountRequired: '100000',
         discoverable: true,
       }],
-      facilitatorUrl: 'https://facilitator.x402.io'
+      facilitatorUrl: 'https://x402.org/facilitator'
     });
   });
   

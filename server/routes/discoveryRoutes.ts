@@ -166,7 +166,7 @@ router.get('/.well-known/openapi.json', (req, res) => {
         },
         "x-pricing": "$0.10 - $5.00 per request",
         "x-payment-protocol": "x402",
-        "x-payment-networks": ["base", "ethereum", "polygon", "arbitrum", "optimism"]
+        "x-payment-networks": ["eip155:8453", "eip155:1", "eip155:137", "eip155:42161", "eip155:10"]
       },
       "servers": [
         {
@@ -195,7 +195,7 @@ router.get('/.well-known/openapi.json', (req, res) => {
               "error": { "type": "string", "example": "Payment required" },
               "price_usd": { "type": "number", "example": 0.50 },
               "payment_address": { "type": "string", "example": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91" },
-              "network": { "type": "string", "example": "base" },
+              "network": { "type": "string", "example": "eip155:8453" },
               "currency": { "type": "string", "example": "USDC" }
             }
           }

@@ -46,23 +46,23 @@ async function runTests() {
     (data) => data.protocolVersion === '0.3.0' && Array.isArray(data.skills) && data.skills.length === 18
   );
   
-  // 2. x402 Payment-Gated Services
+  // 2. x402 Payment-Gated Services (V2 format)
   await testEndpoint(
     'x402: Smart Contract Audit',
     `${BASE_URL}/x402/service/smart-contract-audit`,
-    (data) => data.x402Version === 1
+    (data) => data.x402Version === 2
   );
   
   await testEndpoint(
     'x402: Payment Processing',
     `${BASE_URL}/x402/service/payment-processing`,
-    (data) => data.x402Version === 1
+    (data) => data.x402Version === 2
   );
   
   await testEndpoint(
     'x402: Gas Price Oracle',
     `${BASE_URL}/x402/service/gas-price-oracle`,
-    (data) => data.x402Version === 1
+    (data) => data.x402Version === 2
   );
   
   // 3. Real Microservices

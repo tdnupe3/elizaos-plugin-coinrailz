@@ -342,6 +342,45 @@ export class ServiceCatalogService {
         x402Compatible: true,
         stripeCompatible: true
       },
+      {
+        id: 'verified-agent-identity',
+        name: 'Verified Agent Identity (KYA)',
+        description: 'Know-Your-Agent identity verification with on-chain reputation and ERC-8004 compliance scoring',
+        endpoint: '/x402/verified-agent-identity',
+        priceUSD: '$5.00',
+        priceUSDC: '5.00 USDC',
+        network: 'eip155:8453',
+        category: 'premium',
+        capabilities: ['kya', 'identity-verification', 'erc-8004', 'reputation', 'compliance'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'compliance-consultation',
+        name: 'Compliance Consultation',
+        description: 'Expert compliance consultation for crypto operations and regulatory requirements',
+        endpoint: '/x402/compliance-consultation',
+        priceUSD: '$5.00',
+        priceUSDC: '5.00 USDC',
+        network: 'eip155:8453',
+        category: 'premium',
+        capabilities: ['compliance', 'regulatory', 'consultation', 'aml', 'kyc'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      {
+        id: 'agent-create-wallet',
+        name: 'Agent Wallet Provisioning',
+        description: 'Create CDP-managed wallets for AI agents with instant USDC support on Base',
+        endpoint: '/x402/agent-create-wallet',
+        priceUSD: '$2.00',
+        priceUSDC: '2.00 USDC',
+        network: 'eip155:8453',
+        category: 'execution',
+        capabilities: ['wallet-creation', 'cdp-wallet', 'agent-provisioning', 'usdc-ready'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
       // Real Estate (3)
       {
         id: 'property-valuation',

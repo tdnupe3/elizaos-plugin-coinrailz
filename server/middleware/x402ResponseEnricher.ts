@@ -166,9 +166,11 @@ function createPaymentInstructions() {
     step4: "Retry the request with X-PAYMENT header",
     supportedMethods: [
       { method: "eip3009-authorization", tokens: ["USDC"], description: "Gasless transfer via EIP-3009 signature" },
-      { method: "raw-transaction-hash", tokens: ["USDC", "USDT"], description: "Direct transfer verified on-chain" }
+      { method: "raw-transaction-hash", tokens: ["USDC", "USDT"], description: "Direct transfer verified on-chain" },
+      { method: "api-key", tokens: ["prepaid-credits"], description: "Use prepaid credits with X-API-KEY header (no blockchain required)" }
     ],
-    network: "eip155:8453",
+    network: "base", // Legacy format for x402-fetch compatibility
+    x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
     chainId: 8453,
     acceptedTokens: [
       { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", name: "USD Coin", supportsEIP3009: true },
@@ -214,6 +216,17 @@ export function x402ResponseEnricher() {
           
           enriched.resource = normalizeResourceUrl(paymentReq.resource, endpoint);
           enriched.discoverable = true;
+          
+          // CRITICAL FIX: Add backward-compatible legacy network format for x402-fetch v0.7.3
+          // x402-fetch uses Zod validation that only accepts legacy names ("base", "polygon")
+          // but x402 V2 spec requires CAIP-2 format ("eip155:8453")
+          // Solution: Include BOTH formats for maximum compatibility
+          // - network: "base" (legacy format for x402-fetch and older clients)
+          // - x402Network: "eip155:8453" (V2 format for spec compliance)
+          if (enriched.network === 'eip155:8453' || !enriched.network) {
+            enriched.network = 'base'; // Legacy format for x402-fetch compatibility
+            enriched.x402Network = 'eip155:8453'; // V2 CAIP-2 format for compliance
+          }
           
           if (paymentReq.maxAmountRequired && !paymentReq.maxAmountRequiredUSD) {
             enriched.maxAmountRequiredUSD = microToUSD(paymentReq.maxAmountRequired);

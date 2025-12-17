@@ -257,7 +257,8 @@ router.get('/catalog', async (req: Request, res: Response) => {
       catalogUrl: summary.catalogUrl,
       facilitatorUrl: 'https://x402.org/facilitator',
       totalServices: summary.totalServices,
-      network: 'eip155:8453',
+      network: 'base', // Legacy format for x402-fetch v0.7.3 compatibility
+      x402Network: 'eip155:8453', // V2 CAIP-2 format for spec compliance
       paymentAsset: {
         symbol: 'USDC',
         address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -1686,7 +1687,8 @@ router.use((req: Request, res: Response, next) => {
           step4: "Retry the request with X-PAYMENT header",
           alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
           supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
-          network: "eip155:8453",
+          network: "base", // Legacy format for x402-fetch compatibility
+          x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
           chainId: 8453,
           token: "USDC",
           tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -1762,7 +1764,8 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
-      network: "eip155:8453",
+      network: "base", // Legacy format for x402-fetch v0.7.3 compatibility
+      x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
       maxAmountRequired: priceInMicroUnits,
       maxAmountRequiredUSD: `$${priceUsd.toFixed(2)}`,
       resource: resourceUrl,
@@ -1802,7 +1805,8 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       step4: "Retry the request with X-PAYMENT header",
       alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
       supportedMethods: ["eip3009-authorization", "raw-transaction-hash", "api-key"],
-      network: "eip155:8453",
+      network: "base", // Legacy format for x402-fetch compatibility
+      x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
       chainId: 8453,
       token: "USDC",
       tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -1867,7 +1871,8 @@ enterpriseDirectEndpoints.forEach(service => {
       error: "X-PAYMENT header is required",
       accepts: [{
         scheme: "exact",
-        network: "eip155:8453",
+        network: "base", // Legacy format for x402-fetch v0.7.3 compatibility
+        x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
         maxAmountRequired: String(priceInMicro),
         maxAmountRequiredUSD: service.price,
         resource: `${PUBLIC_BASE_URL}/x402/service/${service.slug}`,

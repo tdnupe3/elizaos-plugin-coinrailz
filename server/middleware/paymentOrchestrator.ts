@@ -1244,7 +1244,8 @@ function generate402Response(
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
-      network: "eip155:8453",
+      network: "base", // Legacy format for x402-fetch v0.7.3 compatibility
+      x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
       resource: resource,

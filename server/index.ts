@@ -141,6 +141,28 @@ validateProductionReadiness();
 const app = express();
 const port = parseInt(process.env.PORT || '5000', 10);
 
+// CRITICAL: Health check endpoint MUST be first - before ALL middleware
+// This ensures Replit autoscale Promote health checks pass immediately
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Also respond to root health check with 200 immediately (before any paywall middleware)
+app.get('/', (req, res, next) => {
+  // If this is a health check (no Accept header or basic request), respond immediately
+  const userAgent = req.headers['user-agent'] || '';
+  const acceptHeader = req.headers['accept'] || '';
+  
+  // Health checks typically have minimal headers or specific user agents
+  if (userAgent.includes('health') || userAgent.includes('kube') || userAgent.includes('Replit') ||
+      (!acceptHeader.includes('text/html') && !acceptHeader.includes('*/*'))) {
+    return res.status(200).json({ status: 'ok', service: 'coinrailz', timestamp: new Date().toISOString() });
+  }
+  
+  // For browser requests, continue to next handler (Vite frontend)
+  next();
+});
+
 // STRIPE WEBHOOKS BEFORE JSON PARSER - Critical for raw body signature verification
 import { stripeWebhookHandler } from './routes/stripePaymentRoutes.js';
 import { creditsStripeWebhookHandler } from './routes/creditsRoutes.js';

@@ -7,8 +7,10 @@ import * as schema from "@shared/schema";
 // Production uses HTTP fetch mode to avoid the Neon/esbuild WebSocket bundling bug:
 // "Cannot set property message of # which has only a getter"
 // See: https://github.com/brianc/node-postgres/issues/3373
-// CRITICAL: Also check REPLIT_DEPLOYMENT for autoscale environments
-const isProduction = process.env.NODE_ENV === 'production' || process.env.REPLIT_DEPLOYMENT === '1';
+// CRITICAL: Check REPLIT_DEPLOYMENT for autoscale environments (can be "1" or "true")
+const deploymentFlag = process.env.REPLIT_DEPLOYMENT?.toLowerCase();
+const isDeployment = deploymentFlag === '1' || deploymentFlag === 'true';
+const isProduction = process.env.NODE_ENV === 'production' || isDeployment;
 if (isProduction) {
   neonConfig.fetchConnectionCache = true;
   neonConfig.poolQueryViaFetch = true;

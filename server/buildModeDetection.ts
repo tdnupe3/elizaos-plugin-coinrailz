@@ -12,9 +12,13 @@ const IS_BUILD_PROCESS = process.env.npm_lifecycle_event === 'build';
 const IS_ESBUILD_PROCESS = process.argv.includes('--bundle') || process.argv.includes('esbuild');
 const IS_VITE_BUILD = process.argv.includes('vite') && process.argv.includes('build');
 
+// Normalize REPLIT_DEPLOYMENT (can be "1" or "true" depending on deploy phase)
+const deploymentFlag = process.env.REPLIT_DEPLOYMENT?.toLowerCase();
+const IS_DEPLOYMENT_SET = deploymentFlag === '1' || deploymentFlag === 'true';
+
 // REPLIT_DEPLOYMENT is only a BUILD indicator when combined with build tooling
 // During runtime, dist/index.js runs directly without these build args
-const IS_REPLIT_BUILD_PHASE = process.env.REPLIT_DEPLOYMENT === '1' && (IS_BUILD_PROCESS || IS_ESBUILD_PROCESS || IS_VITE_BUILD);
+const IS_REPLIT_BUILD_PHASE = IS_DEPLOYMENT_SET && (IS_BUILD_PROCESS || IS_ESBUILD_PROCESS || IS_VITE_BUILD);
 
 // RUNTIME detection - these are for logging only, NOT for disabling services
 const IS_PRODUCTION_STARTUP = process.env.NODE_ENV === 'production';
@@ -22,7 +26,7 @@ const IS_DIST_EXECUTION = process.argv[1]?.includes('dist/index.js') || process.
 const IS_BUNDLED_EXECUTION = process.argv[1]?.endsWith('dist/index.js');
 const IS_REPLIT_CONTAINER = !!(process.env.REPL_ID && process.env.NODE_ENV === 'production');
 const IS_AUTOSCALE_DEPLOYMENT = process.env.deploymentTarget === 'autoscale' || process.env.DEPLOYMENT_TARGET === 'autoscale';
-const IS_DEPLOYMENT_RUNTIME = process.env.REPLIT_DEPLOYMENT === '1' && IS_DIST_EXECUTION;
+const IS_DEPLOYMENT_RUNTIME = IS_DEPLOYMENT_SET && IS_DIST_EXECUTION;
 
 // Only disable during actual BUILD phases, allow production RUNTIME to work normally
 // CRITICAL: Do NOT include REPLIT_DEPLOYMENT alone - that would break production runtime!

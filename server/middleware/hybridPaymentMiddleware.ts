@@ -268,11 +268,12 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
         }
         
         // Validate network field (optional, but must match if present)
-        if (parsed.network && parsed.network !== 'base') {
+        // x402 V2: Accept both legacy "base" and CAIP-2 "eip155:8453" format
+        if (parsed.network && parsed.network !== 'base' && parsed.network !== 'eip155:8453') {
           console.log(`❌ Invalid network in Base64 JSON: ${parsed.network}`);
           return res.status(400).json({
             error: "Invalid payment proof format",
-            message: "network must be 'base' for this service"
+            message: "network must be 'base' or 'eip155:8453' for this service"
           });
         }
       }
@@ -322,12 +323,12 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
         console.log(`❌ Payment verification failed for ${serviceName}`);
         // Payment not valid - return 402
         return res.status(402).json({
-          x402Version: 1,
+          x402Version: 2,
           error: "Payment verification failed",
           message: "Transaction not found, insufficient amount, or already used",
           accepts: [{
             scheme: "exact",
-            network: "base",
+            network: "eip155:8453",
             maxAmountRequired: requiredAmount.toString(),
             resource: getCanonicalResourceUrl(serviceName),
             payTo: PLATFORM_WALLET,
@@ -339,7 +340,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
     .catch((error) => {
       console.error(`❌ Error verifying payment:`, error);
       return res.status(500).json({
-        x402Version: 1,
+        x402Version: 2,
         error: "Payment verification error",
         message: error.message
       });
@@ -515,7 +516,7 @@ export async function verifyTransactionPayment(
       await db.insert(x402PaymentIntents).values({
         id: intentId,
         txHash,
-        network: "base",
+        network: "eip155:8453",
         serviceName,
         payer: senderAddress,
         amount: (paymentAmount / 1e6).toString(),
@@ -587,7 +588,7 @@ export async function markPaymentIntentSucceeded(
     if (existingHash.length === 0) {
       await db.insert(usedTransactionHashes).values({
         txHash,
-        network: "base",
+        network: "eip155:8453",
         serviceName,
         amount: (parseFloat(intent.amount) * 1e6).toString(),
         paidBy: senderAddress || intent.payer,
@@ -609,7 +610,7 @@ export async function markPaymentIntentSucceeded(
       status: "completed",
       x402TransactionId: txHash,
       walletAddress: PLATFORM_WALLET,
-      network: "base",
+      network: "eip155:8453",
       paymentProof: txHash,
       completedAt: now,
       metadata: {

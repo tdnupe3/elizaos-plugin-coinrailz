@@ -253,11 +253,11 @@ router.get('/catalog', async (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     
     res.json({
-      x402Version: 1,
+      x402Version: 2,
       catalogUrl: summary.catalogUrl,
-      facilitatorUrl: 'https://facilitator.x402.io',
+      facilitatorUrl: 'https://x402.org/facilitator',
       totalServices: summary.totalServices,
-      network: 'base',
+      network: 'eip155:8453',
       paymentAsset: {
         symbol: 'USDC',
         address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -1640,8 +1640,8 @@ router.use((req: Request, res: Response, next) => {
         publicBaseUrl = process.env.PUBLIC_URL;
       }
       
-      // Inject facilitatorUrl at top level (x402scan requirement)
-      body.facilitatorUrl = 'https://facilitator.x402.io'; // Coinbase CDP facilitator
+      // Inject facilitatorUrl at top level (x402scan requirement) - V2 format
+      body.facilitatorUrl = 'https://x402.org/facilitator'; // x402 V2 facilitator
       
       // Inject discoverable:true + enriched fields into each payment requirement
       body.accepts = body.accepts.map((paymentReq: any) => {
@@ -1686,7 +1686,7 @@ router.use((req: Request, res: Response, next) => {
           step4: "Retry the request with X-PAYMENT header",
           alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
           supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
-          network: "base",
+          network: "eip155:8453",
           chainId: 8453,
           token: "USDC",
           tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -1758,11 +1758,11 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     : `${publicBaseUrl}/x402${servicePath}`;
 
   const response = {
-    x402Version: 1,
+    x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
-      network: routeConfig.network,
+      network: "eip155:8453",
       maxAmountRequired: priceInMicroUnits,
       maxAmountRequiredUSD: `$${priceUsd.toFixed(2)}`,
       resource: resourceUrl,
@@ -1791,10 +1791,10 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         output: config.schema?.output || { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 1,
+      x402Version: 2,
       metadata: {}
     }],
-    facilitatorUrl: "https://facilitator.x402.io",
+    facilitatorUrl: "https://x402.org/facilitator",
     paymentInstructions: {
       step1: "Obtain USDC on Base chain (chainId: 8453)",
       step2: "Sign EIP-3009 authorization for the exact amount",
@@ -1802,7 +1802,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       step4: "Retry the request with X-PAYMENT header",
       alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
       supportedMethods: ["eip3009-authorization", "raw-transaction-hash", "api-key"],
-      network: "base",
+      network: "eip155:8453",
       chainId: 8453,
       token: "USDC",
       tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -1863,11 +1863,11 @@ enterpriseDirectEndpoints.forEach(service => {
     console.log(`📡 GET request for /${service.slug} - returning 402 with enterprise pricing, redirecting to /x402/service/${service.slug}`);
     const priceInMicro = parseFloat(service.price.replace('$', '')) * 1000000;
     res.status(402).json({
-      x402Version: 1,
+      x402Version: 2,
       error: "X-PAYMENT header is required",
       accepts: [{
         scheme: "exact",
-        network: NETWORK,
+        network: "eip155:8453",
         maxAmountRequired: String(priceInMicro),
         maxAmountRequiredUSD: service.price,
         resource: `${PUBLIC_BASE_URL}/x402/service/${service.slug}`,
@@ -1881,10 +1881,10 @@ enterpriseDirectEndpoints.forEach(service => {
         tags: ["Enterprise", "AI", "x402", "USDC"],
         extra: { name: "USD Coin", version: "2", decimals: 6, chainId: 8453, chainName: "Base" },
         type: "http",
-        x402Version: 1,
+        x402Version: 2,
         metadata: {}
       }],
-      facilitatorUrl: "https://facilitator.x402.io",
+      facilitatorUrl: "https://x402.org/facilitator",
       note: `This is an enterprise service. POST requests should be sent to /x402/service/${service.slug}`,
       enterpriseEndpoint: `/x402/service/${service.slug}`
     });
@@ -2541,7 +2541,7 @@ const smartContractAuditHandler = async (req: Request, res: Response): Promise<v
       result,
       amountPaid: 1000,
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Smart contract audit execution failed:', error);
@@ -2591,7 +2591,7 @@ const paymentProcessingHandler = async (req: Request, res: Response): Promise<vo
       result,
       amountPaid: 50,
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Payment processing execution failed:', error);
@@ -2640,7 +2640,7 @@ const complianceConsultationHandler = async (req: Request, res: Response): Promi
       result,
       amountPaid: 500,
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Compliance consultation execution failed:', error);
@@ -2717,11 +2717,11 @@ router.get("/payment-status", async (req: Request, res: Response) => {
       stats,
       recentPayments: recentPayments.rows,
       paymentInstructions: {
-        network: NETWORK,
+        network: "eip155:8453",
         token: "USDC",
         tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         platformWallet: PLATFORM_WALLET,
-        facilitator: "https://facilitator.x402.io",
+        facilitator: "https://x402.org/facilitator",
         documentation: `${PUBLIC_BASE_URL}/x402/payment-docs`,
       },
     });
@@ -2734,19 +2734,19 @@ router.get("/payment-status", async (req: Request, res: Response) => {
 router.get("/payment-docs", (req: Request, res: Response) => {
   const docs = {
     protocol: "x402",
-    version: 1,
+    version: 2,
     title: "Coin Railz x402 Micropayment Services",
     description: "Pay-per-use API services across 7 blockchains with USDC on Base",
     baseUrl: PUBLIC_BASE_URL,
-    network: NETWORK,
+    network: "eip155:8453",
     paymentToken: {
       symbol: "USDC",
       address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
       decimals: 6,
-      network: "base",
+      network: "eip155:8453",
     },
     platformWallet: PLATFORM_WALLET,
-    facilitator: "https://facilitator.x402.io",
+    facilitator: "https://x402.org/facilitator",
     pricing: SERVICE_PRICING_USD,
     paymentFlow: {
       step1: "Make API request to any service endpoint",
@@ -2767,7 +2767,7 @@ router.get("/payment-docs", (req: Request, res: Response) => {
       noPaymentReceived: "Check transaction was sent to correct wallet and confirmed on Base",
       wrongNetwork: "Payment must be on Base mainnet, not Ethereum or other chains",
       wrongToken: "Payment must be USDC, not ETH or other tokens",
-      facilitatorError: "Verify facilitator.x402.io is accessible",
+      facilitatorError: "Verify x402.org/facilitator is accessible",
     },
     support: {
       statusEndpoint: `${PUBLIC_BASE_URL}/x402/payment-status`,
@@ -2803,11 +2803,11 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
         },
         step2_paymentInstructions: {
           status: "ready",
-          network: NETWORK,
+          network: "eip155:8453",
           token: "USDC",
           amount: SERVICE_PRICING_MICRO[serviceId as ServiceName] || 500000,
           payTo: PLATFORM_WALLET,
-          facilitator: "https://facilitator.x402.io",
+          facilitator: "https://x402.org/facilitator",
         },
         step3_submitPayment: {
           status: "pending",

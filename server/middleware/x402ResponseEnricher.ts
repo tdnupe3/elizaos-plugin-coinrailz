@@ -20,7 +20,10 @@ import { x402PaymentIntents } from "@shared/schema";
 import { sql, gte, eq } from "drizzle-orm";
 
 const CANONICAL_BASE_URL = process.env.PUBLIC_URL || 'https://coinrailz.com';
-const FACILITATOR_URL = 'https://facilitator.x402.io';
+// x402 V2: Updated facilitator URL per official migration guide
+const FACILITATOR_URL = 'https://x402.org/facilitator';
+// x402 V2: CAIP-2 network identifier for Base mainnet (chainId 8453)
+const NETWORK_CAIP2 = 'eip155:8453';
 
 function getCanonicalBaseUrl(): string {
   if (process.env.PUBLIC_URL) {
@@ -165,7 +168,7 @@ function createPaymentInstructions() {
       { method: "eip3009-authorization", tokens: ["USDC"], description: "Gasless transfer via EIP-3009 signature" },
       { method: "raw-transaction-hash", tokens: ["USDC", "USDT"], description: "Direct transfer verified on-chain" }
     ],
-    network: "base",
+    network: "eip155:8453",
     chainId: 8453,
     acceptedTokens: [
       { symbol: "USDC", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", name: "USD Coin", supportsEIP3009: true },

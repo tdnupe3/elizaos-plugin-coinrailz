@@ -211,7 +211,7 @@ const smartContractAuditHandler = async (req: Request, res: Response) => {
       result,
       amountPaid: SERVICE_PRICING['smart-contract-audit'],
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Smart contract audit execution failed:', error);
@@ -257,7 +257,7 @@ const paymentProcessingHandler = async (req: Request, res: Response) => {
       result,
       amountPaid: SERVICE_PRICING['payment-processing'],
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Payment processing execution failed:', error);
@@ -302,7 +302,7 @@ const complianceConsultationHandler = async (req: Request, res: Response) => {
       result,
       amountPaid: SERVICE_PRICING['compliance-consultation'],
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Compliance consultation execution failed:', error);
@@ -344,7 +344,7 @@ const multiChainBalanceHandler = async (req: Request, res: Response) => {
       result,
       amountPaid: SERVICE_PRICING['multi-chain-balance'],
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Multi-chain balance check execution failed:', error);
@@ -378,7 +378,7 @@ const gasPriceOracleHandler = async (req: Request, res: Response) => {
       result,
       amountPaid: SERVICE_PRICING['gas-price-oracle'],
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Gas price oracle execution failed:', error);
@@ -420,7 +420,7 @@ const tokenPriceLookupHandler = async (req: Request, res: Response) => {
       result,
       amountPaid: SERVICE_PRICING['token-price-lookup'],
       currency: 'USDC',
-      network: 'base',
+      network: 'eip155:8453',
     });
   } catch (error: any) {
     console.error('Token price lookup execution failed:', error);
@@ -451,11 +451,11 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
   const priceInMicroUnits = Math.round(priceUsd * 1_000_000).toString();
 
   const response = {
-    x402Version: 1,
+    x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
-      network: routeConfig.network,
+      network: "eip155:8453",
       maxAmountRequired: priceInMicroUnits,
       resource: config.resource,
       description: config.description,
@@ -479,10 +479,10 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         output: { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 1,
+      x402Version: 2,
       metadata: {}
     }],
-    facilitatorUrl: "https://facilitator.x402.io"
+    facilitatorUrl: "https://x402.org/facilitator"
   };
 
   res.status(402).json(response);
@@ -531,7 +531,7 @@ gatedServiceEndpoints.forEach(endpoint => {
           timestamp: new Date().toISOString(),
           platform: 'Coin Railz',
           paymentMethod: 'hybrid', // Could be USDC, USDT, API key, or EIP-712
-          x402Version: 1,
+          x402Version: 2,
         });
       }
       
@@ -658,11 +658,11 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
   const description = SERVICE_DESCRIPTIONS[serviceSlug] || `${serviceSlug} x402 micropayment service`;
   
   const response = {
-    x402Version: 1,
+    x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
-      network: NETWORK,
+      network: "eip155:8453",
       maxAmountRequired: priceMicro.toString(),
       maxAmountRequiredUSD: `$${priceUsd.toFixed(2)}`,
       resource: resourceUrl(`/x402/service/${serviceSlug}`),
@@ -686,10 +686,10 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
         output: { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 1,
+      x402Version: 2,
       metadata: {}
     }],
-    facilitatorUrl: "https://facilitator.x402.io",
+    facilitatorUrl: "https://x402.org/facilitator",
     paymentInstructions: {
       step1: "Obtain USDC on Base chain (chainId: 8453)",
       step2: "Sign EIP-3009 authorization for the exact amount",
@@ -697,7 +697,7 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
       step4: "Retry the request with X-PAYMENT header",
       alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
       supportedMethods: ["eip3009-authorization", "raw-transaction-hash"],
-      network: "base",
+      network: "eip155:8453",
       chainId: 8453,
       token: "USDC",
       tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",

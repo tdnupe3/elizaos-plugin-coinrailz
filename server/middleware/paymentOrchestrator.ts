@@ -983,7 +983,7 @@ export function createPaymentOrchestrator(
               });
               
               return res.status(402).json({
-                x402Version: 1,
+                x402Version: 2,
                 error: "insufficient_balance",
                 hint: "Agent wallet has insufficient USDC to complete payment",
                 service: serviceName,
@@ -993,7 +993,7 @@ export function createPaymentOrchestrator(
                   { symbol: "USDC", address: USDC_BASE, decimals: 6 },
                   { symbol: "USDT", address: USDT_BASE, decimals: 6 }
                 ],
-                network: "base",
+                network: "eip155:8453",
                 chainId: 8453,
                 fundingAddress: PLATFORM_WALLET,
                 retryAfterFunding: true,
@@ -1019,7 +1019,7 @@ export function createPaymentOrchestrator(
             
             // Other EIP-3009 errors (expired, already used, invalid signature)
             return res.status(402).json({
-              x402Version: 1,
+              x402Version: 2,
               error: `Payment authorization failed: ${eip3009Error.message}`,
               hint: "The authorization may have expired or already been used. Please retry the request."
             });
@@ -1238,13 +1238,13 @@ function generate402Response(
     "prediction-market-odds": "Current odds for any prediction market event",
   };
 
-  // Build base response
+  // Build base response - x402 V2 compliant
   const response: any = {
-    x402Version: 1,
+    x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
-      network: "base",
+      network: "eip155:8453",
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
       resource: resource,
@@ -1262,7 +1262,7 @@ function generate402Response(
       },
       discoverable: true
     }],
-    facilitatorUrl: "https://facilitator.x402.io",
+    facilitatorUrl: "https://x402.org/facilitator",
     paymentInstructions: {
       step1: "Obtain USDC on Base chain",
       step2: "Sign EIP-3009 authorization for the exact amount",

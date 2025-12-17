@@ -53,7 +53,7 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 38 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis.",
+    description: "Production-grade blockchain infrastructure for AI agents. 41 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis.",
     version: "0.4.0",
     agentId: "coinrailz-x402-infrastructure",
     
@@ -1879,7 +1879,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       verifiedPayments: true,           // Real x402 payments processed and verified
       repeatAgentsObserved: true,       // Returning agents making multiple payments
       paymentRails: ["x402-USDC", "stripe"],  // Available payment methods
-      totalServicesAvailable: 38,       // Current service count in catalog
+      totalServicesAvailable: 41,       // Current service count in catalog
       networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format)
       paymentAsset: "USDC"              // Primary payment token
     }
@@ -2671,7 +2671,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       discovery_enabled: true
     },
     commerce: {
-      total_services: 35,
+      total_services: 41,
       categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "traditional-markets"],
       platform_commission: 15,
       minimum_payment: 0.10,

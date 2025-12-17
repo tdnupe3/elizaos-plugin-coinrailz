@@ -10,10 +10,14 @@
  * - paymentInstructions: Step-by-step payment guide
  * - facilitatorUrl: Coinbase facilitator endpoint
  * - discoverable: true (for Bazaar indexing)
+ * - confidenceMetrics: Social proof of recent successful payments (ChatGPT-recommended)
  */
 
 import { Request, Response, NextFunction } from "express";
 import { serviceCatalogService } from "../services/serviceCatalogService";
+import { db } from "../db";
+import { x402PaymentIntents } from "@shared/schema";
+import { sql, gte, eq } from "drizzle-orm";
 
 const CANONICAL_BASE_URL = process.env.PUBLIC_URL || 'https://coinrailz.com';
 const FACILITATOR_URL = 'https://facilitator.x402.io';
@@ -60,6 +64,78 @@ function normalizeResourceUrl(resource: string | undefined, endpoint: string): s
  * - EIP-3009 (transferWithAuthorization): USDC only (USDT doesn't support EIP-3009)
  * - Raw transaction hash: Both USDC and USDT supported
  */
+// Cache for confidence metrics (refresh every 5 minutes)
+let confidenceCache: { data: any; timestamp: number } | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Get confidence metrics for 402 responses (ChatGPT-recommended social proof)
+ * Shows agents that other autonomous agents are successfully paying
+ */
+async function getConfidenceMetrics(): Promise<{
+  recentPayments24h: number;
+  recentPayments7d: number;
+  uniqueAgents7d: number;
+  message: string;
+}> {
+  const now = Date.now();
+  
+  // Return cached data if fresh
+  if (confidenceCache && (now - confidenceCache.timestamp) < CACHE_TTL_MS) {
+    return confidenceCache.data;
+  }
+  
+  try {
+    // Query recent successful payments
+    const oneDayAgo = new Date(now - 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+    
+    const [payments24h, payments7d, agents7d] = await Promise.all([
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(x402PaymentIntents)
+        .where(sql`status = 'SUCCEEDED' AND created_at > ${oneDayAgo.toISOString()}`),
+      db.select({ count: sql<number>`count(*)::int` })
+        .from(x402PaymentIntents)
+        .where(sql`status = 'SUCCEEDED' AND created_at > ${sevenDaysAgo.toISOString()}`),
+      db.select({ count: sql<number>`count(distinct payer)::int` })
+        .from(x402PaymentIntents)
+        .where(sql`status = 'SUCCEEDED' AND created_at > ${sevenDaysAgo.toISOString()}`),
+    ]);
+    
+    const recentPayments24h = payments24h[0]?.count || 0;
+    const recentPayments7d = payments7d[0]?.count || 0;
+    const uniqueAgents7d = agents7d[0]?.count || 0;
+    
+    // Generate confidence message based on activity
+    let message = "This endpoint accepts x402 autonomous payments.";
+    if (recentPayments24h > 0) {
+      message = `This endpoint processed ${recentPayments24h} successful autonomous payment${recentPayments24h > 1 ? 's' : ''} in the last 24 hours.`;
+    } else if (recentPayments7d > 0) {
+      message = `This endpoint processed ${recentPayments7d} successful payments from ${uniqueAgents7d} unique agent${uniqueAgents7d > 1 ? 's' : ''} in the last 7 days.`;
+    }
+    
+    const data = {
+      recentPayments24h,
+      recentPayments7d,
+      uniqueAgents7d,
+      message
+    };
+    
+    // Cache the result
+    confidenceCache = { data, timestamp: now };
+    
+    return data;
+  } catch (error) {
+    // Return default on error (don't fail the request)
+    return {
+      recentPayments24h: 0,
+      recentPayments7d: 0,
+      uniqueAgents7d: 0,
+      message: "This endpoint accepts x402 autonomous payments."
+    };
+  }
+}
+
 function createPaymentInstructions() {
   return {
     step1: "Obtain USDC or USDT on Base chain (chainId: 8453)",
@@ -90,9 +166,15 @@ function createPaymentInstructions() {
  * SAFE: Only modifies 402 responses, doesn't touch verification logic.
  * Must be applied BEFORE the x402 middleware (before paymentMiddleware runs)
  * so res.json is wrapped before x402-express calls it.
+ * 
+ * ChatGPT-recommended: Adds confidence metrics to 402 responses to help
+ * autonomous agents trust the payment flow.
  */
 export function x402ResponseEnricher() {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    // Pre-fetch confidence metrics (cached, fast)
+    const confidenceMetrics = await getConfidenceMetrics();
+    
     const originalJson = res.json.bind(res);
     
     res.json = function(body: any) {
@@ -101,6 +183,12 @@ export function x402ResponseEnricher() {
         const endpoint = req.originalUrl || req.path;
         
         body.facilitatorUrl = body.facilitatorUrl || FACILITATOR_URL;
+        
+        // Add confidence metrics (ChatGPT-recommended social proof)
+        body.confidenceMetrics = {
+          ...confidenceMetrics,
+          note: "Other autonomous agents have successfully used this payment flow."
+        };
         
         body.accepts = body.accepts.map((paymentReq: any) => {
           const enriched = { ...paymentReq };

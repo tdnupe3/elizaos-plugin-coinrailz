@@ -16,6 +16,92 @@ const SERVICE_PRICING_USD: Record<string, number> = {
   "default": 1.00
 };
 
+// ChatGPT-recommended: Retry fingerprinting to track post-402 behavior
+// Tracks IP + user-agent combinations to detect retry attempts
+interface RetryFingerprint {
+  firstSeen: number;
+  lastSeen: number;
+  retryCount: number;
+  hasPaymentHeader: boolean;
+  serviceId: string;
+  intervals: number[]; // Time between retries in seconds
+}
+
+// In-memory cache for retry fingerprints (cleaned up hourly)
+const retryFingerprintCache = new Map<string, RetryFingerprint>();
+const FINGERPRINT_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// Clean up old fingerprints periodically
+setInterval(() => {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [key, value] of retryFingerprintCache.entries()) {
+    if (now - value.lastSeen > FINGERPRINT_TTL_MS) {
+      retryFingerprintCache.delete(key);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`🧹 Cleaned ${cleaned} stale retry fingerprints`);
+  }
+}, 30 * 60 * 1000); // Every 30 minutes
+
+/**
+ * Generate fingerprint from IP + user-agent + service
+ * This allows us to detect when the same agent retries the same service
+ */
+function generateFingerprint(ip: string | undefined, userAgent: string | undefined, serviceId: string): string {
+  const cleanIp = ip?.split(',')[0].trim() || 'unknown';
+  const cleanAgent = (userAgent || 'unknown').substring(0, 50);
+  return `${cleanIp}:${cleanAgent}:${serviceId}`;
+}
+
+/**
+ * Track retry behavior for a request
+ * Returns retry metadata for logging
+ */
+function trackRetryBehavior(
+  ip: string | undefined,
+  userAgent: string | undefined,
+  serviceId: string,
+  hasPaymentHeader: boolean
+): { retryCount: number; retryIntervalSeconds: number | null; isRetry: boolean; retryHeaderChanged: boolean } {
+  const fingerprint = generateFingerprint(ip, userAgent, serviceId);
+  const now = Date.now();
+  
+  const existing = retryFingerprintCache.get(fingerprint);
+  
+  if (!existing) {
+    // First time seeing this fingerprint
+    retryFingerprintCache.set(fingerprint, {
+      firstSeen: now,
+      lastSeen: now,
+      retryCount: 0,
+      hasPaymentHeader,
+      serviceId,
+      intervals: []
+    });
+    return { retryCount: 0, retryIntervalSeconds: null, isRetry: false, retryHeaderChanged: false };
+  }
+  
+  // This is a retry
+  const intervalSeconds = Math.round((now - existing.lastSeen) / 1000);
+  const retryHeaderChanged = hasPaymentHeader && !existing.hasPaymentHeader;
+  
+  // Update the fingerprint
+  existing.retryCount++;
+  existing.lastSeen = now;
+  existing.hasPaymentHeader = existing.hasPaymentHeader || hasPaymentHeader;
+  existing.intervals.push(intervalSeconds);
+  
+  return {
+    retryCount: existing.retryCount,
+    retryIntervalSeconds: intervalSeconds,
+    isRetry: true,
+    retryHeaderChanged
+  };
+}
+
 export function x402TrackingMiddleware(req: Request, res: Response, next: NextFunction) {
   const startTime = Date.now();
   const requestId = nanoid(12);
@@ -46,6 +132,12 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
     }
     
     const walletAddress = extractWalletAddress(req);
+    
+    // ChatGPT-recommended: Track retry behavior for post-402 analysis
+    const hasPaymentHeader = !!req.get('x-payment');
+    const ip = req.ip || req.socket.remoteAddress || req.get('x-forwarded-for')?.split(',')[0];
+    const userAgent = req.get('user-agent');
+    const retryData = trackRetryBehavior(ip, userAgent, serviceId, hasPaymentHeader);
     
     let interactionType: 'view' | 'attempt' | 'payment' | 'error' = 'view';
     let eventType = 'request-complete';
@@ -93,8 +185,8 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
       serviceId,
       serviceName: serviceId,
       walletAddress,
-      ipAddress: req.ip || req.socket.remoteAddress || req.get('x-forwarded-for')?.split(',')[0],
-      userAgent: req.get('user-agent'),
+      ipAddress: ip,
+      userAgent,
       requestPath: req.path,
       requestMethod: req.method,
       responseStatus,
@@ -106,22 +198,30 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
       referer,
       challengePayload,
       latencyMs,
-      retryCount: 0,
+      retryCount: retryData.retryCount,
       paymentReceived: paid,
       paymentAmount,
       offerTrackingId,
       metadata: {
         originalUrl: req.originalUrl,
-        hasPaymentHeader: !!req.get('x-payment'),
+        hasPaymentHeader,
         paymentMethod: res.locals.payment?.method || (paid ? 'eip-712' : undefined),
         offerAttribution: offerTrackingId ? true : false,
+        // ChatGPT-recommended: Retry fingerprinting data for post-402 analysis
+        isRetry: retryData.isRetry,
+        retryIntervalSeconds: retryData.retryIntervalSeconds,
+        retryHeaderChanged: retryData.retryHeaderChanged,
       },
     }).catch(err => {
       console.error('❌ Interaction tracking failed:', err.message);
     });
     
+    // Enhanced logging for 402s with retry information
     if (responseStatus === 402) {
-      console.log(`📊 x402 Funnel: ${eventType} for ${serviceId} | IP: ${req.ip || 'unknown'} | Agent: ${x402ClientHeader || 'none'} | Latency: ${latencyMs}ms`);
+      const retryInfo = retryData.isRetry 
+        ? `| RETRY #${retryData.retryCount} (${retryData.retryIntervalSeconds}s ago)${retryData.retryHeaderChanged ? ' + PAYMENT HEADER ADDED' : ''}`
+        : '| First attempt';
+      console.log(`📊 x402 Funnel: ${eventType} for ${serviceId} | IP: ${ip || 'unknown'} | Agent: ${x402ClientHeader || 'none'} ${retryInfo} | Latency: ${latencyMs}ms`);
     }
   };
   

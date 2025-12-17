@@ -1880,7 +1880,7 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       repeatAgentsObserved: true,       // Returning agents making multiple payments
       paymentRails: ["x402-USDC", "stripe"],  // Available payment methods
       totalServicesAvailable: 38,       // Current service count in catalog
-      networkSupported: "base",         // Primary blockchain network
+      networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format)
       paymentAsset: "USDC"              // Primary payment token
     }
   };
@@ -2100,9 +2100,9 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
     
     x402: {
       enabled: true,
-      protocol_version: "1.0.0",
-      facilitator: "coinbase_cdp",
-      settlement_network: "base",
+      protocol_version: "2.0.0",
+      facilitator: "x402.org",
+      settlement_network: "eip155:8453",
       minimum_payment: 0.10
     },
     
@@ -2655,9 +2655,9 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
       }
     ],
     x402: {
-      protocol_version: "1.0.0",
-      facilitator: "https://facilitator.cdp.coinbase.co",
-      payment_network: "base",
+      protocol_version: "2.0.0",
+      facilitator: "https://x402.org/facilitator",
+      payment_network: "eip155:8453",
       payment_token: {
         symbol: "USDC",
         address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",

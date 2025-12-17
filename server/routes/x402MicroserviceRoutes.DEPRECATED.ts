@@ -1,3 +1,29 @@
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║                                                                           ║
+ * ║   ⚠️  DEPRECATED - DO NOT USE - LEGACY CODE ⚠️                           ║
+ * ║                                                                           ║
+ * ║   This file contains the LEGACY V1 x402 microservice routes.             ║
+ * ║   It uses the OLD x402 protocol format:                                  ║
+ * ║     - x402Version: 1 (outdated)                                          ║
+ * ║     - network: "base" (non-CAIP-2 compliant)                             ║
+ * ║     - facilitator.x402.io (deprecated facilitator)                       ║
+ * ║                                                                           ║
+ * ║   REPLACED BY: x402MicroserviceRoutesV2.ts                               ║
+ * ║   The V2 file uses the current x402 protocol format:                     ║
+ * ║     - x402Version: 2                                                     ║
+ * ║     - network: "eip155:8453" (CAIP-2 compliant)                          ║
+ * ║     - x402.org/facilitator (current facilitator)                         ║
+ * ║                                                                           ║
+ * ║   This file is NOT imported anywhere and exists only for historical      ║
+ * ║   reference. All production traffic uses x402MicroserviceRoutesV2.ts     ║
+ * ║                                                                           ║
+ * ║   Deprecated: December 17, 2025                                          ║
+ * ║   Reason: x402 V2 breaking changes (December 11, 2025)                   ║
+ * ║                                                                           ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
+
 import { Router, Request, Response } from "express";
 import axios from "axios";
 import {

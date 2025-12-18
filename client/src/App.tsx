@@ -112,6 +112,7 @@ const RevenueDashboard = lazy(() => import("@/pages/revenue-dashboard"));
 const AIAgents = lazy(() => import("@/pages/ai-agents"));
 
 const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
+const GptPurchaseSuccess = lazy(() => import("@/pages/gpt-purchase-success"));
 const OrderManagement = lazy(() => import("@/pages/order-management"));
 const OnrampPage = lazy(() => import("@/pages/onramp"));
 const EnterprisePage = lazy(() => import("@/pages/enterprise"));
@@ -278,6 +279,11 @@ function Router() {
       {/* Prepaid Credits System - Conversion Optimization */}
       <Route path="/credits">
         {() => <LazyLoadWrapper><CreditsPage /></LazyLoadWrapper>}
+      </Route>
+
+      {/* GPT Purchase Success - In-Chat Credit Purchase Flow */}
+      <Route path="/gpt-purchase-success">
+        {() => <LazyLoadWrapper><GptPurchaseSuccess /></LazyLoadWrapper>}
       </Route>
 
       {/* Product Pages - Revenue Generation */}

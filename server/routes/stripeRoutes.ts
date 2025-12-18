@@ -4,6 +4,8 @@ import Stripe from 'stripe';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
 import { handlePaymentIntentSucceeded } from './gptCreditsRoutes';
+import { db } from '../db';
+import { paymentIntentTracking } from '@shared/schema';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -290,6 +292,24 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object;
       console.log('Payment succeeded:', paymentIntent.id);
+      
+      // Log to payment_intent_tracking (fire-and-forget for stability)
+      try {
+        await db.insert(paymentIntentTracking).values({
+          paymentIntentId: paymentIntent.id,
+          customerEmail: paymentIntent.receipt_email || paymentIntent.metadata?.customerEmail || 'unknown',
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency || 'usd',
+          purpose: paymentIntent.metadata?.source || paymentIntent.metadata?.platform || 'marketplace',
+          configId: paymentIntent.metadata?.gptSessionId || paymentIntent.metadata?.orderId || null,
+          taskDescription: paymentIntent.metadata?.packageName || paymentIntent.metadata?.serviceName || null,
+          metadata: paymentIntent.metadata || {},
+          status: 'used',
+        }).onConflictDoNothing();
+        console.log(`📊 Payment tracked: ${paymentIntent.id}`);
+      } catch (trackError: any) {
+        console.error(`⚠️ Payment tracking failed (non-blocking): ${trackError.message}`);
+      }
       
       // Handle GPT Elements purchases
       if (paymentIntent.metadata?.source === 'gpt' && paymentIntent.metadata?.gptSessionId) {

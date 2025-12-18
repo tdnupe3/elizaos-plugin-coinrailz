@@ -7,6 +7,7 @@
 
 import { Router, Request, Response } from 'express';
 import { SERVICE_PRICING_USD } from '@shared/pricing';
+import { getFacilitatorUrl } from '../utils/facilitatorHelper';
 
 const router = Router();
 
@@ -2656,7 +2657,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     ],
     x402: {
       protocol_version: "2.0.0",
-      facilitator: "https://x402.org/facilitator",
+      facilitator: getFacilitatorUrl(),
       payment_network: "eip155:8453",
       payment_token: {
         symbol: "USDC",

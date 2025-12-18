@@ -16,6 +16,7 @@ import { paymentMiddleware, Network } from 'x402-express';
 import { facilitator } from '@coinbase/x402';
 import { nanoid } from 'nanoid';
 import { createPaymentOrchestrator } from '../middleware/paymentOrchestrator';
+import { getFacilitatorUrl } from '../utils/facilitatorHelper';
 import { x402TrackingMiddleware } from '../middleware/x402TrackingMiddleware';
 import { usageAnalyticsMiddleware } from '../middleware/usageAnalyticsMiddleware';
 import { x402ResponseEnricher } from '../middleware/x402ResponseEnricher';
@@ -483,7 +484,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       x402Version: 2,
       metadata: {}
     }],
-    facilitatorUrl: "https://x402.org/facilitator"
+    facilitatorUrl: getFacilitatorUrl()
   };
 
   res.status(402).json(response);
@@ -691,7 +692,7 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
       x402Version: 2,
       metadata: {}
     }],
-    facilitatorUrl: "https://x402.org/facilitator",
+    facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
       step1: "Obtain USDC on Base chain (chainId: 8453)",
       step2: "Sign EIP-3009 authorization for the exact amount",

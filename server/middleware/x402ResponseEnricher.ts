@@ -18,12 +18,11 @@ import { serviceCatalogService } from "../services/serviceCatalogService";
 import { db } from "../db";
 import { x402PaymentIntents } from "@shared/schema";
 import { sql, gte, eq } from "drizzle-orm";
+import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2 } from "../utils/facilitatorHelper";
 
 const CANONICAL_BASE_URL = process.env.PUBLIC_URL || 'https://coinrailz.com';
-// x402 V2: Updated facilitator URL per official migration guide
-const FACILITATOR_URL = 'https://x402.org/facilitator';
-// x402 V2: CAIP-2 network identifier for Base mainnet (chainId 8453)
-const NETWORK_CAIP2 = 'eip155:8453';
+// Use shared helper for hybrid CDP/x402.org facilitator selection
+const FACILITATOR_URL = getFacilitatorUrl();
 
 function getCanonicalBaseUrl(): string {
   if (process.env.PUBLIC_URL) {

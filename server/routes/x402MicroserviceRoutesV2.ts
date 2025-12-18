@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
+import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS } from "../utils/facilitatorHelper";
 import { sql } from "drizzle-orm";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
 import {
@@ -255,7 +256,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
     res.json({
       x402Version: 2,
       catalogUrl: summary.catalogUrl,
-      facilitatorUrl: 'https://x402.org/facilitator',
+      facilitatorUrl: getFacilitatorUrl(),
       totalServices: summary.totalServices,
       network: 'base', // Legacy format for x402-fetch v0.7.3 compatibility
       x402Network: 'eip155:8453', // V2 CAIP-2 format for spec compliance
@@ -1642,7 +1643,7 @@ router.use((req: Request, res: Response, next) => {
       }
       
       // Inject facilitatorUrl at top level (x402scan requirement) - V2 format
-      body.facilitatorUrl = 'https://x402.org/facilitator'; // x402 V2 facilitator
+      body.facilitatorUrl = getFacilitatorUrl(); // x402 V2 facilitator
       
       // Inject discoverable:true + enriched fields into each payment requirement
       body.accepts = body.accepts.map((paymentReq: any) => {
@@ -1797,7 +1798,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       x402Version: 2,
       metadata: {}
     }],
-    facilitatorUrl: "https://x402.org/facilitator",
+    facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
       step1: "Obtain USDC on Base chain (chainId: 8453)",
       step2: "Sign EIP-3009 authorization for the exact amount",
@@ -1889,7 +1890,7 @@ enterpriseDirectEndpoints.forEach(service => {
         x402Version: 2,
         metadata: {}
       }],
-      facilitatorUrl: "https://x402.org/facilitator",
+      facilitatorUrl: getFacilitatorUrl(),
       note: `This is an enterprise service. POST requests should be sent to /x402/service/${service.slug}`,
       enterpriseEndpoint: `/x402/service/${service.slug}`
     });
@@ -2726,7 +2727,7 @@ router.get("/payment-status", async (req: Request, res: Response) => {
         token: "USDC",
         tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         platformWallet: PLATFORM_WALLET,
-        facilitator: "https://x402.org/facilitator",
+        facilitator: getFacilitatorUrl(),
         documentation: `${PUBLIC_BASE_URL}/x402/payment-docs`,
       },
     });
@@ -2751,7 +2752,7 @@ router.get("/payment-docs", (req: Request, res: Response) => {
       network: "eip155:8453",
     },
     platformWallet: PLATFORM_WALLET,
-    facilitator: "https://x402.org/facilitator",
+    facilitator: getFacilitatorUrl(),
     pricing: SERVICE_PRICING_USD,
     paymentFlow: {
       step1: "Make API request to any service endpoint",
@@ -2812,7 +2813,7 @@ router.post("/test-payment-flow", async (req: Request, res: Response) => {
           token: "USDC",
           amount: SERVICE_PRICING_MICRO[serviceId as ServiceName] || 500000,
           payTo: PLATFORM_WALLET,
-          facilitator: "https://x402.org/facilitator",
+          facilitator: getFacilitatorUrl(),
         },
         step3_submitPayment: {
           status: "pending",

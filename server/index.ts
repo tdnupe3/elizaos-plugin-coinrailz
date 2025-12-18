@@ -83,6 +83,7 @@ import wellKnownRoutes from './routes/wellKnownRoutes';
 import discoveryRoutes from './routes/discoveryRoutes';
 import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
 import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
+import mcpServiceDiscoveryRoutes from './routes/mcpServiceDiscovery';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
 import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
@@ -763,6 +764,11 @@ console.log('✅ ERC-8004 discovery routes registered - Can query IdentityRegist
 console.log('🌐 Registering A2A Protocol mass discovery routes...');
 app.use('/api/discovery/a2a', a2aMassDiscoveryRoutes);
 console.log('✅ A2A mass discovery routes registered - Can crawl agents via .well-known/agent-card.json');
+
+// Register MCP (Model Context Protocol) Service Discovery
+console.log('🔌 Registering MCP service discovery routes for AI agent tooling...');
+app.use(mcpServiceDiscoveryRoutes);
+console.log('✅ MCP service discovery routes registered - 41 services available at /mcp/services');
 
 // Mount provider-specific routers for exact /.well-known/agent-card.json paths
 console.log('🎫 Mounting provider-specific routers for ChatGPT /.well-known/agent-card.json requirement...');

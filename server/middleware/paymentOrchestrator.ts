@@ -5,6 +5,7 @@ import {
   markPaymentIntentFailed 
 } from "./hybridPaymentMiddleware";
 import { offerLinkService } from "../services/offerLinkService";
+import { getFacilitatorUrl } from "../utils/facilitatorHelper";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "../../shared/pricing";
 import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "viem";
 import { base } from "viem/chains";
@@ -1263,7 +1264,7 @@ function generate402Response(
       },
       discoverable: true
     }],
-    facilitatorUrl: "https://x402.org/facilitator",
+    facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
       step1: "Obtain USDC on Base chain",
       step2: "Sign EIP-3009 authorization for the exact amount",

@@ -61,6 +61,13 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
     // A2A v0.3 service endpoint
     serviceUrl: `${baseUrl}/x402`,
     
+    // A2A v0.3 capabilities object (required for Google A2A compliance)
+    capabilities: {
+      streaming: false,
+      pushNotifications: false,
+      stateTransitionHistory: false
+    },
+    
     // Skills array with semantic descriptions for AI matching
     skills: [
       {

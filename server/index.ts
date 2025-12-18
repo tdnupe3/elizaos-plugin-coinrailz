@@ -206,11 +206,14 @@ app.get('/pay/:sessionId', async (req, res, next) => {
 import { stripeWebhookHandler } from './routes/stripePaymentRoutes.js';
 import { creditsStripeWebhookHandler } from './routes/creditsRoutes.js';
 import { bundleStripeWebhookHandler } from './routes/bundleRoutes.js';
+import { stripeMarketplaceWebhookHandler } from './routes/stripeRoutes.js';
 
 app.post('/api/fast-revenue/stripe-webhook', express.raw({type: 'application/json'}), stripeWebhookHandler);
 app.post('/api/credits/stripe-webhook', express.raw({type: 'application/json'}), creditsStripeWebhookHandler);
 // Bundle subscription webhook - must receive raw body for Stripe signature verification
 app.post('/api/bundles/webhook', express.raw({type: 'application/json'}), bundleStripeWebhookHandler);
+// Marketplace/GPT Elements webhook - handles payment_intent.succeeded for GPT purchases
+app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), stripeMarketplaceWebhookHandler);
 
 // Apply JSON parsing middleware AFTER Stripe webhooks
 app.use(express.json({ limit: '50mb' }));

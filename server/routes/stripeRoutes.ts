@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import express from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
@@ -271,8 +272,9 @@ router.post('/confirm-report-purchase', async (req, res) => {
   }
 });
 
-// Webhook endpoint for Stripe events
-router.post('/webhook', async (req, res) => {
+// Exported webhook handler for mounting BEFORE express.json() in server/index.ts
+// CRITICAL: Must receive raw body (Buffer) for Stripe signature verification
+export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
   const sig = req.headers['stripe-signature'];
   let event;
 
@@ -365,7 +367,6 @@ router.post('/webhook', async (req, res) => {
   }
 
   res.json({ received: true });
-});
-
+}
 
 export default router;

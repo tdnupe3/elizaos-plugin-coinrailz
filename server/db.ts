@@ -3,36 +3,18 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
-// Configure Neon based on environment
-// Production uses HTTP fetch mode to avoid the Neon/esbuild WebSocket bundling bug:
-// "Cannot set property message of # which has only a getter"
-// See: https://github.com/brianc/node-postgres/issues/3373
-// CRITICAL: Multiple ways to detect production on Replit autoscale:
-// - REPLIT_DEPLOYMENT can be "1" or "true" 
-// - NODE_ENV can be "production"
-// - Running from dist/ folder indicates bundled production build
-const deploymentFlag = process.env.REPLIT_DEPLOYMENT?.toLowerCase();
-const isDeployment = deploymentFlag === '1' || deploymentFlag === 'true';
-const isDistBuild = process.argv[1]?.includes('/dist/') || process.argv[1]?.includes('\\dist\\');
-const isProduction = process.env.NODE_ENV === 'production' || isDeployment || isDistBuild;
+// Configure Neon: Use HTTP fetch mode by default (works in both dev and prod)
+// WebSocket mode only if explicitly enabled via NEON_USE_WEBSOCKET=true
+// This avoids fragile environment detection that was causing production failures
+const useWebSocket = process.env.NEON_USE_WEBSOCKET === 'true';
 
-console.log('🔧 DB ENV CHECK:', {
-  NODE_ENV: process.env.NODE_ENV,
-  REPLIT_DEPLOYMENT: process.env.REPLIT_DEPLOYMENT,
-  argv1: process.argv[1],
-  isDistBuild,
-  isDeployment,
-  isProduction
-});
-
-if (isProduction) {
+if (useWebSocket) {
+  neonConfig.webSocketConstructor = ws;
+  console.log('🔧 Neon: WebSocket mode (NEON_USE_WEBSOCKET=true)');
+} else {
   neonConfig.fetchConnectionCache = true;
   neonConfig.poolQueryViaFetch = true;
-  console.log('🔧 Neon configured for HTTP fetch mode (production/autoscale)');
-} else {
-  // Development: Use WebSocket for better performance
-  neonConfig.webSocketConstructor = ws;
-  console.log('🔧 Neon configured for WebSocket mode (development)');
+  console.log('🔧 Neon: HTTP fetch mode (default)');
 }
 
 if (!process.env.DATABASE_URL) {

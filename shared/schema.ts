@@ -4653,6 +4653,8 @@ export const apiKeys = pgTable("api_keys", {
 export const gptPurchaseSessions = pgTable("gpt_purchase_sessions", {
   id: varchar("id", { length: 24 }).primaryKey(),
   stripeSessionId: varchar("stripe_session_id"),
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  clientSecret: varchar("client_secret"),
   userId: varchar("user_id").notNull(),
   packageName: varchar("package_name").notNull(),
   amount: integer("amount").notNull(),
@@ -4665,6 +4667,7 @@ export const gptPurchaseSessions = pgTable("gpt_purchase_sessions", {
   index("IDX_gpt_sessions_user_id").on(table.userId),
   index("IDX_gpt_sessions_status").on(table.status),
   index("IDX_gpt_sessions_stripe_session").on(table.stripeSessionId),
+  index("IDX_gpt_sessions_payment_intent").on(table.stripePaymentIntentId),
 ]);
 
 export type GptPurchaseSession = typeof gptPurchaseSessions.$inferSelect;

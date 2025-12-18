@@ -44,6 +44,30 @@ export function isBazaarDiscoveryEnabled(): boolean {
 }
 
 /**
+ * Production readiness check - ensures CDP facilitator is available
+ */
+export function validateProductionReadiness(): { ready: boolean; issues: string[] } {
+  const issues: string[] = [];
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1' || process.env.REPLIT_DEPLOYMENT === 'true';
+  
+  if (isProduction && isBazaarDiscoveryEnabled()) {
+    // In production with Bazaar enabled, we need CDP credentials
+    if (!process.env.CDP_API_KEY_ID || !process.env.CDP_API_KEY_SECRET) {
+      issues.push('CDP credentials missing - Bazaar discovery requires CDP_API_KEY_ID and CDP_API_KEY_SECRET in production');
+    }
+    
+    if (!process.env.PLATFORM_WALLET_ADDRESS) {
+      issues.push('PLATFORM_WALLET_ADDRESS not set - using fallback wallet');
+    }
+  }
+  
+  return {
+    ready: issues.length === 0,
+    issues
+  };
+}
+
+/**
  * Parse price string like "$0.50" to number of cents (in USDC micro units)
  */
 function parsePriceToMicros(priceUSD: string): string {
@@ -237,6 +261,67 @@ export function createBazaarDiscoveryRouter(): Router {
 }
 
 /**
+ * Validate catalog integrity by making an actual HTTP request to the discovery endpoint
+ * This catches real regressions by comparing live endpoint output against expected services
+ */
+export async function validateDiscoveryCatalogIntegrity(): Promise<{ valid: boolean; missing: string[]; extra: string[]; endpointServiceCount: number }> {
+  const catalog = ServiceCatalogService.getInstance().getCatalog();
+  const expectedServices = catalog.services.filter(s => s.x402Compatible).map(s => s.id);
+  
+  try {
+    // Make actual HTTP request to the discovery endpoint
+    // Note: We intentionally use localhost for self-verification since we're checking
+    // our own process, not going through external load balancers
+    const port = process.env.PORT || '5000';
+    const localUrl = `http://localhost:${port}/api/discovery/resources`;
+    console.log(`🔍 Validating discovery endpoint: ${localUrl}`);
+    
+    const response = await fetch(localUrl, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      // Short timeout for self-check
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    if (!response.ok) {
+      console.error(`❌ Discovery endpoint returned status ${response.status}`);
+      return { valid: false, missing: expectedServices, extra: [], endpointServiceCount: 0 };
+    }
+    
+    const data = await response.json() as { resources: Array<{ url: string; name: string }> };
+    
+    // Extract service IDs from actual endpoint response (from URL path)
+    const endpointServiceIds = data.resources.map(r => {
+      const urlParts = r.url.split('/');
+      return urlParts[urlParts.length - 1]; // Get last segment (service ID)
+    });
+    
+    // Compare: find services in catalog that aren't in endpoint
+    const missing = expectedServices.filter(id => !endpointServiceIds.includes(id));
+    // Find services in endpoint that aren't in catalog
+    const extra = endpointServiceIds.filter(id => !expectedServices.includes(id));
+    
+    if (missing.length > 0) {
+      console.error(`❌ Discovery endpoint missing services: ${missing.join(', ')}`);
+    }
+    if (extra.length > 0) {
+      console.warn(`⚠️ Discovery endpoint has unexpected services: ${extra.join(', ')}`);
+    }
+    
+    return {
+      valid: missing.length === 0,
+      missing,
+      extra,
+      endpointServiceCount: data.resources.length
+    };
+    
+  } catch (error: any) {
+    console.error(`❌ Failed to validate discovery endpoint: ${error.message}`);
+    return { valid: false, missing: expectedServices, extra: [], endpointServiceCount: 0 };
+  }
+}
+
+/**
  * Initialize Bazaar discovery if enabled
  * Call this during server startup AFTER env validation
  */
@@ -248,11 +333,29 @@ export async function initializeBazaarDiscovery(): Promise<void> {
 
   console.log('📡 Bazaar Discovery: Initializing...');
   
+  // Check production readiness - FATAL in production
+  const readiness = validateProductionReadiness();
+  if (!readiness.ready) {
+    console.error('❌ Bazaar Discovery: FATAL - Production readiness check failed:');
+    readiness.issues.forEach(issue => console.error(`   - ${issue}`));
+    console.error('❌ Bazaar Discovery: DISABLED due to missing production requirements');
+    return; // Do not proceed - discovery disabled when requirements not met
+  }
+  
   try {
     const result = await registerServicesWithBazaar();
     
     if (result.success) {
       console.log(`📡 Bazaar Discovery: Ready - ${result.registered} services registered`);
+      
+      // Validate catalog integrity by simulating endpoint output
+      const integrity = await validateDiscoveryCatalogIntegrity();
+      if (!integrity.valid) {
+        console.error(`❌ Bazaar Discovery: Catalog integrity check FAILED - ${integrity.missing.length} services missing`);
+        console.error(`   Missing: ${integrity.missing.join(', ')}`);
+      } else {
+        console.log(`✅ Bazaar Discovery: Catalog integrity verified - endpoint would return ${integrity.endpointServiceCount} services`);
+      }
     } else {
       console.warn('📡 Bazaar Discovery: Initialization completed with errors');
     }

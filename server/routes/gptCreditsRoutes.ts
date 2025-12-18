@@ -88,10 +88,9 @@ router.post('/create-session', async (req: Request, res: Response) => {
       }
     });
 
-    // Store session in database (persists across restarts)
-    let dbSaveSucceeded = false;
+    // Store session in database (REQUIRED for redirect and fulfillment to work)
+    console.log(`🤖 GPT Credits: Saving session ${sessionTrackingId} to database...`);
     try {
-      console.log(`🤖 GPT Credits: Attempting to save session ${sessionTrackingId} to database...`);
       await db.insert(gptPurchaseSessions).values({
         id: sessionTrackingId,
         stripeSessionId: session.id,
@@ -102,24 +101,31 @@ router.post('/create-session', async (req: Request, res: Response) => {
         status: 'pending',
       });
       console.log(`✅ GPT Credits: Session ${sessionTrackingId} saved to database successfully`);
-      dbSaveSucceeded = true;
     } catch (dbError: any) {
-      console.error(`❌ GPT Credits: Failed to save session to database:`, dbError.message);
+      // CRITICAL: If DB save fails, the payment flow cannot work properly
+      // The redirect will fail and webhook won't be able to fulfill credits
+      console.error(`❌ GPT Credits: CRITICAL - Failed to save session to database`);
+      console.error(`   Session ID: ${sessionTrackingId}`);
+      console.error(`   Stripe Session: ${session.id}`);
+      console.error(`   Error: ${dbError.message}`);
+      console.error(`   Code: ${dbError.code || 'unknown'}`);
       console.error(`   Full error:`, dbError);
-      // Continue but will use direct Stripe URL as fallback
+      
+      // Return error so user can retry (don't give broken short URL)
+      return res.status(500).json({
+        success: false,
+        error: 'Unable to create checkout session. Please try again.',
+        retryable: true,
+        _debug: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+      });
     }
 
     console.log(`🤖 GPT Credits: Created checkout session ${sessionTrackingId} for ${packageName} ($${pkg.amount})`);
 
-    // Use direct Stripe URL if DB save failed (so user can still pay)
-    const checkoutUrl = dbSaveSucceeded 
-      ? `${baseUrl}/pay/${sessionTrackingId}`
-      : session.url;
-
     res.json({
       success: true,
       sessionId: sessionTrackingId,
-      checkoutUrl,
+      checkoutUrl: `${baseUrl}/pay/${sessionTrackingId}`,
       package: {
         name: packageName,
         price: `$${pkg.amount}`,
@@ -127,8 +133,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
       },
       instructions: 'Click the checkout link to complete your purchase. After payment, use the status endpoint to get your API key.',
       statusEndpoint: `/api/gpt/credits/status?session=${sessionTrackingId}`,
-      _version: 'v4-db-fallback',
-      _dbSaved: dbSaveSucceeded
+      _version: 'v5-db-required'
     });
 
   } catch (error: any) {

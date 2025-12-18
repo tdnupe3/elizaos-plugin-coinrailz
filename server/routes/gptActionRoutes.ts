@@ -2,8 +2,11 @@ import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
 import { creditsService } from '../services/creditsService';
 import { SERVICE_PRICING_USD, ServiceName, isServiceName } from '@shared/pricing';
+import gptCreditsRoutes from './gptCreditsRoutes';
 
 const router = Router();
+
+router.use('/credits', gptCreditsRoutes);
 
 const SUPPORTED_CHAINS = ['ethereum', 'base', 'polygon', 'bsc', 'arbitrum', 'optimism'];
 

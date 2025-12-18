@@ -5,6 +5,7 @@ import { db } from "../db.js";
 import { usedTransactionHashes } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { ethers } from "ethers";
+import { handleGptPurchaseWebhook } from "./gptCreditsRoutes";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -52,12 +53,23 @@ export const creditsStripeWebhookHandler = async (req: Request, res: Response) =
         description: `Stripe payment - $${amount} credits`,
         metadata: {
           stripeSessionId: session.id,
-          stripePaymentIntent: session.payment_intent
+          stripePaymentIntent: session.payment_intent,
+          source: session.metadata?.source
         }
       });
 
       console.log(`✅ Stripe webhook: Credited $${amount} to user ${userId} (session: ${session.id})`);
       console.log(`💰 New balance: $${result.newBalance}`);
+
+      // Handle GPT-specific purchases (generate API key for polling)
+      if (session.metadata?.source === 'gpt') {
+        try {
+          await handleGptPurchaseWebhook(session, amount);
+          console.log(`🤖 GPT webhook: API key generated for session ${session.metadata.gptSessionId}`);
+        } catch (gptError: any) {
+          console.error("⚠️ GPT API key generation failed (credits still added):", gptError.message);
+        }
+      }
 
     } catch (error: any) {
       console.error("❌ Error processing Stripe payment:", error);

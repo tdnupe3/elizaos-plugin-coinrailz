@@ -6,6 +6,8 @@ import { db } from '../db';
 import { gptPurchaseSessions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
+console.log('📁 gptCreditsRoutes.ts FILE LOADED at', new Date().toISOString());
+
 const router = Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -31,8 +33,10 @@ setInterval(() => {
 }, 60000);
 
 router.post('/create-session', async (req: Request, res: Response) => {
+  console.log('🚨 GPT CREDITS ROUTE HIT - create-session called');
   try {
     const { package: packageName } = req.body;
+    console.log('📦 Package requested:', packageName);
     
     if (!packageName || !CREDIT_PACKAGES[packageName as keyof typeof CREDIT_PACKAGES]) {
       return res.status(400).json({
@@ -105,13 +109,15 @@ router.post('/create-session', async (req: Request, res: Response) => {
       success: true,
       sessionId: sessionTrackingId,
       checkoutUrl: session.url,
+      shortUrl: `${baseUrl}/pay/${sessionTrackingId}`,
       package: {
         name: packageName,
         price: `$${pkg.amount}`,
         credits: pkg.credits
       },
       instructions: 'Click the checkout link to complete your purchase. After payment, use the status endpoint to get your API key.',
-      statusEndpoint: `/api/gpt/credits/status?session=${sessionTrackingId}`
+      statusEndpoint: `/api/gpt/credits/status?session=${sessionTrackingId}`,
+      _version: 'v2-db-persist'
     });
 
   } catch (error: any) {

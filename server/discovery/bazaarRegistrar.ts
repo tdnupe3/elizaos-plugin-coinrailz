@@ -16,9 +16,6 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { x402HTTPResourceServer, x402ResourceServer } from '@x402/core/server';
-import { HTTPFacilitatorClient } from '@x402/core/http';
-import { bazaarResourceServerExtension, declareDiscoveryExtension, withBazaar } from '@x402/extensions/bazaar';
 import { ServiceCatalogService } from '../services/serviceCatalogService';
 import { getFacilitatorUrl, isUsingCdpFacilitator, USDC_BASE_ADDRESS, NETWORK_CAIP2 } from '../utils/facilitatorHelper';
 
@@ -70,7 +67,10 @@ function generateOutputExample(serviceId: string, capabilities: string[]): Recor
 }
 
 /**
- * Register all services from the catalog with the Bazaar extension
+ * Build internal catalog of services for Bazaar discovery
+ * Note: The @x402/core library uses HTTP-based discovery (the 402 response pattern)
+ * rather than server-side resource registration. Our discovery endpoints serve as
+ * the "sitemap" for Bazaar crawlers to find our x402-gated services.
  */
 export async function registerServicesWithBazaar(): Promise<RegistrationResult> {
   const result: RegistrationResult = {
@@ -84,19 +84,10 @@ export async function registerServicesWithBazaar(): Promise<RegistrationResult> 
     const facilitatorUrl = getFacilitatorUrl();
     const catalog = ServiceCatalogService.getInstance().getCatalog();
     
-    console.log(`📡 Bazaar Registrar: Starting registration with facilitator ${facilitatorUrl}`);
+    console.log(`📡 Bazaar Discovery: Building catalog with facilitator ${facilitatorUrl}`);
     console.log(`📚 Found ${catalog.services.length} services in catalog`);
 
-    // Create facilitator client with Bazaar extension
-    const facilitatorClient = withBazaar(
-      new HTTPFacilitatorClient({ url: facilitatorUrl })
-    );
-
-    // Create resource server with Bazaar extension
-    const resourceServer = new x402ResourceServer(facilitatorClient);
-    resourceServer.registerExtension(bazaarResourceServerExtension);
-
-    // Register each service
+    // Build discovery metadata for each service
     for (const service of catalog.services) {
       try {
         // Skip non-x402 services
@@ -106,23 +97,8 @@ export async function registerServicesWithBazaar(): Promise<RegistrationResult> 
         }
 
         const resourceUrl = `${PUBLIC_BASE_URL}${service.endpoint}`;
-        const priceInMicros = parsePriceToMicros(service.priceUSD);
-
-        // Create discovery extension metadata
-        const discoveryExtension = declareDiscoveryExtension({
-          method: 'GET',
-          input: {},
-          inputSchema: {
-            properties: {},
-            additionalProperties: true
-          },
-          output: {
-            example: generateOutputExample(service.id, service.capabilities)
-          }
-        });
-
-        // Log registration attempt
-        console.log(`📝 Registering: ${service.id} at ${resourceUrl} for ${service.priceUSD}`);
+        
+        console.log(`📝 Indexed: ${service.id} at ${resourceUrl} for ${service.priceUSD}`);
 
         result.services.push({
           id: service.id,
@@ -132,7 +108,7 @@ export async function registerServicesWithBazaar(): Promise<RegistrationResult> 
         result.registered++;
 
       } catch (serviceError: any) {
-        console.error(`❌ Failed to register ${service.id}:`, serviceError.message);
+        console.error(`❌ Failed to index ${service.id}:`, serviceError.message);
         result.services.push({
           id: service.id,
           endpoint: service.endpoint,
@@ -143,14 +119,14 @@ export async function registerServicesWithBazaar(): Promise<RegistrationResult> 
       }
     }
 
-    console.log(`✅ Bazaar registration complete: ${result.registered} registered, ${result.failed} failed`);
-    
-    // Store server for discovery endpoint
-    (global as any).__bazaarResourceServer = resourceServer;
-    (global as any).__bazaarFacilitatorClient = facilitatorClient;
+    console.log(`✅ Bazaar discovery catalog ready: ${result.registered} services indexed`);
+    console.log(`📡 Discovery endpoints available at /api/discovery/*`);
+    console.log(`   - GET /api/discovery/health - Health check`);
+    console.log(`   - GET /api/discovery/status - Catalog status`);
+    console.log(`   - GET /api/discovery/resources - Full resource list for Bazaar crawlers`);
 
   } catch (error: any) {
-    console.error('❌ Bazaar registration failed:', error.message);
+    console.error('❌ Bazaar catalog build failed:', error.message);
     result.success = false;
   }
 

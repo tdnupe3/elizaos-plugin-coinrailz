@@ -3811,6 +3811,16 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.log('🚫 BUILD MODE: All revenue generation services disabled');
   }
   
+  // Initialize Bazaar Discovery (register services with @x402/extensions resource server)
+  if (isBazaarDiscoveryEnabled()) {
+    try {
+      console.log('📡 Initializing Bazaar Discovery service registration...');
+      await initializeBazaarDiscovery();
+    } catch (error) {
+      console.error('❌ Bazaar Discovery initialization failed:', error);
+    }
+  }
+  
   console.log('✅ Post-listen initialization complete');
   
   } catch (error) {

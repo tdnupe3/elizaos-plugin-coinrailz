@@ -1,8 +1,37 @@
 import { db } from "../db.js";
-import { creditsAccounts, creditTransactions, apiKeys, users } from "@shared/schema";
+import { creditsAccounts, creditTransactions, apiKeys, users, apiUsageTracking } from "@shared/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import bcrypt from "bcrypt";
+
+function logApiUsageAsync(params: {
+  clientId: string;
+  apiEndpoint: string;
+  requestMethod: string;
+  responseTime?: number;
+  pricePaid: number;
+  ipAddress?: string;
+  userAgent?: string;
+}): void {
+  Promise.resolve().then(async () => {
+    try {
+      await db.insert(apiUsageTracking).values({
+        clientId: params.clientId,
+        apiEndpoint: params.apiEndpoint,
+        requestMethod: params.requestMethod,
+        responseTime: params.responseTime || null,
+        pricePaid: params.pricePaid.toFixed(2),
+        billingStatus: 'completed',
+        ipAddress: params.ipAddress || null,
+        userAgent: params.userAgent || null,
+        processedAt: new Date(),
+      });
+      console.log(`📊 API usage logged: ${params.clientId} → ${params.apiEndpoint} ($${params.pricePaid})`);
+    } catch (error: any) {
+      console.error(`⚠️ API usage logging failed (non-blocking): ${error.message}`);
+    }
+  });
+}
 
 export type TransactionType = "purchase" | "debit" | "refund" | "adjustment" | "bonus";
 export type PaymentMethod = "stripe" | "usdc" | "usdt";
@@ -22,6 +51,12 @@ export interface CreditsDebitParams {
   serviceName: string;
   description?: string;
   metadata?: Record<string, any>;
+  requestContext?: {
+    ipAddress?: string;
+    userAgent?: string;
+    method?: string;
+    responseTime?: number;
+  };
 }
 
 export class CreditsService {
@@ -104,7 +139,7 @@ export class CreditsService {
   }
 
   async deductCredits(params: CreditsDebitParams): Promise<{ success: boolean; newBalance: number; transactionId: number }> {
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const [account] = await tx.select()
         .from(creditsAccounts)
         .where(eq(creditsAccounts.userId, params.userId))
@@ -149,6 +184,21 @@ export class CreditsService {
         transactionId: transaction.id
       };
     });
+
+    // Fire-and-forget API usage logging (fully detached via setImmediate, non-blocking)
+    if (result.success) {
+      logApiUsageAsync({
+        clientId: params.userId,
+        apiEndpoint: params.serviceName,
+        requestMethod: params.requestContext?.method || 'POST',
+        responseTime: params.requestContext?.responseTime,
+        pricePaid: params.amount,
+        ipAddress: params.requestContext?.ipAddress,
+        userAgent: params.requestContext?.userAgent,
+      });
+    }
+
+    return result;
   }
 
   async getTransactionHistory(userId: string, limit: number = 50) {

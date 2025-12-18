@@ -117,10 +117,18 @@ SELECT service_id, COUNT(*) FROM x402_interactions GROUP BY 1 ORDER BY 2 DESC;
 
 ## Dormant/Underutilized Tables
 
-### `api_usage_tracking` - **EMPTY**
-**Intended Purpose**: Per-request API usage billing
-**Status**: Schema exists, no data
-**Recommendation**: Implement tracking in API middleware
+### `api_usage_tracking` - **NOW ACTIVE** ✅
+**Purpose**: Per-request API usage billing with credit debits
+**Status**: Implemented in CreditsService.deductCredits() with fire-and-forget pattern
+**Data Captured**:
+- `client_id`: User/API key holder
+- `api_endpoint`: Service name called
+- `request_method`: HTTP method
+- `response_time`: Latency in ms
+- `price_paid`: Credits charged
+- `ip_address`: Real client IP
+- `user_agent`: Client identifier
+**Updated**: December 18, 2025
 
 ### `api_integration_logs` - **EMPTY**
 **Intended Purpose**: External API call logging
@@ -131,10 +139,18 @@ SELECT service_id, COUNT(*) FROM x402_interactions GROUP BY 1 ORDER BY 2 DESC;
 **Status**: Only 1 record from Nov 1, 2025
 **Recommendation**: Add daily aggregation job
 
-### `payment_intent_tracking` - **EMPTY**
-**Intended Purpose**: Stripe payment intent lifecycle
-**Status**: Schema exists, no data
-**Recommendation**: Populate from Stripe webhooks
+### `payment_intent_tracking` - **NOW ACTIVE** ✅
+**Purpose**: Stripe payment intent lifecycle tracking
+**Status**: Implemented in stripeRoutes.ts webhook handler with fire-and-forget pattern
+**Data Captured**:
+- `payment_intent_id`: Stripe PI ID (unique)
+- `customer_email`: Customer email
+- `amount`: Amount in cents
+- `currency`: USD/other
+- `purpose`: gpt/marketplace/other
+- `config_id`: Session or order ID
+- `metadata`: Full Stripe metadata
+**Updated**: December 18, 2025
 
 ---
 

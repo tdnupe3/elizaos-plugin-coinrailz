@@ -78,6 +78,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
       metadata: {
         userId: gptUserId,
         creditsAmount: pkg.amount.toString(),
+        creditsCount: pkg.credits.toString(),
         source: 'gpt',
         gptSessionId: sessionTrackingId,
         packageName
@@ -254,6 +255,45 @@ router.get('/packages', async (_req: Request, res: Response) => {
   });
 });
 
+// Short URL redirect handler - /pay/:sessionId redirects to Stripe checkout
+router.get('/redirect/:sessionId', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.params;
+    
+    const [session] = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.id, sessionId))
+      .limit(1);
+    
+    if (!session || !session.stripeSessionId) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found or expired',
+        suggestion: 'Create a new checkout session'
+      });
+    }
+
+    // Retrieve the Stripe session to get the checkout URL
+    const stripeSession = await stripe.checkout.sessions.retrieve(session.stripeSessionId);
+    
+    if (!stripeSession.url) {
+      return res.status(400).json({
+        success: false,
+        error: 'Checkout session expired',
+        suggestion: 'Create a new checkout session'
+      });
+    }
+
+    res.redirect(stripeSession.url);
+  } catch (error: any) {
+    console.error('❌ GPT redirect error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to redirect to checkout'
+    });
+  }
+});
+
 // Webhook handler called from creditsRoutes when GPT purchase is confirmed
 export async function handleGptPurchaseWebhook(
   stripeSession: Stripe.Checkout.Session,
@@ -268,20 +308,35 @@ export async function handleGptPurchaseWebhook(
   }
 
   try {
+    // Get the original session from database to use correct credits amount
+    const [existingSession] = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.id, gptSessionId))
+      .limit(1);
+    
+    // Use credits from: 1) database session, 2) Stripe metadata, 3) package lookup
+    const metadataCredits = parseInt(stripeSession.metadata?.creditsCount || '0', 10);
+    const correctCredits = existingSession?.credits || metadataCredits || CREDIT_PACKAGES[existingSession?.packageName as keyof typeof CREDIT_PACKAGES]?.credits;
+    
+    if (!correctCredits) {
+      console.error(`❌ GPT webhook: Cannot determine credits for session ${gptSessionId} - aborting fulfillment`);
+      throw new Error('Cannot determine credits amount for fulfillment');
+    }
+    
     // Generate API key
     const { apiKey } = await creditsService.generateApiKey(userId, 'GPT Purchase API Key');
 
-    // Update session in database
+    // Update session in database with CORRECT credits from original session
     await db.update(gptPurchaseSessions)
       .set({
         status: 'completed',
         apiKey,
-        credits: creditsAmount * 10,
+        credits: correctCredits,
         completedAt: new Date(),
       })
       .where(eq(gptPurchaseSessions.id, gptSessionId));
 
-    console.log(`✅ GPT Purchase Complete: User ${userId} - ${creditsAmount * 10} credits - Key: ${apiKey.substring(0, 12)}...`);
+    console.log(`✅ GPT Purchase Complete: User ${userId} - ${correctCredits} credits - Key: ${apiKey.substring(0, 12)}...`);
 
   } catch (error: any) {
     console.error('❌ GPT webhook API key generation failed:', error.message);

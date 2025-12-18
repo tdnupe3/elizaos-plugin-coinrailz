@@ -163,6 +163,17 @@ app.get('/', (req, res, next) => {
   next();
 });
 
+// CLEAN SHORT URL REDIRECT - /pay/:sessionId for GPT credit purchase (before other middleware)
+app.get('/pay/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    // Redirect to the GPT credits redirect handler
+    res.redirect(`/api/gpt/credits/redirect/${sessionId}`);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to redirect' });
+  }
+});
+
 // STRIPE WEBHOOKS BEFORE JSON PARSER - Critical for raw body signature verification
 import { stripeWebhookHandler } from './routes/stripePaymentRoutes.js';
 import { creditsStripeWebhookHandler } from './routes/creditsRoutes.js';

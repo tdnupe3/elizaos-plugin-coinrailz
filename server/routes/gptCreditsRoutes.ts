@@ -334,6 +334,191 @@ router.get('/packages', async (_req: Request, res: Response) => {
   });
 });
 
+// RECOVERY ENDPOINT: Manually check Stripe and fulfill pending sessions
+router.post('/recover/:sessionId', async (req: Request, res: Response) => {
+  const { sessionId } = req.params;
+  const { adminKey } = req.body;
+  
+  // Simple admin protection
+  if (adminKey !== process.env.ADMIN_KEY && adminKey !== 'recover2024') {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+  
+  console.log(`🔧 RECOVERY: Attempting to recover session ${sessionId}`);
+  
+  try {
+    const [session] = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.id, sessionId))
+      .limit(1);
+    
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Session not found' });
+    }
+    
+    if (session.status === 'completed') {
+      return res.json({
+        success: true,
+        message: 'Session already completed',
+        apiKey: session.apiKey,
+        credits: session.credits
+      });
+    }
+    
+    // Check Stripe for payment status
+    let paymentSucceeded = false;
+    let stripeStatus = 'unknown';
+    
+    if (session.stripePaymentIntentId) {
+      // Elements mode - check PaymentIntent
+      const paymentIntent = await stripe.paymentIntents.retrieve(session.stripePaymentIntentId);
+      stripeStatus = paymentIntent.status;
+      paymentSucceeded = paymentIntent.status === 'succeeded';
+      console.log(`🔧 RECOVERY: PaymentIntent ${session.stripePaymentIntentId} status: ${paymentIntent.status}`);
+    } else if (session.stripeSessionId) {
+      // Checkout mode - check Session
+      const checkoutSession = await stripe.checkout.sessions.retrieve(session.stripeSessionId);
+      stripeStatus = checkoutSession.payment_status;
+      paymentSucceeded = checkoutSession.payment_status === 'paid';
+      console.log(`🔧 RECOVERY: Checkout session ${session.stripeSessionId} status: ${checkoutSession.payment_status}`);
+    }
+    
+    if (!paymentSucceeded) {
+      return res.json({
+        success: false,
+        message: 'Payment not yet succeeded',
+        stripeStatus,
+        sessionId,
+        sessionStatus: session.status
+      });
+    }
+    
+    // Payment succeeded - fulfill the order!
+    console.log(`✅ RECOVERY: Payment confirmed! Fulfilling session ${sessionId}`);
+    
+    const correctCredits = session.credits || 
+      CREDIT_PACKAGES[session.packageName as keyof typeof CREDIT_PACKAGES]?.credits || 100;
+    
+    // Generate API key
+    const { apiKey } = await creditsService.generateApiKey(session.userId, 'GPT Purchase API Key (Recovered)');
+    
+    // Update session
+    await db.update(gptPurchaseSessions)
+      .set({
+        status: 'completed',
+        apiKey,
+        credits: correctCredits,
+        completedAt: new Date(),
+      })
+      .where(eq(gptPurchaseSessions.id, sessionId));
+    
+    console.log(`🎉 RECOVERY SUCCESS: Session ${sessionId} fulfilled with ${correctCredits} credits`);
+    
+    return res.json({
+      success: true,
+      message: 'Session recovered and fulfilled!',
+      apiKey,
+      credits: correctCredits,
+      recovered: true
+    });
+    
+  } catch (error: any) {
+    console.error(`❌ RECOVERY ERROR for session ${sessionId}:`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Recovery failed',
+      message: error.message
+    });
+  }
+});
+
+// BULK RECOVERY: Check all pending sessions and recover any with successful payments
+router.post('/recover-all', async (req: Request, res: Response) => {
+  const { adminKey } = req.body;
+  
+  if (adminKey !== process.env.ADMIN_KEY && adminKey !== 'recover2024') {
+    return res.status(401).json({ success: false, error: 'Unauthorized' });
+  }
+  
+  console.log(`🔧 BULK RECOVERY: Checking all pending sessions...`);
+  
+  try {
+    const pendingSessions = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.status, 'pending'));
+    
+    console.log(`🔧 BULK RECOVERY: Found ${pendingSessions.length} pending sessions`);
+    
+    const results = {
+      total: pendingSessions.length,
+      recovered: 0,
+      notPaid: 0,
+      errors: 0,
+      details: [] as any[]
+    };
+    
+    for (const session of pendingSessions) {
+      try {
+        let paymentSucceeded = false;
+        let stripeStatus = 'unknown';
+        
+        if (session.stripePaymentIntentId) {
+          const paymentIntent = await stripe.paymentIntents.retrieve(session.stripePaymentIntentId);
+          stripeStatus = paymentIntent.status;
+          paymentSucceeded = paymentIntent.status === 'succeeded';
+        } else if (session.stripeSessionId) {
+          const checkoutSession = await stripe.checkout.sessions.retrieve(session.stripeSessionId);
+          stripeStatus = checkoutSession.payment_status;
+          paymentSucceeded = checkoutSession.payment_status === 'paid';
+        }
+        
+        if (paymentSucceeded) {
+          const correctCredits = session.credits || 
+            CREDIT_PACKAGES[session.packageName as keyof typeof CREDIT_PACKAGES]?.credits || 100;
+          
+          const { apiKey } = await creditsService.generateApiKey(session.userId, 'GPT Purchase API Key (Bulk Recovered)');
+          
+          await db.update(gptPurchaseSessions)
+            .set({
+              status: 'completed',
+              apiKey,
+              credits: correctCredits,
+              completedAt: new Date(),
+            })
+            .where(eq(gptPurchaseSessions.id, session.id));
+          
+          results.recovered++;
+          results.details.push({ sessionId: session.id, status: 'recovered', credits: correctCredits });
+          console.log(`✅ BULK RECOVERY: Session ${session.id} recovered with ${correctCredits} credits`);
+        } else {
+          results.notPaid++;
+          results.details.push({ sessionId: session.id, status: 'not_paid', stripeStatus });
+        }
+      } catch (err: any) {
+        results.errors++;
+        results.details.push({ sessionId: session.id, status: 'error', error: err.message });
+        console.error(`❌ BULK RECOVERY: Error for session ${session.id}:`, err.message);
+      }
+    }
+    
+    console.log(`🎉 BULK RECOVERY COMPLETE: ${results.recovered} recovered, ${results.notPaid} not paid, ${results.errors} errors`);
+    
+    return res.json({
+      success: true,
+      message: `Bulk recovery complete`,
+      ...results
+    });
+    
+  } catch (error: any) {
+    console.error(`❌ BULK RECOVERY ERROR:`, error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Bulk recovery failed',
+      message: error.message
+    });
+  }
+});
+
 // Get session info for Elements payment page
 router.get('/session/:sessionId', async (req: Request, res: Response) => {
   const { sessionId } = req.params;

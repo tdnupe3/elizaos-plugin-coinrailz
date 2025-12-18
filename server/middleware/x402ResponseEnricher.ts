@@ -202,6 +202,10 @@ export function x402ResponseEnricher() {
         const baseUrl = getCanonicalBaseUrl();
         const endpoint = req.originalUrl || req.path;
         
+        // CRITICAL FIX: x402scan requires x402Version as string "1" or "2", not number
+        // Their Zod schema: z.enum(['1','2']) - integers fail validation
+        body.x402Version = String(body.x402Version);
+        
         body.facilitatorUrl = body.facilitatorUrl || FACILITATOR_URL;
         
         // Add confidence metrics (ChatGPT-recommended social proof)
@@ -212,6 +216,10 @@ export function x402ResponseEnricher() {
         
         body.accepts = body.accepts.map((paymentReq: any) => {
           const enriched = { ...paymentReq };
+          
+          // Remove duplicate x402Version from accepts items (should only be at top level)
+          // x402scan may reject payloads with x402Version inside accepts array
+          delete enriched.x402Version;
           
           enriched.resource = normalizeResourceUrl(paymentReq.resource, endpoint);
           enriched.discoverable = true;

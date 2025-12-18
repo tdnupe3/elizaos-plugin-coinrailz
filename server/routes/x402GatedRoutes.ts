@@ -452,7 +452,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
   const priceInMicroUnits = Math.round(priceUsd * 1_000_000).toString();
 
   const response = {
-    x402Version: 2,
+    x402Version: "2",
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
@@ -481,7 +481,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         output: { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 2,
+      x402Version: "2",
       metadata: {}
     }],
     facilitatorUrl: getFacilitatorUrl()
@@ -533,7 +533,7 @@ gatedServiceEndpoints.forEach(endpoint => {
           timestamp: new Date().toISOString(),
           platform: 'Coin Railz',
           paymentMethod: 'hybrid', // Could be USDC, USDT, API key, or EIP-712
-          x402Version: 2,
+          x402Version: "2",
         });
       }
       
@@ -660,7 +660,7 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
   const description = SERVICE_DESCRIPTIONS[serviceSlug] || `${serviceSlug} x402 micropayment service`;
   
   const response = {
-    x402Version: 2,
+    x402Version: "2",
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
@@ -689,7 +689,7 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
         output: { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 2,
+      x402Version: "2",
       metadata: {}
     }],
     facilitatorUrl: getFacilitatorUrl(),

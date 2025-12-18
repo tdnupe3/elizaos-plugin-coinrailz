@@ -323,7 +323,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
         console.log(`❌ Payment verification failed for ${serviceName}`);
         // Payment not valid - return 402
         return res.status(402).json({
-          x402Version: 2,
+          x402Version: "2",
           error: "Payment verification failed",
           message: "Transaction not found, insufficient amount, or already used",
           accepts: [{
@@ -340,7 +340,7 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
     .catch((error) => {
       console.error(`❌ Error verifying payment:`, error);
       return res.status(500).json({
-        x402Version: 2,
+        x402Version: "2",
         error: "Payment verification error",
         message: error.message
       });

@@ -545,7 +545,18 @@ router.get('/credits-info', async (_req: Request, res: Response) => {
         { name: 'Enterprise', price: '$200', credits: 3000, perCredit: '$0.067', savings: '33%' }
       ],
       purchaseUrl: 'https://coinrailz.com/credits',
-      paymentMethods: ['Credit Card (Stripe)', 'USDC on Base Chain', 'PayPal']
+      paymentMethods: ['Credit Card (Stripe)', 'USDC on Base Chain', 'PayPal'],
+      inChatPurchase: {
+        note: 'You can purchase credits directly in this chat!',
+        step1: 'Call POST /api/gpt/credits/create-session with { "package": "starter" }',
+        step2: 'Open the checkoutUrl in your browser to complete payment',
+        step3: 'After payment, call GET /api/gpt/credits/status?session=YOUR_SESSION_ID to get your API key',
+        endpoints: {
+          packages: '/api/gpt/credits/packages',
+          createSession: '/api/gpt/credits/create-session',
+          checkStatus: '/api/gpt/credits/status'
+        }
+      }
     }
   });
 });

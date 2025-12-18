@@ -4649,6 +4649,27 @@ export const apiKeys = pgTable("api_keys", {
   index("IDX_api_keys_key_prefix").on(table.keyPrefix),
 ]);
 
+// GPT Purchase Sessions - Persist checkout sessions for GPT in-chat purchases
+export const gptPurchaseSessions = pgTable("gpt_purchase_sessions", {
+  id: varchar("id", { length: 24 }).primaryKey(),
+  stripeSessionId: varchar("stripe_session_id"),
+  userId: varchar("user_id").notNull(),
+  packageName: varchar("package_name").notNull(),
+  amount: integer("amount").notNull(),
+  credits: integer("credits"),
+  status: varchar("status").notNull().default("pending"),
+  apiKey: varchar("api_key"),
+  createdAt: timestamp("created_at").defaultNow(),
+  completedAt: timestamp("completed_at"),
+}, (table) => [
+  index("IDX_gpt_sessions_user_id").on(table.userId),
+  index("IDX_gpt_sessions_status").on(table.status),
+  index("IDX_gpt_sessions_stripe_session").on(table.stripeSessionId),
+]);
+
+export type GptPurchaseSession = typeof gptPurchaseSessions.$inferSelect;
+export type InsertGptPurchaseSession = typeof gptPurchaseSessions.$inferInsert;
+
 // Credits Accounts Insert/Select Schemas
 export const creditsAccountsInsertSchema = createInsertSchema(creditsAccounts).omit({
   id: true,

@@ -2,6 +2,9 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { creditsService } from '../services/creditsService';
 import { nanoid } from 'nanoid';
+import { db } from '../db';
+import { gptPurchaseSessions } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
@@ -12,27 +15,14 @@ const CREDIT_PACKAGES = {
   enterprise: { amount: 200, credits: 3000, description: 'Enterprise Pack - 3000 credits (50% bonus)' }
 };
 
-const gptSessionCache = new Map<string, {
-  status: 'pending' | 'completed' | 'expired';
-  userId: string;
-  apiKey?: string;
-  credits?: number;
-  createdAt: number;
-  completedAt?: number;
-}>();
-
 const pollRateLimit = new Map<string, { lastPoll: number; pollCount: number }>();
 const POLL_INTERVAL_MS = 5000;
-const MAX_POLL_COUNT = 12;
-const SESSION_EXPIRY_MS = 60000;
+const MAX_POLL_COUNT = 60; // Increased for longer waits
+const SESSION_EXPIRY_MS = 600000; // 10 minutes (increased from 60s)
 
+// Clean up rate limit entries periodically
 setInterval(() => {
   const now = Date.now();
-  for (const [sessionId, session] of gptSessionCache.entries()) {
-    if (now - session.createdAt > SESSION_EXPIRY_MS * 10) {
-      gptSessionCache.delete(sessionId);
-    }
-  }
   for (const [key, data] of pollRateLimit.entries()) {
     if (now - data.lastPoll > SESSION_EXPIRY_MS * 2) {
       pollRateLimit.delete(key);
@@ -90,11 +80,24 @@ router.post('/create-session', async (req: Request, res: Response) => {
       }
     });
 
-    gptSessionCache.set(sessionTrackingId, {
-      status: 'pending',
-      userId: gptUserId,
-      createdAt: Date.now()
-    });
+    // Store session in database (persists across restarts)
+    try {
+      console.log(`🤖 GPT Credits: Attempting to save session ${sessionTrackingId} to database...`);
+      await db.insert(gptPurchaseSessions).values({
+        id: sessionTrackingId,
+        stripeSessionId: session.id,
+        userId: gptUserId,
+        packageName,
+        amount: pkg.amount,
+        credits: pkg.credits,
+        status: 'pending',
+      });
+      console.log(`✅ GPT Credits: Session ${sessionTrackingId} saved to database successfully`);
+    } catch (dbError: any) {
+      console.error(`❌ GPT Credits: Failed to save session to database:`, dbError.message);
+      console.error(`   Full error:`, dbError);
+      // Continue anyway - Stripe session was created successfully
+    }
 
     console.log(`🤖 GPT Credits: Created checkout session ${sessionTrackingId} for ${packageName} ($${pkg.amount})`);
 
@@ -161,13 +164,18 @@ router.get('/status', async (req: Request, res: Response) => {
       pollRateLimit.set(clientKey, { lastPoll: now, pollCount: 1 });
     }
 
-    const session = gptSessionCache.get(sessionId);
+    // Query database for session
+    const [session] = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.id, sessionId))
+      .limit(1);
 
     if (!session) {
       return res.status(404).json({
         success: false,
-        error: 'Session not found or expired',
-        suggestion: 'Create a new checkout session using the create-session endpoint'
+        status: 'expired',
+        message: 'Session expired. Please create a new checkout session.',
+        suggestion: 'Call POST /api/gpt/credits/create-session to start again'
       });
     }
 
@@ -185,11 +193,17 @@ router.get('/status', async (req: Request, res: Response) => {
       });
     }
 
-    const elapsed = now - session.createdAt;
+    // Check if session has expired (10 minutes)
+    const sessionCreatedAt = session.createdAt ? new Date(session.createdAt).getTime() : now;
+    const elapsed = now - sessionCreatedAt;
     const remaining = Math.max(0, SESSION_EXPIRY_MS - elapsed);
 
     if (elapsed > SESSION_EXPIRY_MS && session.status === 'pending') {
-      session.status = 'expired';
+      // Mark as expired in database
+      await db.update(gptPurchaseSessions)
+        .set({ status: 'expired' })
+        .where(eq(gptPurchaseSessions.id, sessionId));
+      
       return res.json({
         success: false,
         status: 'expired',
@@ -234,36 +248,32 @@ router.get('/packages', async (_req: Request, res: Response) => {
   });
 });
 
+// Webhook handler called from creditsRoutes when GPT purchase is confirmed
 export async function handleGptPurchaseWebhook(
-  session: Stripe.Checkout.Session,
+  stripeSession: Stripe.Checkout.Session,
   creditsAmount: number
 ): Promise<void> {
-  const gptSessionId = session.metadata?.gptSessionId;
-  const userId = session.metadata?.userId;
+  const gptSessionId = stripeSession.metadata?.gptSessionId;
+  const userId = stripeSession.metadata?.userId;
   
   if (!gptSessionId || !userId) {
     console.log('⚠️ GPT webhook: Missing session metadata, skipping GPT-specific handling');
     return;
   }
 
-  const cachedSession = gptSessionCache.get(gptSessionId);
-  if (!cachedSession) {
-    console.log(`⚠️ GPT webhook: Session ${gptSessionId} not in cache, creating new entry`);
-    gptSessionCache.set(gptSessionId, {
-      status: 'pending',
-      userId,
-      createdAt: Date.now()
-    });
-  }
-
   try {
+    // Generate API key
     const { apiKey } = await creditsService.generateApiKey(userId, 'GPT Purchase API Key');
 
-    const sessionEntry = gptSessionCache.get(gptSessionId)!;
-    sessionEntry.status = 'completed';
-    sessionEntry.apiKey = apiKey;
-    sessionEntry.credits = creditsAmount * 10;
-    sessionEntry.completedAt = Date.now();
+    // Update session in database
+    await db.update(gptPurchaseSessions)
+      .set({
+        status: 'completed',
+        apiKey,
+        credits: creditsAmount * 10,
+        completedAt: new Date(),
+      })
+      .where(eq(gptPurchaseSessions.id, gptSessionId));
 
     console.log(`✅ GPT Purchase Complete: User ${userId} - ${creditsAmount * 10} credits - Key: ${apiKey.substring(0, 12)}...`);
 
@@ -273,5 +283,4 @@ export async function handleGptPurchaseWebhook(
   }
 }
 
-export { gptSessionCache };
 export default router;

@@ -89,6 +89,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
     });
 
     // Store session in database (persists across restarts)
+    let dbSaveSucceeded = false;
     try {
       console.log(`🤖 GPT Credits: Attempting to save session ${sessionTrackingId} to database...`);
       await db.insert(gptPurchaseSessions).values({
@@ -101,18 +102,24 @@ router.post('/create-session', async (req: Request, res: Response) => {
         status: 'pending',
       });
       console.log(`✅ GPT Credits: Session ${sessionTrackingId} saved to database successfully`);
+      dbSaveSucceeded = true;
     } catch (dbError: any) {
       console.error(`❌ GPT Credits: Failed to save session to database:`, dbError.message);
       console.error(`   Full error:`, dbError);
-      // Continue anyway - Stripe session was created successfully
+      // Continue but will use direct Stripe URL as fallback
     }
 
     console.log(`🤖 GPT Credits: Created checkout session ${sessionTrackingId} for ${packageName} ($${pkg.amount})`);
 
+    // Use direct Stripe URL if DB save failed (so user can still pay)
+    const checkoutUrl = dbSaveSucceeded 
+      ? `${baseUrl}/pay/${sessionTrackingId}`
+      : session.url;
+
     res.json({
       success: true,
       sessionId: sessionTrackingId,
-      checkoutUrl: `${baseUrl}/pay/${sessionTrackingId}`,
+      checkoutUrl,
       package: {
         name: packageName,
         price: `$${pkg.amount}`,
@@ -120,7 +127,8 @@ router.post('/create-session', async (req: Request, res: Response) => {
       },
       instructions: 'Click the checkout link to complete your purchase. After payment, use the status endpoint to get your API key.',
       statusEndpoint: `/api/gpt/credits/status?session=${sessionTrackingId}`,
-      _version: 'v3-clean-urls'
+      _version: 'v4-db-fallback',
+      _dbSaved: dbSaveSucceeded
     });
 
   } catch (error: any) {
@@ -259,26 +267,33 @@ router.get('/packages', async (_req: Request, res: Response) => {
 
 // Short URL redirect handler - /pay/:sessionId redirects to Stripe checkout
 router.get('/redirect/:sessionId', async (req: Request, res: Response) => {
+  const { sessionId } = req.params;
+  console.log(`🔗 /pay redirect: Looking up session ${sessionId}`);
+  
   try {
-    const { sessionId } = req.params;
-    
     const [session] = await db.select()
       .from(gptPurchaseSessions)
       .where(eq(gptPurchaseSessions.id, sessionId))
       .limit(1);
     
+    console.log(`🔗 /pay redirect: DB lookup result:`, session ? `Found (stripeId: ${session.stripeSessionId?.substring(0, 20)}...)` : 'NOT FOUND');
+    
     if (!session || !session.stripeSessionId) {
+      console.log(`❌ /pay redirect: Session ${sessionId} not found in database`);
       return res.status(404).json({
         success: false,
         error: 'Session not found or expired',
+        sessionId,
         suggestion: 'Create a new checkout session'
       });
     }
 
     // Retrieve the Stripe session to get the checkout URL
+    console.log(`🔗 /pay redirect: Retrieving Stripe session ${session.stripeSessionId.substring(0, 20)}...`);
     const stripeSession = await stripe.checkout.sessions.retrieve(session.stripeSessionId);
     
     if (!stripeSession.url) {
+      console.log(`❌ /pay redirect: Stripe session has no URL (expired?)`);
       return res.status(400).json({
         success: false,
         error: 'Checkout session expired',
@@ -286,12 +301,16 @@ router.get('/redirect/:sessionId', async (req: Request, res: Response) => {
       });
     }
 
+    console.log(`✅ /pay redirect: Redirecting to Stripe checkout`);
     res.redirect(stripeSession.url);
   } catch (error: any) {
-    console.error('❌ GPT redirect error:', error.message);
+    console.error(`❌ /pay redirect error for session ${sessionId}:`, error.message);
+    console.error(`   Full error:`, error);
     res.status(500).json({
       success: false,
-      error: 'Failed to redirect to checkout'
+      error: 'Failed to redirect to checkout',
+      sessionId,
+      debug: error.message
     });
   }
 });

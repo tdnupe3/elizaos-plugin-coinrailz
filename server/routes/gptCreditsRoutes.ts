@@ -55,8 +55,11 @@ router.post('/create-session', async (req: Request, res: Response) => {
     const gptUserId = `gpt_${nanoid(16)}`;
     const sessionTrackingId = nanoid(12);
     
-    const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] 
-      ? `https://${process.env.REPLIT_DOMAINS.split(',')[0]}`
+    // Use coinrailz.com for production, only use Replit domain for localhost/dev
+    const host = req.get('host') || '';
+    const isLocalDev = host.includes('localhost') || host.includes('127.0.0.1');
+    const baseUrl = isLocalDev 
+      ? `http://${host}`
       : 'https://coinrailz.com';
 
     const session = await stripe.checkout.sessions.create({
@@ -109,8 +112,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
     res.json({
       success: true,
       sessionId: sessionTrackingId,
-      checkoutUrl: session.url,
-      shortUrl: `${baseUrl}/pay/${sessionTrackingId}`,
+      checkoutUrl: `${baseUrl}/pay/${sessionTrackingId}`,
       package: {
         name: packageName,
         price: `$${pkg.amount}`,
@@ -118,7 +120,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
       },
       instructions: 'Click the checkout link to complete your purchase. After payment, use the status endpoint to get your API key.',
       statusEndpoint: `/api/gpt/credits/status?session=${sessionTrackingId}`,
-      _version: 'v2-db-persist'
+      _version: 'v3-clean-urls'
     });
 
   } catch (error: any) {

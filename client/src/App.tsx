@@ -113,6 +113,7 @@ const AIAgents = lazy(() => import("@/pages/ai-agents"));
 
 const PaymentSuccess = lazy(() => import("@/pages/payment-success"));
 const GptPurchaseSuccess = lazy(() => import("@/pages/gpt-purchase-success"));
+const PaySessionPage = lazy(() => import("@/pages/pay-session"));
 const OrderManagement = lazy(() => import("@/pages/order-management"));
 const OnrampPage = lazy(() => import("@/pages/onramp"));
 const EnterprisePage = lazy(() => import("@/pages/enterprise"));
@@ -284,6 +285,11 @@ function Router() {
       {/* GPT Purchase Success - In-Chat Credit Purchase Flow */}
       <Route path="/gpt-purchase-success">
         {() => <LazyLoadWrapper><GptPurchaseSuccess /></LazyLoadWrapper>}
+      </Route>
+
+      {/* Stripe Elements embedded payment page */}
+      <Route path="/pay/:sessionId">
+        {(params) => <LazyLoadWrapper><PaySessionPage /></LazyLoadWrapper>}
       </Route>
 
       {/* Product Pages - Revenue Generation */}

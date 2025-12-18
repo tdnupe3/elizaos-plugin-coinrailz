@@ -254,7 +254,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/json');
     
     res.json({
-      x402Version: "2",
+      x402Version: 2,
       catalogUrl: summary.catalogUrl,
       facilitatorUrl: getFacilitatorUrl(),
       totalServices: summary.totalServices,
@@ -1761,7 +1761,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     : `${publicBaseUrl}/x402${servicePath}`;
 
   const response = {
-    x402Version: "2",
+    x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",
@@ -1795,7 +1795,7 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         output: config.schema?.output || { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: "2",
+      x402Version: 2,
       metadata: {}
     }],
     facilitatorUrl: getFacilitatorUrl(),
@@ -1868,7 +1868,7 @@ enterpriseDirectEndpoints.forEach(service => {
     console.log(`📡 GET request for /${service.slug} - returning 402 with enterprise pricing, redirecting to /x402/service/${service.slug}`);
     const priceInMicro = parseFloat(service.price.replace('$', '')) * 1000000;
     res.status(402).json({
-      x402Version: "2",
+      x402Version: 2,
       error: "X-PAYMENT header is required",
       accepts: [{
         scheme: "exact",
@@ -1887,7 +1887,7 @@ enterpriseDirectEndpoints.forEach(service => {
         tags: ["Enterprise", "AI", "x402", "USDC"],
         extra: { name: "USD Coin", version: "2", decimals: 6, chainId: 8453, chainName: "Base" },
         type: "http",
-        x402Version: "2",
+        x402Version: 2,
         metadata: {}
       }],
       facilitatorUrl: getFacilitatorUrl(),

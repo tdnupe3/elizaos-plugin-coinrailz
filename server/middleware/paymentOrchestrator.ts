@@ -984,7 +984,7 @@ export function createPaymentOrchestrator(
               });
               
               return res.status(402).json({
-                x402Version: "2",
+                x402Version: 2,
                 error: "insufficient_balance",
                 hint: "Agent wallet has insufficient USDC to complete payment",
                 service: serviceName,
@@ -1020,7 +1020,7 @@ export function createPaymentOrchestrator(
             
             // Other EIP-3009 errors (expired, already used, invalid signature)
             return res.status(402).json({
-              x402Version: "2",
+              x402Version: 2,
               error: `Payment authorization failed: ${eip3009Error.message}`,
               hint: "The authorization may have expired or already been used. Please retry the request."
             });
@@ -1240,9 +1240,9 @@ function generate402Response(
   };
 
   // Build base response - x402 V2 compliant
-  // CRITICAL: x402Version must be STRING "2" not number 2 - x402scan uses Zod z.enum(['1','2'])
+  // Per official Coinbase spec: x402Version is NUMBER (2), not string - matches Bazaar/facilitator/SDKs
   const response: any = {
-    x402Version: "2",
+    x402Version: 2,
     error: "X-PAYMENT header is required",
     accepts: [{
       scheme: "exact",

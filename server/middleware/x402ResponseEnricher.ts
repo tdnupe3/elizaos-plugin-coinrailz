@@ -202,9 +202,9 @@ export function x402ResponseEnricher() {
         const baseUrl = getCanonicalBaseUrl();
         const endpoint = req.originalUrl || req.path;
         
-        // CRITICAL FIX: x402scan requires x402Version as string "1" or "2", not number
-        // Their Zod schema: z.enum(['1','2']) - integers fail validation
-        body.x402Version = String(body.x402Version);
+        // NOTE: x402scan has a non-compliant Zod schema z.enum(['1','2']) that expects strings,
+        // but the official Coinbase x402 spec defines x402Version as NUMBER.
+        // We follow the official spec (number 2) for Bazaar/facilitator/SDK compatibility.
         
         body.facilitatorUrl = body.facilitatorUrl || FACILITATOR_URL;
         

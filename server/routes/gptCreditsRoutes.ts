@@ -112,11 +112,14 @@ router.post('/create-session', async (req: Request, res: Response) => {
       console.error(`   Full error:`, dbError);
       
       // Return error so user can retry (don't give broken short URL)
+      // TEMP: Include debug info to diagnose production issue
       return res.status(500).json({
         success: false,
         error: 'Unable to create checkout session. Please try again.',
         retryable: true,
-        _debug: process.env.NODE_ENV === 'development' ? dbError.message : undefined
+        _debug: dbError.message,
+        _code: dbError.code,
+        _version: 'v5-debug'
       });
     }
 

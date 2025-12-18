@@ -129,6 +129,7 @@ const SmartContractAudit = lazy(() => import("@/pages/SmartContractAudit"));
 const AuditStatus = lazy(() => import("@/pages/AuditStatus"));
 const MarketplaceCheckout = lazy(() => import("@/pages/marketplace-checkout"));
 const BotPortal = lazy(() => import("@/pages/BotPortal"));
+const ConsolePage = lazy(() => import("@/pages/console"));
 const CryptoSignalsAgent = lazy(() => import("@/pages/crypto-signals-agent"));
 const FeeStructure = lazy(() => import("@/pages/FeeStructure"));
 const Documentation = lazy(() => import("@/pages/Documentation"));
@@ -603,6 +604,11 @@ function Router() {
       {/* Bot API Portal */}
       <Route path="/bots">
         {() => <LazyLoadWrapper><BotPortal /></LazyLoadWrapper>}
+      </Route>
+
+      {/* API Console - for testing API endpoints */}
+      <Route path="/console">
+        {() => <LazyLoadWrapper><ConsolePage /></LazyLoadWrapper>}
       </Route>
 
       {/* Production dashboard for monitoring */}

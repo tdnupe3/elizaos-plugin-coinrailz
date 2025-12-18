@@ -11,6 +11,10 @@ console.log('📁 gptCreditsRoutes.ts FILE LOADED at', new Date().toISOString())
 const router = Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Feature flag: 'elements' = embedded Stripe Elements, 'checkout' = hosted redirect
+const CHECKOUT_MODE = process.env.GPT_CHECKOUT_MODE || 'checkout';
+console.log(`🔧 GPT Checkout Mode: ${CHECKOUT_MODE}`);
+
 const CREDIT_PACKAGES = {
   starter: { amount: 10, credits: 100, description: 'Starter Pack - 100 credits' },
   pro: { amount: 50, credits: 600, description: 'Pro Pack - 600 credits (20% bonus)' },
@@ -62,6 +66,69 @@ router.post('/create-session', async (req: Request, res: Response) => {
       ? `http://${host}`
       : 'https://coinrailz.com';
 
+    // ELEMENTS MODE: Create PaymentIntent instead of Checkout Session
+    if (CHECKOUT_MODE === 'elements') {
+      console.log(`🎨 GPT Credits: Using Elements mode (embedded payment form)`);
+      
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: pkg.amount * 100,
+        currency: 'usd',
+        automatic_payment_methods: { enabled: true },
+        metadata: {
+          userId: gptUserId,
+          creditsAmount: pkg.amount.toString(),
+          creditsCount: pkg.credits.toString(),
+          source: 'gpt',
+          gptSessionId: sessionTrackingId,
+          packageName
+        },
+        description: `Coin Railz ${pkg.description}`
+      });
+
+      // Store session with PaymentIntent info
+      console.log(`🤖 GPT Credits: Saving Elements session ${sessionTrackingId} to database...`);
+      try {
+        await db.insert(gptPurchaseSessions).values({
+          id: sessionTrackingId,
+          stripePaymentIntentId: paymentIntent.id,
+          clientSecret: paymentIntent.client_secret,
+          userId: gptUserId,
+          packageName,
+          amount: pkg.amount,
+          credits: pkg.credits,
+          status: 'pending',
+        });
+        console.log(`✅ GPT Credits: Elements session ${sessionTrackingId} saved successfully`);
+      } catch (dbError: any) {
+        console.error(`❌ GPT Credits: CRITICAL - Failed to save Elements session to database`);
+        console.error(`   Session ID: ${sessionTrackingId}`);
+        console.error(`   Error: ${dbError.message}`);
+        return res.status(500).json({
+          success: false,
+          error: 'Unable to create payment session. Please try again.',
+          retryable: true
+        });
+      }
+
+      console.log(`🤖 GPT Credits: Created Elements session ${sessionTrackingId} for ${packageName} ($${pkg.amount})`);
+
+      return res.json({
+        success: true,
+        sessionId: sessionTrackingId,
+        checkoutUrl: `${baseUrl}/pay/${sessionTrackingId}`,
+        mode: 'elements',
+        package: {
+          name: packageName,
+          price: `$${pkg.amount}`,
+          credits: pkg.credits
+        },
+        instructions: 'Click the checkout link to complete your purchase on our secure payment page. After payment, use the status endpoint to get your API key.',
+        statusEndpoint: `/api/gpt/credits/status?session=${sessionTrackingId}`,
+        _version: 'v6-elements'
+      });
+    }
+
+    // CHECKOUT MODE (fallback): Create hosted Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
@@ -102,8 +169,6 @@ router.post('/create-session', async (req: Request, res: Response) => {
       });
       console.log(`✅ GPT Credits: Session ${sessionTrackingId} saved to database successfully`);
     } catch (dbError: any) {
-      // CRITICAL: If DB save fails, the payment flow cannot work properly
-      // The redirect will fail and webhook won't be able to fulfill credits
       console.error(`❌ GPT Credits: CRITICAL - Failed to save session to database`);
       console.error(`   Session ID: ${sessionTrackingId}`);
       console.error(`   Stripe Session: ${session.id}`);
@@ -111,7 +176,6 @@ router.post('/create-session', async (req: Request, res: Response) => {
       console.error(`   Code: ${dbError.code || 'unknown'}`);
       console.error(`   Full error:`, dbError);
       
-      // Return error so user can retry (don't give broken short URL)
       return res.status(500).json({
         success: false,
         error: 'Unable to create checkout session. Please try again.',
@@ -125,6 +189,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
       success: true,
       sessionId: sessionTrackingId,
       checkoutUrl: `${baseUrl}/pay/${sessionTrackingId}`,
+      mode: 'checkout',
       package: {
         name: packageName,
         price: `$${pkg.amount}`,
@@ -269,6 +334,73 @@ router.get('/packages', async (_req: Request, res: Response) => {
   });
 });
 
+// Get session info for Elements payment page
+router.get('/session/:sessionId', async (req: Request, res: Response) => {
+  const { sessionId } = req.params;
+  
+  try {
+    const [session] = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.id, sessionId))
+      .limit(1);
+    
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        error: 'Session not found or expired'
+      });
+    }
+
+    // Check if already completed
+    if (session.status === 'completed') {
+      return res.json({
+        success: true,
+        status: 'completed',
+        message: 'Payment already completed',
+        apiKey: session.apiKey,
+        credits: session.credits
+      });
+    }
+
+    // For Elements mode, return clientSecret for payment
+    if (session.clientSecret) {
+      return res.json({
+        success: true,
+        status: session.status,
+        clientSecret: session.clientSecret,
+        publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || process.env.TESTING_VITE_STRIPE_PUBLIC_KEY,
+        package: {
+          name: session.packageName,
+          amount: session.amount,
+          credits: session.credits
+        }
+      });
+    }
+
+    // For Checkout mode, redirect to Stripe
+    if (session.stripeSessionId) {
+      return res.json({
+        success: true,
+        status: session.status,
+        mode: 'checkout',
+        redirectRequired: true,
+        message: 'This session uses hosted checkout. Please use the redirect endpoint.'
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid session state'
+    });
+  } catch (error: any) {
+    console.error(`❌ Get session error for ${sessionId}:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get session info'
+    });
+  }
+});
+
 // Short URL redirect handler - /pay/:sessionId redirects to Stripe checkout
 router.get('/redirect/:sessionId', async (req: Request, res: Response) => {
   const { sessionId } = req.params;
@@ -319,7 +451,7 @@ router.get('/redirect/:sessionId', async (req: Request, res: Response) => {
   }
 });
 
-// Webhook handler called from creditsRoutes when GPT purchase is confirmed
+// Webhook handler called from creditsRoutes when GPT purchase is confirmed (Checkout mode)
 export async function handleGptPurchaseWebhook(
   stripeSession: Stripe.Checkout.Session,
   creditsAmount: number
@@ -365,6 +497,68 @@ export async function handleGptPurchaseWebhook(
 
   } catch (error: any) {
     console.error('❌ GPT webhook API key generation failed:', error.message);
+    throw error;
+  }
+}
+
+// Webhook handler for PaymentIntent success (Elements mode)
+export async function handlePaymentIntentSucceeded(
+  paymentIntent: Stripe.PaymentIntent
+): Promise<void> {
+  const gptSessionId = paymentIntent.metadata?.gptSessionId;
+  const userId = paymentIntent.metadata?.userId;
+  
+  if (!gptSessionId || !userId) {
+    console.log('⚠️ PaymentIntent webhook: Missing metadata, skipping GPT handling');
+    return;
+  }
+
+  console.log(`🎨 PaymentIntent succeeded for GPT session ${gptSessionId}`);
+
+  try {
+    // Get the original session from database
+    const [existingSession] = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.id, gptSessionId))
+      .limit(1);
+    
+    if (!existingSession) {
+      console.error(`❌ PaymentIntent webhook: Session ${gptSessionId} not found`);
+      throw new Error('Session not found');
+    }
+
+    // Already completed - skip
+    if (existingSession.status === 'completed') {
+      console.log(`⚠️ PaymentIntent webhook: Session ${gptSessionId} already completed, skipping`);
+      return;
+    }
+    
+    const correctCredits = existingSession.credits || 
+      parseInt(paymentIntent.metadata?.creditsCount || '0', 10) || 
+      CREDIT_PACKAGES[existingSession.packageName as keyof typeof CREDIT_PACKAGES]?.credits;
+    
+    if (!correctCredits) {
+      console.error(`❌ PaymentIntent webhook: Cannot determine credits for session ${gptSessionId}`);
+      throw new Error('Cannot determine credits amount');
+    }
+    
+    // Generate API key
+    const { apiKey } = await creditsService.generateApiKey(userId, 'GPT Purchase API Key');
+
+    // Update session in database
+    await db.update(gptPurchaseSessions)
+      .set({
+        status: 'completed',
+        apiKey,
+        credits: correctCredits,
+        completedAt: new Date(),
+      })
+      .where(eq(gptPurchaseSessions.id, gptSessionId));
+
+    console.log(`✅ GPT Elements Purchase Complete: User ${userId} - ${correctCredits} credits - Key: ${apiKey.substring(0, 12)}...`);
+
+  } catch (error: any) {
+    console.error('❌ PaymentIntent webhook failed:', error.message);
     throw error;
   }
 }

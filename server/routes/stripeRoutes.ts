@@ -2,6 +2,7 @@ import { Router } from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
+import { handlePaymentIntentSucceeded } from './gptCreditsRoutes';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -287,6 +288,15 @@ router.post('/webhook', async (req, res) => {
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object;
       console.log('Payment succeeded:', paymentIntent.id);
+      
+      // Handle GPT Elements purchases
+      if (paymentIntent.metadata?.source === 'gpt' && paymentIntent.metadata?.gptSessionId) {
+        try {
+          await handlePaymentIntentSucceeded(paymentIntent);
+        } catch (error) {
+          console.error('Failed to process GPT PaymentIntent:', error);
+        }
+      }
       
       // Update order status if orderId is in metadata
       if (paymentIntent.metadata.orderId) {

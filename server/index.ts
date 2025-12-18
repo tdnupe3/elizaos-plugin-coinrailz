@@ -164,13 +164,41 @@ app.get('/', (req, res, next) => {
 });
 
 // CLEAN SHORT URL REDIRECT - /pay/:sessionId for GPT credit purchase (before other middleware)
-app.get('/pay/:sessionId', async (req, res) => {
+// For Elements mode sessions, let frontend handle. For Checkout mode, redirect to Stripe.
+app.get('/pay/:sessionId', async (req, res, next) => {
   try {
     const { sessionId } = req.params;
-    // Redirect to the GPT credits redirect handler
-    res.redirect(`/api/gpt/credits/redirect/${sessionId}`);
+    
+    // Check if this is an Elements session (has clientSecret) or Checkout session (has stripeSessionId)
+    const { db } = await import('./db');
+    const { gptPurchaseSessions } = await import('../shared/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const [session] = await db.select()
+      .from(gptPurchaseSessions)
+      .where(eq(gptPurchaseSessions.id, sessionId))
+      .limit(1);
+    
+    // If session has clientSecret (Elements mode), let the frontend SPA handle it
+    if (session?.clientSecret) {
+      console.log(`🎨 /pay/${sessionId}: Elements session - serving frontend SPA`);
+      next(); // Pass to Vite/frontend
+      return;
+    }
+    
+    // If session has stripeSessionId (Checkout mode), redirect to Stripe
+    if (session?.stripeSessionId) {
+      console.log(`🔗 /pay/${sessionId}: Checkout session - redirecting to API`);
+      res.redirect(`/api/gpt/credits/redirect/${sessionId}`);
+      return;
+    }
+    
+    // No session found - let frontend show error
+    console.log(`⚠️ /pay/${sessionId}: Session not found - serving frontend`);
+    next();
   } catch (error) {
-    res.status(500).json({ error: 'Failed to redirect' });
+    console.error(`❌ /pay handler error:`, error);
+    res.status(500).json({ error: 'Failed to process payment request' });
   }
 });
 

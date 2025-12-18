@@ -84,6 +84,7 @@ import discoveryRoutes from './routes/discoveryRoutes';
 import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
 import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
 import mcpServiceDiscoveryRoutes from './routes/mcpServiceDiscovery';
+import { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } from './discovery/bazaarRegistrar';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
 import campaignConversionRoutes from './routes/campaignConversionRoutes.js';
@@ -769,6 +770,17 @@ console.log('✅ A2A mass discovery routes registered - Can crawl agents via .we
 console.log('🔌 Registering MCP service discovery routes for AI agent tooling...');
 app.use(mcpServiceDiscoveryRoutes);
 console.log('✅ MCP service discovery routes registered - 41 services available at /mcp/services');
+
+// === BAZAAR DISCOVERY EXTENSION (DUAL-STACK) ===
+// This provides Coinbase Bazaar-compatible discovery metadata alongside existing payment middleware
+// Feature flag controlled: BAZAAR_DISCOVERY_ENABLED=true
+if (isBazaarDiscoveryEnabled()) {
+  console.log('📡 Registering Bazaar Discovery routes for Coinbase Bazaar indexing...');
+  app.use('/api', createBazaarDiscoveryRouter());
+  console.log('✅ Bazaar Discovery routes registered at /api/discovery/*');
+} else {
+  console.log('📡 Bazaar Discovery: Disabled (set BAZAAR_DISCOVERY_ENABLED=true to enable)');
+}
 
 // Mount provider-specific routers for exact /.well-known/agent-card.json paths
 console.log('🎫 Mounting provider-specific routers for ChatGPT /.well-known/agent-card.json requirement...');

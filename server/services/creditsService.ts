@@ -1,5 +1,5 @@
 import { db } from "../db.js";
-import { creditsAccounts, creditTransactions, apiKeys } from "@shared/schema";
+import { creditsAccounts, creditTransactions, apiKeys, users } from "@shared/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import bcrypt from "bcrypt";
@@ -163,6 +163,22 @@ export class CreditsService {
     const rawKey = `cr_live_${randomBytes(32).toString("hex")}`;
     const hashedKey = await bcrypt.hash(rawKey, 10);
     const keyPrefix = rawKey.substring(0, 12);
+
+    // For GPT users (gpt_...), ensure user exists before creating API key
+    if (userId.startsWith('gpt_')) {
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.id, userId)
+      });
+      
+      if (!existingUser) {
+        console.log(`🤖 Creating GPT user: ${userId}`);
+        await db.insert(users).values({
+          id: userId,
+          email: `${userId}@gpt-user.coinrailz.com`,
+          username: `gpt_user_${Date.now()}`,
+        }).onConflictDoNothing();
+      }
+    }
 
     const [key] = await db.insert(apiKeys).values({
       userId,

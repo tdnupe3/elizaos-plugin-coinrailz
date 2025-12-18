@@ -1,21 +1,6 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
 import * as schema from "@shared/schema";
-
-// Configure Neon: Use HTTP fetch mode by default (works in both dev and prod)
-// WebSocket mode only if explicitly enabled via NEON_USE_WEBSOCKET=true
-// This avoids fragile environment detection that was causing production failures
-const useWebSocket = process.env.NEON_USE_WEBSOCKET === 'true';
-
-if (useWebSocket) {
-  neonConfig.webSocketConstructor = ws;
-  console.log('🔧 Neon: WebSocket mode (NEON_USE_WEBSOCKET=true)');
-} else {
-  neonConfig.fetchConnectionCache = true;
-  neonConfig.poolQueryViaFetch = true;
-  console.log('🔧 Neon: HTTP fetch mode (default)');
-}
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -23,40 +8,14 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Enhanced connection pool with error handling and timeout
-export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  connectionTimeoutMillis: 10000, // 10 second timeout
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  max: 10, // Reduced max connections for Neon compatibility
-  maxUses: 7500, // Limit connection reuse for stability
-  allowExitOnIdle: false, // Keep pool alive during low activity
-});
+const sql = neon(process.env.DATABASE_URL);
+export const db = drizzle({ client: sql, schema });
 
-// Critical: Add pool error handling to prevent crashes
-pool.on('error', (err: any) => {
-  console.error('Unexpected database pool error:', err);
-  // Don't exit process, just log the error and attempt recovery
-  
-  // Attempt to recover from connection termination
-  if ((err as any).code === '57P01') {
-    console.log('Database connection terminated, attempting to recover...');
-    // Connection will be automatically re-established on next query
-  }
-});
+console.log('🔧 Neon: HTTP mode via drizzle-orm/neon-http');
 
-pool.on('connect', () => {
-  console.log('Database pool connected successfully');
-});
-
-export const db = drizzle({ client: pool, schema });
-
-// Database health check function
-// Uses pool.query() directly which works with HTTP fetch mode in production
-// (pool.connect() requires WebSocket which doesn't work with Neon HTTP mode)
 export async function checkDatabaseHealth() {
   try {
-    await pool.query('SELECT 1');
+    await sql`SELECT 1`;
     return true;
   } catch (error) {
     console.error('Database health check failed:', error);
@@ -64,12 +23,51 @@ export async function checkDatabaseHealth() {
   }
 }
 
-// Graceful database shutdown
 export async function closeDatabaseConnections() {
-  try {
-    await pool.end();
-    console.log('Database connections closed gracefully');
-  } catch (error) {
-    console.error('Error closing database connections:', error);
+  console.log('Database connections closed (HTTP mode - no persistent connections)');
+}
+
+// Compatibility layer for code that imports pool
+// HTTP mode doesn't use a persistent pool, but we provide a full Pool-like interface
+class HttpPoolCompatibility {
+  private eventHandlers: Map<string, Function[]> = new Map();
+  
+  async query(textOrConfig: string | { text: string; values?: any[] }, params?: any[]) {
+    let queryText: string;
+    let queryParams: any[] | undefined;
+    
+    if (typeof textOrConfig === 'object') {
+      queryText = textOrConfig.text;
+      queryParams = textOrConfig.values;
+    } else {
+      queryText = textOrConfig;
+      queryParams = params;
+    }
+    
+    const result = await sql(queryText, queryParams || []);
+    return { rows: result, rowCount: result.length };
+  }
+  
+  async connect() {
+    // Return a pseudo-client for HTTP mode that mimics pg.PoolClient
+    const self = this;
+    return {
+      query: async (textOrConfig: string | { text: string; values?: any[] }, params?: any[]) => self.query(textOrConfig, params),
+      release: () => { /* no-op */ },
+      on: (_event: string, _handler: any) => { /* no-op */ }
+    };
+  }
+  
+  on(event: string, handler: Function) {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, []);
+    }
+    this.eventHandlers.get(event)!.push(handler);
+  }
+  
+  async end() {
+    // No-op for HTTP mode
   }
 }
+
+export const pool = new HttpPoolCompatibility();

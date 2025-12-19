@@ -317,6 +317,43 @@ router.post('/create-session', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /balance
+ * Returns the current credits balance for the authenticated user (OAuth token)
+ */
+router.get('/balance', async (req: Request, res: Response) => {
+  try {
+    // Resolve authentication from Bearer token/API key/session
+    const authContext = await resolveAuth(req);
+    
+    if (!authContext?.userId) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required',
+        message: 'Please sign in to view your credits balance'
+      });
+    }
+    
+    // Get credits balance from service
+    const balance = await creditsService.getBalance(authContext.userId);
+    
+    res.json({
+      success: true,
+      balance: balance,
+      formattedBalance: `$${balance.toFixed(2)}`,
+      userId: authContext.userId,
+      authMethod: authContext.mode || 'oauth'
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching credits balance:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch credits balance',
+      message: error.message
+    });
+  }
+});
+
 router.get('/status', async (req: Request, res: Response) => {
   try {
     const sessionId = req.query.session as string;

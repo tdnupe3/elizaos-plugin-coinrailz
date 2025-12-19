@@ -25,7 +25,7 @@ export interface AuthContext {
   userId?: string;
   user?: any;
   session?: GptAuthSession;
-  apiKeyId?: number;
+  apiKeyId?: string; // UUID string, not number
   provisionalSessionId?: number;
   fingerprints?: {
     conversation: string;
@@ -115,11 +115,29 @@ async function bootstrapProvisionalSession(headers: GptHeaders): Promise<GptAuth
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Capture identifier from headers if provided
+    // openai-gpt-id can be an email OR an opaque UUID
+    // Store appropriately for indexed lookups:
+    // - Email → email column (encrypted) + emailHash column (indexed)
+    // - Non-email → gptIdentifierHash column (indexed for cross-conversation correlation)
+    const rawGptId = headers.userEmail;
+    const isEmail = rawGptId && rawGptId.includes('@');
+    const email = isEmail ? rawGptId : undefined;
+    const gptIdentifierHash = rawGptId && !isEmail ? PIIEncryption.hash(rawGptId) : undefined;
+
+    // Require at least one stable identifier for cross-conversation correlation
+    if (!email && !gptIdentifierHash) {
+      console.log('[GPT Auth] Bootstrap rejected: no stable identifier (email or GPT ID) provided');
+      return null;
+    }
+
     const session = await storage.createGptAuthSession({
       conversationFingerprint: fingerprints.conversation,
       sessionFingerprint: fingerprints.session,
       encryptedConversationId: PIIEncryption.encrypt(headers.conversationId!),
       encryptedSessionId: PIIEncryption.encrypt(headers.sessionId!),
+      email, // Will be encrypted and hashed by storage layer if present
+      gptIdentifierHash, // Pre-hashed for indexed lookup
       status: 'pending_link',
       expiresAt,
       metadata: {
@@ -150,11 +168,36 @@ async function resolveApiKeyAuth(apiKey: string): Promise<AuthContext | null> {
     return {
       mode: 'api_key',
       userId: result.userId,
-      apiKeyId: result.keyId ? parseInt(result.keyId, 10) : undefined,
+      apiKeyId: result.keyId, // Keep as string UUID
     };
   } catch (error) {
     console.error('[GPT Auth] API key validation error:', error);
     return null;
+  }
+}
+
+/**
+ * Sync fingerprints and identifier to user record for linkage
+ */
+async function syncFingerprintsToUser(
+  userId: string, 
+  fingerprints: { conversation: string; session: string },
+  gptIdentifierHash?: string
+): Promise<void> {
+  try {
+    // Update user with GPT session fingerprints for future lookups
+    // These fields are defined in users table schema (Phase 1B)
+    const updates: any = {
+      lastGptConversationFingerprint: fingerprints.conversation,
+      lastGptSessionFingerprint: fingerprints.session,
+      lastGptSessionAt: new Date(),
+    };
+    if (gptIdentifierHash) {
+      updates.lastGptIdentifierHash = gptIdentifierHash;
+    }
+    await storage.updateUser(userId, updates);
+  } catch (error) {
+    console.error('[GPT Auth] Failed to sync fingerprints to user:', error);
   }
 }
 
@@ -201,6 +244,8 @@ export async function resolveAuth(req: Request): Promise<AuthContext> {
         let user = null;
         if (session.userId) {
           user = await storage.getUser(session.userId);
+          // Sync fingerprints and identifier back to user for future lookups
+          await syncFingerprintsToUser(session.userId, fingerprints, session.gptIdentifierHash || undefined);
         }
 
         return {
@@ -212,8 +257,46 @@ export async function resolveAuth(req: Request): Promise<AuthContext> {
         };
       }
 
-      // Session expired or not found - try bootstrap
+      // Session not found by fingerprints - try cross-conversation correlation
       if (!session) {
+        // Try to find existing session by gptIdentifierHash or email
+        const rawGptId = gptHeaders.userEmail;
+        const isEmail = rawGptId && rawGptId.includes('@');
+        // Compute hash ONCE for non-email identifiers to ensure consistency
+        const gptIdHash = rawGptId && !isEmail ? PIIEncryption.hash(rawGptId) : undefined;
+        
+        if (rawGptId) {
+          let existingSession: GptAuthSession | null = null;
+          
+          if (isEmail) {
+            existingSession = await storage.getGptAuthSessionByEmail(rawGptId);
+          } else if (gptIdHash) {
+            existingSession = await storage.getGptAuthSessionByGptIdHash(gptIdHash);
+          }
+          
+          if (existingSession && isSessionValid(existingSession)) {
+            // Found existing session via correlation - reuse it
+            console.log(`[GPT Auth] Cross-conversation correlation found session ID: ${existingSession.id}`);
+            await storage.updateGptAuthSessionLastUsed(existingSession.id);
+            
+            let user = null;
+            if (existingSession.userId) {
+              user = await storage.getUser(existingSession.userId);
+              // Reuse the pre-computed gptIdHash (no re-hashing)
+              await syncFingerprintsToUser(existingSession.userId, fingerprints, gptIdHash);
+            }
+            
+            return {
+              mode: 'gpt_session',
+              userId: existingSession.userId || undefined,
+              user,
+              session: existingSession,
+              fingerprints,
+            };
+          }
+        }
+        
+        // No existing session found - bootstrap provisional
         const provisionalSession = await bootstrapProvisionalSession(gptHeaders);
         if (provisionalSession) {
           return {

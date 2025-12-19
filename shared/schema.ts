@@ -258,6 +258,7 @@ export const users = pgTable("users", {
   // GPT Session-Based Auth - Fingerprints for linking GPT conversations to users
   lastGptConversationFingerprint: varchar("last_gpt_conversation_fingerprint", { length: 64 }),
   lastGptSessionFingerprint: varchar("last_gpt_session_fingerprint", { length: 64 }),
+  lastGptIdentifierHash: varchar("last_gpt_identifier_hash", { length: 64 }),
   lastGptSessionAt: timestamp("last_gpt_session_at"),
   
   createdAt: timestamp("created_at").defaultNow(),
@@ -4707,6 +4708,10 @@ export const gptAuthSessions = pgTable("gpt_auth_sessions", {
   // Allows searching by email without decrypting every row
   emailHash: varchar("email_hash", { length: 64 }),
   
+  // GPT identifier hash for non-email opaque IDs (SHA-256, 64 hex chars)
+  // Supports indexed lookup for cross-conversation user correlation
+  gptIdentifierHash: varchar("gpt_identifier_hash", { length: 64 }),
+  
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   lastUsedAt: timestamp("last_used_at").defaultNow(),
@@ -4723,6 +4728,7 @@ export const gptAuthSessions = pgTable("gpt_auth_sessions", {
   index("IDX_gpt_auth_sessions_expires").on(table.expiresAt),
   index("IDX_gpt_auth_sessions_email").on(table.email),
   index("IDX_gpt_auth_sessions_email_hash").on(table.emailHash),
+  index("IDX_gpt_auth_sessions_gpt_id_hash").on(table.gptIdentifierHash),
 ]);
 
 // GPT Auth Sessions Insert/Select Schemas

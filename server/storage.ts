@@ -322,6 +322,7 @@ export interface IStorage {
   updateGptAuthSessionLastUsed(id: number): Promise<void>;
   linkGptSessionToUser(sessionId: number, userId: string, creditsAccountId?: number): Promise<GptAuthSession | null>;
   getGptAuthSessionByEmail(email: string): Promise<GptAuthSession | null>;
+  getGptAuthSessionByGptIdHash(gptIdentifierHash: string): Promise<GptAuthSession | null>;
   expireOldGptSessions(olderThan: Date): Promise<number>;
 }
 
@@ -2375,7 +2376,7 @@ export class DatabaseStorage implements IStorage {
   // Email is encrypted for privacy, encrypted*Id fields store AES-encrypted raw IDs
   
   async createGptAuthSession(session: InsertGptAuthSession): Promise<GptAuthSession> {
-    // Encrypt email if provided (PII protection)
+    // Handle email and GPT identifier hashing (PII protection)
     const sessionToInsert = { ...session } as any;
     if (sessionToInsert.email) {
       // Store deterministic hash for indexed lookup
@@ -2383,6 +2384,7 @@ export class DatabaseStorage implements IStorage {
       // Store encrypted email for display/audit
       sessionToInsert.email = PIIEncryption.encrypt(sessionToInsert.email);
     }
+    // gptIdentifierHash should be passed directly (already hashed by resolver)
     // encryptedConversationId and encryptedSessionId should already be encrypted by caller
     const [result] = await db.insert(gptAuthSessions).values(sessionToInsert).returning();
     return this.decryptGptSessionPII(result);
@@ -2455,6 +2457,15 @@ export class DatabaseStorage implements IStorage {
     const emailHash = PIIEncryption.hash(email.toLowerCase().trim());
     const [session] = await db.select().from(gptAuthSessions)
       .where(eq(gptAuthSessions.emailHash, emailHash))
+      .orderBy(desc(gptAuthSessions.lastUsedAt))
+      .limit(1);
+    return session ? this.decryptGptSessionPII(session) : null;
+  }
+
+  async getGptAuthSessionByGptIdHash(gptIdentifierHash: string): Promise<GptAuthSession | null> {
+    // Use pre-computed GPT identifier hash for indexed O(1) lookup
+    const [session] = await db.select().from(gptAuthSessions)
+      .where(eq(gptAuthSessions.gptIdentifierHash, gptIdentifierHash))
       .orderBy(desc(gptAuthSessions.lastUsedAt))
       .limit(1);
     return session ? this.decryptGptSessionPII(session) : null;

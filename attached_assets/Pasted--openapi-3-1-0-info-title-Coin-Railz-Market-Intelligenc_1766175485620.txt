@@ -1,0 +1,1753 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Coin Railz Market Intelligence API",
+    "description": "Production-grade market intelligence for crypto, stocks, and forex. Get real-time gas prices, token data, stock sentiment, forex analysis, trading signals, and prediction market odds. Supports 7 EVM chains plus traditional markets via Yahoo Finance and ECB data. Features zero-friction GPT session authentication - no API key needed when using ChatGPT! Call /api/gpt/credits/bootstrap first to establish your session.",
+    "version": "1.1.0",
+    "contact": {
+      "name": "Coin Railz Support",
+      "url": "https://coinrailz.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://coinrailz.com",
+      "description": "Coin Railz Production API"
+    }
+  ],
+  "paths": {
+    "/api/gpt/gas-prices": {
+      "get": {
+        "operationId": "getGasPrices",
+        "summary": "Get real-time gas prices across multiple chains (FREE)",
+        "description": "Returns current gas prices in Gwei and estimated transaction costs in USD for Ethereum, Base, Polygon, BSC, Arbitrum, and Optimism. Use when user asks about gas fees, transaction costs, or cheapest time to transact.",
+        "parameters": [
+          {
+            "name": "chains",
+            "in": "query",
+            "description": "Comma-separated list of chains (ethereum,base,polygon,bsc,arbitrum,optimism). Defaults to all chains.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "ethereum,base,polygon"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gas prices for requested chains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "timestamp": {
+                      "type": "string"
+                    },
+                    "gasPrices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chain": {
+                            "type": "string"
+                          },
+                          "gasPrice": {
+                            "type": "string",
+                            "description": "Gas price in Gwei"
+                          },
+                          "estimatedCostUSD": {
+                            "type": "string",
+                            "description": "Estimated cost for standard transfer in USD"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/token-info": {
+      "get": {
+        "operationId": "getTokenInfo",
+        "summary": "Get token metadata and price (FREE)",
+        "description": "Returns token information including name, symbol, decimals, and current price. Use when user asks about a specific token, its price, or token details.",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "description": "Token symbol (e.g., ETH, USDC, PEPE)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ETH"
+            }
+          },
+          {
+            "name": "chain",
+            "in": "query",
+            "description": "Blockchain (ethereum, base, polygon, bsc, arbitrum, optimism). Defaults to ethereum.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ethereum",
+                "base",
+                "polygon",
+                "bsc",
+                "arbitrum",
+                "optimism"
+              ],
+              "default": "ethereum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "token": {
+                      "type": "object",
+                      "properties": {
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "decimals": {
+                          "type": "integer"
+                        },
+                        "priceUSD": {
+                          "type": "string"
+                        },
+                        "chain": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/trending": {
+      "get": {
+        "operationId": "getTrendingTokens",
+        "summary": "Get trending tokens (FREE)",
+        "description": "Returns currently trending tokens based on trading volume and social activity. Use when user asks about hot tokens, what's trending, or popular cryptocurrencies.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of tokens to return (1-20). Defaults to 10.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of trending tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "trending": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "rank": {
+                            "type": "integer"
+                          },
+                          "symbol": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "priceUSD": {
+                            "type": "string"
+                          },
+                          "priceChange24h": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/trade-signals": {
+      "get": {
+        "operationId": "getTradeSignals",
+        "summary": "Get AI-powered trading signals ($0.75 / 8 credits)",
+        "description": "Returns AI-generated trading signals with entry/exit points, risk levels, and confidence scores. Costs $0.75 (8 credits) per call. Call /api/gpt/credits/bootstrap first to check your session. Use when user asks for trading advice, buy/sell signals, or investment recommendations.",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "description": "Token symbol to analyze (e.g., ETH, BTC, SOL)",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "timeframe",
+            "in": "query",
+            "description": "Analysis timeframe",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1h",
+                "4h",
+                "1d",
+                "1w"
+              ],
+              "default": "4h"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trading signal with analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "signal": {
+                      "type": "object",
+                      "properties": {
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "BUY",
+                            "SELL",
+                            "HOLD"
+                          ]
+                        },
+                        "confidence": {
+                          "type": "number",
+                          "description": "0-100%"
+                        },
+                        "entryPrice": {
+                          "type": "string"
+                        },
+                        "targetPrice": {
+                          "type": "string"
+                        },
+                        "stopLoss": {
+                          "type": "string"
+                        },
+                        "reasoning": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postTradeSignals",
+        "summary": "Get AI-powered trading signals ($0.75 / 8 credits)",
+        "description": "Returns AI-generated trading signals with entry/exit points, risk levels, and confidence scores. Costs $0.75 (8 credits) per call. Call /api/gpt/credits/bootstrap first to check your session. Use when user asks for trading advice, buy/sell signals, or investment recommendations.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "symbol"
+                ],
+                "properties": {
+                  "symbol": {
+                    "type": "string",
+                    "description": "Token symbol to analyze (e.g., ETH, BTC, SOL)"
+                  },
+                  "timeframe": {
+                    "type": "string",
+                    "enum": [
+                      "1h",
+                      "4h",
+                      "1d",
+                      "1w"
+                    ],
+                    "default": "4h",
+                    "description": "Analysis timeframe"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trading signal with analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "signal": {
+                      "type": "object",
+                      "properties": {
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "action": {
+                          "type": "string",
+                          "enum": [
+                            "BUY",
+                            "SELL",
+                            "HOLD"
+                          ]
+                        },
+                        "confidence": {
+                          "type": "number",
+                          "description": "0-100%"
+                        },
+                        "entryPrice": {
+                          "type": "string"
+                        },
+                        "targetPrice": {
+                          "type": "string"
+                        },
+                        "stopLoss": {
+                          "type": "string"
+                        },
+                        "reasoning": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/wallet-analysis": {
+      "get": {
+        "operationId": "analyzeWallet",
+        "summary": "Analyze wallet holdings and risk ($0.50 / 5 credits)",
+        "description": "Deep analysis of a wallet including holdings, risk score, and recommendations. Costs $0.50 (5 credits) per call. Call /api/gpt/credits/bootstrap first to check your session. Use when user provides a wallet address and wants analysis.",
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "description": "Wallet address (0x...)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          },
+          {
+            "name": "chain",
+            "in": "query",
+            "description": "Blockchain to analyze",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ethereum",
+                "base",
+                "polygon",
+                "bsc",
+                "arbitrum",
+                "optimism"
+              ],
+              "default": "ethereum"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "analysis": {
+                      "type": "object",
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "totalValueUSD": {
+                          "type": "string"
+                        },
+                        "riskScore": {
+                          "type": "integer",
+                          "description": "1-100"
+                        },
+                        "holdings": {
+                          "type": "array"
+                        },
+                        "recommendations": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postWalletAnalysis",
+        "summary": "Analyze wallet holdings and risk ($0.50 / 5 credits)",
+        "description": "Deep analysis of a wallet including holdings, risk score, and recommendations. Costs $0.50 (5 credits) per call. Call /api/gpt/credits/bootstrap first to check your session. Use when user provides a wallet address and wants analysis.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "address"
+                ],
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "pattern": "^0x[a-fA-F0-9]{40}$",
+                    "description": "Wallet address (0x...)"
+                  },
+                  "chain": {
+                    "type": "string",
+                    "enum": [
+                      "ethereum",
+                      "base",
+                      "polygon",
+                      "bsc",
+                      "arbitrum",
+                      "optimism"
+                    ],
+                    "default": "ethereum",
+                    "description": "Blockchain to analyze"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "analysis": {
+                      "type": "object",
+                      "properties": {
+                        "address": {
+                          "type": "string"
+                        },
+                        "totalValueUSD": {
+                          "type": "string"
+                        },
+                        "riskScore": {
+                          "type": "integer",
+                          "description": "1-100"
+                        },
+                        "holdings": {
+                          "type": "array"
+                        },
+                        "recommendations": {
+                          "type": "array"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/polymarket": {
+      "get": {
+        "operationId": "getPolymarketOdds",
+        "summary": "Get Polymarket prediction market odds ($0.50 / 5 credits)",
+        "description": "Returns current odds from Polymarket prediction markets. Costs $0.50 (5 credits) per call. Call /api/gpt/credits/bootstrap first. Use when user asks about prediction markets, betting odds, or event probabilities.",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "Search query for markets (e.g., 'Trump', 'Bitcoin', 'Super Bowl')",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Number of markets to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 5,
+              "maximum": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Prediction market data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "markets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string"
+                          },
+                          "probability": {
+                            "type": "string"
+                          },
+                          "volume": {
+                            "type": "string"
+                          },
+                          "endDate": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postPolymarketOdds",
+        "summary": "Get Polymarket prediction market odds ($0.50 / 5 credits)",
+        "description": "Returns current odds from Polymarket prediction markets. Costs $0.50 (5 credits) per call. Call /api/gpt/credits/bootstrap first. Use when user asks about prediction markets, betting odds, or event probabilities.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "Search query for markets (e.g., 'Trump', 'Bitcoin', 'Super Bowl')"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 5,
+                    "maximum": 10,
+                    "description": "Number of markets to return"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Prediction market data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "markets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string"
+                          },
+                          "probability": {
+                            "type": "string"
+                          },
+                          "volume": {
+                            "type": "string"
+                          },
+                          "endDate": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/stock-sentiment": {
+      "get": {
+        "operationId": "getStockSentiment",
+        "summary": "Get AI-powered stock sentiment analysis ($0.40 / 4 credits)",
+        "description": "Returns comprehensive stock sentiment analysis including price data from Yahoo Finance, analyst consensus, risk factors, and AI-generated recommendations. Costs $0.40 (4 credits) per call. Use when user asks about a stock, equity, or company.",
+        "parameters": [
+          {
+            "name": "symbol",
+            "in": "query",
+            "description": "Stock ticker symbol (e.g., AAPL, TSLA, MSFT, GOOGL)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "AAPL"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stock sentiment analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "analysis": {
+                      "type": "object",
+                      "properties": {
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "companyName": {
+                          "type": "string"
+                        },
+                        "overallSentiment": {
+                          "type": "string",
+                          "enum": [
+                            "Bullish",
+                            "Bearish",
+                            "Neutral"
+                          ]
+                        },
+                        "sentimentScore": {
+                          "type": "number",
+                          "description": "-100 to 100"
+                        },
+                        "confidence": {
+                          "type": "number"
+                        },
+                        "recommendation": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postStockSentiment",
+        "summary": "Get AI-powered stock sentiment analysis ($0.40 / 4 credits)",
+        "description": "Returns comprehensive stock sentiment analysis including price data from Yahoo Finance, analyst consensus, risk factors, and AI-generated recommendations. Costs $0.40 (4 credits) per call. Use when user asks about a stock, equity, or company.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "symbol"
+                ],
+                "properties": {
+                  "symbol": {
+                    "type": "string",
+                    "description": "Stock ticker symbol (e.g., AAPL, TSLA, MSFT, GOOGL)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stock sentiment analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "analysis": {
+                      "type": "object",
+                      "properties": {
+                        "symbol": {
+                          "type": "string"
+                        },
+                        "companyName": {
+                          "type": "string"
+                        },
+                        "overallSentiment": {
+                          "type": "string",
+                          "enum": [
+                            "Bullish",
+                            "Bearish",
+                            "Neutral"
+                          ]
+                        },
+                        "sentimentScore": {
+                          "type": "number",
+                          "description": "-100 to 100"
+                        },
+                        "confidence": {
+                          "type": "number"
+                        },
+                        "recommendation": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/forex-sentiment": {
+      "get": {
+        "operationId": "getForexSentiment",
+        "summary": "Get AI-powered forex currency pair analysis ($0.40 / 4 credits)",
+        "description": "Returns comprehensive forex sentiment analysis including live ECB rates, central bank policy analysis, and AI-generated trading recommendations. Costs $0.40 (4 credits) per call. Use when user asks about currency pairs, forex, or exchange rates.",
+        "parameters": [
+          {
+            "name": "pair",
+            "in": "query",
+            "description": "Currency pair (e.g., EURUSD, GBPJPY, USDJPY)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "EURUSD"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Forex sentiment analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "analysis": {
+                      "type": "object",
+                      "properties": {
+                        "pair": {
+                          "type": "string"
+                        },
+                        "baseCurrency": {
+                          "type": "string"
+                        },
+                        "quoteCurrency": {
+                          "type": "string"
+                        },
+                        "overallSentiment": {
+                          "type": "string",
+                          "enum": [
+                            "Bullish",
+                            "Bearish",
+                            "Neutral"
+                          ]
+                        },
+                        "sentimentScore": {
+                          "type": "number"
+                        },
+                        "tradingRecommendation": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postForexSentiment",
+        "summary": "Get AI-powered forex currency pair analysis ($0.40 / 4 credits)",
+        "description": "Returns comprehensive forex sentiment analysis including live ECB rates, central bank policy analysis, and AI-generated trading recommendations. Costs $0.40 (4 credits) per call. Use when user asks about currency pairs, forex, or exchange rates.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "pair"
+                ],
+                "properties": {
+                  "pair": {
+                    "type": "string",
+                    "description": "Currency pair (e.g., EURUSD, GBPJPY, USDJPY)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Forex sentiment analysis",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "analysis": {
+                      "type": "object",
+                      "properties": {
+                        "pair": {
+                          "type": "string"
+                        },
+                        "baseCurrency": {
+                          "type": "string"
+                        },
+                        "quoteCurrency": {
+                          "type": "string"
+                        },
+                        "overallSentiment": {
+                          "type": "string",
+                          "enum": [
+                            "Bullish",
+                            "Bearish",
+                            "Neutral"
+                          ]
+                        },
+                        "sentimentScore": {
+                          "type": "number"
+                        },
+                        "tradingRecommendation": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/instant-wallet": {
+      "get": {
+        "operationId": "createInstantWallet",
+        "summary": "Create an AI agent wallet instantly ($1.00 / 10 credits)",
+        "description": "Creates a new blockchain wallet for AI agents on Base chain. Supports x402 payments, multi-chain transfers, and gasless transactions. Costs $1.00 (10 credits) per call. Use when user asks about creating a wallet, getting a new wallet, or setting up payments.",
+        "responses": {
+          "200": {
+            "description": "Wallet created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "wallet": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string",
+                          "description": "Ethereum-compatible wallet address"
+                        },
+                        "network": {
+                          "type": "string"
+                        },
+                        "supportedTokens": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "features": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postInstantWallet",
+        "summary": "Create an AI agent wallet instantly ($1.00 / 10 credits)",
+        "description": "Creates a new blockchain wallet for AI agents on Base chain. Supports x402 payments, multi-chain transfers, and gasless transactions. Costs $1.00 (10 credits) per call. Use when user asks about creating a wallet, getting a new wallet, or setting up payments.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "wallet": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "address": {
+                          "type": "string",
+                          "description": "Ethereum-compatible wallet address"
+                        },
+                        "network": {
+                          "type": "string"
+                        },
+                        "supportedTokens": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "features": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/arbitrage-scanner": {
+      "get": {
+        "operationId": "scanArbitrageOpportunities",
+        "summary": "Find DEX arbitrage opportunities ($1.25 / 13 credits)",
+        "description": "Scans decentralized exchanges for price discrepancies and arbitrage opportunities. Returns potential profit estimates and confidence scores. Costs $1.25 (13 credits) per call. Use when user asks about arbitrage, finding trading opportunities, or DEX price differences.",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "description": "Token to scan for arbitrage (e.g., ETH, USDC, LINK). Defaults to ETH.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "ETH"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Arbitrage opportunities found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "opportunities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "pair": {
+                            "type": "string"
+                          },
+                          "buyExchange": {
+                            "type": "string"
+                          },
+                          "sellExchange": {
+                            "type": "string"
+                          },
+                          "spread": {
+                            "type": "string"
+                          },
+                          "potentialProfit": {
+                            "type": "string"
+                          },
+                          "confidence": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postArbitrageScanner",
+        "summary": "Find DEX arbitrage opportunities ($1.25 / 13 credits)",
+        "description": "Scans decentralized exchanges for price discrepancies and arbitrage opportunities. Returns potential profit estimates and confidence scores. Costs $1.25 (13 credits) per call. Use when user asks about arbitrage, finding trading opportunities, or DEX price differences.",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "default": "ETH",
+                    "description": "Token to scan for arbitrage (e.g., ETH, USDC, LINK). Defaults to ETH."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Arbitrage opportunities found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "token": {
+                      "type": "string"
+                    },
+                    "opportunities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "pair": {
+                            "type": "string"
+                          },
+                          "buyExchange": {
+                            "type": "string"
+                          },
+                          "sellExchange": {
+                            "type": "string"
+                          },
+                          "spread": {
+                            "type": "string"
+                          },
+                          "potentialProfit": {
+                            "type": "string"
+                          },
+                          "confidence": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/multi-chain-balance": {
+      "get": {
+        "operationId": "getMultiChainBalance",
+        "summary": "Check wallet balances across all chains ($0.50 / 5 credits)",
+        "description": "Returns wallet balances for native tokens and ERC-20 tokens across 6 EVM chains simultaneously. Costs $0.50 (5 credits) per call. Use when user asks about wallet balance, checking assets, or portfolio value.",
+        "parameters": [
+          {
+            "name": "wallet",
+            "in": "query",
+            "description": "Ethereum-compatible wallet address (0x...)",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^0x[a-fA-F0-9]{40}$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Wallet balances across chains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "wallet": {
+                      "type": "string"
+                    },
+                    "totalValueUSD": {
+                      "type": "string"
+                    },
+                    "balances": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chain": {
+                            "type": "string"
+                          },
+                          "nativeBalance": {
+                            "type": "string"
+                          },
+                          "usdValue": {
+                            "type": "string"
+                          },
+                          "tokens": {
+                            "type": "array"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      },
+      "post": {
+        "operationId": "postMultiChainBalance",
+        "summary": "Check wallet balances across all chains ($0.50 / 5 credits)",
+        "description": "Returns wallet balances for native tokens and ERC-20 tokens across 6 EVM chains simultaneously. Costs $0.50 (5 credits) per call. Use when user asks about wallet balance, checking assets, or portfolio value.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "wallet"
+                ],
+                "properties": {
+                  "wallet": {
+                    "type": "string",
+                    "pattern": "^0x[a-fA-F0-9]{40}$",
+                    "description": "Ethereum-compatible wallet address (0x...)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Wallet balances across chains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "wallet": {
+                      "type": "string"
+                    },
+                    "totalValueUSD": {
+                      "type": "string"
+                    },
+                    "balances": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "chain": {
+                            "type": "string"
+                          },
+                          "nativeBalance": {
+                            "type": "string"
+                          },
+                          "usdValue": {
+                            "type": "string"
+                          },
+                          "tokens": {
+                            "type": "array"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "API key required - Get one at https://coinrailz.com/credits"
+          }
+        }
+      }
+    },
+    "/api/gpt/credits-info": {
+      "get": {
+        "operationId": "getCreditsInfo",
+        "summary": "Get API credits pricing and purchase info",
+        "description": "Returns information about API credits, pricing tiers, and how to purchase. Use when user asks about pricing, credits, or how to access premium features.",
+        "responses": {
+          "200": {
+            "description": "Credits and pricing information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "pricing": {
+                      "type": "object",
+                      "properties": {
+                        "freeServices": {
+                          "type": "array",
+                          "description": "Services available without API key"
+                        },
+                        "premiumServices": {
+                          "type": "array",
+                          "description": "Services requiring API key"
+                        },
+                        "creditPackages": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "price": {
+                                "type": "string"
+                              },
+                              "credits": {
+                                "type": "integer"
+                              }
+                            }
+                          }
+                        },
+                        "purchaseUrl": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/credits/packages": {
+      "get": {
+        "operationId": "getCreditPackages",
+        "summary": "Get available credit packages for purchase",
+        "description": "Returns available credit packages with pricing. Use BEFORE creating a checkout session to show user their options.",
+        "responses": {
+          "200": {
+            "description": "Available credit packages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "packages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Package ID (starter, pro, enterprise)"
+                          },
+                          "price": {
+                            "type": "string",
+                            "description": "Price in USD"
+                          },
+                          "priceUSD": {
+                            "type": "integer",
+                            "description": "Price as number"
+                          },
+                          "credits": {
+                            "type": "integer",
+                            "description": "Number of credits included"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "instructions": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/gpt/credits/create-session": {
+      "post": {
+        "operationId": "createCreditsPurchaseSession",
+        "summary": "Create a checkout session to purchase credits",
+        "description": "Creates a Stripe checkout session for purchasing credits. Returns a checkout URL for the user to complete payment. After payment, use the status endpoint to retrieve the API key. Use when user wants to buy credits or access premium features.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "package"
+                ],
+                "properties": {
+                  "package": {
+                    "type": "string",
+                    "enum": [
+                      "starter",
+                      "pro",
+                      "enterprise"
+                    ],
+                    "description": "Package to purchase: starter ($10/100 credits), pro ($50/600 credits), or enterprise ($200/3000 credits)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout session created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "sessionId": {
+                      "type": "string",
+                      "description": "Session ID to use with status endpoint"
+                    },
+                    "checkoutUrl": {
+                      "type": "string",
+                      "description": "URL for user to complete payment"
+                    },
+                    "package": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "price": {
+                          "type": "string"
+                        },
+                        "credits": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "instructions": {
+                      "type": "string"
+                    },
+                    "statusEndpoint": {
+                      "type": "string",
+                      "description": "Endpoint to poll for API key after payment"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid package specified"
+          }
+        }
+      }
+    },
+    "/api/gpt/credits/status": {
+      "get": {
+        "operationId": "checkCreditsPurchaseStatus",
+        "summary": "Check payment status and retrieve API key",
+        "description": "Poll this endpoint after user completes payment to retrieve their API key. Rate limited to 1 request per 5 seconds, max 12 attempts. Use after user confirms they completed payment at the checkout URL.",
+        "parameters": [
+          {
+            "name": "session",
+            "in": "query",
+            "required": true,
+            "description": "The sessionId returned from create-session endpoint",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Status check result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "pending",
+                        "completed",
+                        "expired"
+                      ],
+                      "description": "Payment status"
+                    },
+                    "apiKey": {
+                      "type": "string",
+                      "description": "API key (only present when status=completed)"
+                    },
+                    "credits": {
+                      "type": "integer",
+                      "description": "Credits purchased (only present when status=completed)"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "usage": {
+                      "type": "object",
+                      "description": "How to use the API key (only present when status=completed)",
+                      "properties": {
+                        "header": {
+                          "type": "string"
+                        },
+                        "example": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "remainingTimeMs": {
+                      "type": "integer",
+                      "description": "Time remaining before session expires (pending only)"
+                    },
+                    "pollsRemaining": {
+                      "type": "integer",
+                      "description": "Poll attempts remaining (pending only)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found or expired"
+          },
+          "429": {
+            "description": "Rate limited - wait 5 seconds between requests"
+          }
+        }
+      }
+    },
+    "/api/gpt/credits/bootstrap": {
+      "post": {
+        "operationId": "bootstrapGptSession",
+        "summary": "Initialize or retrieve GPT session (Zero-Friction Auth)",
+        "description": "Bootstraps a GPT session using OpenAI headers for zero-friction authentication. Returns session status, credit balance, and available services. Use this as the first call to establish identity before using paid services. Free services work without bootstrap.",
+        "responses": {
+          "200": {
+            "description": "Session status and available services",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "authMode": {
+                      "type": "string",
+                      "enum": [
+                        "gpt_session",
+                        "gpt_provisional",
+                        "api_key",
+                        "anonymous"
+                      ],
+                      "description": "Authentication mode established"
+                    },
+                    "session": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "userId": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "credits": {
+                      "type": "object",
+                      "properties": {
+                        "balance": {
+                          "type": "integer",
+                          "description": "Available credit balance"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "active",
+                            "depleted",
+                            "no_credits",
+                            "unknown"
+                          ]
+                        }
+                      }
+                    },
+                    "services": {
+                      "type": "object",
+                      "properties": {
+                        "free": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "endpoint": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        },
+                        "paid": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "endpoint": {
+                                "type": "string"
+                              },
+                              "cost": {
+                                "type": "integer"
+                              },
+                              "description": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "needsMoreCredits": {
+                      "type": "boolean"
+                    },
+                    "purchaseCreditsUrl": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required GPT headers"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {}
+  },
+  "x-gpt-auth-info": {
+    "note": "ChatGPT users can authenticate automatically via session headers. No API key management needed!",
+    "flow": [
+      "1. Call POST /api/gpt/credits/bootstrap to check your session status",
+      "2. If you have credits, use paid services directly - authentication is automatic",
+      "3. If you need credits, call POST /api/gpt/credits/create-session to purchase"
+    ],
+    "headers": {
+      "openai-conversation-id": "Automatically sent by ChatGPT",
+      "openai-ephemeral-user-id": "Automatically sent by ChatGPT",
+      "openai-gpt-id": "Required for cross-conversation correlation"
+    }
+  }
+}

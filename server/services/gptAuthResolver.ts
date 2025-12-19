@@ -42,9 +42,11 @@ export interface GptHeaders {
   ephemeralUserId?: string;
 }
 
-// Feature flag for dual-write logging
-const GPT_SESSION_AUTH_ENABLED = process.env.GPT_SESSION_AUTH_ENABLED !== 'false';
-const GPT_SESSION_BOOTSTRAP_ENABLED = process.env.GPT_SESSION_BOOTSTRAP_ENABLED !== 'false';
+// Feature flags for GPT session auth rollout
+// MUST match paymentOrchestrator.ts for consistent behavior
+// Set GPT_SESSION_AUTH=true to enable zero-friction GPT session auth path
+const GPT_SESSION_AUTH_ENABLED = process.env.GPT_SESSION_AUTH === 'true';
+const GPT_SESSION_BOOTSTRAP_ENABLED = process.env.GPT_SESSION_AUTH === 'true'; // Tied to main flag
 
 /**
  * Extract OpenAI GPT headers from request

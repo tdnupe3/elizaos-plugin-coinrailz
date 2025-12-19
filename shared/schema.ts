@@ -4667,6 +4667,7 @@ export const gptPurchaseSessions = pgTable("gpt_purchase_sessions", {
   credits: integer("credits"),
   status: varchar("status").notNull().default("pending"),
   apiKey: varchar("api_key"),
+  gptAuthSessionId: integer("gpt_auth_session_id"),
   createdAt: timestamp("created_at").defaultNow(),
   completedAt: timestamp("completed_at"),
 }, (table) => [

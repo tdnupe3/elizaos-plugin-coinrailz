@@ -4,7 +4,7 @@ import { creditsService } from '../services/creditsService';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
 import { gptPurchaseSessions, creditsAccounts, gptAuthSessions, creditTransactions } from '@shared/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, or, inArray } from 'drizzle-orm';
 import { resolveAuth, getAuthContext, resolveOrCreateSessionUser, extractGptHeaders } from '../services/gptAuthResolver';
 import { storage } from '../storage';
 
@@ -65,17 +65,45 @@ router.post('/create-session', async (req: Request, res: Response) => {
     let gptAuthSessionId: number | null = null;
     const gptHeaders = extractGptHeaders(req);
     if (gptHeaders && gptHeaders.conversationId && gptHeaders.sessionId) {
-      // Look up existing GPT auth session by fingerprints
-      const { PIIEncryption } = await import('../utils/piiEncryption');
-      const conversationFp = PIIEncryption.hash(gptHeaders.conversationId);
-      const sessionFp = PIIEncryption.hash(gptHeaders.sessionId);
-      const [existingAuthSession] = await db.select()
-        .from(gptAuthSessions)
-        .where(eq(gptAuthSessions.conversationFingerprint, conversationFp))
-        .limit(1);
-      if (existingAuthSession) {
-        gptAuthSessionId = existingAuthSession.id;
-        console.log(`🔗 Found GPT auth session ${gptAuthSessionId} for purchase linking`);
+      try {
+        // Look up existing GPT auth session by BOTH fingerprints for accuracy
+        const { PIIEncryption } = await import('../utils/piiEncryption');
+        const conversationFp = PIIEncryption.hash(gptHeaders.conversationId);
+        const sessionFp = PIIEncryption.hash(gptHeaders.sessionId);
+        
+        // Match on BOTH fingerprints, accept multiple statuses for repeat purchases
+        const validStatuses = ['pending_link', 'active', 'linked'];
+        const [existingAuthSession] = await db.select()
+          .from(gptAuthSessions)
+          .where(and(
+            eq(gptAuthSessions.conversationFingerprint, conversationFp),
+            eq(gptAuthSessions.sessionFingerprint, sessionFp),
+            inArray(gptAuthSessions.status, validStatuses)
+          ))
+          .orderBy(desc(gptAuthSessions.createdAt))
+          .limit(1);
+        
+        if (existingAuthSession) {
+          gptAuthSessionId = existingAuthSession.id;
+          console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (status: ${existingAuthSession.status}) for purchase linking`);
+        } else {
+          // Fallback: try conversation fingerprint only for backwards compatibility
+          const [fallbackSession] = await db.select()
+            .from(gptAuthSessions)
+            .where(and(
+              eq(gptAuthSessions.conversationFingerprint, conversationFp),
+              inArray(gptAuthSessions.status, validStatuses)
+            ))
+            .orderBy(desc(gptAuthSessions.createdAt))
+            .limit(1);
+          if (fallbackSession) {
+            gptAuthSessionId = fallbackSession.id;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} via conversation-only fallback`);
+          }
+        }
+      } catch (encryptionError: any) {
+        console.error(`⚠️ GPT session lookup failed: ${encryptionError.message}`);
+        // Continue without linking - API key fallback will still work
       }
     }
     
@@ -118,6 +146,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
           amount: pkg.amount,
           credits: pkg.credits,
           status: 'pending',
+          gptAuthSessionId: gptAuthSessionId,
         });
         console.log(`✅ GPT Credits: Elements session ${sessionTrackingId} saved successfully`);
       } catch (dbError: any) {
@@ -188,6 +217,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
         amount: pkg.amount,
         credits: pkg.credits,
         status: 'pending',
+        gptAuthSessionId: gptAuthSessionId,
       });
       console.log(`✅ GPT Credits: Session ${sessionTrackingId} saved to database successfully`);
     } catch (dbError: any) {
@@ -1014,16 +1044,27 @@ export async function handlePaymentIntentSucceeded(
           description: `GPT credits purchase: ${existingSession.packageName} pack`,
         });
       
-      // Link GPT auth session using ID from metadata (not userId lookup)
+      // Link GPT auth session using ID from metadata, with fallback to purchase session
+      let gptAuthSessionIdNum: number | null = null;
+      
+      // Try metadata first
       const gptAuthSessionIdStr = paymentIntent.metadata?.gptAuthSessionId;
-      if (gptAuthSessionIdStr && creditsAccountId) {
-        const gptAuthSessionIdNum = parseInt(gptAuthSessionIdStr, 10);
-        if (!isNaN(gptAuthSessionIdNum)) {
-          await storage.linkGptSessionToUser(gptAuthSessionIdNum, userId, creditsAccountId);
-          console.log(`🔗 Linked credits account ${creditsAccountId} to GPT auth session ${gptAuthSessionIdNum}`);
-        }
+      if (gptAuthSessionIdStr) {
+        gptAuthSessionIdNum = parseInt(gptAuthSessionIdStr, 10);
+        if (isNaN(gptAuthSessionIdNum)) gptAuthSessionIdNum = null;
+      }
+      
+      // Fallback to purchase session's stored gptAuthSessionId
+      if (!gptAuthSessionIdNum && existingSession.gptAuthSessionId) {
+        gptAuthSessionIdNum = existingSession.gptAuthSessionId;
+        console.log(`🔄 Using purchase session's stored gptAuthSessionId: ${gptAuthSessionIdNum}`);
+      }
+      
+      if (gptAuthSessionIdNum && creditsAccountId) {
+        await storage.linkGptSessionToUser(gptAuthSessionIdNum, userId, creditsAccountId);
+        console.log(`🔗 Linked credits account ${creditsAccountId} to GPT auth session ${gptAuthSessionIdNum}`);
       } else {
-        console.log(`⚠️ No gptAuthSessionId in metadata - credits available via API key`);
+        console.log(`⚠️ No gptAuthSessionId available - credits accessible via API key`);
       }
     } catch (creditsError: any) {
       console.error(`⚠️ Credits account linking failed (non-blocking): ${creditsError.message}`);

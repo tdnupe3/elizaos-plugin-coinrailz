@@ -505,28 +505,31 @@ router.post('/bootstrap', async (req: Request, res: Response) => {
         console.log(`⚠️ GPT Bootstrap: Headers present but no stable identifier (openai-gpt-id missing)`);
         return res.status(200).json({
           success: true,
-          message: 'GPT headers detected but missing stable identifier. Use API key auth or include openai-gpt-id header.',
-          authMode: 'anonymous',
-          headers_detected: {
-            conversationId: !!gptHeaders.conversationId,
-            sessionId: !!gptHeaders.sessionId,
-            gptId: false // This is what's missing
-          },
-          fallbackOptions: {
-            apiKey: {
-              description: 'Purchase credits and get an API key for authenticated access',
-              steps: [
-                'POST /api/gpt/credits/create-session with { "package": "starter" }',
-                'Complete payment at the provided checkout URL',
-                'GET /api/gpt/credits/status?session=YOUR_SESSION_ID to get API key'
-              ]
+          requiresApiKey: true,
+          authMode: 'needs_setup',
+          userMessage: "Welcome to Coin Railz! To use premium crypto analysis services, you need an API key. This takes about 60 seconds to set up.",
+          onboarding: {
+            hasExistingKey: {
+              instruction: "If you already have a Coin Railz API key, tell me: 'My API key is cr_live_xxxxx' and I'll use it for this conversation.",
             },
-            freeServices: [
-              { endpoint: '/api/gpt/gas-prices', description: 'Real-time gas prices (FREE)' },
-              { endpoint: '/api/gpt/token-info', description: 'Token metadata (FREE)' },
-              { endpoint: '/api/gpt/trending', description: 'Trending tokens (FREE)' }
-            ]
-          }
+            needsNewKey: {
+              step1: "Click this link to purchase credits and get your API key:",
+              purchaseUrl: "https://coinrailz.com/credits",
+              step2: "After payment, you'll receive your API key instantly.",
+              step3: "Come back here and tell me: 'My API key is cr_live_xxxxx'",
+              packages: [
+                { name: "Starter", price: "$10", credits: 100, description: "Great for trying out services" },
+                { name: "Pro", price: "$50", credits: 600, savings: "17% savings" },
+                { name: "Enterprise", price: "$200", credits: 3000, savings: "33% savings" }
+              ]
+            }
+          },
+          freeServicesAvailable: [
+            { name: "Gas Prices", endpoint: "/api/gpt/gas-prices", description: "Real-time gas prices across 6 chains - FREE" },
+            { name: "Token Info", endpoint: "/api/gpt/token-info", description: "Token metadata and price - FREE" },
+            { name: "Trending", endpoint: "/api/gpt/trending", description: "Trending cryptocurrencies - FREE" }
+          ],
+          gptInstruction: "ASK THE USER: Do you have an existing Coin Railz API key? If yes, ask them to share it. If no, guide them to purchase credits at the URL above."
         });
       }
       

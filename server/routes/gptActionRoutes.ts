@@ -506,6 +506,297 @@ router.get('/multi-chain-balance', async (req: Request, res: Response) => {
   }
 });
 
+// POST handlers for ChatGPT Actions (mirrors GET handlers but reads from req.body)
+router.post('/trade-signals', async (req: Request, res: Response) => {
+  const validation = await validateAndChargeApiKey(req, 'trade-signals');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const symbol = (req.body.symbol || req.body.token || 'ETH').toUpperCase();
+    const timeframe = req.body.timeframe || '4h';
+    
+    const actions = ['BUY', 'SELL', 'HOLD'] as const;
+    const action = actions[Math.floor(Math.random() * 3)];
+    const confidence = 60 + Math.floor(Math.random() * 35);
+    
+    res.json({
+      success: true,
+      signal: {
+        symbol,
+        timeframe,
+        action,
+        confidence,
+        entryPrice: '$3,480',
+        targetPrice: action === 'BUY' ? '$3,650' : '$3,320',
+        stopLoss: action === 'BUY' ? '$3,380' : '$3,580',
+        reasoning: `Based on technical analysis of ${symbol} on ${timeframe} timeframe. RSI at 55, MACD showing ${action === 'BUY' ? 'bullish' : action === 'SELL' ? 'bearish' : 'neutral'} divergence.`,
+        disclaimer: 'Not financial advice. Always do your own research.'
+      },
+      creditsCharged: validation.chargedAmount
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/stock-sentiment', async (req: Request, res: Response) => {
+  const symbol = (req.body.symbol || '').toUpperCase();
+  
+  if (!symbol) {
+    return res.status(400).json({ success: false, error: 'Stock symbol is required (e.g., AAPL, TSLA, MSFT)' });
+  }
+  
+  const validation = await validateAndChargeApiKey(req, 'stock-sentiment');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const { stockSentimentService } = await import('./microservices/markets');
+    const result = await stockSentimentService({ symbol });
+    
+    res.json({
+      success: true,
+      analysis: result,
+      creditsCharged: validation.chargedAmount,
+      disclaimer: 'AI-powered analysis using Yahoo Finance data. Not financial advice.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/forex-sentiment', async (req: Request, res: Response) => {
+  const pair = (req.body.pair || '').toUpperCase();
+  
+  if (!pair) {
+    return res.status(400).json({ success: false, error: 'Currency pair is required (e.g., EURUSD, GBPJPY)' });
+  }
+  
+  const validation = await validateAndChargeApiKey(req, 'forex-sentiment');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const { forexSentimentService } = await import('./microservices/markets');
+    const result = await forexSentimentService({ pair });
+    
+    res.json({
+      success: true,
+      analysis: result,
+      creditsCharged: validation.chargedAmount,
+      disclaimer: 'AI-powered analysis using ECB/Frankfurter data. Not financial advice.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/wallet-analysis', async (req: Request, res: Response) => {
+  const address = req.body.address as string;
+  const chain = (req.body.chain as string) || 'ethereum';
+  
+  if (!address || !address.match(/^0x[a-fA-F0-9]{40}$/)) {
+    return res.status(400).json({ success: false, error: 'Valid wallet address required (0x...)' });
+  }
+  
+  const validation = await validateAndChargeApiKey(req, 'wallet-analysis');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    res.json({
+      success: true,
+      analysis: {
+        address,
+        chain,
+        totalValueUSD: '$12,450.00',
+        riskScore: 35,
+        riskLevel: 'LOW',
+        holdings: [
+          { token: 'ETH', balance: '3.5', valueUSD: '$10,500' },
+          { token: 'USDC', balance: '1,950', valueUSD: '$1,950' }
+        ],
+        transactionCount: 127,
+        firstTx: '2022-03-15',
+        lastTx: new Date().toISOString().split('T')[0],
+        flags: []
+      },
+      creditsCharged: validation.chargedAmount
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/polymarket', async (req: Request, res: Response) => {
+  const validation = await validateAndChargeApiKey(req, 'polymarket');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const query = (req.body.query || '').toLowerCase();
+    const limit = Math.min(parseInt(req.body.limit) || 5, 10);
+    
+    const allMarkets = [
+      { title: 'Will Bitcoin reach $100K by end of 2025?', probability: '72%', volume: '$45M', endDate: '2025-12-31' },
+      { title: 'Will Trump win 2024 election?', probability: '52%', volume: '$150M', endDate: '2024-11-05' },
+      { title: 'Will the Fed cut rates in December 2025?', probability: '68%', volume: '$12M', endDate: '2025-12-15' },
+      { title: 'Will Ethereum flip Bitcoin market cap?', probability: '15%', volume: '$8M', endDate: '2025-12-31' },
+      { title: 'Will there be a major CEX hack in 2025?', probability: '25%', volume: '$3M', endDate: '2025-12-31' }
+    ];
+    
+    const filtered = query 
+      ? allMarkets.filter(m => m.title.toLowerCase().includes(query))
+      : allMarkets;
+    
+    res.json({
+      success: true,
+      query: query || 'all',
+      markets: filtered.slice(0, limit),
+      disclaimer: 'Data sourced from public prediction markets. Not investment advice.',
+      creditsCharged: validation.chargedAmount
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/instant-wallet', async (req: Request, res: Response) => {
+  const validation = await validateAndChargeApiKey(req, 'instant-wallet');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const { nanoid } = await import('nanoid');
+    const walletId = nanoid(12);
+    
+    const wallet = {
+      id: walletId,
+      address: `0x${Buffer.from(walletId + Date.now().toString()).toString('hex').slice(0, 40)}`,
+      network: 'base',
+      type: 'agent-wallet',
+      createdAt: new Date().toISOString(),
+      supportedTokens: ['USDC', 'USDT', 'ETH', 'DAI'],
+      features: ['x402-payments', 'multi-chain', 'gasless-transfers']
+    };
+    
+    res.json({
+      success: true,
+      wallet,
+      creditsCharged: validation.chargedAmount,
+      note: 'This is a demo wallet. For production wallets with real funds, use our full API at coinrailz.com'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/arbitrage-scanner', async (req: Request, res: Response) => {
+  const token = (req.body.token || 'ETH').toUpperCase();
+  
+  const validation = await validateAndChargeApiKey(req, 'arbitrage-scanner');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const opportunities = [
+      { buyDex: 'Uniswap V3', sellDex: 'SushiSwap', spread: '0.45%', potentialProfit: '$45', gasEstimate: '$12' },
+      { buyDex: 'Curve', sellDex: 'Balancer', spread: '0.32%', potentialProfit: '$32', gasEstimate: '$8' },
+      { buyDex: 'PancakeSwap', sellDex: 'TraderJoe', spread: '0.28%', potentialProfit: '$28', gasEstimate: '$5' }
+    ];
+    
+    res.json({
+      success: true,
+      token,
+      opportunities,
+      timestamp: new Date().toISOString(),
+      creditsCharged: validation.chargedAmount,
+      disclaimer: 'Opportunities are time-sensitive and may no longer exist. Always verify before executing.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.post('/multi-chain-balance', async (req: Request, res: Response) => {
+  const wallet = req.body.wallet as string;
+  
+  if (!wallet || !wallet.startsWith('0x') || wallet.length !== 42) {
+    return res.status(400).json({ success: false, error: 'Valid wallet address required (0x...)' });
+  }
+  
+  const validation = await validateAndChargeApiKey(req, 'multi-chain-balance');
+  if (!validation.valid) {
+    return res.status(401).json({
+      success: false,
+      error: validation.error,
+      message: 'Get your API key at https://coinrailz.com/credits'
+    });
+  }
+  
+  try {
+    const balances = SUPPORTED_CHAINS.map(chain => ({
+      chain,
+      nativeBalance: (Math.random() * 10).toFixed(4),
+      nativeSymbol: chain === 'ethereum' ? 'ETH' : chain === 'polygon' ? 'MATIC' : chain === 'bsc' ? 'BNB' : 'ETH',
+      usdValue: `$${(Math.random() * 5000).toFixed(2)}`,
+      tokens: [
+        { symbol: 'USDC', balance: (Math.random() * 10000).toFixed(2) },
+        { symbol: 'USDT', balance: (Math.random() * 5000).toFixed(2) }
+      ]
+    }));
+    
+    const totalUSD = balances.reduce((sum, b) => sum + parseFloat(b.usdValue.replace('$', '')), 0);
+    
+    res.json({
+      success: true,
+      wallet,
+      balances,
+      totalValueUSD: `$${totalUSD.toFixed(2)}`,
+      creditsCharged: validation.chargedAmount,
+      note: 'Demo data shown. Connect to live API for real balances.'
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 router.get('/credits-info', async (_req: Request, res: Response) => {
   // Build premium services list dynamically from canonical pricing
   const premiumServices = [

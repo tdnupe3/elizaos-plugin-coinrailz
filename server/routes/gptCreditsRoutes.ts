@@ -3,9 +3,10 @@ import Stripe from 'stripe';
 import { creditsService } from '../services/creditsService';
 import { nanoid } from 'nanoid';
 import { db } from '../db';
-import { gptPurchaseSessions } from '@shared/schema';
-import { eq } from 'drizzle-orm';
+import { gptPurchaseSessions, creditsAccounts, gptAuthSessions, creditTransactions } from '@shared/schema';
+import { eq, desc } from 'drizzle-orm';
 import { resolveAuth, getAuthContext, resolveOrCreateSessionUser, extractGptHeaders } from '../services/gptAuthResolver';
+import { storage } from '../storage';
 
 console.log('📁 gptCreditsRoutes.ts FILE LOADED at', new Date().toISOString());
 
@@ -60,6 +61,24 @@ router.post('/create-session', async (req: Request, res: Response) => {
     const gptUserId = `gpt_${nanoid(16)}`;
     const sessionTrackingId = nanoid(12);
     
+    // Capture GPT auth session ID from headers for later linking
+    let gptAuthSessionId: number | null = null;
+    const gptHeaders = extractGptHeaders(req);
+    if (gptHeaders && gptHeaders.conversationId && gptHeaders.sessionId) {
+      // Look up existing GPT auth session by fingerprints
+      const { PIIEncryption } = await import('../utils/piiEncryption');
+      const conversationFp = PIIEncryption.hash(gptHeaders.conversationId);
+      const sessionFp = PIIEncryption.hash(gptHeaders.sessionId);
+      const [existingAuthSession] = await db.select()
+        .from(gptAuthSessions)
+        .where(eq(gptAuthSessions.conversationFingerprint, conversationFp))
+        .limit(1);
+      if (existingAuthSession) {
+        gptAuthSessionId = existingAuthSession.id;
+        console.log(`🔗 Found GPT auth session ${gptAuthSessionId} for purchase linking`);
+      }
+    }
+    
     // Use coinrailz.com for production, only use Replit domain for localhost/dev
     const host = req.get('host') || '';
     const isLocalDev = host.includes('localhost') || host.includes('127.0.0.1');
@@ -81,6 +100,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
           creditsCount: pkg.credits.toString(),
           source: 'gpt',
           gptSessionId: sessionTrackingId,
+          gptAuthSessionId: gptAuthSessionId?.toString() || '',
           packageName
         },
         description: `Coin Railz ${pkg.description}`
@@ -152,6 +172,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
         creditsCount: pkg.credits.toString(),
         source: 'gpt',
         gptSessionId: sessionTrackingId,
+        gptAuthSessionId: gptAuthSessionId?.toString() || '',
         packageName
       }
     });
@@ -942,10 +963,74 @@ export async function handlePaymentIntentSucceeded(
       throw new Error('Cannot determine credits amount');
     }
     
-    // Generate API key
+    // Generate API key (for fallback compatibility)
     const { apiKey } = await creditsService.generateApiKey(userId, 'GPT Purchase API Key');
 
-    // Update session in database
+    // === NEW: Create/get credits account and link to GPT auth session ===
+    let creditsAccountId: number | null = null;
+    
+    try {
+      // Check if user already has a credits account
+      const [existingCreditsAccount] = await db.select()
+        .from(creditsAccounts)
+        .where(eq(creditsAccounts.userId, userId))
+        .limit(1);
+      
+      if (existingCreditsAccount) {
+        creditsAccountId = existingCreditsAccount.id;
+        // Add credits to existing account
+        const currentBalance = parseFloat(existingCreditsAccount.balance?.toString() || '0');
+        const newBalance = currentBalance + correctCredits;
+        await db.update(creditsAccounts)
+          .set({ balance: newBalance.toString(), updatedAt: new Date() })
+          .where(eq(creditsAccounts.id, creditsAccountId));
+        console.log(`💰 Added ${correctCredits} credits to existing account (new balance: ${newBalance})`);
+      } else {
+        // Create new credits account
+        const [newAccount] = await db.insert(creditsAccounts)
+          .values({
+            userId,
+            balance: correctCredits.toString(),
+          })
+          .returning();
+        creditsAccountId = newAccount.id;
+        console.log(`💰 Created new credits account with ${correctCredits} credits`);
+      }
+      
+      // Record the credit transaction with correct balances
+      const balanceBefore = existingCreditsAccount 
+        ? parseFloat(existingCreditsAccount.balance?.toString() || '0') 
+        : 0;
+      await db.insert(creditTransactions)
+        .values({
+          accountId: creditsAccountId,
+          userId,
+          type: 'purchase',
+          amount: correctCredits.toString(),
+          balanceBefore: balanceBefore.toString(),
+          balanceAfter: (balanceBefore + correctCredits).toString(),
+          referenceId: paymentIntent.id,
+          paymentMethod: 'stripe',
+          description: `GPT credits purchase: ${existingSession.packageName} pack`,
+        });
+      
+      // Link GPT auth session using ID from metadata (not userId lookup)
+      const gptAuthSessionIdStr = paymentIntent.metadata?.gptAuthSessionId;
+      if (gptAuthSessionIdStr && creditsAccountId) {
+        const gptAuthSessionIdNum = parseInt(gptAuthSessionIdStr, 10);
+        if (!isNaN(gptAuthSessionIdNum)) {
+          await storage.linkGptSessionToUser(gptAuthSessionIdNum, userId, creditsAccountId);
+          console.log(`🔗 Linked credits account ${creditsAccountId} to GPT auth session ${gptAuthSessionIdNum}`);
+        }
+      } else {
+        console.log(`⚠️ No gptAuthSessionId in metadata - credits available via API key`);
+      }
+    } catch (creditsError: any) {
+      console.error(`⚠️ Credits account linking failed (non-blocking): ${creditsError.message}`);
+      // Continue - API key still works as fallback
+    }
+
+    // Update purchase session in database
     await db.update(gptPurchaseSessions)
       .set({
         status: 'completed',

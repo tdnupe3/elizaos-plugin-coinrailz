@@ -3506,6 +3506,19 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   console.log('✅ GPT Action router placeholder registered (pre-static)');
   (app as any)._deferredGptRouter = gptRouter;
   
+  // ============================================================================
+  // GPT OAuth Routes - MUST be registered BEFORE static serving in BOTH environments
+  // This enables ChatGPT OAuth flow to work in production
+  // ============================================================================
+  const gptOAuthRoutes = await import('./routes/gptOAuthRoutes').then(m => m.default);
+  app.use('/oauth', gptOAuthRoutes);
+  console.log('✅ GPT OAuth routes registered (pre-static, both dev & prod)');
+  
+  // Also register GPT credits routes before static serving
+  const gptCreditsRoutes = await import('./routes/gptCreditsRoutes').then(m => m.default);
+  app.use('/api/gpt/credits', gptCreditsRoutes);
+  console.log('✅ GPT Credits routes registered (pre-static, both dev & prod)');
+  
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');

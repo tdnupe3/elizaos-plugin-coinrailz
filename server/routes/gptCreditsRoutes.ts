@@ -58,11 +58,19 @@ router.post('/create-session', async (req: Request, res: Response) => {
     }
 
     const pkg = CREDIT_PACKAGES[packageName as keyof typeof CREDIT_PACKAGES];
-    const gptUserId = `gpt_${nanoid(16)}`;
     const sessionTrackingId = nanoid(12);
+    
+    // PRIORITY 1: Check for authenticated user in browser session (Google/Coinbase OAuth)
+    let authenticatedUserId: string | null = null;
+    const sessionUser = (req.session as any)?.user;
+    if (sessionUser?.id) {
+      authenticatedUserId = sessionUser.id;
+      console.log(`🔐 Found authenticated user in session: ${authenticatedUserId}`);
+    }
     
     // Capture GPT auth session ID from headers for later linking
     let gptAuthSessionId: number | null = null;
+    let gptAuthSessionUserId: string | null = null;
     const gptHeaders = extractGptHeaders(req);
     
     // DEBUG: Log all incoming GPT headers to diagnose linking issues
@@ -95,7 +103,8 @@ router.post('/create-session', async (req: Request, res: Response) => {
           
           if (existingAuthSession) {
             gptAuthSessionId = existingAuthSession.id;
-            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (status: ${existingAuthSession.status}) via dual-fingerprint match`);
+            gptAuthSessionUserId = existingAuthSession.userId;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (status: ${existingAuthSession.status}, userId: ${gptAuthSessionUserId || 'none'}) via dual-fingerprint match`);
           }
         }
         
@@ -112,7 +121,8 @@ router.post('/create-session', async (req: Request, res: Response) => {
             .limit(1);
           if (fallbackSession) {
             gptAuthSessionId = fallbackSession.id;
-            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} via conversation-only fallback`);
+            gptAuthSessionUserId = gptAuthSessionUserId || fallbackSession.userId;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (userId: ${fallbackSession.userId || 'none'}) via conversation-only fallback`);
           }
         }
         
@@ -129,7 +139,8 @@ router.post('/create-session', async (req: Request, res: Response) => {
             .limit(1);
           if (sessionOnlyMatch) {
             gptAuthSessionId = sessionOnlyMatch.id;
-            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} via session-only fallback`);
+            gptAuthSessionUserId = gptAuthSessionUserId || sessionOnlyMatch.userId;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (userId: ${sessionOnlyMatch.userId || 'none'}) via session-only fallback`);
           }
         }
         
@@ -147,7 +158,8 @@ router.post('/create-session', async (req: Request, res: Response) => {
             .limit(1);
           if (identifierMatch) {
             gptAuthSessionId = identifierMatch.id;
-            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} via gptIdentifierHash match`);
+            gptAuthSessionUserId = gptAuthSessionUserId || identifierMatch.userId;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (userId: ${identifierMatch.userId || 'none'}) via gptIdentifierHash match`);
           }
         }
         
@@ -160,6 +172,22 @@ router.post('/create-session', async (req: Request, res: Response) => {
       }
     } else {
       console.log(`⚠️ No GPT headers present for session linking - webhook must handle linking`);
+    }
+    
+    // DETERMINE FINAL USER ID - Priority order:
+    // 1. Authenticated browser session user (Google/Coinbase OAuth)
+    // 2. Linked user from GPT auth session
+    // 3. Create new GPT user as last resort
+    let finalUserId: string;
+    if (authenticatedUserId) {
+      finalUserId = authenticatedUserId;
+      console.log(`✅ Using authenticated browser session user: ${finalUserId}`);
+    } else if (gptAuthSessionUserId) {
+      finalUserId = gptAuthSessionUserId;
+      console.log(`✅ Using linked user from GPT auth session: ${finalUserId}`);
+    } else {
+      finalUserId = `gpt_${nanoid(16)}`;
+      console.log(`⚠️ No authenticated user found - creating new GPT user: ${finalUserId}`);
     }
     
     // Use coinrailz.com for production, only use Replit domain for localhost/dev
@@ -178,7 +206,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
         currency: 'usd',
         automatic_payment_methods: { enabled: true },
         metadata: {
-          userId: gptUserId,
+          userId: finalUserId,
           creditsAmount: pkg.amount.toString(),
           creditsCount: pkg.credits.toString(),
           source: 'gpt',
@@ -196,7 +224,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
           id: sessionTrackingId,
           stripePaymentIntentId: paymentIntent.id,
           clientSecret: paymentIntent.client_secret,
-          userId: gptUserId,
+          userId: finalUserId,
           packageName,
           amount: pkg.amount,
           credits: pkg.credits,
@@ -251,7 +279,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
       success_url: `${baseUrl}/gpt-purchase-success?session=${sessionTrackingId}`,
       cancel_url: `${baseUrl}/credits?canceled=true&source=gpt`,
       metadata: {
-        userId: gptUserId,
+        userId: finalUserId,
         creditsAmount: pkg.amount.toString(),
         creditsCount: pkg.credits.toString(),
         source: 'gpt',
@@ -267,7 +295,7 @@ router.post('/create-session', async (req: Request, res: Response) => {
       await db.insert(gptPurchaseSessions).values({
         id: sessionTrackingId,
         stripeSessionId: session.id,
-        userId: gptUserId,
+        userId: finalUserId,
         packageName,
         amount: pkg.amount,
         credits: pkg.credits,

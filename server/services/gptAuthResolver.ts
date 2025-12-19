@@ -497,3 +497,26 @@ export function getProvisionaSessionId(req: Request): number | null {
 export function getClientId(req: Request): string | null {
   return getRealUserId(req);
 }
+
+/**
+ * Refresh and validate auth context after session resolution
+ * Throws error if context is not properly linked
+ */
+export async function refreshAndValidateAuthContext(req: Request): Promise<{ userId: string; authContext: AuthContext }> {
+  // First, try to resolve or create user
+  const userId = await resolveOrCreateSessionUser(req);
+  
+  // Re-read auth context after resolution
+  const authContext = getAuthContext(req);
+  
+  // Validate that context is properly linked
+  if (!userId || !authContext.userId || authContext.userId !== userId) {
+    throw new Error('GPT session not properly linked - userId mismatch or missing');
+  }
+  
+  if (authContext.mode !== 'gpt_session' && authContext.mode !== 'api_key') {
+    throw new Error(`GPT session not properly linked - unexpected mode: ${authContext.mode}`);
+  }
+  
+  return { userId, authContext };
+}

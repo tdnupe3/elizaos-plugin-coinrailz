@@ -7,6 +7,8 @@ import {
 import { offerLinkService } from "../services/offerLinkService";
 import { getFacilitatorUrl } from "../utils/facilitatorHelper";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "../../shared/pricing";
+import { getAuthContext, hasValidSession, resolveOrCreateSessionUser, refreshAndValidateAuthContext, AuthContext } from "../services/gptAuthResolver";
+import { creditsService } from "../services/creditsService";
 import { createWalletClient, http, parseAbi, Hex, createPublicClient } from "viem";
 import { base } from "viem/chains";
 import { privateKeyToAccount } from "viem/accounts";
@@ -776,6 +778,140 @@ export function createPaymentOrchestrator(
           console.error(`❌ First-call-free handler error for ${serviceName}:`, handlerError.message);
           // Continue to 402 on error
         }
+      }
+    }
+
+    // PREPAID CREDITS: Check for GPT session or API key authentication
+    // Runs AFTER first-call-free so free trials are honored
+    // This enables zero-friction payments for ChatGPT users and API key holders
+    const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || requiredAmount / 1000000;
+    
+    // Priority: GPT session authentication (zero-friction for ChatGPT users)
+    // Check for OpenAI GPT headers OR existing GPT session mode (from middleware)
+    const currentCtx = getAuthContext(req);
+    const hasGptHeaders = !!(req.headers['openai-conversation-id'] || req.headers['openai-ephemeral-user-id']);
+    const isGptSessionMode = currentCtx.mode === 'gpt_session' || currentCtx.mode === 'gpt_provisional';
+    const hasApiKeyHeader = !!(req.headers['x-api-key'] || (req.headers['authorization'] as string)?.startsWith('Bearer cr_live_'));
+    
+    // GPT flow: has GPT headers OR existing GPT mode, AND no API key header
+    if ((hasGptHeaders || isGptSessionMode) && !hasApiKeyHeader) {
+      try {
+        // Use refreshAndValidateAuthContext - throws on failure (no silent fall-through)
+        const { userId, authContext } = await refreshAndValidateAuthContext(req);
+        
+        const balance = await creditsService.getBalance(userId);
+        if (balance >= priceUsd) {
+          await creditsService.deductCredits({
+            userId,
+            amount: priceUsd,
+            serviceName,
+            description: `x402 Service: ${serviceName} ($${priceUsd.toFixed(2)}) via GPT session`
+          });
+          
+          console.log(`💳 Orchestrator: GPT session payment for ${serviceName} - $${priceUsd.toFixed(2)} (user: ${userId}, mode: ${authContext.mode})`);
+          // Attach full resolved auth context for downstream consumers
+          res.locals.payment = { method: "gpt-session", userId, amount: priceUsd, status: 'paid', authContext };
+          
+          await handler(req, res);
+          
+          // Track GPT session payment
+          await x402InteractionTracker.trackInteraction({
+            serviceId: serviceName,
+            ipAddress,
+            userAgent,
+            requestPath: req.originalUrl,
+            requestMethod: req.method,
+            responseStatus: 200,
+            paid: true,
+            amount: priceUsd,
+            interactionType: 'payment',
+            requestId,
+            eventType: 'gpt-session-payment',
+            serviceName,
+            latencyMs: Date.now() - startTime,
+            paymentReceived: true,
+            paymentAmount: priceUsd,
+            offerTrackingId,
+            metadata: { method: 'gpt-session', userId, knownAgent: knownAgent.name }
+          });
+          
+          if (offerTrackingId) {
+            try {
+              await offerLinkService.recordConversion(offerTrackingId, priceUsd);
+            } catch (convErr: any) {
+              console.error(`⚠️ Failed to record GPT session conversion: ${convErr.message}`);
+            }
+          }
+          return;
+        }
+        // Insufficient credits - return 402 with guidance for GPT users
+        console.log(`⚠️ Orchestrator: GPT session user ${userId} has insufficient credits ($${balance.toFixed(2)} < $${priceUsd.toFixed(2)})`);
+        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+      } catch (gptErr: any) {
+        // GPT session resolution failed - return 402 (no silent fall-through)
+        console.error(`⚠️ Orchestrator: GPT session resolution failed for ${serviceName}: ${gptErr.message}`);
+        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+      }
+    }
+    
+    // Priority: API key authentication
+    const apiKey = req.headers['x-api-key'] as string || 
+                   (req.headers['authorization'] as string)?.replace('Bearer ', '');
+    
+    if (apiKey && apiKey.startsWith('cr_live_')) {
+      try {
+        const keyValidation = await creditsService.validateApiKey(apiKey);
+        if (keyValidation.valid && keyValidation.userId) {
+          const balance = await creditsService.getBalance(keyValidation.userId);
+          if (balance >= priceUsd) {
+            await creditsService.deductCredits({
+              userId: keyValidation.userId,
+              amount: priceUsd,
+              serviceName,
+              description: `x402 Service: ${serviceName} ($${priceUsd.toFixed(2)}) via API key`
+            });
+            
+            console.log(`💳 Orchestrator: API key payment for ${serviceName} - $${priceUsd.toFixed(2)} (user: ${keyValidation.userId})`);
+            res.locals.payment = { method: "api-key", userId: keyValidation.userId, amount: priceUsd, status: 'paid' };
+            
+            await handler(req, res);
+            
+            // Track API key payment
+            await x402InteractionTracker.trackInteraction({
+              serviceId: serviceName,
+              ipAddress,
+              userAgent,
+              requestPath: req.originalUrl,
+              requestMethod: req.method,
+              responseStatus: 200,
+              paid: true,
+              amount: priceUsd,
+              interactionType: 'payment',
+              requestId,
+              eventType: 'api-key-payment',
+              serviceName,
+              latencyMs: Date.now() - startTime,
+              paymentReceived: true,
+              paymentAmount: priceUsd,
+              offerTrackingId,
+              metadata: { method: 'api-key', userId: keyValidation.userId, knownAgent: knownAgent.name }
+            });
+            
+            if (offerTrackingId) {
+              try {
+                await offerLinkService.recordConversion(offerTrackingId, priceUsd);
+              } catch (convErr: any) {
+                console.error(`⚠️ Failed to record API key conversion: ${convErr.message}`);
+              }
+            }
+            return;
+          }
+          // Insufficient credits - fall through to x402 payment
+          console.log(`⚠️ Orchestrator: API key user ${keyValidation.userId} has insufficient credits ($${balance.toFixed(2)} < $${priceUsd.toFixed(2)})`);
+        }
+      } catch (apiKeyErr: any) {
+        console.error(`⚠️ Orchestrator: API key payment error: ${apiKeyErr.message}`);
+        // Fall through to x402 payment
       }
     }
 

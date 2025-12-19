@@ -27,6 +27,9 @@ import {
   aiAgentProducts,
   aiAgentSubscriptions,
   transactionProofs,
+  gptAuthSessions,
+  type GptAuthSession,
+  type InsertGptAuthSession,
   type User,
   type UpsertUser,
   type Transaction,
@@ -310,6 +313,16 @@ export interface IStorage {
   getTransactionProofBySignature(signature: string): Promise<SelectTransactionProof | null>;
   getTransactionProofsByChain(chain: string): Promise<SelectTransactionProof[]>;
   getTransactionProofsByCampaign(campaignId: string): Promise<SelectTransactionProof[]>;
+  
+  // GPT Auth Session operations for ChatGPT session-based authentication
+  createGptAuthSession(session: InsertGptAuthSession): Promise<GptAuthSession>;
+  getGptAuthSessionByFingerprints(conversationFingerprint: string, sessionFingerprint: string): Promise<GptAuthSession | null>;
+  getGptAuthSessionsByUserId(userId: string): Promise<GptAuthSession[]>;
+  updateGptAuthSession(id: number, updates: Partial<InsertGptAuthSession>): Promise<GptAuthSession | null>;
+  updateGptAuthSessionLastUsed(id: number): Promise<void>;
+  linkGptSessionToUser(sessionId: number, userId: string, creditsAccountId?: number): Promise<GptAuthSession | null>;
+  getGptAuthSessionByEmail(email: string): Promise<GptAuthSession | null>;
+  expireOldGptSessions(olderThan: Date): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2355,6 +2368,117 @@ export class DatabaseStorage implements IStorage {
         lastCheckedAt: new Date()
       })
       .where(eq(verifiedSolanaWallets.address, address));
+  }
+
+  // GPT Auth Session operations for ChatGPT session-based authentication
+  // Note: Fingerprints are SHA-256 hashes (already one-way transformed)
+  // Email is encrypted for privacy, encrypted*Id fields store AES-encrypted raw IDs
+  
+  async createGptAuthSession(session: InsertGptAuthSession): Promise<GptAuthSession> {
+    // Encrypt email if provided (PII protection)
+    const sessionToInsert = { ...session } as any;
+    if (sessionToInsert.email) {
+      // Store deterministic hash for indexed lookup
+      sessionToInsert.emailHash = PIIEncryption.hash(sessionToInsert.email.toLowerCase().trim());
+      // Store encrypted email for display/audit
+      sessionToInsert.email = PIIEncryption.encrypt(sessionToInsert.email);
+    }
+    // encryptedConversationId and encryptedSessionId should already be encrypted by caller
+    const [result] = await db.insert(gptAuthSessions).values(sessionToInsert).returning();
+    return this.decryptGptSessionPII(result);
+  }
+
+  async getGptAuthSessionByFingerprints(conversationFingerprint: string, sessionFingerprint: string): Promise<GptAuthSession | null> {
+    const [session] = await db.select().from(gptAuthSessions)
+      .where(and(
+        eq(gptAuthSessions.conversationFingerprint, conversationFingerprint),
+        eq(gptAuthSessions.sessionFingerprint, sessionFingerprint)
+      ))
+      .limit(1);
+    return session ? this.decryptGptSessionPII(session) : null;
+  }
+
+  async getGptAuthSessionsByUserId(userId: string): Promise<GptAuthSession[]> {
+    const sessions = await db.select().from(gptAuthSessions)
+      .where(eq(gptAuthSessions.userId, userId))
+      .orderBy(desc(gptAuthSessions.lastUsedAt));
+    return sessions.map(s => this.decryptGptSessionPII(s));
+  }
+
+  async updateGptAuthSession(id: number, updates: Partial<InsertGptAuthSession>): Promise<GptAuthSession | null> {
+    // Handle email updates - encrypt if present, clear hash if removed
+    const encryptedUpdates = { ...updates } as any;
+    if ('email' in encryptedUpdates) {
+      if (encryptedUpdates.email) {
+        // Update deterministic hash for indexed lookup
+        encryptedUpdates.emailHash = PIIEncryption.hash(encryptedUpdates.email.toLowerCase().trim());
+        // Store encrypted email for display/audit
+        encryptedUpdates.email = PIIEncryption.encrypt(encryptedUpdates.email);
+      } else {
+        // Email being cleared - clear hash too for consistency
+        encryptedUpdates.emailHash = null;
+      }
+    }
+    // Don't auto-update lastUsedAt - caller controls this explicitly
+    const [result] = await db.update(gptAuthSessions)
+      .set(encryptedUpdates)
+      .where(eq(gptAuthSessions.id, id))
+      .returning();
+    return result ? this.decryptGptSessionPII(result) : null;
+  }
+
+  async updateGptAuthSessionLastUsed(id: number): Promise<void> {
+    await db.update(gptAuthSessions)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(gptAuthSessions.id, id));
+  }
+
+  async linkGptSessionToUser(sessionId: number, userId: string, creditsAccountId?: number): Promise<GptAuthSession | null> {
+    // Status 'active' with userId linked means the session is bound to a user
+    const updates: any = { 
+      userId, 
+      status: 'active', // Use valid status from schema enum
+      lastUsedAt: new Date()
+    };
+    if (creditsAccountId) {
+      updates.creditsAccountId = creditsAccountId;
+    }
+    const [result] = await db.update(gptAuthSessions)
+      .set(updates)
+      .where(eq(gptAuthSessions.id, sessionId))
+      .returning();
+    return result ? this.decryptGptSessionPII(result) : null;
+  }
+
+  async getGptAuthSessionByEmail(email: string): Promise<GptAuthSession | null> {
+    // Use deterministic email hash for indexed O(1) lookup
+    const emailHash = PIIEncryption.hash(email.toLowerCase().trim());
+    const [session] = await db.select().from(gptAuthSessions)
+      .where(eq(gptAuthSessions.emailHash, emailHash))
+      .orderBy(desc(gptAuthSessions.lastUsedAt))
+      .limit(1);
+    return session ? this.decryptGptSessionPII(session) : null;
+  }
+
+  async expireOldGptSessions(olderThan: Date): Promise<number> {
+    const result = await db.update(gptAuthSessions)
+      .set({ status: 'expired' })
+      .where(and(
+        lt(gptAuthSessions.lastUsedAt, olderThan),
+        eq(gptAuthSessions.status, 'active')
+      ));
+    return (result as any)?.rowCount || 0;
+  }
+
+  // Helper to decrypt PII fields in GPT session
+  private decryptGptSessionPII(session: GptAuthSession): GptAuthSession {
+    if (!session) return session;
+    return {
+      ...session,
+      email: session.email ? PIIEncryption.decrypt(session.email) : session.email,
+      // Note: encryptedConversationId and encryptedSessionId remain encrypted 
+      // for audit purposes - only decrypt when specifically needed for debugging
+    };
   }
 }
 

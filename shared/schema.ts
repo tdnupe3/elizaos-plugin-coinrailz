@@ -4703,6 +4703,10 @@ export const gptAuthSessions = pgTable("gpt_auth_sessions", {
   // Email for account linking (collected from GPT user)
   email: varchar("email"),
   
+  // Deterministic email hash for indexed lookup (SHA-256, 64 hex chars)
+  // Allows searching by email without decrypting every row
+  emailHash: varchar("email_hash", { length: 64 }),
+  
   // Timestamps
   createdAt: timestamp("created_at").defaultNow(),
   lastUsedAt: timestamp("last_used_at").defaultNow(),
@@ -4718,6 +4722,7 @@ export const gptAuthSessions = pgTable("gpt_auth_sessions", {
   index("IDX_gpt_auth_sessions_status").on(table.status),
   index("IDX_gpt_auth_sessions_expires").on(table.expiresAt),
   index("IDX_gpt_auth_sessions_email").on(table.email),
+  index("IDX_gpt_auth_sessions_email_hash").on(table.emailHash),
 ]);
 
 // GPT Auth Sessions Insert/Select Schemas

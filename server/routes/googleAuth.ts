@@ -51,15 +51,30 @@ router.get('/google/login', (req: Request, res: Response) => {
   authUrl.searchParams.set('access_type', 'offline');
   authUrl.searchParams.set('prompt', 'consent');
 
-  res.redirect(authUrl.toString());
+  req.session.save((err) => {
+    if (err) {
+      console.error('Failed to save session before Google OAuth redirect:', err);
+      return res.status(500).json({ error: 'Session error' });
+    }
+    console.log(`🔐 Google OAuth initiated, state: ${state.substring(0, 8)}...`);
+    res.redirect(authUrl.toString());
+  });
 });
 
 router.get('/google/callback', async (req: Request, res: Response) => {
   try {
     const { code, state } = req.query;
 
+    console.log(`🔐 Google OAuth callback received, state: ${(state as string)?.substring(0, 8)}...`);
+    console.log(`🔐 Session state: ${req.session.googleState?.substring(0, 8) || 'MISSING'}...`);
+
     if (state !== req.session.googleState) {
-      return res.status(400).json({ error: 'Invalid state parameter' });
+      console.error('Google OAuth state mismatch:', { 
+        receivedState: (state as string)?.substring(0, 8),
+        sessionState: req.session.googleState?.substring(0, 8) || 'MISSING',
+        sessionId: req.sessionID 
+      });
+      return res.status(400).json({ error: 'Invalid state parameter - session may have expired. Please try again.' });
     }
 
     if (!code) {
@@ -112,9 +127,10 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     
     if (!user) {
       const securePassword = crypto.randomBytes(32).toString('hex');
+      const userId = `google_${googleUser.sub}`;
       user = await storage.createUser({
+        id: userId,
         email: googleUser.email,
-        username: googleUser.email.split('@')[0] + '_' + crypto.randomBytes(3).toString('hex'),
         password: securePassword,
         firstName: googleUser.given_name || googleUser.name?.split(' ')[0] || '',
         lastName: googleUser.family_name || googleUser.name?.split(' ').slice(1).join(' ') || '',
@@ -127,7 +143,6 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     (req.session as any).user = {
       id: user.id,
       email: user.email,
-      username: user.username,
       claims: {
         sub: `google_${googleUser.sub}`,
         email: googleUser.email,

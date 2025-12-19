@@ -3,6 +3,7 @@ import { storage } from '../storage';
 import { creditsService } from '../services/creditsService';
 import { SERVICE_PRICING_USD, ServiceName, isServiceName } from '@shared/pricing';
 import gptCreditsRoutes from './gptCreditsRoutes';
+import { getAuthContext, getRealUserId, gptAuthMiddleware, isAuthenticated, isProvisional, resolveOrCreateSessionUser, hasValidSession } from '../services/gptAuthResolver';
 
 const router = Router();
 
@@ -70,6 +71,9 @@ function captureGptHeaders(req: Request, res: Response, next: NextFunction) {
 
 // Apply header capture middleware to ALL GPT routes
 router.use(captureGptHeaders);
+
+// Apply GPT session auth resolver middleware - attaches authContext to all requests
+router.use(gptAuthMiddleware);
 
 router.use('/credits', gptCreditsRoutes);
 
@@ -228,22 +232,65 @@ router.get('/trending', async (req: Request, res: Response) => {
   }
 });
 
-async function validateAndChargeApiKey(req: Request, serviceName: string): Promise<{ valid: boolean; userId?: string; error?: string; chargedAmount?: number }> {
+/**
+ * Unified auth and charge function - supports GPT session OR API key
+ * Priority: GPT session (resolve/create user if needed) > API key header
+ * 
+ * For provisional sessions, auto-creates a user from session data (zero-friction)
+ */
+async function validateAndCharge(req: Request, serviceName: string): Promise<{ valid: boolean; userId?: string; error?: string; chargedAmount?: number; authMethod?: string }> {
+  const pricing = getGptServicePricing(serviceName);
+  const serviceCostUSD = pricing.usd;
+  const serviceCostCredits = pricing.credits;
+  
+  const authContext = getAuthContext(req);
+  
+  // Priority 1: Check GPT session (authenticated or provisional)
+  // For provisional sessions, auto-create a user to enable zero-friction billing
+  if (hasValidSession(req) && (authContext.mode === 'gpt_session' || authContext.mode === 'gpt_provisional')) {
+    try {
+      // Resolve or create user from session (FK-safe)
+      const userId = await resolveOrCreateSessionUser(req);
+      
+      if (userId) {
+        const balance = await creditsService.getBalance(userId);
+        if (balance < serviceCostUSD) {
+          return { 
+            valid: false, 
+            error: `Insufficient credits. Required: $${serviceCostUSD.toFixed(2)} (${serviceCostCredits} credits), Available: $${balance.toFixed(2)}. Purchase more at https://coinrailz.com/credits`,
+            userId,
+            authMethod: authContext.mode
+          };
+        }
+        
+        await creditsService.deductCredits({
+          userId,
+          amount: serviceCostUSD,
+          serviceName,
+          description: `GPT Action: ${serviceName} ($${serviceCostUSD.toFixed(2)}) via ${authContext.mode}`
+        });
+        
+        console.log(`💳 GPT Premium: Charged $${serviceCostUSD.toFixed(2)} (${serviceCostCredits} credits) for ${serviceName} via ${authContext.mode} (user: ${userId})`);
+        
+        return { valid: true, userId, chargedAmount: serviceCostUSD, authMethod: authContext.mode };
+      }
+    } catch (error: any) {
+      console.error(`GPT session charge error for ${authContext.mode}:`, error.message);
+      // Fall through to API key as fallback
+    }
+  }
+  
+  // Priority 2: Fall back to API key authentication
   const apiKey = req.headers['x-api-key'] as string || 
                  (req.headers['authorization'] as string)?.replace('Bearer ', '');
   
   if (!apiKey) {
-    return { valid: false, error: 'API key required' };
+    return { valid: false, error: 'Authentication required. Use GPT session headers or API key.' };
   }
   
   if (!apiKey.startsWith('cr_live_')) {
     return { valid: false, error: 'Invalid API key format. Keys must start with cr_live_' };
   }
-  
-  // Get per-service cost from canonical pricing (1 credit = $0.10)
-  const pricing = getGptServicePricing(serviceName);
-  const serviceCostUSD = pricing.usd;
-  const serviceCostCredits = pricing.credits;
   
   try {
     const validation = await creditsService.validateApiKey(apiKey);
@@ -263,13 +310,18 @@ async function validateAndChargeApiKey(req: Request, serviceName: string): Promi
       description: `GPT Action: ${serviceName} ($${serviceCostUSD.toFixed(2)})`
     });
     
-    console.log(`💳 GPT Premium: Charged $${serviceCostUSD.toFixed(2)} (${serviceCostCredits} credits) for ${serviceName} (user: ${validation.userId})`);
+    console.log(`💳 GPT Premium: Charged $${serviceCostUSD.toFixed(2)} (${serviceCostCredits} credits) for ${serviceName} via api_key (user: ${validation.userId})`);
     
-    return { valid: true, userId: validation.userId, chargedAmount: serviceCostUSD };
+    return { valid: true, userId: validation.userId, chargedAmount: serviceCostUSD, authMethod: 'api_key' };
   } catch (error: any) {
     console.error('GPT API key validation error:', error.message);
     return { valid: false, error: error.message || 'Validation failed' };
   }
+}
+
+// Legacy function for backward compatibility
+async function validateAndChargeApiKey(req: Request, serviceName: string): Promise<{ valid: boolean; userId?: string; error?: string; chargedAmount?: number }> {
+  return validateAndCharge(req, serviceName);
 }
 
 router.get('/trade-signals', async (req: Request, res: Response) => {

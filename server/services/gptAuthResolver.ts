@@ -11,6 +11,7 @@
  */
 
 import { Request } from 'express';
+import { createHash } from 'crypto';
 import { storage } from '../storage';
 import { PIIEncryption } from '../utils/piiEncryption';
 import { creditsService } from './creditsService';
@@ -364,6 +365,7 @@ export function hasValidGptSession(req: Request): boolean {
 
 /**
  * Helper to require authenticated request (GPT session or API key)
+ * Note: gpt_provisional is NOT authenticated - requires user linkage first
  */
 export function isAuthenticated(req: Request): boolean {
   const ctx = getAuthContext(req);
@@ -371,23 +373,127 @@ export function isAuthenticated(req: Request): boolean {
 }
 
 /**
- * Get client identifier for credits/billing
- * Returns userId if authenticated, or session fingerprint for provisional
+ * Check if request has a valid session that could be used for billing
+ * (either fully authenticated OR provisional with potential for linkage)
  */
-export function getClientId(req: Request): string | null {
+export function hasValidSession(req: Request): boolean {
+  const ctx = getAuthContext(req);
+  return ctx.mode === 'gpt_session' || ctx.mode === 'gpt_provisional' || ctx.mode === 'api_key';
+}
+
+/**
+ * Check if request is in provisional mode (needs user linkage)
+ */
+export function isProvisional(req: Request): boolean {
+  const ctx = getAuthContext(req);
+  return ctx.mode === 'gpt_provisional';
+}
+
+/**
+ * Generate a deterministic RFC-4122 compliant UUID v4 from session fingerprint
+ * Uses SHA-256 hash with proper version (4) and variant (10xx) bits
+ */
+function generateDeterministicUUID(fingerprint: string): string {
+  const hashBytes = createHash('sha256').update(`gpt-user:${fingerprint}`).digest();
+  // Set version to 4 (0100 in bits 12-15 of time_hi_and_version)
+  hashBytes[6] = (hashBytes[6] & 0x0f) | 0x40;
+  // Set variant to RFC 4122 (10xx in bits 0-1 of clock_seq_hi_and_reserved)
+  hashBytes[8] = (hashBytes[8] & 0x3f) | 0x80;
+  // Use slice directly on Buffer digest (already hex-safe in Node.js)
+  const hex = hashBytes.slice(0, 16).toString('hex');
+  // Format as UUID: 8-4-4-4-12 (total 32 hex chars + 4 dashes)
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/**
+ * Resolve or create a user for provisional/session-based auth
+ * This creates a real user record that can be used for credits billing
+ * Also updates the auth context for downstream handlers
+ */
+export async function resolveOrCreateSessionUser(req: Request): Promise<string | null> {
   const ctx = getAuthContext(req);
   
+  // If already have a userId, return it
   if (ctx.userId) {
     return ctx.userId;
   }
   
-  if (ctx.session?.id) {
-    return `gpt-session:${ctx.session.id}`;
-  }
-  
-  if (ctx.fingerprints) {
-    return `gpt-fingerprint:${ctx.fingerprints.conversation.substring(0, 16)}`;
+  // For provisional sessions, create a user from the session
+  if ((ctx.mode === 'gpt_provisional' || ctx.mode === 'gpt_session') && ctx.session) {
+    try {
+      // Generate deterministic UUID from session fingerprint (FK-safe format)
+      const sessionFingerprint = ctx.session.sessionFingerprint || `session-${ctx.session.id}`;
+      const gptUserId = generateDeterministicUUID(sessionFingerprint);
+      
+      // Create user if doesn't exist (similar to creditsService pattern)
+      let user = await storage.getUser(gptUserId);
+      
+      if (!user) {
+        // Create provisional user from session data
+        const email = ctx.session.email || `gpt-${ctx.session.id}@gpt-user.coinrailz.com`;
+        
+        console.log(`🤖 Creating GPT session user: ${gptUserId}`);
+        user = await storage.createUser({
+          id: gptUserId,
+          email,
+        });
+        
+        // Link session to newly created user
+        await storage.linkGptSessionToUser(ctx.session.id, gptUserId);
+      }
+      
+      // Update auth context for downstream handlers (critical for same-request flow)
+      ctx.userId = gptUserId;
+      ctx.user = user;
+      // Also update session object to reflect linkage
+      if (ctx.session) {
+        ctx.session = { ...ctx.session, userId: gptUserId };
+      }
+      if (ctx.mode === 'gpt_provisional') {
+        ctx.mode = 'gpt_session'; // Upgrade to full session after user creation
+      }
+      
+      // Reassign updated context back to request for downstream consumers
+      (req as any).authContext = ctx;
+      
+      return gptUserId;
+    } catch (error) {
+      console.error('[GPT Auth] Failed to resolve/create session user:', error);
+      return null;
+    }
   }
   
   return null;
+}
+
+/**
+ * Get the real userId for credits/billing (FK-safe)
+ * Returns ONLY real user IDs that exist in users table
+ * Does NOT return synthetic IDs - those would break FK constraints
+ */
+export function getRealUserId(req: Request): string | null {
+  const ctx = getAuthContext(req);
+  
+  // Only return userId if it's a real user ID
+  if (ctx.userId) {
+    return ctx.userId;
+  }
+  
+  return null;
+}
+
+/**
+ * Get session ID for provisional linkage flows
+ */
+export function getProvisionaSessionId(req: Request): number | null {
+  const ctx = getAuthContext(req);
+  if (ctx.mode === 'gpt_provisional' && ctx.provisionalSessionId) {
+    return ctx.provisionalSessionId;
+  }
+  return null;
+}
+
+// Legacy alias for backward compatibility
+export function getClientId(req: Request): string | null {
+  return getRealUserId(req);
 }

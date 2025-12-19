@@ -26,6 +26,19 @@ import { decode as msgpackDecode } from "@msgpack/msgpack";
 // Node.js built-in zlib for gzip/deflate/brotli decompression (supports compressed payloads)
 import * as zlib from "zlib";
 
+// Feature flags for GPT session auth rollout
+// Set GPT_SESSION_AUTH=true to enable zero-friction GPT session auth path
+// Set GPT_SESSION_AUTH_LOG_ONLY=true to enable dual-write logging without changing behavior
+const GPT_SESSION_AUTH_ENABLED = process.env.GPT_SESSION_AUTH === 'true';
+const GPT_SESSION_AUTH_LOG_ONLY = process.env.GPT_SESSION_AUTH_LOG_ONLY === 'true';
+
+// Dual-write logger for GPT session auth transitions
+function logGptAuthPath(phase: string, details: Record<string, any>) {
+  if (GPT_SESSION_AUTH_ENABLED || GPT_SESSION_AUTH_LOG_ONLY) {
+    console.log(`🔐 [GPT Auth ${GPT_SESSION_AUTH_ENABLED ? 'ACTIVE' : 'LOG-ONLY'}] ${phase}:`, JSON.stringify(details));
+  }
+}
+
 // Multi-format payment payload decoder
 // Supports: JSON, CBOR, MessagePack, and raw binary EIP-3009 formats for x402 protocol compatibility
 interface DecodedPayload {
@@ -794,10 +807,25 @@ export function createPaymentOrchestrator(
     const hasApiKeyHeader = !!(req.headers['x-api-key'] || (req.headers['authorization'] as string)?.startsWith('Bearer cr_live_'));
     
     // GPT flow: has GPT headers OR existing GPT mode, AND no API key header
-    if ((hasGptHeaders || isGptSessionMode) && !hasApiKeyHeader) {
+    const shouldRunGptFlow = (hasGptHeaders || isGptSessionMode) && !hasApiKeyHeader;
+    
+    // Dual-write logging for rollout safety
+    logGptAuthPath('detect', {
+      hasGptHeaders,
+      isGptSessionMode,
+      hasApiKeyHeader,
+      currentMode: currentCtx.mode,
+      shouldRunGptFlow,
+      serviceName
+    });
+    
+    // Only process GPT flow if feature flag is enabled OR we're in log-only mode
+    if (shouldRunGptFlow && GPT_SESSION_AUTH_ENABLED) {
       try {
+        logGptAuthPath('resolve-start', { serviceName });
         // Use refreshAndValidateAuthContext - throws on failure (no silent fall-through)
         const { userId, authContext } = await refreshAndValidateAuthContext(req);
+        logGptAuthPath('resolve-success', { userId, mode: authContext.mode });
         
         const balance = await creditsService.getBalance(userId);
         if (balance >= priceUsd) {
@@ -809,6 +837,7 @@ export function createPaymentOrchestrator(
           });
           
           console.log(`💳 Orchestrator: GPT session payment for ${serviceName} - $${priceUsd.toFixed(2)} (user: ${userId}, mode: ${authContext.mode})`);
+          logGptAuthPath('payment-success', { userId, amount: priceUsd, serviceName, balance });
           // Attach full resolved auth context for downstream consumers
           res.locals.payment = { method: "gpt-session", userId, amount: priceUsd, status: 'paid', authContext };
           
@@ -846,12 +875,20 @@ export function createPaymentOrchestrator(
         }
         // Insufficient credits - return 402 with guidance for GPT users
         console.log(`⚠️ Orchestrator: GPT session user ${userId} has insufficient credits ($${balance.toFixed(2)} < $${priceUsd.toFixed(2)})`);
+        logGptAuthPath('insufficient-credits', { userId, balance, required: priceUsd, serviceName });
         return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
       } catch (gptErr: any) {
         // GPT session resolution failed - return 402 (no silent fall-through)
         console.error(`⚠️ Orchestrator: GPT session resolution failed for ${serviceName}: ${gptErr.message}`);
+        logGptAuthPath('resolve-failed', { error: gptErr.message, serviceName });
         return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
       }
+    } else if (shouldRunGptFlow && GPT_SESSION_AUTH_LOG_ONLY) {
+      // Log-only mode: log what WOULD happen without changing behavior
+      logGptAuthPath('log-only-skip', { 
+        reason: 'Feature flag GPT_SESSION_AUTH not enabled, only logging',
+        serviceName
+      });
     }
     
     // Priority: API key authentication

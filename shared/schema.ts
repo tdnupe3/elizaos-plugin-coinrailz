@@ -4744,6 +4744,100 @@ export const gptAuthSessionsSelectSchema = createSelectSchema(gptAuthSessions);
 export type GptAuthSession = typeof gptAuthSessions.$inferSelect;
 export type InsertGptAuthSession = z.infer<typeof gptAuthSessionsInsertSchema>;
 
+// GPT OAuth Tokens - Stores OAuth access/refresh tokens for ChatGPT GPT Actions
+export const gptOAuthTokens = pgTable("gpt_oauth_tokens", {
+  id: serial("id").primaryKey(),
+  
+  // User linkage (required - OAuth tokens are always linked to a user)
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // Access token (hashed for security - we only need to verify, not decrypt)
+  accessTokenHash: varchar("access_token_hash", { length: 64 }).notNull(),
+  
+  // Refresh token (hashed for security)
+  refreshTokenHash: varchar("refresh_token_hash", { length: 64 }),
+  
+  // Token metadata
+  scope: varchar("scope").default("basic credits.read credits.charge"),
+  
+  // Status for revocation: active, revoked, expired
+  status: varchar("status").notNull().default("active"),
+  
+  // Expiration timestamps
+  accessTokenExpiresAt: timestamp("access_token_expires_at").notNull(),
+  refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  lastUsedAt: timestamp("last_used_at").defaultNow(),
+  revokedAt: timestamp("revoked_at"),
+  
+  // Client info (GPT ID that issued this token)
+  clientId: varchar("client_id"),
+  
+  // Metadata
+  metadata: jsonb("metadata"),
+}, (table) => [
+  index("IDX_gpt_oauth_tokens_user").on(table.userId),
+  index("IDX_gpt_oauth_tokens_access_hash").on(table.accessTokenHash),
+  index("IDX_gpt_oauth_tokens_refresh_hash").on(table.refreshTokenHash),
+  index("IDX_gpt_oauth_tokens_status").on(table.status),
+  index("IDX_gpt_oauth_tokens_expires").on(table.accessTokenExpiresAt),
+]);
+
+// GPT OAuth Authorization Codes - Temporary codes for OAuth flow
+export const gptOAuthCodes = pgTable("gpt_oauth_codes", {
+  id: serial("id").primaryKey(),
+  
+  // Authorization code (hashed)
+  codeHash: varchar("code_hash", { length: 64 }).notNull(),
+  
+  // User who authorized
+  userId: varchar("user_id").notNull().references(() => users.id),
+  
+  // OAuth flow parameters
+  clientId: varchar("client_id").notNull(),
+  redirectUri: text("redirect_uri").notNull(),
+  scope: varchar("scope"),
+  state: varchar("state"),
+  codeChallenge: varchar("code_challenge"), // PKCE support
+  codeChallengeMethod: varchar("code_challenge_method"), // plain or S256
+  
+  // Status: pending, used, expired
+  status: varchar("status").notNull().default("pending"),
+  
+  // Short expiration (10 minutes max per OAuth spec)
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  usedAt: timestamp("used_at"),
+}, (table) => [
+  index("IDX_gpt_oauth_codes_code_hash").on(table.codeHash),
+  index("IDX_gpt_oauth_codes_user").on(table.userId),
+  index("IDX_gpt_oauth_codes_status").on(table.status),
+  index("IDX_gpt_oauth_codes_expires").on(table.expiresAt),
+]);
+
+// GPT OAuth Tokens Insert/Select Schemas
+export const gptOAuthTokensInsertSchema = createInsertSchema(gptOAuthTokens).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+  revokedAt: true,
+});
+
+export type GptOAuthToken = typeof gptOAuthTokens.$inferSelect;
+export type InsertGptOAuthToken = z.infer<typeof gptOAuthTokensInsertSchema>;
+
+// GPT OAuth Codes Insert/Select Schemas
+export const gptOAuthCodesInsertSchema = createInsertSchema(gptOAuthCodes).omit({
+  id: true,
+  createdAt: true,
+  usedAt: true,
+});
+
+export type GptOAuthCode = typeof gptOAuthCodes.$inferSelect;
+export type InsertGptOAuthCode = z.infer<typeof gptOAuthCodesInsertSchema>;
+
 // Credits Accounts Insert/Select Schemas
 export const creditsAccountsInsertSchema = createInsertSchema(creditsAccounts).omit({
   id: true,

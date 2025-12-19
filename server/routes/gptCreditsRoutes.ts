@@ -64,30 +64,44 @@ router.post('/create-session', async (req: Request, res: Response) => {
     // Capture GPT auth session ID from headers for later linking
     let gptAuthSessionId: number | null = null;
     const gptHeaders = extractGptHeaders(req);
-    if (gptHeaders && gptHeaders.conversationId && gptHeaders.sessionId) {
+    
+    // DEBUG: Log all incoming GPT headers to diagnose linking issues
+    console.log(`🔍 GPT Headers received:`, {
+      hasGptHeaders: !!gptHeaders,
+      conversationId: gptHeaders?.conversationId ? `present (${gptHeaders.conversationId.substring(0,8)}...)` : 'missing',
+      sessionId: gptHeaders?.sessionId ? `present (${gptHeaders.sessionId.substring(0,8)}...)` : 'missing',
+      ephemeralUserId: gptHeaders?.ephemeralUserId ? 'present' : 'missing'
+    });
+    
+    if (gptHeaders && (gptHeaders.conversationId || gptHeaders.sessionId)) {
       try {
-        // Look up existing GPT auth session by BOTH fingerprints for accuracy
         const { PIIEncryption } = await import('../utils/piiEncryption');
-        const conversationFp = PIIEncryption.hash(gptHeaders.conversationId);
-        const sessionFp = PIIEncryption.hash(gptHeaders.sessionId);
-        
-        // Match on BOTH fingerprints, accept multiple statuses for repeat purchases
         const validStatuses = ['pending_link', 'active', 'linked'];
-        const [existingAuthSession] = await db.select()
-          .from(gptAuthSessions)
-          .where(and(
-            eq(gptAuthSessions.conversationFingerprint, conversationFp),
-            eq(gptAuthSessions.sessionFingerprint, sessionFp),
-            inArray(gptAuthSessions.status, validStatuses)
-          ))
-          .orderBy(desc(gptAuthSessions.createdAt))
-          .limit(1);
         
-        if (existingAuthSession) {
-          gptAuthSessionId = existingAuthSession.id;
-          console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (status: ${existingAuthSession.status}) for purchase linking`);
-        } else {
-          // Fallback: try conversation fingerprint only for backwards compatibility
+        // Try BOTH fingerprints first (most accurate)
+        if (gptHeaders.conversationId && gptHeaders.sessionId) {
+          const conversationFp = PIIEncryption.hash(gptHeaders.conversationId);
+          const sessionFp = PIIEncryption.hash(gptHeaders.sessionId);
+          
+          const [existingAuthSession] = await db.select()
+            .from(gptAuthSessions)
+            .where(and(
+              eq(gptAuthSessions.conversationFingerprint, conversationFp),
+              eq(gptAuthSessions.sessionFingerprint, sessionFp),
+              inArray(gptAuthSessions.status, validStatuses)
+            ))
+            .orderBy(desc(gptAuthSessions.createdAt))
+            .limit(1);
+          
+          if (existingAuthSession) {
+            gptAuthSessionId = existingAuthSession.id;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} (status: ${existingAuthSession.status}) via dual-fingerprint match`);
+          }
+        }
+        
+        // Fallback 1: conversation fingerprint only
+        if (!gptAuthSessionId && gptHeaders.conversationId) {
+          const conversationFp = PIIEncryption.hash(gptHeaders.conversationId);
           const [fallbackSession] = await db.select()
             .from(gptAuthSessions)
             .where(and(
@@ -101,10 +115,51 @@ router.post('/create-session', async (req: Request, res: Response) => {
             console.log(`🔗 Found GPT auth session ${gptAuthSessionId} via conversation-only fallback`);
           }
         }
+        
+        // Fallback 2: session fingerprint only (new)
+        if (!gptAuthSessionId && gptHeaders.sessionId) {
+          const sessionFp = PIIEncryption.hash(gptHeaders.sessionId);
+          const [sessionOnlyMatch] = await db.select()
+            .from(gptAuthSessions)
+            .where(and(
+              eq(gptAuthSessions.sessionFingerprint, sessionFp),
+              inArray(gptAuthSessions.status, validStatuses)
+            ))
+            .orderBy(desc(gptAuthSessions.createdAt))
+            .limit(1);
+          if (sessionOnlyMatch) {
+            gptAuthSessionId = sessionOnlyMatch.id;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} via session-only fallback`);
+          }
+        }
+        
+        // Fallback 3: gptIdentifierHash (most recent session from same user)
+        if (!gptAuthSessionId && gptHeaders.conversationId && gptHeaders.sessionId) {
+          const gptIdentifier = `${gptHeaders.conversationId}:${gptHeaders.sessionId}`;
+          const gptIdentifierHash = PIIEncryption.hash(gptIdentifier);
+          const [identifierMatch] = await db.select()
+            .from(gptAuthSessions)
+            .where(and(
+              eq(gptAuthSessions.gptIdentifierHash, gptIdentifierHash),
+              inArray(gptAuthSessions.status, validStatuses)
+            ))
+            .orderBy(desc(gptAuthSessions.createdAt))
+            .limit(1);
+          if (identifierMatch) {
+            gptAuthSessionId = identifierMatch.id;
+            console.log(`🔗 Found GPT auth session ${gptAuthSessionId} via gptIdentifierHash match`);
+          }
+        }
+        
+        if (!gptAuthSessionId) {
+          console.log(`⚠️ No GPT auth session found for purchase linking - will rely on webhook fallback`);
+        }
       } catch (encryptionError: any) {
         console.error(`⚠️ GPT session lookup failed: ${encryptionError.message}`);
         // Continue without linking - API key fallback will still work
       }
+    } else {
+      console.log(`⚠️ No GPT headers present for session linking - webhook must handle linking`);
     }
     
     // Use coinrailz.com for production, only use Replit domain for localhost/dev

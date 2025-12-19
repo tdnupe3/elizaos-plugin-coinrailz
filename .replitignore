@@ -1,0 +1,33 @@
+# Exclude large assets from deployment
+attached_assets/**
+attached_assets/
+
+# Exclude development/documentation files
+*.md
+!README.md
+docs/**
+*.log
+
+# Exclude test files
+__tests__/**
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Exclude source maps in production
+*.map
+
+# Exclude IDE and editor files
+.idea/**
+.vscode/**
+*.swp
+*.swo
+
+# Exclude git files
+.git/**
+.gitignore
+
+# Exclude npm/node development files
+.npm/**
+.npmrc

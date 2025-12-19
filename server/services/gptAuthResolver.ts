@@ -120,20 +120,22 @@ async function bootstrapProvisionalSession(headers: GptHeaders): Promise<GptAuth
     expiresAt.setDate(expiresAt.getDate() + 30);
 
     // Capture identifier from headers if provided
-    // openai-gpt-id can be an email OR an opaque UUID
-    // Store appropriately for indexed lookups:
-    // - Email → email column (encrypted) + emailHash column (indexed)
-    // - Non-email → gptIdentifierHash column (indexed for cross-conversation correlation)
+    // Priority for stable identifiers:
+    // 1. openai-gpt-id (email or opaque UUID)
+    // 2. openai-ephemeral-user-id (stable per-user across conversations)
+    // 3. Session fingerprint itself (fallback)
     const rawGptId = headers.userEmail;
     const isEmail = rawGptId && rawGptId.includes('@');
     const email = isEmail ? rawGptId : undefined;
-    const gptIdentifierHash = rawGptId && !isEmail ? PIIEncryption.hash(rawGptId) : undefined;
+    
+    // Use ephemeralUserId as stable identifier if openai-gpt-id not available
+    // This allows cross-conversation credit sharing using the user ID that ChatGPT provides
+    const stableIdentifier = (rawGptId && !isEmail) ? rawGptId : headers.ephemeralUserId;
+    const gptIdentifierHash = stableIdentifier ? PIIEncryption.hash(stableIdentifier) : undefined;
 
-    // Require at least one stable identifier for cross-conversation correlation
-    if (!email && !gptIdentifierHash) {
-      console.log('[GPT Auth] Bootstrap rejected: no stable identifier (email or GPT ID) provided');
-      return null;
-    }
+    // RELAXED: Allow bootstrap without stable identifier - use session fingerprint for single-conversation mode
+    // Cross-conversation correlation will work when ephemeralUserId is present
+    console.log(`[GPT Auth] Bootstrap identifiers: email=${!!email}, gptIdHash=${!!gptIdentifierHash}, ephemeralUserId=${!!headers.ephemeralUserId}`);
 
     const session = await storage.createGptAuthSession({
       conversationFingerprint: fingerprints.conversation,
@@ -287,12 +289,14 @@ export async function resolveAuth(req: Request): Promise<AuthContext> {
       // Session not found by fingerprints - try cross-conversation correlation
       if (!session) {
         // Try to find existing session by gptIdentifierHash or email
+        // Priority: openai-gpt-id > ephemeralUserId
         const rawGptId = gptHeaders.userEmail;
         const isEmail = rawGptId && rawGptId.includes('@');
-        // Compute hash ONCE for non-email identifiers to ensure consistency
-        const gptIdHash = rawGptId && !isEmail ? PIIEncryption.hash(rawGptId) : undefined;
+        // Use ephemeralUserId as stable identifier if openai-gpt-id not available
+        const stableIdentifier = (rawGptId && !isEmail) ? rawGptId : gptHeaders.ephemeralUserId;
+        const gptIdHash = stableIdentifier ? PIIEncryption.hash(stableIdentifier) : undefined;
         
-        if (rawGptId) {
+        if (rawGptId || gptHeaders.ephemeralUserId) {
           let existingSession: GptAuthSession | null = null;
           
           if (isEmail) {

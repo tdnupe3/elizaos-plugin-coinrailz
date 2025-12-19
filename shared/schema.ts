@@ -255,6 +255,11 @@ export const users = pgTable("users", {
   lastSpendReset: timestamp("last_spend_reset").defaultNow(), // Track monthly reset
   successfulTransactions: integer("successful_transactions").default(0), // Count for badge
   
+  // GPT Session-Based Auth - Fingerprints for linking GPT conversations to users
+  lastGptConversationFingerprint: varchar("last_gpt_conversation_fingerprint", { length: 64 }),
+  lastGptSessionFingerprint: varchar("last_gpt_session_fingerprint", { length: 64 }),
+  lastGptSessionAt: timestamp("last_gpt_session_at"),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -4672,6 +4677,60 @@ export const gptPurchaseSessions = pgTable("gpt_purchase_sessions", {
 
 export type GptPurchaseSession = typeof gptPurchaseSessions.$inferSelect;
 export type InsertGptPurchaseSession = typeof gptPurchaseSessions.$inferInsert;
+
+// GPT Auth Sessions - Session-based authentication for ChatGPT users
+// Maps OpenAI conversation/session headers to users for zero-friction auth
+export const gptAuthSessions = pgTable("gpt_auth_sessions", {
+  id: serial("id").primaryKey(),
+  
+  // Deterministic fingerprints for lookup (SHA-256, no salt - 64 hex chars)
+  conversationFingerprint: varchar("conversation_fingerprint", { length: 64 }).notNull(),
+  sessionFingerprint: varchar("session_fingerprint", { length: 64 }).notNull(),
+  
+  // Encrypted raw IDs for audit trail (AES-256-GCM encrypted)
+  encryptedConversationId: text("encrypted_conversation_id"),
+  encryptedSessionId: text("encrypted_session_id"),
+  
+  // User linkage (nullable for provisional sessions before account linking)
+  userId: varchar("user_id").references(() => users.id),
+  
+  // Credits account linkage (nullable, created on first purchase)
+  creditsAccountId: integer("credits_account_id").references(() => creditsAccounts.id),
+  
+  // Lifecycle status: active, pending_link, linked, expired, revoked
+  status: varchar("status").notNull().default("active"),
+  
+  // Email for account linking (collected from GPT user)
+  email: varchar("email"),
+  
+  // Timestamps
+  createdAt: timestamp("created_at").defaultNow(),
+  lastUsedAt: timestamp("last_used_at").defaultNow(),
+  expiresAt: timestamp("expires_at"),
+  
+  // Metadata for analytics (no raw identifiers)
+  metadata: jsonb("metadata"),
+}, (table) => [
+  // Unique on fingerprints for deduplication and O(1) lookup
+  uniqueIndex("IDX_gpt_auth_sessions_fingerprints").on(table.conversationFingerprint, table.sessionFingerprint),
+  index("IDX_gpt_auth_sessions_conversation_fp").on(table.conversationFingerprint),
+  index("IDX_gpt_auth_sessions_user").on(table.userId),
+  index("IDX_gpt_auth_sessions_status").on(table.status),
+  index("IDX_gpt_auth_sessions_expires").on(table.expiresAt),
+  index("IDX_gpt_auth_sessions_email").on(table.email),
+]);
+
+// GPT Auth Sessions Insert/Select Schemas
+export const gptAuthSessionsInsertSchema = createInsertSchema(gptAuthSessions).omit({
+  id: true,
+  createdAt: true,
+  lastUsedAt: true,
+});
+
+export const gptAuthSessionsSelectSchema = createSelectSchema(gptAuthSessions);
+
+export type GptAuthSession = typeof gptAuthSessions.$inferSelect;
+export type InsertGptAuthSession = z.infer<typeof gptAuthSessionsInsertSchema>;
 
 // Credits Accounts Insert/Select Schemas
 export const creditsAccountsInsertSchema = createInsertSchema(creditsAccounts).omit({

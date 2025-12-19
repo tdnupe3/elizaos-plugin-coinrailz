@@ -183,6 +183,56 @@ async function resolveApiKeyAuth(apiKey: string): Promise<AuthContext | null> {
 }
 
 /**
+ * Validate OAuth Bearer token from ChatGPT and return auth context
+ * This is the primary auth method for cross-conversation credit sharing
+ */
+async function resolveOAuthBearerToken(token: string): Promise<AuthContext | null> {
+  try {
+    // Hash the token to look it up
+    const tokenHash = createHash('sha256').update(token).digest('hex');
+    
+    // Look up the token in storage
+    const oauthToken = await storage.getGptOAuthTokenByAccessHash(tokenHash);
+    
+    if (!oauthToken) {
+      console.log('[GPT Auth] OAuth token not found in database');
+      return null;
+    }
+    
+    // Check if token is expired
+    if (oauthToken.accessTokenExpiresAt && new Date(oauthToken.accessTokenExpiresAt) < new Date()) {
+      console.log('[GPT Auth] OAuth token is expired');
+      return null;
+    }
+    
+    // Check if token is revoked
+    if (oauthToken.status !== 'active') {
+      console.log(`[GPT Auth] OAuth token status is ${oauthToken.status}, not active`);
+      return null;
+    }
+    
+    // Update last used timestamp
+    await storage.updateGptOAuthTokenLastUsed(oauthToken.id);
+    
+    // Load user
+    const user = await storage.getUser(oauthToken.userId);
+    if (!user) {
+      console.log(`[GPT Auth] User ${oauthToken.userId} not found for OAuth token`);
+      return null;
+    }
+    
+    return {
+      mode: 'gpt_session', // Use gpt_session mode for compatibility with existing billing logic
+      userId: oauthToken.userId,
+      user,
+    };
+  } catch (error) {
+    console.error('[GPT Auth] OAuth Bearer token validation error:', error);
+    return null;
+  }
+}
+
+/**
  * Sync fingerprints and identifier to user record for linkage
  */
 async function syncFingerprintsToUser(
@@ -211,12 +261,26 @@ async function syncFingerprintsToUser(
  * Main auth resolver - determines auth context from request
  * 
  * Priority order:
- * 1. GPT Session (if valid headers present)
- * 2. API Key (X-API-Key header)
- * 3. Anonymous
+ * 1. OAuth Bearer token (persists across conversations - highest priority)
+ * 2. GPT Session (if valid headers present)
+ * 3. API Key (X-API-Key header)
+ * 4. Anonymous
  */
 export async function resolveAuth(req: Request): Promise<AuthContext> {
   const authContext: AuthContext = { mode: 'anonymous' };
+
+  // Step 0: Try OAuth Bearer token (highest priority - works across conversations)
+  const authHeader = req.get('authorization');
+  if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+    const bearerToken = authHeader.substring(7).trim();
+    if (bearerToken) {
+      const oauthAuth = await resolveOAuthBearerToken(bearerToken);
+      if (oauthAuth) {
+        console.log(`[GPT Auth] OAuth Bearer token valid for user ${oauthAuth.userId}`);
+        return oauthAuth;
+      }
+    }
+  }
 
   // Check if GPT session auth is enabled
   if (!GPT_SESSION_AUTH_ENABLED) {

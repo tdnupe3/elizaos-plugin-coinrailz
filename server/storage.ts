@@ -30,6 +30,12 @@ import {
   gptAuthSessions,
   type GptAuthSession,
   type InsertGptAuthSession,
+  type GptOAuthToken,
+  type InsertGptOAuthToken,
+  type GptOAuthCode,
+  type InsertGptOAuthCode,
+  gptOAuthTokens,
+  gptOAuthCodes,
   type User,
   type UpsertUser,
   type Transaction,
@@ -324,6 +330,17 @@ export interface IStorage {
   getGptAuthSessionByEmail(email: string): Promise<GptAuthSession | null>;
   getGptAuthSessionByGptIdHash(gptIdentifierHash: string): Promise<GptAuthSession | null>;
   expireOldGptSessions(olderThan: Date): Promise<number>;
+  
+  // GPT OAuth operations for ChatGPT OAuth-based authentication
+  createGptOAuthCode(code: InsertGptOAuthCode): Promise<GptOAuthCode>;
+  getGptOAuthCodeByHash(codeHash: string): Promise<GptOAuthCode | null>;
+  markGptOAuthCodeUsed(id: number): Promise<void>;
+  createGptOAuthToken(token: InsertGptOAuthToken): Promise<GptOAuthToken>;
+  getGptOAuthTokenByAccessHash(accessTokenHash: string): Promise<GptOAuthToken | null>;
+  getGptOAuthTokenByRefreshHash(refreshTokenHash: string): Promise<GptOAuthToken | null>;
+  updateGptOAuthTokenLastUsed(id: number): Promise<void>;
+  revokeGptOAuthToken(id: number): Promise<void>;
+  revokeAllGptOAuthTokensForUser(userId: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2521,6 +2538,78 @@ export class DatabaseStorage implements IStorage {
       // Note: encryptedConversationId and encryptedSessionId remain encrypted 
       // for audit purposes - only decrypt when specifically needed for debugging
     };
+  }
+
+  // ============================================================================
+  // GPT OAuth Token and Code Methods
+  // ============================================================================
+
+  async createGptOAuthCode(code: InsertGptOAuthCode): Promise<GptOAuthCode> {
+    const [result] = await db.insert(gptOAuthCodes).values(code).returning();
+    return result;
+  }
+
+  async getGptOAuthCodeByHash(codeHash: string): Promise<GptOAuthCode | null> {
+    const [code] = await db.select().from(gptOAuthCodes)
+      .where(and(
+        eq(gptOAuthCodes.codeHash, codeHash),
+        eq(gptOAuthCodes.status, 'pending')
+      ))
+      .limit(1);
+    return code || null;
+  }
+
+  async markGptOAuthCodeUsed(id: number): Promise<void> {
+    await db.update(gptOAuthCodes)
+      .set({ status: 'used', usedAt: new Date() })
+      .where(eq(gptOAuthCodes.id, id));
+  }
+
+  async createGptOAuthToken(token: InsertGptOAuthToken): Promise<GptOAuthToken> {
+    const [result] = await db.insert(gptOAuthTokens).values(token).returning();
+    return result;
+  }
+
+  async getGptOAuthTokenByAccessHash(accessTokenHash: string): Promise<GptOAuthToken | null> {
+    const [token] = await db.select().from(gptOAuthTokens)
+      .where(and(
+        eq(gptOAuthTokens.accessTokenHash, accessTokenHash),
+        eq(gptOAuthTokens.status, 'active')
+      ))
+      .limit(1);
+    return token || null;
+  }
+
+  async getGptOAuthTokenByRefreshHash(refreshTokenHash: string): Promise<GptOAuthToken | null> {
+    const [token] = await db.select().from(gptOAuthTokens)
+      .where(and(
+        eq(gptOAuthTokens.refreshTokenHash, refreshTokenHash),
+        eq(gptOAuthTokens.status, 'active')
+      ))
+      .limit(1);
+    return token || null;
+  }
+
+  async updateGptOAuthTokenLastUsed(id: number): Promise<void> {
+    await db.update(gptOAuthTokens)
+      .set({ lastUsedAt: new Date() })
+      .where(eq(gptOAuthTokens.id, id));
+  }
+
+  async revokeGptOAuthToken(id: number): Promise<void> {
+    await db.update(gptOAuthTokens)
+      .set({ status: 'revoked', revokedAt: new Date() })
+      .where(eq(gptOAuthTokens.id, id));
+  }
+
+  async revokeAllGptOAuthTokensForUser(userId: string): Promise<number> {
+    const result = await db.update(gptOAuthTokens)
+      .set({ status: 'revoked', revokedAt: new Date() })
+      .where(and(
+        eq(gptOAuthTokens.userId, userId),
+        eq(gptOAuthTokens.status, 'active')
+      ));
+    return (result as any)?.rowCount || 0;
   }
 }
 

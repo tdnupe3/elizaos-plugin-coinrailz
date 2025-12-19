@@ -3563,6 +3563,18 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       res.sendFile(specPath);
     });
     
+    // Register OAuth routes BEFORE Vite to prevent Vite from catching them
+    const gptOAuthRoutes = await import('./routes/gptOAuthRoutes').then(m => m.default);
+    app.use('/oauth', gptOAuthRoutes);
+    console.log('✅ GPT OAuth routes registered (pre-Vite)');
+    
+    // Register GPT action and credits routes BEFORE Vite for ChatGPT integration
+    const gptActionRoutes = await import('./routes/gptActionRoutes').then(m => m.default);
+    const gptCreditsRoutes = await import('./routes/gptCreditsRoutes').then(m => m.default);
+    app.use('/api/gpt', gptActionRoutes);
+    app.use('/api/gpt/credits', gptCreditsRoutes);
+    console.log('✅ GPT Action & Credits routes registered (pre-Vite)');
+    
     try {
       await setupVite(app, httpServer);
       console.log('✅ Vite HMR ready');

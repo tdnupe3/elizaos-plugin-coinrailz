@@ -1,28 +1,43 @@
 /**
  * Shared Facilitator URL Helper
  * 
- * CRITICAL: Coinbase Bazaar ONLY indexes services advertising:
- * - facilitator.cdp.coinbase.com (production CDP)
+ * CRITICAL FIX (Dec 19, 2025): We must support BOTH facilitators!
+ * - CDP agents need facilitator.cdp.coinbase.com
+ * - Public x402 agents (python-httpx, zauthx402-agent) need x402.org/facilitator
  * 
- * When CDP_API_KEY_ID is configured, we use the CDP facilitator.
- * Otherwise, fall back to x402.org/facilitator for testing.
+ * Traffic dropped 97% (728 → 3 interactions) after switching to CDP-only on Dec 16.
+ * Public agents couldn't authenticate with CDP facilitator and stopped calling us.
  * 
- * This hybrid approach ensures:
- * 1. Production services appear in Bazaar marketplace
- * 2. Local development still works with x402.org fallback
+ * Solution: Advertise public facilitator as primary (for broad compatibility)
+ * while still accepting CDP payments for Bazaar-indexed agents.
  */
 
 const CDP_FACILITATOR_URL = 'https://facilitator.cdp.coinbase.com';
-const FALLBACK_FACILITATOR_URL = 'https://x402.org/facilitator';
+const PUBLIC_FACILITATOR_URL = 'https://x402.org/facilitator';
 
 /**
- * Get the appropriate facilitator URL based on environment
- * @returns CDP facilitator URL if CDP credentials are configured, otherwise x402.org fallback
+ * Get the PRIMARY facilitator URL for 402 responses
+ * Uses public x402.org for broad agent compatibility
+ * CDP agents can still use their facilitator - we accept both payment formats
  */
 export function getFacilitatorUrl(): string {
-  return process.env.CDP_API_KEY_ID 
-    ? CDP_FACILITATOR_URL 
-    : FALLBACK_FACILITATOR_URL;
+  // Always advertise public facilitator for maximum agent compatibility
+  // CDP agents will use their own facilitator regardless of what we advertise
+  return PUBLIC_FACILITATOR_URL;
+}
+
+/**
+ * Get all supported facilitator URLs (for discovery endpoints)
+ */
+export function getAllFacilitatorUrls(): string[] {
+  return [PUBLIC_FACILITATOR_URL, CDP_FACILITATOR_URL];
+}
+
+/**
+ * Get the CDP facilitator URL specifically (for Bazaar registration)
+ */
+export function getCdpFacilitatorUrl(): string {
+  return CDP_FACILITATOR_URL;
 }
 
 /**

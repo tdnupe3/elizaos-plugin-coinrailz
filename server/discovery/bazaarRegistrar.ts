@@ -17,7 +17,10 @@
 
 import { Router, Request, Response } from 'express';
 import { ServiceCatalogService } from '../services/serviceCatalogService';
-import { getFacilitatorUrl, isUsingCdpFacilitator, USDC_BASE_ADDRESS, NETWORK_CAIP2 } from '../utils/facilitatorHelper';
+import { getCdpFacilitatorUrl, isUsingCdpFacilitator, USDC_BASE_ADDRESS, NETWORK_CAIP2 } from '../utils/facilitatorHelper';
+
+// Bazaar discovery ALWAYS uses CDP facilitator for indexing compatibility
+const getBazaarFacilitatorUrl = () => getCdpFacilitatorUrl();
 
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91') as `0x${string}`;
 const PUBLIC_BASE_URL = process.env.PUBLIC_URL || 
@@ -105,7 +108,7 @@ export async function registerServicesWithBazaar(): Promise<RegistrationResult> 
   };
 
   try {
-    const facilitatorUrl = getFacilitatorUrl();
+    const facilitatorUrl = getBazaarFacilitatorUrl();
     const catalog = ServiceCatalogService.getInstance().getCatalog();
     
     console.log(`📡 Bazaar Discovery: Building catalog with facilitator ${facilitatorUrl}`);
@@ -170,7 +173,7 @@ export function createBazaarDiscoveryRouter(): Router {
     
     res.json({
       enabled: isEnabled,
-      facilitator: getFacilitatorUrl(),
+      facilitator: getBazaarFacilitatorUrl(),
       usingCdp: isUsingCdp,
       status: isEnabled ? 'active' : 'disabled',
       timestamp: new Date().toISOString()
@@ -220,7 +223,7 @@ export function createBazaarDiscoveryRouter(): Router {
       res.json({
         resources,
         total: resources.length,
-        facilitator: getFacilitatorUrl(),
+        facilitator: getBazaarFacilitatorUrl(),
         baseUrl: PUBLIC_BASE_URL,
         timestamp: new Date().toISOString()
       });
@@ -242,7 +245,7 @@ export function createBazaarDiscoveryRouter(): Router {
     res.json({
       enabled: isBazaarDiscoveryEnabled(),
       facilitator: {
-        url: getFacilitatorUrl(),
+        url: getBazaarFacilitatorUrl(),
         usingCdp: isUsingCdpFacilitator()
       },
       services: {

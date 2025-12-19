@@ -241,6 +241,29 @@ export async function resolveAuth(req: Request): Promise<AuthContext> {
       );
 
       if (session && isSessionValid(session)) {
+        // CRITICAL FIX: If session has no userId (pending_link), check for linked session via gptIdentifierHash
+        // This enables cross-conversation credit sharing when new conversations create pending sessions
+        if (!session.userId && session.gptIdentifierHash) {
+          console.log(`[GPT Auth] Found pending session ${session.id} - checking for linked session with same gptIdHash`);
+          const linkedSession = await storage.getGptAuthSessionByGptIdHash(session.gptIdentifierHash);
+          
+          if (linkedSession && linkedSession.userId && isSessionValid(linkedSession)) {
+            console.log(`[GPT Auth] CROSS-CONVERSATION HIT: Returning linked session ${linkedSession.id} (userId: ${linkedSession.userId}) instead of pending session ${session.id}`);
+            await storage.updateGptAuthSessionLastUsed(linkedSession.id);
+            
+            const user = await storage.getUser(linkedSession.userId);
+            await syncFingerprintsToUser(linkedSession.userId, fingerprints, session.gptIdentifierHash);
+            
+            return {
+              mode: 'gpt_session',
+              userId: linkedSession.userId,
+              user,
+              session: linkedSession,
+              fingerprints,
+            };
+          }
+        }
+        
         // Update last used timestamp
         await storage.updateGptAuthSessionLastUsed(session.id);
 

@@ -2454,21 +2454,52 @@ export class DatabaseStorage implements IStorage {
 
   async getGptAuthSessionByEmail(email: string): Promise<GptAuthSession | null> {
     // Use deterministic email hash for indexed O(1) lookup
+    // CRITICAL FIX: Prioritize sessions with userId (linked with credits) over pending_link sessions
     const emailHash = PIIEncryption.hash(email.toLowerCase().trim());
-    const [session] = await db.select().from(gptAuthSessions)
+    const sessions = await db.select().from(gptAuthSessions)
       .where(eq(gptAuthSessions.emailHash, emailHash))
-      .orderBy(desc(gptAuthSessions.lastUsedAt))
-      .limit(1);
-    return session ? this.decryptGptSessionPII(session) : null;
+      .orderBy(desc(gptAuthSessions.lastUsedAt));
+    
+    // First try to find a linked session (has userId = has credits)
+    const linkedSession = sessions.find(s => s.userId !== null && s.status !== 'expired');
+    if (linkedSession) {
+      console.log(`[GPT Storage] Found LINKED session ID ${linkedSession.id} for email (userId: ${linkedSession.userId})`);
+      return this.decryptGptSessionPII(linkedSession);
+    }
+    
+    // Fall back to most recent valid session
+    const validSession = sessions.find(s => s.status !== 'expired');
+    if (validSession) {
+      console.log(`[GPT Storage] Found pending session ID ${validSession.id} for email (no userId yet)`);
+      return this.decryptGptSessionPII(validSession);
+    }
+    
+    return null;
   }
 
   async getGptAuthSessionByGptIdHash(gptIdentifierHash: string): Promise<GptAuthSession | null> {
     // Use pre-computed GPT identifier hash for indexed O(1) lookup
-    const [session] = await db.select().from(gptAuthSessions)
+    // CRITICAL FIX: Prioritize sessions with userId (linked with credits) over pending_link sessions
+    // This enables cross-conversation credit sharing - new conversations find existing linked sessions
+    const sessions = await db.select().from(gptAuthSessions)
       .where(eq(gptAuthSessions.gptIdentifierHash, gptIdentifierHash))
-      .orderBy(desc(gptAuthSessions.lastUsedAt))
-      .limit(1);
-    return session ? this.decryptGptSessionPII(session) : null;
+      .orderBy(desc(gptAuthSessions.lastUsedAt));
+    
+    // First try to find a linked session (has userId = has credits)
+    const linkedSession = sessions.find(s => s.userId !== null && s.status !== 'expired');
+    if (linkedSession) {
+      console.log(`[GPT Storage] Found LINKED session ID ${linkedSession.id} for gptIdHash (userId: ${linkedSession.userId})`);
+      return this.decryptGptSessionPII(linkedSession);
+    }
+    
+    // Fall back to most recent valid session
+    const validSession = sessions.find(s => s.status !== 'expired');
+    if (validSession) {
+      console.log(`[GPT Storage] Found pending session ID ${validSession.id} for gptIdHash (no userId yet)`);
+      return this.decryptGptSessionPII(validSession);
+    }
+    
+    return null;
   }
 
   async expireOldGptSessions(olderThan: Date): Promise<number> {

@@ -50,6 +50,7 @@ The platform uses a dual-wallet system (Circle USDC and DeFi/MetaMask) and is st
 - **Hybrid Facilitator**: Shared `getFacilitatorUrl()` helper in `server/utils/facilitatorHelper.ts` uses CDP facilitator when `CDP_API_KEY_ID` is present, falling back to x402.org for testing.
 - **x402Version Spec Compliance**: Uses `x402Version: 2` (number) as per official Coinbase x402 spec for compatibility with Bazaar, CDP facilitator, and official SDKs.
 - **Bazaar Discovery Implementation**: `server/discovery/bazaarRegistrar.ts` for Coinbase Bazaar discovery indexing, providing HTTP-based discovery endpoints. Discovery is disabled in production if `CDP_API_KEY_ID` is missing. Includes an E2E catalog integrity check on startup.
+- **GPT Session Auth (NEW)**: Zero-friction ChatGPT integration using session-based auth via OpenAI conversation/session ID headers. Eliminates API key friction for GPT users. Feature flag: `GPT_SESSION_AUTH=true` enables the flow. Files: `server/services/gptAuthResolver.ts`, `server/middleware/paymentOrchestrator.ts`. **SKIPPED**: Phase 2F integration test harness (requires DI server factory refactoring) - may revisit if issues arise.
 
 ## External Dependencies
 - **Circle:** USDC wallet creation, management, balance tracking via Developer Controlled Wallets SDK.

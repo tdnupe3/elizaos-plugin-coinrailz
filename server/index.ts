@@ -3673,6 +3673,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     console.error('❌ Failed to initialize x402 cleanup scheduler:', error);
   }
 
+  // Initialize GPT session cleanup scheduler (daily at 4 AM)
+  try {
+    console.log('🧹 Initializing GPT session cleanup scheduler...');
+    const { gptSessionCleanupService } = await import('./services/gptSessionCleanupService');
+    gptSessionCleanupService.start();
+  } catch (error) {
+    console.error('❌ Failed to initialize GPT session cleanup scheduler:', error);
+  }
+
   // Agent Discovery System initialization moved to service level to prevent duplicate scheduling
   console.log('✅ Agent Discovery System will auto-initialize via service imports - preventing duplicate initialization');
   

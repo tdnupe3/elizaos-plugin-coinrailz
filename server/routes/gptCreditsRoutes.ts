@@ -5,6 +5,7 @@ import { nanoid } from 'nanoid';
 import { db } from '../db';
 import { gptPurchaseSessions } from '@shared/schema';
 import { eq } from 'drizzle-orm';
+import { resolveAuth, getAuthContext, resolveOrCreateSessionUser, extractGptHeaders } from '../services/gptAuthResolver';
 
 console.log('📁 gptCreditsRoutes.ts FILE LOADED at', new Date().toISOString());
 
@@ -332,6 +333,220 @@ router.get('/packages', async (_req: Request, res: Response) => {
     })),
     instructions: 'Call POST /api/gpt/credits/create-session with { "package": "starter" } to begin checkout'
   });
+});
+
+/**
+ * GPT Session Bootstrap Endpoint (Phase 3A)
+ * 
+ * Zero-friction entry point for ChatGPT integrations.
+ * Automatically resolves/creates user session from GPT headers.
+ * Returns current session status, credits balance, and available services.
+ * 
+ * Headers supported:
+ * - openai-conversation-id / x-openai-conversation-id
+ * - openai-ephemeral-user-id / x-openai-session-id
+ * - openai-gpt-id (optional email/identifier)
+ */
+router.post('/bootstrap', async (req: Request, res: Response) => {
+  console.log('🚀 GPT Session Bootstrap - Request received');
+  
+  try {
+    // Check if GPT session auth is enabled
+    const gptAuthEnabled = process.env.GPT_SESSION_AUTH === 'true';
+    
+    if (!gptAuthEnabled) {
+      return res.json({
+        success: true,
+        message: 'GPT session auth is currently disabled. Use API key authentication instead.',
+        authMode: 'api_key_required',
+        instructions: {
+          step1: 'Purchase credits at POST /api/gpt/credits/create-session with { "package": "starter" }',
+          step2: 'Complete payment at the provided checkout URL',
+          step3: 'Get your API key from GET /api/gpt/credits/status?session=YOUR_SESSION_ID',
+          step4: 'Use the API key in X-API-KEY header for all service calls'
+        }
+      });
+    }
+    
+    // Extract GPT headers
+    const gptHeaders = extractGptHeaders(req);
+    
+    if (!gptHeaders) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing GPT headers',
+        message: 'This endpoint requires OpenAI GPT headers (openai-conversation-id and openai-ephemeral-user-id)',
+        requiredHeaders: [
+          'openai-conversation-id OR x-openai-conversation-id',
+          'openai-ephemeral-user-id OR x-openai-session-id'
+        ]
+      });
+    }
+    
+    console.log(`🔐 GPT Bootstrap: Headers detected - conversationId=${gptHeaders.conversationId?.substring(0,8)}...`);
+    
+    // Resolve or create session user
+    const authContext = await resolveAuth(req);
+    
+    // Handle different auth modes
+    if (authContext.mode === 'anonymous') {
+      // Headers present but no session created - likely missing stable identifier
+      // openai-gpt-id header (userEmail field) is required for cross-conversation correlation
+      // ephemeralUserId is the session ID, not a stable identifier
+      const hasStableId = gptHeaders.userEmail; // This is the openai-gpt-id header
+      
+      if (!hasStableId) {
+        console.log(`⚠️ GPT Bootstrap: Headers present but no stable identifier (openai-gpt-id missing)`);
+        return res.status(200).json({
+          success: true,
+          message: 'GPT headers detected but missing stable identifier. Use API key auth or include openai-gpt-id header.',
+          authMode: 'anonymous',
+          headers_detected: {
+            conversationId: !!gptHeaders.conversationId,
+            sessionId: !!gptHeaders.sessionId,
+            gptId: false // This is what's missing
+          },
+          fallbackOptions: {
+            apiKey: {
+              description: 'Purchase credits and get an API key for authenticated access',
+              steps: [
+                'POST /api/gpt/credits/create-session with { "package": "starter" }',
+                'Complete payment at the provided checkout URL',
+                'GET /api/gpt/credits/status?session=YOUR_SESSION_ID to get API key'
+              ]
+            },
+            freeServices: [
+              { endpoint: '/api/gpt/gas-prices', description: 'Real-time gas prices (FREE)' },
+              { endpoint: '/api/gpt/token-info', description: 'Token metadata (FREE)' },
+              { endpoint: '/api/gpt/trending', description: 'Trending tokens (FREE)' }
+            ]
+          }
+        });
+      }
+      
+      // Has GPT ID but still failed - unexpected error
+      return res.status(500).json({
+        success: false,
+        error: 'Session resolution failed unexpectedly',
+        message: 'Unable to establish GPT session. Please try again or use API key authentication.',
+        authMode: 'anonymous'
+      });
+    }
+    
+    if (authContext.mode === 'gpt_provisional') {
+      // New user - session created but needs linking to billing account
+      console.log(`🆕 GPT Bootstrap: New provisional session created (ID: ${authContext.provisionalSessionId})`);
+      
+      return res.json({
+        success: true,
+        message: 'Welcome! Your GPT session has been created.',
+        authMode: 'gpt_provisional',
+        session: {
+          id: authContext.provisionalSessionId,
+          status: 'provisional',
+          requiresBilling: true
+        },
+        credits: {
+          balance: 0,
+          status: 'no_credits'
+        },
+        nextSteps: {
+          message: 'You need credits to use paid services. Purchase a credit package or use free services.',
+          freeServices: [
+            { endpoint: '/api/gpt/gas-prices', description: 'Real-time gas prices across 6 chains' },
+            { endpoint: '/api/gpt/token-info', description: 'Token metadata and current price' },
+            { endpoint: '/api/gpt/trending', description: 'Currently trending cryptocurrencies' }
+          ],
+          purchaseCredits: {
+            endpoint: 'POST /api/gpt/credits/create-session',
+            body: '{ "package": "starter" }',
+            packages: Object.entries(CREDIT_PACKAGES).map(([key, value]) => ({
+              id: key,
+              price: `$${value.amount}`,
+              credits: value.credits
+            }))
+          }
+        }
+      });
+    }
+    
+    if (authContext.mode === 'gpt_session') {
+      // Existing user with linked session
+      console.log(`✅ GPT Bootstrap: Existing session found (userId: ${authContext.userId})`);
+      
+      let creditsBalance = 0;
+      let creditsStatus = 'unknown';
+      
+      if (authContext.userId) {
+        try {
+          const balance = await creditsService.getBalance(authContext.userId);
+          creditsBalance = balance;
+          creditsStatus = balance > 0 ? 'active' : 'depleted';
+        } catch (err) {
+          console.error('[GPT Bootstrap] Error fetching credits:', err);
+          creditsStatus = 'error';
+        }
+      }
+      
+      return res.json({
+        success: true,
+        message: 'Welcome back! Your GPT session is active.',
+        authMode: 'gpt_session',
+        session: {
+          id: authContext.session?.id,
+          userId: authContext.userId,
+          status: 'active'
+        },
+        credits: {
+          balance: creditsBalance,
+          status: creditsStatus
+        },
+        services: {
+          free: [
+            { endpoint: '/api/gpt/gas-prices', description: 'Real-time gas prices' },
+            { endpoint: '/api/gpt/token-info', description: 'Token metadata and price' },
+            { endpoint: '/api/gpt/trending', description: 'Trending cryptocurrencies' }
+          ],
+          paid: [
+            { endpoint: '/api/gpt/trade-signals', cost: 10, description: 'AI-powered trade signals' },
+            { endpoint: '/api/gpt/wallet-analysis', cost: 25, description: 'Deep wallet analysis' },
+            { endpoint: '/api/gpt/arbitrage-scanner', cost: 50, description: 'Cross-chain arbitrage opportunities' }
+          ]
+        },
+        needsMoreCredits: creditsBalance <= 0,
+        purchaseCreditsUrl: 'POST /api/gpt/credits/create-session with { "package": "starter" }'
+      });
+    }
+    
+    // API key fallback
+    if (authContext.mode === 'api_key') {
+      return res.json({
+        success: true,
+        message: 'Authenticated via API key.',
+        authMode: 'api_key',
+        session: {
+          apiKeyId: authContext.apiKeyId,
+          status: 'active'
+        },
+        note: 'For zero-friction GPT sessions, ensure your requests include OpenAI GPT headers.'
+      });
+    }
+    
+    // Unknown mode
+    return res.status(500).json({
+      success: false,
+      error: 'Unexpected auth mode',
+      authMode: authContext.mode
+    });
+    
+  } catch (error: any) {
+    console.error('❌ GPT Bootstrap error:', error.message);
+    return res.status(500).json({
+      success: false,
+      error: 'Session bootstrap failed',
+      message: error.message
+    });
+  }
 });
 
 // RECOVERY ENDPOINT: Manually check Stripe and fulfill pending sessions

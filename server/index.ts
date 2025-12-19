@@ -3519,6 +3519,14 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/api/gpt/credits', gptCreditsRoutes);
   console.log('✅ GPT Credits routes registered (pre-static, both dev & prod)');
   
+  // ============================================================================
+  // Coinbase Auth Routes - MUST be registered BEFORE static serving in BOTH environments
+  // This enables Coinbase OAuth login from the GPT OAuth login page
+  // ============================================================================
+  const coinbaseAuthRoutes = await import('./routes/coinbaseAuth').then(m => m.default);
+  app.use('/auth', coinbaseAuthRoutes);
+  console.log('✅ Coinbase Auth routes registered (pre-static, both dev & prod)');
+  
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');

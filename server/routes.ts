@@ -622,12 +622,9 @@ Questions? Reply to this message or contact support@coinrailz.com
     }
   });
 
-  // Coinbase OAuth authentication routes
-  app.use('/auth', coinbaseAuthRoutes);
-  
-  // GPT OAuth routes for ChatGPT one-click sign-in
-  const gptOAuthRoutes = await import('./routes/gptOAuthRoutes').then(m => m.default);
-  app.use('/oauth', gptOAuthRoutes);
+  // NOTE: Coinbase OAuth and GPT OAuth routes are now registered in server/index.ts
+  // BEFORE serveStatic to work in both dev and production environments.
+  // Do NOT register them here again to avoid duplicate middleware.
 
   // KYC verification endpoints
   app.get('/api/kyc/status', getKYCStatus);

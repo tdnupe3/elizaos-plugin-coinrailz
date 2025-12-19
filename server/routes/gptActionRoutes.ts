@@ -1,10 +1,75 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { storage } from '../storage';
 import { creditsService } from '../services/creditsService';
 import { SERVICE_PRICING_USD, ServiceName, isServiceName } from '@shared/pricing';
 import gptCreditsRoutes from './gptCreditsRoutes';
 
 const router = Router();
+
+// ============================================================================
+// GPT HEADER CAPTURE MIDDLEWARE - Logs all headers from ChatGPT requests
+// This captures X-OpenAI-* headers for session-based authentication planning
+// ============================================================================
+function captureGptHeaders(req: Request, res: Response, next: NextFunction) {
+  const openaiHeaders: Record<string, string> = {};
+  const allHeaders: Record<string, string> = {};
+  
+  // Capture all headers, with special attention to OpenAI ones
+  for (const [key, value] of Object.entries(req.headers)) {
+    const headerValue = Array.isArray(value) ? value.join(', ') : (value || '');
+    allHeaders[key] = headerValue;
+    
+    // Specifically capture OpenAI-related headers
+    if (key.toLowerCase().startsWith('x-openai') || 
+        key.toLowerCase().includes('openai') ||
+        key.toLowerCase().startsWith('x-request') ||
+        key.toLowerCase().startsWith('x-stainless') ||
+        key.toLowerCase() === 'openai-conversation-id' ||
+        key.toLowerCase() === 'openai-ephemeral-user-id') {
+      openaiHeaders[key] = headerValue;
+    }
+  }
+  
+  // Log structured header capture for analysis
+  console.log('🔍 GPT HEADER CAPTURE =====================================');
+  console.log(`📍 Endpoint: ${req.method} ${req.path}`);
+  console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
+  
+  if (Object.keys(openaiHeaders).length > 0) {
+    console.log('🤖 OpenAI Headers Found:');
+    for (const [key, value] of Object.entries(openaiHeaders)) {
+      // Truncate long values but keep IDs intact
+      const displayValue = value.length > 100 ? `${value.substring(0, 100)}...` : value;
+      console.log(`   ${key}: ${displayValue}`);
+    }
+  } else {
+    console.log('⚠️ No OpenAI-specific headers detected');
+  }
+  
+  // Log a few other potentially useful headers (EXCLUDING sensitive ones)
+  const usefulHeaders = ['user-agent', 'origin', 'referer', 'host'];
+  const sensitiveHeaders = ['authorization', 'x-api-key', 'cookie', 'set-cookie'];
+  
+  console.log('📋 Other Useful Headers:');
+  for (const h of usefulHeaders) {
+    if (allHeaders[h] && !sensitiveHeaders.includes(h)) {
+      const displayValue = allHeaders[h].length > 80 ? `${allHeaders[h].substring(0, 80)}...` : allHeaders[h];
+      console.log(`   ${h}: ${displayValue}`);
+    }
+  }
+  
+  // Log presence of auth headers without exposing values
+  if (allHeaders['authorization'] || allHeaders['x-api-key']) {
+    console.log('🔐 Auth Headers: [PRESENT - values redacted for security]');
+  }
+  
+  console.log('============================================================');
+  
+  next();
+}
+
+// Apply header capture middleware to ALL GPT routes
+router.use(captureGptHeaders);
 
 router.use('/credits', gptCreditsRoutes);
 

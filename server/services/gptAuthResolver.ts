@@ -439,6 +439,9 @@ function generateDeterministicUUID(fingerprint: string): string {
  * Resolve or create a user for provisional/session-based auth
  * This creates a real user record that can be used for credits billing
  * Also updates the auth context for downstream handlers
+ * 
+ * CRITICAL FIX: Check for existing linked session with same gptIdHash before creating new user
+ * This enables cross-conversation credit sharing when new conversations create provisional sessions
  */
 export async function resolveOrCreateSessionUser(req: Request): Promise<string | null> {
   const ctx = getAuthContext(req);
@@ -451,7 +454,38 @@ export async function resolveOrCreateSessionUser(req: Request): Promise<string |
   // For provisional sessions, create a user from the session
   if ((ctx.mode === 'gpt_provisional' || ctx.mode === 'gpt_session') && ctx.session) {
     try {
-      // Generate deterministic UUID from session fingerprint (FK-safe format)
+      // CRITICAL FIX: Check for existing linked session with same gptIdHash
+      // This enables cross-conversation credit sharing when new conversations create provisional sessions
+      if (ctx.session.gptIdentifierHash) {
+        const linkedSession = await storage.getGptAuthSessionByGptIdHash(ctx.session.gptIdentifierHash);
+        
+        if (linkedSession && linkedSession.userId) {
+          console.log(`🔗 [GPT Auth] Cross-conversation user found: ${linkedSession.userId} (via gptIdHash)`);
+          
+          // Use the existing user from the linked session
+          const existingUser = await storage.getUser(linkedSession.userId);
+          
+          if (existingUser) {
+            // Update current session to link to existing user
+            await storage.linkGptSessionToUser(ctx.session.id, linkedSession.userId);
+            
+            // Update auth context
+            ctx.userId = linkedSession.userId;
+            ctx.user = existingUser;
+            if (ctx.session) {
+              ctx.session = { ...ctx.session, userId: linkedSession.userId };
+            }
+            if (ctx.mode === 'gpt_provisional') {
+              ctx.mode = 'gpt_session';
+            }
+            (req as any).authContext = ctx;
+            
+            return linkedSession.userId;
+          }
+        }
+      }
+      
+      // No linked session found - create new user with deterministic UUID
       const sessionFingerprint = ctx.session.sessionFingerprint || `session-${ctx.session.id}`;
       const gptUserId = generateDeterministicUUID(sessionFingerprint);
       

@@ -93,9 +93,10 @@ function isSessionExpired(session: GptAuthSession): boolean {
 
 /**
  * Check if a session is in valid state for auth
+ * Note: 'linked' is a valid status - it means session has credits account linked
  */
 function isSessionValid(session: GptAuthSession): boolean {
-  const validStatuses = ['active', 'pending_link'];
+  const validStatuses = ['active', 'pending_link', 'linked'];
   return validStatuses.includes(session.status) && !isSessionExpired(session);
 }
 

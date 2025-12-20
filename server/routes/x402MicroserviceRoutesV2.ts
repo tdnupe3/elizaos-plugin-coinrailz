@@ -1795,7 +1795,6 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         output: config.schema?.output || { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 2,
       metadata: {}
     }],
     facilitatorUrl: getFacilitatorUrl(),
@@ -2016,7 +2015,6 @@ enterpriseDirectEndpoints.forEach(service => {
         tags: ["Enterprise", "AI", "x402", "USDC"],
         extra: { name: "USD Coin", version: "2", decimals: 6, chainId: 8453, chainName: "Base" },
         type: "http",
-        x402Version: 2,
         metadata: {}
       }],
       facilitatorUrl: getFacilitatorUrl(),

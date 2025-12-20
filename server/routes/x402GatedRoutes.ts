@@ -481,7 +481,6 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         output: { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 2,
       metadata: {}
     }],
     facilitatorUrl: getFacilitatorUrl()
@@ -689,7 +688,6 @@ function generateDynamic402Response(serviceSlug: string, req: Request, res: Resp
         output: { type: "object", properties: {} }
       },
       type: "http",
-      x402Version: 2,
       metadata: {}
     }],
     facilitatorUrl: getFacilitatorUrl(),

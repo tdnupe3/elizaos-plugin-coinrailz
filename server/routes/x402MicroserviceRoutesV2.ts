@@ -1846,8 +1846,98 @@ const serviceEndpoints = [
   "stock-sentiment", "forex-sentiment"
 ];
 
+// Import creditsService for API key validation on GET requests
+import { creditsService } from "../services/creditsService";
+
+// Handler map for GET requests with valid API key payment
+const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
+  "ping": async (req) => ({
+    success: true,
+    service: "Coin Railz x402 Payment Infrastructure",
+    version: "0.4.0",
+    timestamp: new Date().toISOString(),
+    echo: req.query.message || "pong",
+    chains: ["ethereum", "base", "polygon", "bsc", "arbitrum", "optimism", "pulsechain"],
+    servicesAvailable: 41,
+    documentation: "https://coinrailz.com/developers"
+  }),
+  "gas-price-oracle": async (req) => await gasPriceOracleService.getGasPrices({ chains: req.query.chains as string[] }),
+  "token-price": async (req) => await tokenPriceFeedService.getTokenPrice({ symbol: req.query.symbol as string }),
+  "multi-chain-balance": async (req) => await multiChainBalanceService.getMultiChainBalance({ address: req.query.address as string }),
+  "token-metadata": async (req) => await tokenMetadataService.getTokenMetadata({ address: req.query.address as string, chain: req.query.chain as string }),
+  "wallet-risk": async (req) => await walletRiskScoreService.getWalletRisk({ address: req.query.address as string }),
+  "trending-tokens": async () => await trendingTokensFeedService.getTrendingTokens(),
+  "trade-signals": async (req) => await tradeSignalsService.getTradeSignals({ pairs: req.query.pairs as string[] }),
+  "token-sentiment": async (req) => await tokenSocialSentimentService.getTokenSentiment({ symbol: req.query.symbol as string }),
+  "whale-alerts": async (req) => await whaleWalletAlertsService.getWhaleAlerts({ minValue: Number(req.query.minValue) || 100000 }),
+  "dex-liquidity": async (req) => await dexLiquidityMonitorService.getDexLiquidity({ pair: req.query.pair as string }),
+  "contract-scan": async (req) => await contractQuickScanService.scanContract({ address: req.query.address as string }),
+  "portfolio-tracker": async (req) => await portfolioTrackerService.getPortfolio({ address: req.query.address as string }),
+  "approval-manager": async (req) => await approvalManagerService.getApprovals({ address: req.query.address as string }),
+  "batch-quote": async (req) => await batchQuoteService.getBatchQuote({ pairs: req.query.pairs as string[] }),
+  "instant-agent-wallet": async () => await instantAgentWalletService.createWallet({}),
+  "arbitrage-scanner": async () => await arbitrageScannerService.scanArbitrage({}),
+  "correlation-matrix": async (req) => await correlationMatrixService.getCorrelation({ symbols: req.query.symbols as string[] }),
+  "risk-metrics": async (req) => await riskMetricsService.getRiskMetrics({ address: req.query.address as string }),
+  "stock-sentiment": async (req) => await stockSentimentService.getStockSentiment({ symbol: req.query.symbol as string }),
+  "forex-sentiment": async (req) => await forexSentimentService.getForexSentiment({ pair: req.query.pair as string }),
+};
+
 serviceEndpoints.forEach(endpoint => {
-  router.get(`/${endpoint}`, (req: Request, res: Response) => {
+  router.get(`/${endpoint}`, async (req: Request, res: Response) => {
+    // CRITICAL FIX: Check for API key authentication BEFORE returning 402
+    const apiKey = req.headers['x-api-key'] as string || 
+                   (req.headers['authorization'] as string)?.replace('Bearer ', '');
+    
+    if (apiKey && apiKey.startsWith('cr_live_')) {
+      try {
+        const keyValidation = await creditsService.validateApiKey(apiKey);
+        if (keyValidation.valid && keyValidation.userId) {
+          const priceUsd = SERVICE_PRICING_USD[endpoint as keyof typeof SERVICE_PRICING_USD] || 0.25;
+          const balance = await creditsService.getBalance(keyValidation.userId);
+          
+          if (balance >= priceUsd) {
+            // Deduct credits and execute service
+            await creditsService.deductCredits({
+              userId: keyValidation.userId,
+              amount: priceUsd,
+              serviceName: endpoint,
+              description: `x402 Service: ${endpoint} ($${priceUsd.toFixed(2)}) via GET + API key`
+            });
+            
+            console.log(`💳 GET + API key payment SUCCESS for ${endpoint} - $${priceUsd.toFixed(2)} (user: ${keyValidation.userId})`);
+            
+            // Execute the service handler if available
+            const handler = getServiceHandlers[endpoint];
+            if (handler) {
+              try {
+                const result = await handler(req);
+                return res.json(result);
+              } catch (handlerError: any) {
+                console.error(`❌ Service handler error for ${endpoint}:`, handlerError.message);
+                return res.status(500).json({ success: false, error: handlerError.message });
+              }
+            } else {
+              // Generic success response for services without specific GET handlers
+              return res.json({ 
+                success: true, 
+                service: endpoint, 
+                message: `Service ${endpoint} executed successfully via API key`,
+                note: "Use POST for full functionality with request body"
+              });
+            }
+          } else {
+            console.log(`⚠️ GET API key: Insufficient credits for ${endpoint} ($${balance.toFixed(2)} < $${priceUsd.toFixed(2)})`);
+          }
+        } else {
+          console.log(`⚠️ GET API key: Invalid API key for ${endpoint}`);
+        }
+      } catch (apiKeyErr: any) {
+        console.error(`⚠️ GET API key validation error for ${endpoint}:`, apiKeyErr.message);
+      }
+    }
+    
+    // No valid API key payment - return 402 for Bazaar discovery
     console.log(`📡 GET request for /${endpoint} - returning 402 for Bazaar discovery`);
     generate402ResponseForGet(`POST /${endpoint}`, req, res);
   });

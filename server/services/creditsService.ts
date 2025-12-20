@@ -91,99 +91,104 @@ export class CreditsService {
   }
 
   async addCredits(params: CreditsPurchaseParams): Promise<{ success: boolean; newBalance: number; transactionId: number }> {
-    return await db.transaction(async (tx) => {
-      let account = await tx.select()
-        .from(creditsAccounts)
-        .where(eq(creditsAccounts.userId, params.userId))
-        .for('update')
-        .then(rows => rows[0]);
-
-      if (!account) {
-        account = await tx.insert(creditsAccounts).values({
-          userId: params.userId,
-          balance: "0.00"
-        }).returning().then(rows => rows[0]);
-      }
-
-      const balanceBefore = parseFloat(account.balance);
-      const balanceAfter = balanceBefore + params.amount;
-
-      await tx.update(creditsAccounts)
-        .set({ 
-          balance: balanceAfter.toFixed(2),
-          updatedAt: new Date()
-        })
-        .where(eq(creditsAccounts.id, account.id));
-
-      const [transaction] = await tx.insert(creditTransactions).values({
-        accountId: account.id,
-        userId: params.userId,
-        type: "purchase",
-        amount: params.amount.toFixed(2),
-        balanceBefore: balanceBefore.toFixed(2),
-        balanceAfter: balanceAfter.toFixed(2),
-        referenceId: params.referenceId,
-        paymentMethod: params.paymentMethod,
-        description: params.description || `Added ${params.amount} credits via ${params.paymentMethod}`,
-        metadata: params.metadata
-      }).returning();
-
-      console.log(`✅ Credits added: User ${params.userId} +$${params.amount} (${params.paymentMethod})`);
-
-      return {
-        success: true,
-        newBalance: balanceAfter,
-        transactionId: transaction.id
-      };
+    // NON-TRANSACTIONAL version for neon-http driver compatibility
+    
+    // Step 1: Get or create account
+    let account = await db.query.creditsAccounts.findFirst({
+      where: eq(creditsAccounts.userId, params.userId)
     });
+
+    if (!account) {
+      const [newAccount] = await db.insert(creditsAccounts).values({
+        userId: params.userId,
+        balance: "0.00"
+      }).returning();
+      account = newAccount;
+    }
+
+    const balanceBefore = parseFloat(account.balance);
+    const balanceAfter = balanceBefore + params.amount;
+
+    // Step 2: Update balance
+    await db.update(creditsAccounts)
+      .set({ 
+        balance: balanceAfter.toFixed(2),
+        updatedAt: new Date()
+      })
+      .where(eq(creditsAccounts.id, account.id));
+
+    // Step 3: Log transaction
+    const [transaction] = await db.insert(creditTransactions).values({
+      accountId: account.id,
+      userId: params.userId,
+      type: "purchase",
+      amount: params.amount.toFixed(2),
+      balanceBefore: balanceBefore.toFixed(2),
+      balanceAfter: balanceAfter.toFixed(2),
+      referenceId: params.referenceId,
+      paymentMethod: params.paymentMethod,
+      description: params.description || `Added ${params.amount} credits via ${params.paymentMethod}`,
+      metadata: params.metadata
+    }).returning();
+
+    console.log(`✅ Credits added: User ${params.userId} +$${params.amount} (${params.paymentMethod})`);
+
+    return {
+      success: true,
+      newBalance: balanceAfter,
+      transactionId: transaction.id
+    };
   }
 
   async deductCredits(params: CreditsDebitParams): Promise<{ success: boolean; newBalance: number; transactionId: number }> {
-    const result = await db.transaction(async (tx) => {
-      const [account] = await tx.select()
-        .from(creditsAccounts)
-        .where(eq(creditsAccounts.userId, params.userId))
-        .for('update');
-
-      if (!account) {
-        throw new Error('Account not found');
-      }
-
-      const balanceBefore = parseFloat(account.balance);
-
-      if (balanceBefore < params.amount) {
-        throw new Error(`Insufficient credits. Required: $${params.amount}, Available: $${balanceBefore}`);
-      }
-
-      const balanceAfter = balanceBefore - params.amount;
-
-      await tx.update(creditsAccounts)
-        .set({ 
-          balance: balanceAfter.toFixed(2),
-          updatedAt: new Date()
-        })
-        .where(eq(creditsAccounts.id, account.id));
-
-      const [transaction] = await tx.insert(creditTransactions).values({
-        accountId: account.id,
-        userId: params.userId,
-        type: "debit",
-        amount: `-${params.amount.toFixed(2)}`,
-        balanceBefore: balanceBefore.toFixed(2),
-        balanceAfter: balanceAfter.toFixed(2),
-        serviceName: params.serviceName,
-        description: params.description || `${params.serviceName} service call`,
-        metadata: params.metadata
-      }).returning();
-
-      console.log(`💳 Credits deducted: User ${params.userId} -$${params.amount} (${params.serviceName})`);
-
-      return {
-        success: true,
-        newBalance: balanceAfter,
-        transactionId: transaction.id
-      };
+    // NON-TRANSACTIONAL version for neon-http driver compatibility
+    // Uses optimistic approach: read, calculate, update, log
+    
+    // Step 1: Get account
+    const account = await db.query.creditsAccounts.findFirst({
+      where: eq(creditsAccounts.userId, params.userId)
     });
+
+    if (!account) {
+      throw new Error('Account not found');
+    }
+
+    const balanceBefore = parseFloat(account.balance);
+
+    if (balanceBefore < params.amount) {
+      throw new Error(`Insufficient credits. Required: $${params.amount}, Available: $${balanceBefore}`);
+    }
+
+    const balanceAfter = balanceBefore - params.amount;
+
+    // Step 2: Update balance
+    await db.update(creditsAccounts)
+      .set({ 
+        balance: balanceAfter.toFixed(2),
+        updatedAt: new Date()
+      })
+      .where(eq(creditsAccounts.id, account.id));
+
+    // Step 3: Log transaction
+    const [transaction] = await db.insert(creditTransactions).values({
+      accountId: account.id,
+      userId: params.userId,
+      type: "debit",
+      amount: `-${params.amount.toFixed(2)}`,
+      balanceBefore: balanceBefore.toFixed(2),
+      balanceAfter: balanceAfter.toFixed(2),
+      serviceName: params.serviceName,
+      description: params.description || `${params.serviceName} service call`,
+      metadata: params.metadata
+    }).returning();
+
+    console.log(`💳 Credits deducted: User ${params.userId} -$${params.amount} (${params.serviceName})`);
+
+    const result = {
+      success: true,
+      newBalance: balanceAfter,
+      transactionId: transaction.id
+    };
 
     // Fire-and-forget API usage logging (fully detached via setImmediate, non-blocking)
     if (result.success) {

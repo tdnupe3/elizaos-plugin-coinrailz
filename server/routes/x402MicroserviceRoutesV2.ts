@@ -62,7 +62,7 @@ import {
 } from "@shared/schema";
 import { CoinbaseCDPService } from "../services/coinbaseCDPService";
 import { x402TrackingMiddleware } from "../middleware/x402TrackingMiddleware";
-import { hybridPaymentMiddleware } from "../middleware/hybridPaymentMiddleware";
+import { hybridPaymentMiddleware, verifyTransactionPayment } from "../middleware/hybridPaymentMiddleware";
 import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware";
 import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
@@ -1937,7 +1937,46 @@ serviceEndpoints.forEach(endpoint => {
       }
     }
     
-    // No valid API key payment - return 402 for Bazaar discovery
+    // CRITICAL FIX #2: Check for X-PAYMENT header with raw tx hash (USDC or USDT)
+    const xPayment = req.headers['x-payment'] as string;
+    if (xPayment && xPayment.startsWith('0x') && xPayment.length === 66) {
+      console.log(`🔐 GET + X-PAYMENT raw tx hash detected for ${endpoint}: ${xPayment.substring(0, 10)}...`);
+      try {
+        const priceUsd = SERVICE_PRICING_USD[endpoint as keyof typeof SERVICE_PRICING_USD] || 0.25;
+        const requiredAmountMicro = priceUsd * 1e6; // Convert to micro units
+        const verified = await verifyTransactionPayment(xPayment, endpoint, requiredAmountMicro);
+        
+        if (verified) {
+          console.log(`✅ GET + X-PAYMENT verification SUCCESS for ${endpoint} - $${priceUsd} (tx: ${xPayment.substring(0, 10)}...)`);
+          
+          // Execute the service handler if available
+          const handler = getServiceHandlers[endpoint];
+          if (handler) {
+            try {
+              const result = await handler(req);
+              return res.json(result);
+            } catch (handlerError: any) {
+              console.error(`❌ Service handler error for ${endpoint}:`, handlerError.message);
+              return res.status(500).json({ success: false, error: handlerError.message });
+            }
+          } else {
+            return res.json({ 
+              success: true, 
+              service: endpoint, 
+              message: `Service ${endpoint} executed successfully via on-chain payment`,
+              txHash: xPayment,
+              pricePaid: `$${priceUsd}`
+            });
+          }
+        } else {
+          console.log(`⚠️ GET X-PAYMENT: Verification failed for ${endpoint} - payment rejected or already used`);
+        }
+      } catch (txVerifyErr: any) {
+        console.error(`⚠️ GET X-PAYMENT verification error for ${endpoint}:`, txVerifyErr.message);
+      }
+    }
+    
+    // No valid API key or X-PAYMENT payment - return 402 for Bazaar discovery
     console.log(`📡 GET request for /${endpoint} - returning 402 for Bazaar discovery`);
     generate402ResponseForGet(`POST /${endpoint}`, req, res);
   });

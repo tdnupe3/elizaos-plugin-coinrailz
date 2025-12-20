@@ -56,74 +56,81 @@ export class DatabaseTransactionManager {
 
       this.activeTransactions.set(transactionId, context);
 
-      // Execute the transfer within a database transaction
-      const result = await db.transaction(async (tx) => {
-        // 1. Verify sender balance with FOR UPDATE lock
-        const senderBalance = await tx.query.users.findFirst({
-          where: (users, { eq }) => eq(users.id, senderId),
-          columns: { balance: true, version: true }
-        });
-
-        if (!senderBalance || senderBalance.balance < amount) {
-          throw new Error('Insufficient balance');
-        }
-
-        // 2. Verify receiver exists
-        const receiver = await tx.query.users.findFirst({
-          where: (users, { eq }) => eq(users.id, receiverId),
-          columns: { id: true, version: true }
-        });
-
-        if (!receiver) {
-          throw new Error('Receiver not found');
-        }
-
-        // 3. Update sender balance with version check
-        const senderUpdate = await tx.update(users)
-          .set({ 
-            balance: senderBalance.balance - amount,
-            version: senderBalance.version + 1
-          })
-          .where(and(
-            eq(users.id, senderId),
-            eq(users.version, senderBalance.version)
-          ))
-          .returning();
-
-        if (senderUpdate.length === 0) {
-          throw new Error('Concurrent modification detected - sender balance');
-        }
-
-        // 4. Update receiver balance with version check
-        const receiverUpdate = await tx.update(users)
-          .set({ 
-            balance: receiver.balance + amount,
-            version: receiver.version + 1
-          })
-          .where(and(
-            eq(users.id, receiverId),
-            eq(users.version, receiver.version)
-          ))
-          .returning();
-
-        if (receiverUpdate.length === 0) {
-          throw new Error('Concurrent modification detected - receiver balance');
-        }
-
-        // 5. Create transaction record
-        await tx.insert(transactions).values({
-          id: transactionId,
-          senderId,
-          receiverId,
-          amount,
-          currency,
-          type: 'p2p_transfer',
-          status: 'completed',
-          createdAt: new Date()
-        });
-
-        return { success: true, transactionId };
+      // NON-TRANSACTIONAL version for neon-http driver compatibility
+      // Execute the transfer with optimistic locking
+      
+      // 1. Verify sender balance
+      const senderBalance = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.id, senderId),
+        columns: { balance: true, version: true }
       });
+
+      if (!senderBalance || senderBalance.balance < amount) {
+        throw new Error('Insufficient balance');
+      }
+
+      // 2. Verify receiver exists
+      const receiver = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.id, receiverId),
+        columns: { id: true, version: true, balance: true }
+      });
+
+      if (!receiver) {
+        throw new Error('Receiver not found');
+      }
+
+      // 3. Update sender balance with version check
+      const senderUpdate = await db.update(users)
+        .set({ 
+          balance: senderBalance.balance - amount,
+          version: senderBalance.version + 1
+        })
+        .where(and(
+          eq(users.id, senderId),
+          eq(users.version, senderBalance.version)
+        ))
+        .returning();
+
+      if (senderUpdate.length === 0) {
+        throw new Error('Concurrent modification detected - sender balance');
+      }
+
+      // 4. Update receiver balance with version check
+      const receiverUpdate = await db.update(users)
+        .set({ 
+          balance: receiver.balance + amount,
+          version: receiver.version + 1
+        })
+        .where(and(
+          eq(users.id, receiverId),
+          eq(users.version, receiver.version)
+        ))
+        .returning();
+
+      if (receiverUpdate.length === 0) {
+        // Attempt to rollback sender update
+        await db.update(users)
+          .set({ 
+            balance: senderBalance.balance,
+            version: senderBalance.version
+          })
+          .where(eq(users.id, senderId));
+        throw new Error('Concurrent modification detected - receiver balance');
+      }
+
+      // 5. Create transaction record
+      await db.insert(transactions).values({
+        id: transactionId,
+        senderId,
+        receiverId,
+        amount,
+        currency,
+        type: 'p2p_transfer',
+        status: 'completed',
+        createdAt: new Date()
+      });
+
+      const result = { success: true, transactionId };
 
       // Mark transaction as committed
       context.status = 'committed';
@@ -188,52 +195,57 @@ export class DatabaseTransactionManager {
 
       this.activeTransactions.set(payoutId, context);
 
-      const result = await db.transaction(async (tx) => {
-        // 1. Verify commission hasn't been paid already
-        const existingPayout = await tx.query.commissionPayouts.findFirst({
-          where: (payouts, { eq }) => eq(payouts.transactionRef, transactionRef)
-        });
-
-        if (existingPayout) {
-          throw new Error('Commission already paid for this transaction');
-        }
-
-        // 2. Get agent balance with lock
-        const agent = await tx.query.users.findFirst({
-          where: (users, { eq }) => eq(users.id, agentId),
-          columns: { balance: true, version: true }
-        });
-
-        if (!agent) {
-          throw new Error('Agent not found');
-        }
-
-        const totalCommission = commissions.reduce((sum, c) => sum + c.amount, 0);
-
-        // 3. Update agent balance
-        await tx.update(users)
-          .set({ 
-            balance: agent.balance + totalCommission,
-            version: agent.version + 1
-          })
-          .where(and(
-            eq(users.id, agentId),
-            eq(users.version, agent.version)
-          ));
-
-        // 4. Record commission payout
-        await tx.insert(commissionPayouts).values({
-          id: payoutId,
-          agentId,
-          transactionRef,
-          totalAmount: totalCommission,
-          tiers: commissions,
-          status: 'completed',
-          createdAt: new Date()
-        });
-
-        return { success: true, payoutId };
+      // NON-TRANSACTIONAL version for neon-http driver compatibility
+      
+      // 1. Verify commission hasn't been paid already
+      const existingPayout = await db.query.commissionPayouts.findFirst({
+        where: (payouts, { eq }) => eq(payouts.transactionRef, transactionRef)
       });
+
+      if (existingPayout) {
+        throw new Error('Commission already paid for this transaction');
+      }
+
+      // 2. Get agent balance
+      const agent = await db.query.users.findFirst({
+        where: (users, { eq }) => eq(users.id, agentId),
+        columns: { balance: true, version: true }
+      });
+
+      if (!agent) {
+        throw new Error('Agent not found');
+      }
+
+      const totalCommission = commissions.reduce((sum, c) => sum + c.amount, 0);
+
+      // 3. Update agent balance with version check
+      const agentUpdate = await db.update(users)
+        .set({ 
+          balance: agent.balance + totalCommission,
+          version: agent.version + 1
+        })
+        .where(and(
+          eq(users.id, agentId),
+          eq(users.version, agent.version)
+        ))
+        .returning();
+
+      if (agentUpdate.length === 0) {
+        throw new Error('Concurrent modification detected - agent balance');
+      }
+
+      // 4. Record commission payout
+      await db.insert(commissionPayouts).values({
+        id: payoutId,
+        agentId,
+        transactionRef,
+        totalAmount: totalCommission,
+        tiers: commissions,
+        status: 'completed',
+        createdAt: new Date()
+      });
+
+      const result = { success: true, payoutId };
 
       context.status = 'committed';
       context.completedAt = Date.now();

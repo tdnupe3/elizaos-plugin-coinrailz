@@ -558,102 +558,95 @@ router.post("/link", async (req: Request, res: Response) => {
     const userId = `t${nanoid(8)}`; // Generate unique user ID (9 chars total - fits varchar(12))
     const userReferralCode = `T${nanoid(8)}`; // Generate referral code (9 chars total)
 
-    // Start transaction
-    await db.transaction(async (tx) => {
-      // 1. Create user record
-      await tx.insert(users).values({
-        id: userId,
-        firstName: firstName || 'Telegram',
-        lastName: lastName || 'User',
-        accountStatus: 'active',
-        referralCode: userReferralCode,
-        freeCreditsGranted: true, // Mark that we gave them the bonus
-      });
+    // NON-TRANSACTIONAL version for neon-http driver compatibility
+    // Execute operations sequentially
+    
+    // 1. Create user record
+    await db.insert(users).values({
+      id: userId,
+      firstName: firstName || 'Telegram',
+      lastName: lastName || 'User',
+      accountStatus: 'active',
+      referralCode: userReferralCode,
+      freeCreditsGranted: true, // Mark that we gave them the bonus
+    });
 
-      // 2. Create credits account with $1 starting bonus
-      const [creditsAccount] = await tx.insert(creditsAccounts).values({
-        userId,
-        balance: STARTING_BONUS,
-        autoTopUpEnabled: false,
-      }).returning();
+    // 2. Create credits account with $1 starting bonus
+    const [creditsAccount] = await db.insert(creditsAccounts).values({
+      userId,
+      balance: STARTING_BONUS,
+      autoTopUpEnabled: false,
+    }).returning();
 
-      // 3. Log the starting bonus transaction
-      await tx.insert(creditTransactions).values({
-        accountId: creditsAccount.id,
-        userId,
-        amount: STARTING_BONUS,
-        type: 'bonus',
-        balanceBefore: '0.00',
-        balanceAfter: STARTING_BONUS,
-        description: 'Welcome bonus - Try Coin Railz services!',
-        metadata: {
-          source: 'telegram_miniapp',
-          reason: 'new_user_bonus'
-        }
-      });
-
-      // 4. Generate server-side API key for this user
-      const apiKeyValue = `cr_tg_${nanoid(32)}`;
-      const keyPrefix = apiKeyValue.substring(0, 12); // cr_tg_xxxxxx (12 chars max)
-      const hashedKey = await bcrypt.hash(apiKeyValue, 10); // Hash for secure storage
-
-      const [apiKey] = await tx.insert(apiKeys).values({
-        userId,
-        hashedKey, // Store hashed version
-        keyPrefix,
-        name: 'Telegram Mini-App',
-        status: 'active',
-        rateLimit: 100,
-        metadata: {
-          source: 'telegram',
-          telegramId: telegramId.toString()
-        }
-      }).returning();
-
-      // 5. Create Telegram account link
-      const referredByUserId = referralCode ? await findUserByReferralCode(referralCode) : null;
-
-      // SECURITY: Prevent self-referral exploit (check by Telegram ID, not userId)
-      // Users can create multiple accounts with different userIds but same Telegram identity
-      if (referredByUserId) {
-        const referrerTelegramAccount = await tx.query.telegramAccounts.findFirst({
-          where: eq(telegramAccounts.userId, referredByUserId)
-        });
-        
-        // Block if referrer has the same Telegram ID (self-referral across accounts)
-        if (referrerTelegramAccount && referrerTelegramAccount.telegramId === telegramId.toString()) {
-          throw new Error('Cannot refer yourself across multiple accounts');
-        }
-      }
-
-      await tx.insert(telegramAccounts).values({
-        telegramId: telegramId.toString(),
-        userId,
-        apiKeyId: apiKey.id,
-        username: username || null,
-        firstName: firstName || null,
-        lastName: lastName || null,
-        referralCode: userReferralCode,
-        referredByUserId,
-        welcomeBonusGranted: true
-      });
-
-      // 6. If referred, log referral (bonus will be credited on first purchase)
-      // TODO (Task 8 - CRITICAL): Implement 10% referral bonus settlement in payment webhooks
-      // When referred user makes first PAID top-up (Stripe/USDC):
-      // 1. Check telegramReferrals for this user's referral record
-      // 2. Calculate 10% of top-up amount
-      // 3. Credit referrer via creditsService.addCredits()
-      // 4. Update telegramReferrals.bonusAmount and mark as paid
-      // 5. Prevent duplicate payouts (only first purchase)
-      if (referredByUserId) {
-        await tx.insert(telegramReferrals).values({
-          referrerUserId: referredByUserId,
-          refereeUserId: userId,
-          bonusAmount: 0, // Will be updated when referee makes first purchase
-        });
+    // 3. Log the starting bonus transaction
+    await db.insert(creditTransactions).values({
+      accountId: creditsAccount.id,
+      userId,
+      amount: STARTING_BONUS,
+      type: 'bonus',
+      balanceBefore: '0.00',
+      balanceAfter: STARTING_BONUS,
+      description: 'Welcome bonus - Try Coin Railz services!',
+      metadata: {
+        source: 'telegram_miniapp',
+        reason: 'new_user_bonus'
       }
     });
+
+    // 4. Generate server-side API key for this user
+    const apiKeyValue = `cr_tg_${nanoid(32)}`;
+    const keyPrefix = apiKeyValue.substring(0, 12); // cr_tg_xxxxxx (12 chars max)
+    const hashedKey = await bcrypt.hash(apiKeyValue, 10); // Hash for secure storage
+
+    const [apiKey] = await db.insert(apiKeys).values({
+      userId,
+      hashedKey, // Store hashed version
+      keyPrefix,
+      name: 'Telegram Mini-App',
+      status: 'active',
+      rateLimit: 100,
+      metadata: {
+        source: 'telegram',
+        telegramId: telegramId.toString()
+      }
+    }).returning();
+    
+    // 5. Create Telegram account link
+    const referredByUserId = referralCode ? await findUserByReferralCode(referralCode) : null;
+
+    // SECURITY: Prevent self-referral exploit (check by Telegram ID, not userId)
+    // Users can create multiple accounts with different userIds but same Telegram identity
+    if (referredByUserId) {
+      const referrerTelegramAccount = await db.query.telegramAccounts.findFirst({
+        where: eq(telegramAccounts.userId, referredByUserId)
+      });
+      
+      // Block if referrer has the same Telegram ID (self-referral across accounts)
+      if (referrerTelegramAccount && referrerTelegramAccount.telegramId === telegramId.toString()) {
+        throw new Error('Cannot refer yourself across multiple accounts');
+      }
+    }
+
+    await db.insert(telegramAccounts).values({
+      telegramId: telegramId.toString(),
+      userId,
+      apiKeyId: apiKey.id,
+      username: username || null,
+      firstName: firstName || null,
+      lastName: lastName || null,
+      referralCode: userReferralCode,
+      referredByUserId,
+      welcomeBonusGranted: true
+    });
+
+    // 6. If referred, log referral (bonus will be credited on first purchase)
+    if (referredByUserId) {
+      await db.insert(telegramReferrals).values({
+        referrerUserId: referredByUserId,
+        refereeUserId: userId,
+        bonusAmount: 0, // Will be updated when referee makes first purchase
+      });
+    }
 
     // SECURITY: Return API key ONCE for SDK/direct API access
     // Never log this value. Delivered over HTTPS only.

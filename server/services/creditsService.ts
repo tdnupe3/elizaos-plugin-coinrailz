@@ -1,6 +1,6 @@
 import { db } from "../db.js";
 import { creditsAccounts, creditTransactions, apiKeys, users, apiUsageTracking } from "@shared/schema";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql, gte } from "drizzle-orm";
 import { randomBytes } from "crypto";
 import bcrypt from "bcrypt";
 
@@ -142,7 +142,7 @@ export class CreditsService {
 
   async deductCredits(params: CreditsDebitParams): Promise<{ success: boolean; newBalance: number; transactionId: number }> {
     // NON-TRANSACTIONAL version for neon-http driver compatibility
-    // Uses optimistic approach: read, calculate, update, log
+    // Uses ATOMIC SQL update with balance check in WHERE clause for concurrency safety
     
     // Step 1: Get account
     const account = await db.query.creditsAccounts.findFirst({
@@ -159,15 +159,25 @@ export class CreditsService {
       throw new Error(`Insufficient credits. Required: $${params.amount}, Available: $${balanceBefore}`);
     }
 
-    const balanceAfter = balanceBefore - params.amount;
-
-    // Step 2: Update balance
-    await db.update(creditsAccounts)
+    // Step 2: ATOMIC update - uses SQL expression with balance check in WHERE clause
+    // This prevents race conditions: only succeeds if balance >= amount at execution time
+    // Balance is NUMERIC(12,2) so result must also be numeric
+    const updateResult = await db.update(creditsAccounts)
       .set({ 
-        balance: balanceAfter.toFixed(2),
+        balance: sql`${creditsAccounts.balance} - ${params.amount}`,
         updatedAt: new Date()
       })
-      .where(eq(creditsAccounts.id, account.id));
+      .where(and(
+        eq(creditsAccounts.id, account.id),
+        sql`${creditsAccounts.balance} >= ${params.amount}`
+      ))
+      .returning();
+
+    if (updateResult.length === 0) {
+      throw new Error(`Insufficient credits (concurrent update). Required: $${params.amount}`);
+    }
+
+    const balanceAfter = parseFloat(updateResult[0].balance);
 
     // Step 3: Log transaction
     const [transaction] = await db.insert(creditTransactions).values({

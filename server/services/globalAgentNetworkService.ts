@@ -147,27 +147,23 @@ export class GlobalAgentNetworkService {
     };
 
     try {
-      // Use transaction to ensure atomic operations and prevent race conditions
-      const result = await db.transaction(async (tx) => {
-        // Double-check for existing agent within transaction
-        const existingInTx = await tx
-          .select()
-          .from(globalAIAgents)
-          .where(eq(globalAIAgents.primaryWalletAddress, request.walletAddress))
-          .limit(1);
+      // NON-TRANSACTIONAL version for neon-http driver compatibility
+      // Double-check for existing agent before insert
+      const existingInDb = await db
+        .select()
+        .from(globalAIAgents)
+        .where(eq(globalAIAgents.primaryWalletAddress, request.walletAddress))
+        .limit(1);
 
-        if (existingInTx.length > 0) {
-          throw new Error("Agent with this wallet address already registered");
-        }
+      if (existingInDb.length > 0) {
+        throw new Error("Agent with this wallet address already registered");
+      }
 
-        // Insert new agent
-        const [newAgent] = await tx
-          .insert(globalAIAgents)
-          .values(agentData)
-          .returning();
-
-        return newAgent;
-      });
+      // Insert new agent
+      const [result] = await db
+        .insert(globalAIAgents)
+        .values(agentData)
+        .returning();
 
       // Step 7: Auto-activate for low-risk agents, manual review for others
       if (this.isLowRiskAgent(request)) {

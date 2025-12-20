@@ -298,76 +298,81 @@ router.post('/agent-service-payment', async (req, res) => {
     let paymentResult;
 
     try {
-      // Execute BOTH operations in a single transaction for true atomicity
-      await db.transaction(async (tx) => {
-        // 1. Insert marketplace order
-        await tx.insert(aiMarketplaceOrders).values({
-          id: orderId,
-          agentId,
-          customerId: 'x402-autonomous',
-          amount: amount.toFixed(2),
-          agentCommission: agentCommission.toFixed(2),
-          platformFee: platformFee.toFixed(2),
-          status: 'pending',
-          paymentMethod: 'x402',
-          serviceDescription: serviceDescription || 'AI Agent Service',
-          customerRequirements: JSON.stringify({
-            protocol: 'x402',
-            autonomous: true,
-            createdAt: new Date().toISOString(),
-          }),
-        });
-
-        // 2. Create payment wallet and insert payment record
-        // NOTE: Wallet creation happens BEFORE database insert
-        // If wallet creation fails, entire transaction rolls back
-        const paymentId = nanoid();
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min expiry
-
-        // Generate REAL Coinbase CDP wallet (may throw error)
-        const walletAddress = await x402PaymentService.generatePaymentWalletPublic(network || 'base');
-
-        // Insert payment record
-        await tx.insert(x402Payments).values({
-          id: paymentId,
-          orderId,
-          agentId,
-          customerId: null,
-          amount: amount.toString(),
-          currency: currency || 'USDC',
-          status: 'pending',
-          network: network || 'base',
-          walletAddress,
-          expiresAt,
-          metadata: {
-            serviceDescription: serviceDescription || 'AI Agent Service',
-            protocol: 'x402',
-            autonomousPayment: true,
-            marketplaceOrder: true,
-          } as any,
-        });
-
-        // Store payment result for response
-        paymentResult = {
-          success: true,
-          paymentId,
-          amount,
-          currency: currency || 'USDC',
-          network: network || 'base',
-          status: 'pending' as const,
-          walletAddress,
-          paymentUrl: `https://pay.x402.io/${paymentId}`,
-          expiresAt: expiresAt.toISOString(),
-        };
+      // NON-TRANSACTIONAL version for neon-http driver compatibility
+      // Execute operations sequentially - if one fails, we handle cleanup manually
+      
+      // 1. Insert marketplace order first
+      await db.insert(aiMarketplaceOrders).values({
+        id: orderId,
+        agentId,
+        customerId: 'x402-autonomous',
+        amount: amount.toFixed(2),
+        agentCommission: agentCommission.toFixed(2),
+        platformFee: platformFee.toFixed(2),
+        status: 'pending',
+        paymentMethod: 'x402',
+        serviceDescription: serviceDescription || 'AI Agent Service',
+        customerRequirements: JSON.stringify({
+          protocol: 'x402',
+          autonomous: true,
+          createdAt: new Date().toISOString(),
+        }),
       });
 
-      // Transaction succeeded - both order and payment committed atomically
+      // 2. Generate payment wallet and create payment record
+      const paymentId = nanoid();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 min expiry
+
+      // Generate REAL Coinbase CDP wallet (may throw error)
+      const walletAddress = await x402PaymentService.generatePaymentWalletPublic(network || 'base');
+
+      // Insert payment record
+      await db.insert(x402Payments).values({
+        id: paymentId,
+        orderId,
+        agentId,
+        customerId: null,
+        amount: amount.toString(),
+        currency: currency || 'USDC',
+        status: 'pending',
+        network: network || 'base',
+        walletAddress,
+        expiresAt,
+        metadata: {
+          serviceDescription: serviceDescription || 'AI Agent Service',
+          protocol: 'x402',
+          autonomousPayment: true,
+          marketplaceOrder: true,
+        } as any,
+      });
+
+      // Store payment result for response
+      paymentResult = {
+        success: true,
+        paymentId,
+        amount,
+        currency: currency || 'USDC',
+        network: network || 'base',
+        status: 'pending' as const,
+        walletAddress,
+        paymentUrl: `https://pay.x402.io/${paymentId}`,
+        expiresAt: expiresAt.toISOString(),
+      };
+
+      console.log(`✅ Order ${orderId} and payment ${paymentId} created successfully`);
     } catch (error: any) {
-      // Any failure (wallet creation, DB insert, etc) rolls back EVERYTHING
-      console.error('❌ Atomic transaction failed:', error);
+      // If payment creation fails after order was created, mark order as failed
+      console.error('❌ Order/payment creation failed:', error);
+      try {
+        await db.update(aiMarketplaceOrders)
+          .set({ status: 'failed' })
+          .where(eq(aiMarketplaceOrders.id, orderId));
+      } catch (cleanupError) {
+        console.error('⚠️ Failed to cleanup order:', cleanupError);
+      }
       return res.status(500).json({
         success: false,
-        error: 'Failed to create order and payment atomically',
+        error: 'Failed to create order and payment',
         details: error.message,
       });
     }

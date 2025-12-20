@@ -15,14 +15,14 @@ import { setupSimpleRoutes } from "./simpleRoutes";
 // CRITICAL: Import nuclear build mode detection
 import { DISABLE_BACKGROUND_SERVICES } from './buildModeDetection';
 import { setupEnhancedBusinessLogicRoutes } from "./routes/enhancedBusinessLogicRoutes";
-// Initialize automated revenue generation systems
-import { initializeAutomatedOutreach } from './services/automatedOutreachOrchestrator';
-import { telegramTradingBot } from './services/telegramTradingBot.js';
-import { initializeAffiliateSystem } from './services/automatedAffiliate';
-import { realA2AFailoverPipeline } from './services/a2aFailoverPipeline.js';
+// NOTE: Heavy background services moved to lazy imports in post-listen block:
+// - initializeAutomatedOutreach -> dynamically imported
+// - telegramTradingBot -> dynamically imported  
+// - initializeAffiliateSystem -> dynamically imported
+// - realA2AFailoverPipeline -> dynamically imported
+// - sdkLeadGenerationService -> dynamically imported
 import emergencyRevenueRoutes from './routes/emergencyRevenueRoutes';
 import competitionRoutes from './routes/competitionRoutes.js';
-import { sdkLeadGenerationService } from './services/sdkLeadGenerationService';
 import { setupReferralRoutes } from "./referralRoutes";
 import { setupCriticalAPIRoutes } from "./apiRoutes";
 import { dataMonetizationRoutes } from "./routes/dataMonetizationRoutes";
@@ -92,7 +92,7 @@ import { ProviderCapabilityService } from './services/providerCapabilityService.
 import { createAllProviderRouters } from './routes/a2aProviderRoutes.js';
 import { createPaypalOrder, capturePaypalOrder, loadPaypalDefault } from './paypal.js';
 import rateLimitImport from 'express-rate-limit';
-import { initializeServiceHandlers } from './services/handlers';
+// NOTE: initializeServiceHandlers is now dynamically imported in post-listen block
 
 // ============= BOOT-TIME VALIDATION =============
 // Verify optional environment variables - warn if missing but allow server to start
@@ -220,10 +220,8 @@ app.post('/api/stripe/webhook', express.raw({type: 'application/json'}), stripeM
 // Apply JSON parsing middleware AFTER Stripe webhooks
 app.use(express.json({ limit: '50mb' }));
 
-// INITIALIZE SERVICE DELIVERY FRAMEWORK - CRITICAL FOR AI AGENT MARKETPLACE
-console.log('🔧 Initializing Service Delivery Framework...');
-initializeServiceHandlers();
-console.log('✅ Service Delivery Framework initialized with handlers for all AI agents');
+// NOTE: Service Delivery Framework initialization moved to post-listen for faster health check response
+// See setImmediate block after httpServer.listen()
 
 // IMMEDIATE ORDER CREATION - REGISTER BEFORE ALL MIDDLEWARE TO BYPASS CONFLICTS
 console.log('🚀 REGISTERING ORDER CREATION AT SERVER STARTUP - HIGHEST PRIORITY');
@@ -3617,6 +3615,16 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   setImmediate(async () => {
     console.log('🔄 Starting post-listen background initialization...');
     
+    // INITIALIZE SERVICE DELIVERY FRAMEWORK - deferred to post-listen for faster health checks
+    try {
+      console.log('🔧 Initializing Service Delivery Framework...');
+      const { initializeServiceHandlers } = await import('./services/handlers');
+      initializeServiceHandlers();
+      console.log('✅ Service Delivery Framework initialized');
+    } catch (error) {
+      console.error('❌ Service Delivery Framework failed:', error);
+    }
+    
     try {
       // Register routes AFTER server is listening (pass existing server)
       const { registerRoutes } = await import('./routes');
@@ -3842,17 +3850,22 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
       }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
       
-      initializeAutomatedOutreach().catch(console.error);
-      console.log('✅ Emergency outreach orchestrator started');
+      // Lazy import for automated outreach
+      import('./services/automatedOutreachOrchestrator').then(({ initializeAutomatedOutreach }) => {
+        initializeAutomatedOutreach().catch(console.error);
+        console.log('✅ Emergency outreach orchestrator started');
+      }).catch(err => console.error('❌ Failed to initialize automated outreach:', err));
       
       console.log('🎯 EMERGENCY ZERO-COST REVENUE GENERATION ACTIVE');
       console.log('📞 Targeting trading bot operators, AI developers, profitable traders');
       console.log('💳 Payment systems ready for immediate revenue collection');
       
-      // Bootstrap A2A failover pipeline monitoring
+      // Bootstrap A2A failover pipeline monitoring with lazy import
       console.log('🔄 Bootstrapping A2A failover pipeline...');
-      const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
-      console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
+      import('./services/a2aFailoverPipeline.js').then(({ realA2AFailoverPipeline }) => {
+        const failoverStats = realA2AFailoverPipeline.getRealFailoverStats();
+        console.log(`✅ A2A failover monitoring auto-started: ${failoverStats.autoMonitoring}`);
+      }).catch(err => console.error('❌ Failed to bootstrap A2A failover:', err));
       
     } catch (error) {
       console.error('❌ Failed to initialize emergency outreach:', error);

@@ -52,6 +52,78 @@ The platform uses a dual-wallet system (Circle USDC and DeFi/MetaMask) and is st
 - **Bazaar Discovery Implementation**: `server/discovery/bazaarRegistrar.ts` for Coinbase Bazaar discovery indexing, providing HTTP-based discovery endpoints. Discovery is disabled in production if `CDP_API_KEY_ID` is missing. Includes an E2E catalog integrity check on startup.
 - **GPT Session Auth (NEW)**: Zero-friction ChatGPT integration using session-based auth via OpenAI conversation/session ID headers. Eliminates API key friction for GPT users. Feature flag: `GPT_SESSION_AUTH=true` enables the flow. Files: `server/services/gptAuthResolver.ts`, `server/middleware/paymentOrchestrator.ts`. **SKIPPED**: Phase 2F integration test harness (requires DI server factory refactoring) - may revisit if issues arise.
 
+## PLATFORM STABILITY STATE (Snapshot: December 20, 2025)
+
+**STATUS: FIRST FULLY STABLE DEPLOYMENT** ✅
+
+### Critical Configuration (DO NOT MODIFY)
+```
+Platform Wallet: 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+USDC (Base): 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+USDT (Base): 0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2
+x402Version: 2 (number, not string)
+Chain: Base mainnet (chainId: 8453)
+Facilitator: https://facilitator.cdp.coinbase.com (with CDP keys)
+Fallback Facilitator: https://x402.org/facilitator
+```
+
+### Environment Variables Required
+- `CDP_API_KEY_ID` + `CDP_API_KEY_SECRET` - Coinbase CDP for wallets
+- `ALCHEMY_API_KEY` - Blockchain RPC
+- `OPENAI_API_KEY` - AI service delivery
+- `STRIPE_SECRET_KEY` - Payment processing
+- `DATABASE_URL` - PostgreSQL connection
+- `GPT_CHECKOUT_MODE=elements` - GPT credit purchase mode
+- `GPT_SESSION_AUTH=true` - Zero-friction GPT integration
+- `BAZAAR_DISCOVERY_ENABLED=true` - Coinbase Bazaar indexing
+
+### Verified Operational Status
+| System | Status | Endpoint |
+|--------|--------|----------|
+| x402 USDC Payments | ✅ | `/x402/*` |
+| x402 USDT Payments | ✅ | `/x402/*` |
+| API Key Payments | ✅ | X-API-KEY header |
+| Bazaar Discovery | ✅ | `/api/discovery/resources` (41 services) |
+| A2A Agent Card | ✅ | `/.well-known/agent-card.json` |
+| MCP Services | ✅ | `/mcp/services` (18 tools) |
+| x402.json | ✅ | `/.well-known/x402.json` |
+| GPT Credits | ✅ | `/api/gpt/credits/*` |
+| Stripe Checkout | ✅ | `/credits` |
+
+### Verified Revenue (as of snapshot)
+- **Total Revenue**: $105.52 (106 SUCCEEDED intents)
+- **Unique Paying Wallets**: 6
+- **Top Customer**: 0x92ca4cef... ($79.40, 92 transactions)
+- **USDT Revenue**: $0.50 (newly enabled)
+
+### Key Files for Payment Flow
+1. `server/routes/x402MicroserviceRoutesV2.ts` - GET handlers with X-PAYMENT verification
+2. `server/middleware/hybridPaymentMiddleware.ts` - Payment verification + intent ledger
+3. `server/middleware/paymentOrchestrator.ts` - Route-level payment orchestration
+4. `server/discovery/bazaarRegistrar.ts` - Coinbase Bazaar catalog
+
+### RESTORATION PROCEDURES
+
+**If payment verification fails:**
+1. Check X-PAYMENT header verification in `x402MicroserviceRoutesV2.ts` lines 1943-1980
+2. Verify `verifyTransactionPayment()` returns boolean (not object)
+3. Ensure requiredAmount is in micro units (multiply USD by 1e6)
+4. Check ACCEPTED_STABLECOINS array includes both USDC and USDT
+
+**If discovery endpoints fail:**
+1. Verify `BAZAAR_DISCOVERY_ENABLED=true` in environment
+2. Check `ServiceCatalogService` builds 41 services on startup
+3. Verify `/api/discovery/resources` returns 41 resources
+
+**If GET endpoints return 402 when they shouldn't:**
+1. The fix is in `x402MicroserviceRoutesV2.ts` - check for X-PAYMENT BEFORE returning 402
+2. Order: API Key check → X-PAYMENT tx hash check → Return 402
+
+**Database Tables Required for Payments:**
+- `x402_payment_intents` - Payment intent ledger (replay protection)
+- `x402_payments` - Completed payment records
+- `api_keys` - Prepaid credit API keys
+
 ## External Dependencies
 - **Circle:** USDC wallet creation, management, balance tracking via Developer Controlled Wallets SDK.
 - **x402 Protocol:** HTTP 402-based autonomous AI agent payment standard.

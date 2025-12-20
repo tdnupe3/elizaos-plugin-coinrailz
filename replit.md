@@ -90,11 +90,14 @@ Fallback Facilitator: https://x402.org/facilitator
 | GPT Credits | ✅ | `/api/gpt/credits/*` |
 | Stripe Checkout | ✅ | `/credits` |
 
-### Verified Revenue (as of snapshot)
-- **Total Revenue**: $105.52 (106 SUCCEEDED intents)
-- **Unique Paying Wallets**: 6
-- **Top Customer**: 0x92ca4cef... ($79.40, 92 transactions)
-- **USDT Revenue**: $0.50 (newly enabled)
+### Revenue Status (as of snapshot)
+- **Payment Intents (SUCCEEDED)**: 106 intents, $105.52 total
+- **⚠️ REQUIRES AUDIT**: Most intents are internal tests, not external customer revenue
+- **Verified External Revenue**: PENDING AUDIT - need to distinguish test wallets from customers
+- **USDT E2E Flow**: ✅ Verified working with real on-chain transactions (our tests)
+- **Known Test Wallets**: 0x22f5a7b9..., 0xb2d10687..., 0x9bfc108d..., 0x0a2854fb...
+
+**NOTE**: The $14.87 from 0x0a2854fb... was an internal swap to obtain USDT, NOT customer revenue.
 
 ### Key Files for Payment Flow
 1. `server/routes/x402MicroserviceRoutesV2.ts` - GET handlers with X-PAYMENT verification

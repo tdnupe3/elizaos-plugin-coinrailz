@@ -3703,13 +3703,19 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   }
 
   // Initialize x402 funds sweep scheduler
-  try {
-    console.log('💰 Initializing x402 funds sweep scheduler...');
-    const { x402SweepScheduler } = await import('./services/x402SweepScheduler');
-    x402SweepScheduler.start();
-    console.log('✅ x402 funds sweep scheduler started (runs every 30 minutes)');
-  } catch (error) {
-    console.error('❌ Failed to initialize x402 sweep scheduler:', error);
+  // DISABLED: Sweep scheduler disabled until revenue audit complete
+  // Re-enable by setting X402_SWEEP_ENABLED=true
+  if (process.env.X402_SWEEP_ENABLED === 'true') {
+    try {
+      console.log('💰 Initializing x402 funds sweep scheduler...');
+      const { x402SweepScheduler } = await import('./services/x402SweepScheduler');
+      x402SweepScheduler.start();
+      console.log('✅ x402 funds sweep scheduler started (runs every 30 minutes)');
+    } catch (error) {
+      console.error('❌ Failed to initialize x402 sweep scheduler:', error);
+    }
+  } else {
+    console.log('⏸️ x402 funds sweep scheduler DISABLED (set X402_SWEEP_ENABLED=true to enable)');
   }
 
   // Initialize x402 cleanup scheduler (daily at 3 AM)

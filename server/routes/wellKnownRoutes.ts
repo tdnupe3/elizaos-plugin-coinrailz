@@ -1544,11 +1544,11 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
 router.get('/.well-known/agent-card.json', async (req: Request, res: Response) => {
   const baseUrl = getBaseUrl(req);
   
-  // A2A Protocol v0.3.0 compliant agent card - ALL 38 SERVICES
+  // A2A Protocol v0.3.0 compliant agent card - ALL 41 SERVICES
   const agentCard = {
     protocolVersion: "0.3.0",
     name: "Coin Railz",
-    description: "Multi-chain x402 micropayment infrastructure for AI agents. 38 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, market intelligence, and traditional markets. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
+    description: "Multi-chain x402 micropayment infrastructure for AI agents. 41 pay-per-call API services for crypto analytics, trading signals, security audits, real estate, banking, market intelligence, prediction markets, and traditional markets. Pay with USDC on Base chain - prices from $0.10 to $10.00 per request.",
     url: baseUrl,
     version: "3.0.0",
     
@@ -1844,6 +1844,57 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         name: "Forex Sentiment Analysis",
         description: "AI-powered forex sentiment analysis with central bank policy and economic indicators. $0.40 per request.",
         tags: ["traditional-markets", "forex", "sentiment", "currency", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      // Discovery & Testing
+      {
+        id: "ping",
+        name: "x402 Discovery Ping",
+        description: "x402 discovery and testing endpoint - returns 402 Payment Required challenge. $0.25 per request.",
+        tags: ["discovery", "testing", "health-check", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      // Agent Infrastructure
+      {
+        id: "agent-create-wallet",
+        name: "Agent Wallet Provisioning",
+        description: "Create CDP-managed wallets for AI agents with instant USDC support on Base. $2.00 per request.",
+        tags: ["infrastructure", "wallets", "agents", "cdp", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      // Prediction Markets (4 services)
+      {
+        id: "polymarket-odds",
+        name: "Polymarket Odds",
+        description: "Get current odds from Polymarket prediction markets. $0.50 per request.",
+        tags: ["prediction-markets", "polymarket", "odds", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "polymarket-events",
+        name: "Polymarket Events",
+        description: "Get trending events from Polymarket. $0.25 per request.",
+        tags: ["prediction-markets", "polymarket", "events", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "polymarket-search",
+        name: "Polymarket Search",
+        description: "Search Polymarket prediction markets. $0.25 per request.",
+        tags: ["prediction-markets", "polymarket", "search", "x402"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "prediction-market-odds",
+        name: "Prediction Market Odds",
+        description: "Get current odds and probability for any prediction market event. $0.50 per request.",
+        tags: ["prediction-markets", "odds", "probability", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
       }
@@ -2656,10 +2707,77 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
         methods: ["GET", "POST"],
         price_usd: 0.40,
         auth: "x402",
+        name: "Forex Sentiment Analysis",
         description: "AI-powered forex sentiment analysis with central bank policy and economic indicators",
         status: "healthy",
         category: "traditional-markets",
         input_schema: { type: "object", properties: { pair: { type: "string" } }, required: ["pair"] }
+      },
+      {
+        path: "/x402/ping",
+        methods: ["GET", "POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        name: "x402 Discovery Ping",
+        description: "x402 discovery and testing endpoint - returns 402 Payment Required challenge",
+        status: "healthy",
+        category: "discovery",
+        input_schema: { type: "object", properties: {} }
+      },
+      {
+        path: "/x402/agent-create-wallet",
+        methods: ["POST"],
+        price_usd: 2.00,
+        auth: "x402",
+        name: "Agent Wallet Provisioning",
+        description: "Create CDP-managed wallets for AI agents with instant USDC support on Base",
+        status: "healthy",
+        category: "infrastructure",
+        input_schema: { type: "object", properties: { agentId: { type: "string" }, description: { type: "string" } }, required: ["agentId"] }
+      },
+      {
+        path: "/x402/polymarket-odds",
+        methods: ["GET", "POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        name: "Polymarket Odds",
+        description: "Get current odds from Polymarket prediction markets",
+        status: "healthy",
+        category: "prediction-markets",
+        input_schema: { type: "object", properties: { marketId: { type: "string" }, query: { type: "string" } } }
+      },
+      {
+        path: "/x402/polymarket-events",
+        methods: ["GET", "POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        name: "Polymarket Events",
+        description: "Get trending events from Polymarket",
+        status: "healthy",
+        category: "prediction-markets",
+        input_schema: { type: "object", properties: { limit: { type: "number" }, category: { type: "string" } } }
+      },
+      {
+        path: "/x402/polymarket-search",
+        methods: ["GET", "POST"],
+        price_usd: 0.25,
+        auth: "x402",
+        name: "Polymarket Search",
+        description: "Search Polymarket prediction markets",
+        status: "healthy",
+        category: "prediction-markets",
+        input_schema: { type: "object", properties: { query: { type: "string" } }, required: ["query"] }
+      },
+      {
+        path: "/x402/prediction-market-odds",
+        methods: ["GET", "POST"],
+        price_usd: 0.50,
+        auth: "x402",
+        name: "Prediction Market Odds",
+        description: "Get current odds and probability for any prediction market event",
+        status: "healthy",
+        category: "prediction-markets",
+        input_schema: { type: "object", properties: { eventId: { type: "string" }, marketType: { type: "string" } }, required: ["eventId"] }
       }
     ],
     x402: {
@@ -2680,7 +2798,7 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     },
     commerce: {
       total_services: 41,
-      categories: ["trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "traditional-markets"],
+      categories: ["discovery", "trader-focused", "security", "infrastructure", "premium-infrastructure", "payments", "real-estate", "banking", "trading", "intelligence", "prediction-markets", "traditional-markets"],
       platform_commission: 15,
       minimum_payment: 0.10,
       maximum_payment: 10000

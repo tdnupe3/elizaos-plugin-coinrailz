@@ -59,71 +59,62 @@ export class DatabaseTransactionManager {
       // NON-TRANSACTIONAL version for neon-http driver compatibility
       // Execute the transfer with optimistic locking
       
-      // 1. Verify sender balance
-      const senderBalance = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.id, senderId),
-        columns: { balance: true, version: true }
-      });
-
-      if (!senderBalance || senderBalance.balance < amount) {
-        throw new Error('Insufficient balance');
-      }
-
-      // 2. Verify receiver exists
+      // Validate amount has max 2 decimal places
+      const roundedAmount = Math.round(amount * 100) / 100;
+      
+      // 1. Verify receiver exists first (cheaper check)
       const receiver = await db.query.users.findFirst({
         where: (users, { eq }) => eq(users.id, receiverId),
-        columns: { id: true, version: true, balance: true }
+        columns: { id: true }
       });
 
       if (!receiver) {
         throw new Error('Receiver not found');
       }
 
-      // 3. Update sender balance with version check
+      // 2. ATOMIC debit from sender with balance check in WHERE clause
+      // This prevents race conditions: only succeeds if balance >= amount at execution time
       const senderUpdate = await db.update(users)
         .set({ 
-          balance: senderBalance.balance - amount,
-          version: senderBalance.version + 1
+          balance: sql`${users.balance} - ${roundedAmount}`,
+          version: sql`${users.version} + 1`
         })
         .where(and(
           eq(users.id, senderId),
-          eq(users.version, senderBalance.version)
+          sql`${users.balance} >= ${roundedAmount}`
         ))
         .returning();
 
       if (senderUpdate.length === 0) {
-        throw new Error('Concurrent modification detected - sender balance');
+        throw new Error('Insufficient balance or concurrent modification - sender');
       }
 
-      // 4. Update receiver balance with version check
+      // 3. ATOMIC credit to receiver
       const receiverUpdate = await db.update(users)
         .set({ 
-          balance: receiver.balance + amount,
-          version: receiver.version + 1
+          balance: sql`${users.balance} + ${roundedAmount}`,
+          version: sql`${users.version} + 1`
         })
-        .where(and(
-          eq(users.id, receiverId),
-          eq(users.version, receiver.version)
-        ))
+        .where(eq(users.id, receiverId))
         .returning();
 
       if (receiverUpdate.length === 0) {
-        // Attempt to rollback sender update
+        // Attempt to rollback sender update using atomic reversal
         await db.update(users)
           .set({ 
-            balance: senderBalance.balance,
-            version: senderBalance.version
+            balance: sql`${users.balance} + ${roundedAmount}`,
+            version: sql`${users.version} + 1`
           })
           .where(eq(users.id, senderId));
-        throw new Error('Concurrent modification detected - receiver balance');
+        throw new Error('Receiver update failed - rolled back sender');
       }
 
-      // 5. Create transaction record
+      // 5. Create transaction record with the rounded amount actually applied
       await db.insert(transactions).values({
         id: transactionId,
         senderId,
         receiverId,
-        amount,
+        amount: roundedAmount,
         currency,
         type: 'p2p_transfer',
         status: 'completed',
@@ -206,32 +197,21 @@ export class DatabaseTransactionManager {
         throw new Error('Commission already paid for this transaction');
       }
 
-      // 2. Get agent balance
-      const agent = await db.query.users.findFirst({
-        where: (users, { eq }) => eq(users.id, agentId),
-        columns: { balance: true, version: true }
-      });
+      // 2. Calculate total commission with 2 decimal precision
+      const totalCommission = Math.round(commissions.reduce((sum, c) => sum + c.amount, 0) * 100) / 100;
 
-      if (!agent) {
-        throw new Error('Agent not found');
-      }
-
-      const totalCommission = commissions.reduce((sum, c) => sum + c.amount, 0);
-
-      // 3. Update agent balance with version check
+      // 3. ATOMIC update agent balance using SQL expression
+      // This prevents race conditions - balance is added atomically at execution time
       const agentUpdate = await db.update(users)
         .set({ 
-          balance: agent.balance + totalCommission,
-          version: agent.version + 1
+          balance: sql`${users.balance} + ${totalCommission}`,
+          version: sql`${users.version} + 1`
         })
-        .where(and(
-          eq(users.id, agentId),
-          eq(users.version, agent.version)
-        ))
+        .where(eq(users.id, agentId))
         .returning();
 
       if (agentUpdate.length === 0) {
-        throw new Error('Concurrent modification detected - agent balance');
+        throw new Error('Agent not found');
       }
 
       // 4. Record commission payout

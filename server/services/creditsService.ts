@@ -92,6 +92,13 @@ export class CreditsService {
 
   async addCredits(params: CreditsPurchaseParams): Promise<{ success: boolean; newBalance: number; transactionId: number }> {
     // NON-TRANSACTIONAL version for neon-http driver compatibility
+    // Uses ATOMIC SQL update to prevent lost updates from concurrent purchases
+    
+    // Validate amount has max 2 decimal places to match NUMERIC(12,2) precision
+    const roundedAmount = Math.round(params.amount * 100) / 100;
+    if (Math.abs(params.amount - roundedAmount) > 0.001) {
+      throw new Error(`Amount must have max 2 decimal places. Got: ${params.amount}`);
+    }
     
     // Step 1: Get or create account
     let account = await db.query.creditsAccounts.findFirst({
@@ -106,32 +113,39 @@ export class CreditsService {
       account = newAccount;
     }
 
-    const balanceBefore = parseFloat(account.balance);
-    const balanceAfter = balanceBefore + params.amount;
-
-    // Step 2: Update balance
-    await db.update(creditsAccounts)
+    // Step 2: ATOMIC update - uses SQL expression to prevent lost updates
+    // If two purchases happen concurrently, both amounts are added correctly
+    const updateResult = await db.update(creditsAccounts)
       .set({ 
-        balance: balanceAfter.toFixed(2),
+        balance: sql`${creditsAccounts.balance} + ${roundedAmount}`,
         updatedAt: new Date()
       })
-      .where(eq(creditsAccounts.id, account.id));
+      .where(eq(creditsAccounts.id, account.id))
+      .returning();
 
-    // Step 3: Log transaction
+    if (updateResult.length === 0) {
+      throw new Error('Failed to update balance');
+    }
+
+    // CRITICAL: Derive balances from UPDATE result to ensure ledger consistency
+    const balanceAfter = parseFloat(updateResult[0].balance);
+    const balanceBefore = balanceAfter - roundedAmount; // Reconstruct from atomic result
+
+    // Step 3: Log transaction with consistent values from atomic update
     const [transaction] = await db.insert(creditTransactions).values({
       accountId: account.id,
       userId: params.userId,
       type: "purchase",
-      amount: params.amount.toFixed(2),
+      amount: roundedAmount.toFixed(2),
       balanceBefore: balanceBefore.toFixed(2),
       balanceAfter: balanceAfter.toFixed(2),
       referenceId: params.referenceId,
       paymentMethod: params.paymentMethod,
-      description: params.description || `Added ${params.amount} credits via ${params.paymentMethod}`,
+      description: params.description || `Added ${roundedAmount} credits via ${params.paymentMethod}`,
       metadata: params.metadata
     }).returning();
 
-    console.log(`✅ Credits added: User ${params.userId} +$${params.amount} (${params.paymentMethod})`);
+    console.log(`✅ Credits added: User ${params.userId} +$${roundedAmount} (${params.paymentMethod})`);
 
     return {
       success: true,
@@ -144,7 +158,13 @@ export class CreditsService {
     // NON-TRANSACTIONAL version for neon-http driver compatibility
     // Uses ATOMIC SQL update with balance check in WHERE clause for concurrency safety
     
-    // Step 1: Get account
+    // Validate amount has max 2 decimal places to match NUMERIC(12,2) precision
+    const roundedAmount = Math.round(params.amount * 100) / 100;
+    if (Math.abs(params.amount - roundedAmount) > 0.001) {
+      throw new Error(`Amount must have max 2 decimal places. Got: ${params.amount}`);
+    }
+    
+    // Step 1: Get account (only to get account ID)
     const account = await db.query.creditsAccounts.findFirst({
       where: eq(creditsAccounts.userId, params.userId)
     });
@@ -153,38 +173,35 @@ export class CreditsService {
       throw new Error('Account not found');
     }
 
-    const balanceBefore = parseFloat(account.balance);
-
-    if (balanceBefore < params.amount) {
-      throw new Error(`Insufficient credits. Required: $${params.amount}, Available: $${balanceBefore}`);
-    }
-
     // Step 2: ATOMIC update - uses SQL expression with balance check in WHERE clause
     // This prevents race conditions: only succeeds if balance >= amount at execution time
     // Balance is NUMERIC(12,2) so result must also be numeric
     const updateResult = await db.update(creditsAccounts)
       .set({ 
-        balance: sql`${creditsAccounts.balance} - ${params.amount}`,
+        balance: sql`${creditsAccounts.balance} - ${roundedAmount}`,
         updatedAt: new Date()
       })
       .where(and(
         eq(creditsAccounts.id, account.id),
-        sql`${creditsAccounts.balance} >= ${params.amount}`
+        sql`${creditsAccounts.balance} >= ${roundedAmount}`
       ))
       .returning();
 
     if (updateResult.length === 0) {
-      throw new Error(`Insufficient credits (concurrent update). Required: $${params.amount}`);
+      throw new Error(`Insufficient credits (concurrent update). Required: $${roundedAmount}`);
     }
 
+    // CRITICAL: Derive balances from UPDATE result to ensure ledger consistency
+    // This prevents stale-read issues where concurrent debits log duplicate balanceBefore values
     const balanceAfter = parseFloat(updateResult[0].balance);
+    const balanceBefore = balanceAfter + roundedAmount; // Reconstruct from atomic result
 
-    // Step 3: Log transaction
+    // Step 3: Log transaction with consistent values from atomic update
     const [transaction] = await db.insert(creditTransactions).values({
       accountId: account.id,
       userId: params.userId,
       type: "debit",
-      amount: `-${params.amount.toFixed(2)}`,
+      amount: `-${roundedAmount.toFixed(2)}`,
       balanceBefore: balanceBefore.toFixed(2),
       balanceAfter: balanceAfter.toFixed(2),
       serviceName: params.serviceName,
@@ -192,7 +209,7 @@ export class CreditsService {
       metadata: params.metadata
     }).returning();
 
-    console.log(`💳 Credits deducted: User ${params.userId} -$${params.amount} (${params.serviceName})`);
+    console.log(`💳 Credits deducted: User ${params.userId} -$${roundedAmount} (${params.serviceName})`);
 
     const result = {
       success: true,

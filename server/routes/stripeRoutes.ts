@@ -354,12 +354,23 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
       console.log('Checkout session completed:', session.id);
       
       // Handle prepaid credits purchases (consolidated from /api/credits/stripe-webhook)
+      // CRITICAL: Return 500 on failure so Stripe retries - don't silently drop payments
       if (session.metadata?.userId && session.metadata?.creditsAmount) {
         const userId = session.metadata.userId;
         const creditsAmount = session.metadata.creditsAmount;
         
+        if (!userId || !creditsAmount) {
+          console.error("❌ Missing required metadata in Stripe session:", session.id);
+          return res.status(400).json({ error: "Invalid session metadata - missing userId or creditsAmount" });
+        }
+        
         try {
           const amount = parseFloat(creditsAmount);
+          
+          if (isNaN(amount) || amount <= 0) {
+            console.error("❌ Invalid credits amount:", creditsAmount);
+            return res.status(400).json({ error: "Invalid credits amount" });
+          }
           
           const result = await creditsService.addCredits({
             userId,
@@ -383,11 +394,14 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
               await handleGptPurchaseWebhook(session, amount);
               console.log(`🤖 GPT webhook: API key generated for session ${session.metadata.gptSessionId}`);
             } catch (gptError: any) {
+              // GPT key generation is non-critical - credits were added, log but don't fail
               console.error("⚠️ GPT API key generation failed (credits still added):", gptError.message);
             }
           }
         } catch (error: any) {
-          console.error("❌ Error processing credits payment:", error);
+          // CRITICAL: Return 500 so Stripe retries this webhook
+          console.error("❌ CRITICAL: Failed to process credits payment - Stripe will retry:", error);
+          return res.status(500).json({ error: "Failed to credit balance - will retry" });
         }
       }
       // Create marketplace order after successful payment

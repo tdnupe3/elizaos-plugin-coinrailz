@@ -807,12 +807,12 @@ Choose what you need:`;
 **Current Balance:** 0 credits
 
 **What are credits?**
-Credits let you access all 18 AI services without a subscription:
-• Contract Scanner (5 credits/scan)
-• Whale Tracker (3 credits/alert)
-• Trade Signals (2 credits/signal)
-• Smart Contract Audit (10 credits/audit)
-• And 14 more services...
+Credits let you access all 41 AI services without a subscription:
+• Contract Scanner (10 credits/scan)
+• Whale Tracker (4 credits/alert)
+• Trade Signals (8 credits/signal)
+• Smart Contract Audit (100 credits/audit)
+• And 37 more services...
 
 **Credit Packages:**
 • $10 = 100 credits

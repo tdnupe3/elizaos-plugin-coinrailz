@@ -1436,7 +1436,27 @@ function generate402Response(
         chainId: 8453,
         chainName: "Base"
       },
-      discoverable: true
+      discoverable: true,
+      // OFFICIAL BAZAAR EXTENSION FORMAT - spec-compliant for facilitator indexing
+      // Using @x402/extensions/bazaar v2.0.0 DiscoveryInfo structure
+      // CRITICAL: Use canonical method (POST for most x402 services) NOT req.method
+      // Discovery crawlers probe POST services with GET - we must still advertise POST
+      extensions: {
+        bazaar: {
+          input: {
+            type: "http" as const,
+            method: "POST" as const,
+            bodyType: "json" as const,
+            body: { query: "example parameter" },
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+          },
+          output: {
+            type: "application/json",
+            format: "json",
+            example: { success: true, result: {}, timestamp: new Date().toISOString() }
+          }
+        }
+      }
     }],
     facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {

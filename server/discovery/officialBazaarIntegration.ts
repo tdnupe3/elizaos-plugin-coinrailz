@@ -164,8 +164,11 @@ export function generate402ResponseWithBazaar(
   const facilitatorUrl = getCdpFacilitatorUrl();
   const resourceUrl = `${PUBLIC_BASE_URL}${service.endpoint}`;
 
-  const method = req.method.toUpperCase() as 'GET' | 'POST';
-  const bazaarMetadata = buildBazaarDiscoveryMetadata(service, method);
+  // CRITICAL: Use canonical method (POST) NOT req.method
+  // Discovery crawlers probe POST services with GET - we must still advertise POST
+  // All x402 services accept body parameters, so POST is the canonical method
+  const canonicalMethod: 'GET' | 'POST' = 'POST';
+  const bazaarMetadata = buildBazaarDiscoveryMetadata(service, canonicalMethod);
 
   return {
     x402Version: 2,

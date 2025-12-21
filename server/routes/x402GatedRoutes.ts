@@ -453,12 +453,15 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
 
   // Build official Bazaar discovery extension metadata (spec-compliant format)
   // Using @x402/extensions/bazaar v2.0.0 DiscoveryInfo structure
+  // CRITICAL: Use canonical method (POST) NOT req.method
+  // Discovery crawlers probe POST services with GET - we must still advertise POST
   const bazaarMetadata = {
     input: {
       type: "http" as const,
-      method: "GET" as const,
-      queryParams: {},
-      headers: { 'Accept': 'application/json' }
+      method: "POST" as const,
+      bodyType: "json" as const,
+      body: { contractAddress: "0x...", chainId: 8453 },
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
     },
     output: {
       type: "application/json",
@@ -495,7 +498,8 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       outputSchema: {
         input: {
           type: "http",
-          method: "GET",
+          method: "POST", // Canonical method for enterprise services
+          bodyType: "json",
           discoverable: true,
         },
         output: { type: "object", properties: {} }

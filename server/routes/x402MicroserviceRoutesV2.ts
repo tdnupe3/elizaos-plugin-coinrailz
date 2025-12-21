@@ -1770,19 +1770,25 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
   
   // Build official Bazaar discovery extension metadata (spec-compliant format)
   // Using @x402/extensions/bazaar v2.0.0 DiscoveryInfo structure
-  const bazaarMetadata = catalogEntry ? buildBazaarDiscoveryMetadata(catalogEntry, 'GET') : {
-    input: {
-      type: "http" as const,
-      method: "GET" as const,
-      queryParams: {},
-      headers: { 'Accept': 'application/json' }
-    },
-    output: {
-      type: "application/json",
-      format: "json",
-      example: { success: true, timestamp: new Date().toISOString() }
-    }
-  };
+  // CRITICAL: Use canonical method (POST for most x402 services) NOT req.method
+  // Discovery crawlers probe POST services with GET - we must still advertise POST
+  const canonicalMethod: 'GET' | 'POST' = 'POST'; // x402 services are POST-based (accept body params)
+  const bazaarMetadata = catalogEntry 
+    ? buildBazaarDiscoveryMetadata(catalogEntry, canonicalMethod) 
+    : {
+        input: {
+          type: "http" as const,
+          method: "POST" as const,
+          bodyType: "json" as const,
+          body: { query: "example parameter" },
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
+        },
+        output: {
+          type: "application/json",
+          format: "json",
+          example: { success: true, timestamp: new Date().toISOString() }
+        }
+      };
 
   const response = {
     x402Version: 2,
@@ -1817,8 +1823,9 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       outputSchema: {
         input: {
           type: "http",
-          method: "GET",
+          method: canonicalMethod,
           discoverable: true,
+          bodyType: "json", // x402 services accept JSON body
           ...(config.inputSchema?.bodyFields ? { bodyFields: config.inputSchema.bodyFields } : {})
         },
         output: config.schema?.output || { type: "object", properties: {} }

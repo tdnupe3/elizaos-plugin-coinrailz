@@ -127,6 +127,14 @@ Fallback Facilitator: https://x402.org/facilitator
 - `x402_payments` - Completed payment records
 - `api_keys` - Prepaid credit API keys
 
+## Future Plans
+
+### AI Agent Marketplace Revival (Option A)
+**Status:** PLANNED - Saved for future implementation  
+**Plan Document:** `docs/marketplace-revival-plan.md`  
+**Summary:** Populate the empty marketplace UI with 41 existing x402 services as "Platform Services" without enabling external agent registration. Low-risk, additive change (~2-4 hours). See plan document for full details.  
+**Decision:** Revisit when business conditions warrant (user demand, revenue opportunity, etc.)
+
 ## External Dependencies
 - **Circle:** USDC wallet creation, management, balance tracking via Developer Controlled Wallets SDK.
 - **x402 Protocol:** HTTP 402-based autonomous AI agent payment standard.

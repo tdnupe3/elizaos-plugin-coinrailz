@@ -3850,11 +3850,13 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
         startXMTPScanScheduler();
       }).catch(err => console.error('❌ Failed to start XMTP scan scheduler:', err));
       
-      // Start Agent Discovery Scheduler (every 6 hours for first few days)
-      import('./services/discoveryScheduler').then(({ startDiscoveryScheduler }) => {
-        startDiscoveryScheduler(6); // Run every 6 hours
-        console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
-      }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
+      // DISABLED: Legacy discoveryScheduler - AgentDiscoveryService already handles this
+      // The duplicate schedulers were causing race conditions where the second run would timeout
+      // See discovery_runs table: paired runs at same timestamp, one succeeds, one fails after 6-8 min
+      // import('./services/discoveryScheduler').then(({ startDiscoveryScheduler }) => {
+      //   startDiscoveryScheduler(6); // Run every 6 hours
+      //   console.log('✅ Agent Discovery Scheduler started (every 6 hours)');
+      // }).catch(err => console.error('❌ Failed to start discovery scheduler:', err));
       
       // Lazy import for automated outreach
       import('./services/automatedOutreachOrchestrator').then(({ initializeAutomatedOutreach }) => {

@@ -3,9 +3,10 @@ import express from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
 import { isAuthenticated } from '../replitAuth';
-import { handlePaymentIntentSucceeded } from './gptCreditsRoutes';
+import { handlePaymentIntentSucceeded, handleGptPurchaseWebhook } from './gptCreditsRoutes';
 import { db } from '../db';
 import { paymentIntentTracking } from '@shared/schema';
+import { creditsService } from '../services/creditsService';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing required Stripe secret: STRIPE_SECRET_KEY');
@@ -352,8 +353,45 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
       const session = event.data.object;
       console.log('Checkout session completed:', session.id);
       
+      // Handle prepaid credits purchases (consolidated from /api/credits/stripe-webhook)
+      if (session.metadata?.userId && session.metadata?.creditsAmount) {
+        const userId = session.metadata.userId;
+        const creditsAmount = session.metadata.creditsAmount;
+        
+        try {
+          const amount = parseFloat(creditsAmount);
+          
+          const result = await creditsService.addCredits({
+            userId,
+            amount,
+            paymentMethod: "stripe",
+            referenceId: session.id,
+            description: `Stripe payment - $${amount} credits`,
+            metadata: {
+              stripeSessionId: session.id,
+              stripePaymentIntent: session.payment_intent,
+              source: session.metadata?.source
+            }
+          });
+
+          console.log(`✅ Credits webhook: Credited $${amount} to user ${userId} (session: ${session.id})`);
+          console.log(`💰 New balance: $${result.newBalance}`);
+
+          // Handle GPT-specific purchases (generate API key for polling)
+          if (session.metadata?.source === 'gpt') {
+            try {
+              await handleGptPurchaseWebhook(session, amount);
+              console.log(`🤖 GPT webhook: API key generated for session ${session.metadata.gptSessionId}`);
+            } catch (gptError: any) {
+              console.error("⚠️ GPT API key generation failed (credits still added):", gptError.message);
+            }
+          }
+        } catch (error: any) {
+          console.error("❌ Error processing credits payment:", error);
+        }
+      }
       // Create marketplace order after successful payment
-      if (session.metadata?.platform === 'coin-railz-marketplace') {
+      else if (session.metadata?.platform === 'coin-railz-marketplace') {
         try {
           const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           

@@ -365,6 +365,22 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
         }
         
         try {
+          // IDEMPOTENCY CHECK: Prevent duplicate credits on Stripe webhook retries
+          // Check if this session was already processed by looking for existing transaction
+          const { creditTransactions } = await import('@shared/schema');
+          const { eq } = await import('drizzle-orm');
+          
+          const [existingTransaction] = await db.select()
+            .from(creditTransactions)
+            .where(eq(creditTransactions.referenceId, session.id))
+            .limit(1);
+          
+          if (existingTransaction) {
+            console.log(`⚠️ Credits webhook: Session ${session.id} already processed (tx: ${existingTransaction.id}) - returning 200 to stop retries`);
+            // Return 200 so Stripe doesn't retry - we already processed this
+            return res.json({ received: true, duplicate: true, transactionId: existingTransaction.id });
+          }
+          
           const amount = parseFloat(creditsAmount);
           
           if (isNaN(amount) || amount <= 0) {

@@ -67,8 +67,9 @@ import { usageAnalyticsMiddleware } from "../middleware/usageAnalyticsMiddleware
 import { createPaymentOrchestrator } from "../middleware/paymentOrchestrator";
 import { bundleAuthMiddleware } from "../middleware/bundleAuthMiddleware";
 import { deductBundleCredits } from "../services/bundleCreditService";
-import { serviceCatalogService } from "../services/serviceCatalogService";
+import { serviceCatalogService, ServiceCatalogService } from "../services/serviceCatalogService";
 import { offerLinkService } from "../services/offerLinkService";
+import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
 
 const router = Router();
 
@@ -1760,6 +1761,29 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     ? `${publicBaseUrl}/x402${servicePath}?offer_tracking=${offerTracking}`
     : `${publicBaseUrl}/x402${servicePath}`;
 
+  // Get service from catalog for Bazaar metadata
+  const catalogService = ServiceCatalogService.getInstance();
+  const serviceSlug = servicePath.replace(/^\//, '').replace(/\/$/, '');
+  const catalogEntry = catalogService.getCatalog().services.find(
+    s => s.slug === serviceSlug || s.endpoint === `/x402/${serviceSlug}`
+  );
+  
+  // Build official Bazaar discovery extension metadata (spec-compliant format)
+  // Using @x402/extensions/bazaar v2.0.0 DiscoveryInfo structure
+  const bazaarMetadata = catalogEntry ? buildBazaarDiscoveryMetadata(catalogEntry, 'GET') : {
+    input: {
+      type: "http" as const,
+      method: "GET" as const,
+      queryParams: {},
+      headers: { 'Accept': 'application/json' }
+    },
+    output: {
+      type: "application/json",
+      format: "json",
+      example: { success: true, timestamp: new Date().toISOString() }
+    }
+  };
+
   const response = {
     x402Version: 2,
     error: "X-PAYMENT header is required",
@@ -1785,6 +1809,11 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         chainId: 8453,
         chainName: "Base"
       },
+      // OFFICIAL BAZAAR EXTENSION FORMAT (required for facilitator indexing)
+      extensions: {
+        bazaar: bazaarMetadata
+      },
+      // Legacy outputSchema for backward compatibility
       outputSchema: {
         input: {
           type: "http",

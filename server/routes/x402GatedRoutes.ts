@@ -451,6 +451,22 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
     : routeConfig.price;
   const priceInMicroUnits = Math.round(priceUsd * 1_000_000).toString();
 
+  // Build official Bazaar discovery extension metadata (spec-compliant format)
+  // Using @x402/extensions/bazaar v2.0.0 DiscoveryInfo structure
+  const bazaarMetadata = {
+    input: {
+      type: "http" as const,
+      method: "GET" as const,
+      queryParams: {},
+      headers: { 'Accept': 'application/json' }
+    },
+    output: {
+      type: "application/json",
+      format: "json",
+      example: { success: true, result: "Service executed successfully", timestamp: new Date().toISOString() }
+    }
+  };
+
   const response = {
     x402Version: 2,
     error: "X-PAYMENT header is required",
@@ -471,6 +487,10 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       extra: {
         name: "USD Coin",
         version: "2"
+      },
+      // OFFICIAL BAZAAR EXTENSION FORMAT (required for facilitator indexing)
+      extensions: {
+        bazaar: bazaarMetadata
       },
       outputSchema: {
         input: {

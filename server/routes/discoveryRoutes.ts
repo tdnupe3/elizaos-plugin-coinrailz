@@ -7,6 +7,7 @@
 import express, { Request, Response } from 'express';
 import { autonomousDiscoveryService } from '../services/autonomousDiscoveryService';
 import { indexerNotificationService } from '../services/indexerNotificationService';
+import { createOfficialBazaarRouter, initializeOfficialBazaarIntegration } from '../discovery/officialBazaarIntegration';
 import {
   executeDiscoveryRun,
   getDiscoveryStats,
@@ -929,6 +930,15 @@ router.get('/api/discovery/outreach/recommendations', async (req: Request, res: 
       error: 'Failed to get outreach recommendations',
     });
   }
+});
+
+// Mount Official Bazaar SDK Integration router
+const bazaarRouter = createOfficialBazaarRouter();
+router.use('/api', bazaarRouter);
+
+// Initialize Bazaar integration on startup
+initializeOfficialBazaarIntegration().catch(err => {
+  console.error('Failed to initialize Official Bazaar integration:', err);
 });
 
 export default router;

@@ -3,7 +3,9 @@
  * ISOLATED: Completely separate from x402 EVM infrastructure
  */
 
-import { nanoid } from 'nanoid';
+import { nanoid, customAlphabet } from 'nanoid';
+
+const memoAlphabet = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 8);
 import { db } from '../../../db.js';
 import { 
   solanaPaymentIntents, 
@@ -116,7 +118,7 @@ class SolanaPaymentService {
   }
 
   private generateMemoTag(): string {
-    return `CRPAY-${nanoid(8).toUpperCase()}`;
+    return `CRPAY-${memoAlphabet()}`;
   }
 
   async calculateFees(amount: number, tokenSymbol: string): Promise<FeeCalculation> {

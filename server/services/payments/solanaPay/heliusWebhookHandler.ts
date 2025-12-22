@@ -72,24 +72,34 @@ class HeliusWebhookHandler {
     return HeliusWebhookHandler.instance;
   }
 
-  verifySignature(payload: string, signature: string): boolean {
+  /**
+   * Verify webhook request using Helius's Authorization header echo pattern
+   * Helius sends back the authHeader you configured when creating the webhook
+   */
+  verifyAuthHeader(authorizationHeader: string | undefined): boolean {
     const webhookSecret = process.env.HELIUS_WEBHOOK_SECRET;
     if (!webhookSecret) {
-      console.warn('⚠️ HELIUS_WEBHOOK_SECRET not configured - skipping signature verification');
+      console.warn('⚠️ HELIUS_WEBHOOK_SECRET not configured - skipping auth verification');
       return true;
     }
 
+    if (!authorizationHeader) {
+      console.error('Missing Authorization header from webhook request');
+      return false;
+    }
+
     try {
-      const hmac = crypto.createHmac('sha256', webhookSecret);
-      hmac.update(payload);
-      const expectedSignature = hmac.digest('base64');
+      // Use constant-time comparison to prevent timing attacks
+      const expectedBuffer = Buffer.from(webhookSecret);
+      const receivedBuffer = Buffer.from(authorizationHeader);
       
-      return crypto.timingSafeEqual(
-        Buffer.from(signature),
-        Buffer.from(expectedSignature)
-      );
+      if (expectedBuffer.length !== receivedBuffer.length) {
+        return false;
+      }
+      
+      return crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
     } catch (error) {
-      console.error('Webhook signature verification failed:', error);
+      console.error('Webhook auth verification failed:', error);
       return false;
     }
   }

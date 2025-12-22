@@ -111,12 +111,12 @@ router.get('/intents/:id', async (req: Request, res: Response) => {
 
 router.post('/webhook', async (req: Request, res: Response) => {
   try {
-    const signature = req.headers['x-helius-signature'] as string || '';
-    const rawBody = JSON.stringify(req.body);
+    // Helius uses Authorization header echo pattern for webhook auth
+    const authHeader = req.headers['authorization'] as string | undefined;
     
-    if (process.env.HELIUS_WEBHOOK_SECRET && !heliusWebhookHandler.verifySignature(rawBody, signature)) {
-      console.warn('⚠️ Invalid Helius webhook signature');
-      return res.status(401).json({ error: 'Invalid signature' });
+    if (!heliusWebhookHandler.verifyAuthHeader(authHeader)) {
+      console.warn('⚠️ Invalid Helius webhook authorization');
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     const payloads: HeliusEnhancedPayload[] = Array.isArray(req.body) ? req.body : [req.body];

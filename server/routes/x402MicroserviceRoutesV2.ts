@@ -1680,6 +1680,14 @@ router.use((req: Request, res: Response, next) => {
         return enriched;
       });
       
+      // V1 COMPAT SHIM: When ?x402v=1 is requested, downgrade to V1 format for x402scan
+      // ROLLBACK: Delete this block (5 lines) if issues arise. Added Dec 22, 2025.
+      if (req.query.x402v === '1') {
+        body.x402Version = 1;
+        body.accepts?.forEach((item: any) => delete item.x402Network);
+        console.log(`📋 x402 V1 compat: Serving V1 format for ${req.path}`);
+      }
+      
       // Add payment instructions if not present
       if (!body.paymentInstructions) {
         body.paymentInstructions = {

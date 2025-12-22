@@ -26,7 +26,7 @@ import {
 
 export interface CreateIntentRequest {
   amount: string;
-  tokenSymbol: 'SOL' | 'USDC';
+  tokenSymbol: 'SOL' | 'USDC' | 'USDT';
   serviceName: string;
   serviceSlug?: string;
   customerWallet?: string;

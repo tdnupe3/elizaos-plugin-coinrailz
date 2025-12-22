@@ -29,6 +29,13 @@ export const SUPPORTED_TOKENS: Record<string, SupportedToken> = {
     name: 'USD Coin',
     ataRequired: true,
   },
+  USDT: {
+    symbol: 'USDT',
+    mint: 'Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg',
+    decimals: 6,
+    name: 'Tether USD',
+    ataRequired: true,
+  },
 };
 
 export const MEMO_PROGRAM_ID = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
@@ -59,24 +66,28 @@ export const SERVICE_PRICING = {
     name: 'Token Price Feed',
     description: 'Real-time Solana token prices via Jupiter/DexScreener',
     priceUsdc: '0.10',
+    priceUsdt: '0.10',
     priceSol: '0.0005',
   },
   [SERVICE_SLUGS.TRENDING_TOKENS]: {
     name: 'Trending Tokens',
     description: 'Hot tokens on Solana DEXs with volume and price data',
     priceUsdc: '0.25',
+    priceUsdt: '0.25',
     priceSol: '0.001',
   },
   [SERVICE_SLUGS.WHALE_ALERTS]: {
     name: 'Whale Wallet Alerts',
     description: 'Track large Solana wallet movements in real-time',
     priceUsdc: '0.50',
+    priceUsdt: '0.50',
     priceSol: '0.002',
   },
   [SERVICE_SLUGS.TRADE_SIGNALS]: {
     name: 'Trade Signals',
     description: 'Simple trading signals for Solana tokens',
     priceUsdc: '0.75',
+    priceUsdt: '0.75',
     priceSol: '0.003',
   },
 } as const;

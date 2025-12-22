@@ -25,7 +25,7 @@ const router = Router();
 
 const createIntentSchema = z.object({
   amount: z.string().regex(/^\d+(\.\d+)?$/, 'Amount must be a valid number'),
-  tokenSymbol: z.enum(['SOL', 'USDC']),
+  tokenSymbol: z.enum(['SOL', 'USDC', 'USDT']),
   serviceName: z.string().min(1).max(100),
   serviceSlug: z.string().optional(),
   customerWallet: z.string().optional(),

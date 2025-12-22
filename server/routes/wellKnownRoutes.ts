@@ -2165,6 +2165,21 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
       minimum_payment: 0.10
     },
     
+    solana: {
+      enabled: true,
+      wallet_address: process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k",
+      network: "solana:mainnet",
+      tokens: ["SOL", "USDC", "USDT"],
+      preferred_token: "USDC",
+      fee_percentage: 0.005,
+      minimum_payment: 0.10,
+      payment_flow: "intent-based",
+      memo_format: "CRPAY-[A-Z0-9]{8}",
+      webhook_settlement: true,
+      catalog_url: "/solana-pay/catalog",
+      documentation_url: "/solana-pay"
+    },
+    
     fiat: {
       stripe: {
         enabled: true,
@@ -2888,6 +2903,124 @@ router.get('/.well-known/pricing.json', async (req: Request, res: Response) => {
   };
   
   res.status(200).json(pricing);
+});
+
+/**
+ * GET /.well-known/solana.json
+ * 
+ * Solana payment processor discovery endpoint for Solana-native AI agents
+ * Completely isolated from x402 EVM infrastructure
+ */
+router.get('/.well-known/solana.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  
+  const solanaManifest = {
+    name: "Coin Railz Solana Payment Processor",
+    homepage: "https://coinrailz.com/solana-pay",
+    contact: "support@coinrailz.com",
+    description: "Payment processing as a service for Solana-native AI agents. 0.5% fees, instant webhook settlement, SOL/USDC/USDT support. Built for Truth Terminal, pump.fun traders, and Jito MEV bots.",
+    version: "1.0.0",
+    network: "solana:mainnet",
+    
+    wallet: {
+      address: process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k",
+      type: "platform_wallet"
+    },
+    
+    tokens: [
+      {
+        symbol: "SOL",
+        mint: "native",
+        decimals: 9,
+        name: "Solana"
+      },
+      {
+        symbol: "USDC",
+        mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+        decimals: 6,
+        name: "USD Coin"
+      },
+      {
+        symbol: "USDT",
+        mint: "Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg",
+        decimals: 6,
+        name: "Tether USD"
+      }
+    ],
+    
+    payment_flow: {
+      type: "intent-based",
+      memo_format: "CRPAY-[A-Z0-9]{8}",
+      settlement: "webhook",
+      steps: [
+        "1. POST /solana-pay/intents to create payment intent",
+        "2. Send payment to wallet with memo tag from response",
+        "3. Helius webhook auto-settles on chain confirmation",
+        "4. Access service with x-intent-id header"
+      ]
+    },
+    
+    fees: {
+      percentage: 0.005,
+      minimum_sol: 0.001,
+      minimum_usdc: 0.25,
+      description: "0.5% fee with minimum thresholds per token"
+    },
+    
+    endpoints: {
+      catalog: `${baseUrl}/solana-pay/catalog`,
+      create_intent: `${baseUrl}/solana-pay/intents`,
+      check_intent: `${baseUrl}/solana-pay/intents/:intentId`,
+      services_list: `${baseUrl}/solana-pay/services`,
+      status: `${baseUrl}/solana-pay/status`
+    },
+    
+    services: [
+      {
+        id: "sol-price-feed",
+        name: "Token Price Feed",
+        description: "Real-time Solana token prices via Jupiter/DexScreener",
+        endpoint: `${baseUrl}/solana-pay/services/price/:mint`,
+        price_usdc: 0.10,
+        price_sol: 0.0005,
+        category: "data"
+      },
+      {
+        id: "sol-trending",
+        name: "Trending Tokens",
+        description: "Hot tokens on Solana DEXs with volume and price data",
+        endpoint: `${baseUrl}/solana-pay/services/trending`,
+        price_usdc: 0.25,
+        price_sol: 0.001,
+        category: "data"
+      },
+      {
+        id: "sol-whale-alerts",
+        name: "Whale Wallet Alerts",
+        description: "Track large Solana wallet movements in real-time",
+        endpoint: `${baseUrl}/solana-pay/services/whale-alerts`,
+        price_usdc: 0.50,
+        price_sol: 0.002,
+        category: "intelligence"
+      }
+    ],
+    
+    target_users: [
+      "Solana-native AI agents",
+      "Truth Terminal ecosystem",
+      "pump.fun traders",
+      "Jito MEV bots",
+      "DeFi automation"
+    ],
+    
+    metadata: {
+      created: "2025-12-22",
+      updated: new Date().toISOString().split('T')[0],
+      isolated_from_evm: true
+    }
+  };
+  
+  res.status(200).json(solanaManifest);
 });
 
 export default router;

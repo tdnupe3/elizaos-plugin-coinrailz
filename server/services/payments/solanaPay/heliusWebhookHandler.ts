@@ -73,18 +73,29 @@ class HeliusWebhookHandler {
   }
 
   /**
+   * Check if webhook authentication is properly configured
+   * PRODUCTION SAFETY: Returns false if HELIUS_WEBHOOK_SECRET is not set
+   */
+  isWebhookConfigured(): boolean {
+    return !!process.env.HELIUS_WEBHOOK_SECRET;
+  }
+
+  /**
    * Verify webhook request using Helius's Authorization header echo pattern
    * Helius sends back the authHeader you configured when creating the webhook
+   * SECURITY: Fails closed - rejects if secret not configured
    */
   verifyAuthHeader(authorizationHeader: string | undefined): boolean {
     const webhookSecret = process.env.HELIUS_WEBHOOK_SECRET;
+    
+    // CRITICAL: Fail closed - reject if webhook secret not configured
     if (!webhookSecret) {
-      console.warn('⚠️ HELIUS_WEBHOOK_SECRET not configured - skipping auth verification');
-      return true;
+      console.error('🔒 SECURITY: HELIUS_WEBHOOK_SECRET not configured - rejecting webhook');
+      return false;
     }
 
     if (!authorizationHeader) {
-      console.error('Missing Authorization header from webhook request');
+      console.error('🔒 SECURITY: Missing Authorization header from webhook request');
       return false;
     }
 
@@ -94,12 +105,17 @@ class HeliusWebhookHandler {
       const receivedBuffer = Buffer.from(authorizationHeader);
       
       if (expectedBuffer.length !== receivedBuffer.length) {
+        console.error('🔒 SECURITY: Authorization header length mismatch');
         return false;
       }
       
-      return crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+      const isValid = crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+      if (!isValid) {
+        console.error('🔒 SECURITY: Authorization header mismatch');
+      }
+      return isValid;
     } catch (error) {
-      console.error('Webhook auth verification failed:', error);
+      console.error('🔒 SECURITY: Webhook auth verification failed:', error);
       return false;
     }
   }

@@ -12,6 +12,7 @@
 
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
 import { 
   solanaPaymentService, 
   heliusWebhookHandler,
@@ -22,6 +23,32 @@ import {
 } from '../services/payments/solanaPay/index.js';
 
 const router = Router();
+
+// Rate limiter for intent creation - prevents spam
+const intentRateLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute window
+  max: 30, // Max 30 intents per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Rate limit exceeded',
+    message: 'Too many payment intents created. Please wait before trying again.',
+    retryAfter: 60
+  },
+  keyGenerator: (req) => {
+    // Use X-Forwarded-For for proxied requests, fallback to IP
+    return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+  }
+});
+
+// Stricter rate limiter for webhook endpoint - prevent abuse
+const webhookRateLimiter = rateLimit({
+  windowMs: 10 * 1000, // 10 second window
+  max: 100, // Max 100 webhooks per 10 seconds (Helius can batch)
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Webhook rate limit exceeded' }
+});
 
 const createIntentSchema = z.object({
   amount: z.string().regex(/^\d+(\.\d+)?$/, 'Amount must be a valid number'),
@@ -35,7 +62,7 @@ const createIntentSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
-router.post('/intents', async (req: Request, res: Response) => {
+router.post('/intents', intentRateLimiter, async (req: Request, res: Response) => {
   try {
     if (!solanaPaymentService.isReady()) {
       await solanaPaymentService.initialize();
@@ -109,13 +136,22 @@ router.get('/intents/:id', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/webhook', async (req: Request, res: Response) => {
+router.post('/webhook', webhookRateLimiter, async (req: Request, res: Response) => {
   try {
+    // Check if webhook is properly configured (fail-closed security)
+    if (!heliusWebhookHandler.isWebhookConfigured()) {
+      console.error('🔒 SECURITY: Webhook rejected - HELIUS_WEBHOOK_SECRET not configured');
+      return res.status(503).json({ 
+        error: 'Service unavailable', 
+        message: 'Webhook authentication not configured' 
+      });
+    }
+
     // Helius uses Authorization header echo pattern for webhook auth
     const authHeader = req.headers['authorization'] as string | undefined;
     
     if (!heliusWebhookHandler.verifyAuthHeader(authHeader)) {
-      console.warn('⚠️ Invalid Helius webhook authorization');
+      console.warn('🔒 SECURITY: Invalid Helius webhook authorization');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
@@ -186,16 +222,38 @@ router.get('/tokens', async (req: Request, res: Response) => {
 
 router.get('/status', async (req: Request, res: Response) => {
   const isReady = solanaPaymentService.isReady();
+  const hasWebhookSecret = !!process.env.HELIUS_WEBHOOK_SECRET;
+  const hasWalletKey = !!process.env.SOLANA_PRIVATE_KEY;
+  
+  // Determine operational status
+  let status = 'not_configured';
+  const warnings: string[] = [];
+  
+  if (isReady && hasWebhookSecret) {
+    status = 'operational';
+  } else if (isReady) {
+    status = 'partial';
+    if (!hasWebhookSecret) {
+      warnings.push('HELIUS_WEBHOOK_SECRET not configured - webhooks disabled');
+    }
+  } else {
+    if (!hasWalletKey) {
+      warnings.push('SOLANA_PRIVATE_KEY not configured - service disabled');
+    }
+  }
   
   return res.json({
-    status: isReady ? 'operational' : 'not_configured',
+    status,
     chain: 'solana',
     network: 'mainnet-beta',
+    production_ready: isReady && hasWebhookSecret,
     features: {
-      intents: true,
-      webhooks: !!process.env.HELIUS_WEBHOOK_SECRET,
-      tokens: ['SOL', 'USDC'],
+      intents: isReady,
+      webhooks: hasWebhookSecret,
+      wallet: hasWalletKey,
+      tokens: ['SOL', 'USDC', 'USDT'],
     },
+    ...(warnings.length > 0 && { warnings }),
   });
 });
 

@@ -163,6 +163,7 @@ const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
 const CreditsPage = lazy(() => import("@/pages/CreditsPage"));
 const APIKeysPage = lazy(() => import("@/pages/APIKeysPage"));
 const XMTPAdminPage = lazy(() => import("@/pages/XMTPAdminPage"));
+const SolanaPayPage = lazy(() => import("@/pages/solana-pay"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -489,6 +490,9 @@ function Router() {
       </Route>
 
       {/* XRP Ecosystem Hub */}
+      <Route path="/solana-pay">
+        {() => <LazyLoadWrapper><SolanaPayPage /></LazyLoadWrapper>}
+      </Route>
       <Route path="/xrp-ecosystem">
         {() => <LazyLoadWrapper><XRPEcosystemDashboard /></LazyLoadWrapper>}
       </Route>

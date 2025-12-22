@@ -3602,6 +3602,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     app.use('/api/gpt/credits', gptCreditsRoutes);
     console.log('✅ GPT Action & Credits routes registered (pre-Vite)');
     
+    // 💰 SOLANA PAYMENT PROCESSOR - Must be registered BEFORE Vite to prevent HTML fallback
+    const solanaPayRoutes = await import('./routes/solanaPayRoutes').then(m => m.default);
+    app.use('/solana-pay', solanaPayRoutes);
+    console.log('✅ Solana Pay routes registered (pre-Vite)');
+    
     try {
       await setupVite(app, httpServer);
       console.log('✅ Vite HMR ready');

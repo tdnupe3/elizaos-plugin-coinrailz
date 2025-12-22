@@ -5180,3 +5180,240 @@ export const sdkDemoKeyRequestSchema = z.object({
 export type SdkTelemetryInput = z.infer<typeof sdkTelemetryInputSchema>;
 export type SdkDemoKeyRequest = z.infer<typeof sdkDemoKeyRequestSchema>;
 
+// ============================================================================
+// SOLANA PAYMENT PROCESSOR - Completely Isolated from x402 EVM Infrastructure
+// ============================================================================
+
+/**
+ * Solana Payment Intents - Standalone ledger for Solana payments
+ * ISOLATED: Does NOT share any tables/code with x402_payment_intents
+ * 
+ * Flow: Client creates intent → receives memo tag → sends SOL/USDC with memo
+ *       → Helius webhook detects → verifier confirms → status updated
+ */
+export const solanaPaymentIntents = pgTable(
+  "solana_payment_intents",
+  {
+    id: varchar("id").primaryKey(), // Format: sol_intent_xxxx (UUID-style, matches x402 pattern)
+    
+    // Payment details
+    amount: numeric("amount", { precision: 18, scale: 9 }).notNull(), // SOL has 9 decimals
+    tokenMint: varchar("token_mint").notNull(), // USDC: EPjFWdd5..., SOL: "native"
+    tokenSymbol: varchar("token_symbol").notNull(), // USDC, SOL
+    amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }), // USD equivalent at creation
+    
+    // Unique identifier for matching payments (included in memo)
+    memoTag: varchar("memo_tag").notNull().unique(), // Format: CRPAY-xxxx (UUID-based)
+    
+    // Recipient (platform vault)
+    recipientAddress: varchar("recipient_address").notNull(), // Platform Solana wallet
+    recipientAta: varchar("recipient_ata"), // Associated Token Account for SPL tokens
+    
+    // Customer info
+    customerWallet: varchar("customer_wallet"), // Optional: expected sender for validation
+    customerId: varchar("customer_id"), // Optional: internal customer ID
+    
+    // Service being paid for
+    serviceName: varchar("service_name").notNull(), // Human-readable service name
+    serviceSlug: varchar("service_slug"), // URL-safe service identifier
+    
+    // Status tracking
+    status: varchar("status").notNull().default("pending"), 
+    // States: pending → confirming → succeeded/failed/expired
+    
+    // Transaction details (populated after payment detected by Helius webhook)
+    txSignature: varchar("tx_signature"), // Solana signature (88 chars base58)
+    confirmedSlot: bigint("confirmed_slot", { mode: "number" }),
+    confirmationStatus: varchar("confirmation_status"), // processed, confirmed, finalized
+    
+    // Platform fees (monetization)
+    platformFee: numeric("platform_fee", { precision: 18, scale: 9 }), // Our fee portion
+    platformFeeUsd: numeric("platform_fee_usd", { precision: 10, scale: 2 }),
+    feePercentage: numeric("fee_percentage", { precision: 5, scale: 4 }), // e.g., 0.0050 = 0.5%
+    
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at").notNull(), // Intent expiration (15 min default)
+    paidAt: timestamp("paid_at"), // When payment detected
+    settledAt: timestamp("settled_at"), // When fully confirmed (finalized)
+    
+    // Future-proof fields (nullable, add features later with no migration)
+    subscriptionId: integer("subscription_id"), // Link to bundle/subscription if applicable
+    bundleId: integer("bundle_id"), // Link to service bundle
+    partnerId: varchar("partner_id"), // Revenue sharing attribution
+    settlementBatchId: varchar("settlement_batch_id"), // For batch settlements
+    offerTrackingId: varchar("offer_tracking_id"), // Link to marketing/campaign offers
+    
+    // Test mode flag (devnet vs mainnet)
+    isTestMode: boolean("is_test_mode").default(false),
+    
+    // Audit trail
+    metadata: jsonb("metadata"), // Additional context (flexible JSON)
+    webhookPayload: jsonb("webhook_payload"), // Raw Helius webhook for audit/debugging
+    
+    // Error tracking
+    lastError: text("last_error"),
+    retryCount: integer("retry_count").default(0),
+  },
+  (table) => [
+    uniqueIndex("IDX_solana_intents_memo").on(table.memoTag),
+    index("IDX_solana_intents_status").on(table.status),
+    index("IDX_solana_intents_customer").on(table.customerWallet),
+    index("IDX_solana_intents_expires").on(table.expiresAt),
+    index("IDX_solana_intents_service").on(table.serviceName),
+    index("IDX_solana_intents_service_slug").on(table.serviceSlug),
+    index("IDX_solana_intents_tx").on(table.txSignature),
+    index("IDX_solana_intents_created").on(table.createdAt),
+    index("IDX_solana_intents_partner").on(table.partnerId),
+    index("IDX_solana_intents_test_mode").on(table.isTestMode),
+  ],
+);
+
+export const solanaPaymentIntentsInsertSchema = createInsertSchema(solanaPaymentIntents).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const solanaPaymentIntentsSelectSchema = createSelectSchema(solanaPaymentIntents);
+
+export type SolanaPaymentIntent = typeof solanaPaymentIntents.$inferSelect;
+export type InsertSolanaPaymentIntent = z.infer<typeof solanaPaymentIntentsInsertSchema>;
+
+/**
+ * Solana Processed Signatures - Replay attack prevention
+ * Tracks all transaction signatures we've already processed
+ * Equivalent to usedTransactionHashes for EVM
+ */
+export const solanaProcessedSignatures = pgTable(
+  "solana_processed_signatures",
+  {
+    id: serial("id").primaryKey(),
+    txSignature: varchar("tx_signature").notNull().unique(), // Solana signature (88 chars base58)
+    intentId: varchar("intent_id").references(() => solanaPaymentIntents.id),
+    processedAt: timestamp("processed_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_solana_sig_unique").on(table.txSignature),
+    index("IDX_solana_sig_intent").on(table.intentId),
+  ],
+);
+
+export const solanaProcessedSignaturesInsertSchema = createInsertSchema(solanaProcessedSignatures).omit({
+  id: true,
+  processedAt: true,
+});
+
+export type SolanaProcessedSignature = typeof solanaProcessedSignatures.$inferSelect;
+export type InsertSolanaProcessedSignature = z.infer<typeof solanaProcessedSignaturesInsertSchema>;
+
+/**
+ * Solana Fee Tiers - Dynamic pricing for payment processing
+ * Allows different fee structures for different customer tiers
+ */
+export const solanaFeeTiers = pgTable(
+  "solana_fee_tiers",
+  {
+    id: serial("id").primaryKey(),
+    name: varchar("name").notNull().unique(), // standard, premium, enterprise
+    description: text("description"),
+    
+    // Fee structure
+    percentageFee: numeric("percentage_fee", { precision: 5, scale: 4 }).notNull(), // 0.0050 = 0.5%
+    minimumFeeSol: numeric("minimum_fee_sol", { precision: 18, scale: 9 }).notNull(), // 0.001 SOL
+    minimumFeeUsdc: numeric("minimum_fee_usdc", { precision: 10, scale: 6 }).notNull(), // 0.25 USDC
+    
+    // Status
+    isActive: boolean("is_active").default(true),
+    isDefault: boolean("is_default").default(false), // Only one tier can be default
+    
+    // Timestamps
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_solana_fee_tiers_active").on(table.isActive),
+  ],
+);
+
+export const solanaFeeTiersInsertSchema = createInsertSchema(solanaFeeTiers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type SolanaFeeTier = typeof solanaFeeTiers.$inferSelect;
+export type InsertSolanaFeeTier = z.infer<typeof solanaFeeTiersInsertSchema>;
+
+/**
+ * Solana Payment Analytics - Daily aggregated metrics
+ * Mirrors x402DiscoveryMetrics pattern for consistent reporting
+ */
+export const solanaPaymentMetrics = pgTable(
+  "solana_payment_metrics",
+  {
+    id: serial("id").primaryKey(),
+    date: date("date").notNull(),
+    
+    // Volume metrics
+    totalIntentsCreated: integer("total_intents_created").default(0),
+    totalPaymentsReceived: integer("total_payments_received").default(0),
+    totalPaymentsExpired: integer("total_payments_expired").default(0),
+    totalPaymentsFailed: integer("total_payments_failed").default(0),
+    
+    // Revenue metrics
+    totalVolumeUsdc: numeric("total_volume_usdc", { precision: 18, scale: 6 }).default("0"),
+    totalVolumeSol: numeric("total_volume_sol", { precision: 18, scale: 9 }).default("0"),
+    totalFeesUsdc: numeric("total_fees_usdc", { precision: 18, scale: 6 }).default("0"),
+    totalFeesSol: numeric("total_fees_sol", { precision: 18, scale: 9 }).default("0"),
+    
+    // Unique wallets
+    uniqueCustomerWallets: integer("unique_customer_wallets").default(0),
+    
+    // By service breakdown
+    byService: jsonb("by_service"), // { "token-price": 235, "trending-tokens": 150, ... }
+    
+    // Test vs production
+    testModeIntents: integer("test_mode_intents").default(0),
+    
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("IDX_solana_metrics_date").on(table.date),
+    index("IDX_solana_metrics_updated").on(table.updatedAt),
+  ],
+);
+
+export const solanaPaymentMetricsInsertSchema = createInsertSchema(solanaPaymentMetrics).omit({
+  id: true,
+  updatedAt: true,
+});
+
+export type SolanaPaymentMetric = typeof solanaPaymentMetrics.$inferSelect;
+export type InsertSolanaPaymentMetric = z.infer<typeof solanaPaymentMetricsInsertSchema>;
+
+/**
+ * Solana Payment Intent Metadata Interface
+ * Standardizes what goes into the metadata JSONB column
+ */
+export interface SolanaPaymentIntentMetadata {
+  // Token details
+  tokenDecimals?: number;
+  tokenName?: string;
+  
+  // Price context (at time of intent creation)
+  solPriceUsd?: number;
+  
+  // Client context
+  userAgent?: string;
+  ipHash?: string;
+  sdkVersion?: string;
+  
+  // Attribution
+  campaignId?: string;
+  referralCode?: string;
+  
+  // Service context
+  serviceParams?: Record<string, unknown>;
+}
+

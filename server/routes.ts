@@ -354,6 +354,11 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/solana-outreach', await import('./routes/solanaOutreachRoutes').then(m => m.solanaOutreachRoutes));
   app.use('/api/solana-premium', await import('./routes/solanaPremiumRoutes').then(m => m.solanaPremiumRoutes));
   app.use('/api/solana-messaging', solanaMessagingRoutes);
+  
+  // 💰 SOLANA PAYMENT PROCESSOR - Isolated from x402 EVM infrastructure
+  // Endpoints: /solana-pay/intents, /solana-pay/webhook, /solana-pay/pricing, /solana-pay/tokens
+  app.use('/solana-pay', await import('./routes/solanaPayRoutes').then(m => m.default));
+  
   app.use('/api/emergency-funding', await import('./routes/emergencyFundingRoutes').then(m => m.default));
   
   // 🚀 $5K Coinbase Advertising Service - .cb.id & .base.eth outreach

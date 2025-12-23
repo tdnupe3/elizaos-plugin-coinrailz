@@ -138,17 +138,55 @@ router.get('/intents/:id', async (req: Request, res: Response) => {
 });
 
 // DEBUG endpoint - NO AUTH - logs everything Helius sends to diagnose webhook issues
+// Also writes to database so we can check from any environment
 router.post('/webhook-debug', async (req: Request, res: Response) => {
-  console.log('🔍 WEBHOOK DEBUG HIT:', new Date().toISOString());
-  console.log('   IP:', req.ip);
-  console.log('   Body:', JSON.stringify(req.body).slice(0, 500));
+  const timestamp = new Date().toISOString();
+  const logEntry = {
+    timestamp,
+    ip: req.ip || 'unknown',
+    authHeader: req.headers['authorization'] ? 'present' : 'missing',
+    bodyPreview: JSON.stringify(req.body).slice(0, 1000),
+    userAgent: req.headers['user-agent'] || 'unknown'
+  };
+  
+  console.log('🔍 WEBHOOK DEBUG HIT:', timestamp);
+  console.log('   IP:', logEntry.ip);
+  console.log('   Auth:', logEntry.authHeader);
+  console.log('   Body:', logEntry.bodyPreview.slice(0, 500));
+  
+  // Write to database for cross-environment verification
+  try {
+    const { db } = await import('../db.js');
+    const { sql } = await import('drizzle-orm');
+    await db.execute(sql`
+      INSERT INTO webhook_debug_log (timestamp, ip, auth_header, body_preview, user_agent)
+      VALUES (${timestamp}, ${logEntry.ip}, ${logEntry.authHeader}, ${logEntry.bodyPreview}, ${logEntry.userAgent})
+    `);
+    console.log('✅ Webhook logged to database');
+  } catch (dbError) {
+    console.log('⚠️ Failed to log to database (table may not exist):', dbError);
+  }
   
   // Always return 200 to Helius
   return res.status(200).json({ 
     received: true, 
-    timestamp: new Date().toISOString(),
+    timestamp,
     message: 'Debug endpoint - webhook received successfully'
   });
+});
+
+// GET endpoint to check webhook debug logs from database
+router.get('/webhook-debug-logs', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('../db.js');
+    const { sql } = await import('drizzle-orm');
+    const logs = await db.execute(sql`
+      SELECT * FROM webhook_debug_log ORDER BY timestamp DESC LIMIT 20
+    `);
+    return res.json({ logs: logs.rows || logs });
+  } catch (error) {
+    return res.json({ error: 'Table may not exist yet', message: String(error) });
+  }
 });
 
 router.post('/webhook', webhookRateLimiter, async (req: Request, res: Response) => {

@@ -3023,4 +3023,265 @@ router.get('/.well-known/solana.json', async (req: Request, res: Response) => {
   res.status(200).json(solanaManifest);
 });
 
+/**
+ * GET /.well-known/solana-actions.json
+ * 
+ * Helius Actions Directory manifest - Required for automated indexing by:
+ * - Helius Actions Directory crawler
+ * - Blink index (Dialect)
+ * - Phantom/Solflare discovery feeds
+ * - Backpack wallet discovery
+ */
+router.get('/.well-known/solana-actions.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  const platformWallet = process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+  
+  const solanaActionsManifest = {
+    name: "Coin Railz Payment Actions",
+    description: "Solana Actions for AI agent payments and data services. Create payment intents, check token prices, get trending tokens, and whale alerts.",
+    icon: `${baseUrl}/favicon.ico`,
+    
+    rules: [
+      {
+        pathPattern: "/solana-pay/intents",
+        apiPath: "/solana-pay/intents"
+      },
+      {
+        pathPattern: "/solana-pay/services/**",
+        apiPath: "/solana-pay/services/**"
+      },
+      {
+        pathPattern: "/solana-pay/catalog",
+        apiPath: "/solana-pay/catalog"
+      }
+    ],
+    
+    actions: [
+      {
+        id: "create-payment-intent",
+        name: "Create Payment Intent",
+        description: "Create a Solana payment intent for service access",
+        href: `${baseUrl}/solana-pay/intents`,
+        method: "POST",
+        parameters: {
+          amount: { type: "string", required: true, description: "Payment amount" },
+          tokenSymbol: { type: "string", required: true, enum: ["SOL", "USDC", "USDT"] },
+          serviceName: { type: "string", required: true, description: "Service to pay for" }
+        },
+        recipient: platformWallet
+      },
+      {
+        id: "token-price-feed",
+        name: "Token Price Feed",
+        description: "Get real-time Solana token prices via Jupiter/DexScreener",
+        href: `${baseUrl}/solana-pay/services/price/{mint}`,
+        method: "GET",
+        parameters: {
+          mint: { type: "string", required: true, description: "Token mint address" }
+        },
+        pricing: { amount: 0.10, currency: "USDC" }
+      },
+      {
+        id: "trending-tokens",
+        name: "Trending Tokens",
+        description: "Hot tokens on Solana DEXs with volume and price data",
+        href: `${baseUrl}/solana-pay/services/trending`,
+        method: "GET",
+        parameters: {},
+        pricing: { amount: 0.25, currency: "USDC" }
+      },
+      {
+        id: "whale-alerts",
+        name: "Whale Wallet Alerts",
+        description: "Track large Solana wallet movements in real-time",
+        href: `${baseUrl}/solana-pay/services/whale-alerts`,
+        method: "GET",
+        parameters: {
+          wallet: { type: "string", required: false, description: "Wallet to monitor" }
+        },
+        pricing: { amount: 0.50, currency: "USDC" }
+      }
+    ],
+    
+    identity: {
+      wallet: platformWallet,
+      network: "solana:mainnet"
+    },
+    
+    metadata: {
+      version: "1.0.0",
+      created: "2025-12-23",
+      updated: new Date().toISOString().split('T')[0],
+      contact: "support@coinrailz.com",
+      documentation: `${baseUrl}/.well-known/solana.json`,
+      openrpc: `${baseUrl}/public/solana-openrpc.json`
+    }
+  };
+  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('X-Action-Version', '1.0.0');
+  res.status(200).json(solanaActionsManifest);
+});
+
+/**
+ * GET /.well-known/solana-pay.json
+ * 
+ * Solana Pay merchant directory manifest - Required for:
+ * - Solana Pay Directory (api.solanapay.com)
+ * - Payment processor discovery
+ * - Merchant aggregator indexing
+ */
+router.get('/.well-known/solana-pay.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  const platformWallet = process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+  
+  const solanaPayManifest = {
+    schema_version: "1.0.0",
+    
+    merchant: {
+      name: "Coin Railz",
+      description: "Multi-chain payment infrastructure for AI agents. Accept SOL, USDC, USDT payments with automatic webhook settlement.",
+      logo: `${baseUrl}/favicon.ico`,
+      website: "https://coinrailz.com",
+      support_email: "support@coinrailz.com",
+      category: "payment_processor"
+    },
+    
+    payment_config: {
+      recipient_wallet: platformWallet,
+      network: "mainnet-beta",
+      cluster: "mainnet",
+      
+      accepted_tokens: [
+        {
+          symbol: "SOL",
+          mint: "native",
+          decimals: 9,
+          minimum: 0.001
+        },
+        {
+          symbol: "USDC",
+          mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+          decimals: 6,
+          minimum: 0.25
+        },
+        {
+          symbol: "USDT",
+          mint: "Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg",
+          decimals: 6,
+          minimum: 0.25
+        }
+      ],
+      
+      memo_required: true,
+      memo_format: "CRPAY-[A-Z0-9]{8}",
+      
+      webhook: {
+        url: `${baseUrl}/solana-pay/webhook`,
+        events: ["payment.received", "payment.confirmed", "payment.finalized"]
+      }
+    },
+    
+    fees: {
+      type: "percentage",
+      rate: 0.005,
+      description: "0.5% processing fee with minimums per token"
+    },
+    
+    api_endpoints: {
+      create_intent: {
+        method: "POST",
+        url: `${baseUrl}/solana-pay/intents`,
+        description: "Create a new payment intent"
+      },
+      check_status: {
+        method: "GET",
+        url: `${baseUrl}/solana-pay/intents/{intentId}`,
+        description: "Check payment intent status"
+      },
+      catalog: {
+        method: "GET",
+        url: `${baseUrl}/solana-pay/catalog`,
+        description: "List available paid services"
+      },
+      pricing: {
+        method: "GET",
+        url: `${baseUrl}/solana-pay/pricing`,
+        description: "Get current fee tiers"
+      }
+    },
+    
+    capabilities: [
+      "intent_based_payments",
+      "webhook_notifications",
+      "memo_matching",
+      "multi_token_support",
+      "automatic_settlement"
+    ],
+    
+    integration: {
+      type: "api",
+      documentation: `${baseUrl}/.well-known/solana.json`,
+      openrpc_spec: `${baseUrl}/public/solana-openrpc.json`,
+      sdk_available: false
+    },
+    
+    metadata: {
+      created: "2025-12-23",
+      updated: new Date().toISOString().split('T')[0],
+      version: "1.0.0"
+    }
+  };
+  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.status(200).json(solanaPayManifest);
+});
+
+/**
+ * GET /.well-known/helius.json
+ * 
+ * Helius webhook configuration manifest
+ * Documents webhook handshake for Helius integration
+ */
+router.get('/.well-known/helius.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  
+  const heliusManifest = {
+    name: "Coin Railz Helius Integration",
+    description: "Helius webhook receiver for Solana payment settlement",
+    version: "1.0.0",
+    
+    webhook: {
+      endpoint: `${baseUrl}/solana-pay/webhook`,
+      auth_type: "authorization_header_echo",
+      events_subscribed: [
+        "TRANSFER",
+        "TOKEN_TRANSFER"
+      ],
+      
+      transaction_types: [
+        "enhanced"
+      ],
+      
+      addresses_monitored: [
+        process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k"
+      ]
+    },
+    
+    settlement: {
+      confirmation_level: "confirmed",
+      memo_matching: true,
+      memo_format: "CRPAY-[A-Z0-9]{8}"
+    },
+    
+    status_endpoint: `${baseUrl}/solana-pay/status`,
+    documentation: `${baseUrl}/.well-known/solana.json`
+  };
+  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.status(200).json(heliusManifest);
+});
+
 export default router;

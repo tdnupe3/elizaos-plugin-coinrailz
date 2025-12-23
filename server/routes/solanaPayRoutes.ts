@@ -1065,6 +1065,7 @@ router.get('/instant-wallet', async (req: Request, res: Response) => {
 const PING_PRICING = {
   priceUSD: '$0.25',
   priceUSDC: '0.25',
+  priceSol: '0.001',
   amountLamports: 250000, // 0.25 USDC in micro-units (6 decimals)
   description: 'Solana Pay Discovery Ping - Service health and availability check',
   serviceSlug: 'solana-ping'
@@ -1082,14 +1083,24 @@ router.get('/ping', async (req: Request, res: Response) => {
       pricing: PING_PRICING,
       createIntentEndpoint: '/solana-pay/intents',
       serviceSlug: PING_PRICING.serviceSlug,
-      accepts: [{
-        scheme: 'solana-pay',
-        network: 'solana-mainnet',
-        token: 'USDC',
-        amount: PING_PRICING.priceUSDC,
-        amountUSD: PING_PRICING.priceUSD,
-        recipient: PLATFORM_WALLET
-      }]
+      accepts: [
+        {
+          scheme: 'solana-pay',
+          network: 'solana-mainnet',
+          token: 'USDC',
+          amount: PING_PRICING.priceUSDC,
+          amountUSD: PING_PRICING.priceUSD,
+          recipient: PLATFORM_WALLET
+        },
+        {
+          scheme: 'solana-pay',
+          network: 'solana-mainnet',
+          token: 'SOL',
+          amount: PING_PRICING.priceSol,
+          amountUSD: PING_PRICING.priceUSD,
+          recipient: PLATFORM_WALLET
+        }
+      ]
     });
   }
   
@@ -1124,23 +1135,35 @@ router.get('/ping', async (req: Request, res: Response) => {
         });
       }
       
-      // Enforce USDC payment only
-      if (tokenSymbol !== 'USDC') {
+      // Validate token and amount based on payment type
+      const validTokens = ['USDC', 'SOL', 'USDT'];
+      if (!validTokens.includes(tokenSymbol || '')) {
         return res.status(402).json({
           error: 'Invalid payment token',
-          message: `Ping service requires USDC payment, received ${tokenSymbol}`,
+          message: `Ping service accepts USDC, SOL, or USDT. Received ${tokenSymbol}`,
           pricing: PING_PRICING,
           createIntentEndpoint: '/solana-pay/intents',
           serviceSlug: PING_PRICING.serviceSlug
         });
       }
       
-      // Enforce exact $0.25 amount (with small epsilon for floating point)
-      const expectedAmount = 0.25;
-      if (Math.abs(intentAmount - expectedAmount) > 0.001) {
+      // Enforce correct amount based on token type
+      let expectedAmount: number;
+      let tokenLabel: string;
+      
+      if (tokenSymbol === 'SOL') {
+        expectedAmount = 0.001;
+        tokenLabel = 'SOL';
+      } else {
+        // USDC and USDT use same pricing
+        expectedAmount = 0.25;
+        tokenLabel = tokenSymbol || 'USDC';
+      }
+      
+      if (Math.abs(intentAmount - expectedAmount) > 0.0001) {
         return res.status(402).json({
           error: 'Incorrect payment amount',
-          message: `Ping service requires exactly $0.25 USDC, received $${intentAmount.toFixed(2)}`,
+          message: `Ping service requires exactly ${expectedAmount} ${tokenLabel}, received ${intentAmount}`,
           pricing: PING_PRICING,
           createIntentEndpoint: '/solana-pay/intents',
           serviceSlug: PING_PRICING.serviceSlug

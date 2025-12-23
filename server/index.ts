@@ -3533,6 +3533,14 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/auth', googleAuthRoutes);
   console.log('✅ Google Auth routes registered (pre-static, both dev & prod)');
   
+  // ============================================================================
+  // Solana Pay Routes - MUST be registered BEFORE static serving in BOTH environments
+  // This enables Solana payment processor to work in production
+  // ============================================================================
+  const solanaPayRoutes = await import('./routes/solanaPayRoutes').then(m => m.default);
+  app.use('/solana-pay', solanaPayRoutes);
+  console.log('✅ Solana Pay routes registered (pre-static, both dev & prod)');
+  
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');
@@ -3602,10 +3610,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     app.use('/api/gpt/credits', gptCreditsRoutes);
     console.log('✅ GPT Action & Credits routes registered (pre-Vite)');
     
-    // 💰 SOLANA PAYMENT PROCESSOR - Must be registered BEFORE Vite to prevent HTML fallback
-    const solanaPayRoutes = await import('./routes/solanaPayRoutes').then(m => m.default);
-    app.use('/solana-pay', solanaPayRoutes);
-    console.log('✅ Solana Pay routes registered (pre-Vite)');
+    // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     
     try {
       await setupVite(app, httpServer);

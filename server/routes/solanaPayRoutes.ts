@@ -37,8 +37,10 @@ router.use((req: Request, res: Response, next) => {
   
   res.setHeader('X-Action-Version', '1.0.0');
   res.setHeader('X-Action-Identity', PLATFORM_WALLET);
-  res.setHeader('Link', `<https://coinrailz.com/.well-known/solana-actions.json>; rel="solana-actions"`);
-  res.setHeader('Link', `<https://coinrailz.com/.well-known/solana-pay.json>; rel="solana-pay"`);
+  res.setHeader('Link', [
+    `<https://coinrailz.com/.well-known/solana-actions.json>; rel="solana-actions"`,
+    `<https://coinrailz.com/.well-known/solana-pay.json>; rel="solana-pay"`
+  ].join(', '));
   
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -879,7 +881,7 @@ router.post('/admin/discovery/register', async (req: Request, res: Response) => 
         solanaActions: 'https://coinrailz.com/.well-known/solana-actions.json',
         solanaPay: 'https://coinrailz.com/.well-known/solana-pay.json',
         helius: 'https://coinrailz.com/.well-known/helius.json',
-        openrpc: 'https://coinrailz.com/public/solana-openrpc.json'
+        openrpc: 'https://coinrailz.com/solana-openrpc.json'
       }
     });
   } catch (error) {

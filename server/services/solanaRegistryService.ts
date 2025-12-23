@@ -209,7 +209,7 @@ export async function pingDiscoveryCrawlers(): Promise<RegistrationResult[]> {
   console.log(`   • ${BASE_URL}/.well-known/solana-actions.json`);
   console.log(`   • ${BASE_URL}/.well-known/solana-pay.json`);
   console.log(`   • ${BASE_URL}/.well-known/helius.json`);
-  console.log(`   • ${BASE_URL}/public/solana-openrpc.json`);
+  console.log(`   • ${BASE_URL}/solana-openrpc.json`);
   console.log('');
   
   registryStatus = {

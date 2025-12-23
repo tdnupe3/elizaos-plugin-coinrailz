@@ -3114,7 +3114,7 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
       updated: new Date().toISOString().split('T')[0],
       contact: "support@coinrailz.com",
       documentation: `${baseUrl}/.well-known/solana.json`,
-      openrpc: `${baseUrl}/public/solana-openrpc.json`
+      openrpc: `${baseUrl}/solana-openrpc.json`
     }
   };
   
@@ -3223,7 +3223,7 @@ router.get('/.well-known/solana-pay.json', async (req: Request, res: Response) =
     integration: {
       type: "api",
       documentation: `${baseUrl}/.well-known/solana.json`,
-      openrpc_spec: `${baseUrl}/public/solana-openrpc.json`,
+      openrpc_spec: `${baseUrl}/solana-openrpc.json`,
       sdk_available: false
     },
     
@@ -3282,6 +3282,114 @@ router.get('/.well-known/helius.json', async (req: Request, res: Response) => {
   
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.status(200).json(heliusManifest);
+});
+
+/**
+ * GET /solana-openrpc.json
+ * 
+ * OpenRPC specification for Solana Pay API - serves directly without Vite processing
+ */
+router.get('/solana-openrpc.json', async (req: Request, res: Response) => {
+  const baseUrl = getBaseUrl(req);
+  const platformWallet = process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
+  
+  const openrpcSpec = {
+    openrpc: "1.2.6",
+    info: {
+      title: "Coin Railz Solana Pay API",
+      description: "Payment processing API for Solana-native AI agents. Create payment intents, check status, and access paid data services using SOL, USDC, or USDT.",
+      version: "1.0.0",
+      contact: {
+        name: "Coin Railz Support",
+        email: "support@coinrailz.com",
+        url: "https://coinrailz.com"
+      }
+    },
+    servers: [
+      {
+        name: "Production",
+        url: `${baseUrl}/solana-pay`
+      }
+    ],
+    methods: [
+      {
+        name: "createPaymentIntent",
+        summary: "Create a new payment intent",
+        description: "Creates a payment intent that returns a memo tag. Customer sends payment with this memo to complete the transaction.",
+        tags: [{name: "payments"}],
+        params: [
+          { name: "amount", required: true, schema: { type: "string" } },
+          { name: "tokenSymbol", required: true, schema: { type: "string", enum: ["SOL", "USDC", "USDT"] } },
+          { name: "serviceName", required: true, schema: { type: "string" } }
+        ],
+        result: {
+          name: "PaymentIntent",
+          schema: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              memoTag: { type: "string" },
+              amount: { type: "string" },
+              recipientAddress: { type: "string" },
+              status: { type: "string" }
+            }
+          }
+        }
+      },
+      {
+        name: "getIntentStatus",
+        summary: "Check payment intent status",
+        tags: [{name: "payments"}],
+        params: [
+          { name: "intentId", required: true, schema: { type: "string" } }
+        ],
+        result: {
+          name: "IntentStatus",
+          schema: {
+            type: "object",
+            properties: {
+              intentId: { type: "string" },
+              status: { type: "string" },
+              txSignature: { type: "string" }
+            }
+          }
+        }
+      },
+      {
+        name: "getCatalog",
+        summary: "List available services",
+        tags: [{name: "discovery"}],
+        params: [],
+        result: {
+          name: "ServiceCatalog",
+          schema: {
+            type: "object",
+            properties: {
+              services: { type: "array" }
+            }
+          }
+        }
+      }
+    ],
+    components: {
+      schemas: {
+        PaymentIntent: {
+          type: "object",
+          properties: {
+            id: { type: "string" },
+            memoTag: { type: "string" },
+            amount: { type: "string" },
+            tokenSymbol: { type: "string" },
+            status: { type: "string" }
+          }
+        }
+      }
+    }
+  };
+  
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'application/json');
+  res.status(200).json(openrpcSpec);
 });
 
 export default router;

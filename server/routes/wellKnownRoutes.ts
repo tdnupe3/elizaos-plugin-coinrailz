@@ -3127,6 +3127,18 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
           "AWS Nitro Enclave security",
           "Policy controls"
         ]
+      },
+      {
+        id: "solana-ping",
+        name: "Solana Discovery Ping",
+        description: "Service health and availability check for registry monitoring. Returns platform status, available services, and endpoint information.",
+        href: `${baseUrl}/solana-pay/ping`,
+        method: "GET",
+        parameters: {},
+        pricing: { amount: 0.25, currency: "USDC" },
+        headers: {
+          "x-intent-id": { type: "string", required: true, description: "Valid paid intent ID" }
+        }
       }
     ],
     

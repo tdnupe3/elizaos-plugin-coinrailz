@@ -1038,8 +1038,9 @@ router.get('/instant-wallet', async (req: Request, res: Response) => {
 const PING_PRICING = {
   priceUSD: '$0.25',
   priceUSDC: '0.25',
-  amountLamports: 250000, // 0.25 USDC in micro-units
-  description: 'Solana Pay Discovery Ping - Service health and availability check'
+  amountLamports: 250000, // 0.25 USDC in micro-units (6 decimals)
+  description: 'Solana Pay Discovery Ping - Service health and availability check',
+  serviceSlug: 'solana-ping'
 };
 
 router.get('/ping', async (req: Request, res: Response) => {
@@ -1053,7 +1054,7 @@ router.get('/ping', async (req: Request, res: Response) => {
       message: 'Missing x-intent-id header. Create a payment intent first.',
       pricing: PING_PRICING,
       createIntentEndpoint: '/solana-pay/intents',
-      serviceSlug: 'solana-ping',
+      serviceSlug: PING_PRICING.serviceSlug,
       accepts: [{
         scheme: 'solana-pay',
         network: 'solana-mainnet',
@@ -1074,8 +1075,36 @@ router.get('/ping', async (req: Request, res: Response) => {
         message: verification.error || 'Invalid or unpaid intent',
         pricing: PING_PRICING,
         createIntentEndpoint: '/solana-pay/intents',
-        serviceSlug: 'solana-ping'
+        serviceSlug: PING_PRICING.serviceSlug
       });
+    }
+    
+    // Validate intent is for correct service and amount (USDC only, exact $0.25)
+    const intent = verification.intent;
+    if (intent) {
+      const intentAmount = parseFloat(intent.amount || '0');
+      const tokenSymbol = intent.tokenSymbol?.toUpperCase();
+      
+      // Enforce USDC payment and exact $0.25 amount
+      if (tokenSymbol !== 'USDC') {
+        return res.status(402).json({
+          error: 'Invalid payment token',
+          message: `Ping service requires USDC payment, received ${tokenSymbol}`,
+          pricing: PING_PRICING,
+          createIntentEndpoint: '/solana-pay/intents',
+          serviceSlug: PING_PRICING.serviceSlug
+        });
+      }
+      
+      if (intentAmount < 0.25) {
+        return res.status(402).json({
+          error: 'Insufficient payment',
+          message: `Ping service requires $0.25 USDC, received $${intentAmount}`,
+          pricing: PING_PRICING,
+          createIntentEndpoint: '/solana-pay/intents',
+          serviceSlug: PING_PRICING.serviceSlug
+        });
+      }
     }
     
     // Payment verified - return full status

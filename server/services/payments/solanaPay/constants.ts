@@ -57,6 +57,8 @@ export const SERVICE_SLUGS = {
   TRENDING_TOKENS: 'sol-trending',
   WHALE_ALERTS: 'sol-whale-alerts',
   TRADE_SIGNALS: 'sol-trade-signals',
+  SOLANA_PING: 'solana-ping',
+  INSTANT_SOLANA_WALLET: 'instant-solana-wallet',
 } as const;
 
 export type ServiceSlug = typeof SERVICE_SLUGS[keyof typeof SERVICE_SLUGS];
@@ -89,6 +91,20 @@ export const SERVICE_PRICING = {
     priceUsdc: '0.75',
     priceUsdt: '0.75',
     priceSol: '0.003',
+  },
+  [SERVICE_SLUGS.SOLANA_PING]: {
+    name: 'Solana Discovery Ping',
+    description: 'Service health and availability check for registry monitoring',
+    priceUsdc: '0.25',
+    priceUsdt: '0.25',
+    priceSol: '0.001',
+  },
+  [SERVICE_SLUGS.INSTANT_SOLANA_WALLET]: {
+    name: 'Instant Solana Agent Wallet',
+    description: 'Create a Solana wallet for AI agents instantly via Coinbase CDP',
+    priceUsdc: '1.00',
+    priceUsdt: '1.00',
+    priceSol: '0.004',
   },
 } as const;
 

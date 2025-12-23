@@ -1,48 +1,53 @@
 /**
- * Solana Registry Auto-Registration Service
+ * Solana Registry Preparation Service
  * 
- * Programmatically registers with Solana ecosystem directories:
- * - Helius Actions Directory
- * - Jupiter Integrator Registry
- * - Solana Pay Directory
+ * IMPORTANT: This service DOES NOT automatically register with any external directories.
+ * It only PREPARES the registration payloads and documents the manual steps required.
  * 
- * Runs on startup and can be triggered via cron for daily refresh
+ * Manual registration is required for:
+ * - Helius Actions Directory (no public API - requires manual submission)
+ * - Jupiter Integrator Registry (requires application form)
+ * - Solana Pay Directory (requires merchant application)
+ * 
+ * After republishing, use the admin endpoint to get the prepared payloads,
+ * then follow the manual registration steps documented in each result.
  */
 
-import axios from 'axios';
-
-interface RegistrationResult {
+interface RegistrationPreparation {
   registry: string;
-  success: boolean;
-  registrationId?: string;
-  error?: string;
+  status: 'prepared' | 'error';
+  payload: object;
+  manualSteps: string[];
+  registrationUrl?: string;
   timestamp: Date;
 }
 
-interface RegistryStatus {
+interface PreparationStatus {
   lastRun: Date | null;
-  results: RegistrationResult[];
-  nextScheduledRun: Date | null;
+  preparations: RegistrationPreparation[];
+  note: string;
 }
 
 const BASE_URL = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
 const PLATFORM_WALLET = process.env.SOLANA_PUBLIC_KEY || 'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k';
 
-let registryStatus: RegistryStatus = {
+let preparationStatus: PreparationStatus = {
   lastRun: null,
-  results: [],
-  nextScheduledRun: null
+  preparations: [],
+  note: 'No preparations have been run yet.'
 };
 
-export async function registerWithHeliusActions(): Promise<RegistrationResult> {
-  const result: RegistrationResult = {
+export async function prepareHeliusActionsPayload(): Promise<RegistrationPreparation> {
+  const preparation: RegistrationPreparation = {
     registry: 'Helius Actions Directory',
-    success: false,
+    status: 'prepared',
+    payload: {},
+    manualSteps: [],
     timestamp: new Date()
   };
   
   try {
-    const actionsManifest = {
+    preparation.payload = {
       name: "Coin Railz Payment Actions",
       description: "Solana Actions for AI agent payments and data services",
       icon: `${BASE_URL}/favicon.ico`,
@@ -76,30 +81,42 @@ export async function registerWithHeliusActions(): Promise<RegistrationResult> {
       }
     };
     
-    console.log('📡 Registering with Helius Actions Directory...');
-    console.log('   Manifest URL:', `${BASE_URL}/.well-known/solana-actions.json`);
+    preparation.manualSteps = [
+      '1. Helius does NOT have a public registration API',
+      '2. Discovery relies on crawlers finding /.well-known/solana-actions.json',
+      '3. To accelerate indexing, contact Helius directly via:',
+      '   - Discord: https://discord.gg/helius',
+      '   - Email: support@helius.xyz',
+      '4. Provide them with your manifest URL for manual review',
+      `5. Manifest URL: ${BASE_URL}/.well-known/solana-actions.json`
+    ];
     
-    result.success = true;
-    result.registrationId = 'pending-helius-indexing';
-    console.log('✅ Helius Actions manifest ready for indexing');
+    preparation.registrationUrl = 'https://discord.gg/helius';
+    
+    console.log('📋 Helius Actions payload PREPARED (not submitted)');
+    console.log('   Manifest URL:', `${BASE_URL}/.well-known/solana-actions.json`);
+    console.log('   ⚠️  Manual contact with Helius required for indexing');
     
   } catch (error) {
-    result.error = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Helius Actions registration failed:', result.error);
+    preparation.status = 'error';
+    preparation.manualSteps = [`Error: ${error instanceof Error ? error.message : 'Unknown error'}`];
+    console.error('❌ Helius Actions preparation failed:', error);
   }
   
-  return result;
+  return preparation;
 }
 
-export async function registerWithJupiterRegistry(): Promise<RegistrationResult> {
-  const result: RegistrationResult = {
+export async function prepareJupiterPayload(): Promise<RegistrationPreparation> {
+  const preparation: RegistrationPreparation = {
     registry: 'Jupiter Integrator Registry',
-    success: false,
+    status: 'prepared',
+    payload: {},
+    manualSteps: [],
     timestamp: new Date()
   };
   
   try {
-    const jupiterIntegration = {
+    preparation.payload = {
       name: "Coin Railz",
       description: "Payment infrastructure for AI agents with Solana Pay support",
       website: BASE_URL,
@@ -125,30 +142,42 @@ export async function registerWithJupiterRegistry(): Promise<RegistrationResult>
       }
     };
     
-    console.log('📡 Registering with Jupiter Integrator Registry...');
-    console.log('   Integration type:', jupiterIntegration.integration_type);
+    preparation.manualSteps = [
+      '1. Jupiter requires partner application for integration',
+      '2. Visit: https://jup.ag/partners',
+      '3. Fill out the partner application form',
+      '4. Provide the following information:',
+      `   - Website: ${BASE_URL}`,
+      `   - Catalog endpoint: ${BASE_URL}/solana-pay/catalog`,
+      '5. Wait for Jupiter team review (typically 1-2 weeks)'
+    ];
     
-    result.success = true;
-    result.registrationId = 'pending-jupiter-review';
-    console.log('✅ Jupiter integration metadata prepared');
+    preparation.registrationUrl = 'https://jup.ag/partners';
+    
+    console.log('📋 Jupiter integration payload PREPARED (not submitted)');
+    console.log('   Integration type: payment_processor');
+    console.log('   ⚠️  Manual partner application required');
     
   } catch (error) {
-    result.error = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Jupiter registration failed:', result.error);
+    preparation.status = 'error';
+    preparation.manualSteps = [`Error: ${error instanceof Error ? error.message : 'Unknown error'}`];
+    console.error('❌ Jupiter preparation failed:', error);
   }
   
-  return result;
+  return preparation;
 }
 
-export async function registerWithSolanaPayDirectory(): Promise<RegistrationResult> {
-  const result: RegistrationResult = {
+export async function prepareSolanaPayPayload(): Promise<RegistrationPreparation> {
+  const preparation: RegistrationPreparation = {
     registry: 'Solana Pay Directory',
-    success: false,
+    status: 'prepared',
+    payload: {},
+    manualSteps: [],
     timestamp: new Date()
   };
   
   try {
-    const merchantProfile = {
+    preparation.payload = {
       name: "Coin Railz",
       description: "Multi-chain payment infrastructure for AI agents",
       website: BASE_URL,
@@ -170,68 +199,88 @@ export async function registerWithSolanaPayDirectory(): Promise<RegistrationResu
       accepted_tokens: ["SOL", "USDC", "USDT"]
     };
     
-    console.log('📡 Registering with Solana Pay Directory...');
-    console.log('   Merchant category:', merchantProfile.category);
-    console.log('   Manifest URL:', merchantProfile.manifest_url);
+    preparation.manualSteps = [
+      '1. Solana Pay merchant registration is handled through Solana Foundation',
+      '2. Visit: https://solanapay.com/merchants',
+      '3. Complete merchant verification process',
+      '4. Provide the following for review:',
+      `   - Website: ${BASE_URL}`,
+      `   - Manifest: ${BASE_URL}/.well-known/solana-pay.json`,
+      `   - Wallet: ${PLATFORM_WALLET}`,
+      '5. Solana Pay SDK will auto-discover manifest once domain is verified'
+    ];
     
-    result.success = true;
-    result.registrationId = 'pending-solanapay-indexing';
-    console.log('✅ Solana Pay merchant profile ready');
+    preparation.registrationUrl = 'https://solanapay.com/merchants';
+    
+    console.log('📋 Solana Pay merchant profile PREPARED (not submitted)');
+    console.log('   Category: payment_processor');
+    console.log('   ⚠️  Manual merchant verification required');
     
   } catch (error) {
-    result.error = error instanceof Error ? error.message : 'Unknown error';
-    console.error('❌ Solana Pay registration failed:', result.error);
+    preparation.status = 'error';
+    preparation.manualSteps = [`Error: ${error instanceof Error ? error.message : 'Unknown error'}`];
+    console.error('❌ Solana Pay preparation failed:', error);
   }
   
-  return result;
+  return preparation;
 }
 
-export async function pingDiscoveryCrawlers(): Promise<RegistrationResult[]> {
-  const results: RegistrationResult[] = [];
+export async function prepareAllRegistrations(): Promise<RegistrationPreparation[]> {
+  const preparations: RegistrationPreparation[] = [];
   
-  console.log('\n🔍 SOLANA DISCOVERY REGISTRATION');
+  console.log('\n📋 SOLANA REGISTRY PREPARATION');
   console.log('================================');
+  console.log('⚠️  NOTE: This ONLY prepares payloads. No actual registration occurs.');
   console.log(`Platform: ${BASE_URL}`);
   console.log(`Wallet: ${PLATFORM_WALLET}`);
   console.log('');
   
-  results.push(await registerWithHeliusActions());
-  results.push(await registerWithJupiterRegistry());
-  results.push(await registerWithSolanaPayDirectory());
+  preparations.push(await prepareHeliusActionsPayload());
+  preparations.push(await prepareJupiterPayload());
+  preparations.push(await prepareSolanaPayPayload());
   
-  const successCount = results.filter(r => r.success).length;
+  const successCount = preparations.filter(p => p.status === 'prepared').length;
   console.log('');
-  console.log(`📊 Registration Summary: ${successCount}/${results.length} successful`);
+  console.log(`📊 Preparation Summary: ${successCount}/${preparations.length} payloads ready`);
   console.log('');
   
-  console.log('🌐 Discovery Manifests Published:');
+  console.log('📍 Discovery Manifests (published, awaiting external indexing):');
   console.log(`   • ${BASE_URL}/.well-known/solana.json`);
   console.log(`   • ${BASE_URL}/.well-known/solana-actions.json`);
   console.log(`   • ${BASE_URL}/.well-known/solana-pay.json`);
   console.log(`   • ${BASE_URL}/.well-known/helius.json`);
   console.log(`   • ${BASE_URL}/solana-openrpc.json`);
   console.log('');
+  console.log('⚠️  MANUAL REGISTRATION REQUIRED:');
+  console.log('   See manualSteps in each preparation result for next actions.');
+  console.log('');
   
-  registryStatus = {
+  preparationStatus = {
     lastRun: new Date(),
-    results,
-    nextScheduledRun: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    preparations,
+    note: 'Payloads prepared. Manual registration with each directory is required.'
   };
   
-  return results;
+  return preparations;
 }
 
-export function getRegistryStatus(): RegistryStatus {
-  return registryStatus;
+export function getPreparationStatus(): PreparationStatus {
+  return preparationStatus;
 }
 
 export async function initializeSolanaDiscovery(): Promise<void> {
-  console.log('\n🚀 Initializing Solana Discovery Registration...');
+  console.log('\n🚀 Solana Discovery Service Initialized');
+  console.log('   ℹ️  Use POST /solana-pay/admin/discovery/register to prepare registration payloads');
+  console.log('   ⚠️  Actual directory registration requires manual steps');
   
   if (process.env.REPLIT_DEPLOYMENT === '1' || process.env.NODE_ENV === 'production') {
-    await pingDiscoveryCrawlers();
-  } else {
-    console.log('⏭️  Skipping auto-registration in development mode');
-    console.log('   Run manually via POST /api/admin/solana-discovery/register');
+    console.log('   📋 Production mode: Run admin endpoint after deployment to get registration instructions');
   }
 }
+
+// Legacy exports for backwards compatibility (renamed to be honest)
+export const registerWithHeliusActions = prepareHeliusActionsPayload;
+export const registerWithJupiterRegistry = prepareJupiterPayload;
+export const registerWithSolanaPayDirectory = prepareSolanaPayPayload;
+export const pingDiscoveryCrawlers = prepareAllRegistrations;
+export const getRegistryStatus = getPreparationStatus;

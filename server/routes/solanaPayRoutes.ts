@@ -137,37 +137,17 @@ router.get('/intents/:id', async (req: Request, res: Response) => {
   }
 });
 
-// In-memory storage for debug webhooks (last 10)
-const debugWebhooks: Array<{timestamp: string, headers: any, body: any, ip: string}> = [];
-
 // DEBUG endpoint - NO AUTH - logs everything Helius sends to diagnose webhook issues
 router.post('/webhook-debug', async (req: Request, res: Response) => {
-  const entry = {
-    timestamp: new Date().toISOString(),
-    headers: req.headers,
-    body: req.body,
-    ip: req.ip || 'unknown'
-  };
-  
-  // Store last 10 webhooks
-  debugWebhooks.unshift(entry);
-  if (debugWebhooks.length > 10) debugWebhooks.pop();
-  
-  console.log('🔍 WEBHOOK DEBUG HIT:', entry.timestamp, 'from IP:', entry.ip);
+  console.log('🔍 WEBHOOK DEBUG HIT:', new Date().toISOString());
+  console.log('   IP:', req.ip);
+  console.log('   Body:', JSON.stringify(req.body).slice(0, 500));
   
   // Always return 200 to Helius
   return res.status(200).json({ 
     received: true, 
-    timestamp: entry.timestamp,
+    timestamp: new Date().toISOString(),
     message: 'Debug endpoint - webhook received successfully'
-  });
-});
-
-// GET endpoint to retrieve received debug webhooks
-router.get('/webhook-debug', async (req: Request, res: Response) => {
-  return res.json({
-    count: debugWebhooks.length,
-    webhooks: debugWebhooks
   });
 });
 

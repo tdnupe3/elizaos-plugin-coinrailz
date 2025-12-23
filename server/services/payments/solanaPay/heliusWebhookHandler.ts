@@ -99,25 +99,38 @@ class HeliusWebhookHandler {
       return false;
     }
 
+    // Log for debugging
+    console.log(`🔍 WEBHOOK AUTH: Received header length=${authorizationHeader.length}, Expected length=${webhookSecret.length}`);
+
     try {
-      // Use constant-time comparison to prevent timing attacks
-      const expectedBuffer = Buffer.from(webhookSecret);
-      const receivedBuffer = Buffer.from(authorizationHeader);
+      // Handle multiple auth formats flexibly:
+      // 1. Exact match (what user configured in Helius = what's in env)
+      // 2. If env has "Bearer X" and Helius sends just "X"
+      // 3. If env has "X" and Helius sends "Bearer X"
       
-      // DEBUG: Log length comparison to diagnose mismatch
-      console.log(`🔍 DEBUG: Expected length=${expectedBuffer.length}, Received length=${receivedBuffer.length}`);
-      console.log(`🔍 DEBUG: Expected prefix="${webhookSecret.substring(0, 8)}...", Received prefix="${authorizationHeader.substring(0, 8)}..."`);
+      const normalizedReceived = authorizationHeader.replace(/^Bearer\s+/i, '').trim();
+      const normalizedExpected = webhookSecret.replace(/^Bearer\s+/i, '').trim();
       
-      if (expectedBuffer.length !== receivedBuffer.length) {
-        console.error('🔒 SECURITY: Authorization header length mismatch');
-        return false;
+      // Try exact match first
+      if (authorizationHeader === webhookSecret) {
+        console.log('✅ WEBHOOK AUTH: Exact match');
+        return true;
       }
       
-      const isValid = crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
-      if (!isValid) {
-        console.error('🔒 SECURITY: Authorization header mismatch');
+      // Try normalized comparison (without Bearer prefix)
+      const expectedBuffer = Buffer.from(normalizedExpected);
+      const receivedBuffer = Buffer.from(normalizedReceived);
+      
+      if (expectedBuffer.length === receivedBuffer.length) {
+        const isValid = crypto.timingSafeEqual(expectedBuffer, receivedBuffer);
+        if (isValid) {
+          console.log('✅ WEBHOOK AUTH: Normalized match (Bearer stripped)');
+          return true;
+        }
       }
-      return isValid;
+      
+      console.error(`🔒 SECURITY: Auth mismatch - received prefix="${authorizationHeader.substring(0, 10)}..."`);
+      return false;
     } catch (error) {
       console.error('🔒 SECURITY: Webhook auth verification failed:', error);
       return false;

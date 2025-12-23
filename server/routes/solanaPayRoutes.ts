@@ -33,11 +33,27 @@ const PLATFORM_WALLET = process.env.SOLANA_PUBLIC_KEY || 'Hgby7VEo6vaPayM1G7kkjT
 // Protocol headers middleware for Solana Actions discovery
 router.use((req: Request, res: Response, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, x-intent-id');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', [
+    'Content-Type',
+    'Authorization',
+    'x-api-key',
+    'x-intent-id',
+    'X-Action-Version',
+    'X-Action-Identity',
+    'X-Blockchain-Ids',
+    'X-Action-Signature',
+    'X-Client-Public-Key'
+  ].join(', '));
+  res.setHeader('Access-Control-Expose-Headers', [
+    'X-Action-Version',
+    'X-Action-Identity',
+    'X-Blockchain-Ids'
+  ].join(', '));
   
-  res.setHeader('X-Action-Version', '1.0.0');
+  res.setHeader('X-Action-Version', '1');
   res.setHeader('X-Action-Identity', PLATFORM_WALLET);
+  res.setHeader('X-Blockchain-Ids', 'solana:mainnet');
   res.setHeader('Link', [
     `<https://coinrailz.com/.well-known/solana-actions.json>; rel="solana-actions"`,
     `<https://coinrailz.com/.well-known/solana-pay.json>; rel="solana-pay"`

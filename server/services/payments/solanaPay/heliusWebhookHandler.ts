@@ -104,6 +104,10 @@ class HeliusWebhookHandler {
       const expectedBuffer = Buffer.from(webhookSecret);
       const receivedBuffer = Buffer.from(authorizationHeader);
       
+      // DEBUG: Log length comparison to diagnose mismatch
+      console.log(`🔍 DEBUG: Expected length=${expectedBuffer.length}, Received length=${receivedBuffer.length}`);
+      console.log(`🔍 DEBUG: Expected prefix="${webhookSecret.substring(0, 8)}...", Received prefix="${authorizationHeader.substring(0, 8)}..."`);
+      
       if (expectedBuffer.length !== receivedBuffer.length) {
         console.error('🔒 SECURITY: Authorization header length mismatch');
         return false;

@@ -17,10 +17,12 @@
 
 import { Router, Request, Response } from 'express';
 import { ServiceCatalogService } from '../services/serviceCatalogService';
-import { getCdpFacilitatorUrl, isUsingCdpFacilitator, USDC_BASE_ADDRESS, NETWORK_CAIP2 } from '../utils/facilitatorHelper';
+import { getFacilitatorUrl, getCdpFacilitatorUrl, getAllFacilitatorUrls, isUsingCdpFacilitator, USDC_BASE_ADDRESS, NETWORK_CAIP2 } from '../utils/facilitatorHelper';
 
-// Bazaar discovery ALWAYS uses CDP facilitator for indexing compatibility
-const getBazaarFacilitatorUrl = () => getCdpFacilitatorUrl();
+// CRITICAL FIX: Discovery must advertise SAME facilitator as 402 responses
+// Mismatch between discovery and 402 responses was confusing crawlers
+const getPrimaryFacilitatorUrl = () => getFacilitatorUrl();
+const getAllFacilitators = () => getAllFacilitatorUrls();
 
 const PLATFORM_WALLET = (process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91') as `0x${string}`;
 const PUBLIC_BASE_URL = process.env.PUBLIC_URL || 
@@ -108,7 +110,7 @@ export async function registerServicesWithBazaar(): Promise<RegistrationResult> 
   };
 
   try {
-    const facilitatorUrl = getBazaarFacilitatorUrl();
+    const facilitatorUrl = getPrimaryFacilitatorUrl();
     const catalog = ServiceCatalogService.getInstance().getCatalog();
     
     console.log(`📡 Bazaar Discovery: Building catalog with facilitator ${facilitatorUrl}`);
@@ -173,7 +175,7 @@ export function createBazaarDiscoveryRouter(): Router {
     
     res.json({
       enabled: isEnabled,
-      facilitator: getBazaarFacilitatorUrl(),
+      facilitator: getPrimaryFacilitatorUrl(),
       usingCdp: isUsingCdp,
       status: isEnabled ? 'active' : 'disabled',
       timestamp: new Date().toISOString()
@@ -223,7 +225,8 @@ export function createBazaarDiscoveryRouter(): Router {
       res.json({
         resources,
         total: resources.length,
-        facilitator: getBazaarFacilitatorUrl(),
+        facilitator: getPrimaryFacilitatorUrl(),
+        facilitators: getAllFacilitators(),
         baseUrl: PUBLIC_BASE_URL,
         timestamp: new Date().toISOString()
       });
@@ -245,7 +248,8 @@ export function createBazaarDiscoveryRouter(): Router {
     res.json({
       enabled: isBazaarDiscoveryEnabled(),
       facilitator: {
-        url: getBazaarFacilitatorUrl(),
+        primary: getPrimaryFacilitatorUrl(),
+        all: getAllFacilitators(),
         usingCdp: isUsingCdpFacilitator()
       },
       services: {

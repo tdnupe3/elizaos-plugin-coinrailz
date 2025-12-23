@@ -17,6 +17,7 @@ import {
   solanaPaymentService, 
   heliusWebhookHandler,
   solanaDataServices,
+  paymentPoller,
   SERVICE_SLUGS,
   SERVICE_PRICING,
   type HeliusEnhancedPayload,
@@ -136,8 +137,27 @@ router.get('/intents/:id', async (req: Request, res: Response) => {
   }
 });
 
+// DEBUG endpoint - NO AUTH - logs everything Helius sends to diagnose webhook issues
+router.post('/webhook-debug', async (req: Request, res: Response) => {
+  console.log('🔍 WEBHOOK DEBUG HIT:');
+  console.log('   Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('   Body:', JSON.stringify(req.body, null, 2));
+  console.log('   IP:', req.ip);
+  console.log('   Time:', new Date().toISOString());
+  
+  // Always return 200 to Helius
+  return res.status(200).json({ 
+    received: true, 
+    timestamp: new Date().toISOString(),
+    message: 'Debug endpoint - webhook received successfully'
+  });
+});
+
 router.post('/webhook', webhookRateLimiter, async (req: Request, res: Response) => {
   try {
+    console.log('📥 WEBHOOK REQUEST RECEIVED:', new Date().toISOString());
+    console.log('   Auth header present:', !!req.headers['authorization']);
+    
     // Check if webhook is properly configured (fail-closed security)
     if (!heliusWebhookHandler.isWebhookConfigured()) {
       console.error('🔒 SECURITY: Webhook rejected - HELIUS_WEBHOOK_SECRET not configured');
@@ -242,6 +262,8 @@ router.get('/status', async (req: Request, res: Response) => {
     }
   }
   
+  const pollerStatus = paymentPoller.getStatus();
+  
   return res.json({
     status,
     chain: 'solana',
@@ -252,9 +274,43 @@ router.get('/status', async (req: Request, res: Response) => {
       webhooks: hasWebhookSecret,
       wallet: hasWalletKey,
       tokens: ['SOL', 'USDC', 'USDT'],
+      poller: pollerStatus,
     },
     ...(warnings.length > 0 && { warnings }),
   });
+});
+
+// Poller control routes - fallback when webhooks aren't working
+router.post('/poller/start', async (req: Request, res: Response) => {
+  try {
+    await paymentPoller.start();
+    return res.json({ 
+      success: true, 
+      message: 'Payment poller started',
+      status: paymentPoller.getStatus()
+    });
+  } catch (error) {
+    console.error('Error starting poller:', error);
+    return res.status(500).json({ error: 'Failed to start poller' });
+  }
+});
+
+router.post('/poller/stop', async (req: Request, res: Response) => {
+  try {
+    paymentPoller.stop();
+    return res.json({ 
+      success: true, 
+      message: 'Payment poller stopped',
+      status: paymentPoller.getStatus()
+    });
+  } catch (error) {
+    console.error('Error stopping poller:', error);
+    return res.status(500).json({ error: 'Failed to stop poller' });
+  }
+});
+
+router.get('/poller/status', async (req: Request, res: Response) => {
+  return res.json(paymentPoller.getStatus());
 });
 
 router.get('/services', async (req: Request, res: Response) => {

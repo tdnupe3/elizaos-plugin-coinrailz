@@ -1,0 +1,256 @@
+Below is a prioritized, current (Dec 2025) discovery & distribution list tailored specifically to AI agents + crypto payments + x402 / Solana Actions.
+I’ve ranked them by likelihood of generating real revenue, not vanity traffic.
+
+This is opinionated, but grounded in where paying agents and builders actually look.
+
+🥇 TIER 1 — HIGHEST REVENUE LIKELIHOOD
+
+(Active builders, funded agents, or infra buyers)
+
+1. Coinbase x402 Bazaar
+
+Why it matters: This is the canonical marketplace for funded AI agents with native USDC budgets.
+
+Type: Agent services marketplace
+
+Buyers: Autonomous agents, infra teams, crypto-native builders
+
+Revenue likelihood: ⭐⭐⭐⭐⭐ (highest)
+
+Status: ✅ You are already indexed
+Action:
+
+Monitor re-crawls
+
+Reach out to Coinbase CDP team once you have 1–2 external repeat payers
+
+🔗 https://docs.cloud.coinbase.com/x402
+
+🔗 https://x402.org
+
+🔗 (Bazaar listings appear via CDP dashboards, not public browse yet)
+
+2. Dialect Blinks / Solana Actions Registry
+
+Why it matters: Solana has the most consumer-grade agent UX right now. Blinks are extremely low-friction.
+
+Type: Solana Actions / payment registry
+
+Buyers: Solana bots, traders, wallet-integrated agents
+
+Revenue likelihood: ⭐⭐⭐⭐⭐
+
+Primary submission:
+🔗 https://dial.to/register
+
+Docs / reference:
+🔗 https://docs.dialect.to
+
+🔗 https://solana.com/developers/actions
+
+Your advantage:
+Instant Solana wallet creation via CDP = strong differentiator
+(Almost no one else has this.)
+
+3. MCP Server Directories (Claude / Cursor / IDE agents)
+
+Why it matters: MCP is where developers with money are experimenting.
+
+PulseMCP
+
+Type: MCP directory
+
+Revenue likelihood: ⭐⭐⭐⭐☆
+
+🔗 https://pulsemcp.com
+
+🔗 Submission usually via GitHub PR or form (varies)
+
+MCP.so
+
+Type: MCP registry + browsing
+
+Revenue likelihood: ⭐⭐⭐⭐☆
+
+🔗 https://mcp.so
+
+Important:
+Now that /mcp/services is fixed, you should see improved indexing within 3–14 days.
+
+🥈 TIER 2 — STRONG ECOSYSTEM & PARTNERSHIP VALUE
+
+(May not convert instantly, but leads to integrations)
+
+4. Google A2A (Agent-to-Agent) Registry
+
+Why it matters: This will matter more in 2026 than almost anything else.
+
+Type: Agent discovery protocol
+
+Revenue likelihood: ⭐⭐⭐⭐☆
+
+🔗 https://developers.googleblog.com/2024/agent-to-agent-protocol.html
+
+🔗 Registry is mostly crawl-based (you’re already compliant)
+
+Action:
+
+Keep agent.json + capabilities clean
+
+Monitor referrers for Google infra IPs
+
+5. LangChain / LangGraph Ecosystem
+
+Why it matters: Where agent builders hang out.
+
+LangChain Hub
+
+🔗 https://smith.langchain.com/hub
+
+LangGraph
+
+🔗 https://langgraph.langchain.com
+
+Strategy:
+
+Publish Coin Railz as a tool / payment primitive
+
+Not instant revenue, but high-leverage integrations
+
+Revenue likelihood: ⭐⭐⭐⭐☆
+
+6. ai16z / ElizaOS Agent Marketplace
+
+Why it matters: One of the most aggressive agent ecosystems experimenting with monetization.
+
+Type: Agent marketplace
+
+Revenue likelihood: ⭐⭐⭐⭐☆
+
+🔗 https://elizaos.ai
+
+🔗 https://github.com/ai16z
+
+Action:
+
+Direct outreach > passive submission
+
+Pitch Coin Railz as default payment rail
+
+🥉 TIER 3 — NICHE BUT POTENT (CRYPTO-NATIVE AGENTS)
+7. Virtuals Protocol
+
+Why it matters: Proven revenue AI agents.
+
+Type: Agent economy
+
+Revenue likelihood: ⭐⭐⭐⭐☆
+
+🔗 https://virtuals.io
+
+🔗 https://docs.virtuals.io
+
+Action:
+
+Direct BD outreach
+
+Emphasize USDC / USDT + infra reliability
+
+8. Truth Terminal Ecosystem
+
+Why it matters: Real money, real agents, real experimentation.
+
+Type: Autonomous trading agents
+
+Revenue likelihood: ⭐⭐⭐⭐☆
+
+🔗 https://truthterminal.com
+
+🔗 https://x.com/truth_terminal
+
+Action:
+
+Human outreach beats any form
+
+Position Coin Railz as agent-native billing
+
+🟦 TIER 4 — SOLANA ECOSYSTEM DISCOVERY
+9. Solana Dev Tooling Directories
+Solana Ecosystem
+
+🔗 https://solana.com/ecosystem
+
+Solana FM / Solscan Tool Lists
+
+🔗 https://solana.fm
+
+🔗 https://solscan.io
+
+Revenue likelihood: ⭐⭐⭐☆☆
+(Visibility > immediate revenue)
+
+10. Wallet Partner Listings (Future Leverage)
+Phantom
+
+🔗 https://phantom.app/developers
+
+Jupiter
+
+🔗 https://station.jup.ag
+
+Helius
+
+🔗 https://www.helius.dev
+
+Why:
+If Coin Railz becomes a recommended backend, revenue compounds.
+
+🟪 TIER 5 — HUMAN-BUILDER DISTRIBUTION (LOWER DIRECT REVENUE)
+11. GitHub “Awesome” Lists
+
+Why: Builders browse here.
+
+awesome-ai-agents
+
+awesome-solana
+
+awesome-web3
+
+🔗 https://github.com/sindresorhus/awesome
+
+🔗 Search: awesome ai agent
+
+Revenue likelihood: ⭐⭐☆☆☆
+
+12. API Marketplaces (Secondary)
+
+RapidAPI
+🔗 https://rapidapi.com
+
+Postman API Network
+🔗 https://www.postman.com/api-network/
+
+Revenue likelihood: ⭐⭐☆☆☆
+(Decent for humans, weaker for agents)
+
+🧭 WHAT TO DO THIS WEEK (HIGH ROI)
+
+Day 1–2
+
+Submit to Dialect Blinks
+
+Monitor MCP directories post-fix
+
+Reach out to zauthx402 (they already paid)
+
+Day 3–5
+
+Direct BD to Virtuals, ElizaOS, Truth Terminal
+
+Publish one LangChain-compatible example
+
+Ongoing
+
+Watch first non-test repeat wallet
+
+Double down on whatever converts first (Solana vs EVM vs GPT)

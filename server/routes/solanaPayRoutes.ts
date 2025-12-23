@@ -1106,13 +1106,25 @@ router.get('/ping', async (req: Request, res: Response) => {
       });
     }
     
-    // Validate intent is for correct service and amount (USDC only, exact $0.25)
+    // Validate intent is for correct service, token, and amount
     const intent = verification.intent;
     if (intent) {
       const intentAmount = parseFloat(intent.amount || '0');
       const tokenSymbol = intent.tokenSymbol?.toUpperCase();
+      const serviceSlug = intent.serviceSlug;
       
-      // Enforce USDC payment and exact $0.25 amount
+      // Enforce service slug match - must be created specifically for ping
+      if (serviceSlug !== PING_PRICING.serviceSlug && serviceSlug !== 'solana-ping') {
+        return res.status(402).json({
+          error: 'Invalid service intent',
+          message: `Ping service requires intent for service slug '${PING_PRICING.serviceSlug}', received '${serviceSlug}'`,
+          pricing: PING_PRICING,
+          createIntentEndpoint: '/solana-pay/intents',
+          serviceSlug: PING_PRICING.serviceSlug
+        });
+      }
+      
+      // Enforce USDC payment only
       if (tokenSymbol !== 'USDC') {
         return res.status(402).json({
           error: 'Invalid payment token',
@@ -1123,10 +1135,12 @@ router.get('/ping', async (req: Request, res: Response) => {
         });
       }
       
-      if (intentAmount < 0.25) {
+      // Enforce exact $0.25 amount (with small epsilon for floating point)
+      const expectedAmount = 0.25;
+      if (Math.abs(intentAmount - expectedAmount) > 0.001) {
         return res.status(402).json({
-          error: 'Insufficient payment',
-          message: `Ping service requires $0.25 USDC, received $${intentAmount}`,
+          error: 'Incorrect payment amount',
+          message: `Ping service requires exactly $0.25 USDC, received $${intentAmount.toFixed(2)}`,
           pricing: PING_PRICING,
           createIntentEndpoint: '/solana-pay/intents',
           serviceSlug: PING_PRICING.serviceSlug

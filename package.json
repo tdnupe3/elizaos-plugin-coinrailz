@@ -19,7 +19,7 @@
     "@circle-fin/user-controlled-wallets": "^8.4.0",
     "@coinbase/agentkit": "^0.10.1",
     "@coinbase/agentkit-langchain": "^0.3.0",
-    "@coinbase/cdp-sdk": "^1.34.0",
+    "@coinbase/cdp-sdk": "^1.40.1",
     "@coinbase/coinbase-sdk": "^0.25.0",
     "@coinbase/x402": "^0.7.1",
     "@google-cloud/storage": "^7.16.0",

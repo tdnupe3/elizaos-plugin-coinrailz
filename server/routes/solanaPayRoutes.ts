@@ -24,6 +24,7 @@ import {
 } from '../services/payments/solanaPay/index.js';
 import { trackSolanaEndpoint, trackSolanaWebhook } from '../middleware/solanaTracking.js';
 import { pingDiscoveryCrawlers, getRegistryStatus } from '../services/solanaRegistryService.js';
+import { coinbaseCDPService } from '../services/coinbaseCDPService.js';
 
 const router = Router();
 
@@ -915,6 +916,163 @@ router.get('/admin/discovery/status', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch discovery status',
+    });
+  }
+});
+
+// ============================================================================
+// INSTANT SOLANA WALLET: AI Agent Wallet Creation via CDP
+// ============================================================================
+
+const instantWalletSchema = z.object({
+  agentId: z.string().min(1).max(100),
+  name: z.string().min(1).max(100).optional(),
+});
+
+router.post('/instant-wallet', async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  
+  try {
+    const validation = instantWalletSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        details: validation.error.errors,
+      });
+    }
+
+    const { agentId, name } = validation.data;
+
+    // Check if CDP Solana is available
+    const solanaStatus = coinbaseCDPService.getSolanaStatus();
+    if (!solanaStatus.configured) {
+      return res.status(503).json({
+        success: false,
+        error: 'Service not configured',
+        message: 'Solana wallet creation requires CDP credentials. Contact support for access.',
+        pricing: {
+          priceUSD: '$1.00',
+          description: 'Instant Solana Agent Wallet via Coinbase CDP'
+        }
+      });
+    }
+
+    // Create the Solana wallet
+    const result = await coinbaseCDPService.createSolanaWallet({ agentId, name });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Wallet creation failed',
+        message: result.error,
+        agentId,
+        latencyMs: Date.now() - startTime
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      wallet: {
+        address: result.address,
+        network: result.network,
+        agentId: result.agentId,
+        createdAt: result.createdAt
+      },
+      pricing: {
+        priceUSD: '$1.00',
+        description: 'Instant Solana Agent Wallet via Coinbase CDP'
+      },
+      latencyMs: Date.now() - startTime
+    });
+
+  } catch (error) {
+    console.error('Error creating Solana wallet:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      latencyMs: Date.now() - startTime
+    });
+  }
+});
+
+// GET endpoint for service info
+router.get('/instant-wallet', async (req: Request, res: Response) => {
+  const solanaStatus = coinbaseCDPService.getSolanaStatus();
+  
+  return res.json({
+    service: 'Instant Solana Agent Wallet',
+    description: 'Create production-ready Solana wallets for AI agents via Coinbase CDP. Sub-200ms signing, 225+ TPS, enterprise-grade security.',
+    pricing: {
+      priceUSD: '$1.00',
+      currency: 'USDC'
+    },
+    features: [
+      'Instant wallet creation via Coinbase CDP',
+      'Sub-200ms transaction signing',
+      '225+ TPS throughput',
+      'Enterprise-grade security (AWS Nitro Enclaves)',
+      'Policy controls (address allowlisting, value limits)',
+      'No key management required'
+    ],
+    status: solanaStatus.configured ? 'available' : 'requires_configuration',
+    network: 'solana-mainnet',
+    method: 'POST',
+    endpoint: '/solana-pay/instant-wallet',
+    requestBody: {
+      agentId: 'string (required) - Unique identifier for the AI agent',
+      name: 'string (optional) - Human-readable wallet name'
+    },
+    exampleRequest: {
+      agentId: 'my-trading-agent-001',
+      name: 'Trading Bot Wallet'
+    }
+  });
+});
+
+// ============================================================================
+// HEALTH CHECK: Ping Endpoint for Registries and Monitoring
+// ============================================================================
+
+router.get('/ping', async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  
+  try {
+    const paymentServiceReady = solanaPaymentService.isReady();
+    const cdpSolanaAvailable = !!(process.env.CDP_API_KEY_ID && process.env.CDP_PRIVATE_KEY);
+    
+    const status = {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      latencyMs: Date.now() - startTime,
+      services: {
+        solanaPayments: paymentServiceReady ? 'ready' : 'initializing',
+        cdpSolanaWallet: cdpSolanaAvailable ? 'configured' : 'not_configured',
+        webhookReceiver: 'ready',
+        intentProcessing: paymentServiceReady ? 'ready' : 'initializing'
+      },
+      endpoints: {
+        intents: '/solana-pay/intents',
+        catalog: '/solana-pay/catalog',
+        instantWallet: '/solana-pay/instant-wallet',
+        webhook: '/solana-pay/webhook'
+      },
+      platform: {
+        name: 'Coin Railz',
+        version: '1.0.0',
+        wallet: PLATFORM_WALLET,
+        network: 'mainnet-beta'
+      }
+    };
+    
+    return res.status(200).json(status);
+  } catch (error) {
+    return res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      latencyMs: Date.now() - startTime,
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 });

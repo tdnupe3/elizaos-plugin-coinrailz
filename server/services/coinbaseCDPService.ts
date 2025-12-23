@@ -1049,6 +1049,107 @@ export class CoinbaseCDPService {
       return null;
     }
   }
+
+  // ============================================================================
+  // SOLANA WALLET CREATION - Separate from EVM code paths
+  // Uses CDP Server Wallet v2 Solana support (GA 2025)
+  // ============================================================================
+
+  /**
+   * Check if Solana wallet creation is available
+   */
+  isSolanaAvailable(): boolean {
+    return this.initialized && !!this.cdpClient;
+  }
+
+  /**
+   * Create a new Solana wallet for an AI agent
+   * Uses CDP's cdp.solana.createAccount() / getOrCreateAccount()
+   * 
+   * @param agentId - Unique identifier for the agent
+   * @param name - Optional human-readable name for the wallet
+   * @returns Solana wallet details or null if creation fails
+   */
+  async createSolanaWallet(params: {
+    agentId: string;
+    name?: string;
+  }): Promise<{
+    success: boolean;
+    address?: string;
+    network: string;
+    agentId: string;
+    createdAt: string;
+    error?: string;
+  }> {
+    const { agentId, name } = params;
+    
+    try {
+      if (!this.isSolanaAvailable()) {
+        console.warn('⚠️ CDP Solana not available - credentials not configured');
+        return {
+          success: false,
+          network: 'solana-mainnet',
+          agentId,
+          createdAt: new Date().toISOString(),
+          error: 'CDP Solana wallet creation not configured. Please set CDP_API_KEY_ID and CDP_PRIVATE_KEY.'
+        };
+      }
+
+      console.log(`🌐 Creating Solana wallet for agent: ${agentId}`);
+      
+      // Use CDP SDK to create Solana account
+      // The cdpClient.solana namespace provides Solana-specific methods
+      const walletName = name || `agent-${agentId}-${Date.now()}`;
+      
+      // CDP Server Wallet v2 uses getOrCreateAccount for idempotent creation
+      const account = await (this.cdpClient as any).solana.getOrCreateAccount({
+        name: walletName
+      });
+
+      if (!account?.address) {
+        throw new Error('CDP returned account without address');
+      }
+
+      console.log(`✅ Solana wallet created: ${account.address}`);
+      
+      return {
+        success: true,
+        address: account.address,
+        network: 'solana-mainnet',
+        agentId,
+        createdAt: new Date().toISOString()
+      };
+
+    } catch (error: any) {
+      console.error('❌ Failed to create Solana wallet:', error);
+      
+      // Check for specific CDP errors
+      const errorMessage = error.message || 'Unknown error during wallet creation';
+      
+      return {
+        success: false,
+        network: 'solana-mainnet',
+        agentId,
+        createdAt: new Date().toISOString(),
+        error: errorMessage
+      };
+    }
+  }
+
+  /**
+   * Get Solana service status for health checks
+   */
+  getSolanaStatus(): {
+    available: boolean;
+    configured: boolean;
+    network: string;
+  } {
+    return {
+      available: this.isSolanaAvailable(),
+      configured: !!(process.env.CDP_API_KEY_ID && process.env.CDP_PRIVATE_KEY),
+      network: 'solana-mainnet'
+    };
+  }
 }
 
 export const coinbaseCDPService = CoinbaseCDPService.getInstance();

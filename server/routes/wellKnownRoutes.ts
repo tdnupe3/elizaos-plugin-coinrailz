@@ -3053,6 +3053,14 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
       {
         pathPattern: "/solana-pay/catalog",
         apiPath: "/solana-pay/catalog"
+      },
+      {
+        pathPattern: "/solana-pay/instant-wallet",
+        apiPath: "/solana-pay/instant-wallet"
+      },
+      {
+        pathPattern: "/solana-pay/ping",
+        apiPath: "/solana-pay/ping"
       }
     ],
     
@@ -3100,6 +3108,25 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
           wallet: { type: "string", required: false, description: "Wallet to monitor" }
         },
         pricing: { amount: 0.50, currency: "USDC" }
+      },
+      {
+        id: "instant-solana-wallet",
+        name: "Instant Solana Agent Wallet",
+        description: "Create production-ready Solana wallets for AI agents via Coinbase CDP. Sub-200ms signing, 225+ TPS, enterprise-grade security.",
+        href: `${baseUrl}/solana-pay/instant-wallet`,
+        method: "POST",
+        parameters: {
+          agentId: { type: "string", required: true, description: "Unique identifier for the AI agent" },
+          name: { type: "string", required: false, description: "Human-readable wallet name" }
+        },
+        pricing: { amount: 1.00, currency: "USDC" },
+        features: [
+          "Coinbase CDP Server Wallets",
+          "Sub-200ms transaction signing",
+          "225+ TPS throughput",
+          "AWS Nitro Enclave security",
+          "Policy controls"
+        ]
       }
     ],
     

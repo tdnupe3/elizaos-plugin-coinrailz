@@ -5417,3 +5417,73 @@ export interface SolanaPaymentIntentMetadata {
   serviceParams?: Record<string, unknown>;
 }
 
+// ============================================================================
+// SOLANA ENDPOINT INTERACTIONS - Analytics Tracking for Solana Pay Endpoints
+// ============================================================================
+
+/**
+ * Solana Endpoint Interactions - Track all hits to Solana Pay endpoints
+ * Answers: Who is hitting, when, what happened
+ */
+export const solanaEndpointInteractions = pgTable(
+  "solana_endpoint_interactions",
+  {
+    id: serial("id").primaryKey(),
+    
+    // Request identification
+    endpoint: varchar("endpoint").notNull(), // /solana-pay/intents, /solana-pay/webhook, etc.
+    method: varchar("method").notNull(), // GET, POST, etc.
+    
+    // Who is hitting
+    ipAddress: varchar("ip_address"), // Hashed or truncated for privacy
+    userAgent: text("user_agent"), // Full user-agent string
+    userAgentCategory: varchar("user_agent_category"), // bot, browser, sdk, helius, unknown
+    walletAddress: varchar("wallet_address"), // If known from request body
+    customerId: varchar("customer_id"), // If authenticated/known
+    
+    // What happened
+    statusCode: integer("status_code").notNull(), // 200, 400, 500, etc.
+    responseTimeMs: integer("response_time_ms"), // How long the request took
+    success: boolean("success").notNull().default(true), // Quick filter
+    
+    // Request context
+    intentId: varchar("intent_id"), // If request relates to a specific intent
+    serviceSlug: varchar("service_slug"), // Which service was requested
+    tokenSymbol: varchar("token_symbol"), // SOL, USDC, USDT
+    requestedAmount: numeric("requested_amount", { precision: 18, scale: 9 }),
+    
+    // Webhook-specific (for Helius tracking)
+    isWebhook: boolean("is_webhook").default(false),
+    webhookType: varchar("webhook_type"), // enhanced_transaction, nft_sale, etc.
+    txSignature: varchar("tx_signature"), // For webhook correlation
+    
+    // Error tracking
+    errorType: varchar("error_type"), // validation, rate_limit, auth, server_error
+    errorMessage: text("error_message"),
+    
+    // Timestamps
+    timestamp: timestamp("timestamp").defaultNow().notNull(),
+    
+    // Additional context (flexible)
+    metadata: jsonb("metadata"),
+  },
+  (table) => [
+    index("IDX_solana_endpoint_timestamp").on(table.timestamp),
+    index("IDX_solana_endpoint_endpoint").on(table.endpoint),
+    index("IDX_solana_endpoint_user_agent_cat").on(table.userAgentCategory),
+    index("IDX_solana_endpoint_status").on(table.statusCode),
+    index("IDX_solana_endpoint_success").on(table.success),
+    index("IDX_solana_endpoint_webhook").on(table.isWebhook),
+    index("IDX_solana_endpoint_service").on(table.serviceSlug),
+    index("IDX_solana_endpoint_ip").on(table.ipAddress),
+  ],
+);
+
+export const solanaEndpointInteractionsInsertSchema = createInsertSchema(solanaEndpointInteractions).omit({
+  id: true,
+  timestamp: true,
+});
+
+export type SolanaEndpointInteraction = typeof solanaEndpointInteractions.$inferSelect;
+export type InsertSolanaEndpointInteraction = z.infer<typeof solanaEndpointInteractionsInsertSchema>;
+

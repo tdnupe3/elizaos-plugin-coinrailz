@@ -1032,13 +1032,53 @@ router.get('/instant-wallet', async (req: Request, res: Response) => {
 });
 
 // ============================================================================
-// HEALTH CHECK: Ping Endpoint for Registries and Monitoring
+// PAID PING: Discovery Ping Endpoint ($0.25 USDC)
 // ============================================================================
+
+const PING_PRICING = {
+  priceUSD: '$0.25',
+  priceUSDC: '0.25',
+  amountLamports: 250000, // 0.25 USDC in micro-units
+  description: 'Solana Pay Discovery Ping - Service health and availability check'
+};
 
 router.get('/ping', async (req: Request, res: Response) => {
   const startTime = Date.now();
+  const intentId = req.headers['x-intent-id'] as string;
+  
+  // Check for payment
+  if (!intentId) {
+    return res.status(402).json({
+      error: 'Payment required',
+      message: 'Missing x-intent-id header. Create a payment intent first.',
+      pricing: PING_PRICING,
+      createIntentEndpoint: '/solana-pay/intents',
+      serviceSlug: 'solana-ping',
+      accepts: [{
+        scheme: 'solana-pay',
+        network: 'solana-mainnet',
+        token: 'USDC',
+        amount: PING_PRICING.priceUSDC,
+        amountUSD: PING_PRICING.priceUSD,
+        recipient: PLATFORM_WALLET
+      }]
+    });
+  }
   
   try {
+    // Verify payment
+    const verification = await solanaPaymentService.verifyPaidIntent(intentId);
+    if (!verification.valid) {
+      return res.status(402).json({
+        error: 'Payment required',
+        message: verification.error || 'Invalid or unpaid intent',
+        pricing: PING_PRICING,
+        createIntentEndpoint: '/solana-pay/intents',
+        serviceSlug: 'solana-ping'
+      });
+    }
+    
+    // Payment verified - return full status
     const paymentServiceReady = solanaPaymentService.isReady();
     const cdpSolanaAvailable = !!(process.env.CDP_API_KEY_ID && process.env.CDP_PRIVATE_KEY);
     
@@ -1046,6 +1086,8 @@ router.get('/ping', async (req: Request, res: Response) => {
       status: 'ok',
       timestamp: new Date().toISOString(),
       latencyMs: Date.now() - startTime,
+      paymentVerified: true,
+      intentId,
       services: {
         solanaPayments: paymentServiceReady ? 'ready' : 'initializing',
         cdpSolanaWallet: cdpSolanaAvailable ? 'configured' : 'not_configured',

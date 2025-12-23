@@ -160,13 +160,64 @@ runTradingBot();`;
 # Claude will use Coin Railz MCP to fetch real data`;
 
   const curlExample = `# x402 Payment Flow (autonomous agents)
-curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
-  -H "Content-Type: application/json" \\
-  -d '{"chain": "base"}'
+# Step 1: Request any paid endpoint - receive 402 challenge
+curl -X GET https://coinrailz.com/x402/ping
 
-# Response: HTTP 402 with payment details
-# Pay with USDC on Base, include X-Payment header
-# Get data instantly after payment`;
+# Response: HTTP 402 Payment Required
+# {
+#   "error": "X-PAYMENT header is required",
+#   "accepts": [{
+#     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+#     "payTo": "0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91",
+#     "network": "base",
+#     "maxAmountRequired": "250000"
+#   }],
+#   "x402Version": 2,
+#   "facilitatorUrl": "https://x402.org/facilitator"
+# }
+
+# Step 2: Sign EIP-3009 authorization + retry with X-PAYMENT header
+curl -X GET https://coinrailz.com/x402/ping \\
+  -H "X-PAYMENT: <base64-encoded-payment-proof>"`;
+
+  const solanaActionsExample = `# Solana Actions (Dialect Blinks)
+# Step 1: Get available actions
+curl -X GET https://coinrailz.com/.well-known/solana-actions.json
+
+# Step 2: Get action metadata
+curl -X GET https://coinrailz.com/solana-pay/intents
+
+# Step 3: Create payment intent
+curl -X POST https://coinrailz.com/solana-pay/intents \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "amount": "1.00",
+    "tokenSymbol": "USDC",
+    "serviceName": "instant-solana-wallet"
+  }'
+
+# Response includes transaction to sign with your Solana wallet`;
+
+  const x402FullFlowExample = `// Full x402 integration (Node.js)
+const response = await fetch('https://coinrailz.com/x402/ping');
+
+if (response.status === 402) {
+  const challenge = await response.json();
+  
+  // Use x402 SDK or manual EIP-3009 signing
+  const payment = await signX402Payment({
+    payTo: challenge.accepts[0].payTo,
+    amount: challenge.accepts[0].maxAmountRequired,
+    network: 'base'
+  });
+  
+  // Retry with payment proof
+  const result = await fetch('https://coinrailz.com/x402/ping', {
+    headers: { 'X-PAYMENT': btoa(JSON.stringify(payment)) }
+  });
+  
+  console.log(await result.json()); // Service data!
+}`;
 
   const freeServices = [
     { name: 'gas-price-oracle', description: 'Real-time gas prices across chains', price: 'FREE' },
@@ -350,10 +401,11 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="javascript" className="w-full">
-              <TabsList className="bg-slate-700/50 mb-4">
+              <TabsList className="bg-slate-700/50 mb-4 flex-wrap">
                 <TabsTrigger value="javascript" data-testid="tab-js">JavaScript</TabsTrigger>
                 <TabsTrigger value="python" data-testid="tab-python">Python (MCP)</TabsTrigger>
-                <TabsTrigger value="curl" data-testid="tab-curl">cURL (x402)</TabsTrigger>
+                <TabsTrigger value="curl" data-testid="tab-curl">x402 (EVM)</TabsTrigger>
+                <TabsTrigger value="solana" data-testid="tab-solana">Solana Actions</TabsTrigger>
               </TabsList>
               
               <TabsContent value="javascript">
@@ -405,6 +457,29 @@ curl -X POST https://coinrailz.com/api/x402/gas-price-oracle \\
                     {copiedCode === 'cURL example' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </Button>
                 </div>
+                <p className="text-slate-500 text-sm mt-2">
+                  x402 uses USDC on Base chain. Payment verification via x402.org facilitator.
+                </p>
+              </TabsContent>
+              
+              <TabsContent value="solana">
+                <div className="relative">
+                  <pre className="bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto">
+                    <code className="text-slate-300" data-testid="code-solana-example">{solanaActionsExample}</code>
+                  </pre>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2 text-slate-400 hover:text-white"
+                    onClick={() => copyToClipboard(solanaActionsExample, 'Solana Actions example')}
+                    data-testid="button-copy-solana"
+                  >
+                    {copiedCode === 'Solana Actions example' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </Button>
+                </div>
+                <p className="text-slate-500 text-sm mt-2">
+                  Solana Actions support SOL, USDC, and USDT. Compatible with Dialect Blinks.
+                </p>
               </TabsContent>
             </Tabs>
           </CardContent>

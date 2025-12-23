@@ -3,13 +3,21 @@ import { SERVICE_PRICING } from "./microservices";
 
 const router = Router();
 
+// Helper to get production-ready base URL
+function getBaseUrl(): string {
+  // Production deployment always uses coinrailz.com
+  if (process.env.REPLIT_DEPLOYMENT === '1') {
+    return 'https://coinrailz.com';
+  }
+  // Development fallback
+  return process.env.PUBLIC_BASE_URL || 'http://localhost:5000';
+}
+
 // MCP-compatible service discovery endpoint for AI agents
 // Based on Model Context Protocol specification for service discovery
 router.get("/mcp/services", async (req: Request, res: Response) => {
   try {
-    const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
-      ? `https://${process.env.REPL_SLUG}.replit.app`
-      : `http://localhost:5000`;
+    const baseUrl = getBaseUrl();
 
     const services = [
       // === TRADER-FOCUSED SERVICES (Original 10) ===
@@ -400,9 +408,7 @@ router.get("/mcp/services/:serviceId", async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Service not found" });
     }
 
-    const baseUrl = process.env.REPLIT_DEPLOYMENT === '1' 
-      ? `https://${process.env.REPL_SLUG}.replit.app`
-      : `http://localhost:5000`;
+    const baseUrl = getBaseUrl();
 
     res.json({
       id: serviceId,

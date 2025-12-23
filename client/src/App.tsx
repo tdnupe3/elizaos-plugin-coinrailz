@@ -279,6 +279,18 @@ function Router() {
         }}
       </Route>
 
+      {/* Solana Actions Showcase - Dialect Blinks Registry */}
+      <Route path="/solana-showcase">
+        {() => {
+          const SolanaShowcasePage = lazy(() => import("@/pages/SolanaShowcasePage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <SolanaShowcasePage />
+            </Suspense>
+          );
+        }}
+      </Route>
+
       {/* Prepaid Credits System - Conversion Optimization */}
       <Route path="/credits">
         {() => <LazyLoadWrapper><CreditsPage /></LazyLoadWrapper>}

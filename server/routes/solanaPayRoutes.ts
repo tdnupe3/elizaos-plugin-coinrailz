@@ -193,7 +193,7 @@ router.get('/webhook-debug-logs', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/webhook', webhookRateLimiter, async (req: Request, res: Response) => {
+router.post('/webhook', webhookRateLimiter, trackSolanaWebhook, async (req: Request, res: Response) => {
   try {
     console.log('📥 WEBHOOK REQUEST RECEIVED:', new Date().toISOString());
     console.log('   Auth header present:', !!req.headers['authorization']);
@@ -615,7 +615,31 @@ router.get('/services/whale-alerts', async (req: Request, res: Response) => {
 // SOLANA ENDPOINT ANALYTICS - Monitor who/when/what for all Solana Pay hits
 // ============================================================================
 
+function validateAnalyticsAccess(req: Request, res: Response): boolean {
+  const adminKey = process.env.ANALYTICS_API_KEY || process.env.ADMIN_API_KEY;
+  const providedKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
+  
+  if (!adminKey) {
+    res.status(503).json({ 
+      error: 'Service unavailable', 
+      message: 'Analytics API key not configured. Set ANALYTICS_API_KEY or ADMIN_API_KEY environment variable.' 
+    });
+    return false;
+  }
+  
+  if (!providedKey || providedKey !== adminKey) {
+    res.status(401).json({ 
+      error: 'Unauthorized', 
+      message: 'Valid API key required for analytics access. Use x-api-key header or Bearer token.' 
+    });
+    return false;
+  }
+  return true;
+}
+
 router.get('/analytics/interactions', async (req: Request, res: Response) => {
+  if (!validateAnalyticsAccess(req, res)) return;
+  
   try {
     const { db } = await import('../db.js');
     const { sql } = await import('drizzle-orm');
@@ -662,6 +686,8 @@ router.get('/analytics/interactions', async (req: Request, res: Response) => {
 });
 
 router.get('/analytics/summary', async (req: Request, res: Response) => {
+  if (!validateAnalyticsAccess(req, res)) return;
+  
   try {
     const { db } = await import('../db.js');
     const { sql } = await import('drizzle-orm');
@@ -736,6 +762,8 @@ router.get('/analytics/summary', async (req: Request, res: Response) => {
 });
 
 router.get('/analytics/traffic-timeline', async (req: Request, res: Response) => {
+  if (!validateAnalyticsAccess(req, res)) return;
+  
   try {
     const { db } = await import('../db.js');
     const { sql } = await import('drizzle-orm');
@@ -771,6 +799,8 @@ router.get('/analytics/traffic-timeline', async (req: Request, res: Response) =>
 });
 
 router.get('/analytics/unique-visitors', async (req: Request, res: Response) => {
+  if (!validateAnalyticsAccess(req, res)) return;
+  
   try {
     const { db } = await import('../db.js');
     const { sql } = await import('drizzle-orm');

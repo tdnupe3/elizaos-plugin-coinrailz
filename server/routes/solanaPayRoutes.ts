@@ -37,6 +37,9 @@ router.use((req: Request, res: Response, next) => {
   res.setHeader('Access-Control-Allow-Headers', [
     'Content-Type',
     'Authorization',
+    'Accept',
+    'Origin',
+    'X-Requested-With',
     'x-api-key',
     'x-intent-id',
     'X-Action-Version',
@@ -48,8 +51,10 @@ router.use((req: Request, res: Response, next) => {
   res.setHeader('Access-Control-Expose-Headers', [
     'X-Action-Version',
     'X-Action-Identity',
-    'X-Blockchain-Ids'
+    'X-Blockchain-Ids',
+    'Link'
   ].join(', '));
+  res.setHeader('Access-Control-Max-Age', '86400');
   
   res.setHeader('X-Action-Version', '1');
   res.setHeader('X-Action-Identity', PLATFORM_WALLET);
@@ -60,7 +65,7 @@ router.use((req: Request, res: Response, next) => {
   ].join(', '));
   
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(204).end();
   }
   next();
 });

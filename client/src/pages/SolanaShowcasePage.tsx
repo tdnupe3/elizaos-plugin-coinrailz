@@ -56,13 +56,22 @@ export default function SolanaShowcasePage() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const testEndpoint = async (serviceId: string, endpoint: string) => {
+  const testEndpoint = async (serviceId: string, endpoint: string, method: string = 'GET') => {
     setLoading(prev => ({ ...prev, [serviceId]: true }));
     try {
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' }
-      });
+      const options: RequestInit = {
+        method,
+        headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+      };
+      
+      if (method === 'POST') {
+        options.body = JSON.stringify({
+          agentId: 'test-agent-' + Date.now(),
+          name: 'Showcase Test Wallet'
+        });
+      }
+      
+      const response = await fetch(endpoint, options);
       const data = await response.json();
       setTestResults(prev => ({ ...prev, [serviceId]: { status: response.status, data } }));
     } catch (error: any) {
@@ -334,7 +343,7 @@ export default function SolanaShowcasePage() {
                     size="sm"
                     variant="outline"
                     className="text-xs"
-                    onClick={() => testEndpoint(service.id, service.endpoint)}
+                    onClick={() => testEndpoint(service.id, service.endpoint, service.method)}
                     disabled={loading[service.id]}
                     data-testid={`button-test-${service.id}`}
                   >

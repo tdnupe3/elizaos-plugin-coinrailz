@@ -412,7 +412,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
       { symbol: "USDT", mint: "Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg", decimals: 6 }
     ],
     
-    categories: ["data", "intelligence"],
+    categories: ["data", "intelligence", "infrastructure"],
     
     services: [
       {
@@ -453,6 +453,33 @@ router.get('/catalog', async (req: Request, res: Response) => {
         price_sol: "0.002",
         category: "intelligence",
         capabilities: ["whale-tracking", "wallet-analysis", "alerts"],
+        auth: "x-intent-id header"
+      },
+      {
+        id: "solana-ping",
+        name: "Solana Discovery Ping",
+        description: "Service health and availability check for registry monitoring",
+        endpoint: `${baseUrl}/solana-pay/ping`,
+        method: "GET",
+        price_usd: 0.25,
+        price_usdc: "0.25",
+        price_sol: "0.001",
+        category: "infrastructure",
+        capabilities: ["health-check", "discovery", "monitoring"],
+        auth: "x-intent-id header"
+      },
+      {
+        id: "instant-solana-wallet",
+        name: "Instant Solana Agent Wallet",
+        description: "Create production-ready Solana wallets for AI agents via Coinbase CDP. Sub-200ms signing, enterprise-grade security.",
+        endpoint: `${baseUrl}/solana-pay/instant-wallet`,
+        method: "POST",
+        price_usd: 1.00,
+        price_usdc: "1.00",
+        price_sol: "0.004",
+        category: "infrastructure",
+        capabilities: ["wallet-creation", "cdp-integration", "enterprise-security"],
+        input: { agentId: "Unique AI agent identifier", name: "Optional wallet name" },
         auth: "x-intent-id header"
       }
     ],

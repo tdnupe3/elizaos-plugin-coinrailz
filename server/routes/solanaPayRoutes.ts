@@ -22,8 +22,12 @@ import {
   SERVICE_PRICING,
   type HeliusEnhancedPayload,
 } from '../services/payments/solanaPay/index.js';
+import { trackSolanaEndpoint, trackSolanaWebhook } from '../middleware/solanaTracking.js';
 
 const router = Router();
+
+// Apply tracking middleware to all Solana Pay routes
+router.use(trackSolanaEndpoint);
 
 // Rate limiter for intent creation - prevents spam
 const intentRateLimiter = rateLimit({
@@ -603,6 +607,204 @@ router.get('/services/whale-alerts', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: 'Internal server error',
+    });
+  }
+});
+
+// ============================================================================
+// SOLANA ENDPOINT ANALYTICS - Monitor who/when/what for all Solana Pay hits
+// ============================================================================
+
+router.get('/analytics/interactions', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('../db.js');
+    const { sql } = await import('drizzle-orm');
+    
+    const hours = parseInt(req.query.hours as string) || 24;
+    const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
+    const endpoint = req.query.endpoint as string;
+    const category = req.query.category as string;
+    
+    let query = sql`
+      SELECT 
+        id, endpoint, method, ip_address, user_agent, user_agent_category,
+        wallet_address, status_code, response_time_ms, success,
+        intent_id, service_slug, token_symbol, is_webhook, webhook_type,
+        tx_signature, error_type, error_message, timestamp, metadata
+      FROM solana_endpoint_interactions
+      WHERE timestamp > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+    `;
+    
+    if (endpoint) {
+      query = sql`${query} AND endpoint LIKE ${'%' + endpoint + '%'}`;
+    }
+    if (category) {
+      query = sql`${query} AND user_agent_category = ${category}`;
+    }
+    
+    query = sql`${query} ORDER BY timestamp DESC LIMIT ${limit}`;
+    
+    const result = await db.execute(query);
+    
+    return res.json({
+      success: true,
+      count: (result.rows || result).length,
+      timeRange: `Last ${hours} hours`,
+      interactions: result.rows || result,
+    });
+  } catch (error) {
+    console.error('Error fetching Solana analytics:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch analytics',
+    });
+  }
+});
+
+router.get('/analytics/summary', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('../db.js');
+    const { sql } = await import('drizzle-orm');
+    
+    const hours = parseInt(req.query.hours as string) || 24;
+    
+    const summary = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total_requests,
+        COUNT(DISTINCT ip_address) as unique_ips,
+        COUNT(*) FILTER (WHERE success = true) as successful,
+        COUNT(*) FILTER (WHERE success = false) as failed,
+        COUNT(*) FILTER (WHERE is_webhook = true) as webhook_hits,
+        COUNT(*) FILTER (WHERE user_agent_category = 'helius') as helius_hits,
+        COUNT(*) FILTER (WHERE user_agent_category = 'ai_agent') as ai_agent_hits,
+        COUNT(*) FILTER (WHERE user_agent_category = 'sdk') as sdk_hits,
+        COUNT(*) FILTER (WHERE user_agent_category = 'browser') as browser_hits,
+        AVG(response_time_ms)::integer as avg_response_ms
+      FROM solana_endpoint_interactions
+      WHERE timestamp > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+    `);
+    
+    const byEndpoint = await db.execute(sql`
+      SELECT 
+        endpoint,
+        COUNT(*) as hits,
+        COUNT(*) FILTER (WHERE success = true) as successful,
+        AVG(response_time_ms)::integer as avg_response_ms
+      FROM solana_endpoint_interactions
+      WHERE timestamp > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+      GROUP BY endpoint
+      ORDER BY hits DESC
+    `);
+    
+    const byUserAgentCategory = await db.execute(sql`
+      SELECT 
+        user_agent_category,
+        COUNT(*) as hits,
+        COUNT(DISTINCT ip_address) as unique_ips
+      FROM solana_endpoint_interactions
+      WHERE timestamp > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+      GROUP BY user_agent_category
+      ORDER BY hits DESC
+    `);
+    
+    const recentErrors = await db.execute(sql`
+      SELECT 
+        endpoint, status_code, error_type, error_message, 
+        user_agent_category, timestamp
+      FROM solana_endpoint_interactions
+      WHERE timestamp > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+        AND success = false
+      ORDER BY timestamp DESC
+      LIMIT 10
+    `);
+    
+    return res.json({
+      success: true,
+      timeRange: `Last ${hours} hours`,
+      summary: (summary.rows || summary)[0] || {},
+      byEndpoint: byEndpoint.rows || byEndpoint,
+      byUserAgentCategory: byUserAgentCategory.rows || byUserAgentCategory,
+      recentErrors: recentErrors.rows || recentErrors,
+    });
+  } catch (error) {
+    console.error('Error fetching Solana analytics summary:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch analytics summary',
+    });
+  }
+});
+
+router.get('/analytics/traffic-timeline', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('../db.js');
+    const { sql } = await import('drizzle-orm');
+    
+    const hours = parseInt(req.query.hours as string) || 24;
+    
+    const timeline = await db.execute(sql`
+      SELECT 
+        DATE_TRUNC('hour', timestamp) as hour,
+        COUNT(*) as total_hits,
+        COUNT(DISTINCT ip_address) as unique_ips,
+        COUNT(*) FILTER (WHERE is_webhook = true) as webhooks,
+        COUNT(*) FILTER (WHERE user_agent_category = 'ai_agent') as ai_agents,
+        COUNT(*) FILTER (WHERE success = false) as errors
+      FROM solana_endpoint_interactions
+      WHERE timestamp > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+      GROUP BY DATE_TRUNC('hour', timestamp)
+      ORDER BY hour DESC
+    `);
+    
+    return res.json({
+      success: true,
+      timeRange: `Last ${hours} hours`,
+      timeline: timeline.rows || timeline,
+    });
+  } catch (error) {
+    console.error('Error fetching traffic timeline:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch traffic timeline',
+    });
+  }
+});
+
+router.get('/analytics/unique-visitors', async (req: Request, res: Response) => {
+  try {
+    const { db } = await import('../db.js');
+    const { sql } = await import('drizzle-orm');
+    
+    const hours = parseInt(req.query.hours as string) || 24;
+    
+    const visitors = await db.execute(sql`
+      SELECT 
+        ip_address,
+        user_agent_category,
+        COUNT(*) as total_requests,
+        COUNT(DISTINCT endpoint) as endpoints_hit,
+        MIN(timestamp) as first_seen,
+        MAX(timestamp) as last_seen,
+        ARRAY_AGG(DISTINCT endpoint) as endpoints,
+        SUM(CASE WHEN success THEN 1 ELSE 0 END)::integer as successful_requests,
+        ARRAY_AGG(DISTINCT wallet_address) FILTER (WHERE wallet_address IS NOT NULL) as wallets
+      FROM solana_endpoint_interactions
+      WHERE timestamp > NOW() - INTERVAL '${sql.raw(String(hours))} hours'
+      GROUP BY ip_address, user_agent_category
+      ORDER BY total_requests DESC
+      LIMIT 50
+    `);
+    
+    return res.json({
+      success: true,
+      timeRange: `Last ${hours} hours`,
+      uniqueVisitors: visitors.rows || visitors,
+    });
+  } catch (error) {
+    console.error('Error fetching unique visitors:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch unique visitors',
     });
   }
 });

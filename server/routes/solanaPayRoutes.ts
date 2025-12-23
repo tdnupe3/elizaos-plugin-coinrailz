@@ -95,7 +95,7 @@ const createIntentSchema = z.object({
 // This is required for Blinks to validate and unfurl the action
 // ============================================================================
 router.get('/intents', async (req: Request, res: Response) => {
-  const baseUrl = 'https://coinrailz.com';
+  const baseUrl = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
   
   // Return Solana Actions ActionGetResponse format
   return res.json({
@@ -108,12 +108,12 @@ router.get('/intents', async (req: Request, res: Response) => {
       actions: [
         {
           label: 'Pay $0.25 USDC - Ping',
-          href: `${baseUrl}/solana-pay/intents?amount=0.25&tokenSymbol=USDC&serviceName=ping`,
+          href: `${baseUrl}/solana-pay/intents?amount=0.25&tokenSymbol=USDC&serviceName=solana-ping`,
           parameters: []
         },
         {
           label: 'Pay $1.00 USDC - Agent Wallet',
-          href: `${baseUrl}/solana-pay/intents?amount=1.00&tokenSymbol=USDC&serviceName=instant-wallet`,
+          href: `${baseUrl}/solana-pay/intents?amount=1.00&tokenSymbol=USDC&serviceName=instant-solana-wallet`,
           parameters: []
         },
         {
@@ -144,10 +144,10 @@ router.get('/intents', async (req: Request, res: Response) => {
               type: 'select',
               options: [
                 { label: 'Discovery Ping', value: 'solana-ping' },
-                { label: 'Token Price Feed', value: 'price-feed' },
+                { label: 'Token Price Feed', value: 'token-price-feed' },
                 { label: 'Trending Tokens', value: 'trending-tokens' },
                 { label: 'Whale Alerts', value: 'whale-alerts' },
-                { label: 'Instant Agent Wallet', value: 'instant-wallet' }
+                { label: 'Instant Agent Wallet', value: 'instant-solana-wallet' }
               ]
             }
           ]

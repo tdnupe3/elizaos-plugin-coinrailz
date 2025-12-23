@@ -90,6 +90,73 @@ const createIntentSchema = z.object({
   metadata: z.record(z.unknown()).optional(),
 });
 
+// ============================================================================
+// Solana Actions GET /intents - Returns ActionGetResponse metadata for Dialect
+// This is required for Blinks to validate and unfurl the action
+// ============================================================================
+router.get('/intents', async (req: Request, res: Response) => {
+  const baseUrl = 'https://coinrailz.com';
+  
+  // Return Solana Actions ActionGetResponse format
+  return res.json({
+    type: 'action',
+    icon: `${baseUrl}/favicon.ico`,
+    title: 'Create Payment Intent',
+    description: 'Create a Solana payment intent for AI agent services. Supports SOL, USDC, and USDT payments.',
+    label: 'Create Intent',
+    links: {
+      actions: [
+        {
+          label: 'Pay $0.25 USDC - Ping',
+          href: `${baseUrl}/solana-pay/intents?amount=0.25&tokenSymbol=USDC&serviceName=ping`,
+          parameters: []
+        },
+        {
+          label: 'Pay $1.00 USDC - Agent Wallet',
+          href: `${baseUrl}/solana-pay/intents?amount=1.00&tokenSymbol=USDC&serviceName=instant-wallet`,
+          parameters: []
+        },
+        {
+          label: 'Custom Payment',
+          href: `${baseUrl}/solana-pay/intents?amount={amount}&tokenSymbol={tokenSymbol}&serviceName={serviceName}`,
+          parameters: [
+            {
+              name: 'amount',
+              label: 'Amount',
+              required: true,
+              type: 'text'
+            },
+            {
+              name: 'tokenSymbol',
+              label: 'Token',
+              required: true,
+              type: 'select',
+              options: [
+                { label: 'SOL', value: 'SOL' },
+                { label: 'USDC', value: 'USDC' },
+                { label: 'USDT', value: 'USDT' }
+              ]
+            },
+            {
+              name: 'serviceName',
+              label: 'Service',
+              required: true,
+              type: 'select',
+              options: [
+                { label: 'Discovery Ping', value: 'solana-ping' },
+                { label: 'Token Price Feed', value: 'price-feed' },
+                { label: 'Trending Tokens', value: 'trending-tokens' },
+                { label: 'Whale Alerts', value: 'whale-alerts' },
+                { label: 'Instant Agent Wallet', value: 'instant-wallet' }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  });
+});
+
 router.post('/intents', intentRateLimiter, async (req: Request, res: Response) => {
   try {
     if (!solanaPaymentService.isReady()) {

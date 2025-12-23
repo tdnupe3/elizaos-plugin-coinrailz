@@ -23,8 +23,28 @@ import {
   type HeliusEnhancedPayload,
 } from '../services/payments/solanaPay/index.js';
 import { trackSolanaEndpoint, trackSolanaWebhook } from '../middleware/solanaTracking.js';
+import { pingDiscoveryCrawlers, getRegistryStatus } from '../services/solanaRegistryService.js';
 
 const router = Router();
+
+const PLATFORM_WALLET = process.env.SOLANA_PUBLIC_KEY || 'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k';
+
+// Protocol headers middleware for Solana Actions discovery
+router.use((req: Request, res: Response, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, x-intent-id');
+  
+  res.setHeader('X-Action-Version', '1.0.0');
+  res.setHeader('X-Action-Identity', PLATFORM_WALLET);
+  res.setHeader('Link', `<https://coinrailz.com/.well-known/solana-actions.json>; rel="solana-actions"`);
+  res.setHeader('Link', `<https://coinrailz.com/.well-known/solana-pay.json>; rel="solana-pay"`);
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
 
 // Apply tracking middleware to all Solana Pay routes
 router.use(trackSolanaEndpoint);
@@ -835,6 +855,64 @@ router.get('/analytics/unique-visitors', async (req: Request, res: Response) => 
     return res.status(500).json({
       success: false,
       error: 'Failed to fetch unique visitors',
+    });
+  }
+});
+
+// ============================================================================
+// ADMIN: Discovery Registration Management
+// ============================================================================
+
+router.post('/admin/discovery/register', async (req: Request, res: Response) => {
+  if (!validateAnalyticsAccess(req, res)) return;
+  
+  try {
+    console.log('🚀 Manual Solana discovery registration triggered');
+    const results = await pingDiscoveryCrawlers();
+    
+    return res.json({
+      success: true,
+      message: 'Discovery registration completed',
+      results,
+      manifests: {
+        solana: 'https://coinrailz.com/.well-known/solana.json',
+        solanaActions: 'https://coinrailz.com/.well-known/solana-actions.json',
+        solanaPay: 'https://coinrailz.com/.well-known/solana-pay.json',
+        helius: 'https://coinrailz.com/.well-known/helius.json',
+        openrpc: 'https://coinrailz.com/public/solana-openrpc.json'
+      }
+    });
+  } catch (error) {
+    console.error('Error in discovery registration:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Discovery registration failed',
+    });
+  }
+});
+
+router.get('/admin/discovery/status', async (req: Request, res: Response) => {
+  if (!validateAnalyticsAccess(req, res)) return;
+  
+  try {
+    const status = getRegistryStatus();
+    
+    return res.json({
+      success: true,
+      status,
+      manifests: {
+        solana: '/.well-known/solana.json',
+        solanaActions: '/.well-known/solana-actions.json',
+        solanaPay: '/.well-known/solana-pay.json',
+        helius: '/.well-known/helius.json',
+        openrpc: '/public/solana-openrpc.json'
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching discovery status:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to fetch discovery status',
     });
   }
 });

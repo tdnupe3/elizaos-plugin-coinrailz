@@ -3040,6 +3040,8 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
     name: "Coin Railz Payment Actions",
     description: "Solana Actions for AI agent payments and data services. Create payment intents, check token prices, get trending tokens, and whale alerts.",
     icon: `${baseUrl}/logo.jpg`,
+    blockchain: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
+    version: "2.4",
     
     rules: [
       {

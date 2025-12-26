@@ -3039,7 +3039,7 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
   const solanaActionsManifest = {
     name: "Coin Railz Payment Actions",
     description: "Solana Actions for AI agent payments and data services. Create payment intents, check token prices, get trending tokens, and whale alerts.",
-    icon: `${baseUrl}/favicon.ico`,
+    icon: `${baseUrl}/logo.jpg`,
     
     rules: [
       {
@@ -3181,7 +3181,7 @@ router.get('/.well-known/solana-pay.json', async (req: Request, res: Response) =
     merchant: {
       name: "Coin Railz",
       description: "Multi-chain payment infrastructure for AI agents. Accept SOL, USDC, USDT payments with automatic webhook settlement.",
-      logo: `${baseUrl}/favicon.ico`,
+      logo: `${baseUrl}/logo.jpg`,
       website: "https://coinrailz.com",
       support_email: "support@coinrailz.com",
       category: "payment_processor"

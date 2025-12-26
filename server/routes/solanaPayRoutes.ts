@@ -56,9 +56,9 @@ router.use((req: Request, res: Response, next) => {
   ].join(', '));
   res.setHeader('Access-Control-Max-Age', '86400');
   
-  res.setHeader('X-Action-Version', '1');
+  res.setHeader('X-Action-Version', '2.4');
   res.setHeader('X-Action-Identity', PLATFORM_WALLET);
-  res.setHeader('X-Blockchain-Ids', 'solana:mainnet');
+  res.setHeader('X-Blockchain-Ids', 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp');
   res.setHeader('Link', [
     `<https://coinrailz.com/.well-known/solana-actions.json>; rel="solana-actions"`,
     `<https://coinrailz.com/.well-known/solana-pay.json>; rel="solana-pay"`
@@ -484,7 +484,7 @@ router.get('/catalog', async (req: Request, res: Response) => {
     name: "Coin Railz Solana Services",
     version: "1.0.0",
     updated: new Date().toISOString(),
-    network: "solana:mainnet",
+    network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     description: "Payment processing and data services for Solana-native AI agents. 0.5% fees, instant webhook settlement.",
     
     platform: {

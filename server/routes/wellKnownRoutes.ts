@@ -2168,7 +2168,7 @@ router.get('/.well-known/payment-methods.json', async (req: Request, res: Respon
     solana: {
       enabled: true,
       wallet_address: process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k",
-      network: "solana:mainnet",
+      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
       tokens: ["SOL", "USDC", "USDT"],
       preferred_token: "USDC",
       fee_percentage: 0.005,
@@ -2920,7 +2920,7 @@ router.get('/.well-known/solana.json', async (req: Request, res: Response) => {
     contact: "support@coinrailz.com",
     description: "Payment processing as a service for Solana-native AI agents. 0.5% fees, instant webhook settlement, SOL/USDC/USDT support. Built for Truth Terminal, pump.fun traders, and Jito MEV bots.",
     version: "1.0.0",
-    network: "solana:mainnet",
+    network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     
     wallet: {
       address: process.env.SOLANA_PUBLIC_KEY || "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k",
@@ -3144,7 +3144,7 @@ router.get('/.well-known/solana-actions.json', async (req: Request, res: Respons
     
     identity: {
       wallet: platformWallet,
-      network: "solana:mainnet"
+      network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
     },
     
     metadata: {

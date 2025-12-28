@@ -4,7 +4,7 @@ ElizaOS plugin for Coin Railz x402 micropayment services on Base mainnet.
 
 ## Overview
 
-This plugin adds **18 production-ready micropayment services** to any ElizaOS agent, enabling autonomous AI agents to pay for and access premium APIs using USDC on Base.
+This plugin adds **41 production-ready micropayment services** to any ElizaOS agent, enabling autonomous AI agents to pay for and access premium APIs using USDC on Base.
 
 **Platform Wallet:** `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`  
 **Network:** Base Mainnet  
@@ -13,7 +13,7 @@ This plugin adds **18 production-ready micropayment services** to any ElizaOS ag
 
 ## Features
 
-- ✅ **18 Production Services** - Multi-chain balance, gas prices, token data, wallet analysis, trading signals, and more
+- ✅ **41 Production Services** - Multi-chain balance, gas prices, token data, wallet analysis, trading signals, prediction markets, and more
 - ✅ **x402 Protocol** - Standard HTTP-based micropayments ($0.10 - $5.00 USDC)
 - ✅ **Base Mainnet** - Low fees, fast settlement via Coinbase infrastructure
 - ✅ **CDP Compatible** - Works with Coinbase Developer Platform wallets
@@ -103,6 +103,43 @@ See `/examples/eliza/` for advanced ElizaOS agent examples.
 - **instant-agent-wallet** ($1.00) - Circle MPC wallet creation
 - **verified-agent-identity** ($5.00) - ERC-8004 on-chain identity
 - **seamless-chain-bridge** ($2.00) - Cross-chain USDC routing
+
+### Discovery & Testing ($0.25)
+- **ping** ($0.25) - x402 discovery and connectivity testing
+
+### Premium Trading ($0.50 - $10.00)
+- **sentiment-analysis** ($0.50) - AI sentiment from Twitter, Reddit, Discord
+- **arbitrage-scanner** ($1.25) - Cross-chain arbitrage opportunities
+- **portfolio-optimization** ($2.00) - AI portfolio rebalancing
+- **trading-signal** ($1.00) - AI trading signals with entry/exit points
+- **correlation-matrix** ($0.75) - Cross-asset correlation analysis
+- **smart-contract-audit** ($10.00) - Comprehensive security audit
+
+### Agent Infrastructure ($2.00 - $5.00)
+- **agent-create-wallet** ($2.00) - CDP-managed wallet provisioning
+- **payment-processing** ($0.50) - Cross-chain payment settlement
+- **compliance-consultation** ($5.00) - Expert compliance consultation
+
+### Real Estate ($0.75 - $1.50)
+- **property-valuation** ($0.75) - AI property valuation with tokenization
+- **lease-analysis** ($1.00) - AI lease terms analysis
+- **construction-progress** ($1.50) - Construction project tracking
+
+### Banking & Compliance ($1.25 - $1.75)
+- **credit-risk-score** ($1.25) - On-chain DeFi credit scoring
+- **compliance-check** ($1.75) - AML/KYC wallet screening
+- **fraud-detection** ($1.50) - AI fraud detection
+- **risk-metrics** ($1.00) - Comprehensive risk analytics
+
+### Prediction Markets ($0.25 - $0.50)
+- **polymarket-odds** ($0.50) - Polymarket prediction market odds
+- **polymarket-events** ($0.25) - Trending Polymarket events
+- **polymarket-search** ($0.25) - Search prediction markets
+- **prediction-market-odds** ($0.50) - General prediction market odds
+
+### Traditional Markets ($0.40)
+- **stock-sentiment** ($0.40) - AI stock market sentiment
+- **forex-sentiment** ($0.40) - AI forex currency sentiment
 
 ## Usage Examples
 

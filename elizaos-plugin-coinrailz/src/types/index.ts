@@ -172,5 +172,189 @@ export const COIN_RAILZ_SERVICES: CoinRailzService[] = [
     price: '2.00',
     endpoint: '/x402/seamless-chain-bridge',
     network: 'base'
+  },
+  {
+    id: 'ping',
+    name: 'x402 Discovery Ping',
+    description: 'x402 discovery and testing endpoint - returns 402 Payment Required challenge',
+    price: '0.25',
+    endpoint: '/x402/ping',
+    network: 'base'
+  },
+  {
+    id: 'sentiment-analysis',
+    name: 'Social Sentiment Analysis',
+    description: 'AI-powered sentiment analysis from Twitter, Reddit, Discord',
+    price: '0.50',
+    endpoint: '/x402/sentiment-analysis',
+    network: 'base'
+  },
+  {
+    id: 'arbitrage-scanner',
+    name: 'Cross-Chain Arbitrage Scanner',
+    description: 'Identify arbitrage opportunities across 7 blockchains',
+    price: '1.25',
+    endpoint: '/x402/arbitrage-scanner',
+    network: 'base'
+  },
+  {
+    id: 'portfolio-optimization',
+    name: 'Portfolio Optimization',
+    description: 'AI-powered portfolio rebalancing and yield optimization',
+    price: '2.00',
+    endpoint: '/x402/portfolio-optimization',
+    network: 'base'
+  },
+  {
+    id: 'compliance-consultation',
+    name: 'Compliance Consultation',
+    description: 'Expert compliance consultation for crypto operations and regulatory requirements',
+    price: '5.00',
+    endpoint: '/x402/compliance-consultation',
+    network: 'base'
+  },
+  {
+    id: 'agent-create-wallet',
+    name: 'Agent Wallet Provisioning',
+    description: 'Create CDP-managed wallets for AI agents with instant USDC support on Base',
+    price: '2.00',
+    endpoint: '/x402/agent-create-wallet',
+    network: 'base'
+  },
+  {
+    id: 'payment-processing',
+    name: 'Payment Processing',
+    description: 'Cross-chain payment processing and settlement',
+    price: '0.50',
+    endpoint: '/x402/service/payment-processing',
+    network: 'base'
+  },
+  {
+    id: 'smart-contract-audit',
+    name: 'Smart Contract Audit',
+    description: 'Comprehensive smart contract security audit',
+    price: '10.00',
+    endpoint: '/x402/service/smart-contract-audit',
+    network: 'base'
+  },
+  {
+    id: 'trading-signal',
+    name: 'Trading Signal',
+    description: 'AI-powered trading signals with entry/exit points',
+    price: '1.00',
+    endpoint: '/x402/trading-signal',
+    network: 'base'
+  },
+  {
+    id: 'correlation-matrix',
+    name: 'Asset Correlation Matrix',
+    description: 'Cross-asset correlation analysis for portfolio diversification',
+    price: '0.75',
+    endpoint: '/x402/correlation-matrix',
+    network: 'base'
+  },
+  {
+    id: 'property-valuation',
+    name: 'AI Property Valuation',
+    description: 'AI-powered real estate valuation with tokenization analysis',
+    price: '0.75',
+    endpoint: '/x402/property-valuation',
+    network: 'base'
+  },
+  {
+    id: 'lease-analysis',
+    name: 'Lease Analysis',
+    description: 'AI-powered lease terms analysis and optimization',
+    price: '1.00',
+    endpoint: '/x402/lease-analysis',
+    network: 'base'
+  },
+  {
+    id: 'construction-progress',
+    name: 'Construction Progress Tracking',
+    description: 'Track and verify construction project progress',
+    price: '1.50',
+    endpoint: '/x402/construction-progress',
+    network: 'base'
+  },
+  {
+    id: 'credit-risk-score',
+    name: 'DeFi Credit Score',
+    description: 'On-chain credit scoring for DeFi lending protocols',
+    price: '1.25',
+    endpoint: '/x402/credit-risk-score',
+    network: 'base'
+  },
+  {
+    id: 'compliance-check',
+    name: 'AML/KYC Compliance Check',
+    description: 'Wallet compliance screening for regulated entities',
+    price: '1.75',
+    endpoint: '/x402/compliance-check',
+    network: 'base'
+  },
+  {
+    id: 'fraud-detection',
+    name: 'Fraud Detection',
+    description: 'AI-powered fraud and suspicious activity detection',
+    price: '1.50',
+    endpoint: '/x402/fraud-detection',
+    network: 'base'
+  },
+  {
+    id: 'risk-metrics',
+    name: 'Risk Metrics Dashboard',
+    description: 'Comprehensive risk metrics and analytics',
+    price: '1.00',
+    endpoint: '/x402/risk-metrics',
+    network: 'base'
+  },
+  {
+    id: 'polymarket-odds',
+    name: 'Polymarket Odds',
+    description: 'Get current odds from Polymarket prediction markets',
+    price: '0.50',
+    endpoint: '/x402/polymarket-odds',
+    network: 'base'
+  },
+  {
+    id: 'polymarket-events',
+    name: 'Polymarket Events',
+    description: 'Get trending events from Polymarket',
+    price: '0.25',
+    endpoint: '/x402/polymarket-events',
+    network: 'base'
+  },
+  {
+    id: 'polymarket-search',
+    name: 'Polymarket Search',
+    description: 'Search Polymarket prediction markets',
+    price: '0.25',
+    endpoint: '/x402/polymarket-search',
+    network: 'base'
+  },
+  {
+    id: 'prediction-market-odds',
+    name: 'Prediction Market Odds',
+    description: 'Get current odds and probability for any prediction market event',
+    price: '0.50',
+    endpoint: '/x402/prediction-market-odds',
+    network: 'base'
+  },
+  {
+    id: 'stock-sentiment',
+    name: 'Stock Sentiment Analysis',
+    description: 'AI-powered stock market sentiment analysis with news, technicals, and institutional activity',
+    price: '0.40',
+    endpoint: '/x402/stock-sentiment',
+    network: 'base'
+  },
+  {
+    id: 'forex-sentiment',
+    name: 'Forex Sentiment Analysis',
+    description: 'AI-powered forex currency pair sentiment analysis with economic and central bank insights',
+    price: '0.40',
+    endpoint: '/x402/forex-sentiment',
+    network: 'base'
   }
 ];

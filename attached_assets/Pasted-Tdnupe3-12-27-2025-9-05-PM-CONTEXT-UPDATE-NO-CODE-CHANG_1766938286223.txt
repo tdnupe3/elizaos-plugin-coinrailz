@@ -1,0 +1,108 @@
+Tdnupe3, [12/27/2025 9:05 PM]
+CONTEXT UPDATE (NO CODE CHANGES REQUIRED UNLESS YOU FIND A NECESSARY ONE)
+
+We have made major business/structuring progress for Coin Railz and I need you (Replit Agent) to be fully up to date. This is a “state of the business + fundraising plan” update, not a request to ship features today. Please read carefully, summarize back what you understand, and ONLY propose code changes if they are truly necessary to support the raise (e.g., tracking/instrumentation, a clean investor-facing page, or data room exports). Otherwise, do not change code.
+
+========================================================
+1) ENTITY / OWNERSHIP STRUCTURE UPDATE
+========================================================
+
+- Previously, “Coin Railz” operated as a brand under Kellogg Holdings LLC (KHLLC).
+- All banking has historically been under KHLLC.
+- Domains (coinrailz.com and related) are currently registered personally under Travis Kellogg via GoDaddy.
+- There were no outside advisors; this has been built solo.
+
+NEW UPDATE:
+- I have now formed a separate entity: “Coin Railz LLC” (Alabama LLC).
+- Coin Railz LLC has an EIN.
+- I previously registered a DBA in Alabama: “KHLLC DBA Coin Railz” — and I still need to clean up the DBA situation so the branding and entity usage is clean and consistent.
+- I attempted to create a new Alabama Business Privilege Tax / registration account but the system would not allow a new account; I can only log in with the KHLLC account. This is not resolved yet.
+- I still need to open a new bank account specifically for Coin Railz LLC.
+- I can execute an IP assignment document within the next week to assign the Coin Railz platform IP from me/KHLLC to Coin Railz LLC (depending on what is cleanest).
+
+IMPORTANT GOAL:
+- Make Coin Railz a clean, investable entity (Coin Railz LLC) for fundraising, while keeping operations stable.
+
+========================================================
+2) FUNDRAISING PLAN UPDATE (SAFE “SOFT NOTE”)
+========================================================
+
+We are preparing to raise capital using a SAFE-style instrument suitable for an LLC (i.e., a “SAFE for future equity / units” structure). Think “SAFE/soft note” behavior: no interest, no maturity, converts on a future priced round or liquidity event.
+
+Raise parameters:
+- Instrument: SAFE (LLC version) / “soft note”
+- Valuation Cap: $10,000,000
+- Target raise: $500,000
+- Allow up to: $1,000,000 if demand is strong
+- We are not doing a full priced round right now.
+- This is a rolling close approach: accept checks as they come in (subject to legal/compliance constraints).
+
+Why we’re doing this:
+- We want to fund distribution, partnerships, and operational hardening while the x402 / AI agent payments ecosystem is early.
+- We want a low-friction fundraising instrument while we remain an LLC (we may revisit a C-Corp later when it’s financially justified).
+- The platform is already operational; the raise is to accelerate growth, not “build a prototype.”
+
+Investor participation mechanics (high level):
+- Investors sign SAFE and wire/ACH funds to Coin Railz LLC (once bank account is open).
+- Funds are used for agreed allocation (see below).
+- Conversion happens later under standard SAFE conversion logic (priced round or liquidity event).
+- No voting/control rights are granted via SAFE.
+
+========================================================
+3) WHAT WE MAY NEED FROM THE PRODUCT (BUT NO CHANGES REQUIRED TODAY)
+========================================================
+
+I’m NOT asking you to implement anything immediately. However, as you review the current platform, tell me if any of these are “must-have” for the raise:
+
+A) Investor-facing materials:
+- A simple “Investor” page (or hidden URL) with: one-page memo, traction metrics, and a contact form
+- A clean “data room export” checklist (docs links) OR a static page listing key metrics (payments, services, discovery indexing)
+
+Tdnupe3, [12/27/2025 9:05 PM]
+B) Fundraising attribution / tracking:
+- If we send investors to coinrailz.com, do we want tracking params like ?source=investor or ?campaign=safe2025
+- Does analytics capture investor-origin traffic without breaking privacy/compliance?
+
+C) Compliance/UX safeguards:
+- Ensure no sensitive keys are exposed
+- Ensure “credits / payments” and “investor” flows are clearly separated (we don’t want user purchase pages to look like fundraising pages)
+
+Again: do NOT build these unless you think they’re truly necessary. Just recommend.
+
+========================================================
+4) FUNDS USE PLAN (FOR YOUR AWARENESS)
+========================================================
+
+Working allocation targets (subject to change):
+- 35–45% Growth/Distribution: partnerships, listings, outbound, marketing, community activation
+- 20–30% Engineering/Infra: reliability, scaling readiness (Redis if needed), security hardening, analytics dashboards
+- 10–20% Compliance/Legal/Finance: contracts, accounting, basic legal review, state filings cleanup
+- 10–15% Operating Buffer: runway, tools, incidentals
+
+Founder pay (guideline):
+- Keep it conservative and just enough to stabilize: e.g., $6k–$10k/month (final depends on raise size).
+- Priority is runway + growth, not extracting cash.
+
+========================================================
+5) YOUR TASK RIGHT NOW
+========================================================
+
+1) Summarize what you understand about:
+   - Entity structure and why Coin Railz LLC exists
+   - The SAFE/soft note raise parameters
+   - What “clean investable structure” means for the platform
+
+2) Review the current platform structure and tell me:
+   - Are there any immediate “investor-readiness” risks or issues visible from our current site/app setup?
+   - Are there any quick, low-risk changes you recommend for fundraising readiness? (Only if truly necessary.)
+   - Are there any technical/ops steps we should take BEFORE we start sending investors links? (e.g., uptime, logging, performance, security).
+
+3) DO NOT implement code changes unless:
+   - You believe it meaningfully reduces fundraising risk, OR
+   - It enables investor diligence without exposing sensitive info.
+
+If you do propose a code change, clearly label it:
+- “Must do before outreach” vs “Nice to have”
+and explain why.
+
+END CONTEXT UPDATE

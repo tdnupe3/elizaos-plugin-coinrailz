@@ -164,6 +164,7 @@ const CreditsPage = lazy(() => import("@/pages/CreditsPage"));
 const APIKeysPage = lazy(() => import("@/pages/APIKeysPage"));
 const XMTPAdminPage = lazy(() => import("@/pages/XMTPAdminPage"));
 const SolanaPayPage = lazy(() => import("@/pages/solana-pay"));
+const ProofOfExecution = lazy(() => import("@/pages/proof-of-execution"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -615,6 +616,12 @@ function Router() {
       </Route>
       <Route path="/documentation">
         {() => <LazyLoadWrapper><Documentation /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/proof-of-execution">
+        {() => <LazyLoadWrapper><ProofOfExecution /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/telemetry">
+        {() => <LazyLoadWrapper><ProofOfExecution /></LazyLoadWrapper>}
       </Route>
 
       {/* Bot API Portal */}

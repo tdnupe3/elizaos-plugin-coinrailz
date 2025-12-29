@@ -99,10 +99,16 @@ export class X402Client {
       };
     } catch (error) {
       const err = error as AxiosError;
+      const errorData = err.response?.data;
+      const errorMessage = typeof errorData === 'string' 
+        ? errorData 
+        : (typeof errorData === 'object' && errorData !== null && 'message' in errorData)
+          ? String((errorData as any).message)
+          : err.message || 'Unknown error';
       return {
         success: false,
         transactionHash,
-        error: err.response?.data || err.message
+        error: errorMessage
       };
     }
   }

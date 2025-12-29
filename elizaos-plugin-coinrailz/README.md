@@ -1,4 +1,4 @@
-# @elizaos/plugin-coinrailz
+# plugin-coinrailz
 
 ElizaOS plugin for Coin Railz x402 micropayment services on Base mainnet.
 
@@ -63,12 +63,12 @@ See `/examples/node/` for standalone JavaScript examples and `/examples/python/`
 **Best for:** ElizaOS agent integration with autonomous USDC payments
 
 ```bash
-npm install @elizaos/plugin-coinrailz
+npm install plugin-coinrailz
 ```
 
 ```typescript
 import { elizaLogger, AgentRuntime } from "@elizaos/core";
-import { coinrailzPlugin } from "@elizaos/plugin-coinrailz";
+import { coinrailzPlugin } from "plugin-coinrailz";
 
 const runtime = new AgentRuntime({
   // ... your config
@@ -223,7 +223,7 @@ export COINRAILZ_API_KEY="cr_live_YOUR_KEY_HERE"
 
 4. **Use in ElizaOS**:
 ```typescript
-import { coinrailzPlugin } from "@elizaos/plugin-coinrailz";
+import { coinrailzPlugin } from "plugin-coinrailz";
 
 const runtime = new AgentRuntime({
   env: {
@@ -291,7 +291,7 @@ COIN_RAILZ_URL=https://coinrailz.com
 ### Plugin Options
 
 ```typescript
-import { coinrailzPlugin } from "@elizaos/plugin-coinrailz";
+import { coinrailzPlugin } from "plugin-coinrailz";
 
 const runtime = new AgentRuntime({
   plugins: [

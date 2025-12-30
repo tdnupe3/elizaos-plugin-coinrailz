@@ -1,0 +1,73 @@
+
+coderabbitai[bot] <notifications@github.com>
+10:23 AM (1 minute ago)
+to elizaos-plugins/registry, me, Author
+
+@coderabbitai[bot] commented on this pull request.
+
+Actionable comments posted: 1
+
+📜 Review details
+Configuration used: Organization UI
+
+Review profile: CHILL
+
+Plan: Pro
+
+Cache: Disabled due to data retention organization setting
+
+Knowledge base: Disabled due to data retention organization setting
+
+📥 Commits
+Reviewing files that changed from the base of the PR and between 0acc23b and 8c22e76.
+
+📒 Files selected for processing (1)
+index.json
+In index.json:
+
+> @@ -1,5 +1,6 @@
+ {
+    "@bealers/plugin-mattermost":"github:bealers/plugin-mattermost",
++   "@coinrailz/plugin-coinrailz":"github:tdnupe3/coinrailz-eliza-plugin",
+⚠️ Potential issue | 🔴 Critical
+
+🧩 Analysis chain
+🏁 Script executed:
+
+#!/bin/bash
+# Description: Verify the plugin repository exists, is accessible, and contains valid plugin structure
+
+# Check if repository exists and get basic info
+echo "=== Repository Info ==="
+gh repo view tdnupe3/coinrailz-eliza-plugin --json name,description,isPrivate,pushedAt 2>&1
+
+# Check if package.json exists and extract name field
+echo -e "\n=== Package Name Check ==="
+gh api repos/tdnupe3/coinrailz-eliza-plugin/contents/package.json --jq '.content' 2>&1 | base64 -d | jq -r '.name' 2>&1 || echo "Could not retrieve package.json"
+
+# Check repository file structure for plugin indicators
+echo -e "\n=== Repository Structure ==="
+gh api repos/tdnupe3/coinrailz-eliza-plugin/contents 2>&1 | jq -r '.[].name' 2>&1 || echo "Could not retrieve repository contents"
+Repository: elizaos-plugins/registry
+
+Length of output: 386
+
+Package name mismatch: registry entry does not match repository's package.json.
+
+The repository exists and has valid plugin structure, but the scoped package name in the registry entry (@coinrailz/plugin-coinrailz) does not match the actual package name in the repository's package.json (coinrailz-eliza-plugin). This mismatch will cause registry resolution failures.
+
+Update the registry entry to match the actual package name, or update the repository's package.json to use the @coinrailz/plugin-coinrailz scoped name.
+
+🤖 Prompt for AI Agents
+In index.json around line 3, the registry entry uses the scoped name
+"@coinrailz/plugin-coinrailz" but the repository's package.json defines the
+package as "coinrailz-eliza-plugin", causing resolution failures; fix by either
+updating index.json to use
+"coinrailz-eliza-plugin":"github:tdnupe3/coinrailz-eliza-plugin" to match
+package.json, or change the repository's package.json name field to
+"@coinrailz/plugin-coinrailz" (and publish/update repo accordingly) so both
+registry entry and package.json share the exact same package name.
+—
+Reply to this email directly, view it on GitHub, or unsubscribe.
+You are receiving this because you authored the thread.
+

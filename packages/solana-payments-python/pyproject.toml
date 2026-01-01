@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coinrailz-solana"
+version = "1.0.0"
+description = "Solana AI Agent Payment Processing SDK - Non-custodial SOL/USDC payments for AI agents"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Coin Railz", email = "support@coinrailz.com"}
+]
+keywords = [
+    "ai-agent",
+    "payments",
+    "solana",
+    "sol",
+    "usdc",
+    "spl-token",
+    "crypto",
+    "fintech",
+    "x402",
+    "eliza",
+    "agentkit",
+    "mcp",
+    "blockchain",
+    "non-custodial"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Financial"
+]
+requires-python = ">=3.8"
+dependencies = [
+    "httpx>=0.24.0"
+]
+
+[project.urls]
+Homepage = "https://coinrailz.com"
+Documentation = "https://coinrailz.com/docs/sdk/solana"
+Repository = "https://github.com/coinrailz/agent-payments-solana"
+Issues = "https://github.com/coinrailz/agent-payments-solana/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["coinrailz_solana*"]

@@ -41,6 +41,7 @@ import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
 import sdkPaymentsRoutes from './routes/sdkPaymentsRoutes';
+import sdkSolanaRoutes from './routes/sdkSolanaRoutes';
 import x402Routes from './routes/x402Routes';
 import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2';
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
@@ -815,6 +816,11 @@ console.log('✅ Agent Payments SDK routes registered successfully');
 console.log('📦 Registering SDK Payments routes for @coinrailz/agent-payments, coinrailz (Python), Docker...');
 app.use('/api/sdk', sdkPaymentsRoutes);
 console.log('✅ SDK Payments routes registered at /api/sdk/*');
+
+// === SOLANA SDK PAYMENTS ROUTES ===
+console.log('☀️ Registering Solana SDK routes for @coinrailz/agent-payments-solana, coinrailz-solana (Python)...');
+app.use('/api/sdk/solana', sdkSolanaRoutes);
+console.log('✅ Solana SDK routes registered at /api/sdk/solana/*');
 
 // === x402 PROTOCOL AUTONOMOUS PAYMENTS ===
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');

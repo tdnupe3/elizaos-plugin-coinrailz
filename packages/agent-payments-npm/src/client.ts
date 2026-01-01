@@ -65,7 +65,7 @@ export class CoinRailz {
       });
 
       clearTimeout(timeoutId);
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (!response.ok) {
         return {

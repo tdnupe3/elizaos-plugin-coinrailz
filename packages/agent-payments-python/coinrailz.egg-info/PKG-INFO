@@ -1,0 +1,254 @@
+Metadata-Version: 2.4
+Name: coinrailz
+Version: 1.0.0
+Summary: AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with bundled intelligence services
+Author-email: Coin Railz <support@coinrailz.com>
+License: MIT
+Project-URL: Homepage, https://coinrailz.com
+Project-URL: Documentation, https://coinrailz.com/docs/sdk
+Project-URL: Repository, https://github.com/coinrailz/agent-payments-python
+Project-URL: Issues, https://github.com/coinrailz/agent-payments-python/issues
+Keywords: ai-agent,payments,usdc,crypto,fintech,x402,coinbase,eliza,agentkit,mcp,blockchain,base-chain,non-custodial
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Office/Business :: Financial :: Point-Of-Sale
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: httpx>=0.25.0
+Requires-Dist: pydantic>=2.0.0
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.21.0; extra == "dev"
+Requires-Dist: pytest-httpx>=0.22.0; extra == "dev"
+Dynamic: license-file
+
+# coinrailz
+
+AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with bundled intelligence services.
+
+
+## Features
+
+- **Non-custodial**: Your wallet, your keys. We never custody funds.
+- **Low fees**: 1.5% + $0.01 per transaction ($0.05 minimum)
+- **Multi-chain**: Base Chain primary, with Ethereum, Polygon, Arbitrum support
+- **Intelligence bundle**: 41 x402 microservices for market data, analytics, and more
+- **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform
+- **Type-safe**: Full Pydantic models for all API responses
+
+## Installation
+
+```bash
+pip install coinrailz
+```
+
+## Quick Start
+
+```python
+from coinrailz import CoinRailz
+
+# Initialize the client
+client = CoinRailz(api_key="cr_live_...")  # Get your API key at https://coinrailz.com/dashboard/api-keys
+
+# Send a payment (1.5% + $0.01 fee)
+result = client.send(
+    to="0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",
+    amount=100,
+    memo="Service payment"
+)
+
+if result.success:
+    print(f"Payment sent: {result.transaction_id}")
+    print(f"Fee: ${result.fee}")
+    print(f"Net amount: ${result.net_amount}")
+```
+
+## API Reference
+
+### Initialization
+
+```python
+from coinrailz import CoinRailz
+
+client = CoinRailz(
+    api_key="cr_live_...",  # Required
+    base_url="https://coinrailz.com",  # Optional, for self-hosted
+    timeout=30,  # Optional, request timeout in seconds
+    enable_intelligence=False  # Optional, enable x402 intelligence services
+)
+```
+
+### Send Payment
+
+Send USDC to an address. Fee: 1.5% + $0.01
+
+```python
+result = client.send(
+    to="0x...",  # Recipient address
+    amount=100,  # Amount in USDC
+    currency="USDC",  # Optional, default USDC
+    memo="Payment for services",  # Optional
+    metadata={"order_id": "123"}  # Optional, custom data
+)
+
+# Response (SendPaymentResult)
+# result.success = True
+# result.transaction_id = "sdk_tx_..."
+# result.status = "pending"
+# result.amount = 100
+# result.fee = 1.51
+# result.net_amount = 98.49
+# result.fee_breakdown.rate = "1.5% + $0.01"
+```
+
+### Create Invoice
+
+Create a payment invoice for receiving funds.
+
+```python
+invoice = client.create_invoice(
+    amount=50,
+    description="AI assistant service fee",
+    expires_in=15  # Minutes, default 15
+)
+
+# Response (InvoiceResult)
+# invoice.invoice_id = "sdk_inv_..."
+# invoice.payment_address = "0x..."
+# invoice.status = "pending"
+```
+
+### Get Reports
+
+Get activity reports for your account.
+
+```python
+report = client.get_reports(
+    period="weekly",  # "daily" | "weekly" | "monthly"
+    format="json"  # "json" | "markdown"
+)
+
+# Response (ReportResult)
+# report.summary.total_transactions = 42
+# report.summary.total_volume_usd = 5280.50
+```
+
+### Get Balance
+
+Get your wallet balance.
+
+```python
+balance = client.get_balance()
+
+# Response (BalanceResult)
+# balance.balances.USDC = 1250.00
+# balance.balances.ETH = 0.05
+```
+
+### Create Wallet
+
+Create a new CDP wallet.
+
+```python
+wallet = client.create_wallet()
+
+# Response (WalletResult)
+# wallet.wallet_id = "sdk_wallet_..."
+# wallet.address = "0x..."
+# wallet.status = "active"
+```
+
+### Intelligence Services
+
+Access 41 bundled x402 microservices (requires bundle subscription or +0.35% per call).
+
+```python
+client = CoinRailz(
+    api_key="cr_live_...",
+    enable_intelligence=True
+)
+
+# Get wallet risk score
+risk = client.intelligence("wallet-risk", {"address": "0x..."})
+
+# Get trade signals
+signals = client.intelligence("trade-signals", {"token": "ETH"})
+
+# Get token sentiment
+sentiment = client.intelligence("token-sentiment", {"token": "BTC"})
+```
+
+## Context Manager
+
+The client supports context manager protocol for automatic cleanup:
+
+```python
+with CoinRailz(api_key="cr_live_...") as client:
+    result = client.send(to="0x...", amount=100)
+```
+
+## Error Handling
+
+```python
+from coinrailz import CoinRailz, ApiError
+
+result = client.send(to="0x...", amount=100)
+
+if isinstance(result, ApiError):
+    print(f"Error: {result.error}")
+    print(f"Message: {result.message}")
+
+    # Handle specific errors
+    if result.error == "INVALID_API_KEY":
+        # Regenerate API key
+        pass
+    elif result.error == "RATE_LIMITED":
+        # Wait and retry
+        pass
+```
+
+## Pricing
+
+| Tier | Volume | Processing Fee |
+|------|--------|----------------|
+| Starter | $0-$10K/mo | 1.5% + $0.01 |
+| Growth | $10K-$100K/mo | 1.25% + $0.01 |
+| Platform | $100K+/mo | 0.9% + $0.01 |
+
+**Intelligence Bundle**: +0.35% per transaction OR $79/month flat
+
+## Transaction Limits
+
+- **Minimum transaction**: $0.05 USDC
+- **Maximum transaction**: $100,000 USDC (contact sales for higher limits)
+
+## Refunds & Disputes
+
+Due to the non-custodial nature of blockchain transactions:
+
+- **Refunds are not supported** - All blockchain transactions are final and irreversible
+- **Disputes**: For transaction issues, contact support@coinrailz.com with your transaction ID
+- **Prevention**: Always verify recipient addresses before sending
+
+## Legal
+
+This SDK provides non-custodial payment routing. Coin Railz does not hold, custody, or control user funds at any time. Users maintain full control of their wallets and private keys.
+
+See [Terms of Service](https://coinrailz.com/docs/payments/terms-of-service) for full legal terms.
+
+## Support
+
+- Documentation: https://coinrailz.com/docs/sdk
+- Discord: https://discord.gg/coinrailz
+- Email: support@coinrailz.com
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.

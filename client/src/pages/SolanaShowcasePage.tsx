@@ -163,14 +163,14 @@ export default function SolanaShowcasePage() {
           </h1>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto">
             AI agent payment services powered by Solana Actions. 
-            Pay with SOL, USDC, or USDT. Instant settlement.
+            Pay with USDC. Instant settlement.
           </p>
           <div className="mt-4 flex justify-center gap-2 flex-wrap">
             <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
               Solana Mainnet
             </Badge>
             <Badge variant="outline" className="border-blue-500/30 text-blue-400">
-              SOL / USDC / USDT
+              USDC Payments
             </Badge>
             <Badge variant="outline" className="border-purple-500/30 text-purple-400">
               Dialect Registry Pending
@@ -369,6 +369,138 @@ export default function SolanaShowcasePage() {
             </Card>
           ))}
         </div>
+
+        <Card className="bg-slate-800/50 border-slate-700 mb-8">
+          <CardHeader>
+            <CardTitle className="text-white flex items-center gap-2">
+              <Zap className="w-5 h-5 text-yellow-400" />
+              SDK Quick Start
+            </CardTitle>
+            <CardDescription>
+              Install the NPM package and start sending payments in minutes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-slate-900 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-emerald-400 font-mono text-sm">Install</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-400 hover:text-white"
+                  onClick={() => copyToClipboard('npm install @coinrailz/agent-payments-solana', 'npm install')}
+                  data-testid="button-copy-npm-install"
+                >
+                  {copiedCode === 'npm install' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <pre className="font-mono text-sm overflow-x-auto">
+                <code className="text-slate-300">npm install @coinrailz/agent-payments-solana</code>
+              </pre>
+            </div>
+
+            <div className="bg-slate-900 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-emerald-400 font-mono text-sm">Send Payment</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-400 hover:text-white"
+                  onClick={() => copyToClipboard(`import { CoinRailzSolana } from '@coinrailz/agent-payments-solana';
+
+const client = new CoinRailzSolana({
+  apiKey: process.env.COINRAILZ_API_KEY
+});
+
+const result = await client.send({
+  to: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
+  amount: 10.00,
+  currency: 'USDC',
+  memo: 'Payment for AI service'
+});
+
+if (result.success) {
+  console.log(result.transactionId);
+  console.log(result.explorerUrl);
+} else {
+  console.error(result.error, result.message);
+}`, 'send payment')}
+                  data-testid="button-copy-send-payment"
+                >
+                  {copiedCode === 'send payment' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <pre className="font-mono text-xs overflow-x-auto text-slate-300">
+{`import { CoinRailzSolana } from '@coinrailz/agent-payments-solana';
+
+const client = new CoinRailzSolana({
+  apiKey: process.env.COINRAILZ_API_KEY
+});
+
+const result = await client.send({
+  to: '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
+  amount: 10.00,
+  currency: 'USDC',
+  memo: 'Payment for AI service'
+});
+
+if (result.success) {
+  console.log(result.transactionId);
+  console.log(result.explorerUrl);
+} else {
+  console.error(result.error, result.message);
+}`}
+              </pre>
+            </div>
+
+            <div className="bg-slate-900 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-emerald-400 font-mono text-sm">Create Wallet</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-slate-400 hover:text-white"
+                  onClick={() => copyToClipboard(`const wallet = await client.createWallet();
+if (wallet.success) {
+  console.log('Address:', wallet.wallet.address);
+  // Store wallet.privateKey securely!
+}`, 'create wallet')}
+                  data-testid="button-copy-create-wallet"
+                >
+                  {copiedCode === 'create wallet' ? <CheckCircle className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                </Button>
+              </div>
+              <pre className="font-mono text-xs overflow-x-auto text-slate-300">
+{`const wallet = await client.createWallet();
+if (wallet.success) {
+  console.log('Address:', wallet.wallet.address);
+  // Store wallet.privateKey securely!
+}`}
+              </pre>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <a href="https://www.npmjs.com/package/@coinrailz/agent-payments-solana" target="_blank" rel="noopener noreferrer">
+                <Badge className="bg-red-500/10 text-red-400 border-red-500/20 cursor-pointer hover:bg-red-500/20" data-testid="badge-npm">
+                  NPM Package
+                  <ExternalLink className="w-3 h-3 ml-1" />
+                </Badge>
+              </a>
+              <Link href="/docs/sdk/solana">
+                <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 cursor-pointer hover:bg-blue-500/20" data-testid="badge-docs">
+                  Full Documentation
+                  <ArrowRight className="w-3 h-3 ml-1" />
+                </Badge>
+              </Link>
+              <Link href="/dashboard/api-keys">
+                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 cursor-pointer hover:bg-emerald-500/20" data-testid="badge-api-keys">
+                  Get API Key
+                  <ArrowRight className="w-3 h-3 ml-1" />
+                </Badge>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="bg-purple-900/20 border-purple-500/30 mb-8">
           <CardHeader>

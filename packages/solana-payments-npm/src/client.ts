@@ -20,7 +20,7 @@ import type {
 
 const DEFAULT_BASE_URL = 'https://coinrailz.com';
 const DEFAULT_TIMEOUT = 30000;
-const SDK_VERSION = '1.0.0';
+const SDK_VERSION = '1.0.5';
 
 export class CoinRailzSolana {
   private readonly apiKey: string;

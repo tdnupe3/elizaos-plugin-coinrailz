@@ -258,6 +258,20 @@ class AutonomousDiscoveryService {
         { path: '/support', priority: '0.6' },
         { path: '/contact', priority: '0.6' },
         
+        // SDK Documentation - AI Agent Payments (Jan 2026)
+        { path: '/sdk', priority: '0.9' },
+        { path: '/docs/sdk', priority: '0.9' },
+        { path: '/docs/sdk/npm', priority: '0.8' },
+        { path: '/docs/sdk/python', priority: '0.8' },
+        { path: '/docs/sdk/solana', priority: '0.8' },
+        { path: '/docs/sdk/docker', priority: '0.8' },
+        { path: '/dashboard/api-keys', priority: '0.7' },
+        
+        // Solana Payments (Jan 2026)
+        { path: '/solana', priority: '0.8' },
+        { path: '/solana/payments', priority: '0.8' },
+        { path: '/solana-pay', priority: '0.8' },
+        
         // Legal & Company Info
         { path: '/about', priority: '0.5' },
         { path: '/privacy', priority: '0.5' },

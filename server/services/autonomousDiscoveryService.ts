@@ -67,14 +67,16 @@ class AutonomousDiscoveryService {
     const baseUrl = this.getBaseUrl(hostname);
     
     // Try to get agents from database, but don't fail if unavailable
+    // CRITICAL: This MUST be bulletproof - Google Search Console needs valid XML
     let agents: any[] = [];
     try {
-      agents = await db
-        .select()
-        .from(globalAIAgents);
-    } catch (dbError) {
-      console.warn('⚠️ Database unavailable for sitemap, using static endpoints only:', dbError);
-      // Continue with empty agents array - sitemap will still include static endpoints
+      if (db && globalAIAgents) {
+        const result = await db.select().from(globalAIAgents);
+        agents = Array.isArray(result) ? result : [];
+      }
+    } catch (dbError: any) {
+      console.warn('⚠️ Database unavailable for sitemap, using static endpoints only:', dbError?.message || dbError);
+      agents = []; // Ensure empty array on any failure
     }
 
     try {
@@ -300,9 +302,28 @@ class AutonomousDiscoveryService {
       sitemap += '</urlset>';
 
       return sitemap;
-    } catch (error) {
-      console.error('❌ Sitemap generation failed:', error);
-      throw error;
+    } catch (error: any) {
+      console.error('❌ Sitemap generation failed:', error?.message || error);
+      // CRITICAL: Return minimal valid sitemap instead of throwing
+      // This ensures Google Search Console can always fetch the sitemap
+      return `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}</loc>
+    <lastmod>${now}</lastmod>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/sdk</loc>
+    <lastmod>${now}</lastmod>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/solana</loc>
+    <lastmod>${now}</lastmod>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
     }
   }
 

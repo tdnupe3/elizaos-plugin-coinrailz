@@ -18,6 +18,7 @@ import {
   Activity
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSEO, seoConfigs } from '@/hooks/useSEO';
 
 interface ServiceAction {
   id: string;
@@ -32,19 +33,12 @@ interface ServiceAction {
 }
 
 export default function SolanaShowcasePage() {
+  useSEO(seoConfigs.solana);
+  
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    document.title = "Solana Actions Showcase - Coin Railz Blinks";
-    
-    const metaDescription = document.querySelector('meta[name="description"]');
-    if (metaDescription) {
-      metaDescription.setAttribute('content', 'Explore Coin Railz Solana Actions (Blinks). Create payment intents, get token prices, trending tokens, whale alerts, and instant Solana wallets for AI agents.');
-    }
-  }, []);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);

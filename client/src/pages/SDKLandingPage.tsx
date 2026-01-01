@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { CheckCircle, ArrowRight, TrendingDown, Zap, Shield, Code, Users, Globe, Clock, DollarSign } from 'lucide-react';
 import { Link } from 'wouter';
+import { useSEO, seoConfigs } from '@/hooks/useSEO';
 
 interface LicenseTier {
   id: number;
@@ -59,6 +60,8 @@ interface PricingCalculation {
 }
 
 export default function SDKLandingPage() {
+  useSEO(seoConfigs.sdk);
+  
   const [tiers, setTiers] = useState<LicenseTier[]>([]);
   const [pricingCalculations, setPricingCalculations] = useState<PricingCalculation[]>([]);
   const [isLoading, setIsLoading] = useState(true);

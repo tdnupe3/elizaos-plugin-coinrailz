@@ -282,5 +282,125 @@ export const seoConfigs = {
         "name": "Kellogg Holdings LLC"
       }
     }
+  },
+
+  // SDK Landing Page - 2026 Agentic Commerce Market ($1.7T by 2030)
+  sdk: {
+    title: 'AI Agent Payments SDK - Non-Custodial Payment Processing for Autonomous Agents | Coin Railz',
+    description: 'Add payment capabilities to any AI agent in 3 lines of code. NPM, Python, Docker SDKs for ElizaOS, AgentKit, MCP. 1.5% + $0.01 fee. Multi-chain: Base, Ethereum, Polygon, Solana. Competing with Visa Intelligent Commerce, Mastercard Agent Pay, Google AP2.',
+    keywords: 'AI agent payments SDK, agentic commerce, autonomous agent payments, agent-to-agent payments, ElizaOS payments, AgentKit integration, MCP payments, x402 protocol, AI payments infrastructure, non-custodial payments, autonomous payments SDK, agentic AI payments, programmable money SDK, agent payment rails 2026',
+    canonical: 'https://coinrailz.com/sdk',
+    ogTitle: 'AI Agent Payments SDK - 3 Lines of Code to Enable Autonomous Payments',
+    ogDescription: 'NPM, Python, Docker SDKs for AI agent payments. Multi-chain support (7 EVM + Solana). 1.5% + $0.01 fee. ElizaOS, AgentKit, MCP compatible.',
+    twitterTitle: 'AI Agent Payments SDK | Coin Railz',
+    twitterDescription: 'Add payment capabilities to any AI agent. NPM: @coinrailz/agent-payments. Python: coinrailz. 43 bundled microservices.',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Coin Railz Agent Payments SDK",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "programmingLanguage": ["TypeScript", "JavaScript", "Python"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free SDK. Processing fee: 1.5% + $0.01 per transaction. $0.05 minimum."
+      },
+      "featureList": [
+        "Non-custodial USDC payments",
+        "Multi-chain support (Base, Ethereum, Polygon, Arbitrum, BSC, Optimism, Solana)",
+        "43 bundled intelligence microservices",
+        "ElizaOS plugin compatibility",
+        "AgentKit tool integration",
+        "MCP server implementation",
+        "Docker/Kubernetes deployment"
+      ],
+      "softwareRequirements": "Node.js 18+ or Python 3.8+",
+      "downloadUrl": [
+        "https://www.npmjs.com/package/@coinrailz/agent-payments",
+        "https://pypi.org/project/coinrailz/"
+      ],
+      "provider": {
+        "@type": "Organization",
+        "name": "Kellogg Holdings LLC",
+        "url": "https://coinrailz.com"
+      }
+    }
+  },
+
+  // Solana SDK Page
+  solana: {
+    title: 'Solana AI Agent Payments SDK - SOL & USDC Processing for Autonomous Agents | Coin Railz',
+    description: 'Non-custodial SOL and USDC payment processing for AI agents on Solana. NPM: @coinrailz/agent-payments-solana. Python: coinrailz-solana. 1.5% + $0.01 fee. Fast finality, low fees, DeFi integrations.',
+    keywords: 'Solana AI payments, Solana agent SDK, SOL payments, USDC Solana, autonomous Solana payments, Solana agentic commerce, Solana x402, AI agent Solana, Solana payment processing, Solana developer SDK',
+    canonical: 'https://coinrailz.com/solana',
+    ogTitle: 'Solana AI Agent Payments SDK - Fast, Low-Cost Agent Payments',
+    ogDescription: 'SOL & USDC payments for AI agents. Sub-second finality. NPM & Python packages available.',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Coin Railz Solana Agent Payments SDK",
+      "applicationCategory": "DeveloperApplication",
+      "operatingSystem": "Cross-platform",
+      "programmingLanguage": ["TypeScript", "JavaScript", "Python"],
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD",
+        "description": "Free SDK. Processing fee: 1.5% + $0.01 per transaction."
+      },
+      "featureList": [
+        "SOL native payments",
+        "USDC on Solana",
+        "Sub-second transaction finality",
+        "Low transaction fees",
+        "Wallet generation and management",
+        "SPL token support"
+      ],
+      "downloadUrl": [
+        "https://www.npmjs.com/package/@coinrailz/agent-payments-solana",
+        "https://pypi.org/project/coinrailz-solana/"
+      ],
+      "provider": {
+        "@type": "Organization",
+        "name": "Kellogg Holdings LLC",
+        "url": "https://coinrailz.com"
+      }
+    }
+  },
+
+  // SDK Documentation Hub
+  sdkDocs: {
+    title: 'SDK Documentation - NPM, Python, Docker Installation Guides | Coin Railz',
+    description: 'Complete SDK documentation for AI agent payment integration. Step-by-step guides for NPM (@coinrailz/agent-payments), Python (coinrailz), and Docker (tdnupe3/agent-payments). Framework guides for ElizaOS, AgentKit, MCP.',
+    keywords: 'SDK documentation, AI agent SDK docs, payment SDK guide, ElizaOS integration guide, AgentKit tutorial, MCP payments documentation, agent payments API docs',
+    canonical: 'https://coinrailz.com/docs/sdk',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "name": "Coin Railz SDK Documentation",
+      "description": "Complete developer documentation for integrating AI agent payments",
+      "author": {
+        "@type": "Organization",
+        "name": "Kellogg Holdings LLC"
+      },
+      "mainEntityOfPage": "https://coinrailz.com/docs/sdk"
+    }
+  },
+
+  // API Keys Dashboard
+  apiKeys: {
+    title: 'API Keys Dashboard - Manage Your SDK Access | Coin Railz',
+    description: 'Generate and manage API keys for Coin Railz SDKs. Monitor usage, view transaction history, configure webhooks, and manage your AI agent payment infrastructure.',
+    keywords: 'API keys, SDK access, developer dashboard, payment API management, webhook configuration, usage monitoring',
+    canonical: 'https://coinrailz.com/dashboard/api-keys',
+    structuredData: {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Coin Railz API Keys Dashboard",
+      "applicationCategory": "DeveloperApplication",
+      "description": "Manage API keys and SDK access for AI agent payments"
+    }
   }
 };

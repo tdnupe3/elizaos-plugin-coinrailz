@@ -428,4 +428,60 @@
   <priority>0.7</priority>
 </url>
 
+<url>
+  <loc>https://coinrailz.com/docs/sdk</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.9</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/docs/sdk/npm</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/docs/sdk/python</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/docs/sdk/solana</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/docs/sdk/docker</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/dashboard/api-keys</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.7</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/solana</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/solana/payments</loc>
+  <lastmod>2026-01-01</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
 </urlset>

@@ -54,8 +54,8 @@ router.get('/.well-known/agent.json', async (req: Request, res: Response) => {
   
   const a2aAgentCard = {
     name: "Coin Railz Multi-Chain Payment Infrastructure",
-    description: "Production-grade blockchain infrastructure for AI agents. 41 x402 micropayment services across 7 chains + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis.",
-    version: "0.4.0",
+    description: "Production-grade blockchain infrastructure for AI agents. 41 x402 micropayment services across 8 chains (7 EVM + Solana) + SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker) + Real Estate + Banking + Trading + Market Intelligence + Traditional Markets: property valuation, credit risk, trading signals, security audits, wallet analytics, gas optimization, DeFi intelligence, stock sentiment, and forex analysis. Processing fee: 1.5% + $0.01 per transaction.",
+    version: "0.5.0",
     agentId: "coinrailz-x402-infrastructure",
     
     // A2A v0.3 service endpoint
@@ -1897,6 +1897,23 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
         tags: ["prediction-markets", "odds", "probability", "x402"],
         inputModes: ["application/json"],
         outputModes: ["application/json"]
+      },
+      // SDK Payment Services (2)
+      {
+        id: "sdk-payments-evm",
+        name: "SDK Payment Processing (EVM)",
+        description: "Non-custodial USDC payment processing for AI agents via @coinrailz/agent-payments NPM or coinrailz PyPI. Supports Base, Ethereum, Polygon, Arbitrum, BSC, Optimism. Processing fee: 1.5% + $0.01. Use when agent needs to 'send payment', 'pay for service', 'transfer USDC', or 'process payment on Base/Ethereum'.",
+        tags: ["sdk", "payments", "usdc", "evm", "base", "multi-chain", "agent-payments"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
+      },
+      {
+        id: "sdk-payments-solana",
+        name: "SDK Payment Processing (Solana)",
+        description: "Non-custodial SOL/USDC payment processing for AI agents via @coinrailz/agent-payments-solana NPM or coinrailz-solana PyPI. Processing fee: 1.5% + $0.01. Use when agent needs to 'send SOL', 'pay on Solana', 'transfer USDC on Solana', or 'process Solana payment'.",
+        tags: ["sdk", "payments", "sol", "usdc", "solana", "agent-payments"],
+        inputModes: ["application/json"],
+        outputModes: ["application/json"]
       }
     ],
     
@@ -1926,7 +1943,10 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
       "multi-chain",
       "usdc",
       "base",
+      "solana",
       "ai-agents",
+      "sdk",
+      "agent-payments",
       "real-estate",
       "banking",
       "market-intelligence"
@@ -1937,10 +1957,19 @@ router.get('/.well-known/agent-card.json', async (req: Request, res: Response) =
     platformSignals: {
       verifiedPayments: true,           // Real x402 payments processed and verified
       repeatAgentsObserved: true,       // Returning agents making multiple payments
-      paymentRails: ["x402-USDC", "stripe"],  // Available payment methods
-      totalServicesAvailable: 41,       // Current service count in catalog
-      networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format)
-      paymentAsset: "USDC"              // Primary payment token
+      paymentRails: ["x402-USDC", "stripe", "sdk-payments"],  // Available payment methods
+      totalServicesAvailable: 43,       // Current service count in catalog (41 x402 + 2 SDK)
+      networksSupported: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:101"],   // Primary blockchain networks (CAIP-2 format)
+      networkSupported: "eip155:8453",   // Primary blockchain network (CAIP-2 format) - kept for backwards compatibility
+      paymentAsset: "USDC",              // Primary payment token
+      sdkPackages: {
+        npm: "@coinrailz/agent-payments",
+        npmSolana: "@coinrailz/agent-payments-solana",
+        python: "coinrailz",
+        pythonSolana: "coinrailz-solana",
+        docker: "tdnupe3/agent-payments"
+      },
+      processingFee: "1.5% + $0.01"
     }
   };
   
@@ -2210,8 +2239,17 @@ router.get('/.well-known/x402.json', async (req: Request, res: Response) => {
     name: "Coin Railz",
     homepage: "https://coinrailz.com",
     contact: "support@coinrailz.com",
-    description: "AI agent marketplace with x402 autonomous payment endpoints, A2A 2.0 discovery, and multi-chain support across 7 EVM networks.",
-    version: "x402-2.0",
+    description: "AI agent marketplace with x402 autonomous payment endpoints, A2A 2.0 discovery, SDK packages (@coinrailz/agent-payments NPM, coinrailz PyPI, Docker), and multi-chain support across 8 networks (7 EVM + Solana). Processing fee: 1.5% + $0.01 per transaction.",
+    version: "x402-2.1",
+    sdk: {
+      npm: "@coinrailz/agent-payments",
+      npmSolana: "@coinrailz/agent-payments-solana",
+      python: "coinrailz",
+      pythonSolana: "coinrailz-solana",
+      docker: "tdnupe3/agent-payments",
+      processingFee: "1.5% + $0.01"
+    },
+    networks: ["eip155:8453", "eip155:1", "eip155:137", "eip155:56", "eip155:42161", "eip155:10", "solana:101"],
     endpoints: [
       // Trader-Focused Services (10 services)
       {

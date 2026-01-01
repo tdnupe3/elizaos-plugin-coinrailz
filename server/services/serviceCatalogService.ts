@@ -1,5 +1,3 @@
-import { UNIFIED_PRICING } from '../../shared/pricing';
-
 /**
  * SERVICE CATALOG SERVICE
  * 
@@ -47,7 +45,8 @@ const CATEGORY_ORDER = [
   'trading',
   'market-intelligence',
   'prediction-markets',
-  'traditional-markets'
+  'traditional-markets',
+  'sdk-payments'
 ];
 
 export class ServiceCatalogService {
@@ -607,6 +606,33 @@ export class ServiceCatalogService {
         capabilities: ['forex-analysis', 'currency-sentiment', 'economic-analysis', 'ai-analysis'],
         x402Compatible: true,
         stripeCompatible: true
+      },
+      // SDK Payment Services (2) - NEW
+      {
+        id: 'sdk-payments-evm',
+        name: 'SDK Payment Processing (EVM)',
+        description: 'Non-custodial USDC payment processing for AI agents via @coinrailz/agent-payments NPM or coinrailz PyPI. Processing fee: 1.5% + $0.01 per transaction. Supports Base, Ethereum, Polygon, Arbitrum, BSC, Optimism.',
+        endpoint: '/api/sdk/payments/send',
+        priceUSD: '1.5% + $0.01',
+        priceUSDC: '1.5% + $0.01 USDC',
+        network: 'eip155:8453',
+        category: 'sdk-payments',
+        capabilities: ['payments', 'usdc-transfer', 'agent-payments', 'non-custodial', 'cdp-wallets', 'multi-chain'],
+        x402Compatible: false,
+        stripeCompatible: false
+      },
+      {
+        id: 'sdk-payments-solana',
+        name: 'SDK Payment Processing (Solana)',
+        description: 'Non-custodial SOL/USDC payment processing for AI agents via @coinrailz/agent-payments-solana NPM or coinrailz-solana PyPI. Processing fee: 1.5% + $0.01 per transaction.',
+        endpoint: '/api/sdk/solana/payments/send',
+        priceUSD: '1.5% + $0.01',
+        priceUSDC: '1.5% + $0.01 SOL/USDC',
+        network: 'solana:101',
+        category: 'sdk-payments',
+        capabilities: ['payments', 'sol-transfer', 'usdc-transfer', 'agent-payments', 'non-custodial', 'solana'],
+        x402Compatible: false,
+        stripeCompatible: false
       }
     ];
 
@@ -618,7 +644,7 @@ export class ServiceCatalogService {
    */
   getCatalog(): ServiceCatalog {
     return {
-      version: '1.0.0',
+      version: '1.1.0',
       updated: new Date().toISOString(),
       baseUrl: BASE_URL,
       payTo: PAY_TO,
@@ -654,7 +680,7 @@ export class ServiceCatalogService {
 
     const relatedCategories: Record<string, string[]> = {
       'trading-intelligence': ['execution', 'trading', 'market-intelligence'],
-      'execution': ['trading-intelligence', 'trading'],
+      'execution': ['trading-intelligence', 'trading', 'sdk-payments'],
       'premium': ['trading-intelligence', 'execution'],
       'real-estate': ['banking', 'market-intelligence'],
       'banking': ['real-estate', 'trading-intelligence'],
@@ -662,7 +688,8 @@ export class ServiceCatalogService {
       'market-intelligence': ['trading-intelligence', 'trading', 'prediction-markets', 'traditional-markets'],
       'prediction-markets': ['market-intelligence', 'trading', 'traditional-markets'],
       'traditional-markets': ['market-intelligence', 'trading', 'prediction-markets'],
-      'discovery': ['trading-intelligence', 'execution']
+      'discovery': ['trading-intelligence', 'execution', 'sdk-payments'],
+      'sdk-payments': ['execution', 'trading-intelligence', 'discovery']
     };
 
     const related = relatedCategories[currentService.category] || [];

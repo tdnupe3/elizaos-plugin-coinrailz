@@ -40,6 +40,7 @@ import { registerRoutes as registerMainRoutes } from "./routes";
 import gasStationRoutes from './routes/gasStationRoutes';
 import plaidRoutes from './routes/plaidRoutes';
 import agentPaymentsRoutes from './routes/agentPaymentsRoutes';
+import sdkPaymentsRoutes from './routes/sdkPaymentsRoutes';
 import x402Routes from './routes/x402Routes';
 import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2';
 import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
@@ -809,6 +810,11 @@ app.use('/api/user-circle', userCircleRoutes);
 console.log('🚀 Registering AI Agent Payments SDK routes...');
 app.use('/api', agentPaymentsRoutes);
 console.log('✅ Agent Payments SDK routes registered successfully');
+
+// === SDK PAYMENTS ROUTES (NPM/Python/Docker packages) ===
+console.log('📦 Registering SDK Payments routes for @coinrailz/agent-payments, coinrailz (Python), Docker...');
+app.use('/api/sdk', sdkPaymentsRoutes);
+console.log('✅ SDK Payments routes registered at /api/sdk/*');
 
 // === x402 PROTOCOL AUTONOMOUS PAYMENTS ===
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');

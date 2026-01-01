@@ -17,6 +17,7 @@ const router = Router();
 // SDK Fee configuration (1.5% + $0.01 per transaction)
 const SDK_BASE_FEE_PERCENT = 0.015; // 1.5%
 const SDK_FIXED_FEE_CENTS = 1; // $0.01
+const SDK_MINIMUM_AMOUNT_CENTS = 5; // $0.05 minimum transaction
 const SDK_VERSION = '1.0.0';
 
 // Rate limiting for SDK endpoints
@@ -92,17 +93,24 @@ async function requireSdkApiKey(req: Request, res: Response, next: NextFunction)
   }
 }
 
-// Validation schemas
+// Minimum transaction amount in dollars
+const SDK_MINIMUM_AMOUNT = SDK_MINIMUM_AMOUNT_CENTS / 100; // $0.05
+
+// Validation schemas with minimum amount enforcement
 const sendPaymentSchema = z.object({
   to: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.number()
+    .positive('Amount must be positive')
+    .min(SDK_MINIMUM_AMOUNT, `Minimum transaction amount is $${SDK_MINIMUM_AMOUNT.toFixed(2)}`),
   currency: z.enum(['USDC']).default('USDC'),
   memo: z.string().max(256).optional(),
   metadata: z.record(z.any()).optional()
 });
 
 const createInvoiceSchema = z.object({
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.number()
+    .positive('Amount must be positive')
+    .min(SDK_MINIMUM_AMOUNT, `Minimum invoice amount is $${SDK_MINIMUM_AMOUNT.toFixed(2)}`),
   currency: z.enum(['USDC']).default('USDC'),
   description: z.string().max(500).optional(),
   expiresIn: z.number().min(1).max(60).default(15),
@@ -111,21 +119,31 @@ const createInvoiceSchema = z.object({
 
 /**
  * Calculate SDK processing fee (1.5% + $0.01)
+ * Uses integer cents arithmetic to avoid floating-point precision errors
  */
 function calculateSdkFee(amount: number): { fee: number; netAmount: number; feeBreakdown: object } {
-  const percentFee = amount * SDK_BASE_FEE_PERCENT;
-  const fixedFee = SDK_FIXED_FEE_CENTS / 100;
-  const totalFee = percentFee + fixedFee;
-  const netAmount = amount - totalFee;
+  // Convert to cents for precise integer arithmetic
+  const amountCents = Math.round(amount * 100);
   
+  // Calculate percentage fee in cents (round up to ensure we never undercharge)
+  const percentFeeCents = Math.ceil(amountCents * SDK_BASE_FEE_PERCENT);
+  
+  // Total fee in cents
+  const totalFeeCents = percentFeeCents + SDK_FIXED_FEE_CENTS;
+  
+  // Net amount in cents
+  const netAmountCents = amountCents - totalFeeCents;
+  
+  // Convert back to dollars for response
   return {
-    fee: Math.round(totalFee * 100) / 100,
-    netAmount: Math.round(netAmount * 100) / 100,
+    fee: totalFeeCents / 100,
+    netAmount: netAmountCents / 100,
     feeBreakdown: {
-      percentageFee: Math.round(percentFee * 100) / 100,
-      fixedFee: fixedFee,
-      totalFee: Math.round(totalFee * 100) / 100,
-      rate: '1.5% + $0.01'
+      percentageFee: percentFeeCents / 100,
+      fixedFee: SDK_FIXED_FEE_CENTS / 100,
+      totalFee: totalFeeCents / 100,
+      rate: '1.5% + $0.01',
+      minimumTransaction: SDK_MINIMUM_AMOUNT
     }
   };
 }
@@ -384,6 +402,11 @@ router.get('/pricing', async (req: Request, res: Response) => {
         { name: 'Platform', volume: '$100K+/mo', fee: '0.9% + $0.01' }
       ]
     },
+    limits: {
+      minimumTransaction: SDK_MINIMUM_AMOUNT,
+      maximumTransaction: 100000,
+      currency: 'USDC'
+    },
     intelligence: {
       bundle: { perTransaction: '+0.35%', monthly: '$79/mo', services: 41 },
       individual: { priceRange: '$0.10-$10.00/call' }
@@ -392,7 +415,8 @@ router.get('/pricing', async (req: Request, res: Response) => {
       erc8004Identity: '+0.25%',
       premiumCompliance: '+0.25%'
     },
-    included: ['CDP wallet creation', 'Activity reports', 'Webhooks', 'Multi-chain support']
+    included: ['CDP wallet creation', 'Activity reports', 'Webhooks', 'Multi-chain support'],
+    refundPolicy: 'Blockchain transactions are final and irreversible. Refunds are not supported.'
   });
 });
 

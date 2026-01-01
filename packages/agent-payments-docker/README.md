@@ -190,6 +190,18 @@ spec:
 - Health check endpoint is unauthenticated
 - All traffic to Coin Railz API uses HTTPS
 
+## Transaction Limits
+
+- **Minimum transaction**: $0.05 USDC
+- **Maximum transaction**: $100,000 USDC (contact sales for higher limits)
+
+## Refunds & Disputes
+
+Due to the non-custodial nature of blockchain transactions:
+
+- **Refunds are not supported** - All blockchain transactions are final and irreversible
+- **Disputes**: For transaction issues, contact support@coinrailz.com with your transaction ID
+
 ## Legal
 
 This container provides non-custodial payment routing. Coin Railz does not hold, custody, or control user funds at any time.

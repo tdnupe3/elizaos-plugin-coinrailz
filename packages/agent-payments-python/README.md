@@ -6,7 +6,7 @@ AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with
 ## Features
 
 - **Non-custodial**: Your wallet, your keys. We never custody funds.
-- **Low fees**: 1.5% + $0.01 per transaction
+- **Low fees**: 1.5% + $0.01 per transaction ($0.05 minimum)
 - **Multi-chain**: Base Chain primary, with Ethereum, Polygon, Arbitrum support
 - **Intelligence bundle**: 41 x402 microservices for market data, analytics, and more
 - **CDP wallets**: Automatic wallet creation via Coinbase Developer Platform
@@ -192,6 +192,19 @@ if isinstance(result, ApiError):
 | Platform | $100K+/mo | 0.9% + $0.01 |
 
 **Intelligence Bundle**: +0.35% per transaction OR $79/month flat
+
+## Transaction Limits
+
+- **Minimum transaction**: $0.05 USDC
+- **Maximum transaction**: $100,000 USDC (contact sales for higher limits)
+
+## Refunds & Disputes
+
+Due to the non-custodial nature of blockchain transactions:
+
+- **Refunds are not supported** - All blockchain transactions are final and irreversible
+- **Disputes**: For transaction issues, contact support@coinrailz.com with your transaction ID
+- **Prevention**: Always verify recipient addresses before sending
 
 ## Legal
 

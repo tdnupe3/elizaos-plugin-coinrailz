@@ -10,7 +10,7 @@ Docker-deployable REST API for AI Agent Payment Processing. Non-custodial USDC p
 # Pull and run
 docker run -p 3000:3000 \
   -e COINRAILZ_API_KEY=cr_live_... \
-  coinrailz/agent-payments
+  tdnupe3/agent-payments
 ```
 
 ### Using Docker Compose
@@ -19,7 +19,7 @@ docker run -p 3000:3000 \
 version: '3.8'
 services:
   payments:
-    image: coinrailz/agent-payments:latest
+    image: tdnupe3/agent-payments:latest
     ports:
       - "3000:3000"
     environment:
@@ -35,12 +35,12 @@ services:
 
 ```bash
 # Clone and build
-git clone https://github.com/coinrailz/agent-payments-docker.git
+git clone https://github.com/tdnupe3/agent-payments-docker.git
 cd agent-payments-docker
-docker build -t coinrailz/agent-payments .
+docker build -t tdnupe3/agent-payments .
 
 # Run
-docker run -p 3000:3000 -e COINRAILZ_API_KEY=cr_live_... coinrailz/agent-payments
+docker run -p 3000:3000 -e COINRAILZ_API_KEY=cr_live_... tdnupe3/agent-payments
 ```
 
 ## Environment Variables
@@ -139,7 +139,7 @@ spec:
     spec:
       containers:
       - name: payments
-        image: coinrailz/agent-payments:latest
+        image: tdnupe3/agent-payments:latest
         ports:
         - containerPort: 3000
         env:

@@ -3,7 +3,7 @@ version: '3.8'
 services:
   payments:
     build: .
-    image: coinrailz/agent-payments:latest
+    image: tdnupe3/agent-payments:latest
     container_name: coinrailz-payments
     ports:
       - "3000:3000"

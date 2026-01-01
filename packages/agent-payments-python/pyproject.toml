@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "coinrailz"
+version = "1.0.0"
+description = "AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents with bundled intelligence services"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Coin Railz", email = "support@coinrailz.com"}
+]
+keywords = [
+    "ai-agent", "payments", "usdc", "crypto", "fintech", "x402",
+    "coinbase", "eliza", "agentkit", "mcp", "blockchain", "base-chain",
+    "non-custodial"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Office/Business :: Financial :: Point-Of-Sale"
+]
+requires-python = ">=3.10"
+dependencies = [
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-httpx>=0.22.0"
+]
+
+[project.urls]
+Homepage = "https://coinrailz.com"
+Documentation = "https://coinrailz.com/docs/sdk"
+Repository = "https://github.com/coinrailz/agent-payments-python"
+Issues = "https://github.com/coinrailz/agent-payments-python/issues"
+
+[tool.setuptools.packages.find]
+include = ["coinrailz*"]

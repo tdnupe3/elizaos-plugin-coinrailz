@@ -20,10 +20,61 @@ const SDK_FIXED_FEE_CENTS = 1; // $0.01
 const SDK_MINIMUM_AMOUNT_CENTS = 5; // $0.05 minimum transaction
 const SDK_VERSION = '1.0.0';
 
-// Rate limiting for SDK endpoints
+// Rate limiting for SDK endpoints (per valid API key)
 const sdkRateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const SDK_RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const SDK_RATE_LIMIT_MAX = 60; // 60 requests per minute (starter tier)
+
+// IP-based rate limiting for failed auth attempts (brute-force protection)
+const authFailureMap = new Map<string, { count: number; resetAt: number; blocked: boolean }>();
+const AUTH_FAILURE_WINDOW_MS = 300000; // 5 minutes
+const AUTH_FAILURE_MAX = 10; // 10 failed attempts per 5 minutes
+const AUTH_BLOCK_DURATION_MS = 900000; // 15 minute block after too many failures
+
+function getClientIP(req: Request): string {
+  return (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || 
+         req.socket?.remoteAddress || 
+         'unknown';
+}
+
+function checkAuthRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
+  const now = Date.now();
+  const entry = authFailureMap.get(ip);
+  
+  if (!entry) return { allowed: true };
+  
+  // Check if blocked
+  if (entry.blocked && now < entry.resetAt) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+  
+  // Reset if window expired
+  if (now > entry.resetAt) {
+    authFailureMap.delete(ip);
+    return { allowed: true };
+  }
+  
+  return { allowed: true };
+}
+
+function recordAuthFailure(ip: string): void {
+  const now = Date.now();
+  const entry = authFailureMap.get(ip);
+  
+  if (!entry || now > entry.resetAt) {
+    authFailureMap.set(ip, { count: 1, resetAt: now + AUTH_FAILURE_WINDOW_MS, blocked: false });
+    return;
+  }
+  
+  entry.count++;
+  
+  // Block if too many failures
+  if (entry.count >= AUTH_FAILURE_MAX) {
+    entry.blocked = true;
+    entry.resetAt = now + AUTH_BLOCK_DURATION_MS;
+    console.warn(`🚨 SDK Auth: Blocking IP ${ip} for ${AUTH_BLOCK_DURATION_MS/1000}s after ${entry.count} failed attempts`);
+  }
+}
 
 function checkSdkRateLimit(apiKey: string): boolean {
   const now = Date.now();
@@ -42,11 +93,25 @@ function checkSdkRateLimit(apiKey: string): boolean {
   return true;
 }
 
-// SDK Auth middleware with real API key validation
+// SDK Auth middleware with real API key validation and brute-force protection
 async function requireSdkApiKey(req: Request, res: Response, next: NextFunction) {
+  const clientIP = getClientIP(req);
+  
+  // Check if IP is blocked due to too many failed attempts
+  const authCheck = checkAuthRateLimit(clientIP);
+  if (!authCheck.allowed) {
+    return res.status(429).json({
+      success: false,
+      error: 'TOO_MANY_ATTEMPTS',
+      message: 'Too many failed authentication attempts. Please try again later.',
+      retryAfter: authCheck.retryAfter
+    });
+  }
+  
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    recordAuthFailure(clientIP);
     return res.status(401).json({
       success: false,
       error: 'UNAUTHORIZED',
@@ -61,6 +126,7 @@ async function requireSdkApiKey(req: Request, res: Response, next: NextFunction)
     const validation = await creditsService.validateApiKey(apiKey);
     
     if (!validation.valid) {
+      recordAuthFailure(clientIP);
       return res.status(401).json({
         success: false,
         error: 'INVALID_API_KEY',
@@ -68,7 +134,7 @@ async function requireSdkApiKey(req: Request, res: Response, next: NextFunction)
       });
     }
     
-    // Check rate limit
+    // Check rate limit for valid keys
     if (!checkSdkRateLimit(apiKey)) {
       return res.status(429).json({
         success: false,

@@ -7,9 +7,10 @@
  * This is ADDITIVE - separate from existing agentPaymentsRoutes.ts
  */
 
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
 import { nanoid } from 'nanoid';
+import { creditsService } from '../services/creditsService';
 
 const router = Router();
 
@@ -40,8 +41,8 @@ function checkSdkRateLimit(apiKey: string): boolean {
   return true;
 }
 
-// SDK Auth middleware
-function requireSdkApiKey(req: Request, res: Response, next: Function) {
+// SDK Auth middleware with real API key validation
+async function requireSdkApiKey(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -54,16 +55,41 @@ function requireSdkApiKey(req: Request, res: Response, next: Function) {
   
   const apiKey = authHeader.slice(7);
   
-  if (!checkSdkRateLimit(apiKey)) {
-    return res.status(429).json({
+  // Validate API key against database
+  try {
+    const validation = await creditsService.validateApiKey(apiKey);
+    
+    if (!validation.valid) {
+      return res.status(401).json({
+        success: false,
+        error: 'INVALID_API_KEY',
+        message: 'API key is invalid or revoked. Generate a new key at https://coinrailz.com/dashboard/api-keys'
+      });
+    }
+    
+    // Check rate limit
+    if (!checkSdkRateLimit(apiKey)) {
+      return res.status(429).json({
+        success: false,
+        error: 'RATE_LIMITED',
+        message: 'Too many requests. Upgrade your plan for higher limits.'
+      });
+    }
+    
+    // Attach validated user info to request
+    (req as any).sdkApiKey = apiKey;
+    (req as any).sdkUserId = validation.userId;
+    (req as any).sdkKeyId = validation.keyId;
+    next();
+    
+  } catch (error: any) {
+    console.error('SDK API key validation error:', error);
+    return res.status(500).json({
       success: false,
-      error: 'RATE_LIMITED',
-      message: 'Too many requests. Upgrade your plan for higher limits.'
+      error: 'AUTH_ERROR',
+      message: 'Authentication service unavailable'
     });
   }
-  
-  (req as any).sdkApiKey = apiKey;
-  next();
 }
 
 // Validation schemas

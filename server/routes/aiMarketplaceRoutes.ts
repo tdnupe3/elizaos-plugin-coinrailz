@@ -3240,6 +3240,20 @@ router.post('/crypto/verify-payment', async (req, res) => {
     // Payment verified - update the intent status
     const metadata = intent.metadata as any || {};
     
+    // Validate required metadata fields for order creation
+    if (!metadata.serviceId || !metadata.customerEmail) {
+      console.error(`❌ Missing required metadata for intent ${intentId}:`, {
+        serviceId: metadata.serviceId,
+        customerEmail: metadata.customerEmail,
+        agentId: metadata.agentId
+      });
+      return res.status(400).json({
+        success: false,
+        error: 'Payment intent missing required order data',
+        message: 'The payment intent was not created with complete order information. Please contact support.'
+      });
+    }
+    
     await db.update(x402PaymentIntents).set({
       status: 'completed',
       txHash: transactionHash,
@@ -3264,11 +3278,74 @@ router.post('/crypto/verify-payment', async (req, res) => {
       console.error('Failed to log crypto payment:', logError);
     }
 
+    // Create marketplace order (same as Stripe flow)
+    const orderId = `order_crypto_${nanoid(12)}`;
+    try {
+      await storage.createMarketplaceOrder({
+        id: orderId,
+        service_id: metadata.serviceId || intent.serviceName,
+        agent_id: metadata.agentId || 'coin-railz-platform',
+        customer_name: metadata.customerName || 'Crypto Customer',
+        customer_email: metadata.customerEmail,
+        delivery_requirements: metadata.deliveryRequirements || '',
+        amount: transferAmount,
+        status: 'paid',
+        payment_method: 'crypto',
+        payment_id: transactionHash,
+        platform_fee: transferAmount * 0.15,
+        agent_payout: transferAmount * 0.85,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+
+      console.log(`✅ CRYPTO ORDER CREATED: ${orderId} for $${transferAmount.toFixed(2)} - Customer: ${metadata.customerEmail || 'N/A'}`);
+
+      // Mark as delivered immediately (x402 services are instant-access APIs)
+      await storage.updateMarketplaceOrder(orderId, {
+        status: 'delivered',
+        updated_at: new Date()
+      });
+
+      console.log(`🎉 CRYPTO ORDER DELIVERED: ${orderId} - instant x402 service access granted`);
+
+      // Send confirmation email if customer email is available
+      if (metadata.customerEmail) {
+        try {
+          const sgMail = await import('@sendgrid/mail').then(m => m.default);
+          if (process.env.SENDGRID_API_KEY) {
+            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+            const senderEmail = process.env.SENDGRID_FROM_EMAIL || process.env.SUPPORT_EMAIL || 'noreply@coinrailz.com';
+            const supportEmail = process.env.SUPPORT_EMAIL || 'support@coinrailz.com';
+            await sgMail.send({
+              to: metadata.customerEmail,
+              from: senderEmail,
+              subject: `Order Confirmed: ${intent.serviceName || 'AI Agent Service'}`,
+              html: `
+                <h2>Thank you for your crypto purchase!</h2>
+                <p>Your order <strong>${orderId}</strong> has been confirmed.</p>
+                <p><strong>Service:</strong> ${intent.serviceName || 'AI Agent Service'}</p>
+                <p><strong>Amount:</strong> $${transferAmount.toFixed(2)} USDC</p>
+                <p><strong>Payment:</strong> <a href="https://basescan.org/tx/${transactionHash}">View on BaseScan</a></p>
+                <p>Your x402 service is now active and ready for use. Access your services at the AI Agent Marketplace.</p>
+                <p>Questions? Contact ${supportEmail}</p>
+              `
+            });
+            console.log(`📧 Confirmation email sent to ${metadata.customerEmail}`);
+          }
+        } catch (emailError: any) {
+          console.log(`⚠️ Email not sent (non-critical): ${emailError.message}`);
+        }
+      }
+    } catch (orderError) {
+      console.error('Failed to create marketplace order after crypto payment:', orderError);
+    }
+
     console.log(`💰 CRYPTO PAYMENT VERIFIED: Intent ${intentId}, TX: ${transactionHash}, Amount: $${transferAmount}`);
 
     res.json({
       success: true,
       message: 'Payment verified successfully! Your service access is now active.',
+      orderId,
       intentId,
       transactionHash,
       amountPaid: transferAmount,

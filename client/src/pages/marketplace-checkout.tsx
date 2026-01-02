@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
-import { ArrowLeft, CreditCard, Shield, Clock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Shield, Clock, CheckCircle, Wallet, Copy, ExternalLink, Loader2 } from 'lucide-react';
 
 interface Service {
   id: string;
@@ -21,10 +21,33 @@ interface Service {
   agentName: string;
 }
 
+type PaymentMethod = 'card' | 'crypto';
+
+interface CryptoPaymentIntent {
+  intentId: string;
+  paymentInstructions: {
+    chain: string;
+    chainId: number;
+    token: string;
+    tokenAddress: string;
+    recipientAddress: string;
+    amount: string;
+    amountWei: string;
+    message: string;
+  };
+  expiresIn: number;
+  expiresAt: string;
+}
+
 export default function MarketplaceCheckout() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute('/marketplace/checkout/:serviceId');
   const { toast } = useToast();
+  
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [cryptoIntent, setCryptoIntent] = useState<CryptoPaymentIntent | null>(null);
+  const [txHash, setTxHash] = useState('');
+  const [cryptoStep, setCryptoStep] = useState<'select' | 'instructions' | 'verifying' | 'success'>('select');
   
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
@@ -120,6 +143,84 @@ export default function MarketplaceCheckout() {
     }
   });
 
+  // Create crypto payment intent
+  const createCryptoIntentMutation = useMutation({
+    mutationFn: async (orderData: any) => {
+      return await apiRequest('POST', '/api/ai-marketplace/crypto/create-pending-order', {
+        serviceId: serviceId,
+        serviceName: service?.name || 'Marketplace Service',
+        amount: service?.pricing || 1,
+        agentId: service?.agentId,
+        customerName: orderData.customerName,
+        customerEmail: orderData.customerEmail,
+        deliveryRequirements: orderData.deliveryRequirements
+      });
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        setCryptoIntent(data);
+        setCryptoStep('instructions');
+        toast({
+          title: "Payment Instructions Ready",
+          description: "Send USDC to the address shown below",
+        });
+      } else {
+        toast({
+          title: "Failed to Create Payment",
+          description: data.error || "Please try again",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Crypto payment intent failed:', error);
+      toast({
+        title: "Payment Setup Failed",
+        description: "Please try again or contact support",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Verify crypto payment
+  const verifyCryptoPaymentMutation = useMutation({
+    mutationFn: async ({ intentId, transactionHash }: { intentId: string; transactionHash: string }) => {
+      return await apiRequest('POST', '/api/ai-marketplace/crypto/verify-payment', {
+        intentId,
+        transactionHash
+      });
+    },
+    onSuccess: (data) => {
+      if (data.success) {
+        setCryptoStep('success');
+        toast({
+          title: "Payment Verified!",
+          description: "Your order has been confirmed",
+        });
+        // Redirect to success page after a short delay
+        setTimeout(() => {
+          setLocation('/marketplace/payment-success');
+        }, 2000);
+      } else {
+        setCryptoStep('instructions');
+        toast({
+          title: "Payment Not Found",
+          description: data.error || "Please check your transaction hash and try again",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Payment verification failed:', error);
+      setCryptoStep('instructions');
+      toast({
+        title: "Verification Failed",
+        description: "Please try again or contact support",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleOrderSubmission = () => {
     if (!customerInfo.name || !customerInfo.email) {
       toast({
@@ -132,13 +233,41 @@ export default function MarketplaceCheckout() {
 
     const orderData = {
       serviceId: serviceId,
-      customerId: `customer_${Date.now()}`, // In real app, get from auth
+      customerId: `customer_${Date.now()}`,
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       deliveryRequirements: customerInfo.deliveryRequirements
     };
 
-    createPaymentMutation.mutate(orderData);
+    if (paymentMethod === 'crypto') {
+      createCryptoIntentMutation.mutate(orderData);
+    } else {
+      createPaymentMutation.mutate(orderData);
+    }
+  };
+
+  const handleVerifyPayment = () => {
+    if (!cryptoIntent?.intentId || !txHash.trim()) {
+      toast({
+        title: "Missing Transaction Hash",
+        description: "Please enter your transaction hash",
+        variant: "destructive",
+      });
+      return;
+    }
+    setCryptoStep('verifying');
+    verifyCryptoPaymentMutation.mutate({
+      intentId: cryptoIntent.intentId,
+      transactionHash: txHash.trim()
+    });
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: `${label} copied to clipboard`,
+    });
   };
 
   // Show loading while checking sessionStorage
@@ -337,21 +466,204 @@ export default function MarketplaceCheckout() {
             </CardContent>
           </Card>
 
-          {/* Payment Button */}
+          {/* Payment Method Selection */}
           <Card>
-            <CardContent className="pt-6">
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={handleOrderSubmission}
-                disabled={createPaymentMutation.isPending}
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                {createPaymentMutation.isPending ? 'Processing...' : `Pay $${service.pricing}`}
-              </Button>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                Secure payment powered by Stripe
-              </p>
+            <CardHeader>
+              <CardTitle>Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {cryptoStep === 'select' && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      data-testid="payment-method-card"
+                      onClick={() => setPaymentMethod('card')}
+                      className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all ${
+                        paymentMethod === 'card' 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <CreditCard className="w-6 h-6" />
+                      <span className="font-medium">Card</span>
+                      <span className="text-xs text-gray-500">Visa, Mastercard</span>
+                    </button>
+                    <button
+                      type="button"
+                      data-testid="payment-method-crypto"
+                      onClick={() => setPaymentMethod('crypto')}
+                      className={`p-4 border-2 rounded-lg flex flex-col items-center gap-2 transition-all ${
+                        paymentMethod === 'crypto' 
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <Wallet className="w-6 h-6" />
+                      <span className="font-medium">Crypto</span>
+                      <span className="text-xs text-gray-500">USDC on Base</span>
+                    </button>
+                  </div>
+
+                  <Button 
+                    className="w-full" 
+                    size="lg"
+                    data-testid="button-pay"
+                    onClick={handleOrderSubmission}
+                    disabled={createPaymentMutation.isPending || createCryptoIntentMutation.isPending}
+                  >
+                    {paymentMethod === 'card' ? (
+                      <CreditCard className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Wallet className="w-4 h-4 mr-2" />
+                    )}
+                    {(createPaymentMutation.isPending || createCryptoIntentMutation.isPending) 
+                      ? 'Processing...' 
+                      : `Pay $${service.pricing} ${paymentMethod === 'crypto' ? 'USDC' : ''}`}
+                  </Button>
+                  <p className="text-xs text-gray-500 text-center">
+                    {paymentMethod === 'card' 
+                      ? 'Secure payment powered by Stripe' 
+                      : 'Pay with USDC on Base Chain'}
+                  </p>
+                </>
+              )}
+
+              {/* Crypto Payment Instructions */}
+              {cryptoStep === 'instructions' && cryptoIntent && (
+                <div className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                      Payment Instructions
+                    </h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      Send exactly <strong>{cryptoIntent.paymentInstructions.amount} USDC</strong> on <strong>{cryptoIntent.paymentInstructions.chain}</strong> to the address below.
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Send To Address</label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          readOnly 
+                          value={cryptoIntent.paymentInstructions.recipientAddress}
+                          className="font-mono text-sm"
+                          data-testid="input-recipient-address"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="icon"
+                          data-testid="button-copy-address"
+                          onClick={() => copyToClipboard(cryptoIntent.paymentInstructions.recipientAddress, 'Address')}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Amount</label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            readOnly 
+                            value={`${cryptoIntent.paymentInstructions.amount} USDC`}
+                            className="font-mono text-sm"
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="icon"
+                            onClick={() => copyToClipboard(cryptoIntent.paymentInstructions.amount, 'Amount')}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Network</label>
+                        <Input 
+                          readOnly 
+                          value={cryptoIntent.paymentInstructions.chain}
+                          className="text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    <div>
+                      <label className="block text-sm font-medium mb-1">
+                        Your Transaction Hash
+                      </label>
+                      <Input 
+                        placeholder="0x..."
+                        value={txHash}
+                        onChange={(e) => setTxHash(e.target.value)}
+                        className="font-mono text-sm"
+                        data-testid="input-tx-hash"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter the transaction hash after sending payment
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline"
+                        onClick={() => {
+                          setCryptoStep('select');
+                          setCryptoIntent(null);
+                          setTxHash('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        className="flex-1"
+                        data-testid="button-verify-payment"
+                        onClick={handleVerifyPayment}
+                        disabled={!txHash.trim()}
+                      >
+                        Verify Payment
+                      </Button>
+                    </div>
+
+                    <a 
+                      href={`https://basescan.org/address/${cryptoIntent.paymentInstructions.recipientAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-1 text-sm text-blue-600 hover:underline"
+                    >
+                      View on BaseScan <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Verifying Payment */}
+              {cryptoStep === 'verifying' && (
+                <div className="text-center py-8">
+                  <Loader2 className="w-12 h-12 animate-spin mx-auto text-blue-500 mb-4" />
+                  <h4 className="font-semibold text-lg">Verifying Payment</h4>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Checking blockchain for your transaction...
+                  </p>
+                </div>
+              )}
+
+              {/* Payment Success */}
+              {cryptoStep === 'success' && (
+                <div className="text-center py-8">
+                  <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                  <h4 className="font-semibold text-lg text-green-700 dark:text-green-400">
+                    Payment Confirmed!
+                  </h4>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Redirecting to confirmation page...
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

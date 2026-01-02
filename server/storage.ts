@@ -1728,33 +1728,86 @@ export class DatabaseStorage implements IStorage {
 
   async getMarketplaceServices(filters: { category?: string; limit?: number; offset?: number } = {}): Promise<any[]> {
     try {
-      const { category, limit = 20, offset = 0 } = filters;
+      const { category, limit = 50, offset = 0 } = filters;
       
-      // Raw SQL query to bypass Drizzle column mapping issues
-      const result = await db.execute(sql`
+      // Category mapping from x402 categories to marketplace UI categories
+      const CATEGORY_MAP: Record<string, string> = {
+        'discovery': 'Developer Tools',
+        'trading-intelligence': 'Trading & Analytics',
+        'execution': 'Automation',
+        'premium': 'Premium Services',
+        'real-estate': 'Real Estate',
+        'banking': 'Financial Services',
+        'trading': 'Trading & Analytics',
+        'market-intelligence': 'Market Intelligence',
+        'prediction-markets': 'Market Intelligence',
+        'traditional-markets': 'Market Intelligence',
+        'sdk-payments': 'Developer Tools'
+      };
+      
+      // 1. Get database services (for future external services if ever enabled)
+      const dbResult = await db.execute(sql`
         SELECT id, service_name, description, pricing, estimated_delivery_time, 
                tags, agent_id, average_rating, order_count, is_active
         FROM ai_marketplace_services 
         WHERE is_active = true 
         LIMIT ${limit} OFFSET ${offset}
       `);
-      const services = result.rows;
-
-      // Transform raw database results for frontend
-      return services.map((service: any) => ({
+      
+      const dbServices = dbResult.rows.map((service: any) => ({
         id: service.id,
         name: service.service_name,
         description: service.description,
-        category: 'general', // Will add JOIN later
+        category: 'General',
         pricing: typeof service.pricing === 'object' ? service.pricing.base || 75 : 75,
         deliveryTime: `${service.estimated_delivery_time || 24} hours`,
         tags: Array.isArray(service.tags) ? service.tags : ['ai-service'],
         agentId: service.agent_id,
-        agentName: 'AI Agent', // Will add JOIN later
+        agentName: 'AI Agent',
         rating: parseFloat(service.average_rating?.toString() || '4.5'),
         completedOrders: service.order_count || 0,
-        isActive: service.is_active
+        isActive: service.is_active,
+        isPlatformService: false
       }));
+      
+      // 2. Get x402 platform services from catalog (dynamic import to avoid circular deps)
+      let platformServices: any[] = [];
+      try {
+        const { serviceCatalogService } = await import('./services/serviceCatalogService');
+        const catalog = serviceCatalogService.getCatalog();
+        
+        platformServices = catalog.services.map(service => ({
+          id: `platform-${service.id}`,
+          name: service.name,
+          description: service.description,
+          category: CATEGORY_MAP[service.category] || 'General',
+          pricing: parseFloat(service.priceUSD.replace('$', '')),
+          deliveryTime: 'Instant',
+          tags: service.capabilities,
+          agentId: 'coin-railz-platform',
+          agentName: 'Coin Railz',
+          rating: 5.0,
+          completedOrders: 0,
+          isActive: true,
+          isPlatformService: true,
+          x402Endpoint: service.endpoint,
+          x402Id: service.id
+        }));
+      } catch (catalogError) {
+        console.error('Error loading service catalog:', catalogError);
+      }
+      
+      // 3. Combine: DB services first, then platform services
+      const allServices = [...dbServices, ...platformServices];
+      
+      // 4. Apply category filter if specified
+      const filtered = category && category !== 'all' 
+        ? allServices.filter(s => s.category === category)
+        : allServices;
+      
+      console.log(`📦 Marketplace services: ${dbServices.length} DB + ${platformServices.length} platform = ${allServices.length} total (filtered: ${filtered.length})`);
+      
+      return filtered.slice(offset, offset + limit);
     } catch (error) {
       console.error('Error fetching marketplace services:', error);
       return [];

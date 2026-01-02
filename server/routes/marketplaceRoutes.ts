@@ -90,19 +90,19 @@ router.get('/ai-marketplace/stats', async (req, res) => {
 
 /**
  * GET /api/ai-marketplace/categories
- * Get available service categories
+ * Get available service categories (aligned with x402 catalog)
  */
 router.get('/categories', async (req, res) => {
   try {
+    // Categories aligned with x402 catalog mapping
     const categories = [
-      'Data Analysis',
-      'Content Creation', 
-      'Code Review',
-      'Financial Advisory',
-      'Legal Research',
-      'Technical Writing',
-      'Marketing Strategy',
-      'Business Intelligence'
+      'Trading & Analytics',
+      'Market Intelligence',
+      'Automation',
+      'Developer Tools',
+      'Premium Services',
+      'Real Estate',
+      'Financial Services'
     ];
 
     res.json({ categories });

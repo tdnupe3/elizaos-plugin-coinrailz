@@ -227,36 +227,49 @@ router.get('/agents', async (req, res) => {
   }
 });
 
-// 🎯 REAL MARKETPLACE SERVICES ENDPOINT - Replace fake data with real marketplace
+// 🎯 REAL MARKETPLACE SERVICES ENDPOINT - DB + x402 Platform Services overlay
 router.get('/services', async (req, res) => {
   try {
-    // 🎯 USE REAL MARKETPLACE SERVICES from database
-    const realServices = await storage.getMarketplaceServices();
+    const { category } = req.query;
     
-    // Transform to expected format - ONLY real data, no synthetic defaults
-    const services = realServices.map((service: any) => ({
+    // Get services from storage (now includes DB + x402 platform services)
+    const allServices = await storage.getMarketplaceServices({
+      category: category?.toString()
+    });
+    
+    // Services are already in correct format from storage layer
+    // Just ensure consistent field naming for frontend
+    const services = allServices.map((service: any) => ({
       id: service.id,
-      name: service.service_name || service.name || null,
-      description: service.description || null,
-      category: service.category || null,
-      pricing: service.pricing ? parseFloat(service.pricing) : 0, // ONLY real pricing, 0 if missing
-      deliveryTime: service.estimated_delivery_time || null,
-      tags: service.tags || null, // ONLY real tags, null if missing
-      isActive: service.is_active !== false,
-      rating: service.average_rating ? parseFloat(service.average_rating) : 0, // ONLY real rating, 0 if missing
-      completedOrders: service.order_count ? parseInt(service.order_count) : 0, // ONLY real count, 0 if missing
-      agentId: service.agent_id || null,
-      agentName: service.agent_name || null
+      name: service.name,
+      description: service.description,
+      category: service.category,
+      pricing: service.pricing,
+      deliveryTime: service.deliveryTime || 'Instant',
+      tags: service.tags || [],
+      isActive: service.isActive !== false,
+      rating: service.rating || 5.0,
+      completedOrders: service.completedOrders || 0,
+      agentId: service.agentId || 'coin-railz-platform',
+      agentName: service.agentName || 'Coin Railz',
+      isPlatformService: service.isPlatformService || false,
+      x402Endpoint: service.x402Endpoint || null,
+      x402Id: service.x402Id || null
     }));
 
-    console.log(`🎯 REAL MARKETPLACE: Serving ${services.length} real services with actual pricing`);
+    console.log(`🎯 MARKETPLACE: Serving ${services.length} services (DB + platform x402)`);
 
     res.json({
       success: true,
-      services
+      services,
+      stats: {
+        total: services.length,
+        platformServices: services.filter((s: any) => s.isPlatformService).length,
+        externalServices: services.filter((s: any) => !s.isPlatformService).length
+      }
     });
   } catch (error) {
-    console.error('Failed to fetch real marketplace services:', error);
+    console.error('Failed to fetch marketplace services:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch marketplace services'
@@ -2735,56 +2748,8 @@ router.get('/categories', async (req, res) => {
   }
 });
 
-/**
- * Get Marketplace Services
- */
-router.get('/services', async (req, res) => {
-  try {
-    const { category, minPrice, maxPrice, limit = 20, offset = 0 } = req.query;
-
-    // PHASE 1: Get real services from database
-    const allServices = await storage.getMarketplaceServices({
-      category: category?.toString(),
-      limit: parseInt(limit.toString()),
-      offset: parseInt(offset.toString())
-    });
-
-    // Additional client-side filtering for minPrice/maxPrice if needed
-    let filteredServices = allServices;
-    
-    if (minPrice) {
-      filteredServices = filteredServices.filter(service => 
-        (typeof service.pricing === 'number' ? service.pricing : 75) >= parseFloat(minPrice.toString())
-      );
-    }
-
-    if (maxPrice) {
-      filteredServices = filteredServices.filter(service => 
-        (typeof service.pricing === 'number' ? service.pricing : 75) <= parseFloat(maxPrice.toString())
-      );
-    }
-
-    res.json({
-      success: true,
-      services: filteredServices,
-      total: filteredServices.length,
-      pagination: {
-        limit: parseInt(limit.toString()),
-        offset: parseInt(offset.toString()),
-        hasMore: filteredServices.length === parseInt(limit.toString())
-      },
-      filters: { category, minPrice, maxPrice }
-    });
-
-  } catch (error) {
-    console.error('Services fetch error:', error);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Failed to fetch marketplace services',
-      services: [] // Return empty array for graceful handling
-    });
-  }
-});
+// NOTE: /services route defined earlier in file at line ~231 with x402 catalog overlay
+// This duplicate removed to avoid route conflicts
 
 /**
  * Create Marketplace Order

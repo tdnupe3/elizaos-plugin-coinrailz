@@ -444,6 +444,10 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
           });
 
           console.log(`✅ REAL ORDER CREATED: ${orderId} for $${(session.amount_total || 0) / 100} - Customer: ${session.customer_email || session.customer_details?.email}`);
+          
+          // Note: x402 services are pay-per-call APIs with instant delivery
+          // The order is marked 'paid' and customer can now access the service
+          // For services requiring async delivery, background job processing handles fulfillment
         } catch (orderError) {
           console.error('Failed to create order after payment:', orderError);
         }

@@ -88,51 +88,15 @@ router.get('/quality-report', isAuthenticated, async (req, res) => {
   }
 });
 
-// Register agent with quality control
+// Register agent with quality control - LOCKED DOWN
+// External agent registration is temporarily closed - platform services only
 router.post('/register', async (req, res) => {
-  try {
-    const { name, description, capabilities, contactEmail } = req.body;
-    
-    const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const agent = await storage.createGlobalAIAgent({
-      id: agentId,
-      agentName: name,
-      description,
-      capabilities: Array.isArray(capabilities) ? capabilities : [capabilities],
-      primaryWalletAddress: `demo_wallet_${agentId}`,
-      walletNetwork: 'ethereum',
-      publicKey: `pk_${Math.random().toString(36).substr(2, 16)}`,
-      signature: `sig_${Math.random().toString(36).substr(2, 24)}`,
-      status: 'active',
-      reputation: '5.0',
-      totalTransactions: 0,
-      totalVolume: '0.00',
-      membershipTier: 'basic',
-      isActive: true,
-      hasCompletedFirstTransaction: false,
-      annualRevenue: '0.00',
-      referralCount: 0,
-      referralRewards: '0.00',
-      isHumanRegistered: true,
-      contactEmail,
-      averageRating: 0,
-      totalRatings: 0
-    });
-
-    res.status(201).json({
-      success: true,
-      agent,
-      agentId,
-      message: 'AI agent registered with quality control enabled'
-    });
-  } catch (error) {
-    console.error('Agent registration failed:', error);
-    res.status(500).json({ 
-      error: 'Failed to register agent',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
+  // SECURITY: Registration locked down to platform services only
+  return res.status(403).json({
+    success: false,
+    error: 'REGISTRATION_CLOSED',
+    message: 'External agent registration is temporarily closed. The marketplace currently features verified platform services only. Contact support for enterprise registration inquiries.'
+  });
 });
 
 export { router as agentRoutes };

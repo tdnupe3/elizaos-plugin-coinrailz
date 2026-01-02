@@ -18,37 +18,15 @@ const agentRegistrationSchema = z.object({
 
 export function registerAgentRoutes(app: Express) {
 
-  // Register new AI agent
+  // Register new AI agent - LOCKED DOWN
+  // External agent registration is temporarily closed - platform services only
   app.post('/api/agents/register', async (req, res) => {
-    try {
-      const validatedData = agentRegistrationSchema.parse(req.body);
-      
-      // Create agent with simplified structure
-      const agent = await storage.createAgent({
-        agentName: validatedData.agentName,
-        walletAddress: validatedData.walletAddress,
-        walletNetwork: validatedData.walletNetwork,
-        capabilities: validatedData.capabilities,
-        description: validatedData.description || '',
-        status: 'pending',
-        publicKey: `pk_${Date.now()}`,
-        signature: `sig_${Date.now()}`,
-        preferredCurrencies: ['USD', 'ETH'],
-        complianceLevel: 'basic',
-        monthlySubscriptionFee: 50.00,
-        isActive: false
-      });
-
-      res.json({
-        success: true,
-        agentId: agent.id,
-        message: 'Agent registered successfully',
-        monthlyFee: 50.00
-      });
-
-    } catch (error) {
-      res.status(500).json({ success: false, error: 'Agent registration failed' });
-    }
+    // SECURITY: Registration locked down to platform services only
+    return res.status(403).json({
+      success: false,
+      error: 'REGISTRATION_CLOSED',
+      message: 'External agent registration is temporarily closed. The marketplace currently features verified platform services only. Contact support for enterprise registration inquiries.'
+    });
   });
 
   // Get all active agents

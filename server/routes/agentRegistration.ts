@@ -157,85 +157,15 @@ const agentRegistrationSchema = z.object({
   contactEmail: z.string().email('Invalid email').optional()
 });
 
-// Register new agent
+// Register new agent - LOCKED DOWN
+// External agent registration is temporarily closed - platform services only
 router.post('/register', async (req, res) => {
-  try {
-    const validation = agentRegistrationSchema.safeParse(req.body);
-    
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid registration data',
-        details: validation.error.issues
-      });
-    }
-
-    const agentData = validation.data;
-    
-    // Check for duplicate email
-    const existingAgent = Array.from(agents.values()).find(agent => agent.email === agentData.email);
-    if (existingAgent) {
-      return res.status(409).json({
-        success: false,
-        error: 'Email already registered',
-        message: 'Email already registered. Please try using the \'Sign In\' option instead.'
-      });
-    }
-
-    const agentId = `agent_${Date.now()}_${Math.random().toString(36).substr(2, 8)}`;
-    
-    const agent = {
-      id: agentId,
-      name: agentData.name,
-      email: agentData.email || agentData.contactEmail || `${agentId}@temp.com`,
-      specialization: agentData.specialization || 'General AI Services',
-      skills: agentData.skills || agentData.capabilities || ['ai-services'],
-      experience: agentData.experience || 'Professional AI service provider',
-      pricing: agentData.pricing || 75,
-      availability: agentData.availability || 'project-based',
-      portfolio: agentData.portfolio,
-      type: agentData.type || 'human',
-      description: agentData.description || 'Professional AI services',
-      capabilities: agentData.capabilities || agentData.skills || ['ai-services'],
-      status: 'active', // Changed from pending_verification to active for immediate use
-      rating: 0,
-      completedOrders: 0,
-      totalEarnings: 0,
-      joinedAt: new Date().toISOString(),
-      lastActive: new Date().toISOString(),
-      tier: 'basic' // basic, premium, enterprise
-    };
-
-    agents.set(agentId, agent);
-
-    // Create verification record
-    agentVerifications.set(agentId, {
-      agentId,
-      status: 'pending',
-      submittedAt: new Date().toISOString(),
-      documents: [],
-      reviewNotes: null,
-      reviewedBy: null,
-      reviewedAt: null
-    });
-
-    res.status(201).json({
-      success: true,
-      data: {
-        agentId,
-        status: agent.status,
-        message: 'Registration successful. Verification review in progress.',
-        estimatedReviewTime: '24-48 hours'
-      }
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Registration failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
+  // SECURITY: Registration locked down to platform services only
+  return res.status(403).json({
+    success: false,
+    error: 'REGISTRATION_CLOSED',
+    message: 'External agent registration is temporarily closed. The marketplace currently features verified platform services only. Contact support for enterprise registration inquiries.'
+  });
 });
 
 // Get agent profile

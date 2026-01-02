@@ -458,9 +458,11 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
               const sgMail = await import('@sendgrid/mail').then(m => m.default);
               if (process.env.SENDGRID_API_KEY) {
                 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+                const senderEmail = process.env.SENDGRID_FROM_EMAIL || process.env.SUPPORT_EMAIL || 'noreply@coinrailz.com';
+                const supportEmail = process.env.SUPPORT_EMAIL || 'support@coinrailz.com';
                 await sgMail.send({
                   to: customerEmail,
-                  from: 'noreply@coinrailz.com',
+                  from: senderEmail,
                   subject: `Order Confirmed: ${session.metadata.serviceId || 'AI Agent Service'}`,
                   html: `
                     <h2>Thank you for your purchase!</h2>
@@ -468,7 +470,7 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
                     <p><strong>Service:</strong> ${session.metadata.serviceId || 'AI Agent Service'}</p>
                     <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
                     <p>Your x402 service is now active and ready for use. Access your services at the AI Agent Marketplace.</p>
-                    <p>Questions? Contact support@coinrailz.com</p>
+                    <p>Questions? Contact ${supportEmail}</p>
                   `
                 });
                 console.log(`📧 Confirmation email sent to ${customerEmail}`);

@@ -72,10 +72,19 @@ Result: Fee retained by construction
 
 | Component | Issue | Priority |
 |-----------|-------|----------|
-| **AI Agent Marketplace UI** | Needs fixing/polish | HIGH - Next task |
 | **Cross-chain settlement** | Requires orchestrator (2-3 weeks) | ROADMAP |
-| **Database transaction logging** | SDK payments not logged to DB | MEDIUM |
 | **External revenue verification** | Confirm if 0x92ca4c is real user | MEDIUM |
+| **Service delivery automation** | Background job queue for async services | LOW |
+
+### Recently Fixed (Jan 2, 2026) ✅
+
+| Component | Fix Applied |
+|-----------|-------------|
+| **AI Agent Marketplace UI** | Stats display fixed, 43 services visible, test button removed |
+| **SDK Transaction Logging** | `sdk_transactions` table + logging function with hashed API keys |
+| **Marketplace Stats API** | Null-safe handling, returns activeServices/platformServices correctly |
+| **Checkout Flow** | sessionStorage cleanup after consumption |
+| **Registration Lockdown** | External agent registration returns 403 REGISTRATION_CLOSED |
 
 ### Architectural Clarifications
 

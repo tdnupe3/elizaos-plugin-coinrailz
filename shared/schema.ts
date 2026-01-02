@@ -5487,3 +5487,42 @@ export const solanaEndpointInteractionsInsertSchema = createInsertSchema(solanaE
 export type SolanaEndpointInteraction = typeof solanaEndpointInteractions.$inferSelect;
 export type InsertSolanaEndpointInteraction = z.infer<typeof solanaEndpointInteractionsInsertSchema>;
 
+// SDK Transaction Log - for tracking SDK payment events
+export const sdkTransactions = pgTable("sdk_transactions", {
+  id: serial("id").primaryKey(),
+  transactionId: varchar("transaction_id").notNull().unique(),
+  apiKeyHash: varchar("api_key_hash").notNull(), // Hashed API key for tracking
+  userId: varchar("user_id"), // Associated user ID if available
+  transactionType: varchar("transaction_type").notNull(), // send, invoice, balance
+  status: varchar("status").notNull().default("pending"), // pending, processing, completed, failed
+  amount: numeric("amount", { precision: 18, scale: 6 }).notNull(),
+  fee: numeric("fee", { precision: 18, scale: 6 }).notNull(),
+  netAmount: numeric("net_amount", { precision: 18, scale: 6 }).notNull(),
+  currency: varchar("currency").notNull().default("USDC"),
+  toAddress: varchar("to_address"),
+  memo: text("memo"),
+  network: varchar("network").notNull().default("base"),
+  blockchainTxHash: varchar("blockchain_tx_hash"),
+  errorMessage: text("error_message"),
+  metadata: jsonb("metadata"),
+  ipAddress: varchar("ip_address"),
+  userAgent: varchar("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, (table) => [
+  index("IDX_sdk_tx_transaction_id").on(table.transactionId),
+  index("IDX_sdk_tx_api_key").on(table.apiKeyHash),
+  index("IDX_sdk_tx_created").on(table.createdAt),
+  index("IDX_sdk_tx_status").on(table.status),
+  index("IDX_sdk_tx_type").on(table.transactionType),
+]);
+
+export const sdkTransactionsInsertSchema = createInsertSchema(sdkTransactions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type SdkTransaction = typeof sdkTransactions.$inferSelect;
+export type InsertSdkTransaction = z.infer<typeof sdkTransactionsInsertSchema>;
+

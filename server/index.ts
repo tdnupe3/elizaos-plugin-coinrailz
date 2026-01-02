@@ -678,18 +678,8 @@ app.use('/api/audits', smartContractAuditRoutes);
 console.log('🔍 Smart Contract Audit routes registered successfully');
 // 🚨 CRITICAL ENDPOINTS - Must come FIRST to avoid 404 middleware conflicts
 
-// AI Marketplace Stats endpoint (deployment blocker fix)
-app.get('/api/ai-marketplace/stats', async (req, res) => {
-  console.log('✅ Marketplace stats endpoint hit');
-  res.json({
-    totalAgents: 15,
-    activeServices: 8, 
-    completionRate: 95,
-    avgRating: 4.8,
-    totalRevenue: '$15,234',
-    monthlyGrowth: 24
-  });
-});
+// NOTE: /api/ai-marketplace/stats is now handled by marketplaceRoutes.ts with real data
+// Old static mock endpoint removed to use dynamic stats from database + x402 catalog
 
 // Crypto Prices endpoint (deployment blocker fix)  
 app.get('/api/crypto/prices', async (req, res) => {

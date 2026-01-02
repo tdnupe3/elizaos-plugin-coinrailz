@@ -32,18 +32,48 @@ export default function MarketplaceCheckout() {
     deliveryRequirements: ''
   });
 
-  const serviceId = params?.serviceId;
+  // Get service data from URL params or sessionStorage
+  const serviceIdFromUrl = params?.serviceId;
+  const [pendingOrder, setPendingOrder] = useState<any>(null);
+  
+  useEffect(() => {
+    // Check sessionStorage for pending order (set by ai-marketplace.tsx)
+    const stored = sessionStorage.getItem('pendingOrder');
+    if (stored) {
+      try {
+        const orderData = JSON.parse(stored);
+        setPendingOrder(orderData);
+        // Clear sessionStorage after consuming to prevent stale order reuse
+        sessionStorage.removeItem('pendingOrder');
+      } catch (e) {
+        console.error('Failed to parse pending order:', e);
+      }
+    }
+  }, []);
 
-  // Fetch service details
-  const { data: service, isLoading: serviceLoading } = useQuery({
+  const serviceId = serviceIdFromUrl || pendingOrder?.serviceId;
+
+  // Use pendingOrder data directly if available, otherwise fetch from API
+  const { data: fetchedService, isLoading: serviceLoading } = useQuery({
     queryKey: ['/api/ai-marketplace/services', serviceId],
-    enabled: !!serviceId,
+    enabled: !!serviceId && !pendingOrder,
     queryFn: async () => {
       const response = await apiRequest('GET', `/api/ai-marketplace/services`);
       const services = response.services || [];
       return services.find((s: Service) => s.id === serviceId);
     }
   });
+  
+  // Combine fetched service with pending order data
+  const service = pendingOrder ? {
+    id: pendingOrder.serviceId,
+    name: pendingOrder.serviceTitle,
+    description: pendingOrder.serviceDescription,
+    pricing: pendingOrder.amount,
+    deliveryTime: `${pendingOrder.estimatedDeliveryHours} hours`,
+    agentId: pendingOrder.agentId,
+    agentName: 'Coin Railz'
+  } : fetchedService;
 
   // Create Stripe checkout session for REAL payment processing
   const createPaymentMutation = useMutation({
@@ -111,10 +141,22 @@ export default function MarketplaceCheckout() {
     createPaymentMutation.mutate(orderData);
   };
 
-  if (!match) {
+  // Show loading while checking sessionStorage
+  if (!match && !pendingOrder && !serviceLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p>Invalid checkout URL</p>
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <p className="mb-4">No service selected for checkout</p>
+            <Button 
+              variant="outline" 
+              onClick={() => setLocation('/ai-marketplace')}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Browse Marketplace
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

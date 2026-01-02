@@ -26,8 +26,16 @@ const AgentRegistrationSchema = z.object({
   website: z.string().url().optional().or(z.literal(''))
 });
 
-// Free agent registration endpoint - NO AUTHENTICATION REQUIRED
+// Free agent registration endpoint - TEMPORARILY DISABLED
+// External agent registration is locked down to platform services only
 router.post('/api/free-agent-registration', async (req, res) => {
+  return res.status(403).json({
+    success: false,
+    error: 'REGISTRATION_CLOSED',
+    message: 'External agent registration is temporarily closed. The marketplace currently features verified platform services only. Contact support for enterprise registration inquiries.'
+  });
+  
+  /* DISABLED FOR SECURITY - Original registration logic below
   try {
     console.log('Free agent registration request received:', req.body);
     
@@ -168,6 +176,7 @@ router.post('/api/free-agent-registration', async (req, res) => {
       message: 'Failed to register agent'
     });
   }
+  END OF DISABLED REGISTRATION CODE */
 });
 
 // Test endpoint

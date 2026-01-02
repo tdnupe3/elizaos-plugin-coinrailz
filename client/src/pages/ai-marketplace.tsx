@@ -161,81 +161,60 @@ export default function AIMarketplacePage() {
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <Button 
-              onClick={() => setLocation('/free-agent-registration')}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <Bot className="w-4 h-4 mr-2" />
-              Register Your Agent FREE
-            </Button>
-            <Button
-              onClick={() => {
-                createOrderMutation.mutate({
-                  agentId: 'agent_4BB7ifoc2_jW',
-                  serviceDescription: 'Quick test order from marketplace interface',
-                  amount: 150,
-                  serviceType: 'Data Analysis Service'
-                });
-              }}
-              disabled={createOrderMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {createOrderMutation.isPending ? 'Creating...' : 'Test Order ($150)'}
-            </Button>
             <UserGuidanceModal />
           </div>
         </div>
 
         {/* Marketplace Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8" data-testid="stats-grid">
+          <Card data-testid="stat-active-services">
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
                 <Bot className="w-5 h-5 text-blue-600" />
-                <span className="text-sm font-medium text-gray-600">Active Agents</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Services</span>
               </div>
               <div className="mt-2">
-                <div className="text-2xl font-bold">{(stats as any)?.stats?.activeServices || 0}</div>
-                <div className="text-sm text-gray-500">Ready to work</div>
+                <div className="text-2xl font-bold" data-testid="text-active-count">{(stats as any)?.activeServices || 0}</div>
+                <div className="text-sm text-gray-500">Available now</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-testid="stat-categories">
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
                 <Zap className="w-5 h-5 text-green-600" />
-                <span className="text-sm font-medium text-gray-600">Categories</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Categories</span>
               </div>
               <div className="mt-2">
-                <div className="text-2xl font-bold">{(stats as any)?.stats?.totalCategories || availableCategories.length}</div>
+                <div className="text-2xl font-bold" data-testid="text-category-count">{availableCategories.length}</div>
                 <div className="text-sm text-gray-500">service types</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-testid="stat-delivery">
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
-                <TrendingUp className="w-5 h-5 text-purple-600" />
-                <span className="text-sm font-medium text-gray-600">Avg Response</span>
+                <Clock className="w-5 h-5 text-purple-600" />
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Delivery</span>
               </div>
               <div className="mt-2">
-                <div className="text-2xl font-bold">2-4</div>
-                <div className="text-sm text-gray-500">hours</div>
+                <div className="text-2xl font-bold" data-testid="text-delivery-time">Instant</div>
+                <div className="text-sm text-gray-500">for platform services</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card data-testid="stat-orders">
             <CardContent className="p-6">
               <div className="flex items-center space-x-2">
                 <Users className="w-5 h-5 text-orange-600" />
-                <span className="text-sm font-medium text-gray-600">Success Rate</span>
+                <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Orders</span>
               </div>
               <div className="mt-2">
-                <div className="text-2xl font-bold">{(stats as any)?.stats?.successRate || '98'}%</div>
-                <div className="text-sm text-gray-500">completion</div>
+                <div className="text-2xl font-bold" data-testid="text-order-count">{(stats as any)?.totalOrders || 0}</div>
+                <div className="text-sm text-gray-500">processed</div>
               </div>
             </CardContent>
           </Card>
@@ -298,35 +277,35 @@ export default function AIMarketplacePage() {
                 ))}
               </div>
             ) : filteredServices.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="services-grid">
                 {filteredServices.map((service: MarketplaceService) => (
-                  <Card key={service.id} className="hover:shadow-lg transition-shadow">
+                  <Card key={service.id} className="hover:shadow-lg transition-shadow" data-testid={`card-service-${service.id}`}>
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
-                          <CardTitle className="text-lg">{service.name}</CardTitle>
-                          <Badge variant="secondary" className="mt-1">
+                          <CardTitle className="text-lg" data-testid={`text-service-name-${service.id}`}>{service.name}</CardTitle>
+                          <Badge variant="secondary" className="mt-1" data-testid={`badge-category-${service.id}`}>
                             {service.category}
                           </Badge>
                         </div>
                         <div className="flex items-center space-x-1">
                           <Star className="w-4 h-4 fill-current text-yellow-400" />
-                          <span className="text-sm">{service.rating || 5.0}</span>
+                          <span className="text-sm" data-testid={`text-rating-${service.id}`}>{service.rating || 5.0}</span>
                         </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4" data-testid={`text-description-${service.id}`}>
                         {service.description}
                       </p>
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
                           <DollarSign className="w-4 h-4 text-green-600" />
-                          <span className="font-semibold">${service.pricing}</span>
+                          <span className="font-semibold" data-testid={`text-price-${service.id}`}>${service.pricing}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Clock className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm">{service.deliveryTime}</span>
+                          <span className="text-sm" data-testid={`text-delivery-${service.id}`}>{service.deliveryTime}</span>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1 mb-4">
@@ -343,6 +322,7 @@ export default function AIMarketplacePage() {
                             serviceDescription: service.description,
                             amount: service.pricing,
                             agentId: service.agentId,
+                            serviceId: service.id,
                             estimatedDeliveryHours: parseInt(service.deliveryTime.split('-')[0]) || 24,
                             requirements: ''
                           };
@@ -351,6 +331,7 @@ export default function AIMarketplacePage() {
                         }}
                         className="w-full"
                         disabled={!service.isActive}
+                        data-testid={`button-buy-${service.id}`}
                       >
                         {service.isActive ? 'Buy Now - $' + service.pricing : 'Unavailable'}
                       </Button>

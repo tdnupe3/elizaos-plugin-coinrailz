@@ -17,19 +17,25 @@ const router = Router();
  */
 router.get('/ai-marketplace/stats', async (req, res) => {
   try {
-    // 🎯 GET REAL STATS FROM DATABASE
-    const agents = await storage.getGlobalAIAgents();
-    const marketplaceServices = await storage.getMarketplaceServices();
+    // GET REAL STATS FROM DATABASE + x402 SERVICES
+    const agents = await storage.getGlobalAIAgents() ?? [];
+    const marketplaceServices = await storage.getMarketplaceServices() ?? [];
     
-    // Calculate real metrics
-    const activeAgents = agents.filter(agent => agent.available !== false);
-    const activeServices = marketplaceServices.filter(service => service.is_active !== false);
+    // Handle both DB format (is_active) and x402 format (isActive)
+    const activeServices = marketplaceServices.filter((service: any) => 
+      service.is_active !== false && service.isActive !== false
+    );
     
-    // 🎯 REAL COMPLETION RATE from actual order status records
+    // Count platform services separately
+    const platformServices = activeServices.filter((s: any) => s.isPlatformService);
+    const externalServices = activeServices.filter((s: any) => !s.isPlatformService);
+    
+    // REAL COMPLETION RATE from actual order status records
     let completionRate = 0;
+    let totalOrders = 0;
+    let completedOrders = 0;
     
     try {
-      // Try to get real completion rate from aiMarketplaceOrders table with status tracking
       const ordersQuery = await db.execute(sql`
         SELECT 
           COUNT(*) as total_orders,
@@ -38,48 +44,46 @@ router.get('/ai-marketplace/stats', async (req, res) => {
       `);
       
       if (ordersQuery.rows.length > 0) {
-        const { total_orders, completed_orders } = ordersQuery.rows[0] as any;
-        completionRate = total_orders > 0 ? Math.round((completed_orders / total_orders) * 100) : 0;
-        console.log(`📊 REAL completion rate: ${completed_orders}/${total_orders} = ${completionRate}%`);
-      } else {
-        // No order status data available - show 0 instead of fake data
-        completionRate = 0;
-        console.log(`📊 No order status data available - completion rate set to 0`);
+        const row = ordersQuery.rows[0] as any;
+        totalOrders = parseInt(row.total_orders) || 0;
+        completedOrders = parseInt(row.completed_orders) || 0;
+        completionRate = totalOrders > 0 ? Math.round((completedOrders / totalOrders) * 100) : 0;
       }
     } catch (error) {
-      console.log('📊 No order status tracking available - omitting completion rate');
-      completionRate = 0; // Don't show fake data if we can't calculate it
+      // Table may not exist yet - that's ok
     }
     
-    // Calculate real average rating - ONLY from actual ratings, no defaults
+    // Calculate average rating - handle both formats (average_rating, rating)
     const validRatings = activeServices
-      .map(service => parseFloat(service.average_rating))
-      .filter(rating => !isNaN(rating) && rating > 0);
+      .map((service: any) => parseFloat(service.average_rating || service.rating))
+      .filter((rating: number) => !isNaN(rating) && rating > 0);
     const avgRating = validRatings.length > 0 
-      ? (validRatings.reduce((sum, rating) => sum + rating, 0) / validRatings.length) 
+      ? (validRatings.reduce((sum: number, rating: number) => sum + rating, 0) / validRatings.length) 
       : 0;
     
-    // Calculate real total revenue from completed orders
-    const totalRevenue = activeServices.reduce((sum, service) => {
-      const orderCount = parseInt(service.order_count) || 0;
+    // Calculate total revenue - handle both formats (order_count, completedOrders)
+    const totalRevenue = activeServices.reduce((sum: number, service: any) => {
+      const orderCount = parseInt(service.order_count || service.completedOrders) || 0;
       const pricing = parseFloat(service.pricing) || 0;
       return sum + (orderCount * pricing);
     }, 0);
     
     const stats = {
-      totalAgents: agents.length, // REAL count from database
-      activeServices: activeServices.length, // REAL count from database
-      completionRate, // REAL calculation from order status data
-      avgRating: Math.round(avgRating * 10) / 10, // REAL average rating
-      totalRevenue: totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : '$0', // REAL revenue calculation
-      monthlyGrowth: null // No synthetic data - will add real calculation when historical data available
+      totalAgents: agents.length,
+      activeServices: activeServices.length,
+      platformServices: platformServices.length,
+      externalServices: externalServices.length,
+      completionRate,
+      totalOrders,
+      completedOrders,
+      avgRating: Math.round(avgRating * 10) / 10,
+      totalRevenue: totalRevenue > 0 ? `$${totalRevenue.toLocaleString()}` : '$0',
+      monthlyGrowth: null
     };
-
-    console.log(`🎯 REAL MARKETPLACE STATS: ${stats.totalAgents} agents, ${stats.activeServices} services, ${stats.totalRevenue} revenue`);
 
     res.json(stats);
   } catch (error: any) {
-    console.error('Error fetching real marketplace stats:', error);
+    console.error('Error fetching marketplace stats:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to fetch marketplace stats',

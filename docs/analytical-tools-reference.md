@@ -21,6 +21,37 @@ This document lists all analytical tools, database tables, API endpoints, and qu
 | `discovery_runs` | Discovery engine run logs | source, status, agents_found |
 | `microservice_metrics` | Service-level performance metrics | service_id, response_time, success_rate |
 
+### SDK Transaction Logging (NEW - Jan 2026)
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `sdk_transactions` | All SDK payment events from @coinrailz/agent-payments NPM & coinrailz Python | transaction_id, api_key_hash, transaction_type, status, amount, fee, net_amount, to_address, network, blockchain_tx_hash, created_at |
+
+**SDK Transaction Types:**
+- `send` - Direct USDC payment via SDK
+- `invoice` - Invoice creation for payment collection
+- `balance` - Balance check request
+
+**Example SDK Analytics Queries:**
+```sql
+-- Daily SDK transaction volume
+SELECT DATE(created_at) as date, 
+       COUNT(*) as transactions,
+       SUM(CAST(amount AS NUMERIC)) as total_volume,
+       SUM(CAST(fee AS NUMERIC)) as total_fees
+FROM sdk_transactions 
+WHERE created_at > NOW() - INTERVAL '30 days'
+GROUP BY DATE(created_at)
+ORDER BY date DESC;
+
+-- Top SDK users by volume
+SELECT api_key_hash, 
+       COUNT(*) as tx_count,
+       SUM(CAST(amount AS NUMERIC)) as total_volume
+FROM sdk_transactions
+GROUP BY api_key_hash
+ORDER BY total_volume DESC LIMIT 10;
+```
+
 ### Additional Tracking Tables
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|

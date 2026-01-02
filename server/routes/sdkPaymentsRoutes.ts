@@ -12,8 +12,63 @@ import { z } from 'zod';
 import { nanoid } from 'nanoid';
 import { creditsService } from '../services/creditsService';
 import { CoinbaseCDPService } from '../services/coinbaseCDPService';
+import { db } from '../db';
+import { sdkTransactions } from '@shared/schema';
+import crypto from 'crypto';
 
 const router = Router();
+
+// Helper to hash API key for analytics (don't store raw keys)
+function hashApiKey(apiKey: string): string {
+  return crypto.createHash('sha256').update(apiKey).digest('hex').substring(0, 16);
+}
+
+// Log SDK transaction to database for analytics
+async function logSdkTransaction(txData: {
+  transactionId: string;
+  apiKey: string;
+  userId?: string;
+  transactionType: string;
+  status: string;
+  amount: number;
+  fee: number;
+  netAmount: number;
+  currency: string;
+  toAddress?: string;
+  memo?: string;
+  network: string;
+  blockchainTxHash?: string;
+  errorMessage?: string;
+  metadata?: any;
+  ipAddress?: string;
+  userAgent?: string;
+}): Promise<void> {
+  try {
+    await db.insert(sdkTransactions).values({
+      transactionId: txData.transactionId,
+      apiKeyHash: hashApiKey(txData.apiKey),
+      userId: txData.userId || null,
+      transactionType: txData.transactionType,
+      status: txData.status,
+      amount: String(txData.amount), // Drizzle numeric expects string representation
+      fee: String(txData.fee),
+      netAmount: String(txData.netAmount),
+      currency: txData.currency,
+      toAddress: txData.toAddress || null,
+      memo: txData.memo || null,
+      network: txData.network,
+      blockchainTxHash: txData.blockchainTxHash || null,
+      errorMessage: txData.errorMessage || null,
+      metadata: txData.metadata || null,
+      ipAddress: txData.ipAddress || null,
+      userAgent: txData.userAgent || null,
+    });
+    console.log(`📊 SDK Transaction logged: ${txData.transactionId}`);
+  } catch (error) {
+    console.error('Failed to log SDK transaction:', error);
+    // Don't fail the payment if logging fails - this is analytics only
+  }
+}
 
 // Initialize payment service (CDP is the primary rail)
 const cdpService = CoinbaseCDPService.getInstance();
@@ -300,6 +355,27 @@ router.post('/payments/send', requireSdkApiKey, async (req: Request, res: Respon
       network: 'base',
       ...(executionError && { warning: 'Payment queued - will be processed shortly' })
     };
+    
+    // Log transaction to database for analytics
+    await logSdkTransaction({
+      transactionId,
+      apiKey: apiKey,
+      userId: userId,
+      transactionType: 'send',
+      status: txStatus,
+      amount,
+      fee,
+      netAmount,
+      currency,
+      toAddress: to,
+      memo: memo || undefined,
+      network: 'base',
+      blockchainTxHash: transactionHash || undefined,
+      errorMessage: executionError || undefined,
+      metadata: metadata,
+      ipAddress: getClientIP(req),
+      userAgent: req.headers['user-agent'] as string,
+    });
     
     return res.status(200).json(result);
     

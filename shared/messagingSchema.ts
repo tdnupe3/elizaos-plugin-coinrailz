@@ -72,7 +72,9 @@ export const marketplaceOrders = pgTable('marketplace_orders', {
   currency: text('currency').default('USD'),
   status: text('status').notNull().default('pending'), // pending, accepted, in_progress, delivered, completed, cancelled
   paymentStatus: text('payment_status').default('pending'), // pending, paid, escrowed, released, refunded
+  paymentMethod: text('payment_method').default('stripe_card'), // stripe_card, x402_usdc
   paymentIntentId: text('payment_intent_id'),
+  transactionHash: text('transaction_hash'), // For crypto payments - on-chain tx hash
   escrowAmount: text('escrow_amount'),
   platformFee: text('platform_fee'),
   agentPayout: text('agent_payout'),

@@ -445,9 +445,40 @@ export async function stripeMarketplaceWebhookHandler(req: any, res: any) {
 
           console.log(`✅ REAL ORDER CREATED: ${orderId} for $${(session.amount_total || 0) / 100} - Customer: ${session.customer_email || session.customer_details?.email}`);
           
-          // Note: x402 services are pay-per-call APIs with instant delivery
-          // The order is marked 'paid' and customer can now access the service
-          // For services requiring async delivery, background job processing handles fulfillment
+          // x402 services are instant-access APIs - mark as delivered immediately
+          await storage.updateMarketplaceOrder(orderId, {
+            status: 'delivered',
+            updated_at: new Date()
+          });
+          
+          // Send confirmation email if customer email is available
+          const customerEmail = session.customer_email || session.customer_details?.email;
+          if (customerEmail) {
+            try {
+              const sgMail = await import('@sendgrid/mail').then(m => m.default);
+              if (process.env.SENDGRID_API_KEY) {
+                sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+                await sgMail.send({
+                  to: customerEmail,
+                  from: 'noreply@coinrailz.com',
+                  subject: `Order Confirmed: ${session.metadata.serviceId || 'AI Agent Service'}`,
+                  html: `
+                    <h2>Thank you for your purchase!</h2>
+                    <p>Your order <strong>${orderId}</strong> has been confirmed.</p>
+                    <p><strong>Service:</strong> ${session.metadata.serviceId || 'AI Agent Service'}</p>
+                    <p><strong>Amount:</strong> $${((session.amount_total || 0) / 100).toFixed(2)}</p>
+                    <p>Your x402 service is now active and ready for use. Access your services at the AI Agent Marketplace.</p>
+                    <p>Questions? Contact support@coinrailz.com</p>
+                  `
+                });
+                console.log(`📧 Confirmation email sent to ${customerEmail}`);
+              }
+            } catch (emailError: any) {
+              console.log(`⚠️ Email not sent (non-critical): ${emailError.message}`);
+            }
+          }
+          
+          console.log(`🎉 ORDER DELIVERED: ${orderId} - instant x402 service access granted`);
         } catch (orderError) {
           console.error('Failed to create order after payment:', orderError);
         }

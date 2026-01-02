@@ -80,11 +80,31 @@ Result: Fee retained by construction
 
 | Component | Fix Applied |
 |-----------|-------------|
+| **Crypto Checkout for Marketplace** | NEW: USDC payment option added alongside Stripe. Payment method selector, on-chain verification via Alchemy, order creation matching Stripe flow |
 | **AI Agent Marketplace UI** | Stats display fixed, 43 services visible, test button removed |
 | **SDK Transaction Logging** | `sdk_transactions` table + logging function with hashed API keys |
 | **Marketplace Stats API** | Null-safe handling, returns activeServices/platformServices correctly |
 | **Checkout Flow** | sessionStorage cleanup after consumption |
 | **Registration Lockdown** | External agent registration returns 403 REGISTRATION_CLOSED |
+
+### Crypto Checkout Architecture (NEW)
+
+**Endpoints:**
+- `POST /api/ai-marketplace/crypto/create-pending-order` - Creates payment intent with USDC instructions
+- `POST /api/ai-marketplace/crypto/verify-payment` - Verifies on-chain tx, creates marketplace order
+
+**Payment Flow:**
+1. User selects "Crypto" payment method in checkout
+2. Backend creates intent in `x402_payment_intents` table with full metadata
+3. Frontend shows payment instructions (address, amount, network)
+4. User sends USDC from their wallet
+5. User submits tx hash for verification
+6. Backend verifies via Alchemy RPC, creates `marketplace_orders` entry, marks delivered
+
+**Data Tables Used:**
+- `x402_payment_intents` - Durable payment tracking
+- `x402_payments` - Payment analytics logging
+- `marketplace_orders` - Order fulfillment (same as Stripe)
 
 ### Architectural Clarifications
 

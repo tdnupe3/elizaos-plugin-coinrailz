@@ -20,6 +20,8 @@ import { db } from '../db';
 import Stripe from 'stripe';
 import { nanoid } from 'nanoid';
 import { conversations, messages, deliveries, insertConversationSchema, insertMessageSchema, insertDeliverySchema } from '../../shared/messagingSchema';
+import { x402Payments, x402PaymentIntents } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -3049,6 +3051,280 @@ router.get('/order/:orderId/status', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch order status',
+    });
+  }
+});
+
+// =========================================================================
+// CRYPTO PAYMENT ENDPOINTS - USDC Payment via x402 Protocol
+// =========================================================================
+
+const PLATFORM_WALLET_EVM = process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91';
+const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+/**
+ * POST /crypto/create-pending-order
+ * Creates a payment intent for crypto payment and returns payment instructions
+ * Uses x402_payment_intents table for durable storage
+ */
+router.post('/crypto/create-pending-order', async (req, res) => {
+  try {
+    const schema = z.object({
+      serviceId: z.string(),
+      serviceName: z.string(),
+      amount: z.number().positive(),
+      agentId: z.string(),
+      customerName: z.string().min(1),
+      customerEmail: z.string().email(),
+      deliveryRequirements: z.string().optional()
+    });
+
+    const validatedData = schema.parse(req.body);
+    
+    const intentId = `crypto_intent_${nanoid(16)}`;
+    const expiresAt = new Date(Date.now() + 3600000); // 1 hour expiry
+
+    // Store payment intent in database for durability
+    await db.insert(x402PaymentIntents).values({
+      id: intentId,
+      txHash: 'pending', // Placeholder until actual tx is submitted
+      network: 'base',
+      serviceName: validatedData.serviceName,
+      payer: validatedData.customerEmail, // Use email as payer until wallet address known
+      amount: validatedData.amount.toString(),
+      status: 'pending',
+      retries: 0,
+      expiresAt,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      metadata: {
+        serviceId: validatedData.serviceId,
+        agentId: validatedData.agentId,
+        customerName: validatedData.customerName,
+        customerEmail: validatedData.customerEmail,
+        deliveryRequirements: validatedData.deliveryRequirements,
+        paymentMethod: 'marketplace_crypto'
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      intentId,
+      paymentInstructions: {
+        chain: 'Base',
+        chainId: 8453,
+        token: 'USDC',
+        tokenAddress: USDC_BASE_ADDRESS,
+        recipientAddress: PLATFORM_WALLET_EVM,
+        amount: validatedData.amount.toFixed(6),
+        amountWei: Math.floor(validatedData.amount * 1e6).toString(),
+        message: `Payment for ${validatedData.serviceName}`
+      },
+      expiresIn: 3600,
+      expiresAt: expiresAt.toISOString()
+    });
+  } catch (error: any) {
+    console.error('Crypto payment intent creation failed:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: error.errors
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to create crypto payment intent',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /crypto/verify-payment
+ * Verifies a crypto payment via transaction hash and creates the order
+ */
+router.post('/crypto/verify-payment', async (req, res) => {
+  try {
+    const schema = z.object({
+      intentId: z.string(),
+      transactionHash: z.string().regex(/^0x[a-fA-F0-9]{64}$/, 'Invalid transaction hash')
+    });
+
+    const { intentId, transactionHash } = schema.parse(req.body);
+
+    // Get the pending payment intent from database
+    const [intent] = await db.select().from(x402PaymentIntents).where(eq(x402PaymentIntents.id, intentId));
+    if (!intent) {
+      return res.status(404).json({
+        success: false,
+        error: 'Payment intent not found or expired'
+      });
+    }
+
+    if (intent.status === 'completed') {
+      return res.json({
+        success: true,
+        message: 'Payment already verified',
+        status: 'completed'
+      });
+    }
+
+    if (intent.expiresAt && intent.expiresAt < new Date()) {
+      await db.update(x402PaymentIntents).set({ status: 'expired' }).where(eq(x402PaymentIntents.id, intentId));
+      return res.status(400).json({
+        success: false,
+        error: 'Payment intent expired'
+      });
+    }
+
+    const { ethers } = await import('ethers');
+    const ALCHEMY_API_KEY = process.env.ALCHEMY_API_KEY || '';
+    const provider = new ethers.JsonRpcProvider(`https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`);
+
+    let receipt;
+    try {
+      receipt = await provider.getTransactionReceipt(transactionHash);
+    } catch (rpcError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Failed to fetch transaction',
+        message: 'Transaction not found or RPC error'
+      });
+    }
+
+    if (!receipt) {
+      return res.status(400).json({
+        success: false,
+        error: 'Transaction not found',
+        message: 'Transaction may still be pending or does not exist'
+      });
+    }
+
+    if (receipt.status !== 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Transaction failed',
+        message: 'The transaction was reverted on-chain'
+      });
+    }
+
+    const USDC_TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    const usdcTransfer = receipt.logs.find(log => 
+      log.address.toLowerCase() === USDC_BASE_ADDRESS.toLowerCase() &&
+      log.topics[0] === USDC_TRANSFER_TOPIC &&
+      log.topics[2]?.toLowerCase().includes(PLATFORM_WALLET_EVM.toLowerCase().slice(2))
+    );
+
+    if (!usdcTransfer) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid payment',
+        message: 'Transaction does not contain a USDC transfer to platform wallet'
+      });
+    }
+
+    const transferAmount = parseInt(usdcTransfer.data, 16) / 1e6;
+    const expectedAmount = parseFloat(intent.amount?.toString() || '0');
+
+    if (transferAmount < expectedAmount * 0.99) {
+      return res.status(400).json({
+        success: false,
+        error: 'Insufficient payment',
+        message: `Expected $${expectedAmount}, received $${transferAmount.toFixed(2)}`
+      });
+    }
+
+    // Payment verified - update the intent status
+    const metadata = intent.metadata as any || {};
+    
+    await db.update(x402PaymentIntents).set({
+      status: 'completed',
+      txHash: transactionHash,
+      succeededAt: new Date(),
+      payer: receipt.from,
+      updatedAt: new Date()
+    }).where(eq(x402PaymentIntents.id, intentId));
+
+    // Log the successful crypto payment to x402_payments table
+    try {
+      await db.insert(x402Payments).values({
+        id: `crypto_${nanoid(12)}`,
+        serviceId: metadata.serviceId || 'marketplace',
+        payerAddress: receipt.from,
+        amount: transferAmount.toString(),
+        transactionHash,
+        chain: 'base',
+        status: 'completed',
+        createdAt: new Date()
+      });
+    } catch (logError) {
+      console.error('Failed to log crypto payment:', logError);
+    }
+
+    console.log(`💰 CRYPTO PAYMENT VERIFIED: Intent ${intentId}, TX: ${transactionHash}, Amount: $${transferAmount}`);
+
+    res.json({
+      success: true,
+      message: 'Payment verified successfully! Your service access is now active.',
+      intentId,
+      transactionHash,
+      amountPaid: transferAmount,
+      serviceName: intent.serviceName,
+      status: 'delivered'
+    });
+  } catch (error: any) {
+    console.error('Crypto payment verification failed:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid request data',
+        details: error.errors
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Payment verification failed',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /crypto/order-status/:orderId
+ * Check status of a crypto payment order
+ */
+router.get('/crypto/order-status/:orderId', async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    const order = await storage.getMarketplaceOrder(orderId);
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        error: 'Order not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      orderId,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      paymentMethod: order.paymentMethod,
+      transactionHash: order.transactionHash,
+      amount: order.amount,
+      createdAt: order.createdAt
+    });
+  } catch (error: any) {
+    console.error('Order status check failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to check order status'
     });
   }
 });

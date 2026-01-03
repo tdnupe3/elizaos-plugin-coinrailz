@@ -4,7 +4,7 @@ Working examples showing how to integrate Coin Railz payments into your AI agent
 
 ## Prerequisites
 
-1. Get your API key at [coinrailz.com/dashboard/api-keys](https://coinrailz.com/dashboard/api-keys)
+1. Get your API key at [coinrailz.com/api-keys](https://coinrailz.com/api-keys)
 2. Set the environment variable:
    ```bash
    export COINRAILZ_API_KEY=your-api-key-here

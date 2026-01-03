@@ -29,7 +29,7 @@ export class CoinRailzSolana {
 
   constructor(config: CoinRailzSolanaConfig) {
     if (!config.apiKey) {
-      throw new Error('API key is required. Get one at https://coinrailz.com/dashboard/api-keys');
+      throw new Error('API key is required. Get one at https://coinrailz.com/api-keys');
     }
 
     this.apiKey = config.apiKey;

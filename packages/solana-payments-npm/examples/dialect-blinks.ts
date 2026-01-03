@@ -62,7 +62,7 @@ async function hybridBlinkFlow() {
   const apiKey = process.env.COINRAILZ_API_KEY;
   if (!apiKey) {
     console.error('ERROR: COINRAILZ_API_KEY not set');
-    console.error('Get your key at: https://coinrailz.com/dashboard/api-keys');
+    console.error('Get your key at: https://coinrailz.com/api-keys');
     process.exit(1);
   }
 

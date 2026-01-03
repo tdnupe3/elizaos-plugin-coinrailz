@@ -54,6 +54,7 @@ import {
   PlatformAnalytics,
   CDPWalletPage,
   PlatformIntegrationPage,
+  AIMarketplace,
 
   USDCEcosystemDashboard,
   USDCBuy,
@@ -235,7 +236,7 @@ function Router() {
       </Route>
 
       <Route path="/ai-marketplace">
-        {() => <LazyLoadWrapper><AIAgents /></LazyLoadWrapper>}
+        {() => <LazyLoadWrapper><AIMarketplace /></LazyLoadWrapper>}
       </Route>
 
       {/* Streamlined onramp flow */}

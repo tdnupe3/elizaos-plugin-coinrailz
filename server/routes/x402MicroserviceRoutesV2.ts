@@ -3555,12 +3555,17 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
     );
     
     // Rate limiting: Check if wallet already received starter credits in last 30 days
+    // Also check for IP-based abuse (same IP using multiple wallets)
     let creditsGranted = 0;
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const clientIp = req.ip || req.headers['x-forwarded-for']?.toString().split(',')[0] || undefined;
     
     try {
-      const existingGrants = await db.select()
+      // Check 1: Wallet-based rate limiting (30 days)
+      const existingWalletGrants = await db.select()
         .from(instantApiKeyGrants)
         .where(and(
           eq(instantApiKeyGrants.walletAddress, walletAddress.toLowerCase()),
@@ -3568,7 +3573,26 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
         ))
         .limit(1);
       
-      if (existingGrants.length === 0) {
+      // Check 2: IP-based abuse detection (same IP, multiple wallets in 7 days = suspicious)
+      let ipAbuseDetected = false;
+      if (clientIp) {
+        const ipGrants = await db.select({ walletAddress: instantApiKeyGrants.walletAddress })
+          .from(instantApiKeyGrants)
+          .where(and(
+            eq(instantApiKeyGrants.ipAddress, clientIp),
+            gt(instantApiKeyGrants.grantedAt, sevenDaysAgo)
+          ));
+        
+        // Get unique wallets from this IP
+        const uniqueWallets = new Set(ipGrants.map(g => g.walletAddress));
+        if (uniqueWallets.size >= 3) {
+          ipAbuseDetected = true;
+          console.warn(`🚨 IP abuse detected: ${clientIp} used ${uniqueWallets.size} different wallets in 7 days`);
+        }
+      }
+      
+      // Grant credits only if: wallet hasn't received in 30 days AND no IP abuse
+      if (existingWalletGrants.length === 0 && !ipAbuseDetected) {
         // First-time grant: Give $5 starter credits
         await creditsService.addCredits({
           userId,
@@ -3606,7 +3630,12 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
         
         console.log(`🎁 Starter credits granted to ${walletAddress} via ${chain}/${token}`);
       } else {
-        console.log(`⏳ Rate limited: ${walletAddress} already received credits on ${existingGrants[0].grantedAt}`);
+        // Log reason for not granting credits
+        if (existingWalletGrants.length > 0) {
+          console.log(`⏳ Wallet rate limited: ${walletAddress} already received credits on ${existingWalletGrants[0].grantedAt}`);
+        } else if (ipAbuseDetected) {
+          console.log(`🚨 IP abuse blocked: ${clientIp} - credits not granted to ${walletAddress}`);
+        }
       }
     } catch (creditError: any) {
       console.error(`⚠️ Failed to add starter credits: ${creditError.message}`);
@@ -3623,11 +3652,18 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
     
     res.json({
       success: true,
+      // snake_case for programmatic SDK usage
       api_key: keyResult.apiKey,
       key_prefix: keyResult.keyPrefix,
       key_id: keyResult.keyId,
       user_id: userId,
       starter_credits: creditsGranted,
+      // camelCase aliases for frontend
+      apiKey: keyResult.apiKey,
+      keyPrefix: keyResult.keyPrefix,
+      keyId: keyResult.keyId,
+      userId: userId,
+      starterCredits: creditsGranted,
       credits_note: creditsGranted > 0 
         ? "🎁 $5 starter credits added to your account!" 
         : "ℹ️ Starter credits already claimed for this wallet (limit: once per 30 days)",

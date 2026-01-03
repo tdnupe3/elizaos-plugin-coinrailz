@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -62,6 +64,15 @@ export default function APIKeysPage() {
   const [keyName, setKeyName] = useState('');
   const [showNewKeyDialog, setShowNewKeyDialog] = useState(false);
   const [newKey, setNewKey] = useState('');
+  
+  // Instant API Key verification flow state
+  const [txHash, setTxHash] = useState('');
+  const [selectedChain, setSelectedChain] = useState<'base' | 'solana'>('base');
+  const [verificationState, setVerificationState] = useState<'idle' | 'verifying' | 'success' | 'error'>('idle');
+  const [verificationProgress, setVerificationProgress] = useState(0);
+  const [verificationMessage, setVerificationMessage] = useState('');
+  const [instantApiKey, setInstantApiKey] = useState('');
+  const [starterCredits, setStarterCredits] = useState(0);
 
   const { data: keysData, isLoading } = useQuery({
     queryKey: ['/api/api-keys'],
@@ -127,6 +138,111 @@ export default function APIKeysPage() {
 
   const handleRevoke = (keyId: string) => {
     revokeMutation.mutate(keyId);
+  };
+
+  // Instant API Key verification handler
+  const handleVerifyPayment = async () => {
+    if (!txHash.trim()) {
+      toast({
+        title: "Transaction Hash Required",
+        description: "Please enter your transaction hash after making payment",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setVerificationState('verifying');
+    setVerificationProgress(0);
+    setVerificationMessage('Connecting to blockchain...');
+    setInstantApiKey('');
+    setStarterCredits(0);
+
+    // Simulate progress during verification (backend polls for up to 30 seconds)
+    const progressInterval = setInterval(() => {
+      setVerificationProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 10;
+      });
+    }, 3000);
+
+    const messages = [
+      'Connecting to blockchain...',
+      'Searching for transaction...',
+      'Verifying payment amount...',
+      'Checking token transfer...',
+      'Confirming settlement...'
+    ];
+    let msgIndex = 0;
+    const messageInterval = setInterval(() => {
+      msgIndex = (msgIndex + 1) % messages.length;
+      setVerificationMessage(messages[msgIndex]);
+    }, 5000);
+
+    try {
+      const response = await fetch('/x402/instant-api-key', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-PAYMENT': txHash.trim()
+        }
+      });
+
+      clearInterval(progressInterval);
+      clearInterval(messageInterval);
+
+      if (response.ok) {
+        const data = await response.json();
+        setVerificationProgress(100);
+        setVerificationState('success');
+        setVerificationMessage('Payment verified successfully!');
+        // Handle both snake_case (backend) and camelCase field names
+        setInstantApiKey(data.api_key || data.apiKey || data.result?.api_key || data.result?.apiKey || '');
+        setStarterCredits(data.starter_credits || data.starterCredits || data.result?.starter_credits || data.result?.starterCredits || 0);
+        const grantedCredits = data.starter_credits || data.starterCredits || 0;
+        toast({
+          title: "API Key Issued!",
+          description: `Your API key has been created${grantedCredits > 0 ? ` with $${grantedCredits} starter credits` : ''}`
+        });
+      } else if (response.status === 402) {
+        // Payment required - transaction not found or invalid
+        const errorData = await response.json();
+        setVerificationState('error');
+        setVerificationMessage(errorData.error || 'Payment not verified. Please check your transaction hash.');
+        toast({
+          title: "Payment Not Verified",
+          description: "Transaction not found or payment amount incorrect. Please wait for confirmation and try again.",
+          variant: "destructive"
+        });
+      } else {
+        const errorData = await response.json();
+        setVerificationState('error');
+        setVerificationMessage(errorData.error || 'Verification failed');
+        toast({
+          title: "Verification Failed",
+          description: errorData.error || "Please check your transaction and try again",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      clearInterval(progressInterval);
+      clearInterval(messageInterval);
+      setVerificationState('error');
+      setVerificationMessage(error.message || 'Network error');
+      toast({
+        title: "Network Error",
+        description: "Could not connect to verification service. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const resetVerification = () => {
+    setTxHash('');
+    setVerificationState('idle');
+    setVerificationProgress(0);
+    setVerificationMessage('');
+    setInstantApiKey('');
+    setStarterCredits(0);
   };
 
   const copyToClipboard = (text: string) => {
@@ -209,105 +325,210 @@ export default function APIKeysPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-background/50 rounded-lg border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Wallet className="h-5 w-5 text-emerald-500" />
-                  <span className="font-semibold">Step 1</span>
+            <Tabs defaultValue="instructions" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="instructions" data-testid="tab-instructions">Payment Instructions</TabsTrigger>
+                <TabsTrigger value="verify" data-testid="tab-verify">Verify Payment</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="instructions" className="space-y-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-background/50 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wallet className="h-5 w-5 text-emerald-500" />
+                      <span className="font-semibold">Step 1</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Send $1 USDC or USDT to platform wallet
+                    </p>
+                  </div>
+                  <div className="p-4 bg-background/50 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Key className="h-5 w-5 text-blue-500" />
+                      <span className="font-semibold">Step 2</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Copy your transaction hash after sending
+                    </p>
+                  </div>
+                  <div className="p-4 bg-background/50 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <DollarSign className="h-5 w-5 text-yellow-500" />
+                      <span className="font-semibold">Step 3</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Use "Verify Payment" tab to get your API key
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Send $1 USDC or USDT to platform wallet
-                </p>
-              </div>
-              <div className="p-4 bg-background/50 rounded-lg border">
-                <div className="flex items-center gap-2 mb-2">
-                  <Key className="h-5 w-5 text-blue-500" />
-                  <span className="font-semibold">Step 2</span>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-muted/50 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">Base (EVM)</span>
+                      <span className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">USDC / USDT</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono bg-background px-2 py-1.5 rounded flex-1 truncate">
+                        0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText('0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91');
+                          toast({ title: "Copied", description: "Base wallet address copied" });
+                        }}
+                        data-testid="button-copy-wallet-base"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">Settlement: ~15 seconds</p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">Solana</span>
+                      <span className="text-xs bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded">USDC / USDT</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs font-mono bg-background px-2 py-1.5 rounded flex-1 truncate">
+                        Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k
+                      </code>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText('Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k');
+                          toast({ title: "Copied", description: "Solana wallet address copied" });
+                        }}
+                        data-testid="button-copy-wallet-solana"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">Settlement: ~2-5 seconds</p>
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Call endpoint with tx hash in X-PAYMENT header
-                </p>
-              </div>
-              <div className="p-4 bg-background/50 rounded-lg border">
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-5 w-5 text-yellow-500" />
-                  <span className="font-semibold">Step 3</span>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Receive API key + $5 starter credits instantly
-                </p>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-muted/50 rounded-lg border">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs uppercase tracking-wide text-muted-foreground">Base (EVM)</span>
-                  <span className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">USDC / USDT</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="text-xs font-mono bg-background px-2 py-1.5 rounded flex-1 truncate">
-                    0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText('0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91');
-                      toast({ title: "Copied", description: "Base wallet address copied" });
-                    }}
-                    data-testid="button-copy-wallet-base"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg border">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xs uppercase tracking-wide text-muted-foreground">Solana</span>
-                  <span className="text-xs bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded">USDC / USDT</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <code className="text-xs font-mono bg-background px-2 py-1.5 rounded flex-1 truncate">
-                    Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k
-                  </code>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText('Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k');
-                      toast({ title: "Copied", description: "Solana wallet address copied" });
-                    }}
-                    data-testid="button-copy-wallet-solana"
-                  >
-                    <Copy className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
 
-            <div className="p-4 bg-muted/50 rounded-lg border">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">API Endpoint</p>
-              <div className="flex items-center gap-2">
-                <code className="text-sm font-mono bg-background px-3 py-2 rounded flex-1">
-                  POST https://coinrailz.com/x402/instant-api-key
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText('curl -X POST https://coinrailz.com/x402/instant-api-key -H "X-PAYMENT: <your-tx-hash>"');
-                    toast({ title: "Copied", description: "cURL command copied to clipboard" });
-                  }}
-                  data-testid="button-copy-endpoint"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Include your transaction hash in the X-PAYMENT header after sending USDC or USDT
-              </p>
-            </div>
+                <div className="p-4 bg-muted/50 rounded-lg border">
+                  <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">API Endpoint (for programmatic access)</p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-sm font-mono bg-background px-3 py-2 rounded flex-1">
+                      POST https://coinrailz.com/x402/instant-api-key
+                    </code>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        navigator.clipboard.writeText('curl -X POST https://coinrailz.com/x402/instant-api-key -H "X-PAYMENT: <your-tx-hash>"');
+                        toast({ title: "Copied", description: "cURL command copied to clipboard" });
+                      }}
+                      data-testid="button-copy-endpoint"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="verify" className="space-y-4 mt-4">
+                {verificationState === 'success' && instantApiKey ? (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg border border-emerald-500/30">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle className="h-6 w-6 text-emerald-500" />
+                        <span className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">Payment Verified!</span>
+                      </div>
+                      <div className="space-y-3">
+                        <div>
+                          <Label className="text-xs uppercase tracking-wide text-muted-foreground">Your API Key</Label>
+                          <div className="flex items-center gap-2 mt-1">
+                            <code className="text-sm font-mono bg-background px-3 py-2 rounded flex-1 break-all" data-testid="text-instant-api-key">
+                              {instantApiKey}
+                            </code>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => copyToClipboard(instantApiKey)}
+                              data-testid="button-copy-instant-key"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        {starterCredits > 0 && (
+                          <div className="flex items-center gap-2 p-2 bg-yellow-500/10 rounded border border-yellow-500/20">
+                            <DollarSign className="h-5 w-5 text-yellow-500" />
+                            <span className="text-sm font-medium text-yellow-700 dark:text-yellow-300">
+                              +${starterCredits} starter credits added!
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <Button onClick={resetVerification} variant="outline" className="w-full" data-testid="button-verify-another">
+                      Verify Another Payment
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="tx-hash">Transaction Hash</Label>
+                      <Input
+                        id="tx-hash"
+                        value={txHash}
+                        onChange={(e) => setTxHash(e.target.value)}
+                        placeholder="0x... (Base) or base58 signature (Solana)"
+                        disabled={verificationState === 'verifying'}
+                        data-testid="input-tx-hash"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Enter the transaction hash from your wallet after sending $1 USDC or USDT
+                      </p>
+                    </div>
+
+                    {verificationState === 'verifying' && (
+                      <div className="space-y-2">
+                        <Progress value={verificationProgress} className="h-2" />
+                        <p className="text-sm text-center text-muted-foreground">{verificationMessage}</p>
+                        <p className="text-xs text-center text-muted-foreground">
+                          Verification may take up to 30 seconds for transaction confirmation
+                        </p>
+                      </div>
+                    )}
+
+                    {verificationState === 'error' && (
+                      <div className="p-3 bg-red-500/10 dark:bg-red-500/20 rounded-lg border border-red-500/20">
+                        <div className="flex items-center gap-2">
+                          <XCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                          <p className="text-sm text-red-700 dark:text-red-300">{verificationMessage}</p>
+                        </div>
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                          If your transaction is recent, wait 30 seconds for confirmation and try again.
+                        </p>
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={handleVerifyPayment}
+                      disabled={verificationState === 'verifying' || !txHash.trim()}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700"
+                      data-testid="button-verify-payment"
+                    >
+                      {verificationState === 'verifying' ? (
+                        <>Verifying Payment...</>
+                      ) : (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Verify Payment & Get API Key
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
 
             <div className="flex items-center gap-2 p-3 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg border border-emerald-500/20">
               <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />

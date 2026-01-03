@@ -4899,6 +4899,7 @@ export const instantApiKeyGrants = pgTable("instant_api_key_grants", {
   index("IDX_instant_api_key_grants_chain_token").on(table.chain, table.token),
   index("IDX_instant_api_key_grants_granted_at").on(table.grantedAt),
   uniqueIndex("IDX_instant_api_key_grants_tx_hash").on(table.txHash),
+  index("IDX_instant_api_key_grants_ip").on(table.ipAddress),
 ]);
 
 export const instantApiKeyGrantsInsertSchema = createInsertSchema(instantApiKeyGrants).omit({

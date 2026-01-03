@@ -704,18 +704,45 @@ async function getPlatformTokenAccount(mintAddress: string): Promise<string | nu
   }
 }
 
-async function verifySolanaPayment(signature: string, expectedAmount: number): Promise<SolanaPaymentResult> {
+async function verifySolanaPayment(signature: string, expectedAmount: number, maxRetries: number = 6): Promise<SolanaPaymentResult> {
+  const connection = getSolanaConnection();
+  
+  // Retry logic to handle transaction settlement delays
+  // Solana block time is ~400ms, finality typically takes 2-3 blocks
+  // We poll up to 6 times with 5-second intervals (30 seconds total)
+  let tx: any = null;
+  let lastError = "Transaction not found";
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      tx = await connection.getParsedTransaction(signature, { maxSupportedTransactionVersion: 0 });
+      
+      if (tx) {
+        if (tx.meta?.err) {
+          return { verified: false, error: "Transaction failed on-chain" };
+        }
+        break; // Transaction found and didn't fail, proceed to verification
+      }
+      
+      // Transaction not found yet - wait and retry
+      if (attempt < maxRetries) {
+        console.log(`⏳ Solana tx ${signature.substring(0,12)}... not found yet, retry ${attempt}/${maxRetries}`);
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 5 second delay
+      }
+    } catch (rpcError: any) {
+      lastError = rpcError.message || "RPC error";
+      console.warn(`⚠️ Solana RPC error on attempt ${attempt}: ${lastError}`);
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 3000)); // shorter delay for RPC errors
+      }
+    }
+  }
+  
+  if (!tx) {
+    return { verified: false, error: `Transaction not found after ${maxRetries} attempts: ${lastError}` };
+  }
+  
   try {
-    const connection = getSolanaConnection();
-    const tx = await connection.getParsedTransaction(signature, { maxSupportedTransactionVersion: 0 });
-    
-    if (!tx) {
-      return { verified: false, error: "Transaction not found" };
-    }
-    
-    if (tx.meta?.err) {
-      return { verified: false, error: "Transaction failed on-chain" };
-    }
     
     // Get platform ATAs for accepted tokens
     const usdcPlatformATA = await getPlatformTokenAccount(USDC_SOLANA);

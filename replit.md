@@ -48,17 +48,33 @@ Result: Fee retained by construction
 | EVM (All 7 chains) | `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` | ✅ Active |
 | Solana | `Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k` | ✅ Active |
 
-### On-Chain Revenue Analysis (Jan 2, 2026)
+### On-Chain Revenue Analysis (Jan 3, 2026) - UPDATED
 
 | Category | Transfers | Amount | Status |
 |----------|-----------|--------|--------|
-| Internal testing (0x2f5134...) | 20 | ~$19.55 USDC | ⚠️ Test funds |
-| Unknown/External wallets | 30 | ~$40+ | ❓ Investigating |
-| Potentially real revenue | 2 wallets | ~$37 | Needs verification |
+| 0x92ca4cef... | 64 | $32.35 USDC | ❓ Unknown external |
+| 0x664630cd... | 23 | $15.26 USDC | ❓ Unknown external |
+| 0x2f5134f7... (zauthx402-agent?) | 34 | ~$20 USDC | ⚠️ Likely external customer |
+| 0xabe2e327... | 9 | $2.25 USDC | ❓ Unknown external |
+| 0x8f7d6618... | 1 | $110 USDC | ❓ Unknown external |
+| 0xd2e482f8... | 1 | $5 USDC | ❓ Unknown external |
 
-**Notable external transfers:**
-- 0x92ca4cef... → 23 transfers, ~$23 USDC (Nov-Dec)
-- 0x0a2854... → 1 transfer, $14.87 USDT (Dec 14)
+**Current Wallet Balances (Jan 3, 2026):**
+- Platform wallet (0xa4bbe37f...): **$51.98 USDC** ✅ ACCESSIBLE
+- Legacy wallet (0x2f5134...): **$19.10 USDC** ⚠️ Potentially stuck
+
+**SCAM TOKEN WARNING:**
+- 0x8888888884f8b3a... sent 8888 tokens of "Telegram @TronVanity88_bot" - this is a SCAM airdrop, NOT real money ($0 value)
+
+**zauthx402-agent Investigation (Jan 3, 2026):**
+- First purchase: Dec 9, 2025 - bought `instant-agent-wallet` 18 times ($18)
+- Hypothesis: External agent that created wallets via our service, uses them to pay for services
+- Wallet 0x2f5134... is "legacy unsweepable" because created with old CDP credentials
+- Business Development: Reach out to "Zauth" to verify ownership and convert to documented customer
+
+**Apple Discovery Signal:**
+- Applebot (Apple's crawler) first crawled x402 endpoints on Jan 2, 2026 (14 hits, 9 unique IPs)
+- User agent: `Applebot/0.1; +http://www.apple.com/go/applebot` - VERIFIED LEGITIMATE
 
 ### SDK Distribution
 
@@ -76,11 +92,12 @@ Result: Fee retained by construction
 | **External revenue verification** | Confirm if 0x92ca4c is real user | MEDIUM |
 | **Service delivery automation** | Background job queue for async services | LOW |
 
-### Recently Fixed (Jan 2, 2026) ✅
+### Recently Fixed (Jan 3, 2026) ✅
 
 | Component | Fix Applied |
 |-----------|-------------|
-| **Crypto Checkout for Marketplace** | NEW: USDC payment option added alongside Stripe. Payment method selector, on-chain verification via Alchemy, order creation matching Stripe flow |
+| **Wallet Creation Logging** | NEW: `agentWallets` and `agentWalletEvents` tables now track wallet creations with payer attribution (wallet address, IP, user agent, tx hash) |
+| **Crypto Checkout for Marketplace** | USDC payment option added alongside Stripe. Payment method selector, on-chain verification via Alchemy |
 | **AI Agent Marketplace UI** | Stats display fixed, 43 services visible, test button removed |
 | **SDK Transaction Logging** | `sdk_transactions` table + logging function with hashed API keys |
 | **Marketplace Stats API** | Null-safe handling, returns activeServices/platformServices correctly |

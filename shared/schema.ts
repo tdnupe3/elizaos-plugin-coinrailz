@@ -4879,6 +4879,36 @@ export const apiKeysSelectSchema = createSelectSchema(apiKeys);
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = z.infer<typeof apiKeysInsertSchema>;
 
+// Instant API Key Grants - Rate limiting for $1 → $5 credit abuse prevention
+// Each wallet can only receive starter credits once per 30 days
+export const instantApiKeyGrants = pgTable("instant_api_key_grants", {
+  id: serial("id").primaryKey(),
+  walletAddress: varchar("wallet_address").notNull(), // Payer wallet address
+  chain: varchar("chain").notNull(), // base, solana, ethereum, etc.
+  token: varchar("token").notNull(), // USDC, USDT
+  apiKeyId: varchar("api_key_id").notNull(), // Reference to generated API key
+  creditsGranted: decimal("credits_granted", { precision: 10, scale: 2 }).notNull().default("5.00"),
+  txHash: varchar("tx_hash"), // Payment transaction hash
+  amountPaid: decimal("amount_paid", { precision: 10, scale: 6 }).notNull(), // Amount paid in token
+  ipAddress: varchar("ip_address"), // For additional abuse prevention
+  userAgent: text("user_agent"),
+  grantedAt: timestamp("granted_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // When this grant period expires (30 days from grant)
+}, (table) => [
+  index("IDX_instant_api_key_grants_wallet").on(table.walletAddress),
+  index("IDX_instant_api_key_grants_chain_token").on(table.chain, table.token),
+  index("IDX_instant_api_key_grants_granted_at").on(table.grantedAt),
+  uniqueIndex("IDX_instant_api_key_grants_tx_hash").on(table.txHash),
+]);
+
+export const instantApiKeyGrantsInsertSchema = createInsertSchema(instantApiKeyGrants).omit({
+  id: true,
+  grantedAt: true,
+});
+
+export type InstantApiKeyGrant = typeof instantApiKeyGrants.$inferSelect;
+export type InsertInstantApiKeyGrant = z.infer<typeof instantApiKeyGrantsInsertSchema>;
+
 // Service Bundle Subscriptions - Track AI agent bundle purchases
 export const serviceBundleSubscriptions = pgTable("service_bundle_subscriptions", {
   id: serial("id").primaryKey(),

@@ -66,5 +66,31 @@ export function isUsingCdpFacilitator(): boolean {
 export const NETWORK_LEGACY = 'base';
 export const NETWORK_CAIP2 = 'eip155:8453';
 
+// Base (EVM) Stablecoin Addresses
 export const USDC_BASE_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const USDT_BASE_ADDRESS = '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2';
+
+// Solana Stablecoin Mint Addresses
+export const USDC_SOLANA_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+export const USDT_SOLANA_MINT = 'Es9vMFrzaCERmnn4Xw4Jp9Dzk1XjCK8dygBBhPokv9wg';
+
+// Platform wallet addresses for each chain
+export const PLATFORM_WALLETS = {
+  base: '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
+  solana: 'Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k',
+} as const;
+
+// Stablecoin configurations per chain
+export const STABLECOIN_CONFIG = {
+  base: {
+    USDC: { address: USDC_BASE_ADDRESS, decimals: 6, supportsEIP3009: true },
+    USDT: { address: USDT_BASE_ADDRESS, decimals: 6, supportsEIP3009: false },
+  },
+  solana: {
+    USDC: { mint: USDC_SOLANA_MINT, decimals: 6 },
+    USDT: { mint: USDT_SOLANA_MINT, decimals: 6 },
+  },
+} as const;
+
+export type SupportedChain = keyof typeof PLATFORM_WALLETS;
+export type SupportedToken = 'USDC' | 'USDT';

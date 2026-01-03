@@ -2,8 +2,9 @@ import { Router, Request, Response } from "express";
 import { paymentMiddleware, Network } from "x402-express";
 import { facilitator } from "@coinbase/x402";
 import { db } from "../db";
-import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS } from "../utils/facilitatorHelper";
-import { sql } from "drizzle-orm";
+import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2, USDC_BASE_ADDRESS, USDT_BASE_ADDRESS, PLATFORM_WALLETS, STABLECOIN_CONFIG } from "../utils/facilitatorHelper";
+import { sql, eq, and, gt } from "drizzle-orm";
+import { instantApiKeyGrants } from "@shared/schema";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "@shared/pricing";
 import {
   multiChainBalanceService,
@@ -3522,7 +3523,8 @@ router.post("/stock-sentiment",
 
 // ========================================
 // INSTANT API KEY SERVICE
-// Pay $1 USDC, get an API key immediately - no login required
+// Pay $1 USDC/USDT on Base or Solana, get an API key immediately - no login required
+// Multi-chain, multi-token support with rate limiting for starter credits
 // ========================================
 
 const instantApiKeyHandler = async (req: Request, res: Response) => {
@@ -3536,9 +3538,11 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
     const paymentInfo = res.locals.payment;
     const txHash = paymentInfo?.txHash;
     const walletAddress = paymentInfo?.from || req.ip || 'unknown';
+    const chain = paymentInfo?.network || 'base';
+    const token = paymentInfo?.token || 'USDC';
+    const amountPaid = paymentInfo?.amount || 1.00;
     
     // Create a unique user ID based on the wallet address or transaction
-    // This allows the same wallet to get multiple keys while maintaining attribution
     const userId = `x402_${txHash ? txHash.substring(0, 16) : Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
     
     // Import credits service for key generation
@@ -3550,21 +3554,60 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
       name || `SDK Key (${new Date().toISOString().split('T')[0]})`
     );
     
-    // Also give them $5 in starter credits so they can immediately use services
+    // Rate limiting: Check if wallet already received starter credits in last 30 days
+    let creditsGranted = 0;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
     try {
-      await creditsService.addCredits({
-        userId,
-        amount: 5.00,  // $5 starter credits
-        paymentMethod: "usdc",
-        referenceId: txHash || requestId,
-        description: "Starter credits with instant API key purchase",
-        metadata: {
-          purchaseType: "instant-api-key",
-          walletAddress,
+      const existingGrants = await db.select()
+        .from(instantApiKeyGrants)
+        .where(and(
+          eq(instantApiKeyGrants.walletAddress, walletAddress.toLowerCase()),
+          gt(instantApiKeyGrants.grantedAt, thirtyDaysAgo)
+        ))
+        .limit(1);
+      
+      if (existingGrants.length === 0) {
+        // First-time grant: Give $5 starter credits
+        await creditsService.addCredits({
+          userId,
+          amount: 5.00,
+          paymentMethod: token.toLowerCase(),
+          referenceId: txHash || requestId,
+          description: `Starter credits with instant API key (${chain}/${token})`,
+          metadata: {
+            purchaseType: "instant-api-key",
+            walletAddress,
+            chain,
+            token,
+            txHash,
+            requestId
+          }
+        });
+        creditsGranted = 5.00;
+        
+        // Record the grant for rate limiting
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        
+        await db.insert(instantApiKeyGrants).values({
+          walletAddress: walletAddress.toLowerCase(),
+          chain,
+          token,
+          apiKeyId: keyResult.keyId,
+          creditsGranted: "5.00",
           txHash,
-          requestId
-        }
-      });
+          amountPaid: String(amountPaid),
+          ipAddress: req.ip || undefined,
+          userAgent: req.headers['user-agent'] || undefined,
+          expiresAt
+        });
+        
+        console.log(`🎁 Starter credits granted to ${walletAddress} via ${chain}/${token}`);
+      } else {
+        console.log(`⏳ Rate limited: ${walletAddress} already received credits on ${existingGrants[0].grantedAt}`);
+      }
     } catch (creditError: any) {
       console.error(`⚠️ Failed to add starter credits: ${creditError.message}`);
       // Continue anyway - key generation is the primary deliverable
@@ -3572,11 +3615,11 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
     
     const responseTime = Date.now() - startTime;
     
-    console.log(`🔑 Instant API key generated: ${keyResult.keyPrefix}... for wallet ${walletAddress}`);
+    console.log(`🔑 Instant API key generated: ${keyResult.keyPrefix}... for wallet ${walletAddress} via ${chain}/${token}`);
     
     // Track the request
-    await trackRequest("instant-api-key", { name, walletAddress }, { keyPrefix: keyResult.keyPrefix }, responseTime, SERVICE_PRICING_USD["instant-api-key"], walletAddress);
-    await trackBundleUsage(req, res, "instant-api-key", { walletAddress });
+    await trackRequest("instant-api-key", { name, walletAddress, chain, token }, { keyPrefix: keyResult.keyPrefix }, responseTime, SERVICE_PRICING_USD["instant-api-key"], walletAddress);
+    await trackBundleUsage(req, res, "instant-api-key", { walletAddress, chain, token });
     
     res.json({
       success: true,
@@ -3584,12 +3627,31 @@ const instantApiKeyHandler = async (req: Request, res: Response) => {
       key_prefix: keyResult.keyPrefix,
       key_id: keyResult.keyId,
       user_id: userId,
-      starter_credits: 5.00,
+      starter_credits: creditsGranted,
+      credits_note: creditsGranted > 0 
+        ? "🎁 $5 starter credits added to your account!" 
+        : "ℹ️ Starter credits already claimed for this wallet (limit: once per 30 days)",
+      payment: {
+        chain,
+        token,
+        amount_paid: amountPaid,
+        tx_hash: txHash
+      },
       message: "⚠️ SAVE THIS KEY NOW - it will never be shown again!",
       usage: {
         base_url: "https://coinrailz.com/api/sdk",
         example: `curl -H "Authorization: Bearer ${keyResult.apiKey}" https://coinrailz.com/api/sdk/status`,
         docs: "https://coinrailz.com/quickstart"
+      },
+      supported_payments: {
+        base: {
+          wallet: PLATFORM_WALLETS.base,
+          tokens: ['USDC', 'USDT']
+        },
+        solana: {
+          wallet: PLATFORM_WALLETS.solana,
+          tokens: ['USDC', 'USDT']
+        }
       },
       requestId
     });

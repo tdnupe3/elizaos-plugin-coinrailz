@@ -202,10 +202,10 @@ export default function APIKeysPage() {
           <CardHeader>
             <CardTitle className="text-2xl font-['Space_Grotesk'] flex items-center gap-2">
               <Zap className="h-6 w-6 text-emerald-500" />
-              Instant API Key - Pay $1 USDC
+              Instant API Key - Pay $1 (USDC or USDT)
             </CardTitle>
             <CardDescription>
-              Get an API key instantly with no account required. Pay $1 USDC and receive your key + $5 starter credits immediately.
+              Get an API key instantly with no account required. Pay $1 in USDC or USDT on Base or Solana and receive your key + $5 starter credits immediately.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -216,7 +216,7 @@ export default function APIKeysPage() {
                   <span className="font-semibold">Step 1</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Send $1 USDC to platform wallet on Base
+                  Send $1 USDC or USDT to platform wallet
                 </p>
               </div>
               <div className="p-4 bg-background/50 rounded-lg border">
@@ -239,23 +239,50 @@ export default function APIKeysPage() {
               </div>
             </div>
             
-            <div className="p-4 bg-muted/50 rounded-lg border">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Platform Wallet (Base)</p>
-              <div className="flex items-center gap-2">
-                <code className="text-sm font-mono bg-background px-3 py-2 rounded flex-1">
-                  0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
-                </code>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigator.clipboard.writeText('0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91');
-                    toast({ title: "Copied", description: "Wallet address copied to clipboard" });
-                  }}
-                  data-testid="button-copy-wallet"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">Base (EVM)</span>
+                  <span className="text-xs bg-blue-500/20 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">USDC / USDT</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs font-mono bg-background px-2 py-1.5 rounded flex-1 truncate">
+                    0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText('0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91');
+                      toast({ title: "Copied", description: "Base wallet address copied" });
+                    }}
+                    data-testid="button-copy-wallet-base"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs uppercase tracking-wide text-muted-foreground">Solana</span>
+                  <span className="text-xs bg-purple-500/20 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded">USDC / USDT</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs font-mono bg-background px-2 py-1.5 rounded flex-1 truncate">
+                    Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText('Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k');
+                      toast({ title: "Copied", description: "Solana wallet address copied" });
+                    }}
+                    data-testid="button-copy-wallet-solana"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -269,7 +296,7 @@ export default function APIKeysPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    navigator.clipboard.writeText('curl -X POST https://coinrailz.com/x402/instant-api-key -H "X-PAYMENT: 0x<your-tx-hash>"');
+                    navigator.clipboard.writeText('curl -X POST https://coinrailz.com/x402/instant-api-key -H "X-PAYMENT: <your-tx-hash>"');
                     toast({ title: "Copied", description: "cURL command copied to clipboard" });
                   }}
                   data-testid="button-copy-endpoint"
@@ -278,14 +305,14 @@ export default function APIKeysPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Include your transaction hash in the X-PAYMENT header after sending USDC
+                Include your transaction hash in the X-PAYMENT header after sending USDC or USDT
               </p>
             </div>
 
             <div className="flex items-center gap-2 p-3 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg border border-emerald-500/20">
               <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
               <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                <strong>No account required.</strong> Your API key works immediately with all 43 x402 services.
+                <strong>No account required.</strong> Your API key works immediately with all 43 x402 services. Starter credits limited to one grant per wallet every 30 days.
               </p>
             </div>
           </CardContent>

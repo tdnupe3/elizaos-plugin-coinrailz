@@ -6,6 +6,7 @@ import {
 } from "./hybridPaymentMiddleware";
 import { offerLinkService } from "../services/offerLinkService";
 import { getFacilitatorUrl } from "../utils/facilitatorHelper";
+import { Connection } from "@solana/web3.js";
 import { SERVICE_PRICING_MICRO, SERVICE_PRICING_USD, microToUSD } from "../../shared/pricing";
 import { getAuthContext, hasValidSession, resolveOrCreateSessionUser, refreshAndValidateAuthContext, AuthContext } from "../services/gptAuthResolver";
 import { creditsService } from "../services/creditsService";
@@ -627,15 +628,222 @@ async function isEligibleForFirstCallFree(ipAddress: string, userAgent: string |
   }
 }
 
-// Platform wallet to receive payments
+// Platform wallets to receive payments (EVM and Solana)
 const PLATFORM_WALLET = process.env.PLATFORM_WALLET_ADDRESS || "0xa4bBE37f9A6Ae2dc36a607B91eB148C0ae163C91";
+const SOLANA_PLATFORM_WALLET = "Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k";
 
 // Stablecoin contract addresses on Base mainnet
 const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as const;
 const USDT_BASE = "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2" as const; // Bridged USDT on Base
 
-// Accepted stablecoins for x402 payments
+// Solana SPL token mints
+const USDC_SOLANA = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
+const USDT_SOLANA = "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB";
+
+// Accepted stablecoins for x402 payments (EVM)
 const ACCEPTED_STABLECOINS = [USDC_BASE, USDT_BASE];
+// Accepted stablecoins for Solana
+const ACCEPTED_SOLANA_TOKENS = [USDC_SOLANA, USDT_SOLANA];
+
+// Solana RPC connection (uses Helius or public RPC)
+const SOLANA_RPC_URL = process.env.HELIUS_RPC_URL || process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
+let solanaConnection: Connection | null = null;
+
+function getSolanaConnection(): Connection {
+  if (!solanaConnection) {
+    solanaConnection = new Connection(SOLANA_RPC_URL, "confirmed");
+    console.log(`✅ Solana connection initialized: ${SOLANA_RPC_URL.substring(0, 40)}...`);
+  }
+  return solanaConnection;
+}
+
+// Helper to detect if a string is a valid Solana signature (base58, 87-88 chars)
+function isSolanaSignature(str: string): boolean {
+  if (!str || str.startsWith("0x")) return false;
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]{85,90}$/;
+  return base58Regex.test(str);
+}
+
+// Verify Solana transaction payment
+interface SolanaPaymentResult {
+  verified: boolean;
+  amount?: number;
+  token?: string;
+  tokenMint?: string;
+  fromWallet?: string;
+  error?: string;
+}
+
+// Known platform token accounts (ATAs) for USDC and USDT
+// These are the actual Associated Token Accounts that receive tokens
+// Derived from: getAssociatedTokenAddressSync(MINT, PLATFORM_WALLET)
+// For production, these should be pre-computed or derived dynamically
+const PLATFORM_TOKEN_ACCOUNTS: Record<string, string> = {};
+
+// Initialize platform token accounts lazily
+async function getPlatformTokenAccount(mintAddress: string): Promise<string | null> {
+  const cacheKey = `${SOLANA_PLATFORM_WALLET}:${mintAddress}`;
+  if (PLATFORM_TOKEN_ACCOUNTS[cacheKey]) {
+    return PLATFORM_TOKEN_ACCOUNTS[cacheKey];
+  }
+  
+  try {
+    const { PublicKey } = await import("@solana/web3.js");
+    const { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
+    
+    const platformWallet = new PublicKey(SOLANA_PLATFORM_WALLET);
+    const mint = new PublicKey(mintAddress);
+    
+    const ata = getAssociatedTokenAddressSync(mint, platformWallet, false, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID);
+    PLATFORM_TOKEN_ACCOUNTS[cacheKey] = ata.toBase58();
+    console.log(`✅ Platform ATA for ${mintAddress.substring(0,8)}...: ${ata.toBase58()}`);
+    return ata.toBase58();
+  } catch (error: any) {
+    console.error(`❌ Failed to derive platform ATA: ${error.message}`);
+    return null;
+  }
+}
+
+async function verifySolanaPayment(signature: string, expectedAmount: number): Promise<SolanaPaymentResult> {
+  try {
+    const connection = getSolanaConnection();
+    const tx = await connection.getParsedTransaction(signature, { maxSupportedTransactionVersion: 0 });
+    
+    if (!tx) {
+      return { verified: false, error: "Transaction not found" };
+    }
+    
+    if (tx.meta?.err) {
+      return { verified: false, error: "Transaction failed on-chain" };
+    }
+    
+    // Get platform ATAs for accepted tokens
+    const usdcPlatformATA = await getPlatformTokenAccount(USDC_SOLANA);
+    const usdtPlatformATA = await getPlatformTokenAccount(USDT_SOLANA);
+    
+    if (!usdcPlatformATA && !usdtPlatformATA) {
+      return { verified: false, error: "Cannot derive platform token accounts" };
+    }
+    
+    // Build mapping of ATA -> mint for verification
+    const ataToMint: Record<string, { mint: string; name: string }> = {};
+    if (usdcPlatformATA) ataToMint[usdcPlatformATA] = { mint: USDC_SOLANA, name: 'USDC' };
+    if (usdtPlatformATA) ataToMint[usdtPlatformATA] = { mint: USDT_SOLANA, name: 'USDT' };
+    const platformATAs = Object.keys(ataToMint);
+    
+    // SECURITY: Verify balance increase via postTokenBalances
+    // This is the authoritative source - instruction parsing can be spoofed
+    const postTokenBalances = tx.meta?.postTokenBalances || [];
+    const preTokenBalances = tx.meta?.preTokenBalances || [];
+    
+    let verifiedTransfer: { amount: number; mint: string; tokenName: string; from: string } | null = null;
+    
+    for (const postBalance of postTokenBalances) {
+      // Check if this is one of our platform ATAs
+      const accountKeys = tx.transaction.message.accountKeys;
+      const accountIndex = postBalance.accountIndex;
+      const accountKey = accountKeys[accountIndex];
+      
+      // Handle various account key formats from Solana RPC
+      let accountAddress = '';
+      if (typeof accountKey === 'string') {
+        accountAddress = accountKey;
+      } else if (accountKey && typeof accountKey === 'object') {
+        // ParsedMessageAccount format: { pubkey: PublicKey, signer: boolean, source: string, writable: boolean }
+        if ('pubkey' in accountKey) {
+          const pubkey = accountKey.pubkey;
+          accountAddress = typeof pubkey === 'string' ? pubkey : 
+                           (pubkey?.toBase58?.() || pubkey?.toString?.() || '');
+        }
+        // Alternative: direct PublicKey object
+        if (!accountAddress && accountKey.toBase58) {
+          accountAddress = accountKey.toBase58();
+        }
+        if (!accountAddress && accountKey.toString) {
+          accountAddress = accountKey.toString();
+        }
+      }
+      
+      if (!accountAddress || !platformATAs.includes(accountAddress)) continue;
+      
+      const ataInfo = ataToMint[accountAddress];
+      if (!ataInfo) continue;
+      
+      // Verify the mint matches
+      if (postBalance.mint !== ataInfo.mint) continue;
+      
+      // Get pre-balance for comparison
+      const preBalance = preTokenBalances.find(
+        pb => pb.accountIndex === accountIndex && pb.mint === postBalance.mint
+      );
+      
+      const preAmount = preBalance?.uiTokenAmount?.uiAmount || 0;
+      const postAmount = postBalance.uiTokenAmount?.uiAmount || 0;
+      
+      // SECURITY: Validate amounts are proper numbers
+      if (!Number.isFinite(preAmount) || !Number.isFinite(postAmount)) {
+        console.warn(`⚠️ Invalid balance amounts: pre=${preAmount}, post=${postAmount}`);
+        continue;
+      }
+      
+      const balanceIncrease = postAmount - preAmount;
+      
+      // SECURITY: Must have positive balance increase
+      if (balanceIncrease <= 0) {
+        console.warn(`⚠️ No balance increase: ${balanceIncrease}`);
+        continue;
+      }
+      
+      // Try to find the sender from instruction info
+      let fromWallet = 'unknown';
+      for (const ix of tx.transaction.message.instructions) {
+        if ('parsed' in ix && ix.program === 'spl-token') {
+          const info = ix.parsed?.info;
+          if (info?.destination === accountAddress || info?.destination === accountAddress) {
+            fromWallet = info?.authority || info?.source || 'unknown';
+            break;
+          }
+        }
+      }
+      
+      verifiedTransfer = {
+        amount: balanceIncrease,
+        mint: ataInfo.mint,
+        tokenName: ataInfo.name,
+        from: fromWallet
+      };
+      break;
+    }
+    
+    if (!verifiedTransfer) {
+      return { verified: false, error: "No verified balance increase to platform wallet" };
+    }
+    
+    // SECURITY: Validate amount is a proper positive number
+    if (!Number.isFinite(verifiedTransfer.amount) || verifiedTransfer.amount <= 0) {
+      return { verified: false, error: `Invalid amount: ${verifiedTransfer.amount}` };
+    }
+    
+    // Check amount (allow 5% tolerance for fees)
+    const expectedUsd = expectedAmount / 1_000_000;
+    if (verifiedTransfer.amount < expectedUsd * 0.95) {
+      return { verified: false, error: `Insufficient amount: ${verifiedTransfer.amount} < ${expectedUsd}` };
+    }
+    
+    console.log(`✅ Solana payment verified via balance change: +${verifiedTransfer.amount} ${verifiedTransfer.tokenName} to platform ATA`);
+    
+    return {
+      verified: true,
+      amount: verifiedTransfer.amount,
+      token: verifiedTransfer.tokenName,
+      tokenMint: verifiedTransfer.mint,
+      fromWallet: verifiedTransfer.from
+    };
+  } catch (error: any) {
+    console.error(`❌ Solana payment verification error:`, error.message);
+    return { verified: false, error: error.message };
+  }
+}
 
 // EIP-3009 ABI for USDC transferWithAuthorization
 const EIP3009_ABI = parseAbi([
@@ -984,13 +1192,83 @@ export function createPaymentOrchestrator(
     }
 
     let txHash: string | null = null;
+    let paymentChain: 'base' | 'solana' | null = null;
 
-    // Case 1: Raw transaction hash (what agents actually send)
+    // Case 1: Raw EVM transaction hash (0x prefixed, 66 chars)
     if (xPayment.startsWith("0x") && xPayment.length === 66) {
       txHash = xPayment;
-      console.log(`🔐 Orchestrator: Raw 0x hash payment detected for ${serviceName}: ${xPayment.substring(0, 10)}...`);
+      paymentChain = 'base';
+      console.log(`🔐 Orchestrator: Raw EVM hash payment detected for ${serviceName}: ${xPayment.substring(0, 10)}...`);
     } 
-    // Case 2: Base64-encoded payload (JSON or CBOR) with txHash
+    // Case 2: Raw Solana transaction signature (base58, 87-88 chars)
+    else if (isSolanaSignature(xPayment)) {
+      txHash = xPayment;
+      paymentChain = 'solana';
+      console.log(`🔐 Orchestrator: Solana signature detected for ${serviceName}: ${xPayment.substring(0, 10)}...`);
+      
+      // Verify Solana payment directly
+      const solanaResult = await verifySolanaPayment(xPayment, requiredAmount);
+      
+      if (solanaResult.verified) {
+        console.log(`✅ Orchestrator: Solana payment verified! Amount: $${solanaResult.amount} ${solanaResult.token}`);
+        
+        // Set payment info in res.locals for handler
+        res.locals.payment = {
+          method: 'solana-transaction',
+          chain: 'solana',
+          network: 'solana:mainnet',
+          token: solanaResult.token,
+          tokenMint: solanaResult.tokenMint,
+          amount: solanaResult.amount,
+          txHash: xPayment,
+          walletAddress: solanaResult.fromWallet,
+          verified: true
+        };
+        
+        // Track successful Solana payment
+        await x402InteractionTracker.trackInteraction({
+          serviceId: serviceName,
+          ipAddress,
+          userAgent,
+          requestPath: req.originalUrl,
+          requestMethod: req.method,
+          responseStatus: 200,
+          paid: true,
+          amount: solanaResult.amount,
+          interactionType: 'payment',
+          requestId,
+          eventType: 'solana-payment',
+          serviceName,
+          latencyMs: Date.now() - startTime,
+          paymentReceived: true,
+          paymentAmount: solanaResult.amount,
+          offerTrackingId,
+          metadata: { 
+            chain: 'solana',
+            token: solanaResult.token,
+            txHash: xPayment,
+            fromWallet: solanaResult.fromWallet,
+            knownAgent: knownAgent.name
+          }
+        });
+        
+        // Execute the handler
+        await handler(req, res);
+        return;
+      } else {
+        console.error(`❌ Orchestrator: Solana payment verification failed: ${solanaResult.error}`);
+        return res.status(402).json({
+          x402Version: 2,
+          error: "solana_payment_verification_failed",
+          message: solanaResult.error,
+          hint: "Ensure you sent USDC or USDT to the correct Solana wallet",
+          platformWallet: SOLANA_PLATFORM_WALLET,
+          acceptedTokens: ["USDC", "USDT"],
+          network: "solana:mainnet"
+        });
+      }
+    }
+    // Case 3: Base64-encoded payload (JSON or CBOR) with txHash
     else {
       const decodeResult = decodePaymentPayload(xPayment);
       
@@ -1412,19 +1690,21 @@ function generate402Response(
     "prediction-market-odds": "Current odds for any prediction market event",
   };
 
-  // Build base response - x402 V2 compliant
+  // Build base response - x402 V2 compliant with MULTI-CHAIN support
   // Per official Coinbase spec: x402Version is NUMBER (2), not string - matches Bazaar/facilitator/SDKs
-  const response: any = {
-    x402Version: 2,
-    error: "X-PAYMENT header is required",
-    accepts: [{
+  const baseDescription = descriptions[serviceName] || `${serviceName} micropayment service`;
+  
+  // Multi-chain accepts array: Base/USDC, Base/USDT, Solana/USDC, Solana/USDT
+  const acceptsArray = [
+    // Base Chain - USDC (primary)
+    {
       scheme: "exact",
-      network: "base", // Legacy format for x402-fetch v0.7.3 compatibility
-      x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
+      network: "base",
+      x402Network: "eip155:8453",
       maxAmountRequired: requiredAmount.toString(),
       maxAmountRequiredUSD: priceUsd,
       resource: resource,
-      description: descriptions[serviceName] || `${serviceName} micropayment service`,
+      description: baseDescription,
       mimeType: "application/json",
       payTo: PLATFORM_WALLET,
       maxTimeoutSeconds: 60,
@@ -1437,49 +1717,109 @@ function generate402Response(
         chainName: "Base"
       },
       discoverable: true,
-      // OFFICIAL BAZAAR EXTENSION FORMAT - spec-compliant for facilitator indexing
-      // Using @x402/extensions/bazaar v2.0.0 DiscoveryInfo structure
-      // CRITICAL: Use canonical method (POST for most x402 services) NOT req.method
-      // Discovery crawlers probe POST services with GET - we must still advertise POST
       extensions: {
         bazaar: {
-          input: {
-            type: "http" as const,
-            method: "POST" as const,
-            bodyType: "json" as const,
-            body: { query: "example parameter" },
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }
-          },
-          output: {
-            type: "application/json",
-            format: "json",
-            example: { success: true, result: {}, timestamp: new Date().toISOString() }
-          }
+          input: { type: "http" as const, method: "POST" as const, bodyType: "json" as const, body: { query: "example parameter" }, headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' } },
+          output: { type: "application/json", format: "json", example: { success: true, result: {}, timestamp: new Date().toISOString() } }
         }
       }
-    }],
+    },
+    // Base Chain - USDT
+    {
+      scheme: "exact",
+      network: "base",
+      x402Network: "eip155:8453",
+      maxAmountRequired: requiredAmount.toString(),
+      maxAmountRequiredUSD: priceUsd,
+      resource: resource,
+      description: baseDescription,
+      mimeType: "application/json",
+      payTo: PLATFORM_WALLET,
+      maxTimeoutSeconds: 60,
+      asset: USDT_BASE,
+      extra: {
+        name: "Tether USD",
+        version: "1",
+        decimals: 6,
+        chainId: 8453,
+        chainName: "Base"
+      },
+      discoverable: false
+    },
+    // Solana - USDC
+    {
+      scheme: "exact",
+      network: "solana",
+      x402Network: "solana:mainnet",
+      maxAmountRequired: requiredAmount.toString(),
+      maxAmountRequiredUSD: priceUsd,
+      resource: resource,
+      description: baseDescription,
+      mimeType: "application/json",
+      payTo: SOLANA_PLATFORM_WALLET,
+      maxTimeoutSeconds: 60,
+      asset: USDC_SOLANA,
+      extra: {
+        name: "USD Coin",
+        version: "1",
+        decimals: 6,
+        chainName: "Solana"
+      },
+      discoverable: false
+    },
+    // Solana - USDT
+    {
+      scheme: "exact",
+      network: "solana",
+      x402Network: "solana:mainnet",
+      maxAmountRequired: requiredAmount.toString(),
+      maxAmountRequiredUSD: priceUsd,
+      resource: resource,
+      description: baseDescription,
+      mimeType: "application/json",
+      payTo: SOLANA_PLATFORM_WALLET,
+      maxTimeoutSeconds: 60,
+      asset: USDT_SOLANA,
+      extra: {
+        name: "Tether USD",
+        version: "1",
+        decimals: 6,
+        chainName: "Solana"
+      },
+      discoverable: false
+    }
+  ];
+  
+  const response: any = {
+    x402Version: 2,
+    error: "X-PAYMENT header is required",
+    accepts: acceptsArray,
     facilitatorUrl: getFacilitatorUrl(),
     paymentInstructions: {
-      step1: "Obtain USDC on Base chain",
-      step2: "Sign EIP-3009 authorization for the exact amount",
-      step3: "Include Base64-encoded authorization in X-PAYMENT header",
+      step1: "Obtain USDC or USDT on Base or Solana",
+      step2: "Send exact amount to platform wallet",
+      step3: "Include transaction hash in X-PAYMENT header",
       step4: "Retry the request with X-PAYMENT header",
-      alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
-      supportedMethods: ["eip3009-authorization", "raw-transaction-hash", "api-key"]
+      supportedMethods: ["raw-transaction-hash", "eip3009-authorization", "api-key"],
+      supportedChains: ["base (eip155:8453)", "solana (solana:mainnet)"],
+      supportedTokens: ["USDC", "USDT"]
     },
     alternativePaymentMethods: {
       apiKey: {
         description: "Use prepaid credits with an API key (EASIEST - no blockchain required)",
         howToGet: "Purchase credits at https://coinrailz.com/credits with Stripe (credit card) or USDC",
         usage: "Include X-API-KEY header or Authorization: Bearer <api-key> header",
-        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 38 services", "50-70% higher conversion than manual USDC"],
+        benefits: ["No blockchain knowledge required", "Instant setup with credit card", "Single API key for all 43 services", "50-70% higher conversion than manual USDC"],
         getStarted: `${baseUrl}/credits`,
         example: `curl -X GET "${resource}" -H "X-API-KEY: your-api-key-here"`
       },
       rawTransaction: {
-        description: "Send USDC directly to platform wallet, include tx hash in X-PAYMENT header",
-        usage: "X-PAYMENT: 0x... (raw transaction hash)",
-        platformWallet: PLATFORM_WALLET
+        description: "Send USDC/USDT to platform wallet, include tx hash in X-PAYMENT header",
+        usage: "X-PAYMENT: <transaction-hash> (0x... for EVM, base58 for Solana)",
+        platformWallets: {
+          base: PLATFORM_WALLET,
+          solana: SOLANA_PLATFORM_WALLET
+        }
       }
     },
     recommendedServices: [

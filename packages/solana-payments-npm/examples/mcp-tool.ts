@@ -26,7 +26,7 @@ interface MCPTool {
 const apiKey = process.env.COINRAILZ_API_KEY;
 if (!apiKey) {
   console.error('ERROR: COINRAILZ_API_KEY environment variable is not set');
-  console.error('Get your API key at: https://coinrailz.com/dashboard/api-keys');
+  console.error('Get your API key at: https://coinrailz.com/api-keys');
   process.exit(1);
 }
 

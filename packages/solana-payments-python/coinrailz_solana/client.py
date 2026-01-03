@@ -39,7 +39,7 @@ class CoinRailzSolana:
     ):
         if not api_key:
             raise ValueError(
-                "API key is required. Get one at https://coinrailz.com/dashboard/api-keys"
+                "API key is required. Get one at https://coinrailz.com/api-keys"
             )
 
         self.api_key = api_key

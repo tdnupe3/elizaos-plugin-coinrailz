@@ -54,13 +54,13 @@ class CoinRailz:
         Initialize the CoinRailz client.
 
         Args:
-            api_key: API key from https://coinrailz.com/dashboard/api-keys
+            api_key: API key from https://coinrailz.com/api-keys
             base_url: Base URL for API requests (default: https://coinrailz.com)
             timeout: Request timeout in seconds (default: 30)
             enable_intelligence: Enable x402 intelligence services (default: False)
         """
         if not api_key:
-            raise ValueError("API key is required. Get one at https://coinrailz.com/dashboard/api-keys")
+            raise ValueError("API key is required. Get one at https://coinrailz.com/api-keys")
 
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")

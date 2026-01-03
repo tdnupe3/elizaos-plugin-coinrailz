@@ -41,17 +41,17 @@ export default function QuickstartPage() {
         {
           "@type": "HowToStep",
           "name": "Install SDK",
-          "text": "Run npm install coinrailz or pip install coinrailz-mcp"
+          "text": "Run npm install @coinrailz/agent-payments or pip install coinrailz"
         },
         {
           "@type": "HowToStep",
           "name": "Configure Authentication",
-          "text": "Get an API key from credits page or use x402 USDC payments"
+          "text": "Get an API key from /api-keys page or use x402 USDC payments"
         },
         {
           "@type": "HowToStep",
           "name": "Make Your First Call",
-          "text": "Call a free service like gas-price-oracle to test your setup"
+          "text": "Send a payment with client.send() or create a wallet with client.createWallet()"
         }
       ]
     };
@@ -78,37 +78,34 @@ export default function QuickstartPage() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const npmInstall = 'npm install coinrailz';
-  const pipInstall = 'pip install coinrailz-mcp';
+  const npmInstall = 'npm install @coinrailz/agent-payments';
+  const pipInstall = 'pip install coinrailz';
   
-  const jsExample = `import { CoinRailzClient } from 'coinrailz';
+  const jsExample = `import { CoinRailz } from '@coinrailz/agent-payments';
 
-// Initialize with your API key (get one at /credits)
-const client = new CoinRailzClient({
+// Initialize with your API key (get one at /api-keys)
+const client = new CoinRailz({
   apiKey: process.env.COINRAILZ_API_KEY
 });
 
-// Call a free service - test your setup
-const gas = await client.gasPriceOracle({ chain: 'base' });
-console.log('Gas prices:', gas.data);
-
-// Call a paid service ($1.00 per call)
-const signals = await client.tradeSignals({
-  token: 'ETH',
-  chain: 'ethereum'
+// Send a payment (1.5% + $0.01 fee)
+const result = await client.send({
+  to: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+  amount: 100,
+  memo: 'Service payment'
 });
-console.log('Trade signals:', signals.data);`;
 
-  const walletExample = `import { CoinRailzClient } from 'coinrailz';
+console.log('Payment sent:', result.transactionId);
+console.log('Fee:', result.fee);`;
 
-const client = new CoinRailzClient({
+  const walletExample = `import { CoinRailz } from '@coinrailz/agent-payments';
+
+const client = new CoinRailz({
   apiKey: process.env.COINRAILZ_API_KEY
 });
 
-// Create a new USDC wallet on Base for your AI agent ($0.50)
-const wallet = await client.createAgentWallet({
-  label: 'trading-bot-wallet'
-});
+// Create a new USDC wallet on Base for your AI agent ($1.00)
+const wallet = await client.createWallet();
 
 if (wallet.success) {
   console.log('Wallet Address:', wallet.data.address);
@@ -116,9 +113,9 @@ if (wallet.success) {
   // Store wallet.data.walletId securely for future operations
 }`;
 
-  const tradingBotExample = `import { CoinRailzClient } from 'coinrailz';
+  const tradingBotExample = `import { CoinRailz } from '@coinrailz/agent-payments';
 
-const client = new CoinRailzClient({
+const client = new CoinRailz({
   apiKey: process.env.COINRAILZ_API_KEY
 });
 

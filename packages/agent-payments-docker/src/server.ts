@@ -5,7 +5,7 @@
  * Processing fee: 1.5% + $0.01 per transaction
  * 
  * Environment Variables:
- * - COINRAILZ_API_KEY: Your API key from https://coinrailz.com/dashboard/api-keys
+ * - COINRAILZ_API_KEY: Your API key from https://coinrailz.com/api-keys
  * - COINRAILZ_BASE_URL: API base URL (default: https://coinrailz.com)
  * - PORT: Server port (default: 3000)
  */
@@ -25,7 +25,7 @@ function requireApiKey(res: Response): boolean {
     res.status(503).json({
       success: false,
       error: 'NOT_CONFIGURED',
-      message: 'COINRAILZ_API_KEY environment variable is required. Get your API key at https://coinrailz.com/dashboard/api-keys'
+      message: 'COINRAILZ_API_KEY environment variable is required. Get your API key at https://coinrailz.com/api-keys'
     });
     return false;
   }

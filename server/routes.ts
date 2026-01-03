@@ -79,6 +79,11 @@ export async function registerRoutes(app: Express, existingServer?: Server): Pro
   // Use existing server if provided, otherwise create new one
   const server = existingServer || createServer(app);
 
+  // Backward compatibility redirect for old SDK documentation links
+  app.get('/dashboard/api-keys', (req, res) => {
+    res.redirect(301, '/api-keys');
+  });
+
   // Direct Coinbase DeFi wallet endpoint bypassing auth middleware  
   app.get('/api/defi/status', (req, res) => {
     res.json({ 

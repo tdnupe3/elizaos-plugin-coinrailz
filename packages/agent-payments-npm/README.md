@@ -28,7 +28,7 @@ import { CoinRailz } from '@coinrailz/agent-payments';
 
 // Initialize the client
 const client = new CoinRailz({
-  apiKey: 'cr_live_...' // Get your API key at https://coinrailz.com/dashboard/api-keys
+  apiKey: 'cr_live_...' // Get your API key at https://coinrailz.com/api-keys
 });
 
 // Send a payment

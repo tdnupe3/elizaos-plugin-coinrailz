@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 class CoinRailzConfig(BaseModel):
     """Configuration for CoinRailz client."""
-    api_key: str = Field(..., description="API key from https://coinrailz.com/dashboard/api-keys")
+    api_key: str = Field(..., description="API key from https://coinrailz.com/api-keys")
     base_url: str = Field(default="https://coinrailz.com", description="Base URL for API requests")
     timeout: int = Field(default=30, description="Request timeout in seconds")
     enable_intelligence: bool = Field(default=False, description="Enable x402 intelligence services")

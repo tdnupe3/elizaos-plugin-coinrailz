@@ -324,6 +324,14 @@ function Router() {
         {() => <LazyLoadWrapper><APIKeysPage /></LazyLoadWrapper>}
       </Route>
       
+      {/* Backward compatibility redirect for old SDK documentation links */}
+      <Route path="/dashboard/api-keys">
+        {() => {
+          window.location.replace('/api-keys');
+          return null;
+        }}
+      </Route>
+      
       {/* XMTP Agent Outreach Admin */}
       <Route path="/xmtp-admin">
         {() => <LazyLoadWrapper><XMTPAdminPage /></LazyLoadWrapper>}

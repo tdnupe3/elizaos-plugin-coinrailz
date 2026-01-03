@@ -24,7 +24,7 @@ pip install coinrailz
 from coinrailz import CoinRailz
 
 # Initialize the client
-client = CoinRailz(api_key="cr_live_...")  # Get your API key at https://coinrailz.com/dashboard/api-keys
+client = CoinRailz(api_key="cr_live_...")  # Get your API key at https://coinrailz.com/api-keys
 
 # Send a payment (1.5% + $0.01 fee)
 result = client.send(

@@ -3543,6 +3543,15 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   app.use('/solana-pay', solanaPayRoutes);
   console.log('✅ Solana Pay routes registered (pre-static, both dev & prod)');
   
+  // ============================================================================
+  // Backward Compatibility Redirect - MUST be before static serving
+  // Old SDK documentation linked to /dashboard/api-keys, redirect to /api-keys
+  // ============================================================================
+  app.get('/dashboard/api-keys', (_req, res) => {
+    res.redirect(301, '/api-keys');
+  });
+  console.log('✅ Dashboard API keys redirect registered (pre-static)');
+  
   if (isProduction) {
     // Production: use serveStatic from vite.ts (handles paths correctly)
     console.log('🚀 PRODUCTION MODE');

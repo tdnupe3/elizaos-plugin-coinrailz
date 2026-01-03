@@ -31,7 +31,7 @@ pnpm add @coinrailz/agent-payments-solana
 
 ### 1. Get Your API Key
 
-Sign up at [coinrailz.com/dashboard/api-keys](https://coinrailz.com/dashboard/api-keys) to get your API key.
+Sign up at [coinrailz.com/api-keys](https://coinrailz.com/api-keys) to get your API key.
 
 ### 2. Initialize the Client
 

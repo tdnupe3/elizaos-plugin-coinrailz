@@ -14,7 +14,7 @@ Coin Railz provides cross-platform payment routing across 8 blockchains (7 EVM: 
 
 ---
 
-## 🎯 ARCHITECTURE SNAPSHOT (January 2, 2026)
+## 🎯 ARCHITECTURE SNAPSHOT (January 3, 2026)
 
 ### What's Working ✅
 
@@ -96,6 +96,9 @@ Result: Fee retained by construction
 
 | Component | Fix Applied |
 |-----------|-------------|
+| **AI Marketplace Route** | FIXED: `/ai-marketplace` was incorrectly rendering AI Agent Management instead of services marketplace. Now correctly shows 43 purchasable services. |
+| **Wallet Creation Logging (GET path)** | FIXED: Legacy GET handler bypassed logging. Now both GET (API key) and POST (x402) paths log payer attribution. |
+| **Crypto Checkout E2E Test** | VERIFIED: Full flow tested - service selection → customer info → crypto payment → instructions displayed with wallet address, amount, network. |
 | **Wallet Creation Logging** | NEW: `agentWallets` and `agentWalletEvents` tables now track wallet creations with payer attribution (wallet address, IP, user agent, tx hash) |
 | **Crypto Checkout for Marketplace** | USDC payment option added alongside Stripe. Payment method selector, on-chain verification via Alchemy |
 | **AI Agent Marketplace UI** | Stats display fixed, 43 services visible, test button removed |

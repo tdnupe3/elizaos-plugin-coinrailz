@@ -96,6 +96,9 @@ Result: Fee retained by construction
 
 | Component | Fix Applied |
 |-----------|-------------|
+| **Instant API Key Multi-chain** | NEW: Payment orchestrator advertises 4 payment options (Base/USDC, Base/USDT, Solana/USDC, Solana/USDT). Security-hardened Solana verification using balance delta approach. |
+| **Instant API Key Rate Limiting** | NEW: `instant_api_key_grants` table prevents $5 starter credit abuse (30-day per-wallet limit). |
+| **Solana Payment Verification Security** | FIXED: Uses postTokenBalances/preTokenBalances for authoritative balance verification instead of parseable instructions. Number.isFinite() guards prevent NaN/zero-value attacks. |
 | **AI Marketplace Route** | FIXED: `/ai-marketplace` was incorrectly rendering AI Agent Management instead of services marketplace. Now correctly shows 43 purchasable services. |
 | **Wallet Creation Logging (GET path)** | FIXED: Legacy GET handler bypassed logging. Now both GET (API key) and POST (x402) paths log payer attribution. |
 | **Crypto Checkout E2E Test** | VERIFIED: Full flow tested - service selection → customer info → crypto payment → instructions displayed with wallet address, amount, network. |

@@ -39,7 +39,10 @@ import {
   XCircle,
   AlertTriangle,
   ExternalLink,
-  Shield
+  Shield,
+  Zap,
+  Wallet,
+  DollarSign
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -195,11 +198,104 @@ export default function APIKeysPage() {
           </Card>
         </div>
 
+        <Card className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 dark:from-emerald-500/20 dark:to-blue-500/20 border-emerald-500/30" data-testid="card-instant-api-key">
+          <CardHeader>
+            <CardTitle className="text-2xl font-['Space_Grotesk'] flex items-center gap-2">
+              <Zap className="h-6 w-6 text-emerald-500" />
+              Instant API Key - Pay $1 USDC
+            </CardTitle>
+            <CardDescription>
+              Get an API key instantly with no account required. Pay $1 USDC and receive your key + $5 starter credits immediately.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Wallet className="h-5 w-5 text-emerald-500" />
+                  <span className="font-semibold">Step 1</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Send $1 USDC to platform wallet on Base
+                </p>
+              </div>
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Key className="h-5 w-5 text-blue-500" />
+                  <span className="font-semibold">Step 2</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Call endpoint with tx hash in X-PAYMENT header
+                </p>
+              </div>
+              <div className="p-4 bg-background/50 rounded-lg border">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-5 w-5 text-yellow-500" />
+                  <span className="font-semibold">Step 3</span>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Receive API key + $5 starter credits instantly
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Platform Wallet (Base)</p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono bg-background px-3 py-2 rounded flex-1">
+                  0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText('0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91');
+                    toast({ title: "Copied", description: "Wallet address copied to clipboard" });
+                  }}
+                  data-testid="button-copy-wallet"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="p-4 bg-muted/50 rounded-lg border">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">API Endpoint</p>
+              <div className="flex items-center gap-2">
+                <code className="text-sm font-mono bg-background px-3 py-2 rounded flex-1">
+                  POST https://coinrailz.com/x402/instant-api-key
+                </code>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText('curl -X POST https://coinrailz.com/x402/instant-api-key -H "X-PAYMENT: 0x<your-tx-hash>"');
+                    toast({ title: "Copied", description: "cURL command copied to clipboard" });
+                  }}
+                  data-testid="button-copy-endpoint"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Include your transaction hash in the X-PAYMENT header after sending USDC
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 p-3 bg-emerald-500/10 dark:bg-emerald-500/20 rounded-lg border border-emerald-500/20">
+              <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                <strong>No account required.</strong> Your API key works immediately with all 43 x402 services.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="bg-card dark:bg-card border-border dark:border-border">
           <CardHeader>
             <CardTitle className="text-2xl font-['Space_Grotesk']">Generate New API Key</CardTitle>
             <CardDescription>
-              Create a new API key for programmatic access to Coin Railz services
+              Already have an account? Create a new API key for programmatic access to Coin Railz services
             </CardDescription>
           </CardHeader>
           <CardContent>

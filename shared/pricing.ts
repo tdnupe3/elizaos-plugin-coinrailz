@@ -33,6 +33,7 @@ export type ServiceName =
   | "payment-processing"
   | "contract-scan"
   | "instant-agent-wallet"
+  | "instant-api-key"  // Frictionless API key via USDC payment
   | "agent-create-wallet"  // Agent Wallet Provisioning via CDP
   | "seamless-chain-bridge"
   // Premium Services
@@ -112,6 +113,7 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   "payment-processing": 500000,        // $0.50
   "contract-scan": 1000000,            // $1.00
   "instant-agent-wallet": 1000000,     // $1.00
+  "instant-api-key": 1000000,          // $1.00 - Frictionless API key via USDC
   "agent-create-wallet": 2000000,      // $2.00 - Agent Wallet Provisioning via CDP
   "seamless-chain-bridge": 2000000,    // $2.00
   
@@ -178,6 +180,7 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   "payment-processing": 0.50,
   "contract-scan": 1.00,
   "instant-agent-wallet": 1.00,
+  "instant-api-key": 1.00,  // Frictionless API key via USDC
   "agent-create-wallet": 2.00,  // Agent Wallet Provisioning via CDP
   "seamless-chain-bridge": 2.00,
   

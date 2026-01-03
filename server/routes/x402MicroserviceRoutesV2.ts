@@ -3520,6 +3520,99 @@ router.post("/stock-sentiment",
   })
 );
 
+// ========================================
+// INSTANT API KEY SERVICE
+// Pay $1 USDC, get an API key immediately - no login required
+// ========================================
+
+const instantApiKeyHandler = async (req: Request, res: Response) => {
+  const startTime = Date.now();
+  const requestId = `ikey_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  
+  try {
+    const { name, metadata } = req.body;
+    
+    // Get payment info from orchestrator
+    const paymentInfo = res.locals.payment;
+    const txHash = paymentInfo?.txHash;
+    const walletAddress = paymentInfo?.from || req.ip || 'unknown';
+    
+    // Create a unique user ID based on the wallet address or transaction
+    // This allows the same wallet to get multiple keys while maintaining attribution
+    const userId = `x402_${txHash ? txHash.substring(0, 16) : Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`;
+    
+    // Import credits service for key generation
+    const { creditsService } = await import("../services/creditsService.js");
+    
+    // Generate the API key
+    const keyResult = await creditsService.generateApiKey(
+      userId,
+      name || `SDK Key (${new Date().toISOString().split('T')[0]})`
+    );
+    
+    // Also give them $5 in starter credits so they can immediately use services
+    try {
+      await creditsService.addCredits({
+        userId,
+        amount: 5.00,  // $5 starter credits
+        paymentMethod: "usdc",
+        referenceId: txHash || requestId,
+        description: "Starter credits with instant API key purchase",
+        metadata: {
+          purchaseType: "instant-api-key",
+          walletAddress,
+          txHash,
+          requestId
+        }
+      });
+    } catch (creditError: any) {
+      console.error(`⚠️ Failed to add starter credits: ${creditError.message}`);
+      // Continue anyway - key generation is the primary deliverable
+    }
+    
+    const responseTime = Date.now() - startTime;
+    
+    console.log(`🔑 Instant API key generated: ${keyResult.keyPrefix}... for wallet ${walletAddress}`);
+    
+    // Track the request
+    await trackRequest("instant-api-key", { name, walletAddress }, { keyPrefix: keyResult.keyPrefix }, responseTime, SERVICE_PRICING_USD["instant-api-key"], walletAddress);
+    await trackBundleUsage(req, res, "instant-api-key", { walletAddress });
+    
+    res.json({
+      success: true,
+      api_key: keyResult.apiKey,
+      key_prefix: keyResult.keyPrefix,
+      key_id: keyResult.keyId,
+      user_id: userId,
+      starter_credits: 5.00,
+      message: "⚠️ SAVE THIS KEY NOW - it will never be shown again!",
+      usage: {
+        base_url: "https://coinrailz.com/api/sdk",
+        example: `curl -H "Authorization: Bearer ${keyResult.apiKey}" https://coinrailz.com/api/sdk/status`,
+        docs: "https://coinrailz.com/quickstart"
+      },
+      requestId
+    });
+    
+  } catch (error: any) {
+    const responseTime = Date.now() - startTime;
+    console.error(`❌ Instant API key generation failed:`, error);
+    
+    await trackRequest("instant-api-key", req.body, null, responseTime, SERVICE_PRICING_USD["instant-api-key"], req.ip || "unknown", error.message);
+    
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      requestId,
+      suggestion: "Please try again or contact support"
+    });
+  }
+};
+
+router.post("/instant-api-key",
+  createPaymentOrchestrator("instant-api-key", SERVICE_PRICING_MICRO["instant-api-key"], instantApiKeyHandler)
+);
+
 // Forex Sentiment Analysis - AI-powered currency pair sentiment
 router.post("/forex-sentiment",
   createPaymentOrchestrator("forex-sentiment", SERVICE_PRICING_MICRO["forex-sentiment"], async (req: Request, res: Response) => {

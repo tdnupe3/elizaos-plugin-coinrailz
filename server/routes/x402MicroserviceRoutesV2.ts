@@ -2582,16 +2582,20 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
   try {
     let { agentId, description, initialFundingAmount } = req.body;
     
+    // Extract payer info for customer attribution
+    const analyticsContext = (req as any).analytics;
+    const payerWalletAddress = analyticsContext?.walletAddress || null;
+    const payerIpAddress = req.headers['x-forwarded-for']?.toString().split(',')[0]?.trim() || req.ip || null;
+    const payerUserAgent = req.headers['user-agent'] || null;
+    const paymentTxHash = analyticsContext?.transactionHash || null;
+    
     // Auto-generate agentId if not provided - critical for x402 payments where agents may not send metadata
     if (!agentId) {
-      // Try to derive from payer's wallet address (from analytics context) or generate random
-      const analyticsContext = (req as any).analytics;
-      const payerAddress = analyticsContext?.walletAddress;
       // Add nonce suffix to prevent collisions when same payer creates multiple wallets
       const nonce = Date.now().toString(36).slice(-4);
-      if (payerAddress) {
-        agentId = `agent-${payerAddress.slice(0, 10).toLowerCase()}-${nonce}`;
-        console.log(`📊 TELEMETRY: agentId auto-generated from payerAddress | agentId=${agentId} | source=payer_wallet | payer=${payerAddress.slice(0, 10)}`);
+      if (payerWalletAddress) {
+        agentId = `agent-${payerWalletAddress.slice(0, 10).toLowerCase()}-${nonce}`;
+        console.log(`📊 TELEMETRY: agentId auto-generated from payerAddress | agentId=${agentId} | source=payer_wallet | payer=${payerWalletAddress.slice(0, 10)}`);
       } else {
         // Generate random agentId using timestamp + random suffix
         agentId = `agent-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -2599,7 +2603,16 @@ const instantAgentWalletHandler = async (req: Request, res: Response) => {
       }
     }
 
-    const result = await instantAgentWalletService({ agentId, description, initialFundingAmount });
+    // Pass payer info to service for customer attribution logging
+    const result = await instantAgentWalletService({ 
+      agentId, 
+      description, 
+      initialFundingAmount,
+      payerWalletAddress,
+      payerIpAddress,
+      payerUserAgent,
+      paymentTxHash,
+    });
     const responseTime = Date.now() - startTime;
     
     await trackRequest("instant-agent-wallet", req.body, result, responseTime, SERVICE_PRICING_USD["instant-agent-wallet"], result.walletAddress);

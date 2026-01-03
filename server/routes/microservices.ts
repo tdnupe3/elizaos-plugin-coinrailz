@@ -1534,12 +1534,17 @@ async function portfolioTrackerService(walletAddress: string, chains: string[]) 
 // ============= PREMIUM B2B2C INFRASTRUCTURE SERVICES =============
 
 // Service 16: Instant Agent Wallet (Wallet-as-a-Service)
+// CRITICAL: Now logs wallet creations for customer attribution
 async function instantAgentWalletService(params: {
   agentId: string;
   description?: string;
   initialFundingAmount?: string;
+  payerWalletAddress?: string;
+  payerIpAddress?: string;
+  payerUserAgent?: string;
+  paymentTxHash?: string;
 }) {
-  const { agentId, description, initialFundingAmount } = params;
+  const { agentId, description, initialFundingAmount, payerWalletAddress, payerIpAddress, payerUserAgent, paymentTxHash } = params;
 
   try {
     // Use Coinbase CDP for wallet creation instead of Circle
@@ -1559,6 +1564,44 @@ async function instantAgentWalletService(params: {
     const walletId = cdpWallet.id;
 
     console.log(`✅ CDP wallet created for agent ${agentId}: ${walletAddress}`);
+    
+    // CRITICAL: Log wallet creation for customer attribution
+    // This enables linking created wallets to paying customers
+    try {
+      const { db } = await import('../db');
+      const { agentWallets, agentWalletEvents } = await import('../../shared/schema');
+      
+      // Log to agentWallets table
+      await db.insert(agentWallets).values({
+        agentId,
+        walletId,
+        address: walletAddress,
+        chain: 'base-mainnet',
+        custodyType: 'cdp',
+        purpose: 'persistent',
+        status: 'active',
+        metadata: { description: walletDescription },
+        paymentTxHash: paymentTxHash || null,
+        payerWalletAddress: payerWalletAddress || null,
+        payerIpAddress: payerIpAddress || null,
+        payerUserAgent: payerUserAgent || null,
+      }).onConflictDoNothing();
+      
+      // Log creation event for audit trail
+      await db.insert(agentWalletEvents).values({
+        walletId,
+        eventType: 'created',
+        actor: payerWalletAddress || agentId,
+        ipAddress: payerIpAddress || null,
+        payload: { agentId, description: walletDescription, payerUserAgent },
+        response: { walletAddress, walletId },
+      });
+      
+      console.log(`📊 WALLET ATTRIBUTION: Logged creation | wallet=${walletAddress} | payer=${payerWalletAddress || 'unknown'} | agent=${agentId}`);
+    } catch (logError: any) {
+      // Non-fatal: Log error but don't fail the wallet creation
+      console.error(`⚠️ Failed to log wallet creation (non-fatal): ${logError.message}`);
+    }
 
     return {
       success: true,

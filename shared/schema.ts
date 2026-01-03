@@ -315,6 +315,7 @@ export const coinbaseOAuthTokens = pgTable("coinbase_oauth_tokens", {
 
 // Agent Wallets table for x402 Agent Wallet Provisioning service
 // Tracks wallets created for AI agents via CDP (Coinbase Developer Platform)
+// CRITICAL: Used for customer attribution - links created wallets to paying customers
 export const agentWallets = pgTable("agent_wallets", {
   id: serial("id").primaryKey(),
   agentId: varchar("agent_id").notNull(), // Logical agent identifier provided by caller
@@ -328,12 +329,16 @@ export const agentWallets = pgTable("agent_wallets", {
   tags: text("tags").array(), // Optional tags for categorization
   metadata: jsonb("metadata"), // Additional agent metadata
   paymentTxHash: varchar("payment_tx_hash"), // x402 payment transaction hash
+  payerWalletAddress: varchar("payer_wallet_address"), // Wallet that paid for creation (customer attribution)
+  payerIpAddress: varchar("payer_ip_address"), // IP address of payer for analytics
+  payerUserAgent: varchar("payer_user_agent"), // User agent string for customer identification
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
   index("IDX_agent_wallets_agent_id").on(table.agentId),
   index("IDX_agent_wallets_chain").on(table.chain),
   index("IDX_agent_wallets_status").on(table.status),
   index("IDX_agent_wallets_purpose").on(table.purpose),
+  index("IDX_agent_wallets_payer_wallet").on(table.payerWalletAddress), // Index for revenue attribution queries
 ]);
 
 // Agent Wallet Events table for audit logging

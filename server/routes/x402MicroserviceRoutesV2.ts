@@ -1918,7 +1918,12 @@ const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
   "portfolio-tracker": async (req) => await portfolioTrackerService.getPortfolio({ address: req.query.address as string }),
   "approval-manager": async (req) => await approvalManagerService.getApprovals({ address: req.query.address as string }),
   "batch-quote": async (req) => await batchQuoteService.getBatchQuote({ pairs: req.query.pairs as string[] }),
-  "instant-agent-wallet": async () => await instantAgentWalletService.createWallet({}),
+  "instant-agent-wallet": async (req) => await instantAgentWalletService({
+    agentId: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    description: req.query.description as string,
+    payerIpAddress: req.headers['x-forwarded-for'] as string || req.ip || 'unknown',
+    payerUserAgent: req.headers['user-agent'] as string || 'unknown',
+  }),
   "arbitrage-scanner": async () => await arbitrageScannerService.scanArbitrage({}),
   "correlation-matrix": async (req) => await correlationMatrixService.getCorrelation({ symbols: req.query.symbols as string[] }),
   "risk-metrics": async (req) => await riskMetricsService.getRiskMetrics({ address: req.query.address as string }),

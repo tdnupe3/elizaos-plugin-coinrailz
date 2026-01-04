@@ -1,6 +1,16 @@
 # Coin Railz Agent Payments - Docker
 
-Docker-deployable REST API for AI Agent Payment Processing. Non-custodial USDC payments with bundled intelligence services.
+Docker-deployable REST API for AI Agent Payment Processing by Coin Railz LLC. Non-custodial USDC payments with bundled intelligence services.
+
+## Get Your API Key
+
+**Instant API Key** - Pay $1 (USDC/USDT on Base or Solana) and get your API key immediately. No account required!
+
+1. Visit https://coinrailz.com/api-keys
+2. Send $1 to the platform wallet
+3. Verify your transaction and receive your key + $5 starter credits
+
+**Key Persistence**: Your API key is permanent and works across ALL Coin Railz services. One key = unlimited access (credits are deducted per use). You can top up credits anytime with the same key.
 
 ## Quick Start
 

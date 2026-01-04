@@ -1,6 +1,6 @@
 # Coin Railz SDK
 
-Official JavaScript/TypeScript SDK for [Coin Railz](https://coinrailz.com) - x402 micropayment-enabled crypto microservices for AI agents.
+Official JavaScript/TypeScript SDK for [Coin Railz LLC](https://coinrailz.com) - x402 micropayment-enabled crypto microservices for AI agents.
 
 ## Features
 
@@ -109,11 +109,15 @@ runTradingBot();
 
 > **More examples:** Visit [coinrailz.com/quickstart](https://coinrailz.com/quickstart) for complete runnable examples
 
-## Getting an API Key
+## Get Your API Key
 
-1. Visit [coinrailz.com/credits](https://coinrailz.com/credits)
-2. Purchase credits with Stripe (credit card) or USDC
-3. Get your API key from the dashboard
+**Instant API Key** - Pay $1 (USDC/USDT on Base or Solana) and get your API key immediately. No account required!
+
+1. Visit [coinrailz.com/api-keys](https://coinrailz.com/api-keys)
+2. Send $1 to the platform wallet
+3. Verify your transaction and receive your key + $5 starter credits
+
+**Key Persistence**: Your API key is permanent and works across ALL Coin Railz services. One key = unlimited access (credits are deducted per use). You can top up credits anytime with the same key.
 
 ## Available Services
 

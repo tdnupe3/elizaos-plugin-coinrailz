@@ -27,7 +27,7 @@ import type {
   ServiceCatalog,
 } from './types.js';
 
-export const SDK_VERSION = '1.0.3';
+export const SDK_VERSION = '1.0.4';
 
 const FREE_TIER_SERVICES = new Set(['gas-price-oracle', 'token-metadata']);
 

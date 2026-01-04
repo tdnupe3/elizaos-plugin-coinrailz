@@ -1,6 +1,6 @@
 # @coinrailz/ai-payments-sdk
 
-**Enterprise-grade AI payment infrastructure for fintech startups and AI agent developers**
+**Enterprise-grade AI payment infrastructure by Coin Railz LLC for fintech startups and AI agent developers**
 
 ## Overview
 

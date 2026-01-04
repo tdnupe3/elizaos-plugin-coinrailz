@@ -25,7 +25,7 @@ from .types import (
 
 DEFAULT_BASE_URL = "https://coinrailz.com"
 DEFAULT_TIMEOUT = 30.0
-SDK_VERSION = "1.0.0"
+SDK_VERSION = "1.0.1"
 
 
 class CoinRailzSolana:

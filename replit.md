@@ -97,6 +97,7 @@ Result: Fee retained by construction
 |-----------|-------|----------|
 | **Cross-chain settlement** | Requires orchestrator (2-3 weeks) | ROADMAP |
 | **External revenue verification** | Confirm if 0x92ca4c is real user | MEDIUM |
+| **SDK error docs + republish** | Add error codes/hints documentation to SDK READMEs, republish all 4 packages | LOW (2-3 hrs) |
 | **Service delivery automation** | Background job queue for async services | LOW |
 
 ### Recently Fixed (Jan 4, 2026) ✅

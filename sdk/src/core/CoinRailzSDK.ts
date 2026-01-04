@@ -75,7 +75,8 @@ export class CoinRailzSDK {
       
     } catch (error) {
       console.error('❌ SDK initialization failed:', error);
-      throw new CoinRailzError(`SDK initialization failed: ${error.message}`);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new CoinRailzError(`SDK initialization failed: ${message}`);
     }
   }
 
@@ -127,11 +128,12 @@ export class CoinRailzSDK {
       return result;
       
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       await this.analytics.track('payment_failed', {
         amount,
         currency,
         method,
-        error: error.message
+        error: message
       });
       throw error;
     }
@@ -145,8 +147,12 @@ export class CoinRailzSDK {
     
     const registeredAgent = await this.agents.register({
       ...agent,
-      licenseKey: this.config.licenseKey,
-      companyName: this.licenseInfo?.companyName || 'Unknown'
+      owner: {
+        ...agent.owner,
+        companyName: this.licenseInfo?.companyName || agent.owner?.companyName || 'Unknown',
+        contactEmail: agent.owner?.contactEmail || '',
+        licenseKey: this.config.licenseKey
+      }
     });
 
     await this.analytics.track('agent_registered', {
@@ -177,7 +183,10 @@ export class CoinRailzSDK {
         tier: this.licenseInfo?.tier || 'Unknown',
         monthlyVolumeUsed: paymentMetrics.monthlyVolume,
         monthlyVolumeLimit: this.licenseInfo?.monthlyVolumeLimit || 0,
-        daysUntilRenewal: this.licenseInfo?.daysUntilRenewal || 0
+        daysUntilRenewal: this.licenseInfo?.daysUntilRenewal || 0,
+        usagePercentage: this.licenseInfo?.monthlyVolumeLimit 
+          ? (paymentMetrics.monthlyVolume / this.licenseInfo.monthlyVolumeLimit) * 100 
+          : 0
       }
     };
   }
@@ -223,7 +232,7 @@ export class CoinRailzSDK {
       this.config.platformUrl || 'https://api.coinrailz.com'
     );
     
-    if (!result.success) {
+    if (!result.success || !result.license) {
       throw new LicenseError(result.error || 'License validation failed');
     }
     

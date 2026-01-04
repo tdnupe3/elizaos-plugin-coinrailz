@@ -61,10 +61,11 @@ export class PaymentProcessor {
       };
       
     } catch (error) {
-      throw new PaymentError(`Payment processing failed: ${error.message}`, 'PAYMENT_FAILED', {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      throw new PaymentError(`Payment processing failed: ${message}`, 'PAYMENT_FAILED', {
         transactionId,
         amount,
-        method
+        paymentMethod: method
       });
     }
   }

@@ -23,8 +23,9 @@ export class CoinRailzError extends Error {
     this.context = context;
 
     // Maintains proper stack trace for where error was thrown
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, CoinRailzError);
+    const ErrorWithCapture = Error as any;
+    if (typeof ErrorWithCapture.captureStackTrace === 'function') {
+      ErrorWithCapture.captureStackTrace(this, CoinRailzError);
     }
   }
 

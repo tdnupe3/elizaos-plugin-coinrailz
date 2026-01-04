@@ -63,9 +63,10 @@ export async function validateLicense(
     
   } catch (error) {
     console.error('❌ License validation error:', error);
+    const message = error instanceof Error ? error.message : 'License validation failed';
     return {
       success: false,
-      error: error.message || 'License validation failed'
+      error: message
     };
   }
 }
@@ -308,13 +309,13 @@ export function sanitizeForLogging(obj: any): any {
  * Deep merge objects
  */
 export function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
-  const result = { ...target };
+  const result = { ...target } as T;
   
   for (const key in source) {
     if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-      result[key] = deepMerge(result[key] || {}, source[key] as any);
+      (result as any)[key] = deepMerge((result as any)[key] || {}, source[key] as any);
     } else {
-      result[key] = source[key] as any;
+      (result as any)[key] = source[key];
     }
   }
   
@@ -332,7 +333,10 @@ export function isBrowser(): boolean {
  * Check if running in Node.js environment
  */
 export function isNode(): boolean {
-  return typeof process !== 'undefined' && process.versions && process.versions.node;
+  return typeof globalThis !== 'undefined' && 
+    typeof (globalThis as any).process !== 'undefined' && 
+    (globalThis as any).process.versions && 
+    (globalThis as any).process.versions.node;
 }
 
 /**

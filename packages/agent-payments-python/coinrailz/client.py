@@ -23,7 +23,7 @@ from .types import (
     ApiError
 )
 
-SDK_VERSION = "1.0.0"
+SDK_VERSION = "1.0.1"
 
 
 class CoinRailz:

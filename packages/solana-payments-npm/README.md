@@ -1,6 +1,6 @@
 # @coinrailz/agent-payments-solana
 
-Solana AI Agent Payment Processing SDK - Non-custodial USDC payments for AI agents.
+Solana AI Agent Payment Processing SDK by Coin Railz LLC - Non-custodial USDC payments for AI agents.
 
 [![npm version](https://img.shields.io/npm/v/@coinrailz/agent-payments-solana.svg)](https://www.npmjs.com/package/@coinrailz/agent-payments-solana)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -31,7 +31,13 @@ pnpm add @coinrailz/agent-payments-solana
 
 ### 1. Get Your API Key
 
-Sign up at [coinrailz.com/api-keys](https://coinrailz.com/api-keys) to get your API key.
+**Instant API Key** - Pay $1 (USDC/USDT on Base or Solana) and get your API key immediately. No account required!
+
+1. Visit [coinrailz.com/api-keys](https://coinrailz.com/api-keys)
+2. Send $1 to the platform wallet
+3. Verify your transaction and receive your key + $5 starter credits
+
+**Key Persistence**: Your API key is permanent and works across ALL Coin Railz services. One key = unlimited access (credits are deducted per use). You can top up credits anytime with the same key.
 
 ### 2. Initialize the Client
 

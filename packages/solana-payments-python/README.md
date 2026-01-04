@@ -110,6 +110,40 @@ status = client.status()
 # StatusResult(status='operational', network='mainnet-beta')
 ```
 
+## Error Handling
+
+All API errors return machine-readable structured responses for programmatic handling:
+
+```python
+result = client.send(SendPaymentParams(to="...", amount=10.00))
+
+if not result.success:
+    print(f"Error code: {result.error.code}")
+    print(f"Hint: {result.error.agent_hint}")
+    
+    # Programmatic error handling
+    if result.error.code == "PAYMENT_INVALID_TX_HASH_LENGTH":
+        # Solana signatures should be 87-88 base58 chars
+        pass
+    elif result.error.code == "SOLANA_VERIFICATION_FAILED":
+        # On-chain verification failed
+        pass
+    elif result.error.code == "INSUFFICIENT_CREDITS":
+        # Top up credits at coinrailz.com/api-keys
+        pass
+```
+
+### Error Codes Reference
+
+| Code | Description | Recoverable |
+|------|-------------|-------------|
+| `PAYMENT_INVALID_TX_HASH_LENGTH` | Transaction hash wrong length | Yes |
+| `PAYMENT_INVALID_TX_HASH_FORMAT` | Invalid characters in hash | Yes |
+| `SOLANA_VERIFICATION_FAILED` | Solana on-chain verification failed | No |
+| `PAYMENT_VERIFICATION_EXCEPTION` | Verification threw an error | Maybe |
+| `INSUFFICIENT_CREDITS` | Not enough credits for operation | Yes |
+| `INVALID_API_KEY` | API key not found or expired | No |
+
 ## Context Manager
 
 ```python

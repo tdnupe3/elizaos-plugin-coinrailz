@@ -175,23 +175,61 @@ with CoinRailz(api_key="cr_live_...") as client:
 
 ## Error Handling
 
+All API errors return machine-readable structured responses for programmatic handling:
+
 ```python
-from coinrailz import CoinRailz, ApiError
+from coinrailz import CoinRailz
 
 result = client.send(to="0x...", amount=100)
 
-if isinstance(result, ApiError):
-    print(f"Error: {result.error}")
-    print(f"Message: {result.message}")
-
-    # Handle specific errors
-    if result.error == "INVALID_API_KEY":
-        # Regenerate API key
+if not result.success:
+    print(f"Error code: {result.error.code}")
+    print(f"Message: {result.error.human_message}")
+    print(f"Hint: {result.error.agent_hint}")
+    print(f"Recoverable: {result.error.recoverable}")
+    
+    # Programmatic error handling
+    if result.error.code == "PAYMENT_INVALID_TX_HASH_LENGTH":
+        # Transaction hash is wrong length
         pass
-    elif result.error == "RATE_LIMITED":
+    elif result.error.code == "PAYMENT_VERIFICATION_FAILED":
+        # On-chain verification returned false
+        pass
+    elif result.error.code == "INSUFFICIENT_CREDITS":
+        # Top up credits at coinrailz.com/api-keys
+        pass
+    elif result.error.code == "RATE_LIMITED":
         # Wait and retry
-        pass
+        import time
+        time.sleep(result.error.retry_after or 60)
 ```
+
+### Error Response Schema
+
+```python
+@dataclass
+class ErrorResponse:
+    code: str           # Stable error identifier for switch statements
+    http_status: int    # HTTP status code
+    human_message: str  # Human-readable explanation
+    agent_hint: str     # Actionable fix suggestion for AI agents
+    recoverable: bool   # Whether retrying may succeed
+    telemetry_id: str   # Support ticket reference
+```
+
+### Error Codes Reference
+
+| Code | Description | Recoverable |
+|------|-------------|-------------|
+| `PAYMENT_HEADER_MISSING` | X-PAYMENT header is empty | Yes |
+| `PAYMENT_INVALID_TX_HASH_LENGTH` | Transaction hash wrong length | Yes |
+| `PAYMENT_INVALID_TX_HASH_FORMAT` | Invalid characters in hash | Yes |
+| `PAYMENT_DECODE_FAILED` | Could not decode payment payload | Yes |
+| `PAYMENT_VERIFICATION_FAILED` | On-chain verification returned false | No |
+| `PAYMENT_VERIFICATION_EXCEPTION` | Verification threw an error | Maybe |
+| `INSUFFICIENT_CREDITS` | Not enough credits for operation | Yes |
+| `INVALID_API_KEY` | API key not found or expired | No |
+| `RATE_LIMITED` | Too many requests | Yes |
 
 ## Pricing
 

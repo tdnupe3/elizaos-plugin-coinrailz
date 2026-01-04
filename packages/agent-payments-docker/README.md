@@ -183,6 +183,42 @@ spec:
     app: coinrailz-payments
 ```
 
+## Error Handling
+
+All API errors return machine-readable JSON with structured error codes for programmatic handling:
+
+```bash
+# Example error response
+curl -X POST http://localhost:3000/payments/send \
+  -H "Content-Type: application/json" \
+  -d '{"to": "invalid", "amount": 100}'
+
+# Response:
+{
+  "success": false,
+  "error": {
+    "code": "PAYMENT_INVALID_TX_HASH_FORMAT",
+    "httpStatus": 400,
+    "humanMessage": "Invalid address format",
+    "agentHint": "Provide a valid EVM address (0x + 40 hex chars) or Solana address (base58)",
+    "recoverable": true,
+    "telemetryId": "abc123xyz"
+  }
+}
+```
+
+### Error Codes Reference
+
+| Code | Description | Recoverable |
+|------|-------------|-------------|
+| `PAYMENT_INVALID_TX_HASH_LENGTH` | Transaction hash wrong length | Yes |
+| `PAYMENT_INVALID_TX_HASH_FORMAT` | Invalid characters in hash | Yes |
+| `PAYMENT_DECODE_FAILED` | Could not decode payment payload | Yes |
+| `PAYMENT_VERIFICATION_FAILED` | On-chain verification returned false | No |
+| `INSUFFICIENT_CREDITS` | Not enough credits for operation | Yes |
+| `INVALID_API_KEY` | API key not found or expired | No |
+| `RATE_LIMITED` | Too many requests | Yes |
+
 ## Pricing
 
 | Tier | Volume | Processing Fee |

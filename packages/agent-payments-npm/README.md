@@ -217,6 +217,67 @@ Available intelligence services:
 - `contract-scan` - Smart contract security scan
 - And 34 more...
 
+## Error Handling
+
+All API errors return machine-readable JSON with structured error codes for programmatic handling:
+
+```typescript
+const result = await client.send({ to: '0x...', amount: 100 });
+
+if (!result.success) {
+  console.error('Error code:', result.error.code);
+  console.error('Message:', result.error.humanMessage);
+  console.error('Hint:', result.error.agentHint);
+  
+  // Programmatic error handling
+  switch (result.error.code) {
+    case 'PAYMENT_INVALID_TX_HASH_LENGTH':
+      // Transaction hash is wrong length
+      break;
+    case 'PAYMENT_VERIFICATION_FAILED':
+      // On-chain verification returned false
+      break;
+    case 'INSUFFICIENT_CREDITS':
+      // Top up credits at coinrailz.com/api-keys
+      break;
+  }
+}
+```
+
+### Error Response Schema
+
+```typescript
+{
+  success: false,
+  error: {
+    code: string,           // Stable error identifier for switch statements
+    httpStatus: number,     // HTTP status code
+    humanMessage: string,   // Human-readable explanation
+    agentHint: string,      // Actionable fix suggestion for AI agents
+    recoverable: boolean,   // Whether retrying may succeed
+    telemetryId: string,    // Support ticket reference
+    expectedFormat?: {      // Correct format examples (when applicable)
+      txHash: string,
+      examples: string[]
+    }
+  }
+}
+```
+
+### Error Codes Reference
+
+| Code | Description | Recoverable |
+|------|-------------|-------------|
+| `PAYMENT_HEADER_MISSING` | X-PAYMENT header is empty | Yes |
+| `PAYMENT_INVALID_TX_HASH_LENGTH` | Transaction hash wrong length | Yes |
+| `PAYMENT_INVALID_TX_HASH_FORMAT` | Invalid characters in hash | Yes |
+| `PAYMENT_DECODE_FAILED` | Could not decode payment payload | Yes |
+| `PAYMENT_VERIFICATION_FAILED` | On-chain verification returned false | No |
+| `PAYMENT_VERIFICATION_EXCEPTION` | Verification threw an error | Maybe |
+| `INSUFFICIENT_CREDITS` | Not enough credits for operation | Yes |
+| `INVALID_API_KEY` | API key not found or expired | No |
+| `RATE_LIMITED` | Too many requests | Yes |
+
 ## Pricing
 
 | Tier | Volume | Processing Fee |

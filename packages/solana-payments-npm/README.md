@@ -139,10 +139,51 @@ const result = await client.send({
 ```typescript
 {
   success: false,
-  error: 'INSUFFICIENT_BALANCE',
-  message: 'Not enough USDC to complete transaction'
+  error: {
+    code: 'INSUFFICIENT_BALANCE',
+    httpStatus: 400,
+    humanMessage: 'Not enough USDC to complete transaction',
+    agentHint: 'Check wallet balance before sending. Ensure amount + fee is covered.',
+    recoverable: false,
+    telemetryId: 'abc123xyz'
+  }
 }
 ```
+
+### Error Handling
+
+All API errors return machine-readable JSON for programmatic handling:
+
+```typescript
+const result = await client.send({ to: '...', amount: 10 });
+
+if (!result.success) {
+  // Programmatic error handling
+  switch (result.error.code) {
+    case 'PAYMENT_INVALID_TX_HASH_LENGTH':
+      // Solana signatures should be 87-88 base58 chars
+      break;
+    case 'SOLANA_VERIFICATION_FAILED':
+      // On-chain verification failed
+      break;
+    case 'INSUFFICIENT_CREDITS':
+      // Top up credits at coinrailz.com/api-keys
+      break;
+  }
+}
+```
+
+### Error Codes Reference
+
+| Code | Description | Recoverable |
+|------|-------------|-------------|
+| `PAYMENT_INVALID_TX_HASH_LENGTH` | Transaction hash wrong length | Yes |
+| `PAYMENT_INVALID_TX_HASH_FORMAT` | Invalid characters in hash | Yes |
+| `PAYMENT_DECODE_FAILED` | Could not decode payment payload | Yes |
+| `SOLANA_VERIFICATION_FAILED` | Solana on-chain verification failed | No |
+| `PAYMENT_VERIFICATION_EXCEPTION` | Verification threw an error | Maybe |
+| `INSUFFICIENT_CREDITS` | Not enough credits for operation | Yes |
+| `INVALID_API_KEY` | API key not found or expired | No |
 
 #### `getBalance(address)` - Check Balance
 

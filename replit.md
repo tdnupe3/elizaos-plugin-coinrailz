@@ -14,7 +14,7 @@ Coin Railz provides cross-platform payment routing across 8 blockchains (7 EVM: 
 
 ---
 
-## 🎯 ARCHITECTURE SNAPSHOT (January 3, 2026)
+## 🎯 ARCHITECTURE SNAPSHOT (January 4, 2026)
 
 ### What's Working ✅
 
@@ -76,6 +76,13 @@ Result: Fee retained by construction
 - Applebot (Apple's crawler) first crawled x402 endpoints on Jan 2, 2026 (14 hits, 9 unique IPs)
 - User agent: `Applebot/0.1; +http://www.apple.com/go/applebot` - VERIFIED LEGITIMATE
 
+**Known Discovery Crawlers (Jan 4, 2026):**
+- `Clarityx402-HealthCheck/1.0` - Internal observability component running on Replit infrastructure (10.81.x.x IPs). Performs health checks on x402 endpoints. NOT a customer - internal monitoring. First seen Jan 3, 2026.
+- `X402-Discovery-HealthCheck/2.0` - Coinbase Bazaar discovery crawler
+- `x402watch-probe/1.0` - External x402 ecosystem monitor
+- `meta-externalagent/1.1` - Facebook/Meta crawler indexing endpoints
+- `zauthx402-agent/1.0` - PAYING CUSTOMER - external AI agent ($61.60 lifetime revenue, 39 payments)
+
 ### SDK Distribution
 
 | Package | Platform | Status |
@@ -92,11 +99,13 @@ Result: Fee retained by construction
 | **External revenue verification** | Confirm if 0x92ca4c is real user | MEDIUM |
 | **Service delivery automation** | Background job queue for async services | LOW |
 
-### Recently Fixed (Jan 3, 2026) ✅
+### Recently Fixed (Jan 4, 2026) ✅
 
 | Component | Fix Applied |
 |-----------|-------------|
-| **Instant API Key Multi-chain** | NEW: Payment orchestrator advertises 4 payment options (Base/USDC, Base/USDT, Solana/USDC, Solana/USDT). Security-hardened Solana verification using balance delta approach. |
+| **Machine-Readable Error Responses** | NEW: Payment errors now return structured JSON with error codes, human messages, agent hints, and expected format examples. AI agents can programmatically understand and self-correct payment failures. Error codes: `PAYMENT_INVALID_TX_HASH_LENGTH`, `PAYMENT_DECODE_FAILED`, `PAYMENT_VERIFICATION_FAILED`, etc. |
+| **Early Payment Header Validation** | NEW: X-PAYMENT header is validated before decode attempt. Catches malformed tx hashes (wrong length, invalid chars) and binary garbage with helpful error messages. |
+| **Instant API Key Multi-chain** | Payment orchestrator advertises 4 payment options (Base/USDC, Base/USDT, Solana/USDC, Solana/USDT). Security-hardened Solana verification using balance delta approach. |
 | **Instant API Key Rate Limiting** | NEW: `instant_api_key_grants` table prevents $5 starter credit abuse (30-day per-wallet limit). |
 | **Solana Payment Verification Security** | FIXED: Uses postTokenBalances/preTokenBalances for authoritative balance verification instead of parseable instructions. Number.isFinite() guards prevent NaN/zero-value attacks. |
 | **AI Marketplace Route** | FIXED: `/ai-marketplace` was incorrectly rendering AI Agent Management instead of services marketplace. Now correctly shows 43 purchasable services. |

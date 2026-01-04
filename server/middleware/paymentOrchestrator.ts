@@ -40,6 +40,210 @@ function logGptAuthPath(phase: string, details: Record<string, any>) {
   }
 }
 
+// ============================================================================
+// MACHINE-READABLE ERROR RESPONSES (x402 Protocol Compatible)
+// ============================================================================
+// Error codes for AI agents to programmatically understand and self-correct
+// These codes follow a registry pattern for stable machine parsing
+
+export type X402ErrorCode = 
+  | 'PAYMENT_HEADER_MISSING'
+  | 'PAYMENT_INVALID_TX_HASH_FORMAT'
+  | 'PAYMENT_INVALID_TX_HASH_LENGTH'
+  | 'PAYMENT_DECODE_FAILED'
+  | 'PAYMENT_VERIFICATION_FAILED'
+  | 'PAYMENT_VERIFICATION_EXCEPTION'
+  | 'PAYMENT_AMOUNT_INSUFFICIENT'
+  | 'PAYMENT_EXPIRED'
+  | 'SOLANA_VERIFICATION_FAILED';
+
+interface X402ErrorResponse {
+  success: false;
+  error: {
+    code: X402ErrorCode;
+    httpStatus: number;
+    x402ErrorVersion: 1;
+    humanMessage: string;
+    agentHint: string;
+    recoverable: boolean;
+    expectedFormat?: {
+      txHash?: string;
+      facilitatorPayload?: string;
+      examples?: string[];
+    };
+    telemetryId: string;
+  };
+  x402Version: 2;
+}
+
+/**
+ * Generate machine-readable + human-readable error response for payment failures
+ * Designed for both AI agents (structured JSON) and human developers (clear messages)
+ */
+function generatePaymentErrorResponse(
+  res: Response,
+  code: X402ErrorCode,
+  humanMessage: string,
+  agentHint: string,
+  telemetryId: string,
+  options?: {
+    recoverable?: boolean;
+    expectedFormat?: X402ErrorResponse['error']['expectedFormat'];
+    httpStatus?: number;
+  }
+): Response {
+  const httpStatus = options?.httpStatus || 400;
+  const response: X402ErrorResponse = {
+    success: false,
+    error: {
+      code,
+      httpStatus,
+      x402ErrorVersion: 1,
+      humanMessage,
+      agentHint,
+      recoverable: options?.recoverable ?? true,
+      telemetryId
+    },
+    x402Version: 2
+  };
+  
+  if (options?.expectedFormat) {
+    response.error.expectedFormat = options.expectedFormat;
+  }
+  
+  console.log(`🔴 Payment error [${code}]: ${humanMessage} (telemetryId: ${telemetryId})`);
+  
+  return res.status(httpStatus).json(response);
+}
+
+/**
+ * Validate X-PAYMENT header format before attempting decode
+ * Returns null if valid, or error details if invalid
+ * 
+ * This function performs early validation to catch common user input errors:
+ * - Truncated tx hashes (wrong length)
+ * - Invalid hex characters
+ * - Binary garbage (not valid text/base64)
+ * - Empty or whitespace-only headers
+ */
+function validatePaymentHeaderFormat(xPayment: string): { 
+  valid: boolean; 
+  code?: X402ErrorCode; 
+  message?: string; 
+  hint?: string 
+} {
+  const trimmed = xPayment.trim();
+  
+  // Check for empty header
+  if (!trimmed || trimmed.length === 0) {
+    return {
+      valid: false,
+      code: 'PAYMENT_HEADER_MISSING',
+      message: 'X-PAYMENT header is empty',
+      hint: 'Provide a valid transaction hash or facilitator payload in the X-PAYMENT header'
+    };
+  }
+  
+  // Check for binary garbage across entire payload (not just first 10 chars)
+  // Look for non-printable control characters that shouldn't appear in valid formats
+  const hasBinaryGarbage = /[\x00-\x08\x0E-\x1F]/.test(trimmed);
+  if (hasBinaryGarbage) {
+    const firstNonPrintable = trimmed.match(/[\x00-\x08\x0E-\x1F]/);
+    const charCode = firstNonPrintable ? trimmed.charCodeAt(trimmed.indexOf(firstNonPrintable[0])) : 0;
+    return {
+      valid: false,
+      code: 'PAYMENT_DECODE_FAILED',
+      message: `Payment header contains invalid binary data (control character: 0x${charCode.toString(16).padStart(2, '0')})`,
+      hint: `X-PAYMENT header must be: (1) raw transaction hash (0x + 64 hex chars), (2) base64-encoded JSON/CBOR payload, or (3) raw JSON. Binary data is not accepted.`
+    };
+  }
+  
+  // Check for high-bit characters that indicate binary data (not UTF-8 text)
+  // Allow common UTF-8 multibyte sequences but reject pure binary
+  const highBitCount = (trimmed.match(/[\x80-\xFF]/g) || []).length;
+  const highBitRatio = highBitCount / trimmed.length;
+  // If >30% of characters are high-bit and it's not valid JSON/base64, likely binary
+  if (highBitRatio > 0.3 && !trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    // Try base64 decode to see if it's valid
+    const base64Regex = /^[A-Za-z0-9+/=]+$/;
+    if (!base64Regex.test(trimmed)) {
+      return {
+        valid: false,
+        code: 'PAYMENT_DECODE_FAILED',
+        message: `Payment header appears to be binary data (${Math.round(highBitRatio * 100)}% non-ASCII bytes)`,
+        hint: `X-PAYMENT header must be text-based. Use raw tx hash (0x...), base64-encoded payload, or JSON.`
+      };
+    }
+  }
+  
+  // Check for 0x-prefixed values that aren't valid tx hashes
+  if (trimmed.startsWith('0x')) {
+    // Check for invalid hex characters first
+    if (!/^0x[0-9a-fA-F]*$/.test(trimmed)) {
+      const invalidMatch = trimmed.match(/[^0-9a-fA-Fx]/);
+      const invalidChar = invalidMatch ? invalidMatch[0] : '?';
+      return {
+        valid: false,
+        code: 'PAYMENT_INVALID_TX_HASH_FORMAT',
+        message: `Invalid character '${invalidChar}' in transaction hash. Must be hex (0-9, a-f).`,
+        hint: `Transaction hash must be hexadecimal only. Found invalid character at: ${trimmed.substring(0, 30)}`
+      };
+    }
+    
+    // Valid EVM tx hash: 0x + 64 hex chars = 66 total
+    if (trimmed.length === 66) {
+      return { valid: true };
+    }
+    
+    // Valid raw tx hash range (40-130 chars for various EVM formats)
+    if (trimmed.length >= 40 && trimmed.length <= 130) {
+      return { valid: true };
+    }
+    
+    // Too short
+    if (trimmed.length < 40) {
+      return {
+        valid: false,
+        code: 'PAYMENT_INVALID_TX_HASH_LENGTH',
+        message: `Transaction hash too short: ${trimmed.length} chars (expected 66 for EVM tx hash)`,
+        hint: `Provide complete transaction hash. EVM format: 0x + 64 hex chars = 66 total. You sent ${trimmed.length} chars.`
+      };
+    }
+    
+    // Too long for a tx hash
+    if (trimmed.length > 130) {
+      return {
+        valid: false,
+        code: 'PAYMENT_INVALID_TX_HASH_LENGTH',
+        message: `Transaction hash too long: ${trimmed.length} chars (max expected ~130)`,
+        hint: `EVM tx hash should be 66 chars (0x + 64 hex). If sending encoded payload, don't prefix with 0x.`
+      };
+    }
+  }
+  
+  // Validate Solana-like signatures (base58, 87-88 chars)
+  // Base58 alphabet: 123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz
+  const base58Regex = /^[1-9A-HJ-NP-Za-km-z]+$/;
+  if (trimmed.length >= 80 && trimmed.length <= 100 && base58Regex.test(trimmed)) {
+    // Likely a Solana signature
+    return { valid: true };
+  }
+  
+  // Allow JSON payloads
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    return { valid: true };
+  }
+  
+  // Allow base64 payloads (for facilitator-encoded data)
+  const base64Regex = /^[A-Za-z0-9+/]+=*$/;
+  if (base64Regex.test(trimmed) && trimmed.length > 20) {
+    return { valid: true };
+  }
+  
+  // For anything else, let the decoder try to handle it
+  return { valid: true };
+}
+
 // Multi-format payment payload decoder
 // Supports: JSON, CBOR, MessagePack, and raw binary EIP-3009 formats for x402 protocol compatibility
 interface DecodedPayload {
@@ -1113,10 +1317,17 @@ export function createPaymentOrchestrator(
         logGptAuthPath('insufficient-credits', { userId, balance, required: priceUsd, serviceName });
         return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
       } catch (gptErr: any) {
-        // GPT session resolution failed - return 402 (no silent fall-through)
+        // GPT session resolution failed - return structured error (no silent fall-through)
         console.error(`⚠️ Orchestrator: GPT session resolution failed for ${serviceName}: ${gptErr.message}`);
         logGptAuthPath('resolve-failed', { error: gptErr.message, serviceName });
-        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+        return generatePaymentErrorResponse(
+          res,
+          'PAYMENT_VERIFICATION_EXCEPTION',
+          `GPT session resolution failed: ${gptErr.message}`,
+          `Try refreshing the ChatGPT conversation or purchase credits at our platform`,
+          requestId,
+          { recoverable: true, httpStatus: 402 }
+        );
       }
     } else if (shouldRunGptFlow && GPT_SESSION_AUTH_LOG_ONLY) {
       // Log-only mode: log what WOULD happen without changing behavior
@@ -1218,6 +1429,58 @@ export function createPaymentOrchestrator(
       return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
     }
 
+    // EARLY VALIDATION: Check payment header format before attempting decode
+    // This catches malformed tx hashes and binary garbage with helpful error messages
+    const headerValidation = validatePaymentHeaderFormat(xPayment);
+    if (!headerValidation.valid) {
+      console.log(`🔴 Orchestrator: Payment header validation failed for ${serviceName}: ${headerValidation.message}`);
+      
+      // Track the validation error
+      await x402InteractionTracker.trackInteraction({
+        serviceId: serviceName,
+        ipAddress,
+        userAgent,
+        requestPath: req.originalUrl,
+        requestMethod: req.method,
+        responseStatus: 400,
+        paid: false,
+        interactionType: 'error',
+        requestId,
+        eventType: 'payment-format-invalid',
+        serviceName,
+        latencyMs: Date.now() - startTime,
+        paymentReceived: false,
+        errorMessage: headerValidation.message,
+        offerTrackingId,
+        metadata: { 
+          reason: headerValidation.code,
+          headerLength: xPayment.length,
+          headerPreview: xPayment.substring(0, 30),
+          knownAgent: knownAgent.name
+        }
+      });
+      
+      return generatePaymentErrorResponse(
+        res,
+        headerValidation.code!,
+        headerValidation.message!,
+        headerValidation.hint!,
+        requestId,
+        {
+          recoverable: true,
+          httpStatus: 400,
+          expectedFormat: {
+            txHash: '0x + 64 hex characters (66 total) for EVM, or base58 signature for Solana',
+            facilitatorPayload: 'Base64-encoded JSON or CBOR payload from x402 facilitator',
+            examples: [
+              '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef (EVM tx hash)',
+              '5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQUW (Solana signature)'
+            ]
+          }
+        }
+      );
+    }
+
     let txHash: string | null = null;
     let paymentChain: 'base' | 'solana' | null = null;
 
@@ -1284,15 +1547,27 @@ export function createPaymentOrchestrator(
         return;
       } else {
         console.error(`❌ Orchestrator: Solana payment verification failed: ${solanaResult.error}`);
-        return res.status(402).json({
-          x402Version: 2,
-          error: "solana_payment_verification_failed",
-          message: solanaResult.error,
-          hint: "Ensure you sent USDC or USDT to the correct Solana wallet",
-          platformWallet: SOLANA_PLATFORM_WALLET,
-          acceptedTokens: ["USDC", "USDT"],
-          network: "solana:mainnet"
-        });
+        
+        // Return machine-readable error for Solana verification failure
+        return generatePaymentErrorResponse(
+          res,
+          'SOLANA_VERIFICATION_FAILED',
+          `Solana payment verification failed: ${solanaResult.error}`,
+          `Ensure you sent USDC or USDT to wallet ${SOLANA_PLATFORM_WALLET}. Wait for transaction confirmation before submitting.`,
+          requestId,
+          {
+            recoverable: true,
+            httpStatus: 402,
+            expectedFormat: {
+              txHash: 'Solana transaction signature (base58, 87-88 characters)',
+              examples: [
+                `Send USDC/USDT to ${SOLANA_PLATFORM_WALLET}`,
+                'Wait for transaction confirmation',
+                'Submit confirmed tx signature in X-PAYMENT header'
+              ]
+            }
+          }
+        );
       }
     }
     // Case 3: Base64-encoded payload (JSON or CBOR) with txHash
@@ -1309,7 +1584,7 @@ export function createPaymentOrchestrator(
           userAgent,
           requestPath: req.originalUrl,
           requestMethod: req.method,
-          responseStatus: 402,
+          responseStatus: 400,
           paid: false,
           interactionType: 'error',
           requestId,
@@ -1328,7 +1603,27 @@ export function createPaymentOrchestrator(
           }
         });
         
-        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+        // Return machine-readable error instead of generic 402
+        return generatePaymentErrorResponse(
+          res,
+          'PAYMENT_DECODE_FAILED',
+          `Could not decode payment payload. Detected format: ${decodeResult.format}. ${decodeResult.error || 'Unknown decoding error.'}`,
+          `Submit X-PAYMENT header as: (1) Raw transaction hash starting with 0x (66 chars), (2) Solana signature in base58, or (3) base64-encoded JSON/CBOR facilitator payload`,
+          requestId,
+          {
+            recoverable: true,
+            httpStatus: 400,
+            expectedFormat: {
+              txHash: 'EVM: 0x + 64 hex chars (66 total). Solana: base58 signature (87-88 chars)',
+              facilitatorPayload: 'Base64-encoded JSON with { txHash, payload } or CBOR from x402 facilitator',
+              examples: [
+                'Raw EVM hash: 0xabcd...1234 (66 characters)',
+                'Raw Solana: 5VERv8NM... (87-88 characters)',
+                'JSON payload: {"txHash":"0x...","network":"eip155:8453"}'
+              ]
+            }
+          }
+        );
       }
       
       const decoded = decodeResult.data;
@@ -1371,7 +1666,14 @@ export function createPaymentOrchestrator(
             const walletClient = getPlatformWalletClient();
             if (!walletClient) {
               console.error(`❌ Orchestrator: No wallet client available for EIP-3009 execution`);
-              return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+              return generatePaymentErrorResponse(
+                res,
+                'PAYMENT_VERIFICATION_EXCEPTION',
+                'Platform wallet not available for EIP-3009 authorization execution',
+                'Platform configuration error. Use direct transaction payment instead of EIP-3009 authorization.',
+                requestId,
+                { recoverable: false, httpStatus: 500 }
+              );
             }
             
             const auth = payloadObj.authorization;
@@ -1383,7 +1685,14 @@ export function createPaymentOrchestrator(
             // Validate signature length
             if (sigHex.length !== 130) {
               console.error(`❌ Invalid signature length: ${sigHex.length}, expected 130`);
-              return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+              return generatePaymentErrorResponse(
+                res,
+                'PAYMENT_INVALID_TX_HASH_FORMAT',
+                `Invalid EIP-3009 signature length: ${sigHex.length} chars (expected 130)`,
+                'EIP-3009 signature must be 65 bytes (130 hex chars). Check your signing implementation.',
+                requestId,
+                { recoverable: true, httpStatus: 400 }
+              );
             }
             
             const r = `0x${sigHex.slice(0, 64)}` as Hex;
@@ -1517,7 +1826,7 @@ export function createPaymentOrchestrator(
             userAgent,
             requestPath: req.originalUrl,
             requestMethod: req.method,
-            responseStatus: 402,
+            responseStatus: 400,
             paid: false,
             interactionType: 'error',
             requestId,
@@ -1534,7 +1843,26 @@ export function createPaymentOrchestrator(
             }
           });
           
-          return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+          // Return machine-readable error for missing txHash in payload
+          return generatePaymentErrorResponse(
+            res,
+            'PAYMENT_DECODE_FAILED',
+            `Decoded payload successfully but no transaction hash found. Payload keys: ${Object.keys(payloadObj).join(', ')}`,
+            `Include 'txHash' field in your payment payload with a confirmed transaction hash`,
+            requestId,
+            {
+              recoverable: true,
+              httpStatus: 400,
+              expectedFormat: {
+                txHash: 'Include txHash field in JSON payload',
+                facilitatorPayload: '{"txHash": "0x...", "payload": {...}}',
+                examples: [
+                  'Direct hash: Set X-PAYMENT to your raw 0x... transaction hash',
+                  'JSON payload: {"txHash": "0x1234...", "network": "eip155:8453"}'
+                ]
+              }
+            }
+          );
         }
     }
 
@@ -1621,7 +1949,26 @@ export function createPaymentOrchestrator(
             }
           });
           
-          return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+          // Return machine-readable error for verification failure
+          return generatePaymentErrorResponse(
+            res,
+            'PAYMENT_VERIFICATION_FAILED',
+            `On-chain verification failed for transaction ${txHash?.substring(0, 20)}... - payment not confirmed on Base chain`,
+            `Verify: (1) Transaction is confirmed on Base chain, (2) Payment sent to platform wallet 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91, (3) Amount is at least $${microToUSD(requiredAmount).toFixed(2)} USDC`,
+            requestId,
+            {
+              recoverable: true,
+              httpStatus: 402,
+              expectedFormat: {
+                txHash: 'Confirmed Base chain transaction hash (0x + 64 hex chars)',
+                examples: [
+                  `Send $${microToUSD(requiredAmount).toFixed(2)}+ USDC to 0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`,
+                  'Wait for transaction confirmation',
+                  'Submit confirmed tx hash in X-PAYMENT header'
+                ]
+              }
+            }
+          );
         }
       } catch (error: any) {
         console.error(`❌ Orchestrator: Payment verification error for ${serviceName}:`, error.message);
@@ -1633,7 +1980,7 @@ export function createPaymentOrchestrator(
           userAgent,
           requestPath: req.originalUrl,
           requestMethod: req.method,
-          responseStatus: 402,
+          responseStatus: 400,
           paid: false,
           interactionType: 'error',
           requestId,
@@ -1650,7 +1997,26 @@ export function createPaymentOrchestrator(
           }
         });
         
-        return generate402Response(req, res, serviceName, requiredAmount, knownAgent, requestId);
+        // Return machine-readable error for verification exception
+        return generatePaymentErrorResponse(
+          res,
+          'PAYMENT_VERIFICATION_EXCEPTION',
+          `Payment verification threw error: ${error.message}`,
+          `Check that your transaction hash is valid and the transaction is confirmed. Error details have been logged for debugging.`,
+          requestId,
+          {
+            recoverable: true,
+            httpStatus: 400,
+            expectedFormat: {
+              txHash: 'Valid, confirmed transaction hash from Base chain or Solana',
+              examples: [
+                'Ensure transaction is confirmed (not pending)',
+                'Use complete 66-character hash for EVM',
+                'For Solana, use base58 signature (87-88 chars)'
+              ]
+            }
+          }
+        );
       }
     }
 

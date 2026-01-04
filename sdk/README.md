@@ -55,6 +55,18 @@ const agent = await sdk.registerAgent({
 npm install @coinrailz/ai-payments-sdk
 ```
 
+## Get Started - Instant API Key
+
+**For developers who want to try before committing to enterprise:**
+
+Pay $1 (USDC/USDT on Base or Solana) and get an API key immediately—no account required!
+
+1. Visit [coinrailz.com/api-keys](https://coinrailz.com/api-keys)
+2. Send $1 to the platform wallet
+3. Verify your transaction and receive your key + $5 starter credits
+
+Your API key is **permanent** and works across ALL 43+ Coin Railz microservices. Credits are deducted per use, and you can top up anytime with the same key.
+
 ## License Tiers
 
 - **Startup** ($2,000/year): $100K monthly volume, 10 agents

@@ -153,14 +153,28 @@ app.get('/healthz', (req, res) => {
 
 // Also respond to root health check with 200 immediately (before any paywall middleware)
 app.get('/', (req, res, next) => {
-  // If this is a health check (no Accept header or basic request), respond immediately
   const userAgent = req.headers['user-agent'] || '';
   const acceptHeader = req.headers['accept'] || '';
   
-  // Health checks typically have minimal headers or specific user agents
-  if (userAgent.includes('health') || userAgent.includes('kube') || userAgent.includes('Replit') ||
-      (!acceptHeader.includes('text/html') && !acceptHeader.includes('*/*'))) {
-    return res.status(200).json({ status: 'ok', service: 'coinrailz', timestamp: new Date().toISOString() });
+  // PRODUCTION HEALTH CHECK: Replit autoscaler sends requests to / and expects 200 quickly
+  // Return 200 JSON for ANY non-browser request (health checks, curl, monitoring, etc.)
+  // Only proceed to Vite for browser requests that explicitly want HTML
+  const isBrowserRequest = acceptHeader.includes('text/html') && 
+                           !userAgent.includes('curl') && 
+                           !userAgent.includes('health') && 
+                           !userAgent.includes('kube') && 
+                           !userAgent.includes('Replit') &&
+                           !userAgent.includes('Uptime') &&
+                           !userAgent.includes('Monitor');
+  
+  if (!isBrowserRequest) {
+    // Fast health check response for ALL non-browser requests
+    return res.status(200).json({ 
+      status: 'ok', 
+      service: 'Coin Railz', 
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
   }
   
   // For browser requests, continue to next handler (Vite frontend)

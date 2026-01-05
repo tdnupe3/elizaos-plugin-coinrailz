@@ -1,7 +1,26 @@
+# Coin Railz Robots.txt
+# Balances Google SEO with AI Agent Discoverability
+
 User-agent: *
 Allow: /
 
-# Important public pages
+# ============================================
+# AI AGENT DISCOVERY - ALWAYS ACCESSIBLE
+# These paths are critical for x402, A2A, MCP, and Bazaar discovery
+# ============================================
+Allow: /.well-known/
+Allow: /.well-known/x402.json
+Allow: /.well-known/agent.json
+Allow: /.well-known/agent-card.json
+Allow: /api/discovery/
+Allow: /api/discovery/resources
+Allow: /mcp/
+Allow: /x402/catalog
+Allow: /x402/payment-docs
+
+# ============================================
+# PUBLIC MARKETING PAGES - INDEX THESE
+# ============================================
 Allow: /
 Allow: /ai-marketplace
 Allow: /enterprise
@@ -14,15 +33,64 @@ Allow: /xrp
 Allow: /about
 Allow: /faq
 
-# Block x402 paywalled API endpoints (return HTTP 402)
-Disallow: /x402/
-Disallow: /x402/*
+# ============================================
+# BLOCK FROM GOOGLE (returns 4xx or requires auth)
+# Note: AI agents with payment capabilities ignore this
+# ============================================
 
-# Block API endpoints (return JSON, not HTML)
-Disallow: /api/
-Disallow: /api/*
+# x402 paywalled endpoints (return HTTP 402 - not for Google indexing)
+Disallow: /x402/ping
+Disallow: /x402/trade-signals
+Disallow: /x402/wallet-risk
+Disallow: /x402/token-sentiment
+Disallow: /x402/whale-alerts
+Disallow: /x402/trending-tokens
+Disallow: /x402/sentiment-analysis
+Disallow: /x402/dex-liquidity
+Disallow: /x402/contract-scan
+Disallow: /x402/portfolio-optimization
+Disallow: /x402/token-price
+Disallow: /x402/portfolio-tracker
+Disallow: /x402/multi-chain-balance
+Disallow: /x402/arbitrage-scanner
+Disallow: /x402/gas-price-oracle
+Disallow: /x402/transaction-builder
+Disallow: /x402/batch-quote
+Disallow: /x402/seamless-chain-bridge
+Disallow: /x402/trading-signal
+Disallow: /x402/verified-agent-identity
+Disallow: /x402/compliance-consultation
+Disallow: /x402/agent-create-wallet
+Disallow: /x402/property-valuation
+Disallow: /x402/lease-analysis
+Disallow: /x402/construction-progress
+Disallow: /x402/credit-risk-score
+Disallow: /x402/compliance-check
+Disallow: /x402/fraud-detection
+Disallow: /x402/risk-metrics
+Disallow: /x402/instant-agent-wallet
+Disallow: /x402/token-metadata
+Disallow: /x402/correlation-matrix
+Disallow: /x402/approval-manager
+Disallow: /x402/polymarket-odds
+Disallow: /x402/polymarket-events
+Disallow: /x402/polymarket-search
+Disallow: /x402/prediction-market-odds
+Disallow: /x402/stock-sentiment
+Disallow: /x402/forex-sentiment
+Disallow: /x402/service/
 
-# Block internal/private pages
+# API endpoints (return JSON, not HTML)
+Disallow: /api/gpt/
+Disallow: /api/agents/
+Disallow: /api/x402/
+Disallow: /api/analytics/
+Disallow: /api/auth/
+Disallow: /api/payments/
+Disallow: /api/wallets/
+Disallow: /api/admin/
+
+# Internal/private pages
 Disallow: /admin
 Disallow: /admin/
 Disallow: /debug
@@ -31,13 +99,12 @@ Disallow: /demo-*
 Disallow: /*-test
 Disallow: /*-demo
 
-# Block authentication pages
+# Authentication pages (no content for Google)
 Disallow: /auth/
-Disallow: /auth/*
 Disallow: /login
 Disallow: /signup
 
-# Block user dashboard (requires auth)
+# User dashboard (requires auth)
 Disallow: /dashboard
 Disallow: /dashboard/
 Disallow: /agent-dashboard
@@ -46,12 +113,11 @@ Disallow: /transactions
 Disallow: /portfolio
 Disallow: /credits
 
-# Block JSON/machine-readable files
-Disallow: /.well-known/
+# JSON config files
 Disallow: /openapi*.json
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
 
-# Sitemap location
+# Sitemap for Google
 Sitemap: https://coinrailz.com/sitemap.xml

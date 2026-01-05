@@ -2063,6 +2063,20 @@ Questions? Reply to this message or contact support@coinrailz.com
   // High-value revenue generating data APIs ($500K-2M potential)
   app.use('/api/enterprise-data', enterpriseDataRoutes);
   
+  // === SERVICE CATALOG API FOR FRONTEND ===
+  // Public endpoint for service landing pages (SEO indexable)
+  app.get('/api/services/catalog', async (req, res) => {
+    try {
+      const { ServiceCatalogService } = await import('./services/serviceCatalogService');
+      const catalogService = ServiceCatalogService.getInstance();
+      const catalog = catalogService.getCatalog();
+      res.json(catalog);
+    } catch (error) {
+      console.error('Error fetching service catalog:', error);
+      res.status(500).json({ error: 'Failed to fetch service catalog' });
+    }
+  });
+
   // === CORE PLATFORM ENDPOINTS ===
   // Essential system endpoints for health monitoring and platform status
   app.get('/api/health', async (req, res) => {

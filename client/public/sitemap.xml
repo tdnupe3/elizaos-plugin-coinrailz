@@ -39,7 +39,326 @@
   <priority>0.9</priority>
 </url>
 
-<!-- Documentation -->
+<!-- ============================================ -->
+<!-- API SERVICE PAGES - 43 x402 Services -->
+<!-- These are SEO-indexable marketing pages for each service -->
+<!-- ============================================ -->
+
+<!-- Discovery & Testing -->
+<url>
+  <loc>https://coinrailz.com/services/ping</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Trading Intelligence Services -->
+<url>
+  <loc>https://coinrailz.com/services/trade-signals</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/wallet-risk</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/token-sentiment</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/whale-alerts</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/trending-tokens</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/sentiment-analysis</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/dex-liquidity</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/contract-scan</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/portfolio-optimization</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/token-price</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/portfolio-tracker</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/multi-chain-balance</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/arbitrage-scanner</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Execution & Infrastructure Services -->
+<url>
+  <loc>https://coinrailz.com/services/gas-price-oracle</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/transaction-builder</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/batch-quote</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/seamless-chain-bridge</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Premium Enterprise Services -->
+<url>
+  <loc>https://coinrailz.com/services/smart-contract-audit</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/trading-signal</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/payment-processing</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/verified-agent-identity</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/compliance-consultation</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/agent-create-wallet</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Real Estate Services -->
+<url>
+  <loc>https://coinrailz.com/services/property-valuation</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/lease-analysis</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/construction-progress</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Banking & Finance Services -->
+<url>
+  <loc>https://coinrailz.com/services/credit-risk-score</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/compliance-check</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/fraud-detection</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Trading & Investment Services -->
+<url>
+  <loc>https://coinrailz.com/services/risk-metrics</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/instant-agent-wallet</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/token-metadata</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Market Intelligence Services -->
+<url>
+  <loc>https://coinrailz.com/services/correlation-matrix</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/approval-manager</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Prediction Markets Services -->
+<url>
+  <loc>https://coinrailz.com/services/polymarket-odds</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/polymarket-events</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/polymarket-search</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/prediction-market-odds</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- Traditional Markets Services -->
+<url>
+  <loc>https://coinrailz.com/services/stock-sentiment</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/forex-sentiment</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- SDK Payment Services -->
+<url>
+  <loc>https://coinrailz.com/services/sdk-payments-evm</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<url>
+  <loc>https://coinrailz.com/services/sdk-payments-solana</loc>
+  <lastmod>2026-01-05</lastmod>
+  <changefreq>weekly</changefreq>
+  <priority>0.8</priority>
+</url>
+
+<!-- ============================================ -->
+<!-- Documentation Pages -->
+<!-- ============================================ -->
 <url>
   <loc>https://coinrailz.com/developers</loc>
   <lastmod>2026-01-05</lastmod>

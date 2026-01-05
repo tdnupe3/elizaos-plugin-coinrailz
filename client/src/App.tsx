@@ -166,6 +166,7 @@ const APIKeysPage = lazy(() => import("@/pages/APIKeysPage"));
 const XMTPAdminPage = lazy(() => import("@/pages/XMTPAdminPage"));
 const SolanaPayPage = lazy(() => import("@/pages/solana-pay"));
 const ProofOfExecution = lazy(() => import("@/pages/proof-of-execution"));
+const ServiceDetailPage = lazy(() => import("@/pages/ServiceDetailPage"));
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -237,6 +238,15 @@ function Router() {
 
       <Route path="/ai-marketplace">
         {() => <LazyLoadWrapper><AIMarketplace /></LazyLoadWrapper>}
+      </Route>
+
+      {/* Service detail pages - SEO indexable marketing pages for each x402 service */}
+      <Route path="/services/:slug">
+        {() => (
+          <Suspense fallback={<PageLoadingFallback />}>
+            <ServiceDetailPage />
+          </Suspense>
+        )}
       </Route>
 
       {/* Streamlined onramp flow */}

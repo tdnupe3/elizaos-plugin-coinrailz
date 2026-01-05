@@ -242,11 +242,7 @@ function Router() {
 
       {/* Service detail pages - SEO indexable marketing pages for each x402 service */}
       <Route path="/services/:slug">
-        {() => (
-          <Suspense fallback={<PageLoadingFallback />}>
-            <ServiceDetailPage />
-          </Suspense>
-        )}
+        {() => <LazyLoadWrapper><ServiceDetailPage /></LazyLoadWrapper>}
       </Route>
 
       {/* Streamlined onramp flow */}

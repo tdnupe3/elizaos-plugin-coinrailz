@@ -12324,6 +12324,19 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
     }
   });
 
+  // Service catalog endpoint for SEO-indexable landing pages
+  app.get('/api/services/catalog', async (req, res) => {
+    try {
+      const { ServiceCatalogService } = await import('./services/serviceCatalogService');
+      const catalogService = ServiceCatalogService.getInstance();
+      const catalog = catalogService.getCatalog();
+      res.json(catalog);
+    } catch (error) {
+      console.error('Error fetching service catalog:', error);
+      res.status(500).json({ error: 'Failed to fetch service catalog' });
+    }
+  });
+
   // Service details endpoint
   app.get('/api/services/:serviceId', (req, res) => {
     try {

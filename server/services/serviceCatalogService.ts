@@ -667,14 +667,22 @@ export class ServiceCatalogService {
     categories: string[];
     priceRange: { min: string; max: string };
   } {
-    const prices = this.catalog.map(s => parseFloat(s.priceUSD.replace('$', '')));
+    // Filter out non-numeric prices (e.g., "Variable" for SDK services)
+    const prices = this.catalog
+      .map(s => parseFloat(s.priceUSD.replace('$', '')))
+      .filter(p => !isNaN(p) && isFinite(p));
+    
+    // Fallback to $0.10-$10.00 if no valid prices (shouldn't happen)
+    const minPrice = prices.length > 0 ? Math.min(...prices) : 0.10;
+    const maxPrice = prices.length > 0 ? Math.max(...prices) : 10.00;
+    
     return {
       catalogUrl: `${BASE_URL}/x402/catalog`,
       totalServices: this.catalog.length,
       categories: CATEGORY_ORDER,
       priceRange: {
-        min: `$${Math.min(...prices).toFixed(2)}`,
-        max: `$${Math.max(...prices).toFixed(2)}`
+        min: `$${minPrice.toFixed(2)}`,
+        max: `$${maxPrice.toFixed(2)}`
       }
     };
   }

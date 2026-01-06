@@ -12369,6 +12369,137 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
     }
   });
 
+  // === SERVER-SIDE RENDERED SERVICE PAGES FOR SEO ===
+  // Returns full HTML with service content for Google crawlers
+  // This route MUST be before static file serving/SPA fallback
+  app.get('/services/:slug', async (req, res, next) => {
+    try {
+      const { slug } = req.params;
+      const { ServiceCatalogService } = await import('./services/serviceCatalogService');
+      const catalogService = ServiceCatalogService.getInstance();
+      const catalog = catalogService.getCatalog();
+      
+      // Find the service by slug (id)
+      const service = catalog.services.find((s: any) => s.id === slug);
+      
+      if (!service) {
+        // Let SPA handle 404 for unknown services
+        return next();
+      }
+      
+      const baseUrl = process.env.PUBLIC_BASE_URL || 'https://coinrailz.com';
+      const pageUrl = `${baseUrl}/services/${slug}`;
+      
+      // Generate full SEO-optimized HTML with service content
+      const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <!-- Primary SEO Meta Tags -->
+  <title>${service.name} - AI Microservice | Coin Railz</title>
+  <meta name="description" content="${service.description} Price: ${service.priceUSD}. Pay with USDC on Base chain via x402 protocol." />
+  <meta name="keywords" content="${service.id}, ${service.name}, x402 microservice, AI agent service, ${service.category}, USDC payment, Base chain" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="${pageUrl}" />
+  
+  <!-- Open Graph / Social -->
+  <meta property="og:type" content="product" />
+  <meta property="og:url" content="${pageUrl}" />
+  <meta property="og:title" content="${service.name} - Coin Railz AI Microservice" />
+  <meta property="og:description" content="${service.description} Starting at ${service.priceUSD}." />
+  <meta property="og:site_name" content="Coin Railz" />
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary" />
+  <meta property="twitter:title" content="${service.name} | Coin Railz" />
+  <meta property="twitter:description" content="${service.description}" />
+  
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "${service.name}",
+    "description": "${service.description}",
+    "url": "${pageUrl}",
+    "category": "${service.category}",
+    "offers": {
+      "@type": "Offer",
+      "price": "${service.priceUSD.replace('$', '')}",
+      "priceCurrency": "USD",
+      "availability": "https://schema.org/InStock"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "Coin Railz",
+      "url": "${baseUrl}"
+    }
+  }
+  </script>
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0a0a0a; color: #fff; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+    .breadcrumb { font-size: 14px; color: #888; margin-bottom: 24px; }
+    .breadcrumb a { color: #3b82f6; text-decoration: none; }
+    .badge { display: inline-block; background: #1e3a8a; color: #93c5fd; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 500; margin-bottom: 16px; }
+    h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 16px; }
+    .price { font-size: 1.5rem; color: #22c55e; font-weight: 600; margin-bottom: 24px; }
+    .description { font-size: 1.125rem; color: #d1d5db; line-height: 1.7; margin-bottom: 32px; }
+    .capabilities { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 32px; }
+    .capability { background: #1f2937; color: #9ca3af; padding: 6px 14px; border-radius: 6px; font-size: 14px; }
+    .cta { display: inline-block; background: #3b82f6; color: white; padding: 14px 28px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+    .cta:hover { background: #2563eb; }
+    .meta { margin-top: 40px; padding-top: 24px; border-top: 1px solid #374151; font-size: 14px; color: #6b7280; }
+    .meta-item { margin-bottom: 8px; }
+    .meta-label { color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="breadcrumb">
+      <a href="/">Home</a> / <a href="/ai-marketplace">Services</a> / ${service.name}
+    </div>
+    
+    <span class="badge">${service.category.replace(/-/g, ' ').toUpperCase()}</span>
+    
+    <h1>${service.name}</h1>
+    
+    <div class="price">${service.priceUSD}</div>
+    
+    <p class="description">${service.description}</p>
+    
+    <div class="capabilities">
+      ${service.capabilities.map((cap: string) => `<span class="capability">${cap}</span>`).join('\n      ')}
+    </div>
+    
+    <a href="${service.endpoint}" class="cta">Access via x402 Protocol</a>
+    
+    <div class="meta">
+      <div class="meta-item"><span class="meta-label">Network:</span> ${service.network}</div>
+      <div class="meta-item"><span class="meta-label">Endpoint:</span> ${service.endpoint}</div>
+      <div class="meta-item"><span class="meta-label">x402 Compatible:</span> ${service.x402Compatible ? 'Yes' : 'No'}</div>
+      <div class="meta-item"><span class="meta-label">Payment:</span> ${service.priceUSDC}</div>
+    </div>
+  </div>
+  
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>`;
+      
+      // Cache for 1 hour - SEO content is relatively static
+      res.set('Cache-Control', 'public, max-age=3600');
+      res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
+    } catch (error) {
+      console.error('SSR service page error:', error);
+      next(); // Fall back to SPA on error
+    }
+  });
+
   // === REFERRAL SYSTEM ENDPOINTS ===
   // Add referral routes before catch-all 404 handler
   

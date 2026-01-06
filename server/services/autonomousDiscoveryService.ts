@@ -13,6 +13,7 @@
 import { db } from '../db';
 import { globalAIAgents } from '../../shared/schema';
 import { eq } from 'drizzle-orm';
+import { serviceCatalogService } from './serviceCatalogService';
 
 interface DiscoveryTarget {
   name: string;
@@ -185,6 +186,23 @@ class AutonomousDiscoveryService {
         sitemap += `    <lastmod>${now}</lastmod>\n`;
         sitemap += `    <priority>0.8</priority>\n`;
         sitemap += `  </url>\n`;
+      }
+
+      // SEO Service Pages - Server-side rendered, fully indexable (43 services)
+      // These are the PRIMARY pages for Google to index (return 200 OK with full content)
+      try {
+        const catalog = serviceCatalogService.getCatalog();
+        for (const service of catalog.services) {
+          sitemap += `  <url>\n`;
+          sitemap += `    <loc>${baseUrl}/services/${service.id}</loc>\n`;
+          sitemap += `    <lastmod>${now}</lastmod>\n`;
+          sitemap += `    <changefreq>weekly</changefreq>\n`;
+          sitemap += `    <priority>0.9</priority>\n`;
+          sitemap += `  </url>\n`;
+        }
+        console.log(`📍 Added ${catalog.services.length} SEO service pages to sitemap`);
+      } catch (catalogError) {
+        console.warn('⚠️ Failed to add SEO service pages to sitemap:', catalogError);
       }
 
       // User-facing pages - Products & Marketplace

@@ -6,7 +6,12 @@
  * 1. /x402/catalog endpoint for browsing all services
  * 2. 402 response enrichment with recommendedServices
  * 3. Agent discovery to understand our capabilities
+ * 
+ * CRITICAL: Prices are derived from shared/pricing.ts to prevent drift
+ * between SEO pages and actual x402 payment verification
  */
+
+import { SERVICE_PRICING_USD, formatUSD, ServiceName, isServiceName } from "../../shared/pricing";
 
 interface ServiceCatalogEntry {
   id: string;
@@ -20,6 +25,19 @@ interface ServiceCatalogEntry {
   capabilities: string[];
   x402Compatible: boolean;
   stripeCompatible: boolean;
+}
+
+// Helper to get price from canonical source, with fallback for non-standard services
+function getCanonicalPrice(serviceId: string): { priceUSD: string; priceUSDC: string } {
+  if (isServiceName(serviceId)) {
+    const price = SERVICE_PRICING_USD[serviceId as ServiceName];
+    return {
+      priceUSD: formatUSD(price),
+      priceUSDC: `${price.toFixed(2)} USDC`
+    };
+  }
+  // Non-standard services (SDK payments with percentage-based pricing)
+  return { priceUSD: 'Variable', priceUSDC: 'Variable' };
 }
 
 interface ServiceCatalog {
@@ -62,7 +80,9 @@ export class ServiceCatalogService {
   }
 
   private buildCatalog(): void {
-    this.catalog = [
+    // Build catalog with canonical pricing from shared/pricing.ts
+    // This prevents price drift between SEO pages and x402 payment verification
+    const rawCatalog: Omit<ServiceCatalogEntry, 'priceUSD' | 'priceUSDC'>[] = [
       // Discovery & Testing (1)
       // NOTE: Endpoints use /x402/{service} format (not /x402/service/{service})
       {
@@ -70,8 +90,6 @@ export class ServiceCatalogService {
         name: 'x402 Discovery Ping',
         description: 'x402 discovery and testing endpoint - returns 402 Payment Required challenge',
         endpoint: '/x402/ping',
-        priceUSD: '$0.25',
-        priceUSDC: '0.25 USDC',
         network: 'eip155:8453',
         category: 'discovery',
         capabilities: ['ping', 'health-check', 'x402-test'],
@@ -84,8 +102,6 @@ export class ServiceCatalogService {
         name: 'AI Trade Signals',
         description: 'Real-time AI-powered trading signals with entry/exit points',
         endpoint: '/x402/trade-signals',
-        priceUSD: '$0.75',
-        priceUSDC: '0.75 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['signals', 'ai-analysis', 'entry-exit'],
@@ -97,8 +113,6 @@ export class ServiceCatalogService {
         name: 'Wallet Risk Analysis',
         description: 'Comprehensive risk scoring for any blockchain wallet',
         endpoint: '/x402/wallet-risk',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['risk-assessment', 'wallet-analysis', 'fraud-detection'],
@@ -110,8 +124,6 @@ export class ServiceCatalogService {
         name: 'Deep Token Analysis',
         description: 'Full token fundamentals, security analysis, and holder distribution',
         endpoint: '/x402/token-sentiment',
-        priceUSD: '$0.25',
-        priceUSDC: '0.25 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['token-audit', 'holder-analysis', 'liquidity-check'],
@@ -123,8 +135,6 @@ export class ServiceCatalogService {
         name: 'Whale Movement Alerts',
         description: 'Real-time whale transaction monitoring and alerts',
         endpoint: '/x402/whale-alerts',
-        priceUSD: '$0.35',
-        priceUSDC: '0.35 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['whale-tracking', 'large-transactions', 'alerts'],
@@ -136,8 +146,6 @@ export class ServiceCatalogService {
         name: 'Trending Tokens Scanner',
         description: 'Track trending tokens and market momentum across chains',
         endpoint: '/x402/trending-tokens',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['trending', 'momentum', 'market-analysis'],
@@ -149,8 +157,6 @@ export class ServiceCatalogService {
         name: 'Social Sentiment Analysis',
         description: 'AI-powered sentiment analysis from Twitter, Reddit, Discord',
         endpoint: '/x402/sentiment-analysis',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['sentiment', 'social-media', 'ai-analysis'],
@@ -162,8 +168,6 @@ export class ServiceCatalogService {
         name: 'DEX Liquidity Analysis',
         description: 'Cross-DEX liquidity depth and best execution routing',
         endpoint: '/x402/dex-liquidity',
-        priceUSD: '$0.20',
-        priceUSDC: '0.20 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['liquidity', 'dex-routing', 'slippage-estimation'],
@@ -175,8 +179,6 @@ export class ServiceCatalogService {
         name: 'Smart Contract Security Audit',
         description: 'AI-powered smart contract vulnerability detection',
         endpoint: '/x402/contract-scan',
-        priceUSD: '$1.00',
-        priceUSDC: '1.00 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['security-audit', 'vulnerability-scan', 'ai-analysis'],
@@ -188,8 +190,6 @@ export class ServiceCatalogService {
         name: 'Portfolio Optimization',
         description: 'AI-powered portfolio rebalancing and yield optimization',
         endpoint: '/x402/portfolio-optimization',
-        priceUSD: '$2.00',
-        priceUSDC: '2.00 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['defi-yields', 'farm-optimization', 'apy-comparison'],
@@ -201,8 +201,6 @@ export class ServiceCatalogService {
         name: 'Token Price Oracle',
         description: 'Real-time token pricing across DEXs and exchanges',
         endpoint: '/x402/token-price',
-        priceUSD: '$0.25',
-        priceUSDC: '0.25 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['pricing', 'dex-prices', 'exchange-rates'],
@@ -214,8 +212,6 @@ export class ServiceCatalogService {
         name: 'Portfolio Tracker',
         description: 'Track portfolio performance and holdings across chains',
         endpoint: '/x402/portfolio-tracker',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['portfolio-analysis', 'holdings', 'performance'],
@@ -227,8 +223,6 @@ export class ServiceCatalogService {
         name: 'Multi-Chain Balance',
         description: 'Get wallet balances across all supported chains',
         endpoint: '/x402/multi-chain-balance',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['balances', 'multi-chain', 'wallet-info'],
@@ -240,8 +234,6 @@ export class ServiceCatalogService {
         name: 'Cross-Chain Arbitrage Scanner',
         description: 'Identify arbitrage opportunities across 7 blockchains',
         endpoint: '/x402/arbitrage-scanner',
-        priceUSD: '$1.25',
-        priceUSDC: '1.25 USDC',
         network: 'eip155:8453',
         category: 'trading-intelligence',
         capabilities: ['arbitrage', 'cross-chain', 'opportunity-detection'],
@@ -254,8 +246,6 @@ export class ServiceCatalogService {
         name: 'Multi-Chain Gas Oracle',
         description: 'Real-time gas prices across all supported networks',
         endpoint: '/x402/gas-price-oracle',
-        priceUSD: '$0.10',
-        priceUSDC: '0.10 USDC',
         network: 'eip155:8453',
         category: 'execution',
         capabilities: ['gas-prices', 'multi-chain', 'fee-estimation'],
@@ -267,8 +257,6 @@ export class ServiceCatalogService {
         name: 'Transaction Builder',
         description: 'Build and simulate transactions before execution',
         endpoint: '/x402/transaction-builder',
-        priceUSD: '$0.30',
-        priceUSDC: '0.30 USDC',
         network: 'eip155:8453',
         category: 'execution',
         capabilities: ['simulation', 'tx-building', 'gas-estimation'],
@@ -280,8 +268,6 @@ export class ServiceCatalogService {
         name: 'Batch Quote',
         description: 'Get quotes for multiple token swaps in a single call',
         endpoint: '/x402/batch-quote',
-        priceUSD: '$0.40',
-        priceUSDC: '0.40 USDC',
         network: 'eip155:8453',
         category: 'execution',
         capabilities: ['mev-protection', 'bundle-creation', 'flashbots'],
@@ -293,8 +279,6 @@ export class ServiceCatalogService {
         name: 'Cross-Chain Bridge',
         description: 'Seamless cross-chain token bridging',
         endpoint: '/x402/seamless-chain-bridge',
-        priceUSD: '$2.00',
-        priceUSDC: '2.00 USDC',
         network: 'eip155:8453',
         category: 'execution',
         capabilities: ['bridging', 'cross-chain', 'route-optimization'],
@@ -307,8 +291,6 @@ export class ServiceCatalogService {
         name: 'Smart Contract Audit',
         description: 'Comprehensive smart contract security audit',
         endpoint: '/x402/service/smart-contract-audit',
-        priceUSD: '$10.00',
-        priceUSDC: '10.00 USDC',
         network: 'eip155:8453',
         category: 'premium',
         capabilities: ['security-audit', 'vulnerability-detection', 'best-practices'],
@@ -320,8 +302,6 @@ export class ServiceCatalogService {
         name: 'Trading Signal',
         description: 'AI-powered trading signals with entry/exit points',
         endpoint: '/x402/trading-signal',
-        priceUSD: '$1.00',
-        priceUSDC: '1.00 USDC',
         network: 'eip155:8453',
         category: 'premium',
         capabilities: ['signals', 'entry-exit', 'ai-analysis'],
@@ -333,8 +313,6 @@ export class ServiceCatalogService {
         name: 'Payment Processing',
         description: 'Cross-chain payment processing and settlement',
         endpoint: '/x402/service/payment-processing',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'premium',
         capabilities: ['payments', 'settlement', 'multi-currency'],
@@ -346,8 +324,6 @@ export class ServiceCatalogService {
         name: 'Verified Agent Identity (KYA)',
         description: 'Know-Your-Agent identity verification with on-chain reputation and ERC-8004 compliance scoring',
         endpoint: '/x402/verified-agent-identity',
-        priceUSD: '$5.00',
-        priceUSDC: '5.00 USDC',
         network: 'eip155:8453',
         category: 'premium',
         capabilities: ['kya', 'identity-verification', 'erc-8004', 'reputation', 'compliance'],
@@ -359,8 +335,6 @@ export class ServiceCatalogService {
         name: 'Compliance Consultation',
         description: 'Expert compliance consultation for crypto operations and regulatory requirements',
         endpoint: '/x402/compliance-consultation',
-        priceUSD: '$5.00',
-        priceUSDC: '5.00 USDC',
         network: 'eip155:8453',
         category: 'premium',
         capabilities: ['compliance', 'regulatory', 'consultation', 'aml', 'kyc'],
@@ -372,8 +346,6 @@ export class ServiceCatalogService {
         name: 'Agent Wallet Provisioning',
         description: 'Create CDP-managed wallets for AI agents with instant USDC support on Base',
         endpoint: '/x402/agent-create-wallet',
-        priceUSD: '$2.00',
-        priceUSDC: '2.00 USDC',
         network: 'eip155:8453',
         category: 'execution',
         capabilities: ['wallet-creation', 'cdp-wallet', 'agent-provisioning', 'usdc-ready'],
@@ -386,8 +358,6 @@ export class ServiceCatalogService {
         name: 'AI Property Valuation',
         description: 'AI-powered real estate valuation with tokenization analysis',
         endpoint: '/x402/property-valuation',
-        priceUSD: '$0.75',
-        priceUSDC: '0.75 USDC',
         network: 'eip155:8453',
         category: 'real-estate',
         capabilities: ['property-value', 'tokenization', 'market-analysis'],
@@ -399,8 +369,6 @@ export class ServiceCatalogService {
         name: 'Lease Analysis',
         description: 'AI-powered lease terms analysis and optimization',
         endpoint: '/x402/lease-analysis',
-        priceUSD: '$1.00',
-        priceUSDC: '1.00 USDC',
         network: 'eip155:8453',
         category: 'real-estate',
         capabilities: ['lease-review', 'term-analysis', 'optimization'],
@@ -412,8 +380,6 @@ export class ServiceCatalogService {
         name: 'Construction Progress Tracking',
         description: 'Track and verify construction project progress',
         endpoint: '/x402/construction-progress',
-        priceUSD: '$1.50',
-        priceUSDC: '1.50 USDC',
         network: 'eip155:8453',
         category: 'real-estate',
         capabilities: ['progress-tracking', 'milestone-verification', 'reporting'],
@@ -426,8 +392,6 @@ export class ServiceCatalogService {
         name: 'DeFi Credit Score',
         description: 'On-chain credit scoring for DeFi lending protocols',
         endpoint: '/x402/credit-risk-score',
-        priceUSD: '$1.25',
-        priceUSDC: '1.25 USDC',
         network: 'eip155:8453',
         category: 'banking',
         capabilities: ['credit-score', 'defi-lending', 'risk-assessment'],
@@ -439,8 +403,6 @@ export class ServiceCatalogService {
         name: 'AML/KYC Compliance Check',
         description: 'Wallet compliance screening for regulated entities',
         endpoint: '/x402/compliance-check',
-        priceUSD: '$1.75',
-        priceUSDC: '1.75 USDC',
         network: 'eip155:8453',
         category: 'banking',
         capabilities: ['aml-screening', 'kyc-check', 'sanctions-list'],
@@ -452,8 +414,6 @@ export class ServiceCatalogService {
         name: 'Fraud Detection',
         description: 'AI-powered fraud and suspicious activity detection',
         endpoint: '/x402/fraud-detection',
-        priceUSD: '$0.75',
-        priceUSDC: '0.75 USDC',
         network: 'eip155:8453',
         category: 'banking',
         capabilities: ['fraud-detection', 'risk-assessment', 'anomaly-detection'],
@@ -466,8 +426,6 @@ export class ServiceCatalogService {
         name: 'Risk Metrics Dashboard',
         description: 'Comprehensive risk metrics and analytics',
         endpoint: '/x402/risk-metrics',
-        priceUSD: '$1.00',
-        priceUSDC: '1.00 USDC',
         network: 'eip155:8453',
         category: 'trading',
         capabilities: ['risk-metrics', 'analytics', 'dashboards'],
@@ -479,8 +437,6 @@ export class ServiceCatalogService {
         name: 'Instant Agent Wallet',
         description: 'Create CDP wallet for AI agents instantly',
         endpoint: '/x402/instant-agent-wallet',
-        priceUSD: '$1.00',
-        priceUSDC: '1.00 USDC',
         network: 'eip155:8453',
         category: 'trading',
         capabilities: ['wallet-creation', 'cdp-wallet', 'agent-onboarding'],
@@ -492,8 +448,6 @@ export class ServiceCatalogService {
         name: 'Token Metadata',
         description: 'Get comprehensive token metadata and information',
         endpoint: '/x402/token-metadata',
-        priceUSD: '$0.10',
-        priceUSDC: '0.10 USDC',
         network: 'eip155:8453',
         category: 'trading',
         capabilities: ['metadata', 'token-info', 'contract-details'],
@@ -506,8 +460,6 @@ export class ServiceCatalogService {
         name: 'Asset Correlation Matrix',
         description: 'Cross-asset correlation analysis for portfolio diversification',
         endpoint: '/x402/correlation-matrix',
-        priceUSD: '$0.75',
-        priceUSDC: '0.75 USDC',
         network: 'eip155:8453',
         category: 'market-intelligence',
         capabilities: ['correlation-analysis', 'diversification', 'risk-metrics'],
@@ -519,8 +471,6 @@ export class ServiceCatalogService {
         name: 'Token Approval Manager',
         description: 'Manage and revoke token approvals for security',
         endpoint: '/x402/approval-manager',
-        priceUSD: '$0.20',
-        priceUSDC: '0.20 USDC',
         network: 'eip155:8453',
         category: 'market-intelligence',
         capabilities: ['approvals', 'security', 'wallet-safety'],
@@ -533,8 +483,6 @@ export class ServiceCatalogService {
         name: 'Polymarket Odds',
         description: 'Get current odds from Polymarket prediction markets',
         endpoint: '/x402/polymarket-odds',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'prediction-markets',
         capabilities: ['prediction-markets', 'odds', 'polymarket'],
@@ -546,8 +494,6 @@ export class ServiceCatalogService {
         name: 'Polymarket Events',
         description: 'Get trending events from Polymarket',
         endpoint: '/x402/polymarket-events',
-        priceUSD: '$0.25',
-        priceUSDC: '0.25 USDC',
         network: 'eip155:8453',
         category: 'prediction-markets',
         capabilities: ['events', 'trending', 'polymarket'],
@@ -559,8 +505,6 @@ export class ServiceCatalogService {
         name: 'Polymarket Search',
         description: 'Search Polymarket prediction markets',
         endpoint: '/x402/polymarket-search',
-        priceUSD: '$0.25',
-        priceUSDC: '0.25 USDC',
         network: 'eip155:8453',
         category: 'prediction-markets',
         capabilities: ['search', 'discovery', 'polymarket'],
@@ -572,8 +516,6 @@ export class ServiceCatalogService {
         name: 'Prediction Market Odds',
         description: 'Get current odds and probability for any prediction market event',
         endpoint: '/x402/prediction-market-odds',
-        priceUSD: '$0.50',
-        priceUSDC: '0.50 USDC',
         network: 'eip155:8453',
         category: 'prediction-markets',
         capabilities: ['prediction-markets', 'odds', 'polymarket', 'probability'],
@@ -586,8 +528,6 @@ export class ServiceCatalogService {
         name: 'Stock Sentiment Analysis',
         description: 'AI-powered stock market sentiment analysis with news, technicals, and institutional activity',
         endpoint: '/x402/stock-sentiment',
-        priceUSD: '$0.40',
-        priceUSDC: '0.40 USDC',
         network: 'eip155:8453',
         category: 'traditional-markets',
         capabilities: ['stock-analysis', 'equity-sentiment', 'market-intelligence', 'ai-analysis'],
@@ -599,8 +539,6 @@ export class ServiceCatalogService {
         name: 'Forex Sentiment Analysis',
         description: 'AI-powered forex currency pair sentiment analysis with economic and central bank insights',
         endpoint: '/x402/forex-sentiment',
-        priceUSD: '$0.40',
-        priceUSDC: '0.40 USDC',
         network: 'eip155:8453',
         category: 'traditional-markets',
         capabilities: ['forex-analysis', 'currency-sentiment', 'economic-analysis', 'ai-analysis'],
@@ -613,8 +551,6 @@ export class ServiceCatalogService {
         name: 'SDK Payment Processing (EVM)',
         description: 'Non-custodial USDC payment processing for AI agents via @coinrailz/agent-payments NPM or coinrailz PyPI. Processing fee: 1.5% + $0.01 per transaction. Supports Base, Ethereum, Polygon, Arbitrum, BSC, Optimism.',
         endpoint: '/api/sdk/payments/send',
-        priceUSD: '1.5% + $0.01',
-        priceUSDC: '1.5% + $0.01 USDC',
         network: 'eip155:8453',
         category: 'sdk-payments',
         capabilities: ['payments', 'usdc-transfer', 'agent-payments', 'non-custodial', 'cdp-wallets', 'multi-chain'],
@@ -626,8 +562,6 @@ export class ServiceCatalogService {
         name: 'SDK Payment Processing (Solana)',
         description: 'Non-custodial SOL/USDC payment processing for AI agents via @coinrailz/agent-payments-solana NPM or coinrailz-solana PyPI. Processing fee: 1.5% + $0.01 per transaction.',
         endpoint: '/api/sdk/solana/payments/send',
-        priceUSD: '1.5% + $0.01',
-        priceUSDC: '1.5% + $0.01 SOL/USDC',
         network: 'solana:101',
         category: 'sdk-payments',
         capabilities: ['payments', 'sol-transfer', 'usdc-transfer', 'agent-payments', 'non-custodial', 'solana'],
@@ -636,7 +570,19 @@ export class ServiceCatalogService {
       }
     ];
 
-    console.log(`📚 ServiceCatalogService: Built catalog with ${this.catalog.length} services`);
+    // CRITICAL: Apply canonical pricing from shared/pricing.ts
+    // This prevents price drift between SEO pages and x402 payment verification
+    // SDK payment services use percentage-based pricing, handled by getCanonicalPrice fallback
+    this.catalog = rawCatalog.map(entry => {
+      const pricing = getCanonicalPrice(entry.id);
+      return {
+        ...entry,
+        priceUSD: pricing.priceUSD,
+        priceUSDC: pricing.priceUSDC
+      };
+    });
+
+    console.log(`📚 ServiceCatalogService: Built catalog with ${this.catalog.length} services (prices derived from shared/pricing.ts)`);
   }
 
   /**

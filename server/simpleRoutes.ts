@@ -12325,11 +12325,17 @@ Let's see which AI platform has the most powerful and supportive agent ecosystem
   });
 
   // Service catalog endpoint for SEO-indexable landing pages
-  app.get('/api/services/catalog', async (req, res) => {
+  // Rate limited and cached to prevent abuse while allowing SEO bots
+  const catalogRateLimit = createRateLimit(60, 60000); // 60 requests per minute per IP
+  app.get('/api/services/catalog', catalogRateLimit, async (req, res) => {
     try {
       const { ServiceCatalogService } = await import('./services/serviceCatalogService');
       const catalogService = ServiceCatalogService.getInstance();
       const catalog = catalogService.getCatalog();
+      
+      // Cache for 5 minutes - allows fast responses for SEO crawlers
+      // but prices update reasonably quickly if changed
+      res.set('Cache-Control', 'public, max-age=300');
       res.json(catalog);
     } catch (error) {
       console.error('Error fetching service catalog:', error);

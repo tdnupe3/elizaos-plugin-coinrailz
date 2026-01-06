@@ -92,12 +92,101 @@ class AutonomousDiscoveryService {
       sitemap += `    <priority>1.0</priority>\n`;
       sitemap += `  </url>\n`;
 
-      // NOTE: Removed API endpoints (/api/*, /x402/*, /.well-known/*, /api/gpt/*)
-      // These return 400/401/402/404 which cause Google Search Console errors:
-      // - Soft 404 (API endpoints returning error JSON)
-      // - Blocked due to unauthorized request (401)
-      // - Blocked due to other 4xx (402 payment required)
-      // Only human-readable HTML pages should be in the sitemap for proper SEO
+      // Agent directory
+      sitemap += `  <url>\n`;
+      sitemap += `    <loc>${baseUrl}/api/agents/directory</loc>\n`;
+      sitemap += `    <lastmod>${now}</lastmod>\n`;
+      sitemap += `    <priority>0.9</priority>\n`;
+      sitemap += `  </url>\n`;
+
+      // x402 endpoints
+      const x402Endpoints = [
+        '/api/x402/capabilities',
+        '/api/x402/create-payment',
+        '/.well-known/x402.json',
+        '/.well-known/agent.json',
+        // x402 ping service
+        '/x402/ping',
+        '/x402',
+        // Original 21 x402 services
+        '/x402/multi-chain-balance',
+        '/x402/gas-price-oracle',
+        '/x402/token-price',
+        '/x402/contract-scan',
+        '/x402/wallet-risk',
+        '/x402/trade-signals',
+        '/x402/token-sentiment',
+        '/x402/trending-tokens',
+        '/x402/portfolio-tracker',
+        '/x402/batch-quote',
+        '/x402/whale-alerts',
+        '/x402/transaction-builder',
+        '/x402/token-metadata',
+        '/x402/dex-liquidity',
+        '/x402/approval-manager',
+        '/x402/payment-processing',
+        '/x402/instant-agent-wallet',
+        '/x402/agent-create-wallet',
+        '/x402/seamless-chain-bridge',
+        '/x402/verified-agent-identity',
+        '/x402/service/smart-contract-audit',
+        '/x402/service/payment-processing',
+        '/x402/service/compliance-consultation',
+        // New 12 vertical expansion services
+        '/x402/property-valuation',
+        '/x402/lease-analysis',
+        '/x402/construction-progress',
+        '/x402/credit-risk-score',
+        '/x402/fraud-detection',
+        '/x402/compliance-check',
+        '/x402/trading-signal',
+        '/x402/portfolio-optimization',
+        '/x402/sentiment-analysis',
+        '/x402/arbitrage-scanner',
+        '/x402/correlation-matrix',
+        '/x402/risk-metrics',
+        // Polymarket prediction market services (4 services)
+        '/x402/polymarket-events',
+        '/x402/polymarket-odds',
+        '/x402/polymarket-search',
+        '/x402/prediction-market-odds',
+        // Traditional markets services (2 services) - added Dec 2025
+        '/x402/stock-sentiment',
+        '/x402/forex-sentiment'
+      ];
+      
+      // GPT Action endpoints for ChatGPT integration
+      const gptEndpoints = [
+        '/api/gpt/credits-info',
+        '/api/gpt/gas-prices',
+        '/api/gpt/token-info',
+        '/api/gpt/trending',
+        '/api/gpt/wallet-analysis',
+        '/api/gpt/trade-signals',
+        '/api/gpt/polymarket',
+        '/api/gpt/stock-sentiment',
+        '/api/gpt/forex-sentiment',
+        '/api/gpt/instant-wallet',
+        '/api/gpt/arbitrage-scanner',
+        '/api/gpt/multi-chain-balance',
+        '/openapi-chatgpt.json'
+      ];
+      
+      for (const endpoint of x402Endpoints) {
+        sitemap += `  <url>\n`;
+        sitemap += `    <loc>${baseUrl}${endpoint}</loc>\n`;
+        sitemap += `    <lastmod>${now}</lastmod>\n`;
+        sitemap += `    <priority>0.9</priority>\n`;
+        sitemap += `  </url>\n`;
+      }
+      
+      for (const endpoint of gptEndpoints) {
+        sitemap += `  <url>\n`;
+        sitemap += `    <loc>${baseUrl}${endpoint}</loc>\n`;
+        sitemap += `    <lastmod>${now}</lastmod>\n`;
+        sitemap += `    <priority>0.8</priority>\n`;
+        sitemap += `  </url>\n`;
+      }
 
       // SEO Service Pages - Server-side rendered, fully indexable (43 services)
       // These are the PRIMARY pages for Google to index (return 200 OK with full content)
@@ -219,9 +308,14 @@ class AutonomousDiscoveryService {
         sitemap += `  </url>\n`;
       }
 
-      // NOTE: Removed agent card JSON files from sitemap
-      // JSON endpoints are for machine consumption, not SEO
-      // Google expects HTML pages, not JSON files in sitemaps
+      // Individual agent cards
+      for (const agent of agents) {
+        sitemap += `  <url>\n`;
+        sitemap += `    <loc>${baseUrl}/agent/${agent.id}/.well-known/agent-card.json</loc>\n`;
+        sitemap += `    <lastmod>${now}</lastmod>\n`;
+        sitemap += `    <priority>0.8</priority>\n`;
+        sitemap += `  </url>\n`;
+      }
 
       sitemap += '</urlset>';
 

@@ -153,7 +153,7 @@ URGENCY LEVEL: ${dao.urgencyLevel}
 RESPONSE NEEDED: Within 48 hours
 
 Platform: coinrailz.com
-Emergency Contact: partnerships@coinrailz.com
+Emergency Contact: support@coinrailz.com
 
 From: Coin Railz Emergency Fund Recovery Team`;
   }

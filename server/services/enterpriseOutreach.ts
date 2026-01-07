@@ -353,7 +353,7 @@ export class EnterpriseOutreachService {
             },
             body: JSON.stringify({
               company: 'CoinRailz',
-              email: 'partnerships@coinrailz.com',
+              email: 'support@coinrailz.com',
               subject: `Partnership Opportunity: ${target.dealSize} Revenue Share`,
               message: message,
               dealSize: target.dealSize,
@@ -419,7 +419,7 @@ Next steps:
 Reply for immediate partnership discussion.
 
 CoinRailz Team
-partnerships@coinrailz.com
+support@coinrailz.com
 Campaign: ${campaign.id}`;
   }
 
@@ -478,14 +478,14 @@ Campaign: ${campaign.id}`;
             <li>Pilot program launch within 2 weeks</li>
         </ol>
         
-        <a href="mailto:partnerships@coinrailz.com?subject=Partnership%20Discussion%20-%20${encodeURIComponent(target.company)}" class="cta">Schedule Partnership Call</a>
+        <a href="mailto:support@coinrailz.com?subject=Partnership%20Discussion%20-%20${encodeURIComponent(target.company)}" class="cta">Schedule Partnership Call</a>
         
         <p>I'm available for an immediate call to discuss this ${target.dealSize} opportunity.</p>
         
         <p>Best regards,<br>
         <strong>Partnership Team</strong><br>
         CoinRailz | Crypto Payment Infrastructure<br>
-        📧 partnerships@coinrailz.com<br>
+        📧 support@coinrailz.com<br>
         🌐 https://coinrailz.com</p>
     </div>
     

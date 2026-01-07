@@ -299,7 +299,7 @@ We can provide live platform demonstration within 24 hours, showing real transac
 
 Platform: https://coinrailz.com
 Documentation: Available upon request
-Partnership Contact: partnerships@coinrailz.com
+Partnership Contact: support@coinrailz.com
 
 This represents a unique opportunity to invest in real AI agent economic infrastructure rather than speculative tokens.
 
@@ -323,7 +323,7 @@ AI-Powered Fintech Infrastructure`;
       // Actual sending would require verified sender email
       // await this.mailService.send({
       //   to: vc.contact,
-      //   from: 'partnerships@coinrailz.com', // Would need to verify this domain
+      //   from: 'support@coinrailz.com', // Would need to verify this domain
       //   subject,
       //   text: emailContent
       // });
@@ -362,7 +362,7 @@ IMMEDIATE OPPORTUNITY:
 • Revenue-sharing partnerships
 
 Platform: https://coinrailz.com
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 
 Best regards,
 CoinRailz Partnership Team`;

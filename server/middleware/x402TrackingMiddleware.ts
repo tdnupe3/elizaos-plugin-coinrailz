@@ -131,7 +131,12 @@ export function x402TrackingMiddleware(req: Request, res: Response, next: NextFu
       return;
     }
     
-    const walletAddress = extractWalletAddress(req);
+    const walletAddress = extractWalletAddress(req, res);
+    
+    // Log wallet address capture for paid interactions
+    if (paid && walletAddress) {
+      console.log(`💳 WALLET CAPTURED: ${walletAddress} for service ${serviceId} (from payment verification)`);
+    }
     
     // ChatGPT-recommended: Track retry behavior for post-402 analysis
     const hasPaymentHeader = !!req.get('x-payment');
@@ -322,7 +327,25 @@ function extractServiceId(path: string): string | null {
   return null;
 }
 
-function extractWalletAddress(req: Request): string | undefined {
+function extractWalletAddress(req: Request, res?: Response): string | undefined {
+  // Priority order for wallet address extraction:
+  // 1. res.locals.payment.payer - from verified on-chain payment (most reliable)
+  // 2. res.locals.payment.payerWallet - alternative field name
+  // 3. req.body fields - from request payload
+  // 4. Query params and headers - from URL/headers
+  
+  // Check res.locals.payment for payer wallet (set by payment verification)
+  if (res?.locals?.payment?.payer) {
+    return res.locals.payment.payer;
+  }
+  if (res?.locals?.payment?.payerWallet) {
+    return res.locals.payment.payerWallet;
+  }
+  if (res?.locals?.payment?.senderAddress) {
+    return res.locals.payment.senderAddress;
+  }
+  
+  // Fall back to request data
   return (
     req.body?.walletAddress ||
     req.body?.fromAddress ||

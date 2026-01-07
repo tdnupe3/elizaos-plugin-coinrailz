@@ -552,7 +552,7 @@ Coin Railz has built comprehensive payment infrastructure that could accelerate 
 
 Interested in exploring synergies? Let's discuss how we can grow the {ecosystem} ecosystem together.
 
-Contact: partnerships@coinrailz.com`,
+Contact: support@coinrailz.com`,
         targetAudience: "AI agent platforms and ecosystems"
       }
     };

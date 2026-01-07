@@ -129,7 +129,7 @@ export class BlockchainMessagingService {
    * 📝 Generate COMPACT partnership message for blockchain transmission
    */
   private generateMessage(target: BlockchainTarget): string {
-    return `COINRAILZ ${target.dealSize} PARTNERSHIP ALERT: ${target.valueProposition} Enterprise crypto payment infrastructure ready. Contact partnerships@coinrailz.com for immediate ${target.dealSize} revenue opportunity. Platform: coinrailz.com From: ${this.platformWallet.address}`;
+    return `COINRAILZ ${target.dealSize} PARTNERSHIP ALERT: ${target.valueProposition} Enterprise crypto payment infrastructure ready. Contact support@coinrailz.com for immediate ${target.dealSize} revenue opportunity. Platform: coinrailz.com From: ${this.platformWallet.address}`;
   }
 
   /**

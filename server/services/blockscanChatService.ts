@@ -97,7 +97,7 @@ We offer enterprise payment SDK licensing ($2K-$200K annually) for:
 Partnership opportunity: ${target.dealSize}
 
 Platform: coinrailz.com
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 
 From: Coin Railz Platform Wallet`;
 

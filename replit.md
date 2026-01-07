@@ -100,11 +100,14 @@ Result: Fee retained by construction
 | **SDK error docs + republish** | Add error codes/hints documentation to SDK READMEs, republish all 4 packages | LOW (2-3 hrs) |
 | **Service delivery automation** | Background job queue for async services | LOW |
 
-### Recently Fixed (Jan 4, 2026) ✅
+### Recently Fixed (Jan 7, 2026) ✅
 
 | Component | Fix Applied |
 |-----------|-------------|
-| **Machine-Readable Error Responses** | NEW: Payment errors now return structured JSON with error codes, human messages, agent hints, and expected format examples. AI agents can programmatically understand and self-correct payment failures. Error codes: `PAYMENT_INVALID_TX_HASH_LENGTH`, `PAYMENT_DECODE_FAILED`, `PAYMENT_VERIFICATION_FAILED`, etc. |
+| **Payer Wallet Capture (EVM)** | NEW: `verifyTransactionPayment` now returns `TransactionVerificationResult` with `senderAddress`, `paymentAmount`, `paymentToken`. Extracts payer from Transfer event logs, falls back to `receipt.from` for router/bridge payments. All x402 interactions now log wallet address for customer identification. |
+| **On-Chain Outreach to AI Agents** | EXECUTED: Sent wallet-to-wallet messages to Luna Virtuals (Base: 0x4bed7e63...) and Truth Terminal (Solana: 23vNndf9...). Permanent on-chain transaction records for business development. |
+| **Email Correction** | FIXED: Changed partnerships@coinrailz.com to support@coinrailz.com across 13+ files. |
+| **Machine-Readable Error Responses** | Payment errors now return structured JSON with error codes, human messages, agent hints, and expected format examples. AI agents can programmatically understand and self-correct payment failures. Error codes: `PAYMENT_INVALID_TX_HASH_LENGTH`, `PAYMENT_DECODE_FAILED`, `PAYMENT_VERIFICATION_FAILED`, etc. |
 | **Early Payment Header Validation** | NEW: X-PAYMENT header is validated before decode attempt. Catches malformed tx hashes (wrong length, invalid chars) and binary garbage with helpful error messages. |
 | **Instant API Key Multi-chain** | Payment orchestrator advertises 4 payment options (Base/USDC, Base/USDT, Solana/USDC, Solana/USDT). Security-hardened Solana verification using balance delta approach. |
 | **Instant API Key Rate Limiting** | NEW: `instant_api_key_grants` table prevents $5 starter credit abuse (30-day per-wallet limit). |

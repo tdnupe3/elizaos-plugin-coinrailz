@@ -283,7 +283,7 @@ Based on your ${agent.monthlyReach.toLocaleString()} monthly reach, you could ea
 • Real-time dashboard access
 • Priority support for your users
 
-Contact us to activate this partnership: partnerships@coinrailz.com
+Contact us to activate this partnership: support@coinrailz.com
 
 Looking forward to a profitable collaboration!
 

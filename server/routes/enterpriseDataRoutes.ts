@@ -295,7 +295,7 @@ router.get('/products', async (req: Request, res: Response) => {
       contact: {
         sales: 'sales@coinrailz.com',
         technical: 'data-support@coinrailz.com',
-        partnerships: 'partnerships@coinrailz.com'
+        partnerships: 'support@coinrailz.com'
       }
     });
 

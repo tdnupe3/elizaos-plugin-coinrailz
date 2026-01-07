@@ -181,7 +181,7 @@ Immediate opportunity: $5K-$200K strategic partnership with technical collaborat
 Your investment in ${target.recentInvestments.join(', ')} shows you understand the potential. We're ready to demonstrate live value within 24 hours.
 
 Platform: coinrailz.com
-Partnership: partnerships@coinrailz.com`;
+Partnership: support@coinrailz.com`;
   }
 
   public getTargetAnalysis(): {

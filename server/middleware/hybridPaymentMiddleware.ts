@@ -359,11 +359,18 @@ export async function hybridPaymentMiddleware(req: Request, res: Response, next:
  * 
  * EXPORTED for use by payment orchestrator
  */
+export interface TransactionVerificationResult {
+  verified: boolean;
+  senderAddress?: string;
+  paymentAmount?: number;
+  paymentToken?: 'USDC' | 'USDT';
+}
+
 export async function verifyTransactionPayment(
   txHash: string,
   serviceName: string,
   requiredAmount: number
-): Promise<boolean> {
+): Promise<TransactionVerificationResult> {
   const MAX_RETRIES = 3;
   const INTENT_TTL_MS = 15 * 60 * 1000; // 15 minutes
   
@@ -387,7 +394,7 @@ export async function verifyTransactionPayment(
       // Check if intent is SUCCEEDED - block replay
       if (existingIntent.status === "SUCCEEDED") {
         console.log(`⚠️ Payment intent already SUCCEEDED for ${txHash} + ${serviceName}`);
-        return false;
+        return { verified: false };
       }
       
       // Check if intent is expired
@@ -401,7 +408,7 @@ export async function verifyTransactionPayment(
       else if (existingIntent.status === "FAILED" || existingIntent.status === "ALLOW_RETRY") {
         if (existingIntent.retries >= MAX_RETRIES) {
           console.log(`❌ Max retries exceeded for ${txHash} + ${serviceName}`);
-          return false;
+          return { verified: false };
         }
         console.log(`🔄 Allowing retry ${existingIntent.retries + 1}/${MAX_RETRIES} for ${txHash}`);
         // Will update to PENDING below
@@ -415,7 +422,7 @@ export async function verifyTransactionPayment(
           // Will update to PENDING below with new timestamp
         } else {
           console.log(`⏳ Payment intent already PENDING for ${txHash}, rejecting concurrent request`);
-          return false;
+          return { verified: false };
         }
       }
     }
@@ -425,12 +432,12 @@ export async function verifyTransactionPayment(
     
     if (!receipt) {
       console.log(`❌ Transaction not found: ${txHash}`);
-      return false;
+      return { verified: false };
     }
 
     if (receipt.status !== 1) {
       console.log(`❌ Transaction failed on-chain: ${txHash}`);
-      return false;
+      return { verified: false };
     }
 
     // Parse stablecoin Transfer event logs (USDC or USDT)
@@ -475,12 +482,28 @@ export async function verifyTransactionPayment(
 
     if (!paymentFound) {
       console.log(`❌ No USDC/USDT payment to platform wallet found in transaction`);
-      return false;
+      return { verified: false };
     }
 
     if (paymentAmount < requiredAmount) {
       console.log(`❌ Insufficient payment: ${paymentAmount} < ${requiredAmount}`);
-      return false;
+      return { verified: false };
+    }
+    
+    // Validate sender address - fall back to receipt.from if Transfer sender is missing or null address
+    // This handles cases where payment is routed through a contract (bridge, router, etc.)
+    const isValidAddress = (addr: string) => 
+      addr && addr !== "" && addr !== "0x0000000000000000000000000000000000000000";
+    
+    if (!isValidAddress(senderAddress)) {
+      // Fall back to transaction sender (receipt.from)
+      if (receipt.from && isValidAddress(receipt.from)) {
+        console.log(`⚠️ Transfer sender invalid, falling back to receipt.from: ${receipt.from}`);
+        senderAddress = receipt.from;
+      } else {
+        console.log(`❌ Could not extract valid sender address from transaction logs or receipt`);
+        return { verified: false };
+      }
     }
 
     // STEP 3: Create or update payment intent as PENDING
@@ -529,9 +552,14 @@ export async function verifyTransactionPayment(
       console.log(`📝 Created payment intent ${intentId} with status PENDING (token: ${paymentToken})`);
     }
 
-    // STEP 4: Return true - orchestrator will mark SUCCEEDED after handler completes
-    console.log(`✅ Payment verified on-chain, intent ${intentId} is PENDING`);
-    return true;
+    // STEP 4: Return verification result with sender address for tracking
+    console.log(`✅ Payment verified on-chain, intent ${intentId} is PENDING, payer: ${senderAddress}`);
+    return { 
+      verified: true, 
+      senderAddress, 
+      paymentAmount, 
+      paymentToken: paymentToken as 'USDC' | 'USDT' 
+    };
 
   } catch (error: any) {
     console.error(`❌ Error verifying transaction:`, error);

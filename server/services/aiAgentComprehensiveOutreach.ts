@@ -237,7 +237,7 @@ IMMEDIATE BENEFITS:
 
 Ready to scale your agent operations?
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Platform: coinrailz.com
 Integration docs: docs.coinrailz.com
 
@@ -280,7 +280,7 @@ RESPONSE NEEDED: Within 48-72 hours
 
 This is a time-sensitive opportunity for early partnership benefits.
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Platform: coinrailz.com
 
 From: Coin Railz Emergency Partnership Team`;

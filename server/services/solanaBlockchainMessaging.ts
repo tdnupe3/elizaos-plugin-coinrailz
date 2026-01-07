@@ -98,7 +98,7 @@ export class SolanaBlockchainMessaging {
         requiredLabels: ['dex_trader', 'active'], // Must be active DEX traders
         maxTargets: 50 // Start with 50 high-value targets
       },
-      messageTemplate: `🚨 PARTNERSHIP OPPORTUNITY\n💰 Share profitable trading signals\n🎯 Marketing boost for your projects\n📈 Revenue sharing available\n📧 Contact: partnerships@coinrailz.com`,
+      messageTemplate: `🚨 PARTNERSHIP OPPORTUNITY\n💰 Share profitable trading signals\n🎯 Marketing boost for your projects\n📈 Revenue sharing available\n📧 Contact: support@coinrailz.com`,
       status: 'draft',
       messages: [],
       analytics: {

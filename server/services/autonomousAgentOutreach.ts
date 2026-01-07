@@ -307,7 +307,7 @@ PARTNERSHIP OPPORTUNITY:
 ABOUT ${agent.name}:
 ${agent.name} operates with ${agent.autonomyLevel} autonomy in ${agent.type} operations, demonstrating proven capability in ${agent.relevantActions.join(', ')}.
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Platform: coinrailz.com`;
   }
 

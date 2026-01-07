@@ -412,7 +412,7 @@ router.get('/service-info', async (req, res) => {
           'Professional campaign management'
         ],
         minimumBudget: 5000,
-        contactEmail: 'partnerships@coinrailz.com'
+        contactEmail: 'support@coinrailz.com'
       }
     });
   } catch (error) {

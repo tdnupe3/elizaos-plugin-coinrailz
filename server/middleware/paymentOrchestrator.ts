@@ -1869,20 +1869,35 @@ export function createPaymentOrchestrator(
     // If we have a transaction hash, verify it on-chain
     if (txHash) {
       try {
-        const verified = await verifyTransactionPayment(
+        const verificationResult = await verifyTransactionPayment(
           txHash,
           serviceName,
           requiredAmount
         );
 
-        if (verified) {
+        if (verificationResult.verified) {
           const priceUsd = SERVICE_PRICING_USD[serviceName as keyof typeof SERVICE_PRICING_USD] || 1.00;
-          console.log(`✅ Orchestrator: Payment verified for ${serviceName} ($${priceUsd}), executing handler directly`);
-          res.locals.payment = { method: "raw-hash", txHash, verified: true, amount: priceUsd, status: 'paid' };
+          const payerWallet = verificationResult.senderAddress || undefined;
+          
+          if (!payerWallet) {
+            console.warn(`⚠️ Orchestrator: Payment verified but no payer wallet extracted for ${serviceName}`);
+          } else {
+            console.log(`✅ Orchestrator: Payment verified for ${serviceName} ($${priceUsd}), payer: ${payerWallet}, executing handler directly`);
+          }
+          
+          res.locals.payment = { 
+            method: "raw-hash", 
+            txHash, 
+            verified: true, 
+            amount: priceUsd, 
+            status: 'paid',
+            payer: payerWallet,
+            paymentToken: verificationResult.paymentToken
+          };
           
           try {
             await handler(req, res);
-            await markPaymentIntentSucceeded(txHash, serviceName);
+            await markPaymentIntentSucceeded(txHash, serviceName, payerWallet);
             
             // FUNNEL TRACKING: Successful payment and service delivery
             await x402InteractionTracker.trackInteraction({
@@ -1902,10 +1917,13 @@ export function createPaymentOrchestrator(
               paymentReceived: true,
               paymentAmount: priceUsd,
               offerTrackingId,
+              walletAddress: payerWallet,
               metadata: { 
                 txHash: txHash.substring(0, 20),
                 knownAgent: knownAgent.name,
-                verificationMethod: 'on-chain'
+                verificationMethod: 'on-chain',
+                payerWallet: payerWallet,
+                paymentToken: verificationResult.paymentToken
               }
             });
             

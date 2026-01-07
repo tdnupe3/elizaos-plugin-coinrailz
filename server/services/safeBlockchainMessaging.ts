@@ -580,7 +580,7 @@ ${this.getValueProposition(target)}
 ${this.getCallToAction(target)}
 
 Partnership Contact:
-📧 partnerships@coinrailz.com
+📧 support@coinrailz.com
 🌐 https://coinrailz.com/enterprise
 📞 Enterprise Demo: https://coinrailz.com/sdk-demo
 

@@ -182,7 +182,7 @@ This is a time-sensitive opportunity for early partnership benefits in Bitcoin i
 
 Together, we can advance Bitcoin's global adoption.
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Platform: coinrailz.com
 Bitcoin Wallet: ${this.bitcoinWallet}
 
@@ -238,13 +238,13 @@ PROVEN BITCOIN INFRASTRUCTURE:
 
 Ready to scale Bitcoin infrastructure together?
 
-Contact: partnerships@coinrailz.com
+Contact: support@coinrailz.com
 Platform: coinrailz.com
 Integration docs: docs.coinrailz.com
 Bitcoin Wallet: ${this.bitcoinWallet}
 
 From: CoinRailz Bitcoin Infrastructure Partnership Team`,
-      callToAction: `Partner with us to advance Bitcoin infrastructure - Contact: partnerships@coinrailz.com`,
+      callToAction: `Partner with us to advance Bitcoin infrastructure - Contact: support@coinrailz.com`,
       bitcoinAddress: this.bitcoinWallet
     };
   }

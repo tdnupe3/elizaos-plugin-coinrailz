@@ -1993,10 +1993,10 @@ serviceEndpoints.forEach(endpoint => {
       try {
         const priceUsd = SERVICE_PRICING_USD[endpoint as keyof typeof SERVICE_PRICING_USD] || 0.25;
         const requiredAmountMicro = priceUsd * 1e6; // Convert to micro units
-        const verified = await verifyTransactionPayment(xPayment, endpoint, requiredAmountMicro);
+        const verificationResult = await verifyTransactionPayment(xPayment, endpoint, requiredAmountMicro);
         
-        if (verified) {
-          console.log(`✅ GET + X-PAYMENT verification SUCCESS for ${endpoint} - $${priceUsd} (tx: ${xPayment.substring(0, 10)}...)`);
+        if (verificationResult.verified) {
+          console.log(`✅ GET + X-PAYMENT verification SUCCESS for ${endpoint} - $${priceUsd} (tx: ${xPayment.substring(0, 10)}..., payer: ${verificationResult.senderAddress})`);
           
           // Execute the service handler if available
           const handler = getServiceHandlers[endpoint];

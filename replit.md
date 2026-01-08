@@ -14,7 +14,11 @@ Coin Railz provides cross-platform payment routing across 8 blockchains (7 EVM: 
 
 ---
 
-## 🎯 ARCHITECTURE SNAPSHOT (January 4, 2026)
+## 🎯 ARCHITECTURE SNAPSHOT (January 8, 2026)
+
+### Operational Notes
+- **Discovery Scheduler:** Intentionally disabled to conserve resources. Can be run manually when needed. Not failing - just paused.
+- **Wallet Capture Ready:** Payer wallet attribution deployed Jan 7, 2026. Awaiting next payment to verify capture works.
 
 ### What's Working ✅
 

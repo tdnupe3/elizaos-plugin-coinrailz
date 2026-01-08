@@ -1905,31 +1905,115 @@ const getServiceHandlers: Record<string, (req: Request) => Promise<any>> = {
     servicesAvailable: 41,
     documentation: "https://coinrailz.com/developers"
   }),
-  "gas-price-oracle": async (req) => await gasPriceOracleService.getGasPrices({ chains: req.query.chains as string[] }),
-  "token-price": async (req) => await tokenPriceFeedService.getTokenPrice({ symbol: req.query.symbol as string }),
-  "multi-chain-balance": async (req) => await multiChainBalanceService.getMultiChainBalance({ address: req.query.address as string }),
-  "token-metadata": async (req) => await tokenMetadataService.getTokenMetadata({ address: req.query.address as string, chain: req.query.chain as string }),
-  "wallet-risk": async (req) => await walletRiskScoreService.getWalletRisk({ address: req.query.address as string }),
-  "trending-tokens": async () => await trendingTokensFeedService.getTrendingTokens(),
-  "trade-signals": async (req) => await tradeSignalsService.getTradeSignals({ pairs: req.query.pairs as string[] }),
-  "token-sentiment": async (req) => await tokenSocialSentimentService.getTokenSentiment({ symbol: req.query.symbol as string }),
-  "whale-alerts": async (req) => await whaleWalletAlertsService.getWhaleAlerts({ minValue: Number(req.query.minValue) || 100000 }),
-  "dex-liquidity": async (req) => await dexLiquidityMonitorService.getDexLiquidity({ pair: req.query.pair as string }),
-  "contract-scan": async (req) => await contractQuickScanService.scanContract({ address: req.query.address as string }),
-  "portfolio-tracker": async (req) => await portfolioTrackerService.getPortfolio({ address: req.query.address as string }),
-  "approval-manager": async (req) => await approvalManagerService.getApprovals({ address: req.query.address as string }),
-  "batch-quote": async (req) => await batchQuoteService.getBatchQuote({ pairs: req.query.pairs as string[] }),
+  "gas-price-oracle": async (req) => {
+    const chainsParam = req.query.chains;
+    const chains = Array.isArray(chainsParam) 
+      ? chainsParam as string[] 
+      : chainsParam 
+        ? [chainsParam as string] 
+        : ['ethereum', 'base', 'polygon', 'arbitrum', 'optimism'];
+    return await gasPriceOracleService(chains);
+  },
+  "token-price": async (req) => await tokenPriceFeedService(
+    req.query.address as string || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    req.query.chain as string || 'base'
+  ),
+  "multi-chain-balance": async (req) => await multiChainBalanceService(
+    req.query.address as string || '0x0000000000000000000000000000000000000000',
+    req.query.chains as string[] || undefined,
+    true
+  ),
+  "token-metadata": async (req) => await tokenMetadataService(
+    req.query.address as string || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    req.query.chain as string || 'base'
+  ),
+  "wallet-risk": async (req) => await walletRiskScoreService(
+    req.query.address as string || '0x0000000000000000000000000000000000000000',
+    req.query.chain as string || 'ethereum'
+  ),
+  "trending-tokens": async () => await trendingTokensFeedService('24h', 'all', 20),
+  "trade-signals": async (req) => await tradeSignalsService({
+    token: req.query.token as string || 'BTC/USDT',
+    timeframe: req.query.timeframe as string || '15m',
+    riskLevel: req.query.riskLevel as string || 'medium'
+  }),
+  "token-sentiment": async (req) => await tokenSocialSentimentService(
+    req.query.symbol as string || 'ETH'
+  ),
+  "whale-alerts": async (req) => await whaleWalletAlertsService(
+    Number(req.query.minValue) || 100000,
+    req.query.chain as string || 'ethereum'
+  ),
+  "dex-liquidity": async (req) => await dexLiquidityMonitorService(
+    req.query.pair as string || 'ETH/USDC',
+    req.query.dex as string || 'uniswap-v3'
+  ),
+  "contract-scan": async (req) => await contractQuickScanService(
+    req.query.address as string || '0x0000000000000000000000000000000000000000',
+    req.query.chain as string || 'ethereum'
+  ),
+  "portfolio-tracker": async (req) => await portfolioTrackerService(
+    req.query.address as string || '0x0000000000000000000000000000000000000000'
+  ),
+  "approval-manager": async (req) => await approvalManagerService(
+    req.query.address as string || '0x0000000000000000000000000000000000000000'
+  ),
+  "batch-quote": async (req) => {
+    const pairsParam = req.query.pairs;
+    const pairs = Array.isArray(pairsParam) 
+      ? pairsParam as string[] 
+      : pairsParam 
+        ? [pairsParam as string] 
+        : ['ETH/USDC', 'BTC/USDC'];
+    return await batchQuoteService(pairs);
+  },
   "instant-agent-wallet": async (req) => await instantAgentWalletService({
     agentId: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     description: req.query.description as string,
     payerIpAddress: req.headers['x-forwarded-for'] as string || req.ip || 'unknown',
     payerUserAgent: req.headers['user-agent'] as string || 'unknown',
   }),
-  "arbitrage-scanner": async () => await arbitrageScannerService.scanArbitrage({}),
-  "correlation-matrix": async (req) => await correlationMatrixService.getCorrelation({ symbols: req.query.symbols as string[] }),
-  "risk-metrics": async (req) => await riskMetricsService.getRiskMetrics({ address: req.query.address as string }),
-  "stock-sentiment": async (req) => await stockSentimentService.getStockSentiment({ symbol: req.query.symbol as string }),
-  "forex-sentiment": async (req) => await forexSentimentService.getForexSentiment({ pair: req.query.pair as string }),
+  "arbitrage-scanner": async (req) => {
+    const assetsParam = req.query.assets;
+    const assets = Array.isArray(assetsParam) 
+      ? assetsParam as string[] 
+      : assetsParam 
+        ? [assetsParam as string] 
+        : ['ETH', 'BTC', 'USDC'];
+    return await arbitrageScannerService({ 
+      assets,
+      minProfitPercent: Number(req.query.minProfit) || 0.5,
+      maxGasPrice: Number(req.query.maxGas) || 50
+    });
+  },
+  "correlation-matrix": async (req) => {
+    const symbolsParam = req.query.symbols;
+    const assets = Array.isArray(symbolsParam) 
+      ? symbolsParam as string[] 
+      : symbolsParam 
+        ? [symbolsParam as string] 
+        : ['BTC', 'ETH', 'SOL'];
+    return await correlationMatrixService({ 
+      assets,
+      timeframe: req.query.timeframe as string || '30d'
+    });
+  },
+  "risk-metrics": async (req) => await riskMetricsService({ 
+    portfolioValue: Number(req.query.portfolioValue) || 10000,
+    holdings: [
+      { asset: 'BTC', value: 5000 },
+      { asset: 'ETH', value: 3000 },
+      { asset: 'USDC', value: 2000 }
+    ],
+    timeHorizon: Number(req.query.timeHorizon) || 1,
+    confidenceLevel: Number(req.query.confidence) || 95
+  }),
+  "stock-sentiment": async (req) => await stockSentimentService({ 
+    symbol: req.query.symbol as string || 'AAPL'
+  }),
+  "forex-sentiment": async (req) => await forexSentimentService({ 
+    pair: req.query.pair as string || 'EUR/USD'
+  }),
 };
 
 serviceEndpoints.forEach(endpoint => {

@@ -1,164 +1,7 @@
 # Coin Railz - Multi-Chain Payment Infrastructure
 
 ## Overview
-Coin Railz provides cross-platform payment routing across 8 blockchains (7 EVM: Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain + Solana), enabling AI agents and users to process payments with USDC settlement. The platform positions as the universal payment layer for the AI agent economy.
-
-**Key Capabilities:**
-- Multi-chain payment SDK (NPM, Python, Docker packages)
-- x402 protocol micropayments (43 production microservices)
-- Agent-to-agent commerce infrastructure
-- DEX aggregation and P2P payment routing
-- Integration with Coinbase CDP wallet management
-
-**Business Vision:** Universal payment infrastructure for AI agent economy - neutral bridge across siloed ecosystems (ElizaOS, AgentKit, MCP, Virtuals).
-
----
-
-## 🎯 ARCHITECTURE SNAPSHOT (January 8, 2026)
-
-### Operational Notes
-- **Discovery Scheduler:** Intentionally disabled to conserve resources. Can be run manually when needed. Not failing - just paused.
-- **Wallet Capture Ready:** Payer wallet attribution deployed Jan 7, 2026. Awaiting next payment to verify capture works.
-
-### What's Working ✅
-
-| Component | Status | Verified By |
-|-----------|--------|-------------|
-| **Multi-chain payments (8 chains)** | ✅ Working | On-chain transactions visible |
-| **Fee routing to platform wallet** | ✅ Verified | Architect review Jan 2, 2026 |
-| **x402 microservices (43 services)** | ✅ Deployed | HTTP 402 responses functional |
-| **SDK packages published** | ✅ Live | NPM: @coinrailz/agent-payments, PyPI: coinrailz |
-| **Platform wallet receiving funds** | ✅ Verified | Alchemy API analysis shows 50+ transfers |
-| **Invoice generation** | ✅ Working | Points to platform wallet |
-| **Bazaar discovery integration** | ✅ Deployed | Coinbase discovery compatible |
-
-### Fee Structure (Verified ✅)
-
-```
-Fee: 1.5% + $0.01 per transaction
-Flow: Payer → Platform Wallet (gross) → Recipient (net)
-Result: Fee retained by construction
-```
-
-**Two-step payment flow:**
-1. Inbound: Payer sends FULL amount to `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91`
-2. Outbound: Platform forwards NET amount to recipient
-3. Difference = Fee retained
-
-### Platform Wallets
-
-| Chain | Wallet Address | Status |
-|-------|---------------|--------|
-| EVM (All 7 chains) | `0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91` | ✅ Active |
-| Solana | `Hgby7VEo6vaPayM1G7kkjTqMAo4aCARoXA3ftWKz1m4k` | ✅ Active |
-
-### On-Chain Revenue Analysis (Jan 3, 2026) - UPDATED
-
-| Category | Transfers | Amount | Status |
-|----------|-----------|--------|--------|
-| 0x92ca4cef... | 64 | $32.35 USDC | ❓ Unknown external |
-| 0x664630cd... | 23 | $15.26 USDC | ❓ Unknown external |
-| 0x2f5134f7... (zauthx402-agent?) | 34 | ~$20 USDC | ⚠️ Likely external customer |
-| 0xabe2e327... | 9 | $2.25 USDC | ❓ Unknown external |
-| 0x8f7d6618... | 1 | $110 USDC | ❓ Unknown external |
-| 0xd2e482f8... | 1 | $5 USDC | ❓ Unknown external |
-
-**Current Wallet Balances (Jan 3, 2026):**
-- Platform wallet (0xa4bbe37f...): **$51.98 USDC** ✅ ACCESSIBLE
-- Legacy wallet (0x2f5134...): **$19.10 USDC** ⚠️ Potentially stuck
-
-**SCAM TOKEN WARNING:**
-- 0x8888888884f8b3a... sent 8888 tokens of "Telegram @TronVanity88_bot" - this is a SCAM airdrop, NOT real money ($0 value)
-
-**zauthx402-agent Investigation (Jan 3, 2026):**
-- First purchase: Dec 9, 2025 - bought `instant-agent-wallet` 18 times ($18)
-- Hypothesis: External agent that created wallets via our service, uses them to pay for services
-- Wallet 0x2f5134... is "legacy unsweepable" because created with old CDP credentials
-- Business Development: Reach out to "Zauth" to verify ownership and convert to documented customer
-
-**Apple Discovery Signal:**
-- Applebot (Apple's crawler) first crawled x402 endpoints on Jan 2, 2026 (14 hits, 9 unique IPs)
-- User agent: `Applebot/0.1; +http://www.apple.com/go/applebot` - VERIFIED LEGITIMATE
-
-**Known Discovery Crawlers (Jan 4, 2026):**
-- `Clarityx402-HealthCheck/1.0` - Internal observability component running on Replit infrastructure (10.81.x.x IPs). Performs health checks on x402 endpoints. NOT a customer - internal monitoring. First seen Jan 3, 2026.
-- `X402-Discovery-HealthCheck/2.0` - Coinbase Bazaar discovery crawler
-- `x402watch-probe/1.0` - External x402 ecosystem monitor
-- `meta-externalagent/1.1` - Facebook/Meta crawler indexing endpoints
-- `zauthx402-agent/1.0` - PAYING CUSTOMER - external AI agent ($61.60 lifetime revenue, 39 payments)
-
-### SDK Distribution
-
-| Package | Platform | Status |
-|---------|----------|--------|
-| @coinrailz/agent-payments | NPM | ✅ Published |
-| coinrailz | PyPI | ✅ Published |
-| Docker image | Docker Hub | ✅ Available |
-
-### What Needs Work 🔧
-
-| Component | Issue | Priority |
-|-----------|-------|----------|
-| **Cross-chain settlement** | Requires orchestrator (2-3 weeks) | ROADMAP |
-| **External revenue verification** | Confirm if 0x92ca4c is real user | MEDIUM |
-| **SDK error docs + republish** | Add error codes/hints documentation to SDK READMEs, republish all 4 packages | LOW (2-3 hrs) |
-| **Service delivery automation** | Background job queue for async services | LOW |
-
-### Recently Fixed (Jan 7, 2026) ✅
-
-| Component | Fix Applied |
-|-----------|-------------|
-| **Payer Wallet Capture (EVM)** | NEW: `verifyTransactionPayment` now returns `TransactionVerificationResult` with `senderAddress`, `paymentAmount`, `paymentToken`. Extracts payer from Transfer event logs, falls back to `receipt.from` for router/bridge payments. All x402 interactions now log wallet address for customer identification. |
-| **On-Chain Outreach to AI Agents** | EXECUTED: Sent wallet-to-wallet messages to Luna Virtuals (Base: 0x4bed7e63...) and Truth Terminal (Solana: 23vNndf9...). Permanent on-chain transaction records for business development. |
-| **Email Correction** | FIXED: Changed partnerships@coinrailz.com to support@coinrailz.com across 13+ files. |
-| **Machine-Readable Error Responses** | Payment errors now return structured JSON with error codes, human messages, agent hints, and expected format examples. AI agents can programmatically understand and self-correct payment failures. Error codes: `PAYMENT_INVALID_TX_HASH_LENGTH`, `PAYMENT_DECODE_FAILED`, `PAYMENT_VERIFICATION_FAILED`, etc. |
-| **Early Payment Header Validation** | NEW: X-PAYMENT header is validated before decode attempt. Catches malformed tx hashes (wrong length, invalid chars) and binary garbage with helpful error messages. |
-| **Instant API Key Multi-chain** | Payment orchestrator advertises 4 payment options (Base/USDC, Base/USDT, Solana/USDC, Solana/USDT). Security-hardened Solana verification using balance delta approach. |
-| **Instant API Key Rate Limiting** | NEW: `instant_api_key_grants` table prevents $5 starter credit abuse (30-day per-wallet limit). |
-| **Solana Payment Verification Security** | FIXED: Uses postTokenBalances/preTokenBalances for authoritative balance verification instead of parseable instructions. Number.isFinite() guards prevent NaN/zero-value attacks. |
-| **AI Marketplace Route** | FIXED: `/ai-marketplace` was incorrectly rendering AI Agent Management instead of services marketplace. Now correctly shows 43 purchasable services. |
-| **Wallet Creation Logging (GET path)** | FIXED: Legacy GET handler bypassed logging. Now both GET (API key) and POST (x402) paths log payer attribution. |
-| **Crypto Checkout E2E Test** | VERIFIED: Full flow tested - service selection → customer info → crypto payment → instructions displayed with wallet address, amount, network. |
-| **Wallet Creation Logging** | NEW: `agentWallets` and `agentWalletEvents` tables now track wallet creations with payer attribution (wallet address, IP, user agent, tx hash) |
-| **Crypto Checkout for Marketplace** | USDC payment option added alongside Stripe. Payment method selector, on-chain verification via Alchemy |
-| **AI Agent Marketplace UI** | Stats display fixed, 43 services visible, test button removed |
-| **SDK Transaction Logging** | `sdk_transactions` table + logging function with hashed API keys |
-| **Marketplace Stats API** | Null-safe handling, returns activeServices/platformServices correctly |
-| **Checkout Flow** | sessionStorage cleanup after consumption |
-| **Registration Lockdown** | External agent registration returns 403 REGISTRATION_CLOSED |
-
-### Crypto Checkout Architecture (NEW)
-
-**Endpoints:**
-- `POST /api/ai-marketplace/crypto/create-pending-order` - Creates payment intent with USDC instructions
-- `POST /api/ai-marketplace/crypto/verify-payment` - Verifies on-chain tx, creates marketplace order
-
-**Payment Flow:**
-1. User selects "Crypto" payment method in checkout
-2. Backend creates intent in `x402_payment_intents` table with full metadata
-3. Frontend shows payment instructions (address, amount, network)
-4. User sends USDC from their wallet
-5. User submits tx hash for verification
-6. Backend verifies via Alchemy RPC, creates `marketplace_orders` entry, marks delivered
-
-**Data Tables Used:**
-- `x402_payment_intents` - Durable payment tracking
-- `x402_payments` - Payment analytics logging
-- `marketplace_orders` - Order fulfillment (same as Stripe)
-
-### Architectural Clarifications
-
-**Multi-chain vs Cross-chain:**
-- ✅ **Multi-chain CAPABLE**: Accept payments on any of 8 chains, settle on same chain
-- ⏳ **Cross-chain SETTLING**: Receive on Chain A, payout on Chain B - requires future infrastructure
-
-**Missing for cross-chain:**
-1. Settlement Orchestrator service
-2. Payment routing metadata (sourceChain, destinationChain)
-3. Escrow + delivery verification
-4. Internal liquidity management
-
----
+Coin Railz provides cross-platform payment routing across 8 blockchains (7 EVM: Ethereum, Base, Polygon, BSC, Arbitrum, Optimism, PulseChain + Solana), enabling AI agents and users to process payments with USDC settlement. The platform aims to be the universal payment layer for the AI agent economy. Key capabilities include a multi-chain payment SDK, x402 protocol micropayments (supported by 43 production microservices), agent-to-agent commerce infrastructure, DEX aggregation, P2P payment routing, and integration with Coinbase CDP wallet management.
 
 ## User Preferences
 - **⚠️ ABSOLUTE HONESTY COMMITMENT**: NEVER LIE TO USER. Always report actual results, failures, and truth. User has been financially harmed by previous dishonest claims about outreach success when systems actually failed.
@@ -172,51 +15,31 @@ Result: Fee retained by construction
 - **OPTIMIZATION SAFETY RULE**: Only conservative optimizations until post-deployment
 
 ## System Architecture
-
-The platform uses Coinbase CDP wallet management with USDC-first approach, structured around unified payment processing, AI marketplace service delivery, and real-time revenue management.
+The platform utilizes Coinbase CDP wallet management with a USDC-first approach, centered on unified payment processing, an AI marketplace for service delivery, and real-time revenue management.
 
 **Key Architectural Decisions:**
-- **AI Agent Marketplace:** x402 protocol for HTTP 402-based payments with USDC on Base Chain. Coinbase CDP wallet creation and Alchemy RPC verification. ERC-8004 Blockchain Identity for agent identities.
-- **Authentication:** Coinbase OAuth, Replit OAuth, and email/password with PostgreSQL-backed sessions.
-- **x402 Microservices**: 43 production-ready services across 10 categories. Compatible with Coinbase Bazaar, x402scan, and A2A discovery bots.
-- **Discovery Engine**: Multi-layer discovery with 9 active methods for identifying AI agents.
-- **Payment Intent Ledger**: Durable payment intent ledger with state transitions and replay protection.
-- **GPT In-Chat Credit Purchase**: Endpoints for purchasing credits directly in ChatGPT.
-- **Hybrid Facilitator**: `getFacilitatorUrl()` uses CDP facilitator when `CDP_API_KEY_ID` present, falls back to x402.org.
-- **x402Version Spec Compliance**: Uses `x402Version: 2` (number) per official Coinbase spec.
-- **Bazaar Discovery**: `server/discovery/bazaarRegistrar.ts` for Coinbase Bazaar indexing.
-- **GPT Session Auth**: Zero-friction ChatGPT integration via session-based auth.
+- **AI Agent Marketplace:** Implemented using the x402 protocol for HTTP 402-based payments with USDC on Base Chain, leveraging Coinbase CDP for wallet creation and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities.
+- **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password authentication with PostgreSQL-backed sessions.
+- **x402 Microservices**: 43 production-ready services designed for compatibility with Coinbase Bazaar, x402scan, and A2A discovery bots.
+- **Discovery Engine**: A multi-layer discovery mechanism incorporating 9 active methods for identifying AI agents.
+- **Payment Intent Ledger**: A durable ledger for payment intents, supporting state transitions and replay protection.
+- **GPT In-Chat Credit Purchase**: Provides endpoints for purchasing credits directly within ChatGPT.
+- **Hybrid Facilitator**: The `getFacilitatorUrl()` function dynamically uses either the CDP facilitator (if `CDP_API_KEY_ID` is present) or falls back to x402.org.
+- **x402Version Spec Compliance**: Adheres to `x402Version: 2` as per the official Coinbase specification.
+- **Bazaar Discovery**: `server/discovery/bazaarRegistrar.ts` is used for Coinbase Bazaar indexing.
+- **GPT Session Auth**: Enables zero-friction ChatGPT integration through session-based authentication.
+- **Crypto Checkout Architecture**: Features endpoints for creating pending orders and verifying on-chain payments, utilizing `x402_payment_intents`, `x402_payments`, and `marketplace_orders` tables for tracking and fulfillment.
+- **Multi-chain Capability**: Capable of accepting payments on any of 8 chains and settling on the same chain. Cross-chain settlement (receiving on Chain A, payout on Chain B) is a roadmap item requiring a future orchestrator service and liquidity management.
 
 ## External Dependencies
-- **Coinbase CDP:** Wallet creation, management, transaction execution
-- **Alchemy:** Ethereum/Base RPC endpoints and blockchain infrastructure
-- **x402 Protocol:** HTTP 402-based autonomous AI agent payment standard
-- **Circle:** USDC wallet management (legacy, transitioning to CDP)
-- **CoinGecko API:** Real-time cryptocurrency pricing
-- **DEX Screener:** Pricing data for micro-cap tokens
-- **1inch API / Uniswap V3:** DEX aggregation and liquidity
-- **Stripe:** Credit/debit card payment processing
-- **PayPal:** Instant payment processing
-- **PostgreSQL:** Database-backed session storage and core data persistence
-- **Telegram:** Mini-App hosting and @coinrailz_bot webhook
-
-## Key Files Reference
-
-| Purpose | File Path |
-|---------|-----------|
-| SDK Payment Routes | `server/routes/sdkPaymentsRoutes.ts` |
-| x402 Microservices | `server/routes/x402MicroserviceRoutesV2.ts` |
-| Coinbase CDP Service | `server/services/coinbaseCDPService.ts` |
-| Solana Payments | `server/routes/sdkSolanaRoutes.ts` |
-| Bazaar Discovery | `server/discovery/bazaarRegistrar.ts` |
-| Database Schema | `shared/schema.ts` |
-| Fee Sweep Service | `server/services/x402FundsSweepService.ts` |
-
-## Recent Changes Log
-
-| Date | Change | Status |
-|------|--------|--------|
-| Jan 2, 2026 | Architecture snapshot created | ✅ |
-| Jan 2, 2026 | Fee routing verified correct | ✅ |
-| Jan 2, 2026 | On-chain analytics run via Alchemy | ✅ |
-| Dec 30, 2025 | SDK packages published | ✅ |
+- **Coinbase CDP:** For wallet creation, management, and transaction execution.
+- **Alchemy:** Provides Ethereum/Base RPC endpoints and blockchain infrastructure.
+- **x402 Protocol:** The standard for HTTP 402-based autonomous AI agent payments.
+- **Circle:** Used for USDC wallet management (legacy, transitioning to CDP).
+- **CoinGecko API:** Supplies real-time cryptocurrency pricing data.
+- **DEX Screener:** Provides pricing data for micro-cap tokens.
+- **1inch API / Uniswap V3:** Utilized for DEX aggregation and liquidity.
+- **Stripe:** Handles credit/debit card payment processing.
+- **PayPal:** Supports instant payment processing.
+- **PostgreSQL:** Serves as the database for session storage and core data persistence.
+- **Telegram:** Hosts Mini-Apps and manages the @coinrailz_bot webhook.

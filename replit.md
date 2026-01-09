@@ -104,3 +104,37 @@ The platform utilizes Coinbase CDP wallet management with a USDC-first approach,
 | Jan 27 Webinar Registration | ⏳ Postponed | Stripe Agentic Commerce webinar |
 
 **Immediate Revenue Path**: Focus on existing x402 microservices - real customer (wallet 0x2f51...) made 5+ successful payments. Offer prepaid service bundles to convert pay-per-use to subscriptions.
+
+## ACP Implementation (Jan 9, 2026)
+
+**ACP Product Catalog Endpoints** - Live at `/acp/v1/*`:
+- `GET /acp/v1/catalog` - Returns 5 active digital products
+- `GET /acp/v1/catalog/:productId` - Single product details
+- `POST /acp/v1/checkout` - Creates Stripe checkout session and order
+- `GET /acp/v1/orders/:orderId` - Order status and fulfillment details
+
+**Digital Products Available**:
+| Product ID | Title | Price | Credits | Type |
+|------------|-------|-------|---------|------|
+| api-key-instant | Instant API Key | $1 | 50 | bundle |
+| starter-credits | Starter Credits Pack | $10 | 100 | api_credits |
+| pro-credits | Pro Credits Pack | $50 | 600 | api_credits |
+| enterprise-credits | Enterprise Credits Pack | $200 | 3,000 | api_credits |
+| gas-oracle-30 | Gas Oracle - 30 Day Access | $15 | 1,000 calls | service_pack |
+
+**Fulfillment Flow**:
+1. User calls `/acp/v1/checkout` with productId
+2. System creates Stripe checkout session and pending order
+3. User completes payment on Stripe hosted page
+4. Stripe webhook triggers `checkout.session.completed`
+5. `fulfillAcpOrder` creates credits account and generates API key
+6. Order marked as fulfilled with key prefix stored (security: full key only shown once)
+
+**Key Files**:
+- `server/routes/acpRoutes.ts` - ACP catalog and checkout endpoints
+- `server/routes/stripeWebhookRoutes.ts` - Webhook handler for ACP fulfillment
+- `shared/schema.ts` - `acpProducts` and `acpOrders` tables
+
+**Database Tables**:
+- `acp_products` - Digital product catalog
+- `acp_orders` - Order tracking with fulfillment status

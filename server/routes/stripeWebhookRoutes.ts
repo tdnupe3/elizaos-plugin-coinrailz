@@ -6,6 +6,7 @@ import { sdkLicenseSubscriptions } from '../../shared/schema';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import crypto from 'crypto';
+import { fulfillAcpOrder } from './acpRoutes';
 
 const router = Router();
 
@@ -66,6 +67,10 @@ router.post('/stripe-webhooks',
         
       case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        break;
+      
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
         break;
         
       default:
@@ -239,6 +244,28 @@ async function sendLicenseActivationEmail(email: string, licenseKey: string, tie
   } catch (error) {
     console.error('📧 Failed to send activation email:', error);
     // Don't throw - license is still valid even if email fails
+  }
+}
+
+/**
+ * Handle checkout.session.completed for ACP orders
+ */
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+  const orderId = session.metadata?.orderId;
+  const source = session.metadata?.source;
+
+  if (source === 'acp_checkout' && orderId) {
+    console.log(`🛒 ACP Checkout completed for order ${orderId}`);
+    
+    const result = await fulfillAcpOrder(orderId, session.payment_intent as string);
+    
+    if (result.success) {
+      console.log(`✅ ACP Order ${orderId} fulfilled: ${result.credits} credits, API key issued`);
+    } else {
+      console.error(`❌ ACP Fulfillment failed for ${orderId}: ${result.error}`);
+    }
+  } else {
+    console.log(`🔔 Checkout session completed (non-ACP): ${session.id}`);
   }
 }
 

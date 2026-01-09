@@ -866,6 +866,12 @@ registerApiKeysRoutes(app);
 registerProductsRoutes(app);
 console.log('✅ Credits, Products & API Keys routes registered successfully');
 
+// === ACP (AGENTIC COMMERCE PROTOCOL) ROUTES ===
+console.log('🛒 Registering ACP routes for ChatGPT Instant Checkout integration...');
+import acpRoutes from './routes/acpRoutes';
+app.use('/acp/v1', acpRoutes);
+console.log('✅ ACP routes registered at /acp/v1/* - Catalog, Checkout, Orders');
+
 console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
 app.use('/api/sdk-licensing', sdkLicensingRoutes);
 console.log('✅ SDK Licensing routes registered successfully');

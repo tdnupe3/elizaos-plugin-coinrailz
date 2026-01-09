@@ -92,3 +92,15 @@ The platform utilizes Coinbase CDP wallet management with a USDC-first approach,
 **Critical Deadlines**:
 - Amazon Creator API Migration: January 31, 2026
 - Stripe Agentic Commerce Webinar: January 27, 2026
+
+## Phase 0 Status (Jan 9, 2026)
+
+| Task | Status | Notes |
+|------|--------|-------|
+| Amazon Associates Account | ✅ Complete | Store ID: coinrailz-20. PA API requires 70 sales for full access. |
+| GPT Store Inventory | ✅ Complete | Coin Railz Market Intelligence GPT documented above. |
+| Stripe ACP Waitlist | ⏳ Pending | Submit at stripe.com/use-cases/agentic-commerce |
+| ChatGPT Merchant Program | ⏳ Pending | Submit at chatgpt.com/merchants/ |
+| Jan 27 Webinar Registration | ⏳ Pending | Stripe Agentic Commerce webinar |
+
+**Immediate Revenue Path**: Focus on existing x402 microservices - real customer (wallet 0x2f51...) made 5+ successful payments. Offer prepaid service bundles to convert pay-per-use to subscriptions.

@@ -872,6 +872,12 @@ import acpRoutes from './routes/acpRoutes';
 app.use('/acp/v1', acpRoutes);
 console.log('✅ ACP routes registered at /acp/v1/* - Catalog, Checkout, Orders');
 
+// === AMAZON AFFILIATE ROUTES ===
+console.log('🛍️ Registering Amazon Affiliate routes for GPT product recommendations...');
+import affiliateRoutes from './routes/affiliateRoutes';
+app.use('/affiliate', affiliateRoutes);
+console.log('✅ Affiliate routes registered at /affiliate/* - Search, Link, Tag');
+
 console.log('🏆 Registering SDK Licensing routes for $2K-$200K enterprise market...');
 app.use('/api/sdk-licensing', sdkLicensingRoutes);
 console.log('✅ SDK Licensing routes registered successfully');

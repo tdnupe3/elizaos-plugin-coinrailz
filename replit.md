@@ -43,3 +43,25 @@ The platform utilizes Coinbase CDP wallet management with a USDC-first approach,
 - **PayPal:** Supports instant payment processing.
 - **PostgreSQL:** Serves as the database for session storage and core data persistence.
 - **Telegram:** Hosts Mini-Apps and manages the @coinrailz_bot webhook.
+- **Amazon Associates:** Active affiliate account for product recommendations and commission revenue.
+- **OpenAI GPT Store:** Multiple GPTs including monetized Coin Railz GPT with custom actions.
+
+## Agentic Commerce Strategy (Jan 2026)
+
+**Strategic Direction**: Position Coin Railz as the crypto-native complement to Stripe's fiat-based Agentic Commerce Protocol (ACP).
+
+**Key Initiatives**:
+1. **ACP Merchant Registration**: Sell digital products (API credits, bundles) via ChatGPT Instant Checkout
+2. **Amazon Affiliate Integration**: Enhance GPTs with product recommendations earning affiliate commissions
+3. **Agent Concierge**: Build shopping assistant combining Amazon (physical) + Coin Railz (digital) products
+4. **ACP Integration Services**: Consulting for merchants entering agentic commerce
+
+**Hybrid Payment Strategy**:
+- Stripe ACP (fiat) for large purchases ($50+)
+- x402 (USDC on-chain) for micropayments ($0.001 - $1)
+
+**Implementation Roadmap**: See `docs/agentic-commerce/implementation-roadmap.md`
+
+**Critical Deadlines**:
+- Amazon Creator API Migration: January 31, 2026
+- Stripe Agentic Commerce Webinar: January 27, 2026

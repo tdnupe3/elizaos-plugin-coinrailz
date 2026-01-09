@@ -5562,3 +5562,86 @@ export const sdkTransactionsInsertSchema = createInsertSchema(sdkTransactions).o
 export type SdkTransaction = typeof sdkTransactions.$inferSelect;
 export type InsertSdkTransaction = z.infer<typeof sdkTransactionsInsertSchema>;
 
+// ============================================================================
+// ACP (Agentic Commerce Protocol) - ChatGPT Merchant Product Catalog
+// ============================================================================
+
+/**
+ * ACP Products - Digital products for ChatGPT Instant Checkout
+ * Supports API credits, service bundles, and subscriptions
+ */
+export const acpProducts = pgTable(
+  "acp_products",
+  {
+    id: varchar("id").primaryKey(), // e.g., "api-starter-pack", "gas-oracle-30day"
+    title: text("title").notNull(),
+    description: text("description").notNull(),
+    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).default("USD"),
+    productType: varchar("product_type").notNull(), // 'api_credits', 'subscription', 'bundle', 'service_pack'
+    creditsIncluded: integer("credits_included"), // Number of credits if applicable
+    apiCallsIncluded: integer("api_calls_included"), // Number of API calls if service pack
+    validityDays: integer("validity_days"), // How long the product is valid
+    serviceSlugs: text("service_slugs").array(), // Which x402 services this unlocks
+    metadata: jsonb("metadata"), // Additional product details
+    active: boolean("active").default(true),
+    sortOrder: integer("sort_order").default(0), // Display order in catalog
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_acp_products_active").on(table.active),
+    index("IDX_acp_products_type").on(table.productType),
+    index("IDX_acp_products_sort").on(table.sortOrder),
+  ],
+);
+
+export const acpProductsInsertSchema = createInsertSchema(acpProducts).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type AcpProduct = typeof acpProducts.$inferSelect;
+export type InsertAcpProduct = z.infer<typeof acpProductsInsertSchema>;
+
+/**
+ * ACP Orders - Track purchases via ChatGPT Instant Checkout
+ */
+export const acpOrders = pgTable(
+  "acp_orders",
+  {
+    id: varchar("id").primaryKey(), // Order ID (nanoid)
+    productId: varchar("product_id").notNull(), // References acp_products.id
+    checkoutSessionId: varchar("checkout_session_id"), // Stripe checkout session
+    stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+    customerEmail: varchar("customer_email"),
+    customerId: varchar("customer_id"), // Internal user ID if known
+    status: varchar("status").notNull().default("pending"), // 'pending', 'completed', 'failed', 'refunded'
+    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 3 }).default("USD"),
+    apiKeyIssued: varchar("api_key_issued"), // The API key generated for this order
+    creditsAdded: integer("credits_added"), // Credits added to account
+    fulfillmentStatus: varchar("fulfillment_status").default("pending"), // 'pending', 'fulfilled', 'failed'
+    fulfillmentDetails: jsonb("fulfillment_details"), // Details about what was delivered
+    source: varchar("source").default("chatgpt"), // 'chatgpt', 'website', 'api'
+    metadata: jsonb("metadata"), // Additional order context
+    createdAt: timestamp("created_at").defaultNow(),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    index("IDX_acp_orders_product").on(table.productId),
+    index("IDX_acp_orders_status").on(table.status),
+    index("IDX_acp_orders_customer").on(table.customerId),
+    index("IDX_acp_orders_created").on(table.createdAt),
+    index("IDX_acp_orders_stripe_session").on(table.checkoutSessionId),
+  ],
+);
+
+export const acpOrdersInsertSchema = createInsertSchema(acpOrders).omit({
+  createdAt: true,
+  completedAt: true,
+});
+
+export type AcpOrder = typeof acpOrders.$inferSelect;
+export type InsertAcpOrder = z.infer<typeof acpOrdersInsertSchema>;
+

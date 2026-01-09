@@ -43,8 +43,35 @@ The platform utilizes Coinbase CDP wallet management with a USDC-first approach,
 - **PayPal:** Supports instant payment processing.
 - **PostgreSQL:** Serves as the database for session storage and core data persistence.
 - **Telegram:** Hosts Mini-Apps and manages the @coinrailz_bot webhook.
-- **Amazon Associates:** Active affiliate account for product recommendations and commission revenue.
-- **OpenAI GPT Store:** Multiple GPTs including monetized Coin Railz GPT with custom actions.
+- **Amazon Associates:** Active affiliate account (Store ID: coinrailz-20) for product recommendations and commission revenue. PA API access requires 70 qualifying sales.
+- **OpenAI GPT Store:** Monetized Coin Railz GPT with custom actions (see GPT Store Assets section).
+
+## GPT Store Assets (Inventory - Jan 9, 2026)
+
+### Coin Railz Market Intelligence GPT (Monetizable)
+- **URL:** https://chatgpt.com/g/g-6941998b61808191bf46e463667415cd-coin-railz-market-intelligence
+- **Status:** Published, Active
+- **Monetization:** In-chat credit purchase system (deployed Dec 18, 2025)
+- **Credit Packages:**
+  - Starter: $10 → 100 credits
+  - Pro: $50 → 600 credits (20% bonus)
+  - Enterprise: $200 → 3,000 credits (50% bonus)
+- **Premium Services:**
+  - Trading Signals (trade-signals)
+  - Wallet Analysis (wallet-analysis)
+  - Polymarket Odds (polymarket)
+  - Stock Sentiment (stock-sentiment)
+  - Forex Sentiment (forex-sentiment)
+  - Instant Agent Wallet (instant-wallet)
+  - Arbitrage Scanner (arbitrage-scanner)
+  - Multi-Chain Balance (multi-chain-balance)
+- **Auth Methods:** GPT session headers, API key (cr_live_*)
+- **Backend Routes:** `/api/gpt/*`, `/api/gpt/credits/*`
+- **Key Files:** `server/routes/gptActionRoutes.ts`, `server/routes/gptCreditsRoutes.ts`, `public/openapi-chatgpt.json`
+
+### Other GPTs by Travis Kellogg
+- Search GPT Store for "travis kellogg" to find additional GPTs
+- These may not have monetization enabled yet
 
 ## Agentic Commerce Strategy (Jan 2026)
 

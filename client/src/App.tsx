@@ -102,6 +102,7 @@ import { lazy } from "react";
 import ReportLandingPage from "@/pages/ReportLandingPage";
 import { CheckoutPage } from "@/pages/CheckoutPage";
 import { CheckoutSuccessPage } from "@/pages/CheckoutSuccessPage";
+import TokenLauncher from "@/pages/token-launcher";
 
 // Lazy load remaining components
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
@@ -652,6 +653,11 @@ function Router() {
       {/* Production dashboard for monitoring */}
       <Route path="/production">
         {() => <LazyLoadWrapper><ProductionDashboard /></LazyLoadWrapper>}
+      </Route>
+
+      {/* Token Launcher for meme token campaigns */}
+      <Route path="/token-launcher">
+        {() => <TokenLauncher />}
       </Route>
 
       {/* AI Marketplace Management Routes */}

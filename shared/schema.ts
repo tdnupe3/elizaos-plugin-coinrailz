@@ -5645,3 +5645,84 @@ export const acpOrdersInsertSchema = createInsertSchema(acpOrders).omit({
 export type AcpOrder = typeof acpOrders.$inferSelect;
 export type InsertAcpOrder = z.infer<typeof acpOrdersInsertSchema>;
 
+/**
+ * Token Launcher Campaigns - Meme token launch campaigns for PumpFun
+ */
+export const tokenLauncherCampaigns = pgTable(
+  "token_launcher_campaigns",
+  {
+    id: varchar("id").primaryKey(),
+    name: text("name").notNull(),
+    status: varchar("status").notNull().default("pending"), // 'pending', 'running', 'paused', 'completed', 'failed'
+    mode: varchar("mode").notNull().default("paper"), // 'paper' or 'live'
+    config: jsonb("config").notNull(), // targetLaunches, initialLiquiditySol, priorityFeeMicroLamports, etc.
+    stats: jsonb("stats").notNull().default({
+      totalLaunches: 0,
+      successfulLaunches: 0,
+      failedLaunches: 0,
+      totalSpentSol: 0,
+      totalRecoveredSol: 0,
+      profitLossSol: 0,
+      profitLossUsd: 0,
+    }),
+    walletAddress: varchar("wallet_address"), // Launcher wallet used
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    index("IDX_token_campaigns_status").on(table.status),
+    index("IDX_token_campaigns_mode").on(table.mode),
+    index("IDX_token_campaigns_created").on(table.createdAt),
+  ],
+);
+
+export const tokenLauncherCampaignsInsertSchema = createInsertSchema(tokenLauncherCampaigns).omit({
+  createdAt: true,
+  updatedAt: true,
+  startedAt: true,
+  completedAt: true,
+});
+
+export type TokenLauncherCampaign = typeof tokenLauncherCampaigns.$inferSelect;
+export type InsertTokenLauncherCampaign = z.infer<typeof tokenLauncherCampaignsInsertSchema>;
+
+/**
+ * Token Launcher Launches - Individual token launches within campaigns
+ */
+export const tokenLauncherLaunches = pgTable(
+  "token_launcher_launches",
+  {
+    id: varchar("id").primaryKey(),
+    campaignId: varchar("campaign_id").notNull(),
+    tokenMint: varchar("token_mint"), // Solana token mint address
+    metadata: jsonb("metadata").notNull(), // name, symbol, description, image
+    status: varchar("status").notNull().default("pending"), // 'pending', 'launched', 'monitoring', 'exited', 'failed'
+    launchTime: timestamp("launch_time"),
+    exitTime: timestamp("exit_time"),
+    costSol: decimal("cost_sol", { precision: 18, scale: 9 }).default("0"),
+    recoverySol: decimal("recovery_sol", { precision: 18, scale: 9 }).default("0"),
+    profitLossSol: decimal("profit_loss_sol", { precision: 18, scale: 9 }).default("0"),
+    signature: varchar("signature"), // Transaction signature
+    pumpfunUrl: varchar("pumpfun_url"), // Link to pump.fun token page
+    errorMessage: text("error_message"), // Error details if failed
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_token_launches_campaign").on(table.campaignId),
+    index("IDX_token_launches_status").on(table.status),
+    index("IDX_token_launches_token_mint").on(table.tokenMint),
+    index("IDX_token_launches_created").on(table.createdAt),
+  ],
+);
+
+export const tokenLauncherLaunchesInsertSchema = createInsertSchema(tokenLauncherLaunches).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type TokenLauncherLaunch = typeof tokenLauncherLaunches.$inferSelect;
+export type InsertTokenLauncherLaunch = z.infer<typeof tokenLauncherLaunchesInsertSchema>;
+

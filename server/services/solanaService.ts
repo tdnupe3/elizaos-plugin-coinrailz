@@ -65,12 +65,13 @@ export class SolanaService {
 
   private async initialize() {
     try {
-      if (process.env.SOLANA_PLATFORM_PRIVATE_KEY) {
-        const privateKeyBytes = bs58.decode(process.env.SOLANA_PLATFORM_PRIVATE_KEY);
+      const privateKey = process.env.SOLANA_PRIVATE_KEY || process.env.SOLANA_PLATFORM_PRIVATE_KEY;
+      if (privateKey) {
+        const privateKeyBytes = bs58.decode(privateKey);
         this.platformKeypair = Keypair.fromSecretKey(privateKeyBytes);
         console.log(`✅ Solana platform wallet loaded: ${this.platformKeypair.publicKey.toBase58()}`);
       } else {
-        console.warn('⚠️ SOLANA_PLATFORM_PRIVATE_KEY not configured - real transfers disabled');
+        console.warn('⚠️ SOLANA_PRIVATE_KEY not configured - real transfers disabled');
       }
 
       const version = await this.connection.getVersion();

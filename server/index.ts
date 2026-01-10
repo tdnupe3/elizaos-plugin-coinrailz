@@ -3882,7 +3882,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   if (!DISABLE_BACKGROUND_SERVICES) {
     console.log('💰 EMERGENCY: Re-enabling ZERO-COST outreach for immediate revenue generation');
     console.log('✅ Telegram/Discord/XMTP outreach: ACTIVE (no SOL/spending)');
-    console.log('❌ SOL transactions still DISABLED');
+    console.log(`${process.env.SOLANA_PRIVATE_KEY ? '✅' : '❌'} SOL transactions: ${process.env.SOLANA_PRIVATE_KEY ? 'ENABLED' : 'DISABLED'}`);
     
     try {
       // CRITICAL: Initialize AgentDiscoveryService AFTER server is listening

@@ -63,8 +63,9 @@ import { redditAuthRouter } from './routes/redditAuth';
 import automatedOutreachRouter from './routes/automatedOutreachRoutes';
 import virtualsOutreachRouter from './routes/virtualsOutreachRoutes';
 import coinflipRoutes from './routes/coinflipRoutes';
-import launcherRoutes from './routes/launcherRoutes';
-import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
+// Token launcher disabled - research showed 98.6% failure rate, not profitable
+// import launcherRoutes from './routes/launcherRoutes';
+// import pumpfunCopyTradingRoutes from './routes/pumpfunCopyTradingRoutes';
 import realWalletDiscoveryRoutes from './routes/realWalletDiscoveryRoutes';
 import targetedOutreachRoutes from './routes/targetedOutreachRoutes';
 import outreachRoutes from './routes/outreach';
@@ -3240,8 +3241,9 @@ app.get('/api/dashboard/stats', (req, res) => {
 // Plaid and CoinFlip routes already registered at top of file
 app.use('/api/plaid', plaidRoutes);
 app.use('/api/coinflip', coinflipRoutes);
-app.use('/api/launcher', launcherRoutes);
-app.use('/api/pumpfun-copy-trading', pumpfunCopyTradingRoutes);
+// Token launcher disabled - research showed 98.6% failure rate, not profitable
+// app.use('/api/launcher', launcherRoutes);
+// app.use('/api/pumpfun-copy-trading', pumpfunCopyTradingRoutes);
 app.use('/api/real-wallet-discovery', realWalletDiscoveryRoutes);
 app.use('/api/targeted-outreach', targetedOutreachRoutes);
 app.use('/api/outreach', outreachRoutes);

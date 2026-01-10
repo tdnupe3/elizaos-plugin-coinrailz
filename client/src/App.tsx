@@ -102,7 +102,8 @@ import { lazy } from "react";
 import ReportLandingPage from "@/pages/ReportLandingPage";
 import { CheckoutPage } from "@/pages/CheckoutPage";
 import { CheckoutSuccessPage } from "@/pages/CheckoutSuccessPage";
-import TokenLauncher from "@/pages/token-launcher";
+// Token launcher disabled - research showed 98.6% failure rate, not profitable
+// import TokenLauncher from "@/pages/token-launcher";
 
 // Lazy load remaining components
 const TermsOfServicePage = lazy(() => import("@/pages/terms-of-service"));
@@ -655,10 +656,11 @@ function Router() {
         {() => <LazyLoadWrapper><ProductionDashboard /></LazyLoadWrapper>}
       </Route>
 
-      {/* Token Launcher for meme token campaigns */}
+      {/* Token Launcher disabled - research showed 98.6% failure rate, not profitable
       <Route path="/token-launcher">
         {() => <TokenLauncher />}
       </Route>
+      */}
 
       {/* AI Marketplace Management Routes */}
       <Route path="/agent-orders">

@@ -151,3 +151,22 @@ The platform utilizes Coinbase CDP wallet management with a USDC-first approach,
 **Database Tables**:
 - `acp_products` - Digital product catalog
 - `acp_orders` - Order tracking with fulfillment status
+
+## Disabled Features (Jan 10, 2026)
+
+### Token Launcher / Trading Bot - DISABLED
+**Reason**: Market research revealed fundamental unprofitability:
+- Pump.fun graduation rate: 1.4% (98.6% of tokens fail)
+- Only 3% of users earn >$1,000
+- 2025 graduation rate at historic lows: 0.63-0.8%
+- Top creator: 3,357 tokens, only 16 graduated
+
+**Business Insight**: Pump.fun made $1B+ with 100% margins while users lost money. The profitable position is being the platform (Launch-as-a-Service), not the player.
+
+**Files preserved but disabled**:
+- `server/routes/launcherRoutes.ts` - Commented out in index.ts
+- `server/routes/pumpfunCopyTradingRoutes.ts` - Commented out in index.ts
+- `client/src/pages/token-launcher.tsx` - Route commented out in App.tsx
+- Database tables: `token_launcher_campaigns`, `token_launcher_launches` - Preserved for potential Launch-as-a-Service pivot
+
+**Potential Future Use**: Infrastructure could be repurposed for Launch-as-a-Service model where we charge others $10K-50K per token launch instead of launching ourselves.

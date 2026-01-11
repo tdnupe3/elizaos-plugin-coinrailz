@@ -170,3 +170,45 @@ The platform utilizes Coinbase CDP wallet management with a USDC-first approach,
 - Database tables: `token_launcher_campaigns`, `token_launcher_launches` - Preserved for potential Launch-as-a-Service pivot
 
 **Potential Future Use**: Infrastructure could be repurposed for Launch-as-a-Service model where we charge others $10K-50K per token launch instead of launching ourselves.
+
+## x402 Facilitator Status (Jan 11, 2026)
+
+### Current Situation: ALL PUBLIC FACILITATORS BROKEN
+
+**Investigation Results**:
+| Facilitator | URL | Status | Notes |
+|-------------|-----|--------|-------|
+| x402.org | https://x402.org/facilitator | ❌ 404/Redirect | Made testnet-only during x402 V2 migration |
+| CDP Official | https://api.cdp.coinbase.com/platform/v2/x402 | ⚠️ Requires Auth | Returns "Unauthorized" without API keys |
+| PayAI | https://facilitator.payai.network | ❌ /verify 500s | Health OK, but /verify returns 500 for all payloads |
+
+**Test Results (PayAI Compatibility Suite)**:
+- ✅ Health endpoint: 200 OK (124ms median latency)
+- ✅ Supported networks: Base and Solana confirmed
+- ✅ Rate limiting: No limits on 25 rapid requests
+- ❌ /verify EVM/Base: 500 Internal Server Error
+- ❌ /verify Solana: 500 Internal Server Error
+- ❌ Malformed payload: 500 (should be 400)
+
+**Root Cause Analysis**:
+- x402.org was made testnet-only when Coinbase V2 spec launched
+- PayAI facilitator's /verify endpoint appears to have a backend bug
+- CDP facilitator requires API authentication (works for us, not public agents)
+
+**Impact on Coin Railz**:
+- Our 43 x402 microservices advertise x402.org as facilitator
+- Explains 0% payment conversion (45 challenges, 0 payments in past sessions)
+- Agents receive 402 responses but cannot submit payments anywhere
+
+**Recommendation (Architect Approved)**:
+1. Keep x402.org advertised while monitoring for restoration
+2. Escalate PayAI /verify failures to their Discord support
+3. Do NOT switch to PayAI until /verify is fixed
+4. Consider CDP-only if willing to sacrifice public agent compatibility
+
+**Next Actions**:
+- [ ] Report PayAI /verify 500 errors to https://discord.gg/eWJRwMpebQ
+- [ ] Monitor x402.org for mainnet restoration
+- [ ] Re-run PayAI test suite after they confirm fix
+
+**Test Script**: `server/tests/payai-facilitator-test.ts` (run: `npx tsx server/tests/payai-facilitator-test.ts`)

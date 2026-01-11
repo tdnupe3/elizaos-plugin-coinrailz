@@ -1,0 +1,89 @@
+► What is ElizaOS ?
+
+ElizaOS is built around sovereign agents, not disposable chatbots.
+
+These are long-running software entities designed for persistent execution.
+
+▸ Operate continuously: agents run as persistent processes rather than session-based interactions
+
+▸ Hold identity and memory: agents retain identity and contextual state across executions
+
+▸ Take real actions: agents execute trades, coordinate workflows, and participate in governance
+
+This architecture shifts agents from reactive tools into autonomous economic actors.
+
+To support this in production, ElizaOS is built as a full stack.
+
+The system is structured into four layers, each enabling a distinct dimension of agent autonomy.
+
+—
+
+► Layer 1: Agents & Applications (The Interface)
+
+This is the consumer-facing layer where agents exist as autonomous software products, not chatbots.
+
+Agents run continuously, retain identity and memory, and execute real actions, often on-chain, inside protocols and networks.
+
+At this layer, agents:
+▸ Operate continuously with persistent identity and memory
+▸ Interact with users, protocols, and other agents
+▸ Execute actions such as trading, posting, or coordination
+▸ Generate revenue through on-chain execution and protocol participation
+
+—
+
+► Layer 2: Eliza Cloud (The Production Engine)
+
+Eliza Cloud is the production layer that turns agent prototypes into reliable, scalable services.
+
+It addresses the failure point where agents work locally but break in production.
+
+At this layer, Eliza Cloud:
+▸ Provides managed runtimes for long-running agents
+▸ Offers access to multimodal models in a standardized environment
+▸ Handles deployment, scaling, and operational monitoring
+▸ Enables discovery, payments, and monetization
+
+This layer standardizes how agents are run and paid for, allowing builders to focus on behaviour and value.
+
+—
+
+► Layer 3: Infrastructure & Payments (The Economy)
+
+This is the economic and data layer enabling agents to operate autonomously across the stack.
+
+It provides connective infrastructure for execution, payments, and verifiable actions without adding operational burden.
+
+At this layer, agents:
+▸ Access tools and data through authenticated MCP integrations
+▸ Execute crypto-native payments via the x402 gateway
+▸ Monetize through usage-based and service-driven flows
+▸ Earn, spend, and act on-chain using delegated wallets
+
+This layer moves agents from helpful software to economic actors.
+
+—
+
+► Layer 4: Layer 4: Jeju & Blockchain Services (The Trust Layer)
+
+This is the trust and coordination layer providing decentralized rails for autonomous agents.
+
+Jeju acts as an economic operating system, enabling verifiable behavior and on-chain accountability.
+
+At this layer, Jeju:
+▸ Provides financial primitives and governance infrastructure
+▸ Establishes on-chain identity, reputation, and discoverability
+▸ Enables agent-to-agent coordination and commerce
+▸ Supports consumer engagement through GameFi and synthetic markets
+
+This layer operates mostly in the background, enforcing trust without exposing blockchain complexity to end users.
+
+—
+
+► Why the Comeback Matters
+
+Closed AI systems confine agents to proprietary runtimes, restricting composability, verifiability, and user ownership at the architectural level.
+
+After bans, rebrands, and founder silence, the project hardened an open stack built for agents to run in production, coordinate across systems, and transact autonomously.
+
+Open at the framework layer, standardized at infrastructure, and composable at coordination, the stack is ready, and the build phase has begun.

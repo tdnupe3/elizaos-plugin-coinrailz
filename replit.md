@@ -173,42 +173,28 @@ The platform utilizes Coinbase CDP wallet management with a USDC-first approach,
 
 ## x402 Facilitator Status (Jan 11, 2026)
 
-### Current Situation: ALL PUBLIC FACILITATORS BROKEN
+### FIXED: Now Using CDP Facilitator
 
-**Investigation Results**:
-| Facilitator | URL | Status | Notes |
-|-------------|-----|--------|-------|
-| x402.org | https://x402.org/facilitator | ❌ 404/Redirect | Made testnet-only during x402 V2 migration |
-| CDP Official | https://api.cdp.coinbase.com/platform/v2/x402 | ⚠️ Requires Auth | Returns "Unauthorized" without API keys |
-| PayAI | https://facilitator.payai.network | ❌ /verify 500s | Health OK, but /verify returns 500 for all payloads |
+**Resolution (Jan 11, 2026 16:00 UTC)**:
+The system was hard-coded to advertise x402.org even when CDP credentials existed. This was a legacy decision from Dec 19, 2025 when x402.org was working and CDP caused 97% traffic drop.
 
-**Test Results (PayAI Compatibility Suite)**:
-- ✅ Health endpoint: 200 OK (124ms median latency)
-- ✅ Supported networks: Base and Solana confirmed
-- ✅ Rate limiting: No limits on 25 rapid requests
-- ❌ /verify EVM/Base: 500 Internal Server Error
-- ❌ /verify Solana: 500 Internal Server Error
-- ❌ Malformed payload: 500 (should be 400)
+**Root Cause**: x402.org went testnet-only during x402 V2 migration, but our code still advertised it.
 
-**Root Cause Analysis**:
-- x402.org was made testnet-only when Coinbase V2 spec launched
-- PayAI facilitator's /verify endpoint appears to have a backend bug
-- CDP facilitator requires API authentication (works for us, not public agents)
+**Fix Applied**:
+- Updated `server/utils/facilitatorHelper.ts` to detect CDP credentials and use CDP facilitator
+- Updated `server/middleware/x402ResponseEnricher.ts` to call getFacilitatorUrl() per-request (not cached at module load)
+- 402 responses now advertise: `https://api.cdp.coinbase.com/platform/v2/x402`
 
-**Impact on Coin Railz**:
-- Our 43 x402 microservices advertise x402.org as facilitator
-- Explains 0% payment conversion (45 challenges, 0 payments in past sessions)
-- Agents receive 402 responses but cannot submit payments anywhere
+**Current Facilitator Configuration**:
+| Scenario | Facilitator URL |
+|----------|-----------------|
+| CDP credentials present | https://api.cdp.coinbase.com/platform/v2/x402 |
+| No CDP credentials | https://x402.org/facilitator (fallback) |
 
-**Recommendation (Architect Approved)**:
-1. Keep x402.org advertised while monitoring for restoration
-2. Escalate PayAI /verify failures to their Discord support
-3. Do NOT switch to PayAI until /verify is fixed
-4. Consider CDP-only if willing to sacrifice public agent compatibility
+**Key Insight**: With CDP, visiting agents don't need their own credentials. Coin Railz acts as the payment processor using OUR CDP auth to verify/settle payments on behalf of agents.
 
-**Next Actions**:
-- [ ] Report PayAI /verify 500 errors to https://discord.gg/eWJRwMpebQ
-- [ ] Monitor x402.org for mainnet restoration
-- [ ] Re-run PayAI test suite after they confirm fix
+**PayAI Status** (tested, not used):
+- Health/latency tests passed, but /verify returns 500 for all payloads
+- Do not use until they fix their backend
 
 **Test Script**: `server/tests/payai-facilitator-test.ts` (run: `npx tsx server/tests/payai-facilitator-test.ts`)

@@ -1,28 +1,32 @@
 /**
  * Shared Facilitator URL Helper
  * 
- * CRITICAL FIX (Dec 19, 2025): We must support BOTH facilitators!
- * - CDP agents need facilitator.cdp.coinbase.com
- * - Public x402 agents (python-httpx, zauthx402-agent) need x402.org/facilitator
+ * CRITICAL FIX (Jan 11, 2026): x402.org is now DEAD (returns 404)
+ * The x402 V2 migration made x402.org testnet-only.
  * 
- * Traffic dropped 97% (728 → 3 interactions) after switching to CDP-only on Dec 16.
- * Public agents couldn't authenticate with CDP facilitator and stopped calling us.
+ * NEW STRATEGY:
+ * - Use CDP facilitator as PRIMARY (we have credentials, it works)
+ * - Agents submit payments to CDP, which Coin Railz verifies using our API keys
+ * - This means visiting agents don't need their own CDP auth - WE handle it
  * 
- * Solution: Advertise public facilitator as primary (for broad compatibility)
- * while still accepting CDP payments for Bazaar-indexed agents.
+ * Previous Dec 19 fix was for compatibility, but x402.org being dead
+ * means there's nothing to be compatible WITH anymore.
  */
 
-const CDP_FACILITATOR_URL = 'https://facilitator.cdp.coinbase.com';
+const CDP_FACILITATOR_URL = 'https://api.cdp.coinbase.com/platform/v2/x402';
 const PUBLIC_FACILITATOR_URL = 'https://x402.org/facilitator';
 
 /**
  * Get the PRIMARY facilitator URL for 402 responses
- * Uses public x402.org for broad agent compatibility
- * CDP agents can still use their facilitator - we accept both payment formats
+ * Uses CDP when we have credentials (which we do)
+ * Falls back to x402.org only if no CDP credentials
  */
 export function getFacilitatorUrl(): string {
-  // Always advertise public facilitator for maximum agent compatibility
-  // CDP agents will use their own facilitator regardless of what we advertise
+  // Use CDP facilitator when we have credentials - x402.org is dead
+  if (process.env.CDP_API_KEY_ID && process.env.CDP_API_KEY_SECRET) {
+    return CDP_FACILITATOR_URL;
+  }
+  // Fallback to public (though it's currently broken)
   return PUBLIC_FACILITATOR_URL;
 }
 
@@ -35,9 +39,10 @@ export function getAllFacilitatorUrls(): string[] {
 
 /**
  * Get the CDP facilitator URL specifically (for Bazaar registration)
+ * Updated to V2 API endpoint (Jan 2026)
  */
 export function getCdpFacilitatorUrl(): string {
-  return CDP_FACILITATOR_URL;
+  return 'https://api.cdp.coinbase.com/platform/v2/x402';
 }
 
 /**

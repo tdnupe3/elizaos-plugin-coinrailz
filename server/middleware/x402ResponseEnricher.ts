@@ -21,8 +21,8 @@ import { sql, gte, eq } from "drizzle-orm";
 import { getFacilitatorUrl, NETWORK_LEGACY, NETWORK_CAIP2 } from "../utils/facilitatorHelper";
 
 const CANONICAL_BASE_URL = process.env.PUBLIC_URL || 'https://coinrailz.com';
-// Use shared helper for hybrid CDP/x402.org facilitator selection
-const FACILITATOR_URL = getFacilitatorUrl();
+// FIXED (Jan 11, 2026): Call getFacilitatorUrl() per-request, not at module load
+// This ensures CDP credentials are checked dynamically
 
 function getCanonicalBaseUrl(): string {
   if (process.env.PUBLIC_URL) {
@@ -206,7 +206,7 @@ export function x402ResponseEnricher() {
         // but the official Coinbase x402 spec defines x402Version as NUMBER.
         // We follow the official spec (number 2) for Bazaar/facilitator/SDK compatibility.
         
-        body.facilitatorUrl = body.facilitatorUrl || FACILITATOR_URL;
+        body.facilitatorUrl = body.facilitatorUrl || getFacilitatorUrl();
         
         // Add confidence metrics (ChatGPT-recommended social proof)
         body.confidenceMetrics = {

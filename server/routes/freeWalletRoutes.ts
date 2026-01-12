@@ -18,7 +18,7 @@ const VELOCITY_WINDOW_SECONDS = 60;  // 1 minute window
 const VELOCITY_MAX_REQUESTS = 3;     // Max 3 requests per minute
 const INITIAL_COOLDOWN_HOURS = 1;    // First offense: 1 hour cooldown
 const MAX_COOLDOWN_HOURS = 24;       // Max cooldown: 24 hours
-const BLACKLIST_THRESHOLD_LEVEL = 4; // After 4 cooldowns (1h→2h→4h→8h), blacklist for 7 days
+const BLACKLIST_THRESHOLD_LEVEL = 4; // After 4 cooldowns (1h→2h→4h→8h), blacklist for 72h
 
 function getClientIP(req: Request): string {
   let ip: string;
@@ -239,7 +239,7 @@ async function recordRequest(ipAddress: string, trustTier: string): Promise<void
 }
 
 async function addToBlacklist(ipAddress: string, agentId: string, reason: string): Promise<void> {
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000); // 72 hours - balances abuse prevention with developer experience
   
   await db.insert(freeWalletBlacklist).values({
     ipAddress,

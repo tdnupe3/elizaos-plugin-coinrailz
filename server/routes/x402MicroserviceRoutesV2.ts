@@ -1880,13 +1880,15 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         purpose: "persistent",
         chain: "base-mainnet"
       },
+      supportedChains: ["base-mainnet", "ethereum-mainnet", "polygon-mainnet", "arbitrum-mainnet", "solana-mainnet"],
       benefits: [
         "MPC-secured wallet via Coinbase CDP",
         "No payment required",
         "Instant creation",
+        "EVM + Solana supported",
         "Fund with USDC to start transacting"
       ],
-      rateLimit: "3 free wallets per IP per day"
+      rateLimit: "2 free wallets per IP per day"
     }
   };
 

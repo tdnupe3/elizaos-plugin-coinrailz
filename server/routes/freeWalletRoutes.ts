@@ -255,7 +255,7 @@ async function addToBlacklist(ipAddress: string, agentId: string, reason: string
 const freeWalletInputSchema = z.object({
   agent_id: z.string().min(1, "Agent ID is required").max(255),
   purpose: z.enum(["ephemeral", "persistent"]).default("persistent"),
-  chain: z.enum(["base-mainnet", "ethereum-mainnet", "polygon-mainnet", "arbitrum-mainnet"]).default("base-mainnet"),
+  chain: z.enum(["base-mainnet", "ethereum-mainnet", "polygon-mainnet", "arbitrum-mainnet", "solana-mainnet"]).default("base-mainnet"),
   contact_email: z.string().email().optional(),
   contact_url: z.string().url().optional(),
 });
@@ -354,8 +354,21 @@ router.post('/free', async (req: Request, res: Response) => {
       });
     }
 
-    // Step 5: Create the wallet
-    const cdpWallet = await coinbaseCDPService.createWallet(`free:${agent_id}`, chain);
+    // Step 5: Create the wallet (route Solana to separate method)
+    let cdpWallet: { id: string; address: string };
+    
+    if (chain === 'solana-mainnet') {
+      const solanaResult = await coinbaseCDPService.createSolanaWallet({
+        agentId: `free:${agent_id}`,
+        purpose: purpose
+      });
+      if (!solanaResult || solanaResult.error) {
+        throw new Error(solanaResult?.error || 'Solana wallet creation failed');
+      }
+      cdpWallet = { id: solanaResult.walletId, address: solanaResult.address };
+    } else {
+      cdpWallet = await coinbaseCDPService.createWallet(`free:${agent_id}`, chain);
+    }
     
     // Step 6: Record in database
     const [walletRecord] = await db.insert(agentWallets).values({

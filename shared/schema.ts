@@ -325,6 +325,7 @@ export const agentWallets = pgTable("agent_wallets", {
   custodyType: varchar("custody_type").notNull().default("cdp"), // cdp, self-custody, etc
   purpose: varchar("purpose").notNull().default("persistent"), // ephemeral, persistent
   status: varchar("status").notNull().default("active"), // active, disabled, error
+  tier: varchar("tier").notNull().default("paid"), // 'free' or 'paid' - tracks wallet acquisition tier
   labels: text("labels").array(), // Optional classification labels
   tags: text("tags").array(), // Optional tags for categorization
   metadata: jsonb("metadata"), // Additional agent metadata
@@ -338,6 +339,7 @@ export const agentWallets = pgTable("agent_wallets", {
   index("IDX_agent_wallets_chain").on(table.chain),
   index("IDX_agent_wallets_status").on(table.status),
   index("IDX_agent_wallets_purpose").on(table.purpose),
+  index("IDX_agent_wallets_tier").on(table.tier), // Index for free vs paid wallet queries
   index("IDX_agent_wallets_payer_wallet").on(table.payerWalletAddress), // Index for revenue attribution queries
 ]);
 

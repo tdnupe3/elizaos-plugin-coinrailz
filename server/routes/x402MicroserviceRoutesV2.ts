@@ -1870,6 +1870,23 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
         usage: "X-PAYMENT: 0x... (raw transaction hash)",
         platformWallet: PLATFORM_WALLET
       }
+    },
+    freeWalletOffer: {
+      message: "Need a wallet? Get one FREE to start using x402 services!",
+      endpoint: `${publicBaseUrl}/x402/wallet/free`,
+      method: "POST",
+      body: {
+        agent_id: "your-unique-agent-id",
+        purpose: "persistent",
+        chain: "base-mainnet"
+      },
+      benefits: [
+        "MPC-secured wallet via Coinbase CDP",
+        "No payment required",
+        "Instant creation",
+        "Fund with USDC to start transacting"
+      ],
+      rateLimit: "3 free wallets per IP per day"
     }
   };
 

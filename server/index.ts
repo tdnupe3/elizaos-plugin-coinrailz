@@ -846,6 +846,12 @@ console.log('✅ x402 gated enterprise services mounted at /x402/service/* with 
 console.log('🔒 Mounting /x402 routes (V2 microservices)...');
 app.use('/x402', x402MicroserviceRoutes); // All x402 services with official Coinbase CDP facilitator (V2)
 
+// === FREE WALLET TIER - Ecosystem Adoption ===
+console.log('🆓 Mounting Free Wallet routes for x402 ecosystem adoption...');
+import freeWalletRoutes from './routes/freeWalletRoutes';
+app.use('/x402/wallet', freeWalletRoutes); // Free wallet creation for agents
+console.log('✅ Free wallet routes registered at /x402/wallet/* - POST /x402/wallet/free');
+
 app.use('/api/x402-sweep', x402FundsSweepRoutes);
 app.use('/api/x402scan-scraper', x402scanScraperRoutes);
 app.use('/api/x402-analytics', x402AnalyticsRoutes);

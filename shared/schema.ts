@@ -378,6 +378,55 @@ export const insertAgentWalletEventSchema = createInsertSchema(agentWalletEvents
 export type InsertAgentWalletEvent = z.infer<typeof insertAgentWalletEventSchema>;
 export type AgentWalletEvent = typeof agentWalletEvents.$inferSelect;
 
+// Free Wallet Rate Limits table for tracking request counts and cooldowns
+export const freeWalletRateLimits = pgTable("free_wallet_rate_limits", {
+  id: serial("id").primaryKey(),
+  ipAddress: varchar("ip_address").notNull(),
+  agentId: varchar("agent_id"),
+  trustTier: varchar("trust_tier").notNull().default("baseline"), // baseline, verified
+  windowStart: timestamp("window_start").notNull().defaultNow(),
+  requestCount: integer("request_count").notNull().default(0),
+  cooldownUntil: timestamp("cooldown_until"),
+  cooldownLevel: integer("cooldown_level").default(0), // For exponential backoff: 0, 1, 2, 3...
+  lastRequestAt: timestamp("last_request_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("IDX_free_wallet_rate_limits_ip").on(table.ipAddress),
+  index("IDX_free_wallet_rate_limits_window").on(table.windowStart),
+  index("IDX_free_wallet_rate_limits_cooldown").on(table.cooldownUntil),
+]);
+
+// Free Wallet Blacklist table for temporary and permanent bans
+export const freeWalletBlacklist = pgTable("free_wallet_blacklist", {
+  id: serial("id").primaryKey(),
+  ipAddress: varchar("ip_address"),
+  agentId: varchar("agent_id"),
+  reason: varchar("reason").notNull(), // abuse, quota_exceeded, manual
+  expiresAt: timestamp("expires_at"), // null = permanent
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: varchar("created_by"), // system, admin username
+}, (table) => [
+  index("IDX_free_wallet_blacklist_ip").on(table.ipAddress),
+  index("IDX_free_wallet_blacklist_agent").on(table.agentId),
+  index("IDX_free_wallet_blacklist_expires").on(table.expiresAt),
+]);
+
+export const insertFreeWalletRateLimitSchema = createInsertSchema(freeWalletRateLimits).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertFreeWalletRateLimit = z.infer<typeof insertFreeWalletRateLimitSchema>;
+export type FreeWalletRateLimit = typeof freeWalletRateLimits.$inferSelect;
+
+export const insertFreeWalletBlacklistSchema = createInsertSchema(freeWalletBlacklist).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertFreeWalletBlacklist = z.infer<typeof insertFreeWalletBlacklistSchema>;
+export type FreeWalletBlacklist = typeof freeWalletBlacklist.$inferSelect;
+
 // Agent Wallet Provisioning API Input Schema (for x402 endpoint)
 export const agentCreateWalletInputSchema = z.object({
   agent_id: z.string().min(1, "Agent ID is required").max(255),

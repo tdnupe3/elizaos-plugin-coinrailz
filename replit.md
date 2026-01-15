@@ -20,7 +20,7 @@ The Coin Railz platform uses a USDC-first approach with Coinbase CDP for wallet 
 **Key Architectural Decisions:**
 - **AI Agent Marketplace:** Implemented via the x402 protocol for HTTP 402 payments on Base Chain, using Coinbase CDP for wallet creation and Alchemy RPC for verification. ERC-8004 Blockchain Identity is used for agent identities.
 - **Authentication:** Supports Coinbase OAuth, Replit OAuth, and email/password, backed by PostgreSQL.
-- **x402 Microservices**: 43 production services compatible with Coinbase Bazaar and x402scan.
+- **x402 Microservices**: 44 production services compatible with Coinbase Bazaar and x402scan (including Solana Yield Finder at $0.05/call).
 - **Discovery Engine**: Multi-layer mechanism with 9 active methods for identifying AI agents.
 - **Payment Intent Ledger**: Durable ledger for payment intents, supporting state transitions and replay protection.
 - **GPT In-Chat Credit Purchase**: Provides API endpoints for purchasing credits within ChatGPT.
@@ -46,3 +46,4 @@ The Coin Railz platform uses a USDC-first approach with Coinbase CDP for wallet 
 - **Telegram:** Hosting Mini-Apps and webhook for @coinrailz_bot.
 - **Amazon Associates:** Affiliate account (Store ID: coinrailz-20) for product recommendations.
 - **OpenAI GPT Store:** Monetized Coin Railz GPT with custom actions.
+- **Dialect Markets API:** Real-time Solana DeFi data (lending rates, yield opportunities from Kamino, Jupiter Lend, Lulo, Marginfi) with 10-minute server-side caching.

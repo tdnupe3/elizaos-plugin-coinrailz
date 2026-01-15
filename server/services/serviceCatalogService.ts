@@ -64,6 +64,7 @@ const CATEGORY_ORDER = [
   'market-intelligence',
   'prediction-markets',
   'traditional-markets',
+  'solana-defi',
   'sdk-payments'
 ];
 
@@ -542,6 +543,18 @@ export class ServiceCatalogService {
         network: 'eip155:8453',
         category: 'traditional-markets',
         capabilities: ['forex-analysis', 'currency-sentiment', 'economic-analysis', 'ai-analysis'],
+        x402Compatible: true,
+        stripeCompatible: true
+      },
+      // Solana DeFi Services (Dialect Integration)
+      {
+        id: 'solana-yield-finder',
+        name: 'Solana Yield Finder',
+        description: 'Real-time Solana lending and yield rates from top DeFi protocols (Kamino, Jupiter Lend, Lulo, Marginfi). Get APY data, TVL, reward incentives, and deposit blinks. Powered by Dialect Markets API.',
+        endpoint: '/x402/solana-yield-finder',
+        network: 'solana:101',
+        category: 'solana-defi',
+        capabilities: ['yield-farming', 'lending-rates', 'apy-data', 'solana', 'defi', 'kamino', 'jupiter', 'lulo', 'marginfi'],
         x402Compatible: true,
         stripeCompatible: true
       },

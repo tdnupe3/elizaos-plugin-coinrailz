@@ -63,7 +63,9 @@ export type ServiceName =
   | "prediction-market-odds"
   // Traditional Markets vertical (2 services) - Stocks & Forex
   | "stock-sentiment"
-  | "forex-sentiment";
+  | "forex-sentiment"
+  // Solana DeFi vertical (Dialect integration)
+  | "solana-yield-finder";
 
 /**
  * Type guard to check if a string is a valid ServiceName
@@ -151,6 +153,9 @@ export const SERVICE_PRICING_MICRO: Record<ServiceName, number> = {
   // VERTICAL EXPANSION - Traditional Markets Services ($0.40)
   "stock-sentiment": 400000,           // $0.40 - AI stock sentiment analysis
   "forex-sentiment": 400000,           // $0.40 - AI forex sentiment analysis
+  
+  // VERTICAL EXPANSION - Solana DeFi Services (Dialect integration)
+  "solana-yield-finder": 50000,        // $0.05 - Real-time Solana lending/yield rates via Dialect
 };
 
 /**
@@ -218,6 +223,9 @@ export const SERVICE_PRICING_USD: Record<ServiceName, number> = {
   // Traditional Markets vertical
   "stock-sentiment": 0.40,
   "forex-sentiment": 0.40,
+  
+  // Solana DeFi vertical (Dialect integration)
+  "solana-yield-finder": 0.05,
 };
 
 /**

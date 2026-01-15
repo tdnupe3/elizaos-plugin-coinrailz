@@ -71,6 +71,7 @@ import { deductBundleCredits } from "../services/bundleCreditService";
 import { serviceCatalogService, ServiceCatalogService } from "../services/serviceCatalogService";
 import { offerLinkService } from "../services/offerLinkService";
 import { buildBazaarDiscoveryMetadata } from "../discovery/officialBazaarIntegration";
+import { dialectMarketsService } from "../services/dialectMarketsService";
 
 const router = Router();
 
@@ -3843,6 +3844,87 @@ router.post("/forex-sentiment",
       const responseTime = Date.now() - startTime;
       await trackRequest("forex-sentiment", req.body, null, responseTime, SERVICE_PRICING_USD["forex-sentiment"], req.ip || "unknown", error.message);
       res.status(400).json({ success: false, error: error.message });
+    }
+  })
+);
+
+// ========================================
+// SOLANA DEFI SERVICES (Dialect Integration)
+// Real-time Solana lending/yield data from Dialect Markets API
+// ========================================
+
+// Solana Yield Finder - Get top lending/yield opportunities on Solana
+router.get("/solana-yield-finder",
+  createPaymentOrchestrator("solana-yield-finder", SERVICE_PRICING_MICRO["solana-yield-finder"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { 
+        limit = 10, 
+        type, 
+        protocol, 
+        minApy,
+        token 
+      } = req.query;
+      
+      const result = await dialectMarketsService.getTopYields({
+        limit: Math.min(50, Math.max(1, parseInt(limit as string) || 10)),
+        type: type as 'lending' | 'yield' | 'loop' | 'perpetual' | undefined,
+        protocol: protocol as string | undefined,
+        minApy: minApy ? parseFloat(minApy as string) / 100 : undefined,
+        token: token as string | undefined,
+      });
+      
+      const responseTime = Date.now() - startTime;
+      await trackRequest("solana-yield-finder", req.query, result, responseTime, SERVICE_PRICING_USD["solana-yield-finder"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "solana-yield-finder", { limit, type, protocol });
+      
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("solana-yield-finder", req.query, null, responseTime, SERVICE_PRICING_USD["solana-yield-finder"], req.ip || "unknown", error.message);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        suggestion: "Check DIALECT_MARKETS_FE_KEY or DIALECT_BE_KEY is configured"
+      });
+    }
+  })
+);
+
+// Also support POST for agents that prefer POST
+router.post("/solana-yield-finder",
+  createPaymentOrchestrator("solana-yield-finder", SERVICE_PRICING_MICRO["solana-yield-finder"], async (req: Request, res: Response) => {
+    const startTime = Date.now();
+    try {
+      const { 
+        limit = 10, 
+        type, 
+        protocol, 
+        minApy,
+        token 
+      } = req.body;
+      
+      const result = await dialectMarketsService.getTopYields({
+        limit: Math.min(50, Math.max(1, parseInt(limit) || 10)),
+        type: type as 'lending' | 'yield' | 'loop' | 'perpetual' | undefined,
+        protocol: protocol as string | undefined,
+        minApy: minApy ? parseFloat(minApy) / 100 : undefined,
+        token: token as string | undefined,
+      });
+      
+      const responseTime = Date.now() - startTime;
+      await trackRequest("solana-yield-finder", req.body, result, responseTime, SERVICE_PRICING_USD["solana-yield-finder"], req.ip || "unknown");
+      await trackBundleUsage(req, res, "solana-yield-finder", { limit, type, protocol });
+      
+      res.json(result);
+    } catch (error: any) {
+      const responseTime = Date.now() - startTime;
+      await trackRequest("solana-yield-finder", req.body, null, responseTime, SERVICE_PRICING_USD["solana-yield-finder"], req.ip || "unknown", error.message);
+      res.status(500).json({ 
+        success: false, 
+        error: error.message,
+        suggestion: "Check DIALECT_MARKETS_FE_KEY or DIALECT_BE_KEY is configured"
+      });
     }
   })
 );

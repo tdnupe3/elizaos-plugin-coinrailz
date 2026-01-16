@@ -1,0 +1,200 @@
+Below are focused, high-leverage questions. Once you answer these, I’ll move immediately into deep research and come back with specific places, tactics, and integration plays.
+
+1. Clarifying What “Paying Agents” Means for You
+
+What actions are agents paying for today?
+(Select all that apply)
+
+x402 micropayments per request
+
+Subscription-style access (monthly / usage tiers)
+
+One-off API calls
+
+Wallet-to-wallet service execution
+
+Other (describe)
+
+Typical price point per paid action?
+
+<$0.01
+
+$0.01–$0.10
+
+$0.10–$1
+
+$1–$10
+
+$10+
+
+What chain(s) are payments currently happening on?
+
+Solana
+
+Base
+
+Ethereum
+
+Multi-chain
+
+Abstracted / chain-agnostic
+
+2. Who You WANT the Paying Agent to Be
+
+Who is the ideal paying agent?
+
+Autonomous trading bot
+
+AI research agent
+
+LLM-based SaaS agent
+
+Wallet automation agent
+
+DAO tooling agent
+
+Infra / middleware agent
+
+Enterprise/internal agents (companies running their own)
+
+Human-in-the-loop or fully autonomous?
+
+Fully autonomous (no human approval)
+
+Semi-autonomous (budget approved, actions automated)
+
+Human-triggered but agent-executed
+
+Are you targeting:
+
+Indie builders / hackers
+
+VC-backed AI startups
+
+DAOs
+
+Enterprises experimenting with agents
+
+Open-source agent swarms
+
+3. Discovery vs Conversion Reality Check
+
+Where are you currently indexed or listed?
+(Confirm yes/no for each)
+
+Dialect
+
+GitHub READMEs
+
+Agent registries
+
+Model Context Protocol (MCP) catalogs
+
+Farcaster / Frames
+
+X (Twitter) developer circles
+
+Discord agent communities
+
+How are agents discovering you today?
+
+Crawling endpoints
+
+Registry metadata
+
+OpenAPI / Swagger
+
+Prompt injection via tool descriptions
+
+Word of mouth
+
+Do you currently expose a “pay-required” failure mode?
+(i.e., agent gets blocked unless it pays)
+
+Yes (hard paywall)
+
+Yes (soft quota → pay)
+
+No (free tier unlimited)
+
+4. Friction & Trust Signals
+
+Do agents need to pre-fund a wallet to use you?
+
+Yes
+
+No (just-in-time / streamed payments)
+
+Is pricing machine-readable?
+
+Yes (returned in JSON / headers)
+
+Partially
+
+No
+
+Is there a clear SLA or value guarantee?
+
+Yes (documented)
+
+Informal
+
+None
+
+5. What You Are Willing to Change (Important)
+
+Are you open to:
+
+Creating agent-only paid endpoints
+
+Raising prices to filter serious agents
+
+Removing free access entirely for some services
+
+Bundling services into “agent plans”
+
+White-labeling for agent platforms
+
+What is off-limits?
+
+Regulatory exposure
+
+Custody
+
+Certain chains
+
+Certain jurisdictions
+
+Certain use cases (trading, surveillance, etc.)
+
+6. Success Definition
+
+In 90 days, what would success look like?
+
+X paying agents/day
+
+$X MRR from agents
+
+Named partnerships with agent platforms
+
+Inclusion in a “default agent stack”
+
+Something else?
+
+Why I’m Asking This
+
+Right now, you’re visible to indexers, not economic actors.
+Paying agents cluster in very specific ecosystems, and most never touch public registries.
+
+Once you answer these:
+
+I’ll identify where paying agents actually live
+
+Map which platforms route agent spend
+
+Show how to reposition Coin Railz from “tool” → “economic primitive”
+
+Recommend concrete integration and distribution moves
+
+Answer in bullets — doesn’t need to be perfect.
+Once you reply, I’ll go deep.

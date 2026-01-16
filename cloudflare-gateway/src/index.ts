@@ -77,7 +77,7 @@ export default {
     if (path === '/catalog' || path === '/services') {
       return new Response(JSON.stringify({
         name: 'Coin Railz x402 Gateway',
-        description: 'Pay-per-call crypto intelligence for AI agents - ALL 44 services',
+        description: 'Universal payment infrastructure for AI agents - Crypto (x402), Fiat (Stripe), Credits, and FREE wallet provisioning',
         protocol: 'x402',
         totalServices: services.length,
         services: services.map((s: any) => ({

@@ -89,8 +89,36 @@ The Coin Railz platform uses a USDC-first approach with Coinbase CDP for wallet 
 - **Location**: After Key Stats section in `client/src/pages/landing.tsx` (lines 265-282)
 - **Links**: MCP Protocol, Cloudflare Gateway, Farcaster Frame
 
+### Multi-Modal Payment Metadata (January 16, 2026)
+- **Updated**: `server/routes/mcpServiceDiscovery.ts` - MCP discovery now advertises multi-modal payment capabilities
+- **Changes**:
+  - Provider description: "Universal payment infrastructure for AI agents - Crypto (x402), Fiat (Stripe), Credits, and FREE wallet provisioning"
+  - paymentMethods: ["x402-erc20-usdc", "stripe-fiat", "credits"] (was just x402)
+  - Added paymentCapabilities object with crypto, fiat, credits, and walletProvisioning details
+  - Service entries now include stripeCompatible and paymentOptions fields
+- **Cloudflare Gateway**: Updated description in `cloudflare-gateway/src/index.ts` to match
+- **Baseline (for rollback)**:
+  ```json
+  {
+    "paymentMethods": ["x402-erc20-usdc"],
+    "provider.description": "Multi-chain payment infrastructure for AI agents - 44 x402 services"
+  }
+  ```
+- **Impact**: AI agents can now discover that Coin Railz supports fiat payments, not just crypto
+
 ### Rollback Instructions
-To revert MCP changes:
+
+To revert Multi-Modal Payment Metadata:
+1. In `server/routes/mcpServiceDiscovery.ts`:
+   - Change `paymentMethods` back to `["x402-erc20-usdc"]`
+   - Remove `paymentCapabilities` object
+   - Change provider description back to "Multi-chain payment infrastructure for AI agents - 44 x402 services"
+   - Remove `stripeCompatible` and `paymentOptions` from service map return
+2. In `cloudflare-gateway/src/index.ts`:
+   - Change description back to "Pay-per-call crypto intelligence for AI agents - ALL 44 services"
+3. Redeploy Cloudflare Worker via `npx wrangler deploy`
+
+To revert MCP dynamic services:
 1. Revert `server/routes/mcpServiceDiscovery.ts` to previous version (hardcoded 18 services)
 
 To revert Cloudflare Worker changes:

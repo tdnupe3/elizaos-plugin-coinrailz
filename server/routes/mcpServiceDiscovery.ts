@@ -48,7 +48,9 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
           protocol: "x402",
           inputSchema: getInputSchema(entry.id),
           capabilities: entry.capabilities,
-          network: entry.network
+          network: entry.network,
+          stripeCompatible: entry.stripeCompatible,
+          paymentOptions: ["x402-crypto", "stripe-fiat", "credits"]
         };
       });
 
@@ -72,7 +74,7 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
       version: 2,
       provider: {
         name: "Coin Railz",
-        description: "Multi-chain payment infrastructure for AI agents - 44 x402 services",
+        description: "Universal payment infrastructure for AI agents - Crypto (x402), Fiat (Stripe), Credits, and FREE wallet provisioning for autonomous agents",
         url: baseUrl,
         facilitator: "https://facilitator.cdp.coinbase.com",
         cloudflareGateway: "https://coinrailz-x402-gateway.coinrailz.workers.dev"
@@ -80,7 +82,13 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
       services: services,
       totalServices: services.length,
       categories: categoryCounts,
-      paymentMethods: ["x402-erc20-usdc"],
+      paymentMethods: ["x402-erc20-usdc", "stripe-fiat", "credits"],
+      paymentCapabilities: {
+        crypto: { protocol: "x402", networks: ["base", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"], token: "USDC" },
+        fiat: { provider: "stripe", methods: ["card", "bank"] },
+        credits: { description: "Pre-purchased credit bundles via Stripe" },
+        walletProvisioning: { description: "FREE instant wallet creation for AI agents", endpoint: "/api/agent-wallet/create" }
+      },
       supportedNetworks: ["base", "base-sepolia", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"],
       documentation: `${baseUrl}/docs/x402`,
       catalogUrl: `${baseUrl}/api/x402/catalog`

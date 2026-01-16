@@ -67,9 +67,35 @@ The Coin Railz platform uses a USDC-first approach with Coinbase CDP for wallet 
 - **Fixed**: `/api/bundles` was returning SPA HTML instead of JSON
 - **Solution**: Added deferred router for `/api/bundles` in `server/index.ts`
 
+### MCP Dynamic Service Discovery (January 16, 2026)
+- **Updated**: `server/routes/mcpServiceDiscovery.ts` - Now imports from ServiceCatalogService dynamically
+- **Behavior**: MCP endpoint at `/mcp/services` now returns 42 x402-compatible services (was 18 hardcoded)
+- **Source**: ServiceCatalogService is the authoritative source for all 44 services (2 SDK payment services filtered as non-x402)
+- **Response includes**: Cloudflare Gateway URL, Coinbase Facilitator URL, version 2
+
+### Cloudflare Worker Endpoint Fix (January 16, 2026)
+- **Fixed**: Changed endpoint paths from `/x402/v2/{serviceId}` to `/x402/{serviceId}` (canonical format)
+- **Version**: Bumped to 2.1.0
+- **Files changed**: `cloudflare-gateway/src/index.ts`
+- **Note**: User must redeploy Worker locally via `npx wrangler deploy` for fix to take effect
+
+### Landing Page Discovery Channels (January 16, 2026)
+- **Added**: AI Agent Discovery Endpoints section on landing page
+- **Location**: After Key Stats section in `client/src/pages/landing.tsx` (lines 265-282)
+- **Links**: MCP Protocol, Cloudflare Gateway, Farcaster Frame
+
 ### Rollback Instructions
-To revert these changes:
+To revert MCP changes:
+1. Revert `server/routes/mcpServiceDiscovery.ts` to previous version (hardcoded 18 services)
+
+To revert Cloudflare Worker changes:
+1. Change `/x402/${serviceId}` back to `/x402/v2/${serviceId}` in `cloudflare-gateway/src/index.ts`
+2. Redeploy Worker via `npx wrangler deploy`
+
+To revert landing page changes:
+1. Remove lines 265-282 from `client/src/pages/landing.tsx`
+
+To revert Farcaster Frame changes:
 1. Delete `server/routes/farcasterFrameRoutes.ts`
 2. Delete `cloudflare-gateway/` directory
-3. Remove lines 3548-3562 from `server/index.ts` (bundles & frames routers)
-4. Revert lines 419-440 in `server/routes.ts` to original: `app.use('/api/bundles', bundleRoutes);`
+3. Remove frames router from `server/index.ts`

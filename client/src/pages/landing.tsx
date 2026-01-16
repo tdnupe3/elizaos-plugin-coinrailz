@@ -259,6 +259,25 @@ export default function Landing() {
               </div>
             </div>
 
+            {/* AI Agent Discovery Channels - For autonomous agents and developers */}
+            <div className="max-w-2xl mx-auto mb-6 sm:mb-8 px-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-gray-800 mb-3 text-center">AI Agent Discovery Endpoints</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <a href="/mcp/services" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
+                    <span className="font-mono text-gray-700">MCP Protocol</span>
+                    <Badge className="bg-blue-100 text-blue-700 text-xs">42 services</Badge>
+                  </a>
+                  <a href="https://coinrailz-x402-gateway.coinrailz.workers.dev/catalog" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
+                    <span className="font-mono text-gray-700">Cloudflare Gateway</span>
+                  </a>
+                  <a href="/api/frames" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-2 bg-white border border-gray-300 rounded px-3 py-2 hover:bg-gray-100 transition-colors">
+                    <span className="font-mono text-gray-700">Farcaster Frame</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {/* Primary Action: Sign Up Options */}
             <div className="mb-6 sm:mb-8 max-w-md mx-auto px-4 sm:px-0">
               <Button 

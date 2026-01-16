@@ -1851,11 +1851,60 @@ function generate402ResponseForGet(serviceKey: string, req: Request, res: Respon
       step4: "Retry the request with X-PAYMENT header",
       alternativeStep3: "Or include raw transaction hash (0x...) in X-PAYMENT header after sending USDC",
       supportedMethods: ["eip3009-authorization", "raw-transaction-hash", "api-key"],
-      network: "base", // Legacy format for x402-fetch compatibility
-      x402Network: "eip155:8453", // V2 CAIP-2 format for spec compliance
+      network: "base",
+      x402Network: "eip155:8453",
       chainId: 8453,
       token: "USDC",
-      tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+      tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      sdkExamples: {
+        nodejs: {
+          install: "npm install @coinrailz/agent-payments",
+          code: `import { AgentPayments } from '@coinrailz/agent-payments';
+
+const agent = new AgentPayments({
+  privateKey: process.env.PRIVATE_KEY,
+  network: 'base'
+});
+
+const result = await agent.payAndCall({
+  url: 'https://coinrailz.com/x402/gas-price-oracle',
+  method: 'POST',
+  body: { chains: ['base', 'ethereum'] }
+});
+console.log(result.data);`
+        },
+        python: {
+          install: "pip install coinrailz",
+          code: `import os
+from coinrailz import AgentPayments
+
+agent = AgentPayments(
+    private_key=os.environ['PRIVATE_KEY'],
+    network='base'
+)
+
+result = agent.pay_and_call(
+    url='https://coinrailz.com/x402/gas-price-oracle',
+    method='POST',
+    body={'chains': ['base', 'ethereum']}
+)
+print(result['data'])`
+        },
+        curl: {
+          description: "For testing or simple integrations",
+          code: `# Step 1: Get a free wallet (if needed)
+curl -X POST https://coinrailz.com/x402/wallet/free \\
+  -H "Content-Type: application/json" \\
+  -d '{"agent_id": "my-agent", "chain": "base-mainnet"}'
+
+# Step 2: Or use prepaid credits (easiest)
+curl -X POST https://coinrailz.com/x402/gas-price-oracle \\
+  -H "Content-Type: application/json" \\
+  -H "X-API-KEY: your-api-key" \\
+  -d '{"chains": ["base"]}'`
+        },
+        quickStart: "Fastest path: Buy credits at https://coinrailz.com/credits with credit card, then use X-API-KEY header (no blockchain required)"
+      }
     },
     alternativePaymentMethods: {
       apiKey: {

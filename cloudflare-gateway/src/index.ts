@@ -63,7 +63,7 @@ export default {
       return new Response(JSON.stringify({
         status: 'healthy',
         gateway: 'coinrailz-x402',
-        version: '2.0.0',
+        version: '2.1.0',
         totalServices: services.length,
         upstream: env.COINRAILZ_BASE_URL,
         documentation: 'https://coinrailz.com/docs',
@@ -86,7 +86,7 @@ export default {
           description: s.description,
           price: s.price || s.priceUsd,
           endpoint: `${url.origin}/${s.id || s.serviceId}`,
-          x402Endpoint: `${env.COINRAILZ_BASE_URL}/x402/v2/${s.id || s.serviceId}`,
+          x402Endpoint: s.endpoint || `${env.COINRAILZ_BASE_URL}/x402/${s.id || s.serviceId}`,
         })),
         documentation: 'https://coinrailz.com/docs',
         x402Spec: 'https://www.x402.org',
@@ -126,7 +126,8 @@ export default {
     }
 
     // Forward to Coin Railz with x402 headers
-    const upstreamUrl = `${env.COINRAILZ_BASE_URL}/x402/v2/${serviceId}`;
+    // CANONICAL ENDPOINT: /x402/{serviceId} (verified working in production)
+    const upstreamUrl = service?.endpoint || `${env.COINRAILZ_BASE_URL}/x402/${serviceId}`;
     
     const headers = new Headers(request.headers);
     headers.set('X-Forwarded-For', request.headers.get('CF-Connecting-IP') || 'unknown');

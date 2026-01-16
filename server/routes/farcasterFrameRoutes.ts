@@ -73,7 +73,7 @@ function generateOgImageSvg(title: string, subtitle: string): string {
 }
 
 router.get("/", (req: Request, res: Response) => {
-  const imageUrl = `${BASE_URL}/api/frames/og-image.svg`;
+  const imageUrl = `${BASE_URL}/frame-og-image.png`;
   
   const html = generateFrameHtml({
     title: "Coin Railz - AI Agent Services",
@@ -93,7 +93,7 @@ router.get("/", (req: Request, res: Response) => {
 });
 
 router.get("/services", (req: Request, res: Response) => {
-  const imageUrl = `${BASE_URL}/api/frames/og-image-services.svg`;
+  const imageUrl = `${BASE_URL}/frame-og-image.png`;
   
   const html = generateFrameHtml({
     title: "Coin Railz Services",
@@ -136,7 +136,7 @@ router.post("/action/:serviceId?", async (req: Request, res: Response) => {
     
     if (service) {
       const x402Url = `${BASE_URL}/x402/v2/${service.id}`;
-      const imageUrl = `${BASE_URL}/api/frames/og-image.svg`;
+      const imageUrl = `${BASE_URL}/frame-og-image.png`;
       const html = generateFrameHtml({
         title: `${service.emoji} ${service.name}`,
         description: `${service.description} - ${service.price} USDC`,
@@ -150,7 +150,7 @@ router.post("/action/:serviceId?", async (req: Request, res: Response) => {
     }
   }
   
-  const imageUrl = `${BASE_URL}/api/frames/og-image.svg`;
+  const imageUrl = `${BASE_URL}/frame-og-image.png`;
   const html = generateFrameHtml({
     title: "Select a Service",
     description: "Choose a crypto intelligence service",
@@ -168,7 +168,7 @@ router.post("/action/:serviceId?", async (req: Request, res: Response) => {
 
 router.post("/services", async (req: Request, res: Response) => {
   res.setHeader("Content-Type", "text/html");
-  const imageUrl = `${BASE_URL}/api/frames/og-image-services.svg`;
+  const imageUrl = `${BASE_URL}/frame-og-image.png`;
   
   const html = generateFrameHtml({
     title: "More Services",

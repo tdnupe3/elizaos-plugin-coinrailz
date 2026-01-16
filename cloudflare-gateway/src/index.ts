@@ -3,6 +3,8 @@
  * 
  * This worker proxies x402 requests to Coin Railz services,
  * allowing integration with Cloudflare's Agent SDK ecosystem.
+ * 
+ * Exposes ALL 44 x402 services dynamically from the main catalog.
  */
 
 export interface Env {
@@ -10,61 +12,116 @@ export interface Env {
   WALLET_ADDRESS?: string;
 }
 
-const SERVICES = [
-  { id: 'gas-price-oracle', price: '$0.10', description: 'Gas prices across 7 chains' },
-  { id: 'whale-alerts', price: '$0.35', description: 'Whale wallet movements' },
-  { id: 'token-price', price: '$0.25', description: 'Real-time token prices' },
-  { id: 'wallet-risk', price: '$0.50', description: 'Wallet risk scoring' },
-  { id: 'contract-scan', price: '$1.00', description: 'Smart contract security' },
-  { id: 'trending-tokens', price: '$0.50', description: 'Trending token discovery' },
-];
+// Cache for the full service catalog (refreshed every 5 minutes)
+let cachedCatalog: any = null;
+let cacheTimestamp = 0;
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+async function fetchFullCatalog(baseUrl: string): Promise<any[]> {
+  const now = Date.now();
+  if (cachedCatalog && (now - cacheTimestamp) < CACHE_TTL) {
+    return cachedCatalog;
+  }
+
+  try {
+    const response = await fetch(`${baseUrl}/mcp/services`);
+    if (response.ok) {
+      const data = await response.json() as any;
+      cachedCatalog = data.services || data;
+      cacheTimestamp = now;
+      return cachedCatalog;
+    }
+  } catch (e) {
+    // Fall back to cached or empty
+  }
+  
+  return cachedCatalog || [];
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
+    // CORS headers for browser-based agents
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, X-402-Payment, Authorization',
+    };
+
+    // Handle preflight
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { headers: corsHeaders });
+    }
+
+    // Fetch full catalog
+    const services = await fetchFullCatalog(env.COINRAILZ_BASE_URL);
+
     // Health check
     if (path === '/' || path === '/health') {
       return new Response(JSON.stringify({
         status: 'healthy',
         gateway: 'coinrailz-x402',
-        version: '1.0.0',
-        services: SERVICES.length,
+        version: '2.0.0',
+        totalServices: services.length,
         upstream: env.COINRAILZ_BASE_URL,
+        documentation: 'https://coinrailz.com/docs',
+        catalogEndpoint: `${url.origin}/catalog`,
       }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
-    // Service catalog
+    // Full service catalog
     if (path === '/catalog' || path === '/services') {
       return new Response(JSON.stringify({
         name: 'Coin Railz x402 Gateway',
-        description: 'Pay-per-call crypto intelligence for AI agents',
-        services: SERVICES.map(s => ({
-          ...s,
-          endpoint: `${url.origin}/${s.id}`,
-          x402Endpoint: `${env.COINRAILZ_BASE_URL}/x402/v2/${s.id}`,
+        description: 'Pay-per-call crypto intelligence for AI agents - ALL 44 services',
+        protocol: 'x402',
+        totalServices: services.length,
+        services: services.map((s: any) => ({
+          id: s.id || s.serviceId,
+          name: s.name,
+          description: s.description,
+          price: s.price || s.priceUsd,
+          endpoint: `${url.origin}/${s.id || s.serviceId}`,
+          x402Endpoint: `${env.COINRAILZ_BASE_URL}/x402/v2/${s.id || s.serviceId}`,
         })),
         documentation: 'https://coinrailz.com/docs',
+        x402Spec: 'https://www.x402.org',
       }), {
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
-    // Proxy service requests
-    const serviceId = path.replace('/', '').replace('/x402/', '');
-    const service = SERVICES.find(s => s.id === serviceId);
+    // Proxy service requests - match any service from the catalog
+    const serviceId = path.replace(/^\/+/, '').replace(/\/x402\/?/, '');
+    const service = services.find((s: any) => 
+      (s.id || s.serviceId) === serviceId
+    );
     
-    if (!service) {
+    if (!service && serviceId) {
       return new Response(JSON.stringify({
         error: 'Service not found',
-        availableServices: SERVICES.map(s => s.id),
+        requestedService: serviceId,
+        availableServices: services.slice(0, 10).map((s: any) => s.id || s.serviceId),
+        totalAvailable: services.length,
         catalogUrl: `${url.origin}/catalog`,
       }), {
         status: 404,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
+
+    if (!serviceId) {
+      return new Response(JSON.stringify({
+        error: 'No service specified',
+        usage: `${url.origin}/<service-id>`,
+        catalogUrl: `${url.origin}/catalog`,
+      }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -86,6 +143,7 @@ export default {
       const responseHeaders = new Headers(upstreamResponse.headers);
       responseHeaders.set('X-Gateway', 'cloudflare-coinrailz');
       responseHeaders.set('X-Service', serviceId);
+      Object.entries(corsHeaders).forEach(([k, v]) => responseHeaders.set(k, v));
 
       return new Response(upstreamResponse.body, {
         status: upstreamResponse.status,
@@ -96,9 +154,10 @@ export default {
         error: 'Upstream service unavailable',
         service: serviceId,
         upstream: upstreamUrl,
+        message: 'Please try again or contact support',
       }), {
         status: 502,
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
   },

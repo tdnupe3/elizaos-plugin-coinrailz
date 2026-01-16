@@ -414,7 +414,27 @@ Questions? Reply to this message or contact support@coinrailz.com
   app.use('/api/bot', botApiRoutes);
 
   // 📦 Service Bundle Marketplace - Packaged microservice offerings
-  app.use('/api/bundles', bundleRoutes);
+  // Uses deferred router pattern to work with Vite in dev mode
+  const deferredBundlesRouter = (app as any)._deferredBundlesRouter;
+  if (deferredBundlesRouter) {
+    deferredBundlesRouter.use('/', bundleRoutes);
+    console.log('✅ Bundle routes populated on deferred router');
+  } else {
+    app.use('/api/bundles', bundleRoutes);
+    console.log('✅ Bundle routes registered directly at /api/bundles');
+  }
+
+  // 🖼️ Farcaster Frame Integration - x402 services exposed via Farcaster mini-apps
+  // Uses deferred router pattern to work with Vite in dev mode
+  const farcasterFrameRoutes = await import('./routes/farcasterFrameRoutes').then(m => m.default);
+  const deferredFramesRouter = (app as any)._deferredFramesRouter;
+  if (deferredFramesRouter) {
+    deferredFramesRouter.use('/', farcasterFrameRoutes);
+    console.log('✅ Farcaster Frame routes populated on deferred router');
+  } else {
+    app.use('/api/frames', farcasterFrameRoutes);
+    console.log('✅ Farcaster Frame routes registered directly at /api/frames');
+  }
 
   // ============================================================================
   // SDK TELEMETRY ROUTES - DEFERRED ROUTER PATTERN

@@ -3543,6 +3543,22 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
   (app as any)._deferredGptRouter = gptRouter;
   
   // ============================================================================
+  // BUNDLES ROUTES - Same deferred pattern for service bundle marketplace
+  // ============================================================================
+  const bundlesRouter = Router();
+  app.use('/api/bundles', bundlesRouter);
+  console.log('✅ Bundles router placeholder registered (pre-static)');
+  (app as any)._deferredBundlesRouter = bundlesRouter;
+  
+  // ============================================================================
+  // FARCASTER FRAMES ROUTES - Same deferred pattern for Farcaster Frame integration
+  // ============================================================================
+  const framesRouter = Router();
+  app.use('/api/frames', framesRouter);
+  console.log('✅ Frames router placeholder registered (pre-static)');
+  (app as any)._deferredFramesRouter = framesRouter;
+  
+  // ============================================================================
   // GPT OAuth Routes - MUST be registered BEFORE static serving in BOTH environments
   // This enables ChatGPT OAuth flow to work in production
   // ============================================================================

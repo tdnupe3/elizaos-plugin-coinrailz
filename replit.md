@@ -47,3 +47,29 @@ The Coin Railz platform uses a USDC-first approach with Coinbase CDP for wallet 
 - **Amazon Associates:** Affiliate account (Store ID: coinrailz-20) for product recommendations.
 - **OpenAI GPT Store:** Monetized Coin Railz GPT with custom actions.
 - **Dialect Markets API:** Real-time Solana DeFi data (lending rates, yield opportunities from Kamino, Jupiter Lend, Lulo, Marginfi) with 10-minute server-side caching.
+- **Farcaster Frames:** User has account @tkellogg1 for Farcaster Frame deployment.
+
+## Recent Changes (January 2026)
+
+### Farcaster Frame Integration
+- **Added**: `server/routes/farcasterFrameRoutes.ts` - Farcaster Frame endpoints exposing 6 curated x402 services
+- **Endpoints**: `/api/frames`, `/api/frames/action/:serviceId`, `/api/frames/services`, `/api/frames/catalog`
+- **Curated Services**: gas-price-oracle ($0.10), whale-alerts ($0.35), token-price ($0.25), wallet-risk ($0.50), contract-scan ($1.00), trending-tokens ($0.50)
+- **Pattern**: Uses deferred router pattern in `server/index.ts` for Vite compatibility
+
+### Cloudflare Worker Gateway Template
+- **Added**: `cloudflare-gateway/` directory with Cloudflare Worker template for x402 proxy
+- **Purpose**: Enables AI agents using Cloudflare Agent SDK to access Coin Railz x402 services
+- **Files**: `src/index.ts`, `wrangler.toml`, `package.json`, `README.md`
+- **Status**: Template only - not deployed, no runtime impact
+
+### Deferred Router Pattern Fix
+- **Fixed**: `/api/bundles` was returning SPA HTML instead of JSON
+- **Solution**: Added deferred router for `/api/bundles` in `server/index.ts`
+
+### Rollback Instructions
+To revert these changes:
+1. Delete `server/routes/farcasterFrameRoutes.ts`
+2. Delete `cloudflare-gateway/` directory
+3. Remove lines 3548-3562 from `server/index.ts` (bundles & frames routers)
+4. Revert lines 419-440 in `server/routes.ts` to original: `app.use('/api/bundles', bundleRoutes);`

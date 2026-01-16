@@ -1,0 +1,10 @@
+# Cloudflare Worker configuration for Coin Railz x402 Gateway
+name = "coinrailz-x402-gateway"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[vars]
+COINRAILZ_BASE_URL = "https://coinrailz.com"
+
+# Uncomment and set your wallet address to receive payments
+# WALLET_ADDRESS = "0xYourWalletAddress"

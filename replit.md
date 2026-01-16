@@ -79,6 +79,11 @@ The Coin Railz platform uses a USDC-first approach with Coinbase CDP for wallet 
 - **Files changed**: `cloudflare-gateway/src/index.ts`
 - **Note**: User must redeploy Worker locally via `npx wrangler deploy` for fix to take effect
 
+### Farcaster Frame Endpoint Fix (January 16, 2026)
+- **Fixed**: Changed endpoint paths from `/x402/v2/${serviceId}` to `/x402/${serviceId}` in Farcaster Frame routes
+- **Files changed**: `server/routes/farcasterFrameRoutes.ts` (lines 138, 199)
+- **Impact**: Frame action links and catalog now point to canonical x402 endpoints
+
 ### Landing Page Discovery Channels (January 16, 2026)
 - **Added**: AI Agent Discovery Endpoints section on landing page
 - **Location**: After Key Stats section in `client/src/pages/landing.tsx` (lines 265-282)

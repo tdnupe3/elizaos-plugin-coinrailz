@@ -135,7 +135,7 @@ router.post("/action/:serviceId?", async (req: Request, res: Response) => {
     const service = CURATED_SERVICES.find(s => s.id === serviceIdFromPath);
     
     if (service) {
-      const x402Url = `${BASE_URL}/x402/v2/${service.id}`;
+      const x402Url = `${BASE_URL}/x402/${service.id}`;
       const imageUrl = `${BASE_URL}/frame-og-image.png`;
       const html = generateFrameHtml({
         title: `${service.emoji} ${service.name}`,
@@ -196,7 +196,7 @@ router.get("/catalog", (req: Request, res: Response) => {
       name: s.name,
       price: s.price,
       description: s.description,
-      x402Endpoint: `${BASE_URL}/x402/v2/${s.id}`,
+      x402Endpoint: `${BASE_URL}/x402/${s.id}`,
     })),
     farcasterAccount: "@tkellogg1",
     documentation: "https://coinrailz.com/docs/farcaster-frame",

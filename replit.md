@@ -49,6 +49,16 @@ The Coin Railz platform uses a USDC-first approach with Coinbase CDP for wallet 
 - **Dialect Markets API:** Real-time Solana DeFi data (lending rates, yield opportunities from Kamino, Jupiter Lend, Lulo, Marginfi) with 10-minute server-side caching.
 - **Farcaster Frames:** User has account @tkellogg1 for Farcaster Frame deployment.
 
+## Test Wallets
+
+### x402 Payment Test Wallet (Created January 16, 2026)
+- **Purpose**: End-to-end payment funnel testing without polluting analytics with platform wallet
+- **Network**: Base Mainnet (Chain ID: 8453)
+- **Wallet ID**: `90e2c77b-333d-4b7d-8f50-06a27fe1c1c0`
+- **Address**: `0x6341B240547d520a425ea58EF91b33692b12f356`
+- **Wallet Data**: Saved to `server/wallets/x402-test-wallet.json`
+- **Fund with**: ETH (for gas) + USDC (for payments) on BASE CHAIN
+
 ## Recent Changes (January 2026)
 
 ### Farcaster Frame Integration

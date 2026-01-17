@@ -1,7 +1,7 @@
 /**
  * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents (PRODUCTION-READY)
  * 
- * VERSION: 1.4.0 (January 17, 2026)
+ * VERSION: 1.4.2 (January 17, 2026)
  * 
  * PURPOSE: Reduce payment friction from multi-step to one API call
  * APPROACH: Stripe-first with x402 fallback
@@ -185,6 +185,55 @@ async function logAuditTrail(
     });
   } catch (dbError) {
     console.error("Failed to log transaction to audit trail:", dbError);
+  }
+}
+
+/**
+ * Atomic credits deduction with audit update in a single transaction
+ * Prevents crash-inconsistency where credits are deducted but audit is not updated
+ * Returns success/failure with updated balance
+ */
+async function atomicCreditsDeductionWithAudit(
+  userId: string,
+  priceUSD: number,
+  transactionId: string,
+  auditStatus: string = "credits_paid_pending_fulfillment"
+): Promise<{ success: boolean; newBalance: number; error?: string }> {
+  try {
+    // Single transaction: deduct credits AND update audit record atomically
+    const result = await db.execute(
+      sql`
+        WITH deducted AS (
+          UPDATE users 
+          SET credits_balance = CAST(credits_balance AS numeric) - ${priceUSD.toFixed(2)}::numeric
+          WHERE id = ${userId} 
+          AND CAST(credits_balance AS numeric) >= ${priceUSD.toFixed(2)}::numeric
+          RETURNING id, credits_balance
+        ),
+        audit_update AS (
+          UPDATE microservice_requests
+          SET payment_status = ${auditStatus}
+          WHERE id = ${transactionId}
+          AND (SELECT COUNT(*) FROM deducted) > 0
+          RETURNING id
+        )
+        SELECT d.id, d.credits_balance, (SELECT COUNT(*) FROM audit_update) as audit_updated
+        FROM deducted d
+      `
+    );
+    
+    if (!result || result.rowCount === 0) {
+      return { success: false, newBalance: 0, error: "Insufficient balance at time of deduction" };
+    }
+    
+    const row = result.rows?.[0] as { id: string; credits_balance: string; audit_updated: string } | undefined;
+    const newBalance = parseFloat(row?.credits_balance || "0");
+    
+    console.log(`💳 Atomic credits payment: $${priceUSD} deducted from user ${userId}, remaining: $${newBalance}, txn: ${transactionId}`);
+    return { success: true, newBalance };
+  } catch (error: any) {
+    console.error("Atomic credits deduction failed:", error);
+    return { success: false, newBalance: 0, error: error.message };
   }
 }
 
@@ -625,59 +674,39 @@ router.post("/checkout", async (req: Request, res: Response) => {
         });
       }
       
-      // Process credits payment - TRULY atomic deduction with DB-level balance check
-      // Use raw SQL with WHERE clause to prevent race condition double-spend
-      try {
-        // Atomic update: only succeeds if credits_balance >= priceUSD at the moment of update
-        // This prevents race conditions where concurrent requests could both pass the JS check
-        const updateResult = await db.execute(
-          sql`UPDATE users 
-              SET credits_balance = CAST(credits_balance AS numeric) - ${priceUSD.toFixed(2)}::numeric
-              WHERE id = ${userId} 
-              AND CAST(credits_balance AS numeric) >= ${priceUSD.toFixed(2)}::numeric
-              RETURNING id, credits_balance`
-        );
-        
-        if (!updateResult || updateResult.rowCount === 0) {
-          // No rows updated = insufficient balance at time of update (race condition detected)
-          await updateAuditRecord(transactionId, "credits_insufficient_race", Date.now() - startTime,
-            { error: "Balance insufficient at time of deduction (concurrent request race)", balance: currentBalance, required: priceUSD });
-          
-          return res.status(402).json({
-            success: false,
-            error: "CREDITS_INSUFFICIENT",
-            message: "Balance insufficient at time of payment - please try again",
-            currentBalance: currentBalance,
-            required: priceUSD,
-            transactionId,
-            alternativeMethods: ["stripe", "x402"],
-            topUpEndpoint: "/api/credits/purchase/stripe"
-          });
-        }
-        
-        // Credits payment succeeded
-        paymentStatus = "succeeded";
-        const updatedRow = updateResult.rows?.[0] as { id: string; credits_balance: string } | undefined;
-        paymentDetails = {
-          creditsDeducted: priceUSD,
-          remainingBalance: parseFloat(updatedRow?.credits_balance || "0"),
-          currency: "USD"
-        };
-        
-        console.log(`💳 Credits payment: $${priceUSD} deducted from user ${userId} for ${transactionId}, remaining: $${paymentDetails.remainingBalance}`);
-        
-      } catch (creditsError: any) {
-        await updateAuditRecord(transactionId, "credits_failed", Date.now() - startTime,
-          { error: creditsError.message });
+      // Process credits payment - ATOMIC deduction + audit update in single transaction
+      // Uses CTE to prevent crash-inconsistency (credits deducted but audit not updated)
+      const atomicResult = await atomicCreditsDeductionWithAudit(
+        userId,
+        priceUSD,
+        transactionId,
+        "credits_paid_pending_fulfillment"
+      );
+      
+      if (!atomicResult.success) {
+        // Atomic deduction failed (insufficient balance or DB error)
+        await updateAuditRecord(transactionId, "credits_insufficient_race", Date.now() - startTime,
+          { error: atomicResult.error || "Balance insufficient", balance: currentBalance, required: priceUSD });
         
         return res.status(402).json({
           success: false,
-          error: "CREDITS_PAYMENT_FAILED",
-          message: creditsError.message,
+          error: "CREDITS_INSUFFICIENT",
+          message: atomicResult.error || "Balance insufficient at time of payment - please try again",
+          currentBalance: currentBalance,
+          required: priceUSD,
           transactionId,
-          alternativeMethods: ["stripe", "x402"]
+          alternativeMethods: ["stripe", "x402"],
+          topUpEndpoint: "/api/credits/purchase/stripe"
         });
       }
+      
+      // Credits payment succeeded
+      paymentStatus = "succeeded";
+      paymentDetails = {
+        creditsDeducted: priceUSD,
+        remainingBalance: atomicResult.newBalance,
+        currency: "USD"
+      };
       
     } else if (paymentMethod === "x402") {
       // x402 requires on-chain - log redirect and return challenge

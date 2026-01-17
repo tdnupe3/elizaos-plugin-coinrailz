@@ -1,7 +1,7 @@
 /**
  * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents (PRODUCTION-READY)
  * 
- * VERSION: 1.3.0 (January 17, 2026)
+ * VERSION: 1.4.0 (January 17, 2026)
  * 
  * PURPOSE: Reduce payment friction from multi-step to one API call
  * APPROACH: Stripe-first with x402 fallback
@@ -46,6 +46,7 @@ import { db } from "../db";
 import { microserviceRequests, x402PaymentIntents, users } from "@shared/schema";
 import { nanoid } from "nanoid";
 import { eq, sql } from "drizzle-orm";
+// CreditsPaymentService not used - using simplified atomic deduction instead
 
 const router = Router();
 
@@ -215,6 +216,8 @@ async function checkIdempotency(transactionId: string): Promise<{ exists: boolea
  * P0: Issue credit refund when service execution fails after payment
  * Credits are issued to the user's creditsBalance
  * Returns distinct status for actual credited vs pending claim
+ * 
+ * IDEMPOTENCY: Checks audit record before issuing refund to prevent double-refunding
  */
 async function issueCreditRefund(
   agentId: string, 
@@ -222,22 +225,42 @@ async function issueCreditRefund(
   transactionId: string,
   serviceId: string,
   reason: string
-): Promise<{ status: 'credited' | 'pending_claim' | 'failed'; creditsIssued: number; error?: string }> {
+): Promise<{ status: 'credited' | 'pending_claim' | 'failed' | 'already_refunded'; creditsIssued: number; error?: string }> {
   try {
-    // Find user by wallet address (agentId maps to wallet_address in our system)
+    // IDEMPOTENCY CHECK: Check if refund was already issued for this transaction
+    const existingRequest = await db.select({ 
+      paymentStatus: microserviceRequests.paymentStatus 
+    })
+      .from(microserviceRequests)
+      .where(eq(microserviceRequests.id, transactionId))
+      .limit(1);
+    
+    if (existingRequest.length > 0 && 
+        (existingRequest[0].paymentStatus === 'fulfillment_failed_credited' ||
+         existingRequest[0].paymentStatus === 'fulfillment_failed_pending')) {
+      console.log(`⚡ Refund already issued for ${transactionId} - skipping duplicate`);
+      return { status: 'already_refunded', creditsIssued: 0, error: "Refund already processed" };
+    }
+    
+    // Find user by ethereum wallet (agentId maps to ethereum_wallet in our system)
     const existingUser = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
       .from(users)
-      .where(eq(users.walletAddress, agentId))
+      .where(eq(users.ethereumWallet, agentId))
       .limit(1);
     
     if (existingUser.length > 0) {
-      // User exists - add credits directly
-      const currentBalance = parseFloat(existingUser[0].creditsBalance || "0");
-      const newBalance = currentBalance + amountUSD;
+      // User exists - add credits atomically
+      const refundResult = await db.execute(
+        sql`UPDATE users 
+            SET credits_balance = CAST(credits_balance AS numeric) + ${amountUSD.toFixed(2)}::numeric
+            WHERE id = ${existingUser[0].id}
+            RETURNING id, credits_balance`
+      );
       
-      await db.update(users)
-        .set({ creditsBalance: newBalance.toFixed(2) })
-        .where(eq(users.id, existingUser[0].id));
+      if (!refundResult || refundResult.rowCount === 0) {
+        console.error(`Failed to add credits for refund ${transactionId}`);
+        return { status: 'failed', creditsIssued: 0, error: "Failed to add credits" };
+      }
       
       console.log(`💰 Credit refund issued: $${amountUSD.toFixed(2)} to user ${existingUser[0].id} for ${transactionId}`);
       return { status: 'credited', creditsIssued: amountUSD };
@@ -264,12 +287,12 @@ router.get("/health", async (_req: Request, res: Response) => {
   res.json({
     success: true,
     status: "operational",
-    version: "1.3.0", // Production-ready with durable idempotency
+    version: "1.4.1", // Production-ready with atomic credits + refund idempotency
     environment: isProduction ? "production" : "development",
     stripeConfigured: !!stripe,
     stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
     x402Enabled: true,
-    creditsEnabled: false, // Not yet implemented
+    creditsEnabled: true, // v1.4.0: Credits payment now implemented
     rateLimiting: {
       enabled: true,
       maxRequests: 100,
@@ -297,7 +320,7 @@ router.get("/services", async (_req: Request, res: Response) => {
         description: service.description,
         priceUSD: service.priceUSD,
         category: service.category,
-        paymentMethods: ["stripe", "x402"], // credits not yet implemented
+        paymentMethods: ["stripe", "credits", "x402"], // v1.4.0: credits now supported
         checkoutEndpoint: "/api/mcp/payments/checkout"
       }));
     
@@ -307,8 +330,14 @@ router.get("/services", async (_req: Request, res: Response) => {
       totalServices: services.length,
       paymentMethods: {
         stripe: { enabled: !!getStripeClient(), description: "Credit/debit card via Stripe" },
-        credits: { enabled: false, description: "Pre-purchased platform credits (not yet implemented)" },
+        credits: { enabled: true, description: "Pre-purchased platform credits - requires registered account with balance" },
         x402: { enabled: true, description: "On-chain USDC payment (Base network) - use /x402/{serviceId} directly" }
+      },
+      acpEndpoints: {
+        catalog: "/acp/v1/catalog",
+        checkout: "/acp/v1/checkout",
+        orders: "/acp/v1/orders/:orderId",
+        description: "Agentic Commerce Protocol - digital products and credit bundles"
       },
       documentation: {
         checkoutExample: {
@@ -501,17 +530,125 @@ router.post("/checkout", async (req: Request, res: Response) => {
         });
       }
     } else if (paymentMethod === "credits") {
-      // Credits payment NOT YET IMPLEMENTED - log and return proper error
-      await logAuditTrail(transactionId, serviceId, effectiveAgentId, "credits", "credits_not_implemented", 
-        Date.now() - startTime, { testMode, agentId }, { error: "CREDITS_PAYMENT_NOT_IMPLEMENTED" });
+      // Credits payment - uses CreditsPaymentService
+      // Agent must have a registered user account with credits balance
       
-      return res.status(501).json({
-        success: false,
-        error: "CREDITS_PAYMENT_NOT_IMPLEMENTED",
-        message: "Credits payment via MCP Payments Kit is not yet implemented. Use Stripe or x402.",
-        alternativeMethods: ["stripe", "x402"],
-        transactionId
-      });
+      // Insert pending record BEFORE credits payment (same pattern as Stripe)
+      const pendingInserted = await insertPendingAuditRecord(
+        transactionId,
+        serviceId,
+        effectiveAgentId,
+        paymentMethod,
+        { params, testMode, agentId }
+      );
+      
+      if (!pendingInserted) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to initialize transaction - please retry",
+          transactionId,
+          timestamp: new Date().toISOString()
+        });
+      }
+      
+      // Find user by ethereum wallet (use original agentId, not test-prefixed version)
+      // For credits payment, we always need the REAL wallet address to look up the user
+      const walletForLookup = agentId || effectiveAgentId;
+      const existingUser = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
+        .from(users)
+        .where(eq(users.ethereumWallet, walletForLookup))
+        .limit(1);
+      
+      if (existingUser.length === 0) {
+        await updateAuditRecord(transactionId, "credits_no_account", Date.now() - startTime,
+          { error: "No account found for agent", agentId: effectiveAgentId });
+        
+        return res.status(402).json({
+          success: false,
+          error: "CREDITS_NO_ACCOUNT",
+          message: "No account found with credits balance for this agent. Register at /api/m2m/register or purchase credits first.",
+          alternativeMethods: ["stripe", "x402"],
+          transactionId,
+          registrationEndpoint: "/api/m2m/register",
+          creditsPurchaseEndpoint: "/api/credits/purchase/stripe"
+        });
+      }
+      
+      const userId = existingUser[0].id;
+      const currentBalance = parseFloat(existingUser[0].creditsBalance || "0");
+      
+      // Check if sufficient credits
+      if (currentBalance < priceUSD) {
+        await updateAuditRecord(transactionId, "credits_insufficient", Date.now() - startTime,
+          { error: "Insufficient credits", balance: currentBalance, required: priceUSD });
+        
+        return res.status(402).json({
+          success: false,
+          error: "CREDITS_INSUFFICIENT",
+          message: `Insufficient credits. Balance: $${currentBalance.toFixed(2)}, Required: $${priceUSD.toFixed(2)}`,
+          currentBalance: currentBalance,
+          required: priceUSD,
+          shortfall: priceUSD - currentBalance,
+          alternativeMethods: ["stripe", "x402"],
+          transactionId,
+          topUpEndpoint: "/api/credits/purchase/stripe"
+        });
+      }
+      
+      // Process credits payment - TRULY atomic deduction with DB-level balance check
+      // Use raw SQL with WHERE clause to prevent race condition double-spend
+      try {
+        // Atomic update: only succeeds if credits_balance >= priceUSD at the moment of update
+        // This prevents race conditions where concurrent requests could both pass the JS check
+        const updateResult = await db.execute(
+          sql`UPDATE users 
+              SET credits_balance = CAST(credits_balance AS numeric) - ${priceUSD.toFixed(2)}::numeric
+              WHERE id = ${userId} 
+              AND CAST(credits_balance AS numeric) >= ${priceUSD.toFixed(2)}::numeric
+              RETURNING id, credits_balance`
+        );
+        
+        if (!updateResult || updateResult.rowCount === 0) {
+          // No rows updated = insufficient balance at time of update (race condition detected)
+          await updateAuditRecord(transactionId, "credits_insufficient_race", Date.now() - startTime,
+            { error: "Balance insufficient at time of deduction (concurrent request race)", balance: currentBalance, required: priceUSD });
+          
+          return res.status(402).json({
+            success: false,
+            error: "CREDITS_INSUFFICIENT",
+            message: "Balance insufficient at time of payment - please try again",
+            currentBalance: currentBalance,
+            required: priceUSD,
+            transactionId,
+            alternativeMethods: ["stripe", "x402"],
+            topUpEndpoint: "/api/credits/purchase/stripe"
+          });
+        }
+        
+        // Credits payment succeeded
+        paymentStatus = "succeeded";
+        const updatedRow = updateResult.rows?.[0] as { id: string; credits_balance: string } | undefined;
+        paymentDetails = {
+          creditsDeducted: priceUSD,
+          remainingBalance: parseFloat(updatedRow?.credits_balance || "0"),
+          currency: "USD"
+        };
+        
+        console.log(`💳 Credits payment: $${priceUSD} deducted from user ${userId} for ${transactionId}, remaining: $${paymentDetails.remainingBalance}`);
+        
+      } catch (creditsError: any) {
+        await updateAuditRecord(transactionId, "credits_failed", Date.now() - startTime,
+          { error: creditsError.message });
+        
+        return res.status(402).json({
+          success: false,
+          error: "CREDITS_PAYMENT_FAILED",
+          message: creditsError.message,
+          transactionId,
+          alternativeMethods: ["stripe", "x402"]
+        });
+      }
+      
     } else if (paymentMethod === "x402") {
       // x402 requires on-chain - log redirect and return challenge
       await logAuditTrail(transactionId, serviceId, effectiveAgentId, "x402", "x402_redirected",
@@ -544,7 +681,7 @@ router.post("/checkout", async (req: Request, res: Response) => {
     // Execute service after successful payment
     let serviceResult: any = null;
     let fulfillmentFailed = false;
-    let creditRefundResult: { status: 'credited' | 'pending_claim' | 'failed'; creditsIssued: number; error?: string } | null = null;
+    let creditRefundResult: { status: 'credited' | 'pending_claim' | 'failed' | 'already_refunded'; creditsIssued: number; error?: string } | null = null;
     
     try {
       serviceResult = await executeService(serviceId, params);
@@ -563,9 +700,11 @@ router.post("/checkout", async (req: Request, res: Response) => {
     }
     
     // P0: If fulfillment failed after payment, issue credit refund
+    // Use original agentId for refund lookup (not test-prefixed effectiveAgentId)
     if (fulfillmentFailed) {
+      const walletForRefund = agentId || effectiveAgentId;
       creditRefundResult = await issueCreditRefund(
-        effectiveAgentId,
+        walletForRefund,
         priceUSD,
         transactionId,
         serviceId,
@@ -580,7 +719,9 @@ router.post("/checkout", async (req: Request, res: Response) => {
         ? "fulfillment_failed_credited"
         : creditRefundResult.status === 'pending_claim'
           ? "fulfillment_failed_pending"
-          : "fulfillment_failed";
+          : creditRefundResult.status === 'already_refunded'
+            ? "fulfillment_failed_credited" // Treat already_refunded as credited (no action needed)
+            : "fulfillment_failed";
       
       // Update pending record with fulfillment failure and credit refund status
       await updateAuditRecord(
@@ -616,7 +757,7 @@ router.post("/checkout", async (req: Request, res: Response) => {
           message: creditRefundResult.status === 'credited' 
             ? `Credit refund of $${priceUSD.toFixed(2)} has been issued to your account`
             : creditRefundResult.status === 'pending_claim'
-              ? `Credit refund of $${priceUSD.toFixed(2)} is pending - claim when you register with wallet ${effectiveAgentId}`
+              ? `Credit refund of $${priceUSD.toFixed(2)} is pending - claim when you register with wallet ${walletForRefund}`
               : "Credit refund failed - please contact support with transactionId for manual resolution"
         },
         paymentDetails: {
@@ -669,7 +810,6 @@ router.post("/checkout", async (req: Request, res: Response) => {
       success: false,
       error: "Checkout failed",
       details: error.message,
-      transactionId,
       timestamp: new Date().toISOString()
     });
   }

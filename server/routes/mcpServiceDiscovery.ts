@@ -77,7 +77,15 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
         description: "Universal payment infrastructure for AI agents - Crypto (x402), Fiat (Stripe), Credits, and FREE wallet provisioning for autonomous agents",
         url: baseUrl,
         facilitator: "https://facilitator.cdp.coinbase.com",
-        cloudflareGateway: "https://coinrailz-x402-gateway.coinrailz.workers.dev"
+        cloudflareGateway: "https://coinrailz-x402-gateway.coinrailz.workers.dev",
+        mcpPaymentsKit: {
+          description: "Single-call checkout endpoint for AI agents - Stripe-first with x402 fallback",
+          checkoutEndpoint: `${baseUrl}/api/mcp/payments/checkout`,
+          servicesEndpoint: `${baseUrl}/api/mcp/payments/services`,
+          healthEndpoint: `${baseUrl}/api/mcp/payments/health`,
+          supportedMethods: ["stripe", "x402"],
+          testModeSupported: true
+        }
       },
       services: services,
       totalServices: services.length,

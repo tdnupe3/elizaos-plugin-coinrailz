@@ -3678,6 +3678,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     app.use('/api/analytics', gatewayAnalyticsRoutes);
     console.log('✅ Gateway analytics routes registered (pre-Vite)');
     
+    // Register MCP Payments Kit routes BEFORE Vite for single-call checkout
+    const mcpPaymentsRoutes = await import('./routes/mcpPaymentsKit').then(m => m.default);
+    app.use('/api/mcp/payments', mcpPaymentsRoutes);
+    console.log('✅ MCP Payments Kit routes registered (pre-Vite)');
+    
     // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     
     try {

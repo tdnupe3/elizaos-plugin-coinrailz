@@ -172,11 +172,21 @@ Reduces payment friction from multi-step to one API call.
 - `GET /api/mcp/payments/services` - Available services with pricing
 - `GET /api/mcp/payments/health` - Kit health check
 
-### Test Mode Isolation
-- All test requests use `testMode: true` flag
-- Test transactions use Stripe test keys (sk_test_*)
-- **NO database writes in test mode** - console logging only
-- Test user ID prefix: `test_agent_*`
+### Production Features (v1.1.1 - January 17, 2026)
+- **Rate Limiting**: 100 requests per 15 minutes per IP (express-rate-limit v7.5.1)
+- **Full Audit Trail**: ALL checkout requests logged to `microserviceRequests` table
+- **Stripe Live Mode**: Uses production Stripe keys (sk_live_*)
+- **Test Mode Support**: `testMode: true` flag stored in `requestInput.testMode` for filtering
+
+### Audit Trail Schema
+- **Table**: `microserviceRequests`
+- **Payment Statuses**: 
+  - `completed` - Stripe payment succeeded
+  - `stripe_failed` - Stripe payment failed
+  - `x402_redirected` - Redirected to on-chain payment
+  - `credits_not_implemented` - Credits requested but not available
+- **Filter Production**: `WHERE (request_input->>'testMode')::boolean = false`
+- **Filter by Gateway**: `WHERE source_gateway = 'mcp-payments-kit'`
 
 ### MCP Discovery Update (January 17, 2026)
 - **Added**: `mcpPaymentsKit` object to provider in `/mcp/services` response

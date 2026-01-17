@@ -1,24 +1,35 @@
 /**
- * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents
+ * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents (PRODUCTION-READY)
+ * 
+ * VERSION: 1.1.1 (January 17, 2026)
  * 
  * PURPOSE: Reduce payment friction from multi-step to one API call
  * APPROACH: Stripe-first with x402 fallback
+ * 
+ * PRODUCTION FEATURES:
+ * - Rate limiting: 100 requests/15 min per IP (express-rate-limit v7.5.1)
+ * - Full audit trail: ALL checkout requests logged to microserviceRequests
+ * - Real service execution via existing handlers
+ * - Stripe live/test mode based on key prefix (sk_live_ vs sk_test_)
  * 
  * ENDPOINTS:
  * - POST /api/mcp/payments/checkout - Single-call checkout
  * - GET /api/mcp/payments/services - Available services with pricing
  * - GET /api/mcp/payments/health - Kit health check
  * 
- * TEST MODE ISOLATION:
- * - testMode: true flag isolates test transactions
- * - Uses Stripe test keys when in test mode
- * - Test user IDs prefixed with "test_agent_"
+ * AUDIT TRAIL:
+ * - All checkout requests logged to microserviceRequests table
+ * - testMode flag stored in requestInput.testMode (no separate column)
+ * - Filter production analytics: WHERE (request_input->>'testMode')::boolean = false
+ * - paymentStatus column tracks: 'completed', 'x402_redirected', 'credits_not_implemented'
  * 
- * ROLLBACK: Delete this file and remove route registration from server/index.ts
+ * ROLLBACK: Delete this file, remove route registration from server/index.ts,
+ *           remove mcpPaymentsKit from server/routes/mcpServiceDiscovery.ts
  */
 
 import { Router, Request, Response } from "express";
 import Stripe from "stripe";
+import rateLimit from "express-rate-limit";
 import { ServiceCatalogService } from "../services/serviceCatalogService";
 import { SERVICE_PRICING_USD, isServiceName } from "../../shared/pricing";
 import { db } from "../db";
@@ -26,6 +37,22 @@ import { microserviceRequests, x402PaymentIntents } from "@shared/schema";
 import { nanoid } from "nanoid";
 
 const router = Router();
+
+// Rate limiting: 100 requests per 15 minutes per IP (matches x402 routes)
+const mcpPaymentsRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100,
+  message: { 
+    success: false, 
+    error: "Too many payment requests, please try again later",
+    retryAfter: "15 minutes"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiting to all MCP payments routes
+router.use(mcpPaymentsRateLimiter);
 
 let stripeClient: Stripe | null = null;
 
@@ -62,17 +89,57 @@ interface CheckoutResponse {
   timestamp: string;
 }
 
+async function logAuditTrail(
+  transactionId: string,
+  serviceId: string,
+  agentId: string,
+  paymentMethod: string,
+  paymentStatus: string,
+  responseTime: number,
+  requestInput: Record<string, any>,
+  responseData: Record<string, any>
+): Promise<void> {
+  try {
+    await db.insert(microserviceRequests).values({
+      id: transactionId,
+      serviceId,
+      walletAddress: agentId,
+      paymentMethod,
+      paymentAttempted: true,
+      paymentStatus,
+      responseTime,
+      sourceGateway: "mcp-payments-kit",
+      requestInput,
+      responseData
+    });
+  } catch (dbError) {
+    console.error("Failed to log transaction to audit trail:", dbError);
+  }
+}
+
 router.get("/health", async (_req: Request, res: Response) => {
   const stripe = getStripeClient();
+  const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
+  
   res.json({
     success: true,
     status: "operational",
-    version: "1.0.0",
+    version: "1.1.1", // Production-ready version
+    environment: isProduction ? "production" : "development",
     stripeConfigured: !!stripe,
+    stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
     x402Enabled: true,
     creditsEnabled: false, // Not yet implemented
-    testModeSupported: true,
-    testModeIsolation: "Test mode writes to console only, not database",
+    rateLimiting: {
+      enabled: true,
+      maxRequests: 100,
+      windowMinutes: 15
+    },
+    auditTrail: {
+      enabled: true,
+      table: "microserviceRequests",
+      logsAllRequests: true
+    },
     timestamp: new Date().toISOString()
   });
 });
@@ -237,6 +304,11 @@ router.post("/checkout", async (req: Request, res: Response) => {
           });
         }
       } catch (stripeError: any) {
+        // Log Stripe failure to audit trail
+        await logAuditTrail(transactionId, serviceId, effectiveAgentId, "stripe", "stripe_failed",
+          Date.now() - startTime, { testMode, agentId, stripePaymentMethodId: "***" },
+          { error: stripeError.message, code: stripeError.code });
+        
         return res.status(402).json({
           success: false,
           error: "Stripe payment failed",
@@ -246,8 +318,10 @@ router.post("/checkout", async (req: Request, res: Response) => {
         });
       }
     } else if (paymentMethod === "credits") {
-      // Credits payment NOT YET IMPLEMENTED - return proper error
-      // This complies with the NO-SIMULATION rule
+      // Credits payment NOT YET IMPLEMENTED - log and return proper error
+      await logAuditTrail(transactionId, serviceId, effectiveAgentId, "credits", "credits_not_implemented", 
+        Date.now() - startTime, { testMode, agentId }, { error: "CREDITS_PAYMENT_NOT_IMPLEMENTED" });
+      
       return res.status(501).json({
         success: false,
         error: "CREDITS_PAYMENT_NOT_IMPLEMENTED",
@@ -256,6 +330,10 @@ router.post("/checkout", async (req: Request, res: Response) => {
         transactionId
       });
     } else if (paymentMethod === "x402") {
+      // x402 requires on-chain - log redirect and return challenge
+      await logAuditTrail(transactionId, serviceId, effectiveAgentId, "x402", "x402_redirected",
+        Date.now() - startTime, { testMode, agentId }, { redirectedTo: `/x402/${serviceId}` });
+      
       return res.status(402).json({
         success: false,
         error: "x402 payment requires on-chain transaction",
@@ -292,27 +370,21 @@ router.post("/checkout", async (req: Request, res: Response) => {
       };
     }
     
-    // Only log to database if NOT in test mode
-    // This prevents test transactions from polluting production analytics
-    if (!testMode) {
-      try {
-        await db.insert(microserviceRequests).values({
-          id: transactionId,
-          serviceId,
-          walletAddress: effectiveAgentId,
-          paymentMethod: paymentMethod,
-          paymentAttempted: true,
-          isTestMode: false,
-          responseStatus: serviceResult?.error ? 500 : 200,
-          sourceGateway: "mcp-payments-kit"
-        });
-      } catch (dbError) {
-        console.error("Failed to log transaction:", dbError);
+    // PRODUCTION: Log Stripe success to audit trail
+    await logAuditTrail(
+      transactionId, 
+      serviceId, 
+      effectiveAgentId, 
+      paymentMethod, 
+      "completed",
+      Date.now() - startTime,
+      { params, testMode, agentId, stripePaymentMethodId: stripePaymentMethodId ? "***" : undefined },
+      { 
+        success: !serviceResult?.error,
+        stripePaymentIntentId: paymentDetails.stripePaymentIntentId,
+        serviceResultType: serviceResult?.error ? "error" : "success"
       }
-    } else {
-      // Test mode: log to console only, no database write
-      console.log(`🧪 TEST MODE: Would log ${transactionId} for ${serviceId} (not written to DB)`);
-    }
+    );
     
     const response: CheckoutResponse = {
       success: true,

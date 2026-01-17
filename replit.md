@@ -142,3 +142,50 @@ To revert Farcaster Frame changes:
 1. Delete `server/routes/farcasterFrameRoutes.ts`
 2. Delete `cloudflare-gateway/` directory
 3. Remove frames router from `server/index.ts`
+
+### Gateway Analytics (January 17, 2026)
+- **Added**: `sourceGateway` column to `microserviceRequests` table (nullable varchar(50))
+- **Updated**: `server/middleware/usageAnalyticsMiddleware.ts` - Detects X-Gateway header
+- **Added**: `/api/analytics/x402/gateway-breakdown` - Conversion funnels by gateway
+- **Added**: `/api/analytics/x402/iot-analysis` - M2M traffic patterns, readiness score
+- **Registered**: Pre-Vite in `server/index.ts` to avoid catch-all issues
+- **Rollback**: 
+  1. Remove gateway analytics route registration from `server/index.ts` (lines 3679-3682)
+  2. `sourceGateway` column is nullable, no data loss if removed
+
+---
+
+## MCP Payments Kit (January 17, 2026)
+
+### Purpose
+Single-call checkout endpoint for AI agents. Stripe-first with x402 fallback.
+Reduces payment friction from multi-step to one API call.
+
+### Files Added (all NEW, additive only)
+| File | Purpose | Rollback |
+|------|---------|----------|
+| `server/routes/mcpPaymentsKit.ts` | Single-call checkout endpoint | Delete file, remove import |
+| Registration in `server/index.ts` | Pre-Vite mount | Remove route registration lines |
+
+### Endpoints
+- `POST /api/mcp/payments/checkout` - Single-call checkout (Stripe + service execution)
+- `GET /api/mcp/payments/services` - Available services with pricing
+- `GET /api/mcp/payments/health` - Kit health check
+
+### Test Mode Isolation
+- All test requests use `testMode: true` flag
+- Test transactions use Stripe test keys (sk_test_*)
+- Test data stored with `isTestMode: true` flag in database
+- Test user ID prefix: `test_agent_*`
+
+### Rollback Instructions
+To completely revert MCP Payments Kit:
+1. Delete `server/routes/mcpPaymentsKit.ts`
+2. Remove these lines from `server/index.ts`:
+   ```javascript
+   // MCP Payments Kit registration (lines TBD after implementation)
+   const mcpPaymentsRoutes = await import('./routes/mcpPaymentsKit').then(m => m.default);
+   app.use('/api/mcp/payments', mcpPaymentsRoutes);
+   ```
+3. Remove discovery updates in `server/routes/mcpServiceDiscovery.ts` (if any)
+4. No database schema changes required (no new tables added)

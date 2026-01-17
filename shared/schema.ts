@@ -385,13 +385,13 @@ export const m2mDevices = pgTable("m2m_devices", {
   deviceId: varchar("device_id").notNull().unique(), // Caller-provided device identifier
   deviceType: varchar("device_type").notNull().default("ai_agent"), // iot_device, ai_agent, server, edge_node, other
   name: varchar("name"), // Human-readable name
-  capabilities: jsonb("capabilities").default([]), // Device capabilities array
+  capabilities: jsonb("capabilities").default(sql`'[]'::jsonb`), // Device capabilities array (proper SQL literal)
   apiKeyHash: varchar("api_key_hash").notNull(), // SHA256 hash of API key
   apiKeyPrefix: varchar("api_key_prefix").notNull(), // First 12 chars for identification
   walletAddress: varchar("wallet_address"), // Provisioned wallet address
   chain: varchar("chain").notNull().default("base-mainnet"), // Blockchain network
   ipAddress: varchar("ip_address"), // Registration IP
-  metadata: jsonb("metadata").default({}), // Additional metadata
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional metadata (proper SQL literal)
   status: varchar("status").notNull().default("active"), // active, suspended, revoked
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastSeenAt: timestamp("last_seen_at"),

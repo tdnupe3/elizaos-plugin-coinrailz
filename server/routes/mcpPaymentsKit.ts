@@ -1,7 +1,7 @@
 /**
  * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents (PRODUCTION-READY)
  * 
- * VERSION: 1.2.0 (January 17, 2026)
+ * VERSION: 1.3.0 (January 17, 2026)
  * 
  * PURPOSE: Reduce payment friction from multi-step to one API call
  * APPROACH: Stripe-first with x402 fallback
@@ -12,7 +12,8 @@
  * - Real service execution via existing handlers
  * - Stripe live/test mode based on key prefix (sk_live_ vs sk_test_)
  * - P0: Credit refund on fulfillment failure (no card refunds)
- * - P2: Idempotency guard for duplicate request prevention
+ * - P2: Durable idempotency - pending record written BEFORE payment to prevent
+ *       double fulfillment even if crash occurs after Stripe payment
  * 
  * ENDPOINTS:
  * - POST /api/mcp/payments/checkout - Single-call checkout
@@ -99,6 +100,65 @@ interface CheckoutResponse {
   timestamp: string;
 }
 
+/**
+ * Insert initial "pending_payment" audit record BEFORE payment.
+ * This ensures idempotency even if crash occurs after payment but before completion.
+ * Returns false if insert fails (should abort checkout).
+ */
+async function insertPendingAuditRecord(
+  transactionId: string,
+  serviceId: string,
+  agentId: string,
+  paymentMethod: string,
+  requestInput: Record<string, any>
+): Promise<boolean> {
+  try {
+    await db.insert(microserviceRequests).values({
+      id: transactionId,
+      serviceId,
+      walletAddress: agentId,
+      paymentMethod,
+      paymentAttempted: true,
+      paymentStatus: "pending_payment",
+      responseTime: 0,
+      sourceGateway: "mcp-payments-kit",
+      requestInput,
+      responseData: { status: "pending_payment", initiatedAt: new Date().toISOString() }
+    });
+    return true;
+  } catch (dbError) {
+    console.error("Failed to insert pending audit record:", dbError);
+    return false;
+  }
+}
+
+/**
+ * Update existing audit record with final status after payment/fulfillment.
+ * This is called after the pending record was inserted pre-payment.
+ */
+async function updateAuditRecord(
+  transactionId: string,
+  paymentStatus: string,
+  responseTime: number,
+  responseData: Record<string, any>
+): Promise<void> {
+  try {
+    await db.update(microserviceRequests)
+      .set({
+        paymentStatus,
+        responseTime,
+        responseData
+      })
+      .where(eq(microserviceRequests.id, transactionId));
+  } catch (dbError) {
+    console.error("Failed to update audit record:", dbError);
+  }
+}
+
+/**
+ * Legacy logAuditTrail - kept for error paths that bypass the pending flow
+ * (e.g., credits not implemented, x402 redirects)
+ */
 async function logAuditTrail(
   transactionId: string,
   serviceId: string,
@@ -204,7 +264,7 @@ router.get("/health", async (_req: Request, res: Response) => {
   res.json({
     success: true,
     status: "operational",
-    version: "1.2.0", // Production-ready version with credit refunds
+    version: "1.3.0", // Production-ready with durable idempotency
     environment: isProduction ? "production" : "development",
     stripeConfigured: !!stripe,
     stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
@@ -316,18 +376,25 @@ router.post("/checkout", async (req: Request, res: Response) => {
       });
     }
     
-    // P2: Check idempotency - prevent duplicate fulfillment (moved early to catch all payment methods)
-    if (idempotencyKey) {
-      const idempotencyCheck = await checkIdempotency(transactionId);
-      if (idempotencyCheck.exists) {
-        return res.status(200).json({
-          success: true,
-          message: "Request already processed",
-          transactionId,
-          previousStatus: idempotencyCheck.status,
-          idempotent: true
-        });
-      }
+    // P2: Check idempotency - prevent duplicate fulfillment
+    // This now catches pending_payment status too (crash recovery)
+    const idempotencyCheck = await checkIdempotency(transactionId);
+    if (idempotencyCheck.exists) {
+      // Return cached result for completed transactions
+      // For pending_payment (crash recovery), we still return idempotent response
+      // The original payment may have succeeded at Stripe but we don't retry
+      return res.status(200).json({
+        success: idempotencyCheck.status === "completed",
+        message: idempotencyCheck.status === "pending_payment" 
+          ? "Request in progress or crashed - check transaction status manually"
+          : "Request already processed",
+        transactionId,
+        previousStatus: idempotencyCheck.status,
+        idempotent: true,
+        note: idempotencyCheck.status === "pending_payment"
+          ? "Transaction was initiated but outcome is uncertain. Contact support with transactionId."
+          : undefined
+      });
     }
     
     const priceUSD = SERVICE_PRICING_USD[serviceId];
@@ -339,6 +406,27 @@ router.post("/checkout", async (req: Request, res: Response) => {
     
     let paymentStatus = "pending";
     let paymentDetails: any = {};
+    
+    // PRODUCTION FIX: Insert pending audit record BEFORE payment
+    // This ensures idempotency even if crash occurs after Stripe payment but before completion
+    if (paymentMethod === "stripe") {
+      const pendingInserted = await insertPendingAuditRecord(
+        transactionId,
+        serviceId,
+        effectiveAgentId,
+        paymentMethod,
+        { params, testMode, agentId, stripePaymentMethodId: stripePaymentMethodId ? "***" : undefined }
+      );
+      
+      if (!pendingInserted) {
+        return res.status(500).json({
+          success: false,
+          error: "Failed to initialize transaction - please retry",
+          transactionId,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
     
     if (paymentMethod === "stripe") {
       const stripe = getStripeClient();
@@ -400,9 +488,8 @@ router.post("/checkout", async (req: Request, res: Response) => {
           });
         }
       } catch (stripeError: any) {
-        // Log Stripe failure to audit trail
-        await logAuditTrail(transactionId, serviceId, effectiveAgentId, "stripe", "stripe_failed",
-          Date.now() - startTime, { testMode, agentId, stripePaymentMethodId: "***" },
+        // Update pending record with Stripe failure status
+        await updateAuditRecord(transactionId, "stripe_failed", Date.now() - startTime,
           { error: stripeError.message, code: stripeError.code });
         
         return res.status(402).json({
@@ -495,15 +582,11 @@ router.post("/checkout", async (req: Request, res: Response) => {
           ? "fulfillment_failed_pending"
           : "fulfillment_failed";
       
-      // Log fulfillment failure with credit refund status
-      await logAuditTrail(
+      // Update pending record with fulfillment failure and credit refund status
+      await updateAuditRecord(
         transactionId, 
-        serviceId, 
-        effectiveAgentId, 
-        paymentMethod, 
         auditStatus,
         Date.now() - startTime,
-        { params, testMode, agentId, stripePaymentMethodId: stripePaymentMethodId ? "***" : undefined },
         { 
           success: false,
           stripePaymentIntentId: paymentDetails.stripePaymentIntentId,
@@ -550,15 +633,11 @@ router.post("/checkout", async (req: Request, res: Response) => {
       });
     }
     
-    // PRODUCTION: Log successful completion to audit trail
-    await logAuditTrail(
+    // PRODUCTION: Update pending record with successful completion
+    await updateAuditRecord(
       transactionId, 
-      serviceId, 
-      effectiveAgentId, 
-      paymentMethod, 
       "completed",
       Date.now() - startTime,
-      { params, testMode, agentId, stripePaymentMethodId: stripePaymentMethodId ? "***" : undefined },
       { 
         success: true,
         stripePaymentIntentId: paymentDetails.stripePaymentIntentId,

@@ -1,7 +1,7 @@
 /**
  * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents (PRODUCTION-READY)
  * 
- * VERSION: 1.1.1 (January 17, 2026)
+ * VERSION: 1.2.0 (January 17, 2026)
  * 
  * PURPOSE: Reduce payment friction from multi-step to one API call
  * APPROACH: Stripe-first with x402 fallback
@@ -11,6 +11,8 @@
  * - Full audit trail: ALL checkout requests logged to microserviceRequests
  * - Real service execution via existing handlers
  * - Stripe live/test mode based on key prefix (sk_live_ vs sk_test_)
+ * - P0: Credit refund on fulfillment failure (no card refunds)
+ * - P2: Idempotency guard for duplicate request prevention
  * 
  * ENDPOINTS:
  * - POST /api/mcp/payments/checkout - Single-call checkout
@@ -21,7 +23,14 @@
  * - All checkout requests logged to microserviceRequests table
  * - testMode flag stored in requestInput.testMode (no separate column)
  * - Filter production analytics: WHERE (request_input->>'testMode')::boolean = false
- * - paymentStatus column tracks: 'completed', 'x402_redirected', 'credits_not_implemented'
+ * - paymentStatus column tracks:
+ *   - 'completed' - Payment and fulfillment succeeded
+ *   - 'stripe_failed' - Stripe payment failed
+ *   - 'x402_redirected' - Redirected to on-chain payment
+ *   - 'credits_not_implemented' - Credits payment not yet available
+ *   - 'fulfillment_failed_credited' - Service failed, credits ACTUALLY added to user account
+ *   - 'fulfillment_failed_pending' - Service failed, no user found, pending claim recorded
+ *   - 'fulfillment_failed' - Service failed, credit refund also failed (contact support)
  * 
  * ROLLBACK: Delete this file, remove route registration from server/index.ts,
  *           remove mcpPaymentsKit from server/routes/mcpServiceDiscovery.ts
@@ -33,8 +42,9 @@ import rateLimit from "express-rate-limit";
 import { ServiceCatalogService } from "../services/serviceCatalogService";
 import { SERVICE_PRICING_USD, isServiceName } from "../../shared/pricing";
 import { db } from "../db";
-import { microserviceRequests, x402PaymentIntents } from "@shared/schema";
+import { microserviceRequests, x402PaymentIntents, users } from "@shared/schema";
 import { nanoid } from "nanoid";
+import { eq, sql } from "drizzle-orm";
 
 const router = Router();
 
@@ -117,6 +127,76 @@ async function logAuditTrail(
   }
 }
 
+/**
+ * P2: Idempotency guard - Check if transaction already exists
+ * Prevents double fulfillment on retries
+ */
+async function checkIdempotency(transactionId: string): Promise<{ exists: boolean; status?: string }> {
+  try {
+    const existing = await db.select({ 
+      id: microserviceRequests.id, 
+      paymentStatus: microserviceRequests.paymentStatus 
+    })
+    .from(microserviceRequests)
+    .where(eq(microserviceRequests.id, transactionId))
+    .limit(1);
+    
+    if (existing.length > 0) {
+      return { exists: true, status: existing[0].paymentStatus || undefined };
+    }
+    return { exists: false };
+  } catch (error) {
+    console.error("Idempotency check failed:", error);
+    return { exists: false };
+  }
+}
+
+/**
+ * P0: Issue credit refund when service execution fails after payment
+ * Credits are issued to the user's creditsBalance
+ * Returns distinct status for actual credited vs pending claim
+ */
+async function issueCreditRefund(
+  agentId: string, 
+  amountUSD: number,
+  transactionId: string,
+  serviceId: string,
+  reason: string
+): Promise<{ status: 'credited' | 'pending_claim' | 'failed'; creditsIssued: number; error?: string }> {
+  try {
+    // Find user by wallet address (agentId maps to wallet_address in our system)
+    const existingUser = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
+      .from(users)
+      .where(eq(users.walletAddress, agentId))
+      .limit(1);
+    
+    if (existingUser.length > 0) {
+      // User exists - add credits directly
+      const currentBalance = parseFloat(existingUser[0].creditsBalance || "0");
+      const newBalance = currentBalance + amountUSD;
+      
+      await db.update(users)
+        .set({ creditsBalance: newBalance.toFixed(2) })
+        .where(eq(users.id, existingUser[0].id));
+      
+      console.log(`💰 Credit refund issued: $${amountUSD.toFixed(2)} to user ${existingUser[0].id} for ${transactionId}`);
+      return { status: 'credited', creditsIssued: amountUSD };
+    }
+    
+    // No user found - mark as pending claim (the audit trail will persist this)
+    console.log(`⚠️ Credit refund pending: $${amountUSD.toFixed(2)} for agent ${agentId} (no user found)`);
+    return { 
+      status: 'pending_claim', 
+      creditsIssued: 0,
+      error: "User not found - credit recorded as pending claim"
+    };
+    
+  } catch (error: any) {
+    console.error(`Failed to issue credit refund for ${transactionId}:`, error);
+    return { status: 'failed', creditsIssued: 0, error: error.message };
+  }
+}
+
 router.get("/health", async (_req: Request, res: Response) => {
   const stripe = getStripeClient();
   const isProduction = process.env.REPLIT_DEPLOYMENT === '1';
@@ -124,7 +204,7 @@ router.get("/health", async (_req: Request, res: Response) => {
   res.json({
     success: true,
     status: "operational",
-    version: "1.1.1", // Production-ready version
+    version: "1.2.0", // Production-ready version with credit refunds
     environment: isProduction ? "production" : "development",
     stripeConfigured: !!stripe,
     stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
@@ -196,7 +276,6 @@ router.get("/services", async (_req: Request, res: Response) => {
 
 router.post("/checkout", async (req: Request, res: Response) => {
   const startTime = Date.now();
-  const transactionId = `mcp_${nanoid(16)}`;
   
   try {
     const {
@@ -208,6 +287,9 @@ router.post("/checkout", async (req: Request, res: Response) => {
       agentId,
       idempotencyKey
     }: CheckoutRequest = req.body;
+    
+    // P2: Use idempotencyKey as transactionId if provided for consistent duplicate detection
+    const transactionId = idempotencyKey ? `mcp_${idempotencyKey}` : `mcp_${nanoid(16)}`;
     
     if (!serviceId) {
       return res.status(400).json({
@@ -232,6 +314,20 @@ router.post("/checkout", async (req: Request, res: Response) => {
         availableServices: Object.keys(SERVICE_PRICING_USD),
         transactionId
       });
+    }
+    
+    // P2: Check idempotency - prevent duplicate fulfillment (moved early to catch all payment methods)
+    if (idempotencyKey) {
+      const idempotencyCheck = await checkIdempotency(transactionId);
+      if (idempotencyCheck.exists) {
+        return res.status(200).json({
+          success: true,
+          message: "Request already processed",
+          transactionId,
+          previousStatus: idempotencyCheck.status,
+          idempotent: true
+        });
+      }
     }
     
     const priceUSD = SERVICE_PRICING_USD[serviceId];
@@ -358,19 +454,103 @@ router.post("/checkout", async (req: Request, res: Response) => {
       });
     }
     
+    // Execute service after successful payment
     let serviceResult: any = null;
+    let fulfillmentFailed = false;
+    let creditRefundResult: { status: 'credited' | 'pending_claim' | 'failed'; creditsIssued: number; error?: string } | null = null;
+    
     try {
       serviceResult = await executeService(serviceId, params);
+      
+      // P0: Check if service returned an error (even without throwing)
+      if (serviceResult?.error) {
+        fulfillmentFailed = true;
+      }
     } catch (serviceError: any) {
       console.error(`Service execution failed for ${serviceId}:`, serviceError);
+      fulfillmentFailed = true;
       serviceResult = {
-        error: "Service execution failed",
-        details: serviceError.message,
-        refundEligible: true
+        error: "SERVICE_EXECUTION_FAILED",
+        details: serviceError.message
       };
     }
     
-    // PRODUCTION: Log Stripe success to audit trail
+    // P0: If fulfillment failed after payment, issue credit refund
+    if (fulfillmentFailed) {
+      creditRefundResult = await issueCreditRefund(
+        effectiveAgentId,
+        priceUSD,
+        transactionId,
+        serviceId,
+        serviceResult?.error || "Unknown error"
+      );
+      
+      // Determine correct audit status based on refund outcome
+      // fulfillment_failed_credited = credits actually added to user account
+      // fulfillment_failed_pending = no user found, pending claim recorded
+      // fulfillment_failed = refund failed entirely
+      const auditStatus = creditRefundResult.status === 'credited' 
+        ? "fulfillment_failed_credited"
+        : creditRefundResult.status === 'pending_claim'
+          ? "fulfillment_failed_pending"
+          : "fulfillment_failed";
+      
+      // Log fulfillment failure with credit refund status
+      await logAuditTrail(
+        transactionId, 
+        serviceId, 
+        effectiveAgentId, 
+        paymentMethod, 
+        auditStatus,
+        Date.now() - startTime,
+        { params, testMode, agentId, stripePaymentMethodId: stripePaymentMethodId ? "***" : undefined },
+        { 
+          success: false,
+          stripePaymentIntentId: paymentDetails.stripePaymentIntentId,
+          serviceError: serviceResult?.error,
+          creditRefund: {
+            status: creditRefundResult.status,
+            amount: priceUSD,
+            creditsIssued: creditRefundResult.creditsIssued,
+            error: creditRefundResult.error
+          }
+        }
+      );
+      
+      // Return response indicating payment succeeded but service failed
+      // Use consistent paymentStatus matching audit trail
+      // NOTE: No "retryable" flag - retrying with same idempotencyKey returns cached result,
+      // retrying with new key would cause double-charge. Contact support for failed refunds.
+      return res.status(200).json({
+        success: false,
+        transactionId,
+        paymentStatus: auditStatus, // Consistent with audit trail
+        serviceResult,
+        creditRefund: {
+          status: creditRefundResult.status,
+          creditsIssued: creditRefundResult.creditsIssued,
+          amount: `$${priceUSD.toFixed(2)}`,
+          message: creditRefundResult.status === 'credited' 
+            ? `Credit refund of $${priceUSD.toFixed(2)} has been issued to your account`
+            : creditRefundResult.status === 'pending_claim'
+              ? `Credit refund of $${priceUSD.toFixed(2)} is pending - claim when you register with wallet ${effectiveAgentId}`
+              : "Credit refund failed - please contact support with transactionId for manual resolution"
+        },
+        paymentDetails: {
+          method: paymentMethod,
+          amount: `$${priceUSD.toFixed(2)}`,
+          currency: "USD",
+          stripeStatus: "succeeded"
+        },
+        support: creditRefundResult.status === 'failed' 
+          ? { action: "contact_support", transactionId, reason: "Credit refund failed - manual resolution required" }
+          : undefined,
+        testMode,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    // PRODUCTION: Log successful completion to audit trail
     await logAuditTrail(
       transactionId, 
       serviceId, 
@@ -380,9 +560,9 @@ router.post("/checkout", async (req: Request, res: Response) => {
       Date.now() - startTime,
       { params, testMode, agentId, stripePaymentMethodId: stripePaymentMethodId ? "***" : undefined },
       { 
-        success: !serviceResult?.error,
+        success: true,
         stripePaymentIntentId: paymentDetails.stripePaymentIntentId,
-        serviceResultType: serviceResult?.error ? "error" : "success"
+        serviceResultType: "success"
       }
     );
     

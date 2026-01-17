@@ -50,7 +50,7 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
           capabilities: entry.capabilities,
           network: entry.network,
           stripeCompatible: entry.stripeCompatible,
-          paymentOptions: ["x402-crypto", "stripe-fiat", "credits"]
+          paymentOptions: ["x402-crypto", "stripe-fiat"] // credits removed until implemented
         };
       });
 
@@ -79,22 +79,25 @@ router.get("/mcp/services", async (req: Request, res: Response) => {
         facilitator: "https://facilitator.cdp.coinbase.com",
         cloudflareGateway: "https://coinrailz-x402-gateway.coinrailz.workers.dev",
         mcpPaymentsKit: {
-          description: "Single-call checkout endpoint for AI agents - Stripe-first with x402 fallback",
+          version: "1.2.0",
+          description: "Single-call checkout endpoint for AI agents - Stripe-first with x402 fallback. Credit refund on fulfillment failure.",
           checkoutEndpoint: `${baseUrl}/api/mcp/payments/checkout`,
           servicesEndpoint: `${baseUrl}/api/mcp/payments/services`,
           healthEndpoint: `${baseUrl}/api/mcp/payments/health`,
-          supportedMethods: ["stripe", "x402"],
-          testModeSupported: true
+          supportedMethods: ["stripe", "x402"], // credits coming soon
+          testModeSupported: true,
+          idempotencySupported: true,
+          fulfillmentGuarantee: "credit_refund_on_failure"
         }
       },
       services: services,
       totalServices: services.length,
       categories: categoryCounts,
-      paymentMethods: ["x402-erc20-usdc", "stripe-fiat", "credits"],
+      paymentMethods: ["x402-erc20-usdc", "stripe-fiat"], // credits removed until implemented
       paymentCapabilities: {
         crypto: { protocol: "x402", networks: ["base", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"], token: "USDC" },
         fiat: { provider: "stripe", methods: ["card", "bank"] },
-        credits: { description: "Pre-purchased credit bundles via Stripe" },
+        credits: { enabled: false, description: "Pre-purchased credit bundles (coming soon)" },
         walletProvisioning: { description: "FREE instant wallet creation for AI agents", endpoint: "/api/agent-wallet/create" }
       },
       supportedNetworks: ["base", "base-sepolia", "ethereum", "polygon", "arbitrum", "optimism", "bnb", "solana"],

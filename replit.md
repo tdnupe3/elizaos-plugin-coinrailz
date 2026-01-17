@@ -172,19 +172,25 @@ Reduces payment friction from multi-step to one API call.
 - `GET /api/mcp/payments/services` - Available services with pricing
 - `GET /api/mcp/payments/health` - Kit health check
 
-### Production Features (v1.1.1 - January 17, 2026)
+### Production Features (v1.2.0 - January 17, 2026)
 - **Rate Limiting**: 100 requests per 15 minutes per IP (express-rate-limit v7.5.1)
 - **Full Audit Trail**: ALL checkout requests logged to `microserviceRequests` table
 - **Stripe Live Mode**: Uses production Stripe keys (sk_live_*)
 - **Test Mode Support**: `testMode: true` flag stored in `requestInput.testMode` for filtering
+- **P0 - Credit Refund on Fulfillment Failure**: If Stripe payment succeeds but service execution fails, credits are issued to user's account (no card refunds)
+- **P2 - Idempotency Guard**: When `idempotencyKey` provided, duplicate requests return previous result instead of re-processing
+- **P1 - Discovery Alignment**: Credits removed from MCP discovery until implemented (shows `enabled: false`)
 
 ### Audit Trail Schema
 - **Table**: `microserviceRequests`
 - **Payment Statuses**: 
-  - `completed` - Stripe payment succeeded
+  - `completed` - Stripe payment and fulfillment succeeded
   - `stripe_failed` - Stripe payment failed
   - `x402_redirected` - Redirected to on-chain payment
   - `credits_not_implemented` - Credits requested but not available
+  - `fulfillment_failed_credited` - Service failed, credits ACTUALLY added to user account
+  - `fulfillment_failed_pending` - Service failed, no user found, pending claim recorded
+  - `fulfillment_failed` - Service failed, credit refund also failed (contact support)
 - **Filter Production**: `WHERE (request_input->>'testMode')::boolean = false`
 - **Filter by Gateway**: `WHERE source_gateway = 'mcp-payments-kit'`
 

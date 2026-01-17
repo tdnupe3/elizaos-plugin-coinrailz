@@ -3673,6 +3673,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     app.use('/api/gpt/credits', gptCreditsRoutes);
     console.log('✅ GPT Action & Credits routes registered (pre-Vite)');
     
+    // Register gateway analytics routes BEFORE Vite for Cloudflare/IoT tracking
+    const gatewayAnalyticsRoutes = await import('./routes/analyticsRoutes').then(m => m.default);
+    app.use('/api/analytics', gatewayAnalyticsRoutes);
+    console.log('✅ Gateway analytics routes registered (pre-Vite)');
+    
     // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     
     try {

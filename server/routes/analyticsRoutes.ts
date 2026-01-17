@@ -285,4 +285,183 @@ router.get("/x402/payment-breakdown", async (req, res) => {
   }
 });
 
+// Gateway Analytics - Track traffic from Cloudflare, Farcaster, MCP, etc
+router.get("/x402/gateway-breakdown", async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours as string) || 24;
+    const startTime = new Date();
+    startTime.setHours(startTime.getHours() - hours);
+    
+    const requests = await db.query.microserviceRequests.findMany({
+      where: gte(microserviceRequests.createdAt, startTime),
+    });
+    
+    const gatewayStats = {
+      total: requests.length,
+      byGateway: {} as Record<string, {
+        count: number;
+        paymentAttempts: number;
+        successfulPayments: number;
+        services: Record<string, number>;
+        conversionRate: number;
+      }>,
+      topServices: {} as Record<string, number>,
+      conversionFunnel: {
+        totalRequests: 0,
+        paymentAttempts: 0,
+        successfulPayments: 0,
+        overallConversionRate: 0,
+      },
+    };
+    
+    requests.forEach(r => {
+      const gateway = (r as any).sourceGateway || 'direct';
+      
+      if (!gatewayStats.byGateway[gateway]) {
+        gatewayStats.byGateway[gateway] = {
+          count: 0,
+          paymentAttempts: 0,
+          successfulPayments: 0,
+          services: {},
+          conversionRate: 0,
+        };
+      }
+      
+      const gw = gatewayStats.byGateway[gateway];
+      gw.count++;
+      
+      if (r.paymentAttempted) {
+        gw.paymentAttempts++;
+        gatewayStats.conversionFunnel.paymentAttempts++;
+      }
+      
+      if (r.paymentMethod) {
+        gw.successfulPayments++;
+        gatewayStats.conversionFunnel.successfulPayments++;
+      }
+      
+      gw.services[r.serviceId] = (gw.services[r.serviceId] || 0) + 1;
+      gatewayStats.topServices[r.serviceId] = (gatewayStats.topServices[r.serviceId] || 0) + 1;
+    });
+    
+    gatewayStats.conversionFunnel.totalRequests = requests.length;
+    gatewayStats.conversionFunnel.overallConversionRate = requests.length > 0
+      ? Math.round((gatewayStats.conversionFunnel.successfulPayments / requests.length) * 100)
+      : 0;
+    
+    Object.keys(gatewayStats.byGateway).forEach(gw => {
+      const stats = gatewayStats.byGateway[gw];
+      stats.conversionRate = stats.count > 0
+        ? Math.round((stats.successfulPayments / stats.count) * 100)
+        : 0;
+    });
+    
+    res.json({
+      success: true,
+      hours,
+      timestamp: new Date().toISOString(),
+      gatewayStats,
+      insights: {
+        cloudflareTraffic: gatewayStats.byGateway['cloudflare-coinrailz']?.count || 0,
+        farcasterTraffic: gatewayStats.byGateway['farcaster-frame']?.count || 0,
+        mcpTraffic: gatewayStats.byGateway['mcp']?.count || 0,
+        directTraffic: gatewayStats.byGateway['direct']?.count || 0,
+        topGateway: Object.entries(gatewayStats.byGateway)
+          .sort((a, b) => b[1].count - a[1].count)[0]?.[0] || 'none',
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching gateway breakdown:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch gateway breakdown',
+      message: error.message,
+    });
+  }
+});
+
+// IoT/M2M Traffic Analysis - Track machine-to-machine patterns
+router.get("/x402/iot-analysis", async (req, res) => {
+  try {
+    const hours = parseInt(req.query.hours as string) || 168; // Default 1 week for IoT patterns
+    const startTime = new Date();
+    startTime.setHours(startTime.getHours() - hours);
+    
+    const requests = await db.query.microserviceRequests.findMany({
+      where: gte(microserviceRequests.createdAt, startTime),
+    });
+    
+    const iotIndicators = {
+      automatedUserAgents: ['curl', 'python', 'node-fetch', 'axios', 'go-http', 'java', 'rust'],
+      machinePatterns: 0,
+      humanPatterns: 0,
+      highFrequencyClients: {} as Record<string, number>,
+      repeatClients: 0,
+      uniqueClients: new Set<string>(),
+    };
+    
+    const clientRequestCounts = new Map<string, number>();
+    
+    requests.forEach(r => {
+      const clientId = r.clientIp || 'unknown';
+      iotIndicators.uniqueClients.add(clientId);
+      
+      const count = (clientRequestCounts.get(clientId) || 0) + 1;
+      clientRequestCounts.set(clientId, count);
+      
+      const ua = (r.userAgent || '').toLowerCase();
+      const isMachine = iotIndicators.automatedUserAgents.some(agent => ua.includes(agent)) 
+        || !ua.includes('mozilla');
+      
+      if (isMachine) {
+        iotIndicators.machinePatterns++;
+      } else {
+        iotIndicators.humanPatterns++;
+      }
+    });
+    
+    clientRequestCounts.forEach((count, clientId) => {
+      if (count > 10) {
+        iotIndicators.highFrequencyClients[clientId] = count;
+        iotIndicators.repeatClients++;
+      }
+    });
+    
+    res.json({
+      success: true,
+      hours,
+      timestamp: new Date().toISOString(),
+      iotAnalysis: {
+        totalRequests: requests.length,
+        machineTraffic: iotIndicators.machinePatterns,
+        humanTraffic: iotIndicators.humanPatterns,
+        machinePercentage: requests.length > 0 
+          ? Math.round((iotIndicators.machinePatterns / requests.length) * 100) 
+          : 0,
+        uniqueClients: iotIndicators.uniqueClients.size,
+        repeatClients: iotIndicators.repeatClients,
+        highFrequencyClients: Object.keys(iotIndicators.highFrequencyClients).length,
+      },
+      m2mReadiness: {
+        score: Math.min(100, Math.round(
+          (iotIndicators.machinePatterns / Math.max(1, requests.length)) * 50 +
+          (iotIndicators.repeatClients / Math.max(1, iotIndicators.uniqueClients.size)) * 50
+        )),
+        indicators: {
+          automatedTraffic: iotIndicators.machinePatterns > iotIndicators.humanPatterns,
+          repeatUsage: iotIndicators.repeatClients > 5,
+          highVolume: requests.length > 100,
+        },
+      },
+    });
+  } catch (error: any) {
+    console.error('❌ Error fetching IoT analysis:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch IoT analysis',
+      message: error.message,
+    });
+  }
+});
+
 export default router;

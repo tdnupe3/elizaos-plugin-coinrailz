@@ -4106,6 +4106,7 @@ export const microserviceRequests = pgTable(
     requestPath: varchar("request_path", { length: 255 }), // Full request path like /x402/ping
     clientIp: varchar("client_ip", { length: 45 }), // IPv4 or IPv6 address
     paymentAttempted: boolean("payment_attempted").default(false), // Was X-PAYMENT header present?
+    sourceGateway: varchar("source_gateway", { length: 50 }), // cloudflare-coinrailz, farcaster-frame, mcp, direct
     createdAt: timestamp("created_at").defaultNow(),
     error: text("error"),
   },

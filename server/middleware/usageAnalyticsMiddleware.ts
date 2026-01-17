@@ -25,6 +25,22 @@ function getClientIp(req: Request): string {
   return req.ip || req.socket?.remoteAddress || 'unknown';
 }
 
+function detectGateway(req: Request): string | null {
+  const xGateway = req.headers['x-gateway'] as string | undefined;
+  if (xGateway) {
+    return xGateway.substring(0, 50);
+  }
+  const referer = req.headers['referer'] as string | undefined;
+  if (referer?.includes('farcaster') || referer?.includes('warpcast')) {
+    return 'farcaster-frame';
+  }
+  const origin = req.headers['origin'] as string | undefined;
+  if (origin?.includes('workers.dev') || origin?.includes('cloudflare')) {
+    return 'cloudflare-worker';
+  }
+  return null;
+}
+
 export function usageAnalyticsMiddleware(req: Request, res: Response, next: NextFunction) {
   const requestId = nanoid();
   const startTime = Date.now();
@@ -35,9 +51,10 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
   const requestPath = req.originalUrl || req.path;
   const clientIp = getClientIp(req);
   const paymentAttempted = !!req.headers['x-payment'];
+  const sourceGateway = detectGateway(req);
   
-  // DIAGNOSTIC: Log every x402 request to verify middleware is executing in production
-  console.log(`📊 ANALYTICS MW: ${requestMethod} ${requestPath} | UA: ${userAgent?.substring(0, 50)} | IP: ${clientIp} | ENV: ${process.env.NODE_ENV || 'dev'} | DEPLOY: ${process.env.REPLIT_DEPLOYMENT || 'workspace'}`);
+  // DIAGNOSTIC: Log every x402 request with gateway info
+  console.log(`📊 ANALYTICS MW: ${requestMethod} ${requestPath} | Gateway: ${sourceGateway || 'direct'} | UA: ${userAgent?.substring(0, 50)} | IP: ${clientIp}`);
   
   const analyticsContext: AnalyticsContext = {
     requestId,
@@ -84,6 +101,7 @@ export function usageAnalyticsMiddleware(req: Request, res: Response, next: Next
         requestPath: requestPath.substring(0, 255),
         clientIp,
         paymentAttempted,
+        sourceGateway,
         paymentStatus: statusCode === 200 ? 'completed' : statusCode === 402 ? 'pending' : 'failed',
         walletAddress: analyticsContext.walletAddress || null,
         error: statusCode >= 400 && statusCode !== 402 ? JSON.stringify(responseData) : null,
@@ -157,6 +175,7 @@ export async function getUsageStats(timeframe: 'hour' | 'day' | 'week' = 'day') 
       tx_hash: requests.filter(r => r.paymentMethod === 'tx_hash').length,
       no_payment: requests.filter(r => !r.paymentMethod).length,
     },
+    byGateway: {} as Record<string, number>,
     bySDK: {} as Record<string, number>,
     byService: {} as Record<string, number>,
     avgResponseTime: 0,
@@ -168,6 +187,9 @@ export async function getUsageStats(timeframe: 'hour' | 'day' | 'week' = 'day') 
     stats.bySDK[sdk] = (stats.bySDK[sdk] || 0) + 1;
     
     stats.byService[req.serviceId] = (stats.byService[req.serviceId] || 0) + 1;
+    
+    const gateway = (req as any).sourceGateway || 'direct';
+    stats.byGateway[gateway] = (stats.byGateway[gateway] || 0) + 1;
   });
   
   const validResponseTimes = requests.filter(r => r.responseTime).map(r => r.responseTime!);

@@ -4871,6 +4871,7 @@ Questions? Reply to this message or contact support@coinrailz.com
   setupAnalyticsRoutes(app);
   setupReferralRoutes(app);
   setupEnterpriseRoutes(app);
+  // Note: Gateway analytics routes are registered pre-Vite in server/index.ts
   
   console.log('✅ All enhancement routes registered successfully');
 

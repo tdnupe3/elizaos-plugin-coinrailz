@@ -378,6 +378,37 @@ export const insertAgentWalletEventSchema = createInsertSchema(agentWalletEvents
 export type InsertAgentWalletEvent = z.infer<typeof insertAgentWalletEventSchema>;
 export type AgentWalletEvent = typeof agentWalletEvents.$inferSelect;
 
+// M2M Devices table for IoT/Machine-to-Machine onboarding
+// Single-call registration for devices, agents, and edge nodes
+export const m2mDevices = pgTable("m2m_devices", {
+  id: varchar("id").primaryKey(), // Internal ID (m2m_timestamp_nanoid)
+  deviceId: varchar("device_id").notNull().unique(), // Caller-provided device identifier
+  deviceType: varchar("device_type").notNull().default("ai_agent"), // iot_device, ai_agent, server, edge_node, other
+  name: varchar("name"), // Human-readable name
+  capabilities: jsonb("capabilities").default([]), // Device capabilities array
+  apiKeyHash: varchar("api_key_hash").notNull(), // SHA256 hash of API key
+  apiKeyPrefix: varchar("api_key_prefix").notNull(), // First 12 chars for identification
+  walletAddress: varchar("wallet_address"), // Provisioned wallet address
+  chain: varchar("chain").notNull().default("base-mainnet"), // Blockchain network
+  ipAddress: varchar("ip_address"), // Registration IP
+  metadata: jsonb("metadata").default({}), // Additional metadata
+  status: varchar("status").notNull().default("active"), // active, suspended, revoked
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastSeenAt: timestamp("last_seen_at"),
+}, (table) => [
+  index("IDX_m2m_devices_device_id").on(table.deviceId),
+  index("IDX_m2m_devices_device_type").on(table.deviceType),
+  index("IDX_m2m_devices_status").on(table.status),
+  index("IDX_m2m_devices_api_key_hash").on(table.apiKeyHash),
+]);
+
+export const insertM2mDeviceSchema = createInsertSchema(m2mDevices).omit({
+  createdAt: true,
+  lastSeenAt: true,
+});
+export type InsertM2mDevice = z.infer<typeof insertM2mDeviceSchema>;
+export type M2mDevice = typeof m2mDevices.$inferSelect;
+
 // Free Wallet Rate Limits table for tracking request counts and cooldowns
 export const freeWalletRateLimits = pgTable("free_wallet_rate_limits", {
   id: serial("id").primaryKey(),

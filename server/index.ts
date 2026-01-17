@@ -3683,6 +3683,11 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     app.use('/api/mcp/payments', mcpPaymentsRoutes);
     console.log('✅ MCP Payments Kit routes registered (pre-Vite)');
     
+    // Register M2M Onboarding routes BEFORE Vite for IoT/device registration
+    const m2mOnboardingRoutes = await import('./routes/m2mOnboardingRoutes').then(m => m.default);
+    app.use('/api/m2m', m2mOnboardingRoutes);
+    console.log('✅ M2M Onboarding routes registered (pre-Vite)');
+    
     // NOTE: Solana Pay routes are now registered pre-static for BOTH environments (see above)
     
     try {

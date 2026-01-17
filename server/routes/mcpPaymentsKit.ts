@@ -189,6 +189,42 @@ async function logAuditTrail(
 }
 
 /**
+ * Find user by any wallet type (ethereum, solana, or xrp)
+ * Supports multi-chain wallet lookup for credits payment
+ * Returns user with id and creditsBalance if found
+ */
+async function findUserByAnyWallet(walletAddress: string): Promise<{ id: string; creditsBalance: string | null }[]> {
+  try {
+    // Try ethereum wallet first (most common)
+    let result = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
+      .from(users)
+      .where(eq(users.ethereumWallet, walletAddress))
+      .limit(1);
+    
+    if (result.length > 0) return result;
+    
+    // Try solana wallet
+    result = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
+      .from(users)
+      .where(eq(users.solanaWallet, walletAddress))
+      .limit(1);
+    
+    if (result.length > 0) return result;
+    
+    // Try XRP wallet
+    result = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
+      .from(users)
+      .where(eq(users.xrpWallet, walletAddress))
+      .limit(1);
+    
+    return result;
+  } catch (error) {
+    console.error("Multi-wallet lookup failed:", error);
+    return [];
+  }
+}
+
+/**
  * P2: Idempotency guard - Check if transaction already exists
  * Prevents double fulfillment on retries
  */
@@ -242,11 +278,8 @@ async function issueCreditRefund(
       return { status: 'already_refunded', creditsIssued: 0, error: "Refund already processed" };
     }
     
-    // Find user by ethereum wallet (agentId maps to ethereum_wallet in our system)
-    const existingUser = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
-      .from(users)
-      .where(eq(users.ethereumWallet, agentId))
-      .limit(1);
+    // Find user by any wallet type (ethereum, solana, or xrp)
+    const existingUser = await findUserByAnyWallet(agentId);
     
     if (existingUser.length > 0) {
       // User exists - add credits atomically
@@ -287,7 +320,7 @@ router.get("/health", async (_req: Request, res: Response) => {
   res.json({
     success: true,
     status: "operational",
-    version: "1.4.1", // Production-ready with atomic credits + refund idempotency
+    version: "1.4.2", // Multi-wallet lookup + atomic credits + refund idempotency
     environment: isProduction ? "production" : "development",
     stripeConfigured: !!stripe,
     stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
@@ -551,13 +584,10 @@ router.post("/checkout", async (req: Request, res: Response) => {
         });
       }
       
-      // Find user by ethereum wallet (use original agentId, not test-prefixed version)
+      // Find user by any wallet type (ethereum, solana, or xrp)
       // For credits payment, we always need the REAL wallet address to look up the user
       const walletForLookup = agentId || effectiveAgentId;
-      const existingUser = await db.select({ id: users.id, creditsBalance: users.creditsBalance })
-        .from(users)
-        .where(eq(users.ethereumWallet, walletForLookup))
-        .limit(1);
+      const existingUser = await findUserByAnyWallet(walletForLookup);
       
       if (existingUser.length === 0) {
         await updateAuditRecord(transactionId, "credits_no_account", Date.now() - startTime,

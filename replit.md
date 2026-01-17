@@ -175,17 +175,16 @@ Reduces payment friction from multi-step to one API call.
 ### Test Mode Isolation
 - All test requests use `testMode: true` flag
 - Test transactions use Stripe test keys (sk_test_*)
-- Test data stored with `isTestMode: true` flag in database
+- **NO database writes in test mode** - console logging only
 - Test user ID prefix: `test_agent_*`
+
+### MCP Discovery Update (January 17, 2026)
+- **Added**: `mcpPaymentsKit` object to provider in `/mcp/services` response
+- **Advertises**: checkoutEndpoint, servicesEndpoint, healthEndpoint, supportedMethods
 
 ### Rollback Instructions
 To completely revert MCP Payments Kit:
 1. Delete `server/routes/mcpPaymentsKit.ts`
-2. Remove these lines from `server/index.ts`:
-   ```javascript
-   // MCP Payments Kit registration (lines TBD after implementation)
-   const mcpPaymentsRoutes = await import('./routes/mcpPaymentsKit').then(m => m.default);
-   app.use('/api/mcp/payments', mcpPaymentsRoutes);
-   ```
-3. Remove discovery updates in `server/routes/mcpServiceDiscovery.ts` (if any)
+2. Remove route registration from `server/index.ts` (search for "mcpPaymentsKit")
+3. Remove `mcpPaymentsKit` object from provider in `server/routes/mcpServiceDiscovery.ts`
 4. No database schema changes required (no new tables added)

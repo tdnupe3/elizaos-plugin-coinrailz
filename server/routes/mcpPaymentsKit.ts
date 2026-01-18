@@ -1,7 +1,7 @@
 /**
  * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents (PRODUCTION-READY)
  * 
- * VERSION: 1.4.2 (January 17, 2026)
+ * VERSION: 1.4.3 (January 18, 2026)
  * 
  * PURPOSE: Reduce payment friction from multi-step to one API call
  * APPROACH: Stripe-first with x402 fallback
@@ -189,51 +189,91 @@ async function logAuditTrail(
 }
 
 /**
- * Atomic credits deduction with audit update in a single transaction
- * Prevents crash-inconsistency where credits are deducted but audit is not updated
- * Returns success/failure with updated balance
+ * Atomic credits deduction with audit update in a single CTE
+ * Design: Only update audit to "paid" status IF credits were successfully deducted
+ * - Check audit exists first (to fail fast without touching user balance)
+ * - Deduct credits with balance guard
+ * - Update audit to "paid" ONLY if deduction succeeded
+ * - All in one CTE so audit is never marked "paid" unless credits were deducted
  */
 async function atomicCreditsDeductionWithAudit(
   userId: string,
   priceUSD: number,
   transactionId: string,
   auditStatus: string = "credits_paid_pending_fulfillment"
-): Promise<{ success: boolean; newBalance: number; error?: string }> {
+): Promise<{ success: boolean; newBalance: number; error?: string; failureReason?: 'insufficient_balance' | 'audit_missing' | 'db_error' }> {
   try {
-    // Single transaction: deduct credits AND update audit record atomically
+    // Single CTE that:
+    // 1. Checks if audit row exists
+    // 2. Deducts credits if balance sufficient
+    // 3. Updates audit to "paid" ONLY if deduction succeeded
+    // This ensures audit is never in "paid" state unless credits were deducted
     const result = await db.execute(
       sql`
-        WITH deducted AS (
+        WITH audit_check AS (
+          SELECT id FROM microservice_requests WHERE id = ${transactionId}
+        ),
+        deducted AS (
           UPDATE users 
           SET credits_balance = CAST(credits_balance AS numeric) - ${priceUSD.toFixed(2)}::numeric
           WHERE id = ${userId} 
           AND CAST(credits_balance AS numeric) >= ${priceUSD.toFixed(2)}::numeric
+          AND EXISTS (SELECT 1 FROM audit_check)
           RETURNING id, credits_balance
         ),
         audit_update AS (
           UPDATE microservice_requests
           SET payment_status = ${auditStatus}
           WHERE id = ${transactionId}
-          AND (SELECT COUNT(*) FROM deducted) > 0
+          AND EXISTS (SELECT 1 FROM deducted)
           RETURNING id
         )
-        SELECT d.id, d.credits_balance, (SELECT COUNT(*) FROM audit_update) as audit_updated
-        FROM deducted d
+        SELECT 
+          (SELECT COUNT(*) FROM audit_check) as audit_exists,
+          (SELECT COUNT(*) FROM deducted) as credits_deducted,
+          (SELECT COUNT(*) FROM audit_update) as audit_updated,
+          (SELECT credits_balance FROM deducted LIMIT 1) as new_balance
       `
     );
     
     if (!result || result.rowCount === 0) {
-      return { success: false, newBalance: 0, error: "Insufficient balance at time of deduction" };
+      return { success: false, newBalance: 0, error: "Database query failed", failureReason: 'db_error' };
     }
     
-    const row = result.rows?.[0] as { id: string; credits_balance: string; audit_updated: string } | undefined;
-    const newBalance = parseFloat(row?.credits_balance || "0");
+    const row = result.rows?.[0] as { 
+      audit_exists: string; 
+      credits_deducted: string; 
+      audit_updated: string;
+      new_balance: string | null;
+    } | undefined;
     
+    const auditExists = parseInt(row?.audit_exists || "0");
+    const creditsDeducted = parseInt(row?.credits_deducted || "0");
+    const auditUpdated = parseInt(row?.audit_updated || "0");
+    
+    // Check failure reasons in order of priority
+    if (auditExists === 0) {
+      return { success: false, newBalance: 0, error: "Audit record missing", failureReason: 'audit_missing' };
+    }
+    
+    if (creditsDeducted === 0) {
+      return { success: false, newBalance: 0, error: "Insufficient balance at time of deduction", failureReason: 'insufficient_balance' };
+    }
+    
+    // At this point, credits were deducted. Audit should have been updated.
+    // If auditUpdated is 0, we have a rare edge case but credits are deducted
+    if (auditUpdated === 0) {
+      console.warn(`⚠️ Credits deducted but audit update missed for ${transactionId} - will retry`);
+      // Retry audit update (best effort - credits are already deducted)
+      await db.execute(sql`UPDATE microservice_requests SET payment_status = ${auditStatus} WHERE id = ${transactionId}`);
+    }
+    
+    const newBalance = parseFloat(row?.new_balance || "0");
     console.log(`💳 Atomic credits payment: $${priceUSD} deducted from user ${userId}, remaining: $${newBalance}, txn: ${transactionId}`);
     return { success: true, newBalance };
   } catch (error: any) {
     console.error("Atomic credits deduction failed:", error);
-    return { success: false, newBalance: 0, error: error.message };
+    return { success: false, newBalance: 0, error: error.message, failureReason: 'db_error' };
   }
 }
 
@@ -369,7 +409,7 @@ router.get("/health", async (_req: Request, res: Response) => {
   res.json({
     success: true,
     status: "operational",
-    version: "1.4.2", // Multi-wallet lookup + atomic credits + refund idempotency
+    version: "1.4.3", // Multi-wallet lookup + atomic CTE + refund idempotency
     environment: isProduction ? "production" : "development",
     stripeConfigured: !!stripe,
     stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',
@@ -684,13 +724,20 @@ router.post("/checkout", async (req: Request, res: Response) => {
       );
       
       if (!atomicResult.success) {
-        // Atomic deduction failed (insufficient balance or DB error)
-        await updateAuditRecord(transactionId, "credits_insufficient_race", Date.now() - startTime,
-          { error: atomicResult.error || "Balance insufficient", balance: currentBalance, required: priceUSD });
+        // Atomic deduction failed - differentiate failure reasons
+        const failureReason = atomicResult.failureReason || 'insufficient_balance';
+        const auditStatus = failureReason === 'audit_missing' ? 'credits_audit_error' :
+                           failureReason === 'db_error' ? 'credits_db_error' : 'credits_insufficient_race';
         
-        return res.status(402).json({
+        await updateAuditRecord(transactionId, auditStatus, Date.now() - startTime,
+          { error: atomicResult.error, failureReason, balance: currentBalance, required: priceUSD });
+        
+        const errorCode = failureReason === 'audit_missing' ? 'CREDITS_SYSTEM_ERROR' :
+                         failureReason === 'db_error' ? 'CREDITS_SYSTEM_ERROR' : 'CREDITS_INSUFFICIENT';
+        
+        return res.status(failureReason === 'insufficient_balance' ? 402 : 500).json({
           success: false,
-          error: "CREDITS_INSUFFICIENT",
+          error: errorCode,
           message: atomicResult.error || "Balance insufficient at time of payment - please try again",
           currentBalance: currentBalance,
           required: priceUSD,

@@ -148,6 +148,39 @@ export const transactionProofs = pgTable(
   ],
 );
 
+// A2A Protocol Outreach Logs table for tracking A2A task-based outreach
+export const a2aOutreachLogs = pgTable(
+  "a2a_outreach_logs",
+  {
+    id: serial("id").primaryKey(),
+    agentId: integer("agent_id").notNull(), // Reference to discovered_agents.id
+    agentUrl: varchar("agent_url").notNull(), // A2A agent endpoint URL
+    agentName: varchar("agent_name"), // Agent name for quick reference
+    campaignId: varchar("campaign_id").notNull(), // Campaign grouping identifier
+    messageVariant: varchar("message_variant"), // A/B testing variant (A, B, etc)
+    taskId: varchar("task_id"), // A2A task ID returned by agent
+    contextId: varchar("context_id"), // A2A context ID for conversation tracking
+    status: varchar("status").notNull().default("pending"), // pending, sent, responded, interested, declined, error, opt_out
+    taskStatus: varchar("task_status"), // A2A task status (submitted, working, completed, failed)
+    responseContent: text("response_content"), // Agent response content
+    responseIntent: varchar("response_intent"), // Qualified intent: interested, needs_info, declined, other
+    errorMessage: text("error_message"), // Error details if failed
+    trialCreditsOffered: integer("trial_credits_offered").default(0), // Credits offered in USD
+    sentAt: timestamp("sent_at"), // When outreach was sent
+    respondedAt: timestamp("responded_at"), // When agent responded
+    createdAt: timestamp("created_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow(),
+  },
+  (table) => [
+    index("IDX_a2a_outreach_agent").on(table.agentId),
+    index("IDX_a2a_outreach_status").on(table.status),
+    index("IDX_a2a_outreach_campaign").on(table.campaignId),
+    index("IDX_a2a_outreach_task").on(table.taskId),
+    index("IDX_a2a_outreach_sent_at").on(table.sentAt),
+    index("IDX_a2a_outreach_response_intent").on(table.responseIntent),
+  ],
+);
+
 // x402 used transaction hashes for replay attack prevention
 export const usedTransactionHashes = pgTable(
   "used_transaction_hashes",

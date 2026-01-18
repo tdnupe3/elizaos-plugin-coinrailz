@@ -736,7 +736,11 @@ app.use('/api/task-boards', taskBoardRoutes);
 import a2aTestingRoutes from './routes/a2aTestingRoutes.js';
 import enterpriseA2ARoutes from './routes/enterpriseA2ARoutes.js';
 import enterpriseA2AMultiPayment from './routes/enterpriseA2AMultiPayment.js';
+import a2aOutreachRoutes from './routes/a2aOutreachRoutes.js';
 app.use('/api/a2a', a2aTestingRoutes);
+console.log('🤖 Registering A2A Protocol Outreach routes...');
+app.use('/api/a2a-protocol', a2aOutreachRoutes);
+console.log('✅ A2A Protocol Outreach routes registered for B2B revenue generation');
 
 // === A2A API WRAPPER SERVICE - EXTERNAL APIs AS AGENTS ===
 console.log('🔌 Registering A2A API Wrapper Service - converting external APIs to A2A agents...');

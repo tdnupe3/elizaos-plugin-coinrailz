@@ -170,7 +170,7 @@
     "wagmi": "^2.17.0",
     "winston": "^3.17.0",
     "wouter": "^3.3.5",
-    "ws": "^8.18.3",
+    "ws": "^8.19.0",
     "x402-express": "^0.7.1",
     "x402-fetch": "^0.7.3",
     "xrpl": "^4.3.0",
@@ -202,6 +202,6 @@
     "vite": "^5.4.14"
   },
   "optionalDependencies": {
-    "bufferutil": "^4.0.8"
+    "bufferutil": "^4.1.0"
   }
 }

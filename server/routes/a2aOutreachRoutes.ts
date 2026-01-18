@@ -20,17 +20,21 @@ router.post('/outreach/campaign', async (req: Request, res: Response) => {
     const schema = z.object({
       limit: z.number().min(1).max(100).optional().default(50),
       dryRun: z.boolean().optional().default(false),
-      campaignId: z.string().optional()
+      campaignId: z.string().optional(),
+      highValueOnly: z.boolean().optional().default(false),
+      verifiedReachableOnly: z.boolean().optional().default(false)
     });
 
     const params = schema.parse(req.body);
 
-    console.log(`🚀 Starting A2A outreach campaign: limit=${params.limit}, dryRun=${params.dryRun}`);
+    console.log(`🚀 Starting A2A outreach campaign: limit=${params.limit}, dryRun=${params.dryRun}, highValueOnly=${params.highValueOnly}`);
 
     const result = await a2aOutreachService.runOutreachCampaign({
       limit: params.limit,
       dryRun: params.dryRun,
-      campaignId: params.campaignId
+      campaignId: params.campaignId,
+      highValueOnly: params.highValueOnly,
+      verifiedReachableOnly: params.verifiedReachableOnly
     });
 
     res.json({

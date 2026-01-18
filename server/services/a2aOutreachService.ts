@@ -94,17 +94,18 @@ export class A2AOutreachService {
     return {
       jsonrpc: '2.0',
       id: `coinrailz-outreach-${messageId}`,
-      method: 'message/send',
+      method: 'tasks/send', // A2A protocol standard method
       params: {
+        id: `task-${messageId}`,
         message: {
           role: 'user',
           parts: [
             {
-              kind: 'text',
+              type: 'text',
               text: primaryMessage
             },
             {
-              kind: 'data',
+              type: 'data',
               data: {
                 type: 'payment_infrastructure_proposal',
                 provider: 'Coin Railz',
@@ -441,6 +442,7 @@ export class A2AOutreachService {
                   wellKnownURI: agent.wellKnownURI,
                   version: agent.version,
                   protocolVersion: agent.protocolVersion,
+                  url: agent.url, // RPC endpoint from agent card - critical for task sending
                   registrySyncedAt: new Date().toISOString()
                 },
                 lastSeenAt: new Date(),
@@ -468,6 +470,7 @@ export class A2AOutreachService {
                 wellKnownURI: agent.wellKnownURI,
                 version: agent.version,
                 protocolVersion: agent.protocolVersion,
+                url: agent.url, // RPC endpoint from agent card - critical for task sending
                 registrySyncedAt: new Date().toISOString()
               },
               discoveredAt: new Date()
@@ -711,11 +714,15 @@ export class A2AOutreachService {
 
   /**
    * Run outreach campaign to verified A2A agents
+   * Supports highValueOnly to target developer platforms (Modal, Telex, etc.) and
+   * verifiedReachableOnly to target agents confirmed reachable via probe
    */
   async runOutreachCampaign(options: {
     limit?: number;
     dryRun?: boolean;
     campaignId?: string;
+    highValueOnly?: boolean;
+    verifiedReachableOnly?: boolean;
   } = {}): Promise<{
     campaignId: string;
     results: Array<{
@@ -727,11 +734,39 @@ export class A2AOutreachService {
     }>;
     stats: OutreachStats;
   }> {
-    const { limit = 50, dryRun = false, campaignId = `a2a-campaign-${nanoid(8)}` } = options;
+    const { 
+      limit = 50, 
+      dryRun = false, 
+      campaignId = `a2a-campaign-${nanoid(8)}`,
+      highValueOnly = false,
+      verifiedReachableOnly = false
+    } = options;
 
-    console.log(`🚀 Starting A2A outreach campaign: ${campaignId} (limit: ${limit}, dryRun: ${dryRun})`);
+    console.log(`🚀 Starting A2A outreach campaign: ${campaignId} (limit: ${limit}, dryRun: ${dryRun}, highValueOnly: ${highValueOnly}, verifiedReachableOnly: ${verifiedReachableOnly})`);
 
-    const agents = await this.getVerifiedAgentsForOutreach(limit);
+    // Select agents based on targeting options
+    let agents;
+    if (highValueOnly && verifiedReachableOnly) {
+      // Get high-value agents that were confirmed reachable - use direct query
+      const candidates = await this.getAgentsForReachabilityCheck(limit * 3, true);
+      agents = candidates.filter(a => {
+        const metadata = a.metadata as any || {};
+        return this.isHighValueTarget(a) && metadata.reachabilityStatus === 'reachable';
+      }).slice(0, limit);
+    } else if (highValueOnly) {
+      // Get high-value agents (may not be reachable)
+      const highValueAgents = await this.getHighValueAgents(limit);
+      agents = highValueAgents.filter(a => a.isHighValue);
+    } else if (verifiedReachableOnly) {
+      // Get agents with verified reachability
+      const allAgents = await this.getAgentsForReachabilityCheck(limit * 3, false);
+      agents = allAgents.filter(a => {
+        const metadata = a.metadata as any || {};
+        return metadata.reachabilityStatus === 'reachable';
+      }).slice(0, limit);
+    } else {
+      agents = await this.getVerifiedAgentsForOutreach(limit);
+    }
     console.log(`📊 Found ${agents.length} verified agents for outreach`);
 
     const results: Array<{
@@ -754,13 +789,15 @@ export class A2AOutreachService {
 
     for (const agent of agents) {
       // Extract A2A endpoint from metadata or capabilities
+      // The agent card's 'url' field is the correct RPC endpoint per A2A spec
       const metadata = agent.metadata as any || {};
       const capabilities = agent.capabilities as any || {};
       
-      const agentEndpoint = metadata.a2aEndpoint || 
-                           metadata.url ||
-                           capabilities.url ||
-                           `${agent.url}/a2a`;
+      // Priority: metadata.url (from agent card) > metadata.a2aEndpoint > agent.url (discovery URL)
+      // Many agents have the RPC endpoint at /a2a while discovery is at root/.well-known
+      const agentEndpoint = metadata.url || // The 'url' field from agent card IS the RPC endpoint
+                           metadata.a2aEndpoint ||
+                           agent.url.replace(/\/$/, '').replace(/\/.well-known\/agent.*$/, '');
 
       const agentName = metadata.name || 
                        capabilities.name ||

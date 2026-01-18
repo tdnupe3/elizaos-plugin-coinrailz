@@ -33,7 +33,7 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **ACP Integration**: Endpoints (`/acp/v1/*`) for catalog, checkout, and order management, integrating with Stripe for digital product fulfillment.
 - **Farcaster Frame Integration**: Provides Farcaster Frame endpoints exposing 6 curated x402 services.
 - **Cloudflare Worker Gateway**: A Cloudflare Worker template for x402 proxy, enabling AI agents to access Coin Railz x402 services.
-- **MCP Payments Kit v1.4.3**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features include: multi-wallet lookup (Ethereum/Solana/XRP), atomic CTE credits deduction (race condition protection), refund idempotency, rate limiting, full audit trail, Stripe Live Mode, and durable idempotency guard. Known limitation: Neon HTTP mode doesn't support true BEGIN/COMMIT transactions; credits are protected but audit consistency has a theoretical edge case under rare failure modes (mitigated with best-effort retry).
+- **MCP Payments Kit v1.5.0**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features include: multi-wallet lookup (Ethereum/Solana/XRP), true ACID transactions via Neon WebSocket driver (race condition safe with balance guards), refund idempotency, rate limiting, full audit trail, Stripe Live Mode, and durable idempotency guard. Database transactions use BEGIN/COMMIT/ROLLBACK for complete atomicity.
 - **M2M Onboarding**: Single-call onboarding for IoT devices and AI agents, orchestrating device registration, API key generation, and wallet provisioning.
 
 ## External Dependencies

@@ -196,13 +196,14 @@ async function logAuditTrail(
  * - All operations succeed together or all rollback
  * - No edge cases where credits are deducted but audit isn't updated
  * - Full ACID compliance via Neon WebSocket driver
+ * - Race-condition safe: UPDATE includes balance guard to prevent overdrafts
  */
 async function atomicCreditsDeductionWithAudit(
   userId: string,
   priceUSD: number,
   transactionId: string,
   auditStatus: string = "credits_paid_pending_fulfillment"
-): Promise<{ success: boolean; newBalance: number; error?: string; failureReason?: 'insufficient_balance' | 'audit_missing' | 'db_error' }> {
+): Promise<{ success: boolean; newBalance: number; error?: string; failureReason?: 'insufficient_balance' | 'audit_missing' | 'user_not_found' | 'db_error' }> {
   try {
     // Use true database transaction with automatic rollback on error
     const result = await db.transaction(async (tx) => {
@@ -215,30 +216,28 @@ async function atomicCreditsDeductionWithAudit(
         throw { code: 'AUDIT_MISSING', message: 'Audit record missing' };
       }
       
-      // Step 2: Check current balance
-      const balanceCheck = await tx.execute(
-        sql`SELECT credits_balance FROM users WHERE id = ${userId}`
+      // Step 2: Verify user exists
+      const userCheck = await tx.execute(
+        sql`SELECT id FROM users WHERE id = ${userId}`
       );
       
-      if (!balanceCheck.rows || balanceCheck.rows.length === 0) {
+      if (!userCheck.rows || userCheck.rows.length === 0) {
         throw { code: 'USER_NOT_FOUND', message: 'User not found' };
       }
       
-      const currentBalance = parseFloat((balanceCheck.rows[0] as any).credits_balance || "0");
-      if (currentBalance < priceUSD) {
-        throw { code: 'INSUFFICIENT_BALANCE', message: 'Insufficient balance', currentBalance };
-      }
-      
-      // Step 3: Deduct credits (inside transaction - will rollback if Step 4 fails)
+      // Step 3: Atomic deduct with balance guard (prevents race conditions)
+      // The WHERE clause ensures concurrent transactions can't both succeed if balance insufficient
       const deductResult = await tx.execute(
         sql`UPDATE users 
             SET credits_balance = CAST(credits_balance AS numeric) - ${priceUSD.toFixed(2)}::numeric
             WHERE id = ${userId}
+            AND CAST(credits_balance AS numeric) >= ${priceUSD.toFixed(2)}::numeric
             RETURNING credits_balance`
       );
       
       if (!deductResult.rows || deductResult.rows.length === 0) {
-        throw { code: 'DEDUCT_FAILED', message: 'Credits deduction failed' };
+        // Balance guard failed - insufficient funds
+        throw { code: 'INSUFFICIENT_BALANCE', message: 'Insufficient balance at time of deduction' };
       }
       
       const newBalance = parseFloat((deductResult.rows[0] as any).credits_balance || "0");
@@ -265,11 +264,14 @@ async function atomicCreditsDeductionWithAudit(
     // Transaction automatically rolled back - no partial state
     console.error("Atomic credits deduction failed (transaction rolled back):", error);
     
-    // Map error codes to failure reasons
+    // Map error codes to distinct failure reasons
     if (error.code === 'AUDIT_MISSING') {
       return { success: false, newBalance: 0, error: error.message, failureReason: 'audit_missing' };
     }
-    if (error.code === 'INSUFFICIENT_BALANCE' || error.code === 'USER_NOT_FOUND') {
+    if (error.code === 'USER_NOT_FOUND') {
+      return { success: false, newBalance: 0, error: error.message, failureReason: 'user_not_found' };
+    }
+    if (error.code === 'INSUFFICIENT_BALANCE') {
       return { success: false, newBalance: 0, error: error.message, failureReason: 'insufficient_balance' };
     }
     return { success: false, newBalance: 0, error: error.message || 'Transaction failed', failureReason: 'db_error' };
@@ -340,7 +342,7 @@ async function checkIdempotency(transactionId: string): Promise<{ exists: boolea
  * P0: Issue credit refund when service execution fails after payment
  * Uses true database transactions for atomicity
  * 
- * IDEMPOTENCY: Check + refund in single transaction to prevent double-refunding
+ * IDEMPOTENCY: All operations in single transaction to prevent double-refunding
  */
 async function issueCreditRefund(
   agentId: string, 
@@ -350,7 +352,7 @@ async function issueCreditRefund(
   reason: string
 ): Promise<{ status: 'credited' | 'pending_claim' | 'failed' | 'already_refunded'; creditsIssued: number; error?: string }> {
   try {
-    // Use transaction for atomic idempotency check + refund
+    // Use transaction for atomic idempotency check + wallet lookup + refund
     const result = await db.transaction(async (tx) => {
       // IDEMPOTENCY CHECK inside transaction
       const existingRequest = await tx.select({ 
@@ -366,15 +368,35 @@ async function issueCreditRefund(
         return { status: 'already_refunded' as const, creditsIssued: 0, error: "Refund already processed" };
       }
       
-      // Find user by any wallet type (outside transaction is fine - read only)
-      const existingUser = await findUserByAnyWallet(agentId);
+      // Find user by any wallet type - INSIDE transaction for consistency
+      // Try ethereum wallet first
+      let userResult = await tx.select({ id: users.id, creditsBalance: users.creditsBalance })
+        .from(users)
+        .where(eq(users.ethereumWallet, agentId))
+        .limit(1);
       
-      if (existingUser.length > 0) {
+      // Try solana wallet if not found
+      if (userResult.length === 0) {
+        userResult = await tx.select({ id: users.id, creditsBalance: users.creditsBalance })
+          .from(users)
+          .where(eq(users.solanaWallet, agentId))
+          .limit(1);
+      }
+      
+      // Try XRP wallet if not found
+      if (userResult.length === 0) {
+        userResult = await tx.select({ id: users.id, creditsBalance: users.creditsBalance })
+          .from(users)
+          .where(eq(users.xrpWallet, agentId))
+          .limit(1);
+      }
+      
+      if (userResult.length > 0) {
         // User exists - add credits atomically inside transaction
         const refundResult = await tx.execute(
           sql`UPDATE users 
               SET credits_balance = CAST(credits_balance AS numeric) + ${amountUSD.toFixed(2)}::numeric
-              WHERE id = ${existingUser[0].id}
+              WHERE id = ${userResult[0].id}
               RETURNING id, credits_balance`
         );
         

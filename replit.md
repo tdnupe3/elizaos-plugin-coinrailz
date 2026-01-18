@@ -35,6 +35,15 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **Cloudflare Worker Gateway**: A Cloudflare Worker template for x402 proxy, enabling AI agents to access Coin Railz x402 services.
 - **MCP Payments Kit v1.5.0**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features include: multi-wallet lookup (Ethereum/Solana/XRP), true ACID transactions via Neon WebSocket driver (race condition safe with balance guards), refund idempotency, rate limiting, full audit trail, Stripe Live Mode, and durable idempotency guard. Database transactions use BEGIN/COMMIT/ROLLBACK for complete atomicity.
 - **M2M Onboarding**: Single-call onboarding for IoT devices and AI agents, orchestrating device registration, API key generation, and wallet provisioning.
+- **A2A Protocol Outreach System**: Production-grade autonomous outreach to AI agents using Google's A2A Protocol (launched April 2025). Features include:
+  - Registry sync from a2aregistry.org (103 public agents - entire current ecosystem)
+  - High-value agent prioritization (7 developer platforms: Modal, Telex, a2aregistry.org, Railway, Fly.io, Render, Cloudrun, Vercel, Replit)
+  - Reachability verification (probes .well-known endpoints before outreach)
+  - Rate limiting (1 req per 5 seconds per agent) and circuit breaker with exponential backoff
+  - JSON-RPC 2.0 compliant task sending (`tasks/send` method, message `type` parts)
+  - Pipeline tracking in `a2a_outreach_logs` table (interested, needs_info, pending, declined)
+  - Webhook endpoint for async responses (`/api/a2a/responses`)
+  - Routes: `/api/a2a-protocol/outreach/*` (sync, verify-reachability, campaign, pipeline, high-value, ecosystem-stats)
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

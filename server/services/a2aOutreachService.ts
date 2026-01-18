@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import { db } from '../db';
 import { discoveredAgents, a2aOutreachLogs } from '@shared/schema';
-import { eq, and, isNull, or, lt, sql, count } from 'drizzle-orm';
+import { eq, and, isNull, or, lt, sql, count, not, desc } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 /**
@@ -519,6 +519,193 @@ export class A2AOutreachService {
       highValueCount,
       lifieHubCount,
       otherCount: allAgents.length - highValueCount - lifieHubCount
+    };
+  }
+  
+  /**
+   * Get all agents that need reachability verification (including registry_synced, new, unverified)
+   * Does NOT filter by lastContactAt - gets all candidates for probing
+   */
+  private async getAgentsForReachabilityCheck(limit: number, highValueOnly: boolean): Promise<any[]> {
+    // Query all agents that might need verification (including registry_synced, new status)
+    const candidates = await db.select()
+      .from(discoveredAgents)
+      .where(
+        and(
+          not(eq(discoveredAgents.status, 'unreachable')), // Skip known unreachable
+          not(eq(discoveredAgents.source, 'coinrailz')) // Skip our own agent
+        )
+      )
+      .orderBy(desc(discoveredAgents.score))
+      .limit(limit * 3); // Get more than needed for filtering
+    
+    if (highValueOnly) {
+      // Filter to only high-value targets
+      return candidates.filter(a => this.isHighValueTarget(a)).slice(0, limit);
+    }
+    
+    return candidates.slice(0, limit);
+  }
+
+  /**
+   * Verify reachability of agents by probing their .well-known/agent.json endpoint
+   * Uses separate reachabilityStatus metadata field - preserves original status
+   */
+  async verifyAgentReachability(options: {
+    limit?: number;
+    highValueOnly?: boolean;
+  } = {}): Promise<{
+    total: number;
+    reachable: number;
+    unreachable: number;
+    unknown: number;
+    errors: string[];
+    results: Array<{
+      agentId: number;
+      url: string;
+      name: string;
+      reachable: boolean | null;
+      responseTime?: number;
+      error?: string;
+    }>;
+  }> {
+    const { limit = 20, highValueOnly = false } = options;
+    const errors: string[] = [];
+    const results: Array<{
+      agentId: number;
+      url: string;
+      name: string;
+      reachable: boolean | null;
+      responseTime?: number;
+      error?: string;
+    }> = [];
+    
+    let reachable = 0;
+    let unreachable = 0;
+    let unknown = 0;
+
+    console.log(`🔍 Verifying reachability of ${limit} agents (highValueOnly: ${highValueOnly})`);
+
+    // Get all candidates for verification (not just verified ones)
+    const agents = await this.getAgentsForReachabilityCheck(limit, highValueOnly);
+
+    console.log(`📊 Probing ${agents.length} agents...`);
+
+    for (const agent of agents) {
+      const startTime = Date.now();
+      const agentName = (agent.metadata as any)?.name || agent.url;
+      const metadata = agent.metadata as any || {};
+      
+      try {
+        // Build .well-known URL - try wellKnownURI from metadata first if available
+        let wellKnownUrl: string;
+        if (metadata.wellKnownURI) {
+          wellKnownUrl = metadata.wellKnownURI;
+        } else {
+          const baseUrl = agent.url.replace(/\/+$/, '');
+          if (baseUrl.includes('/.well-known/agent')) {
+            wellKnownUrl = baseUrl;
+          } else {
+            wellKnownUrl = `${baseUrl}/.well-known/agent.json`;
+          }
+        }
+
+        // Probe the endpoint
+        const response = await axios.get(wellKnownUrl, {
+          timeout: 10000,
+          headers: { 
+            'User-Agent': this.USER_AGENT,
+            'Accept': 'application/json'
+          },
+          validateStatus: () => true // Accept all status codes
+        });
+
+        const responseTime = Date.now() - startTime;
+        
+        // Determine reachability based on status code
+        let reachabilityStatus: 'reachable' | 'unreachable' | 'unknown';
+        if (response.status >= 200 && response.status < 400) {
+          reachabilityStatus = 'reachable';
+          reachable++;
+        } else if (response.status >= 400 && response.status < 500) {
+          // 4xx could mean different endpoint path - mark as unknown, not unreachable
+          reachabilityStatus = 'unknown';
+          unknown++;
+        } else {
+          // 5xx = server error = unreachable
+          reachabilityStatus = 'unreachable';
+          unreachable++;
+        }
+
+        // Update metadata with probe results - preserve original status
+        await db.update(discoveredAgents)
+          .set({
+            // Only update status to verified if probe was successful and current status is not already verified
+            status: reachabilityStatus === 'reachable' && agent.status !== 'verified' 
+              ? 'verified' : agent.status,
+            verifiedAt: reachabilityStatus === 'reachable' ? new Date() : agent.verifiedAt,
+            metadata: {
+              ...metadata,
+              reachabilityStatus,
+              lastProbeAt: new Date().toISOString(),
+              probeResponseTime: responseTime,
+              probeStatus: response.status,
+              probedUrl: wellKnownUrl
+            }
+          })
+          .where(eq(discoveredAgents.id, agent.id));
+          
+        results.push({
+          agentId: agent.id,
+          url: agent.url,
+          name: agentName,
+          reachable: reachabilityStatus === 'reachable' ? true : 
+                    reachabilityStatus === 'unreachable' ? false : null,
+          responseTime
+        });
+
+        // Rate limiting between probes
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+      } catch (err) {
+        unreachable++;
+        const error = err as any;
+        const errorMsg = error.code === 'ECONNABORTED' ? 'Timeout' : 
+                        error.code || error.message || 'Unknown error';
+        
+        // Update metadata with error - preserve original status (don't mark unreachable on transient errors)
+        await db.update(discoveredAgents)
+          .set({
+            metadata: {
+              ...metadata,
+              reachabilityStatus: 'error',
+              lastProbeAt: new Date().toISOString(),
+              probeError: errorMsg
+            }
+          })
+          .where(eq(discoveredAgents.id, agent.id));
+          
+        results.push({
+          agentId: agent.id,
+          url: agent.url,
+          name: agentName,
+          reachable: false,
+          error: errorMsg
+        });
+        
+        errors.push(`${agentName}: ${errorMsg}`);
+      }
+    }
+
+    console.log(`✅ Reachability check complete: ${reachable} reachable, ${unknown} unknown, ${unreachable} unreachable`);
+
+    return {
+      total: agents.length,
+      reachable,
+      unreachable,
+      unknown,
+      errors,
+      results
     };
   }
 

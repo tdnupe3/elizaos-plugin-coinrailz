@@ -280,6 +280,42 @@ router.get('/outreach/high-value', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /api/a2a/outreach/verify-reachability
+ * Probe agents' .well-known endpoints to verify reachability before outreach
+ */
+router.post('/outreach/verify-reachability', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.body.limit) || 20;
+    const highValueOnly = req.body.highValueOnly === true;
+
+    console.log(`🔍 Starting reachability verification (limit: ${limit}, highValueOnly: ${highValueOnly})`);
+
+    const result = await a2aOutreachService.verifyAgentReachability({ limit, highValueOnly });
+
+    res.json({
+      success: true,
+      summary: {
+        total: result.total,
+        reachable: result.reachable,
+        unreachable: result.unreachable,
+        unknown: result.unknown,
+        reachabilityRate: result.total > 0 ? 
+          `${Math.round((result.reachable / result.total) * 100)}%` : '0%'
+      },
+      results: result.results,
+      errors: result.errors.length > 0 ? result.errors : undefined
+    });
+
+  } catch (error: any) {
+    console.error('Reachability verification error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to verify reachability'
+    });
+  }
+});
+
+/**
  * POST /api/a2a/outreach/sync-registry
  * Sync agents from official a2aregistry.org
  */

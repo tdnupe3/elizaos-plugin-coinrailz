@@ -1,6 +1,7 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-http';
+import { Pool, neonConfig } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-serverless';
 import * as schema from "@shared/schema";
+import ws from 'ws';
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -8,14 +9,22 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const sql = neon(process.env.DATABASE_URL);
-export const db = drizzle({ client: sql, schema });
+// Configure Neon to use WebSockets in Node.js environment
+neonConfig.webSocketConstructor = ws;
 
-console.log('🔧 Neon: HTTP mode via drizzle-orm/neon-http');
+// Create a connection pool for persistent connections
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// Initialize Drizzle ORM with the pool
+export const db = drizzle({ client: pool, schema });
+
+console.log('🔧 Neon: WebSocket mode via drizzle-orm/neon-serverless (transactions enabled)');
 
 export async function checkDatabaseHealth() {
   try {
-    await sql`SELECT 1`;
+    const client = await pool.connect();
+    await client.query('SELECT 1');
+    client.release();
     return true;
   } catch (error) {
     console.error('Database health check failed:', error);
@@ -24,50 +33,10 @@ export async function checkDatabaseHealth() {
 }
 
 export async function closeDatabaseConnections() {
-  console.log('Database connections closed (HTTP mode - no persistent connections)');
-}
-
-// Compatibility layer for code that imports pool
-// HTTP mode doesn't use a persistent pool, but we provide a full Pool-like interface
-class HttpPoolCompatibility {
-  private eventHandlers: Map<string, Function[]> = new Map();
-  
-  async query(textOrConfig: string | { text: string; values?: any[] }, params?: any[]) {
-    let queryText: string;
-    let queryParams: any[] | undefined;
-    
-    if (typeof textOrConfig === 'object') {
-      queryText = textOrConfig.text;
-      queryParams = textOrConfig.values;
-    } else {
-      queryText = textOrConfig;
-      queryParams = params;
-    }
-    
-    const result = await sql(queryText, queryParams || []);
-    return { rows: result, rowCount: result.length };
-  }
-  
-  async connect() {
-    // Return a pseudo-client for HTTP mode that mimics pg.PoolClient
-    const self = this;
-    return {
-      query: async (textOrConfig: string | { text: string; values?: any[] }, params?: any[]) => self.query(textOrConfig, params),
-      release: () => { /* no-op */ },
-      on: (_event: string, _handler: any) => { /* no-op */ }
-    };
-  }
-  
-  on(event: string, handler: Function) {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, []);
-    }
-    this.eventHandlers.get(event)!.push(handler);
-  }
-  
-  async end() {
-    // No-op for HTTP mode
+  try {
+    await pool.end();
+    console.log('Database connections closed');
+  } catch (error) {
+    console.error('Error closing database connections:', error);
   }
 }
-
-export const pool = new HttpPoolCompatibility();

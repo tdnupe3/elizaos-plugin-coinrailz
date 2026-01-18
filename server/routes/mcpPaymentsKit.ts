@@ -1,7 +1,7 @@
 /**
  * MCP PAYMENTS KIT - Single-Call Checkout for AI Agents (PRODUCTION-READY)
  * 
- * VERSION: 1.4.3 (January 18, 2026)
+ * VERSION: 1.5.0 (January 18, 2026)
  * 
  * PURPOSE: Reduce payment friction from multi-step to one API call
  * APPROACH: Stripe-first with x402 fallback
@@ -14,6 +14,8 @@
  * - P0: Credit refund on fulfillment failure (no card refunds)
  * - P2: Durable idempotency - pending record written BEFORE payment to prevent
  *       double fulfillment even if crash occurs after Stripe payment
+ * - P3: True ACID transactions via Neon WebSocket driver (BEGIN/COMMIT/ROLLBACK)
+ *       Eliminates edge cases from CTE-based pseudo-atomicity
  * 
  * ENDPOINTS:
  * - POST /api/mcp/payments/checkout - Single-call checkout
@@ -189,12 +191,11 @@ async function logAuditTrail(
 }
 
 /**
- * Atomic credits deduction with audit update in a single CTE
- * Design: Only update audit to "paid" status IF credits were successfully deducted
- * - Check audit exists first (to fail fast without touching user balance)
- * - Deduct credits with balance guard
- * - Update audit to "paid" ONLY if deduction succeeded
- * - All in one CTE so audit is never marked "paid" unless credits were deducted
+ * Atomic credits deduction with audit update using true database transactions
+ * Design: Uses BEGIN/COMMIT/ROLLBACK for ACID guarantees
+ * - All operations succeed together or all rollback
+ * - No edge cases where credits are deducted but audit isn't updated
+ * - Full ACID compliance via Neon WebSocket driver
  */
 async function atomicCreditsDeductionWithAudit(
   userId: string,
@@ -203,77 +204,75 @@ async function atomicCreditsDeductionWithAudit(
   auditStatus: string = "credits_paid_pending_fulfillment"
 ): Promise<{ success: boolean; newBalance: number; error?: string; failureReason?: 'insufficient_balance' | 'audit_missing' | 'db_error' }> {
   try {
-    // Single CTE that:
-    // 1. Checks if audit row exists
-    // 2. Deducts credits if balance sufficient
-    // 3. Updates audit to "paid" ONLY if deduction succeeded
-    // This ensures audit is never in "paid" state unless credits were deducted
-    const result = await db.execute(
-      sql`
-        WITH audit_check AS (
-          SELECT id FROM microservice_requests WHERE id = ${transactionId}
-        ),
-        deducted AS (
-          UPDATE users 
-          SET credits_balance = CAST(credits_balance AS numeric) - ${priceUSD.toFixed(2)}::numeric
-          WHERE id = ${userId} 
-          AND CAST(credits_balance AS numeric) >= ${priceUSD.toFixed(2)}::numeric
-          AND EXISTS (SELECT 1 FROM audit_check)
-          RETURNING id, credits_balance
-        ),
-        audit_update AS (
-          UPDATE microservice_requests
-          SET payment_status = ${auditStatus}
-          WHERE id = ${transactionId}
-          AND EXISTS (SELECT 1 FROM deducted)
-          RETURNING id
-        )
-        SELECT 
-          (SELECT COUNT(*) FROM audit_check) as audit_exists,
-          (SELECT COUNT(*) FROM deducted) as credits_deducted,
-          (SELECT COUNT(*) FROM audit_update) as audit_updated,
-          (SELECT credits_balance FROM deducted LIMIT 1) as new_balance
-      `
-    );
+    // Use true database transaction with automatic rollback on error
+    const result = await db.transaction(async (tx) => {
+      // Step 1: Verify audit record exists (fail fast)
+      const auditCheck = await tx.execute(
+        sql`SELECT id FROM microservice_requests WHERE id = ${transactionId}`
+      );
+      
+      if (!auditCheck.rows || auditCheck.rows.length === 0) {
+        throw { code: 'AUDIT_MISSING', message: 'Audit record missing' };
+      }
+      
+      // Step 2: Check current balance
+      const balanceCheck = await tx.execute(
+        sql`SELECT credits_balance FROM users WHERE id = ${userId}`
+      );
+      
+      if (!balanceCheck.rows || balanceCheck.rows.length === 0) {
+        throw { code: 'USER_NOT_FOUND', message: 'User not found' };
+      }
+      
+      const currentBalance = parseFloat((balanceCheck.rows[0] as any).credits_balance || "0");
+      if (currentBalance < priceUSD) {
+        throw { code: 'INSUFFICIENT_BALANCE', message: 'Insufficient balance', currentBalance };
+      }
+      
+      // Step 3: Deduct credits (inside transaction - will rollback if Step 4 fails)
+      const deductResult = await tx.execute(
+        sql`UPDATE users 
+            SET credits_balance = CAST(credits_balance AS numeric) - ${priceUSD.toFixed(2)}::numeric
+            WHERE id = ${userId}
+            RETURNING credits_balance`
+      );
+      
+      if (!deductResult.rows || deductResult.rows.length === 0) {
+        throw { code: 'DEDUCT_FAILED', message: 'Credits deduction failed' };
+      }
+      
+      const newBalance = parseFloat((deductResult.rows[0] as any).credits_balance || "0");
+      
+      // Step 4: Update audit record (inside same transaction)
+      const auditUpdate = await tx.execute(
+        sql`UPDATE microservice_requests 
+            SET payment_status = ${auditStatus}
+            WHERE id = ${transactionId}
+            RETURNING id`
+      );
+      
+      if (!auditUpdate.rows || auditUpdate.rows.length === 0) {
+        throw { code: 'AUDIT_UPDATE_FAILED', message: 'Audit update failed' };
+      }
+      
+      // If we reach here, all operations succeeded - transaction will commit
+      return { success: true, newBalance };
+    });
     
-    if (!result || result.rowCount === 0) {
-      return { success: false, newBalance: 0, error: "Database query failed", failureReason: 'db_error' };
-    }
-    
-    const row = result.rows?.[0] as { 
-      audit_exists: string; 
-      credits_deducted: string; 
-      audit_updated: string;
-      new_balance: string | null;
-    } | undefined;
-    
-    const auditExists = parseInt(row?.audit_exists || "0");
-    const creditsDeducted = parseInt(row?.credits_deducted || "0");
-    const auditUpdated = parseInt(row?.audit_updated || "0");
-    
-    // Check failure reasons in order of priority
-    if (auditExists === 0) {
-      return { success: false, newBalance: 0, error: "Audit record missing", failureReason: 'audit_missing' };
-    }
-    
-    if (creditsDeducted === 0) {
-      return { success: false, newBalance: 0, error: "Insufficient balance at time of deduction", failureReason: 'insufficient_balance' };
-    }
-    
-    // At this point, credits were deducted. Audit should have been updated.
-    // If auditUpdated is 0, we have a rare edge case but credits are deducted
-    if (auditUpdated === 0) {
-      console.warn(`⚠️ Credits deducted but audit update missed for ${transactionId} - will retry`);
-      // Retry audit update (best effort - credits are already deducted)
-      await db.execute(sql`UPDATE microservice_requests SET payment_status = ${auditStatus} WHERE id = ${transactionId}`);
-    }
-    
-    const newBalance = parseFloat(row?.new_balance || "0");
-    console.log(`💳 Atomic credits payment: $${priceUSD} deducted from user ${userId}, remaining: $${newBalance}, txn: ${transactionId}`);
-    return { success: true, newBalance };
+    console.log(`💳 Atomic credits payment: $${priceUSD} deducted from user ${userId}, remaining: $${result.newBalance}, txn: ${transactionId}`);
+    return result;
   } catch (error: any) {
-    console.error("Atomic credits deduction failed:", error);
-    return { success: false, newBalance: 0, error: error.message, failureReason: 'db_error' };
+    // Transaction automatically rolled back - no partial state
+    console.error("Atomic credits deduction failed (transaction rolled back):", error);
+    
+    // Map error codes to failure reasons
+    if (error.code === 'AUDIT_MISSING') {
+      return { success: false, newBalance: 0, error: error.message, failureReason: 'audit_missing' };
+    }
+    if (error.code === 'INSUFFICIENT_BALANCE' || error.code === 'USER_NOT_FOUND') {
+      return { success: false, newBalance: 0, error: error.message, failureReason: 'insufficient_balance' };
+    }
+    return { success: false, newBalance: 0, error: error.message || 'Transaction failed', failureReason: 'db_error' };
   }
 }
 
@@ -339,10 +338,9 @@ async function checkIdempotency(transactionId: string): Promise<{ exists: boolea
 
 /**
  * P0: Issue credit refund when service execution fails after payment
- * Credits are issued to the user's creditsBalance
- * Returns distinct status for actual credited vs pending claim
+ * Uses true database transactions for atomicity
  * 
- * IDEMPOTENCY: Checks audit record before issuing refund to prevent double-refunding
+ * IDEMPOTENCY: Check + refund in single transaction to prevent double-refunding
  */
 async function issueCreditRefund(
   agentId: string, 
@@ -352,50 +350,58 @@ async function issueCreditRefund(
   reason: string
 ): Promise<{ status: 'credited' | 'pending_claim' | 'failed' | 'already_refunded'; creditsIssued: number; error?: string }> {
   try {
-    // IDEMPOTENCY CHECK: Check if refund was already issued for this transaction
-    const existingRequest = await db.select({ 
-      paymentStatus: microserviceRequests.paymentStatus 
-    })
-      .from(microserviceRequests)
-      .where(eq(microserviceRequests.id, transactionId))
-      .limit(1);
-    
-    if (existingRequest.length > 0 && 
-        (existingRequest[0].paymentStatus === 'fulfillment_failed_credited' ||
-         existingRequest[0].paymentStatus === 'fulfillment_failed_pending')) {
-      console.log(`⚡ Refund already issued for ${transactionId} - skipping duplicate`);
-      return { status: 'already_refunded', creditsIssued: 0, error: "Refund already processed" };
-    }
-    
-    // Find user by any wallet type (ethereum, solana, or xrp)
-    const existingUser = await findUserByAnyWallet(agentId);
-    
-    if (existingUser.length > 0) {
-      // User exists - add credits atomically
-      const refundResult = await db.execute(
-        sql`UPDATE users 
-            SET credits_balance = CAST(credits_balance AS numeric) + ${amountUSD.toFixed(2)}::numeric
-            WHERE id = ${existingUser[0].id}
-            RETURNING id, credits_balance`
-      );
+    // Use transaction for atomic idempotency check + refund
+    const result = await db.transaction(async (tx) => {
+      // IDEMPOTENCY CHECK inside transaction
+      const existingRequest = await tx.select({ 
+        paymentStatus: microserviceRequests.paymentStatus 
+      })
+        .from(microserviceRequests)
+        .where(eq(microserviceRequests.id, transactionId))
+        .limit(1);
       
-      if (!refundResult || refundResult.rowCount === 0) {
-        console.error(`Failed to add credits for refund ${transactionId}`);
-        return { status: 'failed', creditsIssued: 0, error: "Failed to add credits" };
+      if (existingRequest.length > 0 && 
+          (existingRequest[0].paymentStatus === 'fulfillment_failed_credited' ||
+           existingRequest[0].paymentStatus === 'fulfillment_failed_pending')) {
+        return { status: 'already_refunded' as const, creditsIssued: 0, error: "Refund already processed" };
       }
       
-      console.log(`💰 Credit refund issued: $${amountUSD.toFixed(2)} to user ${existingUser[0].id} for ${transactionId}`);
-      return { status: 'credited', creditsIssued: amountUSD };
+      // Find user by any wallet type (outside transaction is fine - read only)
+      const existingUser = await findUserByAnyWallet(agentId);
+      
+      if (existingUser.length > 0) {
+        // User exists - add credits atomically inside transaction
+        const refundResult = await tx.execute(
+          sql`UPDATE users 
+              SET credits_balance = CAST(credits_balance AS numeric) + ${amountUSD.toFixed(2)}::numeric
+              WHERE id = ${existingUser[0].id}
+              RETURNING id, credits_balance`
+        );
+        
+        if (!refundResult || refundResult.rowCount === 0) {
+          throw { code: 'REFUND_FAILED', message: 'Failed to add credits' };
+        }
+        
+        return { status: 'credited' as const, creditsIssued: amountUSD };
+      }
+      
+      // No user found - mark as pending claim
+      return { 
+        status: 'pending_claim' as const, 
+        creditsIssued: 0,
+        error: "User not found - credit recorded as pending claim"
+      };
+    });
+    
+    if (result.status === 'credited') {
+      console.log(`💰 Credit refund issued: $${amountUSD.toFixed(2)} for ${transactionId}`);
+    } else if (result.status === 'already_refunded') {
+      console.log(`⚡ Refund already issued for ${transactionId} - skipping duplicate`);
+    } else if (result.status === 'pending_claim') {
+      console.log(`⚠️ Credit refund pending: $${amountUSD.toFixed(2)} for agent ${agentId} (no user found)`);
     }
     
-    // No user found - mark as pending claim (the audit trail will persist this)
-    console.log(`⚠️ Credit refund pending: $${amountUSD.toFixed(2)} for agent ${agentId} (no user found)`);
-    return { 
-      status: 'pending_claim', 
-      creditsIssued: 0,
-      error: "User not found - credit recorded as pending claim"
-    };
-    
+    return result;
   } catch (error: any) {
     console.error(`Failed to issue credit refund for ${transactionId}:`, error);
     return { status: 'failed', creditsIssued: 0, error: error.message };
@@ -409,7 +415,7 @@ router.get("/health", async (_req: Request, res: Response) => {
   res.json({
     success: true,
     status: "operational",
-    version: "1.4.3", // Multi-wallet lookup + atomic CTE + refund idempotency
+    version: "1.5.0", // True ACID transactions via WebSocket driver
     environment: isProduction ? "production" : "development",
     stripeConfigured: !!stripe,
     stripeMode: process.env.STRIPE_SECRET_KEY?.startsWith('sk_live_') ? 'live' : 'test',

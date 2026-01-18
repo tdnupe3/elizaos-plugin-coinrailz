@@ -5842,3 +5842,206 @@ export const tokenLauncherLaunchesInsertSchema = createInsertSchema(tokenLaunche
 export type TokenLauncherLaunch = typeof tokenLauncherLaunches.$inferSelect;
 export type InsertTokenLauncherLaunch = z.infer<typeof tokenLauncherLaunchesInsertSchema>;
 
+// ============================================================================
+// IoT PAYMENTS SYSTEM - Production-Grade Device Payment Infrastructure
+// ============================================================================
+
+/**
+ * IoT Accounts - Links devices to owner accounts with credits balance
+ * Enables User Account Model: owner buys credits, devices draw from pool
+ */
+export const iotAccounts = pgTable(
+  "iot_accounts",
+  {
+    id: varchar("id").primaryKey(), // iot_acc_<nanoid>
+    ownerId: varchar("owner_id"), // Optional link to users.id
+    ownerWallet: varchar("owner_wallet"), // Owner's wallet address for non-custodial
+    accountName: varchar("account_name").notNull(), // Human-readable account name
+    creditsBalance: decimal("credits_balance", { precision: 12, scale: 4 }).notNull().default("0"), // Credits in USD ($0.01 = 1 credit unit)
+    totalDeposited: decimal("total_deposited", { precision: 12, scale: 4 }).notNull().default("0"), // Lifetime deposits
+    totalSpent: decimal("total_spent", { precision: 12, scale: 4 }).notNull().default("0"), // Lifetime spending
+    totalFeesEarned: decimal("total_fees_earned", { precision: 12, scale: 4 }).notNull().default("0"), // Fees earned from incoming payments
+    autoTopupEnabled: boolean("auto_topup_enabled").notNull().default(false),
+    autoTopupThreshold: decimal("auto_topup_threshold", { precision: 12, scale: 4 }), // Trigger topup when balance below
+    autoTopupAmount: decimal("auto_topup_amount", { precision: 12, scale: 4 }), // Amount to topup
+    stripeCustomerId: varchar("stripe_customer_id"), // For recurring payments
+    tier: varchar("tier").notNull().default("starter"), // starter, growth, enterprise
+    status: varchar("status").notNull().default("active"), // active, suspended, closed
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_iot_accounts_owner_id").on(table.ownerId),
+    index("IDX_iot_accounts_owner_wallet").on(table.ownerWallet),
+    index("IDX_iot_accounts_status").on(table.status),
+    index("IDX_iot_accounts_tier").on(table.tier),
+  ],
+);
+
+export const iotAccountsInsertSchema = createInsertSchema(iotAccounts).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type IotAccount = typeof iotAccounts.$inferSelect;
+export type InsertIotAccount = z.infer<typeof iotAccountsInsertSchema>;
+
+/**
+ * IoT Device Registry - Maps devices to accounts
+ * Extends m2m_devices with account linkage for billing
+ */
+export const iotDeviceRegistry = pgTable(
+  "iot_device_registry",
+  {
+    id: varchar("id").primaryKey(), // iot_dev_<nanoid>
+    deviceId: varchar("device_id").notNull().unique(), // Device identifier (matches m2m_devices.device_id)
+    accountId: varchar("account_id").notNull(), // Link to iot_accounts.id
+    deviceName: varchar("device_name"), // Human-readable name
+    deviceType: varchar("device_type").notNull().default("iot_device"), // iot_device, sensor, gateway, actuator, ai_agent
+    walletAddress: varchar("wallet_address"), // Device's own wallet for receiving payments
+    chain: varchar("chain").notNull().default("base-mainnet"),
+    spendingLimit: decimal("spending_limit", { precision: 12, scale: 4 }), // Max spend per day (null = unlimited from account)
+    todaySpent: decimal("today_spent", { precision: 12, scale: 4 }).notNull().default("0"),
+    limitResetAt: timestamp("limit_reset_at"), // When daily limit resets
+    canReceivePayments: boolean("can_receive_payments").notNull().default(true), // Can this device receive D2D payments?
+    canSendPayments: boolean("can_send_payments").notNull().default(true), // Can this device send D2D payments?
+    status: varchar("status").notNull().default("active"), // active, suspended, inactive
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    lastActiveAt: timestamp("last_active_at"),
+  },
+  (table) => [
+    index("IDX_iot_device_registry_account").on(table.accountId),
+    index("IDX_iot_device_registry_wallet").on(table.walletAddress),
+    index("IDX_iot_device_registry_status").on(table.status),
+    index("IDX_iot_device_registry_type").on(table.deviceType),
+  ],
+);
+
+export const iotDeviceRegistryInsertSchema = createInsertSchema(iotDeviceRegistry).omit({
+  createdAt: true,
+  lastActiveAt: true,
+});
+export type IotDeviceRegistry = typeof iotDeviceRegistry.$inferSelect;
+export type InsertIotDeviceRegistry = z.infer<typeof iotDeviceRegistryInsertSchema>;
+
+/**
+ * IoT Transfers - D2D payment ledger with fee extraction
+ * Tracks all device-to-device and device-to-service payments
+ * Fee structure: 2% + $0.02 per transfer
+ */
+export const iotTransfers = pgTable(
+  "iot_transfers",
+  {
+    id: varchar("id").primaryKey(), // iot_txn_<nanoid>
+    fromDeviceId: varchar("from_device_id").notNull(), // Sender device
+    fromAccountId: varchar("from_account_id").notNull(), // Sender account
+    toDeviceId: varchar("to_device_id"), // Recipient device (null for external)
+    toAccountId: varchar("to_account_id"), // Recipient account (null for external)
+    toWallet: varchar("to_wallet"), // External wallet address for on-chain
+    amount: decimal("amount", { precision: 12, scale: 4 }).notNull(), // Gross amount
+    fee: decimal("fee", { precision: 12, scale: 4 }).notNull(), // Our fee (2% + $0.02)
+    netAmount: decimal("net_amount", { precision: 12, scale: 4 }).notNull(), // amount - fee
+    currency: varchar("currency").notNull().default("USD"), // USD (credits) or USDC (on-chain)
+    paymentMethod: varchar("payment_method").notNull(), // credits, usdc_onchain
+    chain: varchar("chain"), // For on-chain: base-mainnet, etc.
+    txHash: varchar("tx_hash"), // On-chain transaction hash
+    purpose: varchar("purpose"), // data_purchase, service_payment, sensor_reading, etc.
+    reference: varchar("reference"), // External reference/invoice ID
+    status: varchar("status").notNull().default("pending"), // pending, completed, failed, refunded
+    errorMessage: text("error_message"),
+    idempotencyKey: varchar("idempotency_key").unique(), // Prevent duplicate transfers
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    index("IDX_iot_transfers_from_device").on(table.fromDeviceId),
+    index("IDX_iot_transfers_from_account").on(table.fromAccountId),
+    index("IDX_iot_transfers_to_device").on(table.toDeviceId),
+    index("IDX_iot_transfers_to_account").on(table.toAccountId),
+    index("IDX_iot_transfers_status").on(table.status),
+    index("IDX_iot_transfers_created").on(table.createdAt),
+    index("IDX_iot_transfers_tx_hash").on(table.txHash),
+  ],
+);
+
+export const iotTransfersInsertSchema = createInsertSchema(iotTransfers).omit({
+  createdAt: true,
+  completedAt: true,
+});
+export type IotTransfer = typeof iotTransfers.$inferSelect;
+export type InsertIotTransfer = z.infer<typeof iotTransfersInsertSchema>;
+
+/**
+ * IoT Billable Events - Metering audit trail
+ * Tracks individual billable events (paid actions, not raw telemetry)
+ * 1 credit = $0.01 = 1 billable event
+ */
+export const iotBillableEvents = pgTable(
+  "iot_billable_events",
+  {
+    id: varchar("id").primaryKey(), // iot_evt_<nanoid>
+    deviceId: varchar("device_id").notNull(),
+    accountId: varchar("account_id").notNull(),
+    eventType: varchar("event_type").notNull(), // message, data_access, unlock, stream_minute, etc.
+    eventName: varchar("event_name"), // Human-readable event name
+    units: integer("units").notNull().default(1), // Number of billable units
+    unitPrice: decimal("unit_price", { precision: 12, scale: 4 }).notNull().default("0.01"), // Price per unit in USD
+    totalCost: decimal("total_cost", { precision: 12, scale: 4 }).notNull(), // units * unitPrice
+    balanceAfter: decimal("balance_after", { precision: 12, scale: 4 }).notNull(), // Account balance after event
+    topic: varchar("topic"), // MQTT topic or data category
+    payload: jsonb("payload"), // Event payload/metadata (sanitized)
+    serviceId: varchar("service_id"), // If paying for a Coin Railz service
+    status: varchar("status").notNull().default("completed"), // completed, failed, refunded
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_iot_billable_events_device").on(table.deviceId),
+    index("IDX_iot_billable_events_account").on(table.accountId),
+    index("IDX_iot_billable_events_type").on(table.eventType),
+    index("IDX_iot_billable_events_created").on(table.createdAt),
+    index("IDX_iot_billable_events_service").on(table.serviceId),
+  ],
+);
+
+export const iotBillableEventsInsertSchema = createInsertSchema(iotBillableEvents).omit({
+  createdAt: true,
+});
+export type IotBillableEvent = typeof iotBillableEvents.$inferSelect;
+export type InsertIotBillableEvent = z.infer<typeof iotBillableEventsInsertSchema>;
+
+/**
+ * IoT Topups - Credit purchase history
+ * Tracks all credit pack purchases for accounts
+ */
+export const iotTopups = pgTable(
+  "iot_topups",
+  {
+    id: varchar("id").primaryKey(), // iot_topup_<nanoid>
+    accountId: varchar("account_id").notNull(),
+    amount: decimal("amount", { precision: 12, scale: 4 }).notNull(), // Credits added
+    amountPaid: decimal("amount_paid", { precision: 12, scale: 4 }).notNull(), // Amount paid in USD
+    packType: varchar("pack_type").notNull(), // starter_25, growth_100, enterprise_500, custom
+    paymentMethod: varchar("payment_method").notNull(), // stripe, usdc_onchain, credits_transfer
+    stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+    txHash: varchar("tx_hash"), // On-chain transaction hash
+    status: varchar("status").notNull().default("pending"), // pending, completed, failed, refunded
+    balanceAfter: decimal("balance_after", { precision: 12, scale: 4 }), // Account balance after topup
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+  },
+  (table) => [
+    index("IDX_iot_topups_account").on(table.accountId),
+    index("IDX_iot_topups_status").on(table.status),
+    index("IDX_iot_topups_created").on(table.createdAt),
+    index("IDX_iot_topups_stripe").on(table.stripePaymentIntentId),
+  ],
+);
+
+export const iotTopupsInsertSchema = createInsertSchema(iotTopups).omit({
+  createdAt: true,
+  completedAt: true,
+});
+export type IotTopup = typeof iotTopups.$inferSelect;
+export type InsertIotTopup = z.infer<typeof iotTopupsInsertSchema>;
+

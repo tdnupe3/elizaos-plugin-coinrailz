@@ -88,6 +88,7 @@ import discoveryRoutes from './routes/discoveryRoutes';
 import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
 import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
 import mcpServiceDiscoveryRoutes from './routes/mcpServiceDiscovery';
+import iotPaymentsRoutes from './routes/iotPaymentsRoutes';
 import { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } from './discovery/bazaarRegistrar';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
@@ -835,6 +836,11 @@ console.log('✅ Solana SDK routes registered at /api/sdk/solana/*');
 // === x402 PROTOCOL AUTONOMOUS PAYMENTS ===
 console.log('🤖 Registering x402 Protocol autonomous payment routes...');
 app.use('/api/x402', x402Routes);
+
+// === IoT PAYMENTS SYSTEM ===
+// Production-grade device payment infrastructure
+// D2D transfers, metering, credits, topups
+app.use('/api/iot', iotPaymentsRoutes);
 
 // === x402 PROTOCOL SERVICES (MICROSERVICES + GATED ENTERPRISE SERVICES) ===
 // CRITICAL FIX: Mount more specific /x402/service BEFORE general /x402 route

@@ -1,0 +1,587 @@
+Current Discovery Landscape (Jan 2026)
+
+AI agents have rapidly evolved an ecosystem of discovery platforms, directories, and registries to help them find and integrate external services. As of early 2026, multiple complementary discovery layers exist, many of which emerged or matured in late 2025. These include:
+
+Protocol-Specific Indexes: Platforms tied to agent communication or payment protocols that index compatible services. For example, Coinbase’s x402 Bazaar (aka x402 Marketplace) is a machine-readable catalog for services accepting HTTP 402 payments (stablecoins)
+coinbase.com
+kucoin.com
+. Similarly, Google’s Agent2Agent (A2A) Registry focuses on agents implementing the A2A inter-agent protocol
+a2aregistry.org
+.
+
+On-Chain Agent Registries: Blockchain-based directories are emerging to provide a trust layer. Virtuals Protocol’s Agent Registry on Coinbase’s Base chain is one of the largest on-chain directories of AI agents, aligning with the new Ethereum standard ERC-8004 for agent identity/reputation
+x.com
+. ERC-8004 (proposed in late 2025) creates public on-chain registries for agent identity, reputation, and validation
+medium.com
+medium.com
+ to facilitate “trustless” discovery across organizations.
+
+General AI Agent Marketplaces/Directories: There are centralized web directories listing a broad array of AI agents and services. For example, the AI Agents Directory & Marketplace claims to be the world’s largest, with 1,300+ agents across dozens of categories
+aiagentsdirectory.com
+. It provides search, category browsing, and even a visual landscape map of agents. Similar directories (often launched 2024–25) include AI Agent Store (aiagentstore.ai) and curated lists by industry analysts
+gpt-trainer.com
+blog.forgen.ai
+. Some focus on enterprise solutions; e.g. Alternates.ai and DesignRush published “Top AI Agent Directories” lists in 2025
+designrush.com
+.
+
+Model/Assistant Ecosystem Listings: AI model providers have begun supporting standardized tool/agent discovery. Anthropic’s Claude and OpenAI’s ChatGPT now support the Model Context Protocol (MCP) for connecting to external tool servers
+blog.bitium.agency
+infoq.com
+. Both Anthropic and OpenAI maintain resources to help discover MCP-compatible services. Anthropic open-sourced a repository of “hundreds” of MCP servers on GitHub
+platform.claude.com
+, and the Claude API docs list third-party MCP servers (with a caution to use trusted ones)
+platform.claude.com
+platform.claude.com
+. OpenAI similarly enabled a “GPT Store” for sharing custom GPT agents and introduced ChatGPT Developer Mode (Oct 2025) with full MCP client support
+platform.openai.com
+x.com
+, allowing devs to connect any MCP tool. These indicate a trend toward multi-platform compatibility: MCP is de facto an industry standard, endorsed by Anthropic and “widely adopted by OpenAI, Google DeepMind, and Microsoft”
+blog.bitium.agency
+.
+
+Multi-Protocol Aggregators: Recognizing that agents use multiple protocols, some platforms index across standards. For example, Nevermined (an AI payments infrastructure startup) advertises native support for MCP, A2A, x402, and AP2 (Agent Payments Protocol), aiming to be “protocol-agnostic”
+nevermined.ai
+nevermined.ai
+. It lets developers register any HTTP-based AI service and supports various payment and communication standards in one place
+nevermined.ai
+nevermined.ai
+. On the on-chain side, ERC-8004’s vision is to eventually index agents regardless of protocol, providing unified discovery with verifiable on-chain credentials
+eips.ethereum.org
+ethereum-magicians.org
+.
+
+In summary, the landscape now spans open directories (Bazaar, A2A Registry) for autonomous machine-to-machine discovery, community marketplaces for human-driven discovery (AI Agents Directory, etc.), and emerging standards (MCP, ERC-8004) to interlink these ecosystems. Late 2025 saw a burst of these services launching, creating an increasingly rich discovery network for AI agents. Next, we drill into each major platform and how Coin Railz can ensure visibility on them.
+
+Platform-by-Platform Action Items
+
+Below we detail each relevant discovery platform or registry and how to get Coin Railz indexed. Coin Railz is a multi-chain AI payment service (supporting Stripe, x402, credits, 7 EVM chains + Solana USDC, Coinbase MPC wallets, etc.), so it is highly relevant to agentic payment directories. We will cover the exact indexing mechanisms, required metadata or compliance, whether proactive registration is possible, and steps to optimize visibility.
+
+Coinbase x402 Bazaar (Discovery Layer)
+
+About: The x402 Bazaar is Coinbase’s discovery layer for the x402 “HTTP 402 Payment Required” ecosystem
+coinbase.com
+. It’s essentially a search index of payable APIs and services that support x402 stablecoin micropayments
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. When launched in Sept 2025, Coinbase described Bazaar as a “search engine for agents” to find and pay for new services autonomously
+coinbase.com
+. It unlocked self-improving agents that can dynamically discover tools (e.g. fetching latest market data, commissioning an AI service on the fly)
+coinbase.com
+.
+
+Indexing Mechanism: Bazaar does not rely on crawling web pages or .well-known files. Instead, it indexes services automatically via the x402 protocol itself. Specifically, in x402 v2 the Bazaar is implemented as an extension in the x402 server SDK
+docs.cdp.coinbase.com
+. Service providers (sellers) include the Bazaar extension in their endpoint code, declaring metadata (schemas, pricing) in the route config
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. Then Coinbase’s x402 facilitator node extracts and catalogs this metadata whenever it processes a payment to that service
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. In other words, once Coin Railz’s x402-enabled API endpoints begin handling x402 transactions, the facilitator will automatically add them to the Bazaar index
+docs.cdp.coinbase.com
+. The index updates in near-real-time as transactions occur
+docs.cdp.coinbase.com
+. (There is currently no manual “submit” for Bazaar; inclusion is a side-effect of usage.)
+
+Metadata Requirements: To be indexed, an endpoint must:
+
+Use the Bazaar extension and declare discovery metadata. For example, in a Node.js x402 server you’d call declareDiscoveryExtension() with input/output schemas and other details
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. Only routes configured with the Bazaar extension are discoverable
+docs.cdp.coinbase.com
+. Metadata typically includes the endpoint’s name, description, pricing (per-call cost), and JSON schema for inputs/outputs
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+. This allows agents querying the Bazaar to understand what the service does and how to call it.
+
+Be actively processing payments via a recognized facilitator. The facilitator (e.g. Coinbase’s official one at x402.org) must see at least one successful transaction to catalog the service
+docs.cdp.coinbase.com
+. In practice, this means once you deploy Coin Railz’s x402 endpoints, you should invoke them (even just a test call) through the x402 payment flow to trigger indexing. Coinbase’s FAQ confirms: “Services are cataloged when the facilitator processes payments… The catalog is refreshed as transactions occur.”
+docs.cdp.coinbase.com
+. In short, Coin Railz should perform a live x402 transaction on each endpoint to get it logged in Bazaar.
+
+How Agents Find It: Agents (or developers) can query the Bazaar via the facilitator’s API (GET /discovery/resources) to retrieve available services
+docs.cdp.coinbase.com
+. Additionally, Coinbase integrated Bazaar into agent tools – for example, the Payments MCP desktop app includes an “x402 Bazaar Explorer” UI so users/agents can browse available services directly
+coinbase.com
+. This means once Coin Railz is indexed, any AI agent using Coinbase’s agent toolkit or facilitator can discover it with no human prompt. It will appear in search results for relevant keywords or categories (e.g. “payments”, “USDC transfers”).
+
+Action Items: Coin Railz has already prepared by deploying fully live /.well-known files and x402 endpoints; next:
+
+Ensure Bazaar extension is enabled in Coin Railz’s x402 implementation. Double-check that the service’s x402 routes include the required discovery metadata (name, description, schemas, etc.). This makes sure the facilitator picks up all necessary info.
+
+Invoke each endpoint via x402 at least once. You can use Coinbase’s test tools or a small agent script to send a payment (even a negligible amount) to each route. On the first payment, the facilitator will record Coin Railz’s service info. (No separate registration required – it’s automatic.)
+
+Verify listing on x402 Bazaar: You can query the discovery API or use x402scan (below) to confirm that Coin Railz appears. The Coinbase docs suggest that after a transaction, the service should be discoverable immediately
+docs.cdp.coinbase.com
+. In the facilitator’s /discovery response, look for Coin Railz’s endpoints by name.
+
+Optimization: Provide as much descriptive metadata as possible. Include clear tags or keywords in your service description so that when agents search (e.g. “stablecoin payment”, “on-chain checkout”), your service ranks highly. Also, ensure your schemas are accurate – agents may filter services by input/output types or capabilities
+docs.cdp.coinbase.com
+. Since Bazaar is “network-agnostic” (it lists any service regardless of chain used)
+docs.cdp.coinbase.com
+, consider listing all supported chains or currencies in the metadata. This helps agents see that Coin Railz is multi-chain.
+
+x402scan (Ecosystem Explorer)
+
+About: x402scan (x402scan.com) is essentially the blockchain explorer and dashboard for x402 activity
+bitget.com
+. It tracks all x402 payments, listing sellers (service endpoints), origins (agents or callers), transaction volumes, etc.
+bitget.com
+. Think of it as Etherscan + analytics for the agentic commerce world. x402scan provides a human-friendly UI to explore the x402 ecosystem: one section is “Agents” or “Services” which shows active providers. It’s a passive index based on on-chain data rather than a manually curated catalog.
+
+Indexing Mechanism: x402scan automatically logs any service that participates in x402 transactions, because those payments settle on-chain (e.g. USDC on Base, Solana, etc.) where they can be observed
+bitget.com
+bitget.com
+. When Coin Railz’s endpoint receives a payment via x402, the facilitator typically writes an on-chain transfer (e.g. moving USDC from agent wallet to provider). x402scan monitors these events on supported networks (Base, Ethereum L2s, Solana, etc.). It will record Coin Railz’s wallet address and tag it as a “Seller” or service, often associating it with metadata from the 402 request (like the URL or service name, if available in the transaction logs).
+
+In other words, simply using x402 causes Coin Railz to show up on x402scan. For example, within weeks of x402’s launch, Coinbase reported millions of transactions and noted x402scan had tracked ~$3M volume across many services
+bankless.com
+. x402scan’s “Agents” page likely lists services by name if they provided one. (Coinbase’s x402 dev tools encourage including a service name in payment requirements, which the explorer can display.)
+
+Metadata/Compliance: There’s no additional schema to submit for x402scan beyond what’s in the x402 protocol. To optimize:
+
+Set an identifiable payout address and service name. If Coin Railz uses a specific crypto address to receive x402 payments, consider labeling it (some explorers let providers add a display name). The Bitget report on x402 mentions various facilitators and providers by name, implying x402scan or the community labels known addresses
+bitget.com
+bitget.com
+. Contact the x402 community if needed to ensure your service name is correctly shown.
+
+Use .well-known URLs if supported: (Note: x402 itself doesn’t mandate a well-known file, but Coinbase’s Browserbase demo used well-known payment info for browsers
+altcoinbuzz.io
+. However, this may not affect x402scan.)
+
+Perform a test transaction on each chain you support. x402scan shows metrics per network; Coin Railz operating on 7 EVM chains + Solana means you should exercise at least one payment on each to appear in those network tabs. Also, the explorer tracks volume – even small test payments will list the service, but higher activity can boost visibility (e.g. top volume services might appear on the front page).
+
+Manual Registration: Not applicable – x402scan is entirely automated. There is no “submit” form. However, if Coin Railz has a logo or description you want displayed, you might reach out to the x402scan team (if they have a community GitHub or contact) to provide those details. Being a community explorer, they might accept PRs or suggestions for adding labels. For instance, some community members have compiled “awesome-x402” lists including x402scan integrations
+github.com
+ – plugging into those resources could help recognition.
+
+Action Items:
+
+After enabling x402, monitor x402scan for Coin Railz entries. Visit the Agents/Sellers section and search for your service or address. Ensure that after your initial payments, it shows up. If not labeled properly, consider tagging transactions with a memo/description if the protocol allows.
+
+Leverage x402scan stats as social proof – once listed, you can reference the explorer’s data (e.g. “Coin Railz has handled X transactions via x402scan
+bankless.com
+”) in marketing, which indirectly boosts credibility among agent developers who frequent these tools.
+
+Agent2Agent (A2A) Registry (a2aregistry.org)
+
+About: The A2A Registry is a community-driven directory of live AI agents that implement Google’s Agent-to-Agent Protocol (A2A)
+a2aregistry.org
+. Google announced A2A (now under the Linux Foundation) to standardize how AI agents expose capabilities and communicate securely
+developers.googleblog.com
+. The registry, launched in 2025 by the open-source community, indexes only production-ready, hosted agents (not just code repos)
+a2aregistry.org
+github.com
+. Each listing corresponds to an agent running at a public URL with a standard manifest (AgentCard). This directory addresses the “agent discovery problem” by letting agents and developers find trusted agents by capability or domain
+a2aregistry.org
+github.com
+.
+
+Indexing Mechanism: Unlike Bazaar, the A2A Registry requires proactive submission – it doesn’t crawl the web automatically. Agent developers must manually submit an AgentCard (JSON description) via GitHub pull request
+a2aregistry.org
+github.com
+. Submissions are then validated and merged by maintainers. Once merged, the agent appears on a2aregistry.org’s web UI and API. The process is streamlined through a “Git as database” approach: the registry data is simply a static JSON repository on GitHub (auto-validated by CI) and served via GitHub Pages for the website and API
+github.com
+github.com
+.
+
+For Coin Railz, this means to be listed, you will need to create an entry in the registry repo. Key steps (from the official contributing guidelines) include
+github.com
+:
+
+Fork the repo and add a JSON file for your agent under the /agents directory.
+
+The JSON must follow the A2A AgentCard schema (per the A2A spec) and include required fields like name, description, url (endpoint URL), protocolVersion, etc., plus two extra fields for the registry: author and wellKnownURI
+github.com
+. The wellKnownURI should point to your agent’s /.well-known/agent.json file on your server
+a2aregistry.org
+a2aregistry.org
+. (Coin Railz already hosts this, as noted.) This .well-known file is used to “verify” the agent’s capabilities; the registry will actually fetch and check that JSON for compliance
+a2aregistry.org
+a2aregistry.org
+.
+
+Ensure the agent is publicly accessible and A2A-compliant (i.e., it responds properly to A2A protocol requests at the given URL). The registry maintainers will not accept entries for offline or non-compliant agents
+github.com
+github.com
+. They have CI tests that automatically validate your JSON and even ping the .well-known/agent.json for correctness
+github.com
+github.com
+.
+
+Metadata/Compliance: The AgentCard schema is quite detailed – it describes the agent’s supported skills/capabilities, input/output formats, version, etc.
+github.com
+github.com
+. You should populate this carefully to reflect Coin Railz’s capabilities (e.g. “payments processing”, “wallet provisioning”). Since Coin Railz is more of a service/API than a conversational agent, frame it as an agent service capable of executing payment tasks. For example, one could list skills like “initiate-payment”, “get-wallet-status”, etc., if those are exposed via A2A interface. Make sure the url field in the AgentCard points to Coin Railz’s A2A endpoint (if your service has an A2A API endpoint). If you currently only have x402 and MCP, consider implementing a minimal A2A interface or at least an AgentCard to register an agent persona that represents Coin Railz’s functionality. The registry is flexible – an agent could simply advertise “I handle payments via x402” as a skill. Notably, the registry also supports MCP integration: it flags agents that have Model Context Protocol endpoints available
+a2aregistry.org
+, which Coin Railz does (via the MCP Payments kit). So be sure to mention MCP support in the description or capabilities (the registry readme references an MCP integration guide
+github.com
+).
+
+Manual vs. Automatic: This platform requires manual registration (GitHub PR)
+github.com
+a2aregistry.org
+. There’s no crawling – the emphasis is on verified agents, so they want the authors to attest via submission. The benefit of this approach is a curated, high-signal list (only ~15+ agents as of late 2025)
+a2aregistry.org
+. Coin Railz should absolutely submit here for visibility among serious agent developers. Once listed, agents and frameworks can programmatically query the registry’s JSON API to find you
+github.com
+. The Python SDK (pip install a2a-registry-client) makes it easy for other agents to fetch the latest list and search by skill or name
+a2aregistry.org
+github.com
+. Being on this list means any agent system that “looks up” a payments-capable agent might autonomously discover and engage Coin Railz.
+
+Action Items:
+
+Prepare an AgentCard JSON for Coin Railz. Use the registry’s example (like WeatherBot in the README) as a template
+github.com
+github.com
+. Fill in all relevant fields. Ensure wellKnownURI points to a live agent.json on your domain (which you already have in .well-known). Double-check that your agent.json conforms to the A2A spec (the registry will verify it).
+
+Submit a Pull Request to the A2A Registry GitHub. In the PR description, provide a brief note about Coin Railz and that it’s A2A-compliant and live. The maintainers typically review PRs within days (since it’s community-run, response times can vary, but the project appears active with dozens of commits and automated tests
+github.com
+github.com
+). There are currently open PRs, suggesting maintainers merge regularly
+github.com
+github.com
+.
+
+After merge, verify listing on a2aregistry.org: Navigate to the site and search for “Coin Railz”. Also try the JSON API (/registry.json) or the Python client to ensure your entry is retrievable
+github.com
+.
+
+Leverage A2A Registry presence: Announce it (e.g. “Coin Railz is now a verified agent on the A2A Registry”) on social channels or developer forums – this signals credibility. Also, monitor if any agent systems reach out to your A2A endpoint as a result. The registry’s goal is to let agents autonomously connect, so be prepared for new traffic.
+
+Anthropic Claude and Other MCP-Supporting AI Platforms
+
+About: MCP (Model Context Protocol) is an open standard (introduced Nov 2024 by Anthropic) that allows AI assistants to connect to external tools and data via a uniform JSON-RPC interface
+blog.bitium.agency
+anthropic.com
+. By Jan 2026, MCP is supported across many ecosystems: Anthropic’s Claude, OpenAI’s ChatGPT (developer mode), open-source agent frameworks like ElizaOS, and various orchestrators. These platforms essentially act as MCP clients – they can discover and invoke MCP servers (tools). Coin Railz, with its “MCP Payments Kit,” likely exposes an MCP-compatible server (for Stripe, x402, etc.). We need to ensure that these AI platforms can discover and trust Coin Railz’s MCP endpoint.
+
+Discovery Mechanism: MCP itself doesn’t mandate a global directory (it’s more of a protocol like “USB-C for AI”
+blog.bitium.agency
+). However, in practice, discovery happens via a few channels:
+
+Anthropic’s Connector Repository: Anthropic set up an open-source registry of MCP servers on GitHub
+anthropic.com
+platform.claude.com
+. This contains community-contributed tool definitions, categorized by function (e.g. GitHub connector, Slack connector, payments connectors, etc.). In Anthropic’s Claude UI (Claude Desktop and Claude Code), users can browse and install connectors, which likely pulls from this repository. Indeed, Claude’s documentation page on remote MCP servers provides a link to “find hundreds more MCP servers on GitHub”
+platform.claude.com
+ – which points to modelcontextprotocol/servers repo. To be discovered here, you would contribute Coin Railz’s MCP server definition to that repo. Typically this means adding a JSON/YAML or markdown describing the tool’s API (the input/output schema of your MCP methods). Anthropic likely welcomes PRs for new servers, given the size of that repo (9k+ forks, 70k+ stars suggests it’s a broad community resource)
+github.com
+github.com
+. Action: Locate the appropriate category in the repo (e.g. perhaps a “payments” folder) and submit Coin Railz’s connector spec. The spec should include the server’s base URL and the standardized tool definitions (functions like initiatePayment, etc.) in the MCP format. Once merged, Coin Railz will appear in the index that developers consult
+platform.claude.com
+platform.claude.com
+. This means any Claude user can enable it in a couple of clicks. (Anthropic also offers one-click install for known connectors
+anthropic.com
+, so being listed is key for ease-of-use.)
+
+OpenAI’s Tools Catalog: OpenAI’s ChatGPT doesn’t (yet) have a public “store” for third-party tools in the same way, but by supporting MCP, they allow any developer to connect a known MCP server by URL. OpenAI has published guides and even hosts some public MCP endpoints for their documentation (to demonstrate usage)
+platform.openai.com
+stytch.com
+. They likely maintain an internal listing of popular tools for devs to try. To tap into this, create developer-facing documentation for using Coin Railz via MCP (e.g. a guide “How to connect Coin Railz to ChatGPT or Claude”). This can indirectly spread awareness. On OpenAI’s community forums and Discord, developers often share useful MCP tools – participating there can get Coin Railz on people’s radar. (There isn’t a single OpenAI-run registry, so community promotion is key.)
+
+ElizaOS and AgentKit: ElizaOS (open-source TypeScript framework for autonomous agents) and Coinbase AgentKit (AI agents + crypto toolkit) both have support for MCP and A2A. ElizaOS agents can load plugins and connectors including MCP servers
+medium.com
+. AgentKit’s “Payments MCP” integration (released Oct 2025) explicitly allowed Claude, Codex, etc. to use on-chain wallets and x402 via MCP
+coinbase.com
+coinbase.com
+. In AgentKit’s UI, the integrated x402 Bazaar already exposes Coin Railz once it’s in Bazaar. For MCP specifically, Coinbase likely has some curated list of known MCP servers (perhaps in their docs or AgentKit examples). Action: ensure Coin Railz’s MCP endpoint is documented for AgentKit users. This might involve a tutorial in Coinbase’s developer forum showing how an AgentKit-powered agent can call Coin Railz’s MCP API (for example, “use MCP to let your agent top-up a Stripe payment via Coin Railz”). Coinbase’s AgentKit is framework-agnostic but providing an example would boost visibility. If AgentKit has a Discord or community (CDP Discord), share that Coin Railz is MCP-ready and where to find it.
+
+Virtuals Protocol: The Virtuals ecosystem (focused on on-chain agent ownership) has its own notion of MCP (Multi-Agent Commerce Protocol) internally
+blog.bitium.agency
+, but as they note, it’s distinct from Model Context Protocol. However, Virtuals agents could still use Coin Railz if given the means. Virtuals on Base support A2A and on-chain calls; if Virtuals agents need off-chain info, they might incorporate standard connectors. Check if Virtuals’ dev docs mention integrating external tools – perhaps through A2A (if Coin Railz had an A2A endpoint, that covers it) or through an oracle. If Virtuals aligns with ERC-8004, an agent identity could reference an external service. Action: Consider deploying a basic Virtuals Agent that represents Coin Railz. This could be a functional agent token that simply serves as a directory entry on Virtuals (with perhaps a minimal behavior of forwarding requests to Coin Railz’s API). The reason is that Virtuals’ on-chain Agent Registry will then include Coin Railz among known agents (with an on-chain identity and reputation). It’s a non-traditional approach, but it plants a flag in that ecosystem. Alternatively, engage with Virtuals community channels to announce that “Coin Railz MCP tool is available for any Virtuals agent needing payments.” They may include it in their documentation or sample agents.
+
+Metadata & Compliance: For MCP, ensure your tool schema (OpenAPI-like JSON) is polished and follows the MCP spec. For example, if Coin Railz offers a processPayment method via MCP, it should define inputs (amount, currency, payee, etc.) and outputs (confirmation) clearly. Anthropic’s MCP connectors often require two methods: typically search and fetch for data connectors
+platform.claude.com
+platform.claude.com
+; for an action-oriented tool like payments, you might have listMethods and executePayment or similar. Follow the spec guidelines so that connecting your tool doesn’t overwhelm the model context window unnecessarily
+anthropic.com
+ (the Anthropic blog noted token costs of loading many tools). Also, implement authentication if required – some platforms encourage OAuth or API keys even for MCP tools. OpenAI’s developer mode supports passing auth headers to MCP servers
+reddit.com
+. If Coin Railz requires an API key or client ID, document how a developer/agent should supply that when connecting your MCP server.
+
+Action Items (Summary):
+
+Contribute to Anthropic’s MCP servers repo. Add Coin Railz with a clear description (e.g. “Coin Railz – Multi-chain AI Payments (Stripe, Crypto, etc.)”). Include usage instructions. This will make it visible in Claude’s “third-party connectors” list
+platform.claude.com
+.
+
+Write an integration guide for OpenAI ChatGPT. Explain how to connect via ChatGPT developer mode. Share it on OpenAI’s dev forums or Medium; this can get picked up by newsletters or other devs.
+
+Engage ElizaOS community: They likely have a Slack/Discord or GitHub discussions. Offer a plugin or connector module for ElizaOS that wraps Coin Railz’s API (using MCP or direct HTTP). If ElizaOS includes that in their plugin list, any Eliza agent can use it out-of-the-box.
+
+AgentKit integration: Ensure that in Coinbase’s CDP examples, Coin Railz is mentioned as a ready-to-use service. Possibly create a demo agent (with AgentKit) that demonstrates paying via Coin Railz on multiple chains. Coinbase is highlighting partner tools in their ecosystem; getting a mention on their blog or launch notes would be valuable.
+
+Monitor cross-platform performance: After these steps, track how many calls come from Anthropic vs. OpenAI vs. others. This helps prioritize further effort (e.g., if Claude users heavily adopt it, consider deeper integration like partnership with Anthropic’s Claude Partner Network).
+
+Emerging On-Chain Directories (ERC-8004 and Others)
+
+About: On-chain discovery is still nascent but quickly evolving. ERC-8004, introduced as an Ethereum proposal in late 2025, is significant. It defines three lightweight registries on-chain: Identity, Reputation, Validation for AI agents
+medium.com
+. This means an agent (or service like Coin Railz acting as an agent) can register an identity record on-chain, optionally link it to a DNS or DID, accumulate reputation points from interactions, and log validations of its performance. The goal is that anyone can query the blockchain to find agents that meet certain trust criteria, without relying on a centralized directory
+eips.ethereum.org
+medium.com
+.
+
+Virtuals Protocol is closely aligned with this: they announced plans to adopt ERC-8004 as the backbone of their agent registry
+x.com
+. By Jan 2026, we expect to see multi-protocol agent indexes that pull data from both on-chain and off-chain sources. For instance, an agent’s on-chain identity might include pointers to its MCP endpoint or A2A manifest (using something like a content hash or DID document). Also, some projects (like Olas or Hypercerts for agents) may provide decentralized discovery.
+
+Action for Coin Railz: It may be early, but consider registering a basic identity on an ERC-8004 testnet or early mainnet. If the standard is finalized, this could involve calling a smart contract function to register an agent name and metadata (likely a URI to more info). Since Coin Railz is not an “autonomous agent” per se, you’d be registering it more as a service agent. The benefit is future-proofing: once major platforms use ERC-8004, having Coin Railz in the identity registry means any agent doing an on-chain lookup will see it. Some implementations allow linking your service’s ENS name or domain to the agent record. (If you have coinrailz.eth or similar, that could be used.)
+
+Also, watch for multi-protocol search engines that might emerge – e.g., a service that aggregates x402 Bazaar + A2A Registry + on-chain data. While none are dominant yet, being compliant with all standards (which you are: x402, A2A, MCP) ensures you’ll be picked up by any such aggregators.
+
+Blockers: On-chain registration might cost gas and may not yet be widely queried by agents (since tooling is fresh). However, the Validation registry part of ERC-8004 could be interesting for Coin Railz: it would allow recording proofs of successful transactions or audits. For example, after each Coin Railz payment execution, you (or the agent calling you) could publish a validation event on-chain – building a tamper-proof track record
+bitget.com
+. If feasible, this could dramatically increase trust when agents consider using your service (they could check on-chain that “Coin Railz has successfully handled 1000+ payments with no failures”). This is cutting-edge, so consider it longer-term, but keep an eye out.
+
+Broadcasting & Announcement Channels
+
+Beyond formal directories, actively broadcasting Coin Railz’s launch and updates in the agent community is critical for discovery. Here are recommended channels and methods:
+
+AI Agent Community Forums & Social Media: Engage with the active communities on X (Twitter), Reddit, Discord, and LinkedIn where AI agent developers congregate. For instance, the AI Agents Directory has an official X account, LinkedIn page, and a subreddit
+aiagentsdirectory.com
+. Announce Coin Railz’s availability there (in a non-spammy, informative way). Twitter hashtags like #AgenticAI, #A2A, #MCP can help reach the right audience. Share a short demo clip of an agent using Coin Railz for a payment – visual demos attract attention. Also consider posting on r/AutoGPT or r/LLMs on Reddit if allowed, focusing on the novelty of multi-chain payments by AI. The key is to position it as an enabler for other agents (e.g. “Agents can now transact across 7 chains autonomously using Coin Railz!”).
+
+Developer Newsletters & Blogs: Many newsletters (e.g. Agent Pulse by AI Agents Directory, or BCG’s AI updates) cover new tools. The AI Agents Directory specifically offers a newsletter featuring option – you can sponsor a spot to highlight Coin Railz to ~23k subscribers
+aiagentsdirectory.com
+aiagentsdirectory.com
+. This can be highly effective right around your launch. Also approach bloggers (InfoQ, The New Stack, venture blogs) to cover Coin Railz in the context of agent payments – e.g., “Coinbase and others are advancing agent payments
+kucoin.com
+kucoin.com
+, and Coin Railz enters this space with multi-chain support.” A write-up in Coindesk, Cointelegraph, or similar (if you haven’t already) is valuable, since those get reshared in crypto+AI circles.
+
+Marketplace Listings and Paid Placement: Leverage platforms that allow manual promotion. For example, the AI Agents Directory itself has options for Premium Listing, Site Banner, etc., for a fee
+aiagentsdirectory.com
+aiagentsdirectory.com
+. A Premium listing gives priority search results, top-category placement, and site-wide featuring
+aiagentsdirectory.com
+ – meaning Coin Railz would show up prominently when users browse payments or productivity categories. It also includes newsletter and social media mentions
+aiagentsdirectory.com
+aiagentsdirectory.com
+. This is a worthwhile investment to jump-start visibility, especially since your target audience (other agent developers or AI product managers) are likely scanning these directories for solutions. Similarly, platforms like SourceForge, G2, or Alternates.ai might allow sponsored listings in “AI agent” or “API marketplace” categories – listing there can help with SEO and enterprise discovery.
+
+Demo at Industry Events / Hackathons: If there are agent-related hackathons (OpenAI, Anthropic, HackAPIs etc.) or conferences (e.g. an Agentic AI Summit), try to present Coin Railz. A live demo where an autonomous agent uses Coin Railz to, say, buy an item with crypto in 200ms
+coinbase.com
+, will generate buzz. Coinbase and others have showcased fast agent payments
+coinbase.com
+ – you can piggyback on that narrative by showing multi-chain capabilities. Offer bounties or free credits for hackathon teams that integrate Coin Railz; this will lead to word-of-mouth among developers.
+
+Partnerships/Cross-Promotion: Partner with established players in adjacent spaces. For example, if Nevermined (or a similar competitor) has a blog or community, perhaps do a comparison or integration article together – highlighting that Coin Railz could plug into their framework, expanding multi-chain options. Or if an agent framework like LangChain or Semantic Kernel is popular, contribute a module or example to their repo that uses Coin Railz for payments. This gets your service in front of those frameworks’ user bases. Another idea: collaborate with Visa’s or Worldpay’s innovation labs (since they’re exploring agent payments
+corporate.visa.com
+corporate.visa.com
+). A quote or endorsement from a known player can greatly raise your profile in both AI and fintech communities.
+
+Use Social Proof & Content Marketing: As you gain users, create case studies or blog posts about how some agent or company benefited from Coin Railz (“e.g., X Labs built an autonomous e-commerce agent that increased revenue 20% by using Coin Railz for frictionless payments”). Share these on Medium and LinkedIn. Content that educates (e.g., “Guide to Agent-to-Agent Payments: Stripe vs x402 vs Coin Railz”) can attract those researching solutions. In such content, reference that Coinbase’s x402 Bazaar lists you or that you’re verified on A2A registry – these signals (with citations) build trust.
+
+Competitive Landscape: Visibility Tactics of Payment-Focused Agent Services
+
+Coin Railz isn’t alone in the AI payments arena – understanding what competitors do for visibility can inform your strategy. A few notable players and their approaches:
+
+PayAI’s “Freelance AI” Marketplace: PayAI (an independent facilitator in x402) launched a Freelance AI marketplace where AI agents can offer services and find experts, with payments handled via x402
+bitget.com
+. This effectively is a network where agents advertise themselves and connect directly. By creating a community around agent gigs, PayAI ensures that any agent needing payment services will hear of PayAI through that marketplace. Takeaway: Building or participating in community marketplaces (even if informal) can drive adoption. For Coin Railz, it might mean joining that Freelance AI platform as a listed service provider or creating your own mini-hub (e.g., a forum where agents request payment integrations and you respond).
+
+Nevermined’s Protocol-Agnostic Push: Nevermined advertises itself loudly as “Payments Infrastructure for AI” with first-class support for all protocols (MCP, A2A, x402, AP2)
+nevermined.ai
+. They emphasize future-proofing against the “protocol wars”
+nevermined.ai
+. Marketing-wise, they position as a one-stop solution. They also have a slick onboarding (3-step flow: register agent, integrate library, start getting paid)
+nevermined.ai
+nevermined.ai
+ and presumably list supported agents on their platform. While not a public marketplace, each developer using Nevermined effectively promotes it when they turn on its features in their agent. Takeaway: Highlight breadth of support and simplicity. Coin Railz can similarly trumpet that it supports multiple standards and chains – for example, in directory descriptions or one-liners: “Coin Railz – the only multi-chain payment agent supporting Stripe, USDC (x402), credits, and Coinbase MPC.” Also, consider offering a library or SDK (like Nevermined’s snippet integration) to make adoption plug-and-play. The easier it is, the more likely developers mention you as part of their stack.
+
+Thirdweb’s Nexus and Daydreams Router: Thirdweb integrated x402 into their developer SDK and launched “Nexus” for agents to use services without keys
+bitget.com
+. Daydreams launched a Router that smartly routes AI model requests with USDC settlement via x402
+bitget.com
+. These are more technical offerings, but they promote themselves by showing impact metrics (“3 million transactions in 3 weeks on x402” etc.)
+bankless.com
+ and by partnering (Daydreams partnered with an AI project Dark to showcase real use
+bitget.com
+). Takeaway: Publish your metrics and partner successes. If Coin Railz processes N payments or is live on N chains, tout that. If a known project or startup uses Coin Railz, co-publish a story or host a joint webinar. Numbers (transaction counts, speeds, savings) catch attention of those skimming for a proven solution.
+
+Traditional Payment Giants (Visa, Worldpay): They are entering agent payments via press releases and pilot programs, leveraging existing client base to gain mindshare
+corporate.visa.com
+blog.crossmint.com
+. While they don’t operate in the open agent community as much, their strategy is leveraging trust and compliance. They stress security (“Visa Agent APIs with tokenization”
+corporate.visa.com
+). Takeaway: Emphasize trust and compliance in your messaging too. Coin Railz’s support for MPC (multi-party compute wallets via Coinbase) is a big trust point – mention it in every listing. Perhaps pursue a security certification or audit and then broadcast that (being “secure and compliant” can set you apart from smaller hacks). Agents making financial transactions will prefer a vetted solution over an unknown script.
+
+In short, competitors are using community building, broad protocol support, compelling metrics, and trust signaling to stand out. Coin Railz should do the same: be present in the agent communities, highlight your unique multi-chain advantage, demonstrate traction, and build credibility through verification and content.
+
+Platform Registration Links & Guidelines
+
+For convenience, here’s a list of key platforms with links and any sign-up info, plus expected indexing timelines and any known blockers:
+
+Coinbase x402 Bazaar: No manual link (auto-indexed). Docs: [x402 Bazaar Guide】
+docs.cdp.coinbase.com
+. Timeline: Immediate upon first paid transaction (catalog updates in real-time). Blockers: If no one calls your service, it stays hidden – mitigate by self-triggering a transaction. Ensure you’re using Coinbase’s facilitator (or a popular one) so it appears on the main index.
+
+x402scan: No registration needed; just use x402 on-chain. Site: [x402scan.com】 (navigate to “Agents”). Timeline: Near-real-time – as soon as an on-chain payment occurs, it’s logged. Blockers: If your transactions are on a chain not yet indexed by x402scan, it might not show (ensure you’re on supported networks: Base, Solana, major L2s). Also, x402scan might not display very low-activity services prominently; building up some usage volume will move you into leaderboards.
+
+A2A Registry: Submit via GitHub: [A2A Registry Repo】 (prassanna-ravishankar/a2a-registry)
+github.com
+. Timeline: Maintainers usually merge PRs within a few days to a week (check current open PR count). Once merged, the website updates immediately (static JSON). Compliance requirements: Live /.well-known/agent.json, proper AgentCard JSON, and a publicly accessible A2A endpoint URL
+a2aregistry.org
+github.com
+. Blockers: If your JSON fails validation, CI will flag it – ensure you run their tests or use their example format. Also, only submit once your service is truly live; “pre-releases” won’t be accepted
+github.com
+.
+
+Anthropic Claude (MCP connectors): GitHub Repository: [modelcontextprotocol/servers】 (look for contribution guidelines in README). Timeline: Varies – community repos may review PRs within days. After merge, Anthropic’s product might immediately list it (Claude Desktop periodically fetches updates to the connectors catalog). Compliance: Provide a correct tool spec. Optionally, post in Anthropic’s developer Discord to let them know about the new connector (could expedite attention). Blockers: If your MCP server doesn’t adhere to spec or requires unusual auth, users might avoid it – try to support the recommended auth flows (Anthropic and OpenAI prefer OAuth2 or simple API key handoff for tools, as noted on forums
+reddit.com
+).
+
+OpenAI Plugin/Tools Listing: (No open directory to submit to as of 2026). However, ensure your .well-known/ai-plugin.json is accessible (for ChatGPT plugins). If OpenAI reopens their Plugin Store to new submissions, apply for inclusion – this would give you an official listing in ChatGPT’s plugin marketplace. Timeline: Unknown (OpenAI’s plugin approvals can take weeks or more, subject to their review). Compliance: Strict (must follow OpenAI plugin manifest spec, privacy policy, etc.). Blockers: OpenAI has security restrictions; if Coin Railz’s plugin involves financial transactions, they’ll scrutinize it closely. But having MCP integration might circumvent the need for a custom plugin if ChatGPT can use the MCP connector instead.
+
+AI Agents Directory: Submit form: [“Submit AI Agent”】 on aiagentsdirectory.com
+aiagentsdirectory.com
+. This likely asks for basic info (name, URL, description, pricing model). Timeline: They list new agents pretty quickly (the site shows a “Newly Added” section with constant updates
+aiagentsdirectory.com
+). Possibly within 1-3 days. Compliance: They may require a backlink (as noted: “Basic listing ... Backlink requirement”
+aiagentsdirectory.com
+), meaning you need to link back to them on your site for a free listing. And they likely will categorize your agent, so provide clear category tags (e.g. “AI Agents Platform” or “Finance/Payments”). Blockers: If you don’t provide a backlink or the info is incomplete, they might not approve the listing. Also, purely API services might be less obviously an “agent” – frame Coin Railz as an “AI Agent Service” that other agents can use. That will fit their platform’s theme.
+
+AI Agent Store / Other Directories: Many have similar web forms or email contact for submissions. Check alternates.ai or designrush’s directory – often they have a “submit your solution” page. Timeline: Ranges from immediate (if user-driven) to a couple of weeks if they review manually. Compliance: Usually just descriptive info, possibly user reviews. No technical requirements beyond having a website. Blockers: Some sites monetize by requiring a paid plan for full visibility – evaluate case by case if it’s worth it.
+
+Virtuals Protocol: To list on Virtuals’ on-chain registry, you’d likely interact with their Agent Registry DApp (once available). Site: [virtuals.io】 (for updates) or possibly directly via smart contract calls. Timeline: On-chain registration is instant once transaction confirmed. But being noticed might depend on Virtuals front-end updates. Virtuals team might be curating notable agents, so also reach out to them (Twitter @virtuals_io) to announce Coin Railz’s agent. Compliance: Likely need a wallet and to follow whatever format (e.g. provide an agent name, maybe an IPFS hash of a profile with your MCP/A2A endpoints). Blockers: Gas fees and technical overhead of minting an agent token. If Virtuals requires demonstration of some AI behavior, that’s additional work (maybe not if just registering identity).
+
+Nevermined: If you choose to integrate their framework, you’d register via their app (nevermined.app). That entails defining pricing plans in their dashboard
+nevermined.ai
+. Timeline: Immediately once configured, your agent API is monetizable through them. Blockers: Adopting their system means using their custody for payments, which might not be needed if you have your own, but listing there could channel users your way if they browse available agents in Nevermined’s UI. Evaluate if their user base overlaps with your targets.
+
+Google Cloud Marketplace / AWS Marketplace: These cloud marketplaces have started listing AI solutions (even agents). For instance, AWS Marketplace mentions AI agents category
+sourceforge.net
+. To list Coin Railz here, you’d go through their vendor onboarding. Timeline: Could be several weeks (due to legal/security review). Compliance: High – must provide documentation, support info, possibly a Docker image or SaaS listing with standardized billing. Blockers: Unless you target enterprise customers directly, this might be lower priority, but it’s good for long-term visibility (enterprises might look here first for an “AI payments module”).
+
+Note: Always maintain up-to-date documentation on your own site for any integrations. Many directories and platforms allow a field for “Docs” or “Website”. Make sure those links point to clear instructions tailored to that ecosystem (e.g. a page “Using Coin Railz with Anthropic Claude” for MCP, another for “Using Coin Railz via A2A”, etc.). This not only helps users but also signals to the platform reviewers that your service is well-prepared, increasing chances of quick approval.
+
+Prioritized Recommendations
+
+Given all the above, here’s a high-level action plan for Coin Railz discovery optimization, in order of priority:
+
+Leverage Automatic Indexing ASAP: Ensure Coinbase x402 Bazaar indexing as first priority – it directly plugs Coin Railz into self-discovering agents in the wild. Similarly, trigger activity to appear on x402scan. These give you immediate presence in the core agentic commerce ecosystem
+docs.cdp.coinbase.com
+kucoin.com
+.
+
+Secure Verified Listings: Submit to A2A Registry next. This is important for credibility – being “officially verified via .well-known”
+a2aregistry.org
+ distinguishes Coin Railz as a serious, compliant service. Many agent developers will use the A2A registry as a whitelist of trustworthy agents. Likewise, contribute to Anthropic’s MCP repo promptly so that early adopters of Claude and other MCP clients see Coin Railz among available integrations. The effort here is small (writing a connector spec) compared to the reach (Anthropic, OpenAI, Microsoft users collectively).
+
+Manual Directories & Marketplaces: While the above are happening, get a free basic listing on AI Agents Directory and similar sites. It’s quick and ensures that anyone Googling “AI agent payments tool” can find you (these directories SEO well). After the free listing is up, strongly consider a Premium listing sponsorship for 1-2 months
+aiagentsdirectory.com
+ around launch – this will amplify initial awareness, putting Coin Railz at the top of relevant searches and in newsletters when you most need eyeballs.
+
+Community Outreach & Partnerships: In parallel, start broadcasting on social and developer channels. Post the news of being on A2A registry, tag Coinbase/Anthropic on Twitter when announcing support for x402/MCP – they might retweet or mention you (Coinbase Cloud and Anthropic DevRel often boost ecosystem projects). Initiate partnerships: for example, if you know of an agent project struggling with payments, approach them to use Coin Railz and offer mutual promotion (“Case Study: X project uses Coin Railz for multi-chain payments”). This yields content and references. Also align with standard bodies: joining the Agentic AI Foundation (Linux Foundation’s new org) could provide networking and early access to standards like ERC-8004; being part of that conversation will keep Coin Railz ahead.
+
+Monitor and Iterate: Set up alerts or periodic checks on each platform. E.g., poll the A2A registry API weekly to see new agents (potential Coin Railz users) and reach out to them if appropriate. Watch x402scan stats for usage patterns – if some chain is underutilized, maybe run a campaign targeting agents on that chain. Keep your metadata fresh: update descriptions if you add features (marketplaces allow edits; A2A registry can accept updated PRs for new protocol versions, etc.). And finally, gather feedback from these channels – if developers mention any friction integrating Coin Railz, address it quickly (update docs, improve SDK). Early adopters will be your evangelists if they succeed easily.
+
+By tackling discovery from these multiple angles (protocol-level, directory-level, and community-level), Coin Railz will maximize its exposure to external agents searching for payment solutions, as well as to the marketplaces and registries that those agents (or their creators) rely on.
+
+Blockers and Timeline Expectations
+
+While executing the above, be mindful of potential blockers and realistic timelines:
+
+Indexing Delays: Most automated indexes are fast, but some have dependencies. For instance, x402 Bazaar indexing waits on a payment event – if no agent triggers one soon, you might remain invisible. Mitigation: perform your own test calls immediately (as noted). For A2A registry, the blocker could be PR approval latency; holiday periods or maintainers’ availability might delay merging. If urgent, politely ping the maintainers or contribute to discussions to show you’re legitimate.
+
+Compliance Pitfalls: The top reason for discovery failure is not meeting schema requirements. A slight mismatch in your .well-known/agent.json could mean the A2A registry CI rejects your submission
+github.com
+. A missing CORS header on your MCP endpoint could stop Claude from connecting (Claude Desktop runs locally and might require your server to allow localhost origin). Mitigation: Thoroughly test each interface. Use the A2A Python client to query your agent JSON as a sanity check. Use OpenAI’s or Anthropic’s test harnesses for MCP (Anthropic provides a way to test local connectors
+platform.claude.com
+). For plugin manifest, use OpenAI’s validator tool. It’s worth spending time upfront to ensure all “.well-known” files and endpoints strictly follow specs – this avoids silent failures where an agent tries to use you and can’t, which would be a lost opportunity and bad user experience.
+
+Security/Trust Hurdles: Because Coin Railz deals with payments, some platforms might subject you to higher scrutiny. OpenAI’s plugin store might treat a payment plugin as sensitive (possibly requiring a vetting or disallowing autonomous money movement without user confirmation). Similarly, Anthropic’s stance is to not endorse third-party servers
+platform.claude.com
+ – they list them with disclaimers. Some enterprise users may be wary to let an agent use a payment tool by default. Mitigation: Establish trust signals: obtain any relevant certification (PCI DSS for handling cards? SOC2 if applicable to your infra) and mention it in your documentation and even in directory descriptions if allowed. Encourage a few respected community members to try Coin Railz and perhaps leave a positive note (if directories have reviews or upvotes, this helps). Over time, accumulating a good reputation (possibly even on-chain via ERC-8004’s reputation registry) will reduce blockers.
+
+Demand Surge Management: An often overlooked “blocker” to visibility is not scaling when you do get discovered. If a popular agent or a viral post causes a spike of traffic and your API falters, that news spreads quickly and can deter future adoption. So be prepared: as you broadcast widely, ensure you have rate limiting, fail-safes, or sandbox modes for huge influxes. Maybe initially set conservative rate limits in your manifest (you can always raise them after verifying stability). Better to handle growth smoothly than to get marked as unreliable early on.
+
+Timeline to Traction: It’s important to set expectations: fully organic discovery can take time. Even after listing everywhere, the actual usage by agents might grow slowly at first. You might see trickles of calls from curious developers, and only after a high-profile mention or a successful integration will volume pick up. This could be 2-3 months of groundwork and waiting. Use this time to refine the product, gather any small user feedback, and keep marketing. The agent ecosystem in 2026 is in flux but growing fast; persistence is key. By continuously popping up in relevant discussions (without spamming), you’ll build recognition.
+
+In terms of concrete timeline: in the first 1-2 weeks, aim to complete all registry/directory submissions and initial announcements. By 1 month, you should be indexed on all technical platforms (Bazaar, A2A, MCP lists) – verify each. Also within a month, run a modest promotional campaign (newsletter feature or social media ads targeting AI developers) to seed awareness. By 3 months, with consistent presence, you can expect inbound interest – agents or devs reaching out having found you in a registry or heard about you in the community. Keep track of where new users say they found you; double down on those channels. Conversely, if some directory yields nothing, perhaps its audience isn’t relevant and you can reallocate effort.
+
+Finally, maintain flexibility. New discovery avenues may appear (“x402scan” itself was new in mid-2025, who knows what mid-2026 will bring). Stay plugged into agent forums to catch wind of any new marketplace or standard, and be among the first to support it – that in itself is a marketing point (“Coin Railz now supports the new XYZ protocol, just launched”). With the comprehensive steps above, Coin Railz will be strongly positioned to get noticed and adopted in the rapidly expanding agent economy.
+
+Sources/References
+
+Coinbase Developer Blog – “Introducing x402 Bazaar: An index for self-improving AI agents” (Sep 2025) – Launch announcement of the Bazaar discovery layer
+coinbase.com
+coinbase.com
+.
+
+Coinbase Developer Docs – “x402 Bazaar (Discovery Layer)” – Explains how Bazaar indexing works via facilitator extensions and metadata
+docs.cdp.coinbase.com
+docs.cdp.coinbase.com
+.
+
+KuCoin News (via 528BTC) – “Coinbase Expands AI Agent Payment Tool with Stablecoin Integration” (Dec 2025) – Mentions x402 V2 adding an “AI agent discovery layer (x402 Marketplace)”
+kucoin.com
+kucoin.com
+.
+
+Bitget News – “x402 ‘Doers’ List: Who is really driving x402?” (Nov 2025) – Industry report referencing x402scan as on-chain explorer and PayAI’s agent marketplace
+bitget.com
+bitget.com
+.
+
+A2A Registry – Official Website and GitHub README – Describes the open directory of A2A-compliant agents, submission process, and key features
+a2aregistry.org
+github.com
+.
+
+Anthropic Announcement – “Introducing the Model Context Protocol” (Nov 2024) – Defines MCP and initial ecosystem support
+blog.bitium.agency
+anthropic.com
+.
+
+Bitium Blog – “Exploring ElizaOS, Virtuals, and MCP for Web3 AI Agent Development” (Jul 2025) – Context on how ElizaOS, Virtuals, and MCP form a stack; notes MCP adoption by OpenAI/Google/Microsoft
+blog.bitium.agency
+ and Virtuals’ Multi-Agent Commerce Protocol
+blog.bitium.agency
+.
+
+Anthropic Claude Docs – “Remote MCP Servers” (accessed Jan 2026) – Lists third-party MCP servers and links to GitHub repository with “hundreds more”
+platform.claude.com
+platform.claude.com
+.
+
+OpenAI Platform Docs – “Building MCP servers for ChatGPT” (updated 2025) – Emphasizes MCP as industry standard for extending models
+platform.openai.com
+ and covers ChatGPT’s connector support.
+
+InfoQ – “OpenAI Adds Full MCP Support to ChatGPT Developer Mode” (Oct 2025) – News confirming ChatGPT Dev Mode’s MCP client capabilities
+platform.openai.com
+.
+
+AI Agents Directory – Website (aiagentsdirectory.com) – Shows marketplace layout, new/trending agents, submission and sponsorship info
+aiagentsdirectory.com
+aiagentsdirectory.com
+.
+
+SourceForge / Slashdot – “Top AI Agent Marketplaces 2025” – Comparative listings including AI Agents Directory, Virtuals Protocol, etc. (Used for context on marketplace options)
+sourceforge.net
+sourceforge.net
+.
+
+Medium – “Introduction to ERC-8004: The Trust Layer for AI Agents” (Jan 2026) – Explains the on-chain discovery/trust standard (Identity, Reputation, Validation registries)
+medium.com
+medium.com
+.
+
+Nevermined AI – Official Website – Marketing content on supporting MCP, A2A, x402, AP2 and the “register agent, integrate, get paid” flow
+nevermined.ai
+nevermined.ai
+.
+
+Visa Blog – “Enabling AI agents to buy securely and seamlessly” (2025) – Announces Visa’s Agent APIs (indirect reference to mainstream interest in agentic payments)
+corporate.visa.com
+.
+
+Worldpay/FT – “Agentic payments: a new frontier” (2025) – Industry perspective on agent-led commerce (high-level insight, no direct listing info).

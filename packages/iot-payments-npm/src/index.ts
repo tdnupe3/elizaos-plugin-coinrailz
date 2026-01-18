@@ -94,8 +94,9 @@ export interface TransferInput {
 export interface TopupInput {
   accountId: string;
   packId: 'starter_25' | 'growth_100' | 'enterprise_500';
-  paymentMethod: 'stripe';
+  paymentMethod: 'stripe' | 'paypal';
   stripePaymentMethodId?: string;
+  paypalOrderId?: string; // For capturing an approved PayPal order
 }
 
 export interface IoTAccount {
@@ -148,22 +149,38 @@ export interface TransferResult {
   status: string;
 }
 
+// v1.1 Pricing - 50% reduction on base pricing, volume discounts available
 export const CREDITS_PACKS = {
-  starter_25: { priceUSD: 25, credits: 2500, perCreditPrice: 0.01, creditsValueUSD: 25 },
-  growth_100: { priceUSD: 100, credits: 12000, perCreditPrice: 0.00833, creditsValueUSD: 99.96 },
-  enterprise_500: { priceUSD: 500, credits: 75000, perCreditPrice: 0.00667, creditsValueUSD: 500.25 },
+  starter_25: { priceUSD: 25, credits: 5000, perCreditPrice: 0.005, creditsValueUSD: 25 },
+  growth_100: { priceUSD: 100, credits: 25000, perCreditPrice: 0.004, creditsValueUSD: 100, discount: 0.20 },
+  enterprise_500: { priceUSD: 500, credits: 200000, perCreditPrice: 0.0025, creditsValueUSD: 500, discount: 0.50 },
+} as const;
+
+// Volume pricing tiers (based on monthly event count)
+// Boundaries: standard 0-99,999, growth 100,000-999,999, scale 1,000,000+
+export const VOLUME_TIERS = {
+  standard: { minEvents: 0, maxEvents: 99999, pricePerEvent: 0.005 },
+  growth: { minEvents: 100000, maxEvents: 999999, pricePerEvent: 0.0025 },
+  scale: { minEvents: 1000000, maxEvents: null, pricePerEvent: 0.001 },
 } as const;
 
 export const EVENT_TYPES = {
-  message: { name: 'Message', defaultPrice: 0.01 },
-  data_access: { name: 'Data Access', defaultPrice: 0.01 },
-  unlock: { name: 'Unlock/Access', defaultPrice: 0.05 },
-  stream_minute: { name: 'Stream Minute', defaultPrice: 0.02 },
-  sensor_reading: { name: 'Sensor Reading', defaultPrice: 0.01 },
-  api_call: { name: 'API Call', defaultPrice: 0.01 },
-  compute_second: { name: 'Compute Second', defaultPrice: 0.001 },
-  storage_mb: { name: 'Storage MB', defaultPrice: 0.001 },
+  message: { name: 'Message', defaultPrice: 0.005, tier: 'standard' },
+  data_access: { name: 'Data Access', defaultPrice: 0.005, tier: 'standard' },
+  unlock: { name: 'Unlock/Access', defaultPrice: 0.05, tier: 'premium' },
+  stream_minute: { name: 'Stream Minute', defaultPrice: 0.02, tier: 'premium' },
+  sensor_reading: { name: 'Sensor Reading', defaultPrice: 0.005, tier: 'standard' },
+  api_call: { name: 'API Call', defaultPrice: 0.005, tier: 'standard' },
+  compute_second: { name: 'Compute Second', defaultPrice: 0.0005, tier: 'micro' },
+  storage_mb: { name: 'Storage MB', defaultPrice: 0.0005, tier: 'micro' },
 } as const;
+
+// Get volume tier based on monthly event count
+export function getVolumeTier(monthlyEvents: number) {
+  if (monthlyEvents >= 1000000) return VOLUME_TIERS.scale;
+  if (monthlyEvents >= 100000) return VOLUME_TIERS.growth;
+  return VOLUME_TIERS.standard;
+}
 
 export const TRANSFER_FEE = {
   percentage: 0.02, // 2%

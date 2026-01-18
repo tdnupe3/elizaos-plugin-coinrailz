@@ -6024,8 +6024,9 @@ export const iotTopups = pgTable(
     amount: decimal("amount", { precision: 12, scale: 4 }).notNull(), // Credits added
     amountPaid: decimal("amount_paid", { precision: 12, scale: 4 }).notNull(), // Amount paid in USD
     packType: varchar("pack_type").notNull(), // starter_25, growth_100, enterprise_500, custom
-    paymentMethod: varchar("payment_method").notNull(), // stripe, usdc_onchain, credits_transfer
+    paymentMethod: varchar("payment_method").notNull(), // stripe, paypal, usdc_onchain, credits_transfer
     stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+    paypalOrderId: varchar("paypal_order_id"), // PayPal order ID for PayPal payments
     txHash: varchar("tx_hash"), // On-chain transaction hash
     status: varchar("status").notNull().default("pending"), // pending, completed, failed, refunded
     balanceAfter: decimal("balance_after", { precision: 12, scale: 4 }), // Account balance after topup

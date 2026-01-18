@@ -79,26 +79,36 @@ const { account, apiKey, apiKeyWarning } = await iot.createAccount({
 const { apiKey: newApiKey } = await iot.rotateApiKey(account.id);
 ```
 
-## Credits Packs
+## Credits Packs (v1.1 - 2x More Credits!)
 
 | Pack | Price | Credits | Per Credit | Discount |
 |------|-------|---------|------------|----------|
-| Starter | $25 | 2,500 | $0.01 | - |
-| Growth | $100 | 12,000 | $0.0083 | 17% |
-| Enterprise | $500 | 75,000 | $0.0067 | 33% |
+| Starter | $25 | 5,000 | $0.005 | - |
+| Growth | $100 | 25,000 | $0.004 | 20% |
+| Enterprise | $500 | 200,000 | $0.0025 | 50% |
+
+## Volume Pricing Tiers
+
+High-volume users get automatic discounts based on monthly event count:
+
+| Tier | Monthly Events | Price/Event | Savings |
+|------|----------------|-------------|---------|
+| Standard | 0 - 100k | $0.005 | - |
+| Growth | 100k - 1M | $0.0025 | 50% |
+| Scale | 1M+ | $0.001 | 80% |
 
 ## Event Types & Pricing
 
-| Event | Default Price |
-|-------|---------------|
-| message | $0.01 |
-| data_access | $0.01 |
-| unlock | $0.05 |
-| stream_minute | $0.02 |
-| sensor_reading | $0.01 |
-| api_call | $0.01 |
-| compute_second | $0.001 |
-| storage_mb | $0.001 |
+| Event | Default Price | Tier |
+|-------|---------------|------|
+| message | $0.005 | standard |
+| data_access | $0.005 | standard |
+| sensor_reading | $0.005 | standard |
+| api_call | $0.005 | standard |
+| unlock | $0.05 | premium |
+| stream_minute | $0.02 | premium |
+| compute_second | $0.0005 | micro |
+| storage_mb | $0.0005 | micro |
 
 ## API Reference
 
@@ -152,6 +162,39 @@ import {
   TRANSFER_FEE,
   MIN_TRANSFER_AMOUNT 
 } from '@coinrailz/iot-payments';
+```
+
+## Payment Methods
+
+Credit topups are supported via:
+- **Stripe** - Credit/debit card payments
+- **PayPal** - PayPal account or card
+
+```typescript
+// Stripe topup (direct charge with payment method)
+await iot.topup({
+  accountId: account.id,
+  packId: 'growth_100',
+  paymentMethod: 'stripe',
+  stripePaymentMethodId: 'pm_xxx'
+});
+
+// PayPal topup (2-step flow)
+// Step 1: Create order
+const order = await iot.topup({
+  accountId: account.id,
+  packId: 'growth_100',
+  paymentMethod: 'paypal'
+});
+// Redirect user to order.approvalUrl
+
+// Step 2: Capture after approval
+await iot.topup({
+  accountId: account.id,
+  packId: 'growth_100',
+  paymentMethod: 'paypal',
+  paypalOrderId: order.paypalOrderId
+});
 ```
 
 ## Environment Variables

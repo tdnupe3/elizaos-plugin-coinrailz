@@ -1,12 +1,18 @@
 /**
  * IoT Payments Routes - Production-Grade Device Payment Infrastructure
  * 
- * VERSION: 1.0.0 (January 2026)
+ * VERSION: 1.1.0 (January 2026)
+ * 
+ * WHAT'S NEW IN v1.1:
+ * - 50% price reduction: Base price now $0.005/event (was $0.01)
+ * - Volume pricing: 100k-1M @ $0.0025, 1M+ @ $0.001
+ * - PayPal topups: Alternative to Stripe for credit purchases
+ * - 2x more credits per pack at same price
  * 
  * REVENUE MODEL:
- * - Credits Packs: $25/2,500, $100/12,000, $500/75,000 credits
+ * - Credits Packs: $25/5,000, $100/25,000, $500/200,000 credits
  * - D2D Transfer Fee: 2% + $0.02 per transfer
- * - Billable Events: $0.01 per event (configurable)
+ * - Billable Events: $0.005 per event (volume discounts available)
  * 
  * ENDPOINTS:
  * - POST /api/iot/account - Create IoT account
@@ -15,7 +21,7 @@
  * - GET /api/iot/balance/:deviceId - Check device/account balance
  * - POST /api/iot/meter - Record billable event and deduct credits
  * - POST /api/iot/transfer - D2D payment with fee extraction
- * - POST /api/iot/topup - Add credits via Stripe
+ * - POST /api/iot/topup - Add credits via Stripe or PayPal
  * - GET /api/iot/transactions/:deviceId - Transaction history
  * - GET /api/iot/health - Service health check
  * 
@@ -40,12 +46,15 @@ import {
   IOT_CREDITS_PACKS,
   IOT_TRANSFER_FEE,
   IOT_EVENT_TYPES,
+  IOT_VOLUME_TIERS,
   calculateTransferFee,
   isValidPackId,
   getPackById,
+  getVolumeTier,
   type IotCreditsPackId,
   type IotEventType,
 } from '@shared/iotPricing';
+import { paypalService } from '../services/paypalService';
 
 const router = Router();
 
@@ -215,17 +224,25 @@ const transferSchema = z.object({
 const topupSchema = z.object({
   accountId: z.string().min(1),
   packId: z.enum(['starter_25', 'growth_100', 'enterprise_500']),
-  paymentMethod: z.enum(['stripe']),
+  paymentMethod: z.enum(['stripe', 'paypal']),
   stripePaymentMethodId: z.string().optional(),
+  paypalOrderId: z.string().optional(), // For capturing an approved PayPal order
 });
 
-router.get('/health', (req: Request, res: Response) => {
+router.get('/health', async (req: Request, res: Response) => {
   const stripe = getStripeClient();
+  let paypalConfigured = false;
+  try {
+    paypalConfigured = await paypalService.testAuthentication();
+  } catch (e) {}
+  
   res.json({
     success: true,
     status: 'operational',
-    version: '1.0.0',
+    version: '1.1.0',
     stripeConfigured: !!stripe,
+    paypalConfigured,
+    volumePricing: IOT_VOLUME_TIERS,
     feeStructure: {
       transferPercentage: `${IOT_TRANSFER_FEE.percentageFee * 100}%`,
       transferFlat: `$${IOT_TRANSFER_FEE.flatFee}`,
@@ -1162,6 +1179,154 @@ router.post('/topup', requiredAuth, async (req: Request, res: Response) => {
           error: 'Payment failed',
           message: stripeError.message,
         });
+      }
+    } else if (paymentMethod === 'paypal') {
+      const { paypalOrderId } = validation.data;
+      
+      if (!paypalOrderId) {
+        // Step 1: Create PayPal order for user to approve
+        try {
+          const order = await paypalService.createOrder({
+            amount: pack.priceUSD,
+            currency: 'USD',
+            description: `IoT Credits: ${pack.name} (${pack.credits} credits)`,
+            orderId: topupId,
+            platform: 'iot_payments',
+          });
+
+          console.log(`📦 PayPal order created for IoT topup: ${order.id}`);
+
+          const approvalLink = order.links?.find((l: any) => l.rel === 'approve')?.href;
+
+          res.status(200).json({
+            success: true,
+            status: 'approval_required',
+            paypalOrderId: order.id,
+            approvalUrl: approvalLink,
+            pack: {
+              id: packId,
+              name: pack.name,
+              priceUSD: pack.priceUSD,
+              credits: pack.credits,
+            },
+            message: 'Approve payment in PayPal, then call this endpoint again with paypalOrderId',
+          });
+        } catch (paypalError: any) {
+          console.error('❌ PayPal order creation failed:', paypalError);
+          res.status(500).json({
+            success: false,
+            error: 'PayPal order creation failed',
+            message: paypalError.message,
+          });
+        }
+      } else {
+        // Step 2: Capture approved PayPal order with validation
+        try {
+          // First fetch order details to validate amount before capture
+          const orderDetails = await paypalService.getOrderDetails(paypalOrderId);
+          
+          // Validate order amount matches expected pack price
+          const purchaseUnit = orderDetails?.purchase_units?.[0];
+          const orderAmount = parseFloat(purchaseUnit?.amount?.value || '0');
+          const orderCurrency = purchaseUnit?.amount?.currency_code;
+          
+          if (orderCurrency !== 'USD') {
+            return res.status(400).json({
+              success: false,
+              error: 'Invalid currency',
+              expected: 'USD',
+              received: orderCurrency,
+            });
+          }
+          
+          // Validate amount matches pack price (allow small floating point tolerance)
+          if (Math.abs(orderAmount - pack.priceUSD) > 0.01) {
+            console.error(`❌ PayPal order amount mismatch: expected $${pack.priceUSD}, got $${orderAmount}`);
+            return res.status(400).json({
+              success: false,
+              error: 'Order amount mismatch',
+              expected: pack.priceUSD,
+              received: orderAmount,
+              hint: 'PayPal order amount does not match selected pack price',
+            });
+          }
+          
+          // Validate order is approved and ready to capture
+          if (orderDetails.status !== 'APPROVED') {
+            return res.status(400).json({
+              success: false,
+              error: 'Order not approved',
+              status: orderDetails.status,
+              hint: 'User must approve the PayPal order before capture',
+            });
+          }
+          
+          const capture = await paypalService.captureOrder(paypalOrderId);
+
+          if (capture.status === 'COMPLETED') {
+            const creditsValueUSD = pack.credits * pack.perCreditPrice;
+            
+            const result = await db.transaction(async (tx) => {
+              const accountResult = await tx.execute(
+                sql`UPDATE iot_accounts 
+                    SET credits_balance = credits_balance + ${creditsValueUSD.toFixed(4)}::numeric,
+                        total_deposited = total_deposited + ${pack.priceUSD.toFixed(4)}::numeric,
+                        updated_at = NOW()
+                    WHERE id = ${accountId}
+                    RETURNING credits_balance`
+              );
+
+              const newBalance = parseFloat((accountResult.rows[0] as any).credits_balance);
+
+              await tx.insert(iotTopups).values({
+                id: topupId,
+                accountId,
+                amount: creditsValueUSD.toString(),
+                amountPaid: pack.priceUSD.toString(),
+                packType: packId,
+                paymentMethod: 'paypal',
+                paypalOrderId: paypalOrderId,
+                status: 'completed',
+                balanceAfter: newBalance.toString(),
+              });
+
+              return { newBalance };
+            });
+
+            console.log(`💰 IoT Topup via PayPal: ${accountId} added $${creditsValueUSD.toFixed(2)} credits`);
+
+            res.status(201).json({
+              success: true,
+              topup: {
+                id: topupId,
+                accountId,
+                packId,
+                creditsAdded: creditsValueUSD,
+                creditUnits: pack.credits,
+                perCreditPrice: pack.perCreditPrice,
+                amountPaid: pack.priceUSD,
+                balanceAfter: result.newBalance,
+                status: 'completed',
+              },
+              paypalOrderId: paypalOrderId,
+              timestamp: new Date().toISOString(),
+            });
+          } else {
+            res.status(402).json({
+              success: false,
+              error: 'Payment not completed',
+              paymentStatus: capture.status,
+              paypalOrderId: paypalOrderId,
+            });
+          }
+        } catch (paypalError: any) {
+          console.error('❌ PayPal capture failed:', paypalError);
+          res.status(402).json({
+            success: false,
+            error: 'PayPal payment capture failed',
+            message: paypalError.message,
+          });
+        }
       }
     }
   } catch (error: any) {

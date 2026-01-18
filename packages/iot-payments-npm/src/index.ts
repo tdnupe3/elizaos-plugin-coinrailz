@@ -149,9 +149,9 @@ export interface TransferResult {
 }
 
 export const CREDITS_PACKS = {
-  starter_25: { priceUSD: 25, credits: 2500, perCreditPrice: 0.01 },
-  growth_100: { priceUSD: 100, credits: 12000, perCreditPrice: 0.00833 },
-  enterprise_500: { priceUSD: 500, credits: 75000, perCreditPrice: 0.00667 },
+  starter_25: { priceUSD: 25, credits: 2500, perCreditPrice: 0.01, creditsValueUSD: 25 },
+  growth_100: { priceUSD: 100, credits: 12000, perCreditPrice: 0.00833, creditsValueUSD: 99.96 },
+  enterprise_500: { priceUSD: 500, credits: 75000, perCreditPrice: 0.00667, creditsValueUSD: 500.25 },
 } as const;
 
 export const EVENT_TYPES = {
@@ -168,10 +168,13 @@ export const EVENT_TYPES = {
 export const TRANSFER_FEE = {
   percentage: 0.02, // 2%
   flat: 0.02, // $0.02
+  minFee: 0.02, // minimum fee
 } as const;
 
+export const MIN_TRANSFER_AMOUNT = 0.05; // $0.05 minimum transfer
+
 export function calculateTransferFee(amount: number): { fee: number; netAmount: number } {
-  const fee = Math.max(0.02, amount * TRANSFER_FEE.percentage + TRANSFER_FEE.flat);
+  const fee = Math.max(TRANSFER_FEE.minFee, amount * TRANSFER_FEE.percentage + TRANSFER_FEE.flat);
   const netAmount = Math.max(0, amount - fee);
   return { fee: Number(fee.toFixed(4)), netAmount: Number(netAmount.toFixed(4)) };
 }

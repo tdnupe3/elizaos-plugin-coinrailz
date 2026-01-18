@@ -5856,6 +5856,7 @@ export const iotAccounts = pgTable(
     id: varchar("id").primaryKey(), // iot_acc_<nanoid>
     ownerId: varchar("owner_id"), // Optional link to users.id
     ownerWallet: varchar("owner_wallet"), // Owner's wallet address for non-custodial
+    apiKeyHash: varchar("api_key_hash"), // SHA-256 hash of the API key for secure authentication
     accountName: varchar("account_name").notNull(), // Human-readable account name
     creditsBalance: decimal("credits_balance", { precision: 12, scale: 4 }).notNull().default("0"), // Credits in USD ($0.01 = 1 credit unit)
     totalDeposited: decimal("total_deposited", { precision: 12, scale: 4 }).notNull().default("0"), // Lifetime deposits
@@ -5874,6 +5875,7 @@ export const iotAccounts = pgTable(
   (table) => [
     index("IDX_iot_accounts_owner_id").on(table.ownerId),
     index("IDX_iot_accounts_owner_wallet").on(table.ownerWallet),
+    index("IDX_iot_accounts_api_key_hash").on(table.apiKeyHash),
     index("IDX_iot_accounts_status").on(table.status),
     index("IDX_iot_accounts_tier").on(table.tier),
   ],

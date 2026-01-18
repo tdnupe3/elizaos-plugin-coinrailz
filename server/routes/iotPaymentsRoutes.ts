@@ -63,35 +63,69 @@ const iotRateLimiter = rateLimit({
 
 router.use(iotRateLimiter);
 
-async function verifyApiKey(apiKey: string, deviceId?: string): Promise<{ valid: boolean; accountId?: string; deviceId?: string }> {
+interface IoTAuthResult {
+  valid: boolean;
+  accountId?: string;
+  deviceId?: string;
+  ownedAccountIds?: string[];
+}
+
+async function verifyApiKey(apiKey: string): Promise<IoTAuthResult> {
   if (!apiKey) return { valid: false };
   
-  const keyHash = require('crypto').createHash('sha256').update(apiKey).digest('hex');
+  const { createHash } = await import('crypto');
+  const keyHash = createHash('sha256').update(apiKey).digest('hex');
   
-  const device = await db.execute(
-    sql`SELECT id, device_id, account_id, status FROM iot_device_registry 
-        WHERE device_id = (
-          SELECT device_id FROM m2m_devices WHERE api_key_hash = ${keyHash} AND status = 'active'
-        ) AND status = 'active'`
+  const deviceResult = await db.execute(
+    sql`SELECT dr.device_id, dr.account_id, dr.status 
+        FROM iot_device_registry dr
+        JOIN m2m_devices m ON m.device_id = dr.device_id
+        WHERE m.api_key_hash = ${keyHash} AND m.status = 'active' AND dr.status = 'active'`
   );
   
-  if (device.rows.length > 0) {
-    const d = device.rows[0] as any;
-    if (deviceId && d.device_id !== deviceId) {
-      return { valid: false };
-    }
-    return { valid: true, accountId: d.account_id, deviceId: d.device_id };
+  if (deviceResult.rows.length > 0) {
+    const d = deviceResult.rows[0] as any;
+    return { 
+      valid: true, 
+      accountId: d.account_id, 
+      deviceId: d.device_id,
+      ownedAccountIds: [d.account_id]
+    };
   }
   
-  const account = await db.execute(
-    sql`SELECT id, status FROM iot_accounts WHERE owner_wallet = ${apiKey} AND status = 'active'`
+  const accountKeyResult = await db.execute(
+    sql`SELECT ia.id, ia.status 
+        FROM iot_accounts ia
+        WHERE ia.api_key_hash = ${keyHash} AND ia.status = 'active'`
   );
   
-  if (account.rows.length > 0) {
-    return { valid: true, accountId: (account.rows[0] as any).id };
+  if (accountKeyResult.rows.length > 0) {
+    const accountIds = accountKeyResult.rows.map((r: any) => r.id);
+    return { 
+      valid: true, 
+      accountId: accountIds[0],
+      ownedAccountIds: accountIds
+    };
   }
   
   return { valid: false };
+}
+
+function canAccessAccount(auth: IoTAuthResult, accountId: string): boolean {
+  if (!auth.ownedAccountIds) return false;
+  return auth.ownedAccountIds.includes(accountId);
+}
+
+async function canAccessDevice(auth: IoTAuthResult, deviceId: string): Promise<boolean> {
+  if (auth.deviceId === deviceId) return true;
+  
+  const device = await db.select()
+    .from(iotDeviceRegistry)
+    .where(eq(iotDeviceRegistry.deviceId, deviceId))
+    .limit(1);
+  
+  if (!device.length) return false;
+  return canAccessAccount(auth, device[0].accountId);
 }
 
 function requireAuth(allowPublic: boolean = false) {
@@ -119,6 +153,8 @@ function requireAuth(allowPublic: boolean = false) {
     next();
   };
 }
+
+const MIN_TRANSFER_AMOUNT = 0.05;
 
 let stripeClient: Stripe | null = null;
 function getStripeClient(): Stripe | null {
@@ -166,7 +202,7 @@ const transferSchema = z.object({
   fromDeviceId: z.string().min(1),
   toDeviceId: z.string().optional(),
   toWallet: z.string().optional(),
-  amount: z.number().positive().min(0.01),
+  amount: z.number().positive().min(MIN_TRANSFER_AMOUNT, `Minimum transfer amount is $${MIN_TRANSFER_AMOUNT}`),
   paymentMethod: z.enum(['credits', 'usdc_onchain']),
   chain: z.string().optional(),
   purpose: z.string().optional(),
@@ -227,11 +263,16 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
 
     const { accountName, ownerId, ownerWallet, tier, metadata } = validation.data;
     const accountId = `iot_acc_${nanoid(12)}`;
+    
+    const { createHash, randomBytes } = await import('crypto');
+    const apiKey = `iot_${randomBytes(24).toString('hex')}`;
+    const apiKeyHash = createHash('sha256').update(apiKey).digest('hex');
 
     await db.insert(iotAccounts).values({
       id: accountId,
       ownerId,
       ownerWallet,
+      apiKeyHash,
       accountName,
       tier,
       metadata: metadata || {},
@@ -248,6 +289,8 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
         creditsBalance: 0,
         status: 'active',
       },
+      apiKey,
+      apiKeyWarning: 'Store this API key securely. It cannot be retrieved again.',
       endpoints: {
         registerDevice: '/api/iot/register',
         topup: '/api/iot/topup',
@@ -269,6 +312,14 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
 router.get('/account/:accountId', requiredAuth, async (req: Request, res: Response) => {
   try {
     const { accountId } = req.params;
+    const auth = (req as any).iotAuth as IoTAuthResult;
+    
+    if (!canAccessAccount(auth, accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this account',
+      });
+    }
     
     const account = await db.select()
       .from(iotAccounts)
@@ -279,6 +330,14 @@ router.get('/account/:accountId', requiredAuth, async (req: Request, res: Respon
       return res.status(404).json({
         success: false,
         error: 'Account not found',
+      });
+    }
+    
+    if (account[0].status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Account is suspended',
+        status: account[0].status,
       });
     }
 
@@ -313,6 +372,59 @@ router.get('/account/:accountId', requiredAuth, async (req: Request, res: Respon
   }
 });
 
+router.post('/account/:accountId/rotate-key', requiredAuth, async (req: Request, res: Response) => {
+  try {
+    const { accountId } = req.params;
+    const auth = (req as any).iotAuth as IoTAuthResult;
+    
+    if (!canAccessAccount(auth, accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this account',
+      });
+    }
+    
+    const account = await db.select()
+      .from(iotAccounts)
+      .where(eq(iotAccounts.id, accountId))
+      .limit(1);
+
+    if (!account.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+    
+    const { createHash, randomBytes } = await import('crypto');
+    const newApiKey = `iot_${randomBytes(24).toString('hex')}`;
+    const newApiKeyHash = createHash('sha256').update(newApiKey).digest('hex');
+    
+    await db.update(iotAccounts)
+      .set({ 
+        apiKeyHash: newApiKeyHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(iotAccounts.id, accountId));
+    
+    console.log(`🔑 IoT Account API key rotated: ${accountId}`);
+    
+    res.json({
+      success: true,
+      apiKey: newApiKey,
+      apiKeyWarning: 'Store this API key securely. The old key is now invalidated.',
+      accountId,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('❌ API key rotation failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'API key rotation failed',
+    });
+  }
+});
+
 router.post('/register', requiredAuth, async (req: Request, res: Response) => {
   try {
     const validation = registerDeviceSchema.safeParse(req.body);
@@ -325,6 +437,14 @@ router.post('/register', requiredAuth, async (req: Request, res: Response) => {
     }
 
     const data = validation.data;
+    const auth = (req as any).iotAuth as IoTAuthResult;
+    
+    if (!canAccessAccount(auth, data.accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this account',
+      });
+    }
     
     const account = await db.select()
       .from(iotAccounts)
@@ -335,6 +455,13 @@ router.post('/register', requiredAuth, async (req: Request, res: Response) => {
       return res.status(404).json({
         success: false,
         error: 'Account not found',
+      });
+    }
+    
+    if (account[0].status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Account is suspended',
       });
     }
 
@@ -399,6 +526,7 @@ router.post('/register', requiredAuth, async (req: Request, res: Response) => {
 router.get('/balance/:deviceId', requiredAuth, async (req: Request, res: Response) => {
   try {
     const { deviceId } = req.params;
+    const auth = (req as any).iotAuth as IoTAuthResult;
 
     const device = await db.select()
       .from(iotDeviceRegistry)
@@ -410,6 +538,21 @@ router.get('/balance/:deviceId', requiredAuth, async (req: Request, res: Respons
         success: false,
         error: 'Device not found',
         registerEndpoint: '/api/iot/register',
+      });
+    }
+    
+    if (!canAccessAccount(auth, device[0].accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this device',
+      });
+    }
+    
+    if (device[0].status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Device is suspended',
+        status: device[0].status,
       });
     }
 
@@ -467,6 +610,7 @@ router.post('/meter', requiredAuth, async (req: Request, res: Response) => {
     }
 
     const { deviceId, eventType, units, unitPrice, topic, payload, serviceId, idempotencyKey } = validation.data;
+    const auth = (req as any).iotAuth as IoTAuthResult;
     const eventId = idempotencyKey ? `iot_evt_${idempotencyKey}` : `iot_evt_${nanoid(16)}`;
 
     if (idempotencyKey) {
@@ -496,9 +640,37 @@ router.post('/meter', requiredAuth, async (req: Request, res: Response) => {
         error: 'Device not found',
       });
     }
+    
+    if (!canAccessAccount(auth, device[0].accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this device',
+      });
+    }
+    
+    if (device[0].status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Device is suspended',
+      });
+    }
 
     const effectiveUnitPrice = unitPrice ?? IOT_EVENT_TYPES[eventType as IotEventType]?.defaultUnitPrice ?? 0.01;
     const totalCost = units * effectiveUnitPrice;
+    
+    const spendingLimit = device[0].spendingLimit ? parseFloat(device[0].spendingLimit) : null;
+    const todaySpent = parseFloat(device[0].todaySpent || '0');
+    
+    if (spendingLimit !== null && (todaySpent + totalCost) > spendingLimit) {
+      return res.status(402).json({
+        success: false,
+        error: 'Spending limit exceeded',
+        spendingLimit,
+        todaySpent,
+        requestedAmount: totalCost,
+        remaining: Math.max(0, spendingLimit - todaySpent),
+      });
+    }
 
     const result = await db.transaction(async (tx) => {
       const accountResult = await tx.execute(
@@ -594,7 +766,16 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
     }
 
     const { fromDeviceId, toDeviceId, toWallet, amount, paymentMethod, chain, purpose, reference, idempotencyKey } = validation.data;
+    const auth = (req as any).iotAuth as IoTAuthResult;
     const transferId = `iot_txn_${nanoid(16)}`;
+
+    if (amount < MIN_TRANSFER_AMOUNT) {
+      return res.status(400).json({
+        success: false,
+        error: `Minimum transfer amount is $${MIN_TRANSFER_AMOUNT}`,
+        minAmount: MIN_TRANSFER_AMOUNT,
+      });
+    }
 
     if (paymentMethod === 'credits' && !toDeviceId) {
       return res.status(400).json({
@@ -608,6 +789,13 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         error: 'USDC on-chain transfers require toWallet or toDeviceId',
+      });
+    }
+    
+    if (fromDeviceId === toDeviceId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot transfer to the same device',
       });
     }
 
@@ -638,6 +826,20 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
         error: 'Sender device not found',
       });
     }
+    
+    if (!canAccessAccount(auth, fromDevice[0].accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to sender device',
+      });
+    }
+    
+    if (fromDevice[0].status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        error: 'Sender device is suspended',
+      });
+    }
 
     if (!fromDevice[0].canSendPayments) {
       return res.status(403).json({
@@ -655,16 +857,36 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
         .where(eq(iotDeviceRegistry.deviceId, toDeviceId))
         .limit(1);
 
-      if (toDeviceResult.length) {
-        toDevice = toDeviceResult[0];
-        toAccountId = toDevice.accountId;
-        
-        if (!toDevice.canReceivePayments) {
-          return res.status(403).json({
-            success: false,
-            error: 'Recipient device cannot receive payments',
-          });
-        }
+      if (!toDeviceResult.length) {
+        return res.status(404).json({
+          success: false,
+          error: 'Recipient device not found',
+        });
+      }
+      
+      toDevice = toDeviceResult[0];
+      toAccountId = toDevice.accountId;
+      
+      if (toDevice.status !== 'active') {
+        return res.status(403).json({
+          success: false,
+          error: 'Recipient device is suspended',
+        });
+      }
+      
+      if (!toDevice.canReceivePayments) {
+        return res.status(403).json({
+          success: false,
+          error: 'Recipient device cannot receive payments',
+        });
+      }
+      
+      if (fromDevice[0].accountId === toDevice.accountId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot transfer between devices on the same account',
+          hint: 'Use internal account balance management instead',
+        });
       }
     }
 
@@ -812,7 +1034,15 @@ router.post('/topup', requiredAuth, async (req: Request, res: Response) => {
     }
 
     const { accountId, packId, paymentMethod, stripePaymentMethodId } = validation.data;
+    const auth = (req as any).iotAuth as IoTAuthResult;
     const topupId = `iot_topup_${nanoid(16)}`;
+    
+    if (!canAccessAccount(auth, accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this account',
+      });
+    }
 
     const account = await db.select()
       .from(iotAccounts)
@@ -947,6 +1177,7 @@ router.post('/topup', requiredAuth, async (req: Request, res: Response) => {
 router.get('/transactions/:deviceId', requiredAuth, async (req: Request, res: Response) => {
   try {
     const { deviceId } = req.params;
+    const auth = (req as any).iotAuth as IoTAuthResult;
     const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -959,6 +1190,13 @@ router.get('/transactions/:deviceId', requiredAuth, async (req: Request, res: Re
       return res.status(404).json({
         success: false,
         error: 'Device not found',
+      });
+    }
+    
+    if (!canAccessAccount(auth, device[0].accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this device',
       });
     }
 

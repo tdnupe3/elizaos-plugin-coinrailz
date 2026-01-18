@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { persistDiscoveredAgent } from './persistence/discoveredAgentPersistence';
 import { discoveryPingService } from './discoveryPingService';
+import { db } from '../db';
+import { discoveredAgents } from '@shared/schema';
 
 /**
  * A2A MASS DISCOVERY SERVICE

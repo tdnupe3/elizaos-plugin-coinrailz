@@ -336,6 +336,193 @@ export class A2AOutreachService {
   }
 
   /**
+   * Check if agent is a high-value developer/platform target
+   * Must match explicit allowlist patterns - excludes Lifie.ai business directory
+   */
+  private isHighValueTarget(agent: any): boolean {
+    const url = agent.url?.toLowerCase() || '';
+    
+    // Explicitly exclude Lifie.ai business directory entries
+    if (url.includes('lifie.ai') || url.includes('hub.lifie.ai')) {
+      return false;
+    }
+    
+    // Must match explicit high-value platform patterns
+    const highValuePatterns = [
+      'modal.run',      // Modal deployments (real AI agents)
+      'telex.im',       // Telex platform
+      'a2aregistry.org', // Official registry demos
+      'railway.app',    // Railway deployments
+      'fly.io',         // Fly.io deployments
+      'render.com',     // Render deployments
+      'cloudrun.app',   // Google Cloud Run
+      'vercel.app',     // Vercel deployments
+      'azure',          // Azure deployments
+      'langchain',      // LangChain ecosystem
+      'langgraph',      // LangGraph ecosystem
+      'replit.app',     // Replit deployments
+      'heroku',         // Heroku deployments
+    ];
+    
+    return highValuePatterns.some(p => url.includes(p));
+  }
+
+  /**
+   * Get high-value developer/platform agents for targeted outreach
+   * Returns agents with accurate isHighValue flag per agent
+   */
+  async getHighValueAgents(limit: number = 20): Promise<Array<any & { isHighValue: boolean }>> {
+    const agents = await this.getVerifiedAgentsForOutreach(limit * 5);
+    
+    // Mark each agent with accurate isHighValue flag
+    const markedAgents = agents.map(a => ({
+      ...a,
+      isHighValue: this.isHighValueTarget(a)
+    }));
+    
+    // Sort: high-value first, then by score
+    markedAgents.sort((a, b) => {
+      if (a.isHighValue && !b.isHighValue) return -1;
+      if (!a.isHighValue && b.isHighValue) return 1;
+      return (b.score || 0) - (a.score || 0);
+    });
+    
+    return markedAgents.slice(0, limit);
+  }
+
+  /**
+   * Sync agents from official a2aregistry.org
+   * Preserves original source for existing agents, uses 'registry_synced' status for new agents
+   */
+  async syncFromA2ARegistry(): Promise<{
+    total: number;
+    added: number;
+    updated: number;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    let added = 0;
+    let updated = 0;
+
+    try {
+      console.log('🔄 Syncing agents from a2aregistry.org...');
+      
+      const response = await axios.get('https://a2aregistry.org/registry.json', {
+        timeout: 30000,
+        headers: { 'User-Agent': this.USER_AGENT }
+      });
+
+      const registry = response.data;
+      const agents = registry.agents || [];
+
+      console.log(`📊 Found ${agents.length} agents in a2aregistry.org`);
+
+      for (const agent of agents) {
+        try {
+          // Skip our own agent
+          if (agent.url?.includes('coinrailz.com')) continue;
+
+          const existingAgent = await db.select()
+            .from(discoveredAgents)
+            .where(eq(discoveredAgents.url, agent.url))
+            .limit(1);
+
+          if (existingAgent.length > 0) {
+            // Update existing agent - preserve original source, just update metadata
+            await db.update(discoveredAgents)
+              .set({
+                capabilities: agent.capabilities,
+                metadata: {
+                  ...(existingAgent[0].metadata as object || {}),
+                  name: agent.name,
+                  description: agent.description,
+                  provider: agent.provider,
+                  skills: agent.skills,
+                  wellKnownURI: agent.wellKnownURI,
+                  version: agent.version,
+                  protocolVersion: agent.protocolVersion,
+                  registrySyncedAt: new Date().toISOString()
+                },
+                lastSeenAt: new Date(),
+                // Boost score for high-value targets, but preserve higher existing scores
+                score: Math.max(
+                  existingAgent[0].score || 0,
+                  this.isHighValueTarget({ url: agent.url }) ? 95 : 80
+                )
+              })
+              .where(eq(discoveredAgents.id, existingAgent[0].id));
+            updated++;
+          } else {
+            // Add new agent with registry_synced status (not verified - need to probe first)
+            await db.insert(discoveredAgents).values({
+              url: agent.url,
+              source: 'a2aregistry-official',
+              status: 'registry_synced', // Not verified until we confirm reachability
+              score: this.isHighValueTarget({ url: agent.url }) ? 95 : 80,
+              capabilities: agent.capabilities,
+              metadata: {
+                name: agent.name,
+                description: agent.description,
+                provider: agent.provider,
+                skills: agent.skills,
+                wellKnownURI: agent.wellKnownURI,
+                version: agent.version,
+                protocolVersion: agent.protocolVersion,
+                registrySyncedAt: new Date().toISOString()
+              },
+              discoveredAt: new Date()
+            });
+            added++;
+          }
+        } catch (err) {
+          errors.push(`Failed to process ${agent.name}: ${(err as Error).message}`);
+        }
+      }
+
+      console.log(`✅ Registry sync complete: ${added} added, ${updated} updated`);
+
+      return { total: agents.length, added, updated, errors };
+
+    } catch (error) {
+      const errMsg = `Failed to fetch a2aregistry.org: ${(error as Error).message}`;
+      console.error(`❌ ${errMsg}`);
+      errors.push(errMsg);
+      return { total: 0, added: 0, updated: 0, errors };
+    }
+  }
+  
+  /**
+   * Get count of high-value vs regular agents for dynamic reporting
+   */
+  async getDiscoveryStats(): Promise<{
+    totalAgents: number;
+    highValueCount: number;
+    lifieHubCount: number;
+    otherCount: number;
+  }> {
+    const allAgents = await this.getVerifiedAgentsForOutreach(500);
+    
+    let highValueCount = 0;
+    let lifieHubCount = 0;
+    
+    for (const agent of allAgents) {
+      const url = agent.url?.toLowerCase() || '';
+      if (this.isHighValueTarget(agent)) {
+        highValueCount++;
+      } else if (url.includes('lifie.ai') || url.includes('hub.lifie.ai')) {
+        lifieHubCount++;
+      }
+    }
+    
+    return {
+      totalAgents: allAgents.length,
+      highValueCount,
+      lifieHubCount,
+      otherCount: allAgents.length - highValueCount - lifieHubCount
+    };
+  }
+
+  /**
    * Run outreach campaign to verified A2A agents
    */
   async runOutreachCampaign(options: {

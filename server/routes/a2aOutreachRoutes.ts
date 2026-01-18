@@ -241,4 +241,121 @@ router.get('/outreach/health', async (_req: Request, res: Response) => {
   });
 });
 
+/**
+ * GET /api/a2a/outreach/high-value
+ * Get agents sorted by priority, with accurate isHighValue flag per agent
+ */
+router.get('/outreach/high-value', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 20;
+    const agents = await a2aOutreachService.getHighValueAgents(limit);
+    
+    const highValueOnly = agents.filter(a => a.isHighValue);
+
+    res.json({
+      success: true,
+      count: agents.length,
+      highValueCount: highValueOnly.length,
+      description: 'Agents sorted by priority - high-value developer platforms first',
+      agents: agents.map(a => ({
+        id: a.id,
+        url: a.url,
+        name: (a.metadata as any)?.name || a.url,
+        provider: (a.metadata as any)?.provider?.organization,
+        capabilities: a.capabilities,
+        status: a.status,
+        score: a.score,
+        lastContactAt: a.lastContactAt,
+        isHighValue: a.isHighValue // Accurate per-agent flag
+      }))
+    });
+
+  } catch (error: any) {
+    console.error('High-value agents error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get high-value agents'
+    });
+  }
+});
+
+/**
+ * POST /api/a2a/outreach/sync-registry
+ * Sync agents from official a2aregistry.org
+ */
+router.post('/outreach/sync-registry', async (_req: Request, res: Response) => {
+  try {
+    console.log('🔄 Starting a2aregistry.org sync...');
+    const result = await a2aOutreachService.syncFromA2ARegistry();
+
+    res.json({
+      success: true,
+      message: `Synced ${result.total} agents from a2aregistry.org`,
+      stats: {
+        total: result.total,
+        added: result.added,
+        updated: result.updated,
+        errors: result.errors.length
+      },
+      errors: result.errors.length > 0 ? result.errors.slice(0, 5) : undefined
+    });
+
+  } catch (error: any) {
+    console.error('Registry sync error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to sync registry'
+    });
+  }
+});
+
+/**
+ * GET /api/a2a/outreach/discovery-summary
+ * Get dynamic summary of A2A discovery ecosystem (computed from DB)
+ */
+router.get('/outreach/discovery-summary', async (_req: Request, res: Response) => {
+  try {
+    const stats = await a2aOutreachService.getDiscoveryStats();
+    const highValueAgents = await a2aOutreachService.getHighValueAgents(20);
+    
+    // Get actual high-value agent details
+    const trueHighValue = highValueAgents.filter(a => a.isHighValue);
+
+    res.json({
+      success: true,
+      ecosystemStatus: {
+        message: 'A2A Protocol launched April 2025 - ecosystem is still growing',
+        publicAgentsTotal: stats.totalAgents,
+        highValueTargets: stats.highValueCount,
+        lifieHubAgents: stats.lifieHubCount,
+        otherAgents: stats.otherCount,
+        recommendation: stats.highValueCount > 0 
+          ? `Focus on ${stats.highValueCount} high-value developer platforms for highest conversion potential`
+          : 'Sync from a2aregistry.org to find high-value targets'
+      },
+      sources: {
+        total: stats.totalAgents,
+        breakdown: {
+          highValuePlatforms: stats.highValueCount,
+          lifieHubDirectory: stats.lifieHubCount,
+          other: stats.otherCount
+        }
+      },
+      highValueAgents: trueHighValue.slice(0, 10).map(a => ({
+        name: (a.metadata as any)?.name || a.url,
+        url: a.url,
+        provider: (a.metadata as any)?.provider?.organization,
+        score: a.score
+      }))
+    });
+
+  } catch (error: any) {
+    console.error('Discovery summary error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get discovery summary'
+    });
+  }
+});
+
 export default router;

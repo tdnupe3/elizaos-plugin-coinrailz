@@ -7,9 +7,10 @@
 
 import fetch from 'node-fetch';
 
-const COINRAILZ_DOMAIN = process.env.REPLIT_DEV_DOMAIN 
-  ? `https://${process.env.REPLIT_DEV_DOMAIN}` 
-  : 'https://coinrailz.com';
+const COINRAILZ_DOMAIN = process.env.PUBLIC_BASE_URL ||
+  (process.env.REPLIT_DEPLOYMENT === '1' ? 'https://coinrailz.com' :
+   process.env.REPLIT_DEV_DOMAIN ? `https://${process.env.REPLIT_DEV_DOMAIN}` :
+   'https://coinrailz.com');
 
 // Our 7 marketplace agents + platform agent
 const AGENTS_TO_SUBMIT = [
@@ -80,9 +81,10 @@ interface RegistrySubmission {
 
 const REGISTRY_SUBMISSIONS: RegistrySubmission[] = [
   {
-    url: 'https://api.a2a-registry.dev/jsonrpc',
+    url: 'https://github.com/a2aregistry/a2a-registry',
     method: 'POST',
-    format: 'json-rpc'
+    format: 'github-pr',
+    instructions: 'a2aregistry.org is a static GitHub Pages site. Submit via PR to add agent card URL.'
   },
   {
     url: 'https://github.com/sing1ee/a2a-directory',
@@ -177,6 +179,42 @@ async function submitToJsonRpcRegistry(registryUrl: string, agentCard: any) {
   }
 }
 
+async function submitToA2AStandardRegistry(registryUrl: string, agentCard: any) {
+  try {
+    const response = await fetch(registryUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'CoinRailz-Registry-Submission/1.0'
+      },
+      body: JSON.stringify({
+        name: agentCard.name,
+        url: agentCard.wellKnownURI,
+        agentCardUrl: agentCard.wellKnownURI,
+        description: agentCard.description,
+        category: agentCard.metadata?.category || 'infrastructure',
+        provider: agentCard.provider?.organization || 'Coin Railz',
+        capabilities: Object.keys(agentCard.capabilities || {}),
+        skills: agentCard.skills?.map((s: any) => s.name) || []
+      })
+    });
+
+    if (response.ok) {
+      const result = await response.json().catch(() => ({ status: 'accepted' }));
+      console.log(`✅ Submitted ${agentCard.name} to ${registryUrl}`);
+      return { success: true, result };
+    } else {
+      const error = await response.text();
+      console.log(`❌ Failed to submit ${agentCard.name} to ${registryUrl}: ${error.slice(0, 200)}`);
+      return { success: false, error };
+    }
+  } catch (error) {
+    console.log(`❌ Error submitting to ${registryUrl}:`, (error as Error).message);
+    return { success: false, error: (error as Error).message };
+  }
+}
+
 async function main() {
   console.log('🚀 Submitting Coin Railz Agents to A2A Registries\n');
   console.log(`Platform: ${COINRAILZ_DOMAIN}`);
@@ -194,6 +232,9 @@ async function main() {
     for (const registry of REGISTRY_SUBMISSIONS) {
       if (registry.format === 'json-rpc') {
         const result = await submitToJsonRpcRegistry(registry.url, agentCard);
+        results.push({ agent: agent.name, registry: registry.url, result });
+      } else if (registry.format === 'a2a-standard') {
+        const result = await submitToA2AStandardRegistry(registry.url, agentCard);
         results.push({ agent: agent.name, registry: registry.url, result });
       } else if (registry.format === 'github-pr') {
         console.log(`📋 Manual submission required: ${registry.instructions}`);

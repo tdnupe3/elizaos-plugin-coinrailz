@@ -58,21 +58,33 @@ export class A2AOutreachService {
   private lastRequestTime: Map<string, number> = new Map();
 
   /**
+   * Get base URL for the platform (consistent with wellKnownRoutes)
+   */
+  private getBaseUrl(): string {
+    if (process.env.PUBLIC_BASE_URL) {
+      return process.env.PUBLIC_BASE_URL;
+    }
+    if (process.env.REPLIT_DEPLOYMENT === '1') {
+      return 'https://coinrailz.com';
+    }
+    if (process.env.REPLIT_DEV_DOMAIN) {
+      return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    }
+    return 'http://localhost:5000';
+  }
+
+  /**
    * Get our A2A agent card URL for reciprocal discovery
    */
   private getOurAgentCardUrl(): string {
-    return process.env.REPLIT_DEPLOYMENT_URL 
-      ? `${process.env.REPLIT_DEPLOYMENT_URL}/.well-known/agent-card.json`
-      : 'https://coinrailz.xyz/.well-known/agent-card.json';
+    return `${this.getBaseUrl()}/.well-known/agent-card.json`;
   }
 
   /**
    * Get response webhook URL for push notifications
    */
   private getResponseWebhookUrl(): string {
-    return process.env.REPLIT_DEPLOYMENT_URL 
-      ? `${process.env.REPLIT_DEPLOYMENT_URL}/api/a2a-protocol/responses`
-      : 'https://coinrailz.xyz/api/a2a-protocol/responses';
+    return `${this.getBaseUrl()}/api/a2a-protocol/responses`;
   }
 
   /**
@@ -135,15 +147,15 @@ export class A2AOutreachService {
                   noCardRequired: true
                 },
                 integration: {
-                  docsUrl: 'https://coinrailz.xyz/docs/mcp-payments-kit',
-                  quickstartUrl: 'https://coinrailz.xyz/docs/quickstart',
+                  docsUrl: 'https://coinrailz.com/docs/mcp-payments-kit',
+                  quickstartUrl: 'https://coinrailz.com/docs/quickstart',
                   sdkUrl: 'https://www.npmjs.com/package/@coinrailz/mcp-payments',
                   agentCard: this.getOurAgentCardUrl()
                 },
                 callToAction: {
                   action: 'reply_to_integrate',
                   supportedResponses: ['interested', 'schedule_demo', 'request_info', 'decline'],
-                  contactEmail: 'integrations@coinrailz.xyz'
+                  contactEmail: 'integrations@coinrailz.com'
                 }
               }
             }
@@ -1002,6 +1014,140 @@ export class A2AOutreachService {
       declined: logs.filter(m => m.outreach.status === 'declined'),
       pending: logs.filter(m => m.outreach.status === 'sent')
     };
+  }
+
+  /**
+   * Search agents by capability/skills/tags
+   * Enables reverse discovery - finding agents the way they find us
+   */
+  async searchAgentsByCapability(params: {
+    searchTerms: string[];
+    limit?: number;
+    acceptsTasksOnly?: boolean;
+  }): Promise<{ agents: any[] }> {
+    const { searchTerms, limit = 50, acceptsTasksOnly = false } = params;
+    
+    try {
+      const conditions = [not(eq(discoveredAgents.status, 'opt_out'))];
+      if (acceptsTasksOnly) {
+        conditions.push(eq(discoveredAgents.status, 'verified'));
+      }
+      
+      let agents = await db.select()
+        .from(discoveredAgents)
+        .where(and(...conditions))
+        .limit(limit * 3);
+
+      if (searchTerms.length === 0) {
+        return { 
+          agents: agents.slice(0, limit).map(a => ({
+            ...a,
+            matchScore: 0,
+            acceptsTasks: a.status === 'verified',
+            lastVerifiedAt: a.updatedAt
+          }))
+        };
+      }
+
+      const scored = agents.map(agent => {
+        let score = 0;
+        const capStr = JSON.stringify(agent.capabilities || {}).toLowerCase();
+        const metaStr = JSON.stringify(agent.metadata || {}).toLowerCase();
+        const urlStr = (agent.url || '').toLowerCase();
+        
+        for (const term of searchTerms) {
+          if (capStr.includes(term)) score += 10;
+          if (metaStr.includes(term)) score += 5;
+          if (urlStr.includes(term)) score += 3;
+        }
+
+        return {
+          ...agent,
+          matchScore: score,
+          acceptsTasks: agent.status === 'verified',
+          lastVerifiedAt: agent.updatedAt
+        };
+      });
+
+      const filtered = scored
+        .filter(a => a.matchScore > 0)
+        .sort((a, b) => b.matchScore - a.matchScore)
+        .slice(0, limit);
+
+      console.log(`🔍 Capability search: found ${filtered.length} agents matching [${searchTerms.join(', ')}]`);
+
+      return { agents: filtered };
+    } catch (error) {
+      console.error('Capability search error:', error);
+      return { agents: [] };
+    }
+  }
+
+  /**
+   * Get agents discovered from Coinbase Bazaar (x402 indexed agents)
+   * These are REAL paying agents with proven transaction history
+   */
+  async getBazaarAgents(params: {
+    limit?: number;
+    capabilities?: string[];
+  }): Promise<{ agents: any[]; uniqueDomains: number }> {
+    const { limit = 100, capabilities = [] } = params;
+    
+    try {
+      const BAZAAR_API = 'https://api.cdp.coinbase.com/platform/v2/x402/discovery/resources';
+      
+      const response = await axios.get(BAZAAR_API, {
+        params: { limit: Math.min(limit * 2, 500) },
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': this.USER_AGENT
+        },
+        timeout: 30000
+      });
+
+      if (!response.data?.items) {
+        return { agents: [], uniqueDomains: 0 };
+      }
+
+      const agents = response.data.items.map((item: any) => {
+        let domain = '';
+        try {
+          const url = new URL(item.resource);
+          domain = url.hostname;
+        } catch {}
+
+        return {
+          domain,
+          resource: item.resource,
+          description: item.accepts?.[0]?.description || item.description,
+          payTo: item.accepts?.[0]?.payTo,
+          network: item.accepts?.[0]?.network || item.network,
+          asset: item.accepts?.[0]?.asset,
+          hasAgentCard: false,
+          agentCardUrl: domain ? `https://${domain}/.well-known/agent-card.json` : null
+        };
+      });
+
+      let filtered = agents;
+      if (capabilities.length > 0) {
+        filtered = agents.filter((a: any) => {
+          const desc = (a.description || '').toLowerCase();
+          return capabilities.some(cap => desc.includes(cap));
+        });
+      }
+
+      const uniqueDomains = new Set(filtered.map((a: any) => a.domain)).size;
+
+      console.log(`🏪 Bazaar discovery: ${filtered.length} services from ${uniqueDomains} unique domains`);
+
+      return {
+        agents: filtered.slice(0, limit),
+        uniqueDomains
+      };
+    } catch (error) {
+      console.error('Bazaar agents fetch error:', error);
+      return { agents: [], uniqueDomains: 0 };
+    }
   }
 }
 

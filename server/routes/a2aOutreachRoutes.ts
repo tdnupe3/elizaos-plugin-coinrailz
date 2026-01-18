@@ -171,6 +171,108 @@ router.get('/outreach/agents', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/a2a/outreach/search
+ * Capability-based agent search - find agents by skills, capabilities, or tags
+ * This enables reverse discovery: finding agents the same way they find us
+ */
+router.get('/outreach/search', async (req: Request, res: Response) => {
+  try {
+    const capabilities = (req.query.capabilities as string)?.split(',').map(s => s.trim().toLowerCase()) || [];
+    const skills = (req.query.skills as string)?.split(',').map(s => s.trim().toLowerCase()) || [];
+    const tags = (req.query.tags as string)?.split(',').map(s => s.trim().toLowerCase()) || [];
+    const query = (req.query.q as string)?.toLowerCase();
+    const limit = parseInt(req.query.limit as string) || 50;
+    const acceptsTasksOnly = req.query.acceptsTasks === 'true';
+
+    console.log(`🔍 Capability-based agent search: capabilities=${capabilities.join(',')}, skills=${skills.join(',')}, tags=${tags.join(',')}, query=${query}`);
+
+    const searchTerms = [...capabilities, ...skills, ...tags];
+    if (query) searchTerms.push(query);
+
+    const result = await a2aOutreachService.searchAgentsByCapability({
+      searchTerms,
+      limit,
+      acceptsTasksOnly
+    });
+
+    res.json({
+      success: true,
+      searchCriteria: {
+        capabilities,
+        skills,
+        tags,
+        query,
+        acceptsTasksOnly
+      },
+      count: result.agents.length,
+      agents: result.agents.map(a => ({
+        id: a.id,
+        url: a.url,
+        name: (a.metadata as any)?.name || a.url,
+        description: (a.metadata as any)?.description,
+        capabilities: a.capabilities,
+        skills: (a.metadata as any)?.skills || [],
+        matchScore: a.matchScore,
+        acceptsTasks: a.acceptsTasks,
+        status: a.status,
+        lastVerifiedAt: a.lastVerifiedAt
+      })),
+      suggestion: result.agents.length === 0 
+        ? 'Try broader search terms like "payments", "commerce", "trading", "finance", or sync from registries first'
+        : undefined
+    });
+
+  } catch (error: any) {
+    console.error('Capability search error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to search agents'
+    });
+  }
+});
+
+/**
+ * GET /api/a2a/outreach/bazaar-agents
+ * Get agents discovered from Coinbase Bazaar (x402 indexed agents)
+ * These are REAL paying agents - highest value targets
+ */
+router.get('/outreach/bazaar-agents', async (req: Request, res: Response) => {
+  try {
+    const limit = parseInt(req.query.limit as string) || 100;
+    const capabilities = (req.query.capabilities as string)?.split(',').map(s => s.trim().toLowerCase()) || [];
+
+    console.log(`🏪 Fetching Bazaar-indexed agents (limit: ${limit})`);
+
+    const result = await a2aOutreachService.getBazaarAgents({ limit, capabilities });
+
+    res.json({
+      success: true,
+      source: 'Coinbase Bazaar (api.cdp.coinbase.com)',
+      description: 'Real x402 indexed agents with proven payment activity',
+      count: result.agents.length,
+      uniqueDomains: result.uniqueDomains,
+      agents: result.agents.map(a => ({
+        domain: a.domain,
+        resource: a.resource,
+        payTo: a.payTo,
+        network: a.network,
+        asset: a.asset,
+        description: a.description,
+        hasAgentCard: a.hasAgentCard,
+        agentCardUrl: a.agentCardUrl
+      }))
+    });
+
+  } catch (error: any) {
+    console.error('Bazaar agents error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to get Bazaar agents'
+    });
+  }
+});
+
+/**
  * POST /api/a2a/responses
  * Webhook endpoint for receiving A2A task responses (push notifications)
  * Must be authenticated via the A2A_WEBHOOK_SECRET token

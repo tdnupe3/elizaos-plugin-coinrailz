@@ -220,8 +220,12 @@ export class CoinRailzIoT {
     return this.request('GET', '/api/iot/health');
   }
 
-  async createAccount(input: CreateAccountInput): Promise<{ account: IoTAccount }> {
+  async createAccount(input: CreateAccountInput): Promise<{ account: IoTAccount; apiKey: string; apiKeyWarning: string }> {
     return this.request('POST', '/api/iot/account', input);
+  }
+
+  async rotateApiKey(accountId: string): Promise<{ apiKey: string; apiKeyWarning: string; accountId: string }> {
+    return this.request('POST', `/api/iot/account/${accountId}/rotate-key`, {});
   }
 
   async getAccount(accountId: string): Promise<{ account: IoTAccount; devices: IoTDevice[] }> {

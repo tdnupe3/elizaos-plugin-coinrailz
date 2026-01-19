@@ -371,28 +371,21 @@ router.get('/proof/:ownerType/:ownerId', requireOwnershipOrAdmin, async (req: Re
       });
     }
     
-    const balance = await unifiedCreditsService.getBalance(
+    const accountDetails = await unifiedCreditsService.getAccountDetails(
       ownerType as 'user' | 'iot_account',
       ownerId
     );
     
-    const hasAccount = await unifiedCreditsService.hasUnifiedCredits(
-      ownerType as 'user' | 'iot_account',
-      ownerId
-    );
-    
-    if (!hasAccount) {
+    if (!accountDetails.exists) {
       return res.json({
         success: true,
         proof: {
           ownerType,
           ownerId,
           hasAccount: false,
-          startingBalance: 0,
           totalDeposits: 0,
           totalDeductions: 0,
           currentBalance: 0,
-          transactionCount: 0,
           message: 'No unified credits account found. Create one by adding credits.',
         },
         generatedAt: new Date().toISOString(),
@@ -402,25 +395,11 @@ router.get('/proof/:ownerType/:ownerId', requireOwnershipOrAdmin, async (req: Re
     const txHistory = await unifiedCreditsService.getTransactionHistory(
       ownerType as 'user' | 'iot_account',
       ownerId,
-      100,
+      10,
       0
     );
     
-    let totalDeposits = 0;
-    let totalDeductions = 0;
-    const depositTypes = ['deposit', 'transfer_in', 'migration', 'refund'];
-    const deductTypes = ['spend', 'transfer_out'];
-    
-    for (const tx of txHistory.transactions || []) {
-      const amount = parseFloat(tx.amount);
-      if (depositTypes.includes(tx.type)) {
-        totalDeposits += amount;
-      } else if (deductTypes.includes(tx.type)) {
-        totalDeductions += amount;
-      }
-    }
-    
-    const recentTransactions = (txHistory.transactions || []).slice(0, 10).map((tx: any) => ({
+    const recentTransactions = (txHistory.transactions || []).map((tx: any) => ({
       id: tx.id,
       type: tx.type,
       amount: parseFloat(tx.amount),
@@ -429,23 +408,28 @@ router.get('/proof/:ownerType/:ownerId', requireOwnershipOrAdmin, async (req: Re
       createdAt: tx.createdAt,
     }));
     
+    const expectedBalance = Number((accountDetails.totalDeposited - accountDetails.totalSpent).toFixed(4));
+    const balanceMatches = Math.abs(accountDetails.balance - expectedBalance) < 0.0001;
+    
     res.json({
       success: true,
       proof: {
         ownerType,
         ownerId,
+        accountId: accountDetails.accountId,
         hasAccount: true,
-        startingBalance: 0,
-        totalDeposits: Number(totalDeposits.toFixed(4)),
-        totalDeductions: Number(totalDeductions.toFixed(4)),
-        currentBalance: balance,
-        expectedBalance: Number((totalDeposits - totalDeductions).toFixed(4)),
-        balanceMatches: Math.abs(balance - (totalDeposits - totalDeductions)) < 0.0001,
+        totalDeposits: Number(accountDetails.totalDeposited.toFixed(4)),
+        totalDeductions: Number(accountDetails.totalSpent.toFixed(4)),
+        currentBalance: accountDetails.balance,
+        expectedBalance,
+        balanceMatches,
         transactionCount: txHistory.total || 0,
         recentTransactions,
+        accountCreated: accountDetails.createdAt,
+        lastUpdated: accountDetails.updatedAt,
       },
       generatedAt: new Date().toISOString(),
-      note: 'This proof shows the complete history of your unified credits. All deposits and deductions are recorded in an immutable ledger.',
+      note: 'Totals are calculated from authoritative account ledger. All deposits and deductions are recorded in an immutable transaction log.',
     });
   } catch (error: any) {
     console.error('❌ Get credits proof failed:', error);
@@ -472,7 +456,6 @@ const disputeSchema = z.object({
   disputeReason: z.enum(['chargeback', 'fraud', 'duplicate', 'service_not_delivered', 'other']),
   refundAmount: z.number().positive(),
   notes: z.string().max(500).optional(),
-  idempotencyKey: z.string().optional(),
 });
 
 router.post('/dispute', requireAdminOrInternal, async (req: Request, res: Response) => {
@@ -486,7 +469,19 @@ router.post('/dispute', requireAdminOrInternal, async (req: Request, res: Respon
       });
     }
     
-    const { ownerType, ownerId, originalTransactionId, disputeReason, refundAmount, notes, idempotencyKey } = validation.data;
+    const { ownerType, ownerId, originalTransactionId, disputeReason, refundAmount, notes } = validation.data;
+    
+    const existingDispute = await unifiedCreditsService.findExistingDispute(originalTransactionId);
+    if (existingDispute) {
+      return res.status(409).json({
+        success: false,
+        error: 'Dispute already exists',
+        message: `A dispute refund has already been processed for transaction ${originalTransactionId}. To prevent double-refunds, only one dispute per transaction is allowed.`,
+        originalTransactionId,
+      });
+    }
+    
+    const deterministicIdempotencyKey = `dispute_refund_${originalTransactionId}`;
     
     const result = await unifiedCreditsService.addCredits(
       ownerType,
@@ -497,7 +492,7 @@ router.post('/dispute', requireAdminOrInternal, async (req: Request, res: Respon
         referenceType: 'dispute_refund',
         referenceId: originalTransactionId,
         description: `Dispute refund (${disputeReason}): ${notes || 'No additional notes'}`,
-        idempotencyKey: idempotencyKey || `dispute_${originalTransactionId}_${Date.now()}`,
+        idempotencyKey: deterministicIdempotencyKey,
       }
     );
     

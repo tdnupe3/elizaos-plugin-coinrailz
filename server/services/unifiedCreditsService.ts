@@ -102,6 +102,55 @@ export class UnifiedCreditsService {
     return parseFloat(account[0].balance);
   }
 
+  async getAccountDetails(ownerType: OwnerType, ownerId: string): Promise<{
+    exists: boolean;
+    accountId?: string;
+    balance: number;
+    totalDeposited: number;
+    totalSpent: number;
+    createdAt?: Date;
+    updatedAt?: Date;
+  }> {
+    const account = await db.select()
+      .from(unifiedCreditsAccounts)
+      .where(and(
+        eq(unifiedCreditsAccounts.ownerType, ownerType),
+        eq(unifiedCreditsAccounts.ownerId, ownerId)
+      ))
+      .limit(1);
+
+    if (!account.length) {
+      return {
+        exists: false,
+        balance: 0,
+        totalDeposited: 0,
+        totalSpent: 0,
+      };
+    }
+
+    return {
+      exists: true,
+      accountId: account[0].id,
+      balance: parseFloat(account[0].balance),
+      totalDeposited: parseFloat(account[0].totalDeposited || '0'),
+      totalSpent: parseFloat(account[0].totalSpent || '0'),
+      createdAt: account[0].createdAt,
+      updatedAt: account[0].updatedAt,
+    };
+  }
+
+  async findExistingDispute(originalTransactionId: string): Promise<boolean> {
+    const existing = await db.select()
+      .from(unifiedCreditsTransactions)
+      .where(and(
+        eq(unifiedCreditsTransactions.referenceType, 'dispute_refund'),
+        eq(unifiedCreditsTransactions.referenceId, originalTransactionId)
+      ))
+      .limit(1);
+
+    return existing.length > 0;
+  }
+
   async addCredits(
     ownerType: OwnerType,
     ownerId: string,

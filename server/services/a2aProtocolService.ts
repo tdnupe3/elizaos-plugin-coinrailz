@@ -1406,27 +1406,6 @@ Agent Registration: Include your agent identifier with all donations for proper 
       return null;
     }
   }
-
-  // ChatGPT Guide Implementation - Agent card validation
-  private validateAgentCard(card: any): boolean {
-    const requiredFields = ['name', 'description', 'url', 'protocolVersion'];
-    
-    for (const field of requiredFields) {
-      if (!card[field]) {
-        console.log(`❌ A2A: Missing required field '${field}' in agent card`);
-        return false;
-      }
-    }
-    
-    // Validate protocol version
-    if (!card.protocolVersion || !card.protocolVersion.toString().startsWith('0.')) {
-      console.log(`❌ A2A: Unsupported protocol version: ${card.protocolVersion}`);
-      return false;
-    }
-    
-    console.log(`✅ A2A: Agent card validation passed for ${card.name}`);
-    return true;
-  }
 }
 
 export default new A2AProtocolService();

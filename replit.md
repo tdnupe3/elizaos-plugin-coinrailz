@@ -1,5 +1,39 @@
 # Coin Railz - Multi-Chain Payment Infrastructure
 
+## Recent Changes (Last 24 Hours - January 19, 2026)
+
+### Unified Credits System v1.0.0 (NEW)
+- **Shared credits pool**: Single balance spanning AI agents (ownerType=user) and IoT devices (ownerType=iot_account)
+- **ACID transactions**: Balance guards prevent overdraft, idempotency keys for safe retries
+- **Full audit trail**: unified_credits_transactions ledger with source/description tracking
+- **Opt-in migration**: /migrate consolidates legacy MCP and IoT balances (zeroes legacy to prevent double-spend)
+- **Security hardening**: Admin API key (X-Admin-Key) or internal service secret (X-Internal-Secret) for mutations
+- **Routes**: `/api/credits/unified/*` (add, deduct, balance, transactions, migrate, linked)
+- **Environment**: INTERNAL_SERVICE_SECRET configured for internal service-to-service calls
+
+### A2D (Agent-to-Device) x402 Payments v1.1.0
+- **Multi-chain support**: Products can specify expectedNetwork (base, ethereum, polygon, arbitrum)
+- **Strict payment verification**: x402PaymentId mandatory, network field required, product binding in metadata
+- **Network validation**: Three-way validation (request network → product network → payment network)
+- **Security**: Unique indexes on x402PaymentId and txHash for replay protection
+- **Database**: expected_network column added to iot_device_products table
+- **SDK**: A2D methods (createProduct, getProduct, updateProduct, getSales, browseCatalog) in @coinrailz/iot-payments v1.1.0
+
+### IoT Payments v1.1.0
+- **Volume pricing**: $0.005/event base (50% reduction), 100k-1M @ $0.0025, 1M+ @ $0.001
+- **PayPal integration**: 2-step flow for credit topups alongside Stripe
+- **Credit packs**: $25/5,000 credits, $100/25,000 credits, $500/200,000 credits (2x more credits)
+
+### Security Improvements
+- Consistent session authentication across all unified credits routes
+- Admin/internal auth for credit mutations, ownership verification for queries
+- Legacy balance zeroing after migration to prevent double-spend
+
+### SDK Updates (@coinrailz/iot-payments v1.1.0)
+- Built and ready for npm publish
+- A2D methods for device data monetization
+- Multi-chain product support
+
 ## Overview
 Coin Railz is developing a universal payment layer for the AI agent economy. It facilitates cross-platform payment routing across 8 blockchains (7 EVM + Solana), primarily settling in USDC. The platform offers a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing. The project aims to become the crypto-native complement to fiat-based agentic commerce protocols.
 

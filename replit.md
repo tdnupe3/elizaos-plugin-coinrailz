@@ -34,6 +34,13 @@
 - A2D methods for device data monetization
 - Multi-chain product support
 
+### Schema Drift Resolution (January 19, 2026)
+- **Tables Created**: 180 tables now exist in database (40 new tables created from migration SQL)
+- **Core Tables Verified**: All core feature tables (unified_credits_*, iot_*, etc.) have correct schema
+- **Known Tech Debt**: Some non-core tables have column-level drift (e.g., agent_referrals has legacy columns)
+- **Resolution Approach**: Used `drizzle-kit generate` to create migration SQL, then extracted and applied CREATE TABLE IF NOT EXISTS statements
+- **Note**: db:push still has interactive prompts for column renames in non-core tables - these are documented as tech debt for future resolution
+
 ## Overview
 Coin Railz is developing a universal payment layer for the AI agent economy. It facilitates cross-platform payment routing across 8 blockchains (7 EVM + Solana), primarily settling in USDC. The platform offers a multi-chain payment SDK, x402 protocol micropayments, agent-to-agent commerce infrastructure, DEX aggregation, and P2P payment routing. The project aims to become the crypto-native complement to fiat-based agentic commerce protocols.
 

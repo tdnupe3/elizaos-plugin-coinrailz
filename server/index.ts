@@ -89,6 +89,7 @@ import erc8004DiscoveryRoutes from './routes/erc8004DiscoveryRoutes';
 import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
 import mcpServiceDiscoveryRoutes from './routes/mcpServiceDiscovery';
 import iotPaymentsRoutes from './routes/iotPaymentsRoutes';
+import a2dPaymentsRoutes from './routes/a2dPaymentsRoutes';
 import { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } from './discovery/bazaarRegistrar';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
@@ -841,6 +842,12 @@ app.use('/api/x402', x402Routes);
 // Production-grade device payment infrastructure
 // D2D transfers, metering, credits, topups
 app.use('/api/iot', iotPaymentsRoutes);
+
+// === A2D (Agent-to-Device) x402 PAYMENTS ===
+// AI agents pay IoT devices for data via x402 protocol
+console.log('🤖↔️📡 Registering A2D (Agent-to-Device) x402 payment routes...');
+app.use('/api/iot', a2dPaymentsRoutes);
+console.log('✅ A2D payment routes registered - AI agents can now buy IoT data via x402');
 
 // === x402 PROTOCOL SERVICES (MICROSERVICES + GATED ENTERPRISE SERVICES) ===
 // CRITICAL FIX: Mount more specific /x402/service BEFORE general /x402 route

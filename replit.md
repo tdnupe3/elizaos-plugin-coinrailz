@@ -35,18 +35,28 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **Cloudflare Worker Gateway**: A Cloudflare Worker template for x402 proxy, enabling AI agents to access Coin Railz x402 services.
 - **MCP Payments Kit v1.5.0**: Single-call checkout endpoint for AI agents with three payment methods: Stripe (fiat), Credits (pre-purchased balance), and x402 (on-chain USDC). Features include: multi-wallet lookup (Ethereum/Solana/XRP), true ACID transactions via Neon WebSocket driver (race condition safe with balance guards), refund idempotency, rate limiting, full audit trail, Stripe Live Mode, and durable idempotency guard. Database transactions use BEGIN/COMMIT/ROLLBACK for complete atomicity.
 - **M2M Onboarding**: Single-call onboarding for IoT devices and AI agents, orchestrating device registration, API key generation, and wallet provisioning.
-- **IoT Payments System v1.0.0**: Production-grade device payment infrastructure for IoT and DePIN networks. Features include:
+- **IoT Payments System v1.1.0**: Production-grade device payment infrastructure for IoT and DePIN networks. Features include:
   - Account management: Create IoT accounts to organize device fleets
   - Device registry: Register devices with spending limits and payment permissions
-  - Credits system: Pre-purchase credits ($25/2,500, $100/12,000, $500/75,000)
-  - Billable event metering: $0.01/message default (configurable per event type)
+  - Credits system (v1.1 - 2x more credits): Pre-purchase credits ($25/5,000, $100/25,000, $500/200,000)
+  - Volume pricing (v1.1): $0.005/event base, 100k-1M @ $0.0025, 1M+ @ $0.001
+  - Billable event metering: $0.005/message default (50% reduction from v1.0)
   - D2D transfers: Device-to-device payments with 2% + $0.02 fee extraction
   - USDC on-chain: Non-custodial wallet-to-wallet transfers via CDP
-  - Stripe topups: Add credits via card payment
+  - Payment methods: Stripe (card) and PayPal (2-step flow) for credit topups
   - Multi-chain: Base, Ethereum, Polygon, Arbitrum, Solana support
   - Full audit trail: iot_billable_events, iot_transfers, iot_topups tables
   - Routes: `/api/iot/*` (account, register, balance, meter, transfer, topup, transactions, packs)
   - SDK: `@coinrailz/iot-payments` npm package with IoT-native methods
+- **A2D (Agent-to-Device) x402 Payments v1.0.0**: Key synergy between IoT and MCP systems enabling AI agents to pay IoT devices for data via x402 protocol. Features include:
+  - Device data products: IoT devices can register monetizable data products (sensor readings, streams, API calls)
+  - x402-protected endpoints: Data access returns HTTP 402 until payment verified
+  - Payment verification: Validates USDC on-chain payment before granting access
+  - Access tokens: Short-lived tokens (15 min) for authenticated data retrieval
+  - Seller credits: Device owners receive 85% of sales as account credits (15% platform fee)
+  - Discovery: Products exposed via Bazaar/x402scan for AI agent discovery
+  - Database: iot_device_products, iot_data_sales tables
+  - Routes: `/api/iot/products/*` (create, update, list), `/api/iot/data/*` (x402 access, verify), `/api/iot/catalog` (discovery), `/api/iot/sales/*` (history)
 - **A2A Protocol Outreach System**: Production-grade autonomous outreach to AI agents using Google's A2A Protocol (launched April 2025). Features include:
   - Registry sync from a2aregistry.org (103 public agents - entire current ecosystem)
   - High-value agent prioritization (7 developer platforms: Modal, Telex, a2aregistry.org, Railway, Fly.io, Render, Cloudrun, Vercel, Replit)

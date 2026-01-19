@@ -6048,3 +6048,99 @@ export const iotTopupsInsertSchema = createInsertSchema(iotTopups).omit({
 export type IotTopup = typeof iotTopups.$inferSelect;
 export type InsertIotTopup = z.infer<typeof iotTopupsInsertSchema>;
 
+/**
+ * IoT Device Products - Data products offered by IoT devices for AI agent purchase
+ * Enables Agent-to-Device (A2D) x402 payments for sensor data, streams, etc.
+ */
+export const iotDeviceProducts = pgTable(
+  "iot_device_products",
+  {
+    id: varchar("id").primaryKey(), // iot_prod_<nanoid>
+    deviceId: varchar("device_id").notNull(), // References iot_device_registry.deviceId
+    accountId: varchar("account_id").notNull(), // Device owner's account
+    productName: varchar("product_name").notNull(),
+    productType: varchar("product_type").notNull(), // sensor_reading, stream, api_call, bulk_data
+    description: text("description"),
+    priceUsd: decimal("price_usd", { precision: 12, scale: 6 }).notNull(), // Price per unit in USD
+    unit: varchar("unit").notNull().default("request"), // request, minute, mb, reading
+    deliveryMode: varchar("delivery_mode").notNull().default("pull"), // pull (one-time), stream (continuous)
+    dataSchema: jsonb("data_schema"), // JSON schema for the data format
+    x402ServiceId: varchar("x402_service_id"), // Unique service ID for x402 discovery
+    x402Endpoint: varchar("x402_endpoint"), // Generated endpoint path
+    bazaarRegistered: boolean("bazaar_registered").default(false),
+    tags: text("tags").array(), // For discovery: ['temperature', 'weather', 'outdoor']
+    status: varchar("status").notNull().default("active"), // active, paused, deprecated
+    totalSales: integer("total_sales").default(0),
+    totalRevenue: decimal("total_revenue", { precision: 12, scale: 4 }).default("0"),
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_iot_products_device").on(table.deviceId),
+    index("IDX_iot_products_account").on(table.accountId),
+    index("IDX_iot_products_type").on(table.productType),
+    index("IDX_iot_products_x402").on(table.x402ServiceId),
+    index("IDX_iot_products_status").on(table.status),
+  ],
+);
+
+export const iotDeviceProductsInsertSchema = createInsertSchema(iotDeviceProducts).omit({
+  createdAt: true,
+  updatedAt: true,
+  totalSales: true,
+  totalRevenue: true,
+});
+export type IotDeviceProduct = typeof iotDeviceProducts.$inferSelect;
+export type InsertIotDeviceProduct = z.infer<typeof iotDeviceProductsInsertSchema>;
+
+/**
+ * IoT Data Sales - Records of AI agent purchases from IoT devices via x402
+ * Tracks Agent-to-Device commerce with payment verification
+ */
+export const iotDataSales = pgTable(
+  "iot_data_sales",
+  {
+    id: varchar("id").primaryKey(), // iot_sale_<nanoid>
+    productId: varchar("product_id").notNull(), // References iot_device_products.id
+    deviceId: varchar("device_id").notNull(),
+    accountId: varchar("account_id").notNull(), // Seller's account
+    buyerAgentId: varchar("buyer_agent_id"), // AI agent making the purchase
+    buyerWallet: varchar("buyer_wallet"), // Wallet that paid
+    x402PaymentId: varchar("x402_payment_id"), // x402 payment record
+    txHash: varchar("tx_hash"), // On-chain transaction hash
+    amount: decimal("amount", { precision: 12, scale: 6 }).notNull(), // Amount paid in USD
+    platformFee: decimal("platform_fee", { precision: 12, scale: 6 }).notNull().default("0"), // Fee retained by platform
+    sellerCredit: decimal("seller_credit", { precision: 12, scale: 6 }).notNull(), // Amount credited to seller
+    units: integer("units").default(1), // Number of units purchased
+    status: varchar("status").notNull().default("pending"), // pending, verified, delivered, failed, refunded
+    deliveryStatus: varchar("delivery_status"), // not_started, in_progress, completed, failed
+    deliveryData: jsonb("delivery_data"), // Actual data delivered (or reference)
+    accessToken: varchar("access_token"), // Short-lived token for data access
+    accessTokenExpiry: timestamp("access_token_expiry"),
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    verifiedAt: timestamp("verified_at"),
+    deliveredAt: timestamp("delivered_at"),
+  },
+  (table) => [
+    index("IDX_iot_sales_product").on(table.productId),
+    index("IDX_iot_sales_device").on(table.deviceId),
+    index("IDX_iot_sales_account").on(table.accountId),
+    index("IDX_iot_sales_buyer").on(table.buyerAgentId),
+    index("IDX_iot_sales_x402").on(table.x402PaymentId),
+    index("IDX_iot_sales_status").on(table.status),
+    index("IDX_iot_sales_created").on(table.createdAt),
+    uniqueIndex("IDX_iot_sales_x402_payment_unique").on(table.x402PaymentId).where(sql`x402_payment_id IS NOT NULL`),
+    uniqueIndex("IDX_iot_sales_tx_hash_unique").on(table.txHash).where(sql`tx_hash IS NOT NULL`),
+  ],
+);
+
+export const iotDataSalesInsertSchema = createInsertSchema(iotDataSales).omit({
+  createdAt: true,
+  verifiedAt: true,
+  deliveredAt: true,
+});
+export type IotDataSale = typeof iotDataSales.$inferSelect;
+export type InsertIotDataSale = z.infer<typeof iotDataSalesInsertSchema>;
+

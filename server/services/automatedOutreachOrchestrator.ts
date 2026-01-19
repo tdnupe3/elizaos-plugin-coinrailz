@@ -61,38 +61,41 @@ export class AutomatedOutreachOrchestrator {
   }
 
   private startAutomatedCampaigns() {
-    console.log('🚀 Starting fully automated revenue generation campaigns...');
+    console.log('🔄 Checking automated campaign settings...');
     
-    // Daily GitHub Issues Campaign - 8 AM EST
-    cron.schedule('0 8 * * *', () => {
-      this.executeAutomatedGitHubCampaign();
-    }, {
-      timezone: "America/New_York"
-    });
+    // DISABLED BY DEFAULT: GitHub Issues Campaign - CAUSED ACCOUNT SUSPENSION
+    // Enable by setting GITHUB_AUTOMATION_ENABLED=true (use with extreme caution)
+    if (process.env.GITHUB_AUTOMATION_ENABLED === 'true' && this.githubClient) {
+      cron.schedule('0 8 * * *', () => {
+        this.executeAutomatedGitHubCampaign();
+      }, {
+        timezone: "America/New_York"
+      });
+      console.log('⚠️ GitHub automation ENABLED (8 AM EST) - HIGH BAN RISK');
+    } else {
+      console.log('⏸️ GitHub automation DISABLED (previous account suspension - set GITHUB_AUTOMATION_ENABLED=true to enable)');
+    }
 
-    // Daily Twitter Campaign - 12 PM EST  
-    cron.schedule('0 12 * * *', () => {
-      this.executeAutomatedTwitterCampaign();
-    }, {
-      timezone: "America/New_York"
-    });
-
-    // Daily Reddit Campaign - 6 PM EST
-    cron.schedule('0 18 * * *', () => {
-      this.executeAutomatedRedditCampaign();
-    }, {
-      timezone: "America/New_York"
-    });
-
-    // Email drip campaign - DISABLED (out of SendGrid credits)
-    // cron.schedule('0 10 */3 * *', () => {
-    //   this.executeAutomatedEmailCampaign();
+    // DISABLED: Twitter Campaign - API too expensive
+    // cron.schedule('0 12 * * *', () => {
+    //   this.executeAutomatedTwitterCampaign();
     // }, {
     //   timezone: "America/New_York"
     // });
-    console.log('⚠️ Email campaigns disabled (SendGrid credits exhausted)');
+    console.log('⏸️ Twitter automation DISABLED (API too expensive)');
 
-    console.log('✅ All automated campaigns scheduled and running');
+    // DISABLED: Reddit Campaign - didn't work previously
+    // cron.schedule('0 18 * * *', () => {
+    //   this.executeAutomatedRedditCampaign();
+    // }, {
+    //   timezone: "America/New_York"
+    // });
+    console.log('⏸️ Reddit automation DISABLED (OAuth flow issues - didn\'t work previously)');
+
+    // DISABLED: Email drip campaign - SendGrid credits exhausted
+    console.log('⏸️ Email campaigns DISABLED (SendGrid credits exhausted - consider Resend)');
+
+    console.log('📊 Outreach orchestrator ready (all risky campaigns disabled by default)');
   }
 
   /**
@@ -668,6 +671,7 @@ Would love to contribute to this project or get your thoughts on the implementat
 
   /**
    * Get automation status and metrics
+   * Shows actual scheduled state, not just credentials
    */
   async getAutomationStatus() {
     try {
@@ -682,13 +686,27 @@ Would love to contribute to this project or get your thoughts on the implementat
         ORDER BY platform, status
       `);
 
+      // Check actual scheduled state, not just credentials
+      const githubScheduled = process.env.GITHUB_AUTOMATION_ENABLED === 'true' && this.githubClient;
+      
       return {
         status: 'running',
-        github: this.githubClient ? 'enabled' : 'needs GITHUB_TOKEN',
-        twitter: this.twitterHeaders ? 'enabled' : 'needs TWITTER_BEARER_TOKEN', 
-        reddit: this.redditAuth ? 'enabled' : 'needs REDDIT credentials',
-        email: 'disabled (SendGrid credits exhausted)',
-        recentActivity: stats.rows || []
+        scheduledCampaigns: {
+          github: githubScheduled ? 'SCHEDULED (8 AM EST) - HIGH BAN RISK' : 'DISABLED (previous account suspension)',
+          twitter: 'DISABLED (API too expensive)',
+          reddit: 'DISABLED (OAuth issues)',
+          email: 'DISABLED (SendGrid credits exhausted)'
+        },
+        credentials: {
+          github: this.githubClient ? 'configured' : 'missing GITHUB_TOKEN',
+          twitter: this.twitterHeaders ? 'configured' : 'missing TWITTER_BEARER_TOKEN', 
+          reddit: this.redditAuth ? 'configured' : 'missing credentials'
+        },
+        recentActivity: stats.rows || [],
+        enableFlags: {
+          github: 'Set GITHUB_AUTOMATION_ENABLED=true to enable (use with caution)',
+          circle: 'Set CIRCLE_SYNC_ENABLED=true when Circle business exists'
+        }
       };
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);

@@ -555,8 +555,9 @@ setupAuth(app);
 // Mark passport as configured for OAuth routes
 console.log('✅ OAuth configuration loaded successfully');
 
-// Start Circle balance syncing only when not in build mode
-if (!DISABLE_BACKGROUND_SERVICES) {
+// DISABLED: Circle balance syncer - no active Circle business yet
+// Enable by setting CIRCLE_SYNC_ENABLED=true when Circle integration is active
+if (!DISABLE_BACKGROUND_SERVICES && process.env.CIRCLE_SYNC_ENABLED === 'true') {
   setTimeout(async () => {
     try {
       const { circleBalanceSyncer } = await import('./services/circleBalanceSyncer.js');
@@ -569,9 +570,9 @@ if (!DISABLE_BACKGROUND_SERVICES) {
     } catch (error) {
       console.log('⚠️ Circle balance syncer not available:', error);
     }
-  }, 3000); // Start after 3 seconds to ensure all services are initialized
+  }, 3000);
 } else {
-  console.log('🚫 BUILD MODE: Circle balance syncing disabled');
+  console.log('⏸️ Circle balance syncing DISABLED (set CIRCLE_SYNC_ENABLED=true when needed)');
 }
 app.set('passport-configured', true);
 

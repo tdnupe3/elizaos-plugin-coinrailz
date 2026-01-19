@@ -2,14 +2,22 @@
 
 ## Recent Changes (Last 24 Hours - January 19, 2026)
 
-### Unified Credits System v1.0.0 (NEW)
+### Unified Credits System v1.0.1 (UPDATED)
 - **Shared credits pool**: Single balance spanning AI agents (ownerType=user) and IoT devices (ownerType=iot_account)
 - **ACID transactions**: Balance guards prevent overdraft, idempotency keys for safe retries
 - **Full audit trail**: unified_credits_transactions ledger with source/description tracking
 - **Opt-in migration**: /migrate consolidates legacy MCP and IoT balances (zeroes legacy to prevent double-spend)
 - **Security hardening**: Admin API key (X-Admin-Key) or internal service secret (X-Internal-Secret) for mutations
-- **Routes**: `/api/credits/unified/*` (add, deduct, balance, transactions, migrate, linked)
+- **NEW: Credits Proof View**: GET `/api/credits/unified/proof/:ownerType/:ownerId` - Complete balance breakdown (deposits, deductions, current balance)
+- **NEW: Dispute Handling**: POST `/api/credits/unified/dispute` - Admin endpoint for chargeback/dispute refunds
+- **NEW: Dispute Policy**: GET `/api/credits/unified/dispute-policy` - Public policy information
+- **Routes**: `/api/credits/unified/*` (add, deduct, balance, transactions, migrate, linked, proof, dispute, dispute-policy)
 - **Environment**: INTERNAL_SERVICE_SECRET configured for internal service-to-service calls
+
+### Documentation & Examples (NEW - January 19, 2026)
+- **Golden Path Quickstart**: `docs/quickstart.md` - Step-by-step guide: create account → register device → create product → agent buys
+- **IoT Device Simulator**: `examples/iot-device-simulator/` - Working example of IoT device registering and selling data
+- **Agent Buyer Example**: `examples/agent-buyer/` - Working example of AI agent discovering and purchasing IoT data
 
 ### A2D (Agent-to-Device) x402 Payments v1.1.0
 - **Multi-chain support**: Products can specify expectedNetwork (base, ethereum, polygon, arbitrum)

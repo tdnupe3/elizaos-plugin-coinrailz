@@ -90,6 +90,7 @@ import a2aMassDiscoveryRoutes from './routes/a2aMassDiscoveryRoutes';
 import mcpServiceDiscoveryRoutes from './routes/mcpServiceDiscovery';
 import iotPaymentsRoutes from './routes/iotPaymentsRoutes';
 import a2dPaymentsRoutes from './routes/a2dPaymentsRoutes';
+import unifiedCreditsRoutes from './routes/unifiedCreditsRoutes';
 import { createBazaarDiscoveryRouter, initializeBazaarDiscovery, isBazaarDiscoveryEnabled } from './discovery/bazaarRegistrar';
 import fastRevenueRoutes from './routes/fastRevenueRoutes.js';
 import stripePaymentRoutes from './routes/stripePaymentRoutes.js';
@@ -848,6 +849,12 @@ app.use('/api/iot', iotPaymentsRoutes);
 console.log('🤖↔️📡 Registering A2D (Agent-to-Device) x402 payment routes...');
 app.use('/api/iot', a2dPaymentsRoutes);
 console.log('✅ A2D payment routes registered - AI agents can now buy IoT data via x402');
+
+// === UNIFIED CREDITS SYSTEM ===
+// Shared credits pool for both MCP (AI agents) and IoT devices
+console.log('💰 Registering Unified Credits routes...');
+app.use('/api/credits/unified', unifiedCreditsRoutes);
+console.log('✅ Unified Credits routes registered at /api/credits/unified/*');
 
 // === x402 PROTOCOL SERVICES (MICROSERVICES + GATED ENTERPRISE SERVICES) ===
 // CRITICAL FIX: Mount more specific /x402/service BEFORE general /x402 route

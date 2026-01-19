@@ -69,6 +69,16 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
   - Pipeline tracking in `a2a_outreach_logs` table (interested, needs_info, pending, declined)
   - Webhook endpoint for async responses (`/api/a2a/responses`)
   - Routes: `/api/a2a-protocol/outreach/*` (sync, verify-reachability, campaign, pipeline, high-value, ecosystem-stats)
+- **Unified Credits System v1.0.0**: Shared credits pool for both MCP (AI agents) and IoT devices with unified balance management. Features include:
+  - Single balance: One credits pool spanning both AI agents (ownerType=user) and IoT accounts (ownerType=iot_account)
+  - ACID transactions: Balance guards prevent overdraft, idempotency keys for safe retries
+  - Full audit trail: unified_credits_transactions ledger with source/description/idempotency tracking
+  - Opt-in migration: /migrate endpoint consolidates legacy MCP and IoT balances into unified account
+  - Security: Admin API key (X-Admin-Key) or internal service secret (X-Internal-Secret) for mutations, ownership verification for queries
+  - Linked accounts: View all unified accounts linked to a user across owner types
+  - Database: unified_credits, unified_credits_transactions tables
+  - Routes: `/api/credits/unified/*` (add, deduct, balance, transactions, migrate, linked)
+  - Environment: INTERNAL_SERVICE_SECRET for internal service-to-service calls
 
 ## External Dependencies
 - **Coinbase CDP:** Wallet creation, management, and transaction execution.

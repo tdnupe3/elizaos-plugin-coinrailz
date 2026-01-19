@@ -122,6 +122,7 @@ export class X402InteractionTracker {
   }
 
   async getServiceAnalytics(serviceId: string, days: number = 30): Promise<any> {
+    const intervalDays = `${Math.max(1, Math.min(365, days))} days`;
     const result = await db.execute(sql`
       SELECT 
         COUNT(*) as total_interactions,
@@ -137,7 +138,7 @@ export class X402InteractionTracker {
       FROM x402_interactions
       WHERE 
         service_id = ${serviceId}
-        AND created_at > NOW() - INTERVAL '${days} days'
+        AND created_at > NOW() - CAST(${intervalDays} AS INTERVAL)
     `);
     
     return result.rows[0] || {};

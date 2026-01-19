@@ -48,15 +48,18 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
   - Full audit trail: iot_billable_events, iot_transfers, iot_topups tables
   - Routes: `/api/iot/*` (account, register, balance, meter, transfer, topup, transactions, packs)
   - SDK: `@coinrailz/iot-payments` npm package with IoT-native methods
-- **A2D (Agent-to-Device) x402 Payments v1.0.0**: Key synergy between IoT and MCP systems enabling AI agents to pay IoT devices for data via x402 protocol. Features include:
+- **A2D (Agent-to-Device) x402 Payments v1.1.0**: Key synergy between IoT and MCP systems enabling AI agents to pay IoT devices for data via x402 protocol. Features include:
   - Device data products: IoT devices can register monetizable data products (sensor readings, streams, API calls)
-  - x402-protected endpoints: Data access returns HTTP 402 until payment verified
-  - Payment verification: Validates USDC on-chain payment before granting access
+  - Multi-chain support: Products can specify expectedNetwork (base, ethereum, polygon, arbitrum) - payments validated per-product
+  - x402-protected endpoints: Data access returns HTTP 402 until payment verified on correct network
+  - Payment verification: Strict validation - x402PaymentId mandatory, product binding in metadata, network matching, recipient/currency checks, 100-unit purchase limit, DB-backed replay protection
   - Access tokens: Short-lived tokens (15 min) for authenticated data retrieval
   - Seller credits: Device owners receive 85% of sales as account credits (15% platform fee)
-  - Discovery: Products exposed via Bazaar/x402scan for AI agent discovery
-  - Database: iot_device_products, iot_data_sales tables
+  - Discovery: Products exposed via catalog with per-product network info for AI agent discovery
+  - Security: Unique indexes on x402PaymentId and txHash for replay protection
+  - Database: iot_device_products (with expectedNetwork), iot_data_sales tables
   - Routes: `/api/iot/products/*` (create, update, list), `/api/iot/data/*` (x402 access, verify), `/api/iot/catalog` (discovery), `/api/iot/sales/*` (history)
+  - SDK: A2D methods added to @coinrailz/iot-payments v1.1.0 (createProduct, getProduct, updateProduct, getSales, browseCatalog)
 - **A2A Protocol Outreach System**: Production-grade autonomous outreach to AI agents using Google's A2A Protocol (launched April 2025). Features include:
   - Registry sync from a2aregistry.org (103 public agents - entire current ecosystem)
   - High-value agent prioritization (7 developer platforms: Modal, Telex, a2aregistry.org, Railway, Fly.io, Render, Cloudrun, Vercel, Replit)

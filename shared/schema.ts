@@ -6067,6 +6067,7 @@ export const iotDeviceProducts = pgTable(
     dataSchema: jsonb("data_schema"), // JSON schema for the data format
     x402ServiceId: varchar("x402_service_id"), // Unique service ID for x402 discovery
     x402Endpoint: varchar("x402_endpoint"), // Generated endpoint path
+    expectedNetwork: varchar("expected_network").notNull().default("base"), // Network for x402 payments: base, ethereum, polygon, arbitrum
     bazaarRegistered: boolean("bazaar_registered").default(false),
     tags: text("tags").array(), // For discovery: ['temperature', 'weather', 'outdoor']
     status: varchar("status").notNull().default("active"), // active, paused, deprecated

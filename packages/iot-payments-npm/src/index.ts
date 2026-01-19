@@ -1,15 +1,16 @@
 /**
- * @coinrailz/iot-payments
+ * @coinrailz/iot-payments v1.1.0
  * 
- * IoT Payments SDK - Device-to-device payments, metering, and credits
- * for IoT devices and DePIN networks.
+ * IoT Payments SDK - Device-to-device payments, metering, credits,
+ * and A2D (Agent-to-Device) data monetization for IoT/DePIN networks.
  * 
  * Features:
  * - Device registration and account management
- * - Credits-based metering (pay-per-event)
+ * - Credits-based metering (pay-per-event) - $0.005/event with volume tiers
  * - D2D transfers with 2% + $0.02 fee
  * - USDC on-chain payments
- * - Stripe integration for topups
+ * - Stripe/PayPal integration for topups
+ * - A2D: Monetize device data for AI agents via x402 protocol
  * 
  * @example
  * ```typescript
@@ -38,6 +39,16 @@
  *   toDeviceId: 'gateway-001',
  *   amount: 0.50
  * });
+ * 
+ * // A2D: Create a data product for AI agents
+ * const product = await iot.createProduct({
+ *   deviceId: 'sensor-001',
+ *   productName: 'Temperature Data',
+ *   productType: 'sensor_reading',
+ *   priceUsd: 0.10,
+ *   unit: 'reading'
+ * });
+ * // AI agents discover via browseCatalog() and pay via x402
  * ```
  */
 
@@ -97,6 +108,70 @@ export interface TopupInput {
   paymentMethod: 'stripe' | 'paypal';
   stripePaymentMethodId?: string;
   paypalOrderId?: string; // For capturing an approved PayPal order
+}
+
+// === A2D (Agent-to-Device) Interfaces ===
+
+export interface CreateProductInput {
+  deviceId: string;
+  productName: string;
+  productType: 'sensor_reading' | 'stream' | 'api_call' | 'bulk_data';
+  description?: string;
+  priceUsd: number;
+  unit?: 'request' | 'minute' | 'mb' | 'reading';
+  deliveryMode?: 'pull' | 'stream';
+  expectedNetwork?: 'base' | 'ethereum' | 'polygon' | 'arbitrum';
+  dataSchema?: Record<string, any>;
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface UpdateProductInput {
+  productName?: string;
+  description?: string;
+  priceUsd?: number;
+  status?: 'active' | 'paused' | 'deprecated';
+  tags?: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface DataProduct {
+  id: string;
+  deviceId: string;
+  productName: string;
+  productType: string;
+  priceUsd: number;
+  unit: string;
+  deliveryMode: string;
+  expectedNetwork: string;
+  x402ServiceId: string;
+  x402Endpoint: string;
+  status: string;
+}
+
+export interface DataSale {
+  id: string;
+  productId: string;
+  deviceId: string;
+  amount: number;
+  platformFee: number;
+  sellerCredit: number;
+  units: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface CatalogItem {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  priceUsd: number;
+  unit: string;
+  expectedNetwork: string;
+  tags: string[];
+  endpoint: string;
+  totalSales: number;
 }
 
 export interface IoTAccount {
@@ -315,6 +390,60 @@ export class CoinRailzIoT {
 
   async getPacks(): Promise<any> {
     return this.request('GET', '/api/iot/packs');
+  }
+
+  // === A2D (Agent-to-Device) Methods ===
+  // Enable devices to monetize their data for AI agents via x402 protocol
+
+  /**
+   * Create a data product that AI agents can purchase via x402
+   * @example
+   * const product = await iot.createProduct({
+   *   deviceId: 'sensor-001',
+   *   productName: 'Temperature Data',
+   *   productType: 'sensor_reading',
+   *   priceUsd: 0.10,
+   *   unit: 'reading'
+   * });
+   */
+  async createProduct(input: CreateProductInput): Promise<{ product: DataProduct }> {
+    return this.request('POST', '/api/iot/products', input);
+  }
+
+  /**
+   * Get product details by ID
+   */
+  async getProduct(productId: string): Promise<{ product: DataProduct }> {
+    return this.request('GET', `/api/iot/products/${productId}`);
+  }
+
+  /**
+   * List all products for a device
+   */
+  async getDeviceProducts(deviceId: string): Promise<{ products: DataProduct[] }> {
+    return this.request('GET', `/api/iot/products/device/${deviceId}`);
+  }
+
+  /**
+   * Update a product's settings
+   */
+  async updateProduct(productId: string, input: UpdateProductInput): Promise<{ product: DataProduct }> {
+    return this.request('PATCH', `/api/iot/products/${productId}`, input);
+  }
+
+  /**
+   * Get sales history for an account (seller view)
+   */
+  async getSales(accountId: string, limit: number = 50, offset: number = 0): Promise<{ sales: DataSale[]; count: number }> {
+    return this.request('GET', `/api/iot/sales/${accountId}?limit=${limit}&offset=${offset}`);
+  }
+
+  /**
+   * Browse available data products from all devices (AI agent discovery)
+   * No authentication required - public catalog
+   */
+  async browseCatalog(): Promise<{ catalog: CatalogItem[]; count: number }> {
+    return this.request('GET', '/api/iot/catalog');
   }
 }
 

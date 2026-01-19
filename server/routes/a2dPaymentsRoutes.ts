@@ -43,6 +43,8 @@ const router = Router();
 const A2D_PLATFORM_FEE = 0.15;
 const DATA_ACCESS_TOKEN_EXPIRY_MINUTES = 15;
 
+const SUPPORTED_NETWORKS = ['base', 'ethereum', 'polygon', 'arbitrum'] as const;
+
 const createProductSchema = z.object({
   deviceId: z.string().min(1),
   productName: z.string().min(1).max(100),
@@ -51,6 +53,7 @@ const createProductSchema = z.object({
   priceUsd: z.number().positive().max(1000),
   unit: z.enum(['request', 'minute', 'mb', 'reading']).default('request'),
   deliveryMode: z.enum(['pull', 'stream']).default('pull'),
+  expectedNetwork: z.enum(SUPPORTED_NETWORKS).default('base'),
   dataSchema: z.record(z.any()).optional(),
   tags: z.array(z.string()).max(10).optional(),
   metadata: z.record(z.any()).optional(),
@@ -66,7 +69,8 @@ const updateProductSchema = z.object({
 });
 
 const verifyPaymentSchema = z.object({
-  x402PaymentId: z.string().optional(),
+  x402PaymentId: z.string().min(1, 'x402PaymentId is required'),
+  network: z.enum(['base', 'ethereum', 'polygon', 'arbitrum']),
   txHash: z.string().optional(),
   buyerAgentId: z.string().optional(),
   buyerWallet: z.string().optional(),
@@ -113,7 +117,7 @@ router.post('/products', async (req: Request, res: Response) => {
       });
     }
     
-    const { deviceId, productName, productType, description, priceUsd, unit, deliveryMode, dataSchema, tags, metadata } = validation.data;
+    const { deviceId, productName, productType, description, priceUsd, unit, deliveryMode, expectedNetwork, dataSchema, tags, metadata } = validation.data;
     
     const device = await db.select()
       .from(iotDeviceRegistry)
@@ -151,6 +155,7 @@ router.post('/products', async (req: Request, res: Response) => {
       priceUsd: priceUsd.toString(),
       unit,
       deliveryMode,
+      expectedNetwork,
       dataSchema: dataSchema || {},
       x402ServiceId,
       x402Endpoint,
@@ -171,6 +176,7 @@ router.post('/products', async (req: Request, res: Response) => {
         priceUsd,
         unit,
         deliveryMode,
+        expectedNetwork,
         x402ServiceId,
         x402Endpoint,
         status: 'active',
@@ -219,6 +225,7 @@ router.get('/products/:productId', async (req: Request, res: Response) => {
         priceUsd: parseFloat(p.priceUsd),
         unit: p.unit,
         deliveryMode: p.deliveryMode,
+        expectedNetwork: p.expectedNetwork || 'base',
         x402ServiceId: p.x402ServiceId,
         x402Endpoint: p.x402Endpoint,
         tags: p.tags,
@@ -254,6 +261,7 @@ router.get('/products/device/:deviceId', async (req: Request, res: Response) => 
         productType: p.productType,
         priceUsd: parseFloat(p.priceUsd),
         unit: p.unit,
+        expectedNetwork: p.expectedNetwork || 'base',
         status: p.status,
         totalSales: p.totalSales,
         x402Endpoint: p.x402Endpoint,
@@ -401,7 +409,7 @@ router.get('/data/:productId', async (req: Request, res: Response) => {
         version: 2,
         price: priceUsd,
         currency: 'USDC',
-        network: 'base',
+        network: p.expectedNetwork || 'base',
         recipient: process.env.PLATFORM_WALLET_ADDRESS || '0xa4bbe37f9a6ae2dc36a607b91eb148c0ae163c91',
         description: `${p.productName} - ${p.description || p.productType}`,
         productId,
@@ -413,6 +421,7 @@ router.get('/data/:productId', async (req: Request, res: Response) => {
         type: p.productType,
         unit: p.unit,
         priceUsd,
+        expectedNetwork: p.expectedNetwork || 'base',
       },
       hint: 'Pay via x402 protocol and call verify endpoint with payment details',
     });
@@ -437,15 +446,7 @@ router.post('/data/:productId/verify', async (req: Request, res: Response) => {
       });
     }
     
-    const { x402PaymentId, txHash, buyerAgentId, buyerWallet, units } = validation.data;
-    
-    if (!x402PaymentId) {
-      return res.status(400).json({
-        success: false,
-        error: 'x402PaymentId is required',
-        hint: 'Payments must be processed through x402 protocol first. Direct txHash verification is not supported for security reasons.',
-      });
-    }
+    const { x402PaymentId, network, txHash, buyerAgentId, buyerWallet, units } = validation.data;
     
     if (units > MAX_UNITS_PER_PURCHASE) {
       return res.status(400).json({
@@ -545,21 +546,21 @@ router.post('/data/:productId/verify', async (req: Request, res: Response) => {
         });
       }
       
-      const validNetworks = ['base', 'ethereum', 'polygon', 'arbitrum'];
-      if (payment.network && !validNetworks.includes(payment.network)) {
-        return res.status(400).json({
-          success: false,
-          error: 'Invalid payment network',
-          hint: `Supported networks: ${validNetworks.join(', ')}`,
-        });
-      }
+      const productExpectedNetwork = p.expectedNetwork || 'base';
       
-      const expectedNetwork = 'base';
-      if (payment.network && payment.network !== expectedNetwork) {
+      if (network !== productExpectedNetwork) {
         return res.status(400).json({
           success: false,
           error: 'Payment network mismatch',
-          hint: `A2D payments must be on Base network. Payment was on: ${payment.network}`,
+          hint: `This product requires payment on ${productExpectedNetwork} network. Payment request specified: ${network}`,
+        });
+      }
+      
+      if (payment.network && payment.network !== network) {
+        return res.status(400).json({
+          success: false,
+          error: 'Payment network does not match request',
+          hint: `Payment was made on ${payment.network} but request specified ${network}`,
         });
       }
       
@@ -742,13 +743,13 @@ router.get('/catalog', async (req: Request, res: Response) => {
         description: p.description,
         priceUsd: parseFloat(p.priceUsd),
         unit: p.unit,
+        expectedNetwork: p.expectedNetwork || 'base',
         tags: p.tags,
         endpoint: `${baseUrl}${p.x402Endpoint}`,
         totalSales: p.totalSales,
       })),
       count: products.length,
       protocol: 'x402',
-      network: 'base',
       currency: 'USDC',
     });
   } catch (error: any) {

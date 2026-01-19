@@ -520,6 +520,123 @@ AMA about the technical implementation patterns!
   }
 
   /**
+   * MANUAL TRIGGER: Execute GitHub campaign immediately
+   */
+  async triggerGitHubCampaign(): Promise<{ success: boolean; message: string; issuesCreated?: number }> {
+    if (!this.githubClient) {
+      return { success: false, message: 'GitHub automation requires GITHUB_TOKEN environment variable' };
+    }
+    
+    console.log('🐙 MANUAL TRIGGER: Executing GitHub campaign...');
+    
+    const aiAgentRepos = [
+      'dcSpark/shinkai-local-ai-agents',
+      'MugglePay/MugglePay', 
+      'michaltakac/awesome-crypto-ai-agents',
+      'Kvexx/web3-ai-trading-agent',
+      'DwirefS/a2a_payments_framework',
+      'ai16z/eliza',
+      'virtuals-io/virtuals-protocol',
+      'OpenMined/PySyft',
+      'langchain-ai/langchain',
+      'microsoft/semantic-kernel'
+    ];
+
+    const issueTitle = 'AI Agent Payment Implementation Guide - Circle + Coinbase APIs';
+    const issueBody = `# AI Agent Payment Implementation Guide
+
+Hi! I see you're building innovative AI agent systems. I created a comprehensive guide on autonomous AI agent payments using Circle + Coinbase APIs - based on our live marketplace with 25+ active wallets processing real USDC.
+
+## Complete Guide Covers:
+- 🏦 Circle Developer Controlled Wallets integration
+- ⛓️ Multi-chain payment processing (Ethereum, Base, Polygon)  
+- 📡 Agent-to-agent communication via XMTP
+- 🔒 Security patterns for autonomous payments
+- 💰 Revenue sharing systems (85% agent, 15% platform)
+- 🤖 Coinbase AgentKit integration patterns
+
+## Technical Implementation Details:
+- Production-tested with 25+ active USDC wallets
+- Multi-chain wallet management best practices
+- Agent wallet security and key management
+- Real-time balance tracking and notifications
+- Automated fee calculation and collection
+
+**$10 Implementation Guide:** https://coinrailz.com/report
+
+**Live Demo:** Working payment system processing real transactions
+
+Would love to contribute to this project or get your thoughts on the implementation patterns! The guide is based on our production system, not theory.
+
+---
+*This is about a technical implementation guide for autonomous payments in AI agent systems. If this isn't relevant to your project, feel free to close this issue.*`;
+
+    let issuesCreated = 0;
+    const results: { repo: string; success: boolean; url?: string; error?: string }[] = [];
+    
+    for (const repo of aiAgentRepos) {
+      try {
+        await new Promise(resolve => setTimeout(resolve, Math.random() * 5000 + 2000));
+        
+        const [owner, repoName] = repo.split('/');
+        
+        const recentIssues = await this.githubClient.rest.issues.listForRepo({
+          owner,
+          repo: repoName,
+          creator: await this.getGitHubUsername(),
+          since: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        });
+
+        if (recentIssues.data.length > 0) {
+          console.log(`⏭️ Skipping ${repo} - already contacted recently`);
+          results.push({ repo, success: false, error: 'Already contacted recently' });
+          continue;
+        }
+
+        const response = await this.githubClient.rest.issues.create({
+          owner,
+          repo: repoName,
+          title: issueTitle,
+          body: issueBody,
+          labels: ['question', 'enhancement']
+        });
+
+        console.log(`✅ Created issue in ${repo}: ${response.data.html_url}`);
+        results.push({ repo, success: true, url: response.data.html_url });
+        issuesCreated++;
+
+        await this.logOutreachActivity('github', repo, response.data.html_url, 'sent');
+
+      } catch (error: any) {
+        console.error(`❌ Failed to create issue in ${repo}:`, error.message);
+        results.push({ repo, success: false, error: error.message });
+        await this.logOutreachActivity('github', repo, '', 'failed');
+      }
+    }
+
+    console.log(`🎯 GitHub campaign complete: ${issuesCreated} issues created`);
+    return { 
+      success: true, 
+      message: `GitHub campaign complete: ${issuesCreated} issues created`, 
+      issuesCreated 
+    };
+  }
+
+  /**
+   * MANUAL TRIGGER: Execute Reddit campaign immediately
+   */
+  async triggerRedditCampaign(): Promise<{ success: boolean; message: string }> {
+    if (!this.redditAuth) {
+      return { success: false, message: 'Reddit automation requires REDDIT credentials' };
+    }
+    
+    console.log('📱 MANUAL TRIGGER: Executing Reddit campaign...');
+    
+    // TODO: Implement actual Reddit posting
+    return { success: false, message: 'Reddit campaign requires OAuth token flow - not yet automated' };
+  }
+
+  /**
    * Get automation status and metrics
    */
   async getAutomationStatus() {

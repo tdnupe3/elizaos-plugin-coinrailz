@@ -182,4 +182,72 @@ automatedOutreachRouter.get('/outreach/status', async (req, res) => {
   }
 });
 
+/**
+ * MANUAL TRIGGER: Execute GitHub campaign immediately
+ * Posts to AI agent repositories with payment implementation guide
+ */
+automatedOutreachRouter.post('/outreach/github-campaign', async (req, res) => {
+  try {
+    console.log('🐙 Manual trigger: Executing GitHub campaign...');
+    
+    const { getOutreachOrchestrator } = await import('../services/automatedOutreachOrchestrator');
+    const orchestrator = await getOutreachOrchestrator();
+    
+    if (!orchestrator) {
+      return res.status(503).json({
+        success: false,
+        error: 'Outreach orchestrator not initialized',
+        message: 'System is in deployment mode or orchestrator failed to start'
+      });
+    }
+    
+    const result = await orchestrator.triggerGitHubCampaign();
+    
+    res.json({
+      success: result.success,
+      campaign: 'GitHub Issues',
+      issuesCreated: result.issuesCreated || 0,
+      message: result.message
+    });
+
+  } catch (error) {
+    console.error('❌ GitHub campaign failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'GitHub campaign execution failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Get full orchestrator status including all channels
+ */
+automatedOutreachRouter.get('/outreach/orchestrator-status', async (req, res) => {
+  try {
+    const { getOutreachOrchestrator } = await import('../services/automatedOutreachOrchestrator');
+    const orchestrator = await getOutreachOrchestrator();
+    
+    if (!orchestrator) {
+      return res.status(503).json({
+        success: false,
+        error: 'Orchestrator not available'
+      });
+    }
+    
+    const status = await orchestrator.getAutomationStatus();
+    res.json({
+      success: true,
+      ...status
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Status check failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default automatedOutreachRouter;

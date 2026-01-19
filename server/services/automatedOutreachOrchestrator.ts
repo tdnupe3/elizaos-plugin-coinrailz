@@ -521,14 +521,30 @@ AMA about the technical implementation patterns!
 
   /**
    * MANUAL TRIGGER: Execute GitHub campaign immediately
+   * Reuses the core campaign logic with enhanced response
    */
-  async triggerGitHubCampaign(): Promise<{ success: boolean; message: string; issuesCreated?: number }> {
+  async triggerGitHubCampaign(): Promise<{ 
+    success: boolean; 
+    message: string; 
+    issuesCreated: number;
+    skipped: number;
+    failed: number;
+    results: Array<{ repo: string; status: 'created' | 'skipped' | 'failed'; url?: string; reason?: string }>;
+  }> {
     if (!this.githubClient) {
-      return { success: false, message: 'GitHub automation requires GITHUB_TOKEN environment variable' };
+      return { 
+        success: false, 
+        message: 'GitHub automation requires GITHUB_TOKEN environment variable',
+        issuesCreated: 0,
+        skipped: 0,
+        failed: 0,
+        results: []
+      };
     }
     
     console.log('🐙 MANUAL TRIGGER: Executing GitHub campaign...');
     
+    // Use same repo list as scheduled campaign
     const aiAgentRepos = [
       'dcSpark/shinkai-local-ai-agents',
       'MugglePay/MugglePay', 
@@ -572,7 +588,9 @@ Would love to contribute to this project or get your thoughts on the implementat
 *This is about a technical implementation guide for autonomous payments in AI agent systems. If this isn't relevant to your project, feel free to close this issue.*`;
 
     let issuesCreated = 0;
-    const results: { repo: string; success: boolean; url?: string; error?: string }[] = [];
+    let skipped = 0;
+    let failed = 0;
+    const results: Array<{ repo: string; status: 'created' | 'skipped' | 'failed'; url?: string; reason?: string }> = [];
     
     for (const repo of aiAgentRepos) {
       try {
@@ -589,7 +607,8 @@ Would love to contribute to this project or get your thoughts on the implementat
 
         if (recentIssues.data.length > 0) {
           console.log(`⏭️ Skipping ${repo} - already contacted recently`);
-          results.push({ repo, success: false, error: 'Already contacted recently' });
+          results.push({ repo, status: 'skipped', reason: 'Already contacted within 30 days' });
+          skipped++;
           continue;
         }
 
@@ -602,23 +621,34 @@ Would love to contribute to this project or get your thoughts on the implementat
         });
 
         console.log(`✅ Created issue in ${repo}: ${response.data.html_url}`);
-        results.push({ repo, success: true, url: response.data.html_url });
+        results.push({ repo, status: 'created', url: response.data.html_url });
         issuesCreated++;
 
         await this.logOutreachActivity('github', repo, response.data.html_url, 'sent');
 
       } catch (error: any) {
         console.error(`❌ Failed to create issue in ${repo}:`, error.message);
-        results.push({ repo, success: false, error: error.message });
+        results.push({ repo, status: 'failed', reason: error.message });
+        failed++;
         await this.logOutreachActivity('github', repo, '', 'failed');
       }
     }
 
-    console.log(`🎯 GitHub campaign complete: ${issuesCreated} issues created`);
+    console.log(`🎯 GitHub campaign complete: ${issuesCreated} created, ${skipped} skipped, ${failed} failed`);
+    
+    // Consider it successful only if at least one issue was created
+    const success = issuesCreated > 0;
+    const message = issuesCreated > 0 
+      ? `GitHub campaign complete: ${issuesCreated} issues created, ${skipped} skipped, ${failed} failed`
+      : `GitHub campaign: No new issues created (${skipped} repos already contacted, ${failed} failed)`;
+    
     return { 
-      success: true, 
-      message: `GitHub campaign complete: ${issuesCreated} issues created`, 
-      issuesCreated 
+      success, 
+      message,
+      issuesCreated,
+      skipped,
+      failed,
+      results
     };
   }
 

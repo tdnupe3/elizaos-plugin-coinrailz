@@ -206,7 +206,10 @@ automatedOutreachRouter.post('/outreach/github-campaign', async (req, res) => {
     res.json({
       success: result.success,
       campaign: 'GitHub Issues',
-      issuesCreated: result.issuesCreated || 0,
+      issuesCreated: result.issuesCreated,
+      skipped: result.skipped,
+      failed: result.failed,
+      results: result.results,
       message: result.message
     });
 

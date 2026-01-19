@@ -6145,3 +6145,104 @@ export const iotDataSalesInsertSchema = createInsertSchema(iotDataSales).omit({
 export type IotDataSale = typeof iotDataSales.$inferSelect;
 export type InsertIotDataSale = z.infer<typeof iotDataSalesInsertSchema>;
 
+// ============================================================================
+// UNIFIED CREDITS SYSTEM - Shared Credits Pool for MCP + IoT
+// ============================================================================
+
+/**
+ * Unified Credits Accounts - Shared credits pool that works for both MCP and IoT
+ * Enables users to have a single balance usable for AI agent services and IoT metering
+ */
+export const unifiedCreditsAccounts = pgTable(
+  "unified_credits_accounts",
+  {
+    id: varchar("id").primaryKey(), // ucred_<nanoid>
+    ownerType: varchar("owner_type").notNull(), // 'user' | 'iot_account'
+    ownerId: varchar("owner_id").notNull(), // users.id or iot_accounts.id
+    balance: decimal("balance", { precision: 12, scale: 4 }).notNull().default("0"),
+    totalDeposited: decimal("total_deposited", { precision: 12, scale: 4 }).notNull().default("0"),
+    totalSpent: decimal("total_spent", { precision: 12, scale: 4 }).notNull().default("0"),
+    status: varchar("status").notNull().default("active"), // active, frozen, closed
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("IDX_unified_credits_owner").on(table.ownerType, table.ownerId),
+    index("IDX_unified_credits_status").on(table.status),
+  ],
+);
+
+export const unifiedCreditsAccountsInsertSchema = createInsertSchema(unifiedCreditsAccounts).omit({
+  createdAt: true,
+  updatedAt: true,
+});
+export type UnifiedCreditsAccount = typeof unifiedCreditsAccounts.$inferSelect;
+export type InsertUnifiedCreditsAccount = z.infer<typeof unifiedCreditsAccountsInsertSchema>;
+
+/**
+ * Unified Credits Transactions - Full audit ledger for all credits movements
+ * Tracks deposits, spending, transfers, and migrations
+ */
+export const unifiedCreditsTransactions = pgTable(
+  "unified_credits_transactions",
+  {
+    id: varchar("id").primaryKey(), // ucred_txn_<nanoid>
+    accountId: varchar("account_id").notNull(), // References unified_credits_accounts.id
+    type: varchar("type").notNull(), // deposit, spend, transfer_in, transfer_out, migration, refund
+    amount: decimal("amount", { precision: 12, scale: 4 }).notNull(), // Positive for credits, negative for debits
+    balanceAfter: decimal("balance_after", { precision: 12, scale: 4 }).notNull(),
+    source: varchar("source").notNull(), // mcp, iot, stripe, paypal, x402, migration, admin
+    referenceType: varchar("reference_type"), // payment, service, meter_event, transfer, etc.
+    referenceId: varchar("reference_id"), // ID of related record
+    description: text("description"),
+    metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+    idempotencyKey: varchar("idempotency_key").unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("IDX_unified_txn_account").on(table.accountId),
+    index("IDX_unified_txn_type").on(table.type),
+    index("IDX_unified_txn_source").on(table.source),
+    index("IDX_unified_txn_created").on(table.createdAt),
+    index("IDX_unified_txn_reference").on(table.referenceType, table.referenceId),
+  ],
+);
+
+export const unifiedCreditsTransactionsInsertSchema = createInsertSchema(unifiedCreditsTransactions).omit({
+  createdAt: true,
+});
+export type UnifiedCreditsTransaction = typeof unifiedCreditsTransactions.$inferSelect;
+export type InsertUnifiedCreditsTransaction = z.infer<typeof unifiedCreditsTransactionsInsertSchema>;
+
+/**
+ * Unified Credits Links - Maps user accounts to IoT accounts for shared balance
+ * Enables opt-in migration and dual-access to unified credits pool
+ */
+export const unifiedCreditsLinks = pgTable(
+  "unified_credits_links",
+  {
+    id: varchar("id").primaryKey(), // ucred_link_<nanoid>
+    unifiedAccountId: varchar("unified_account_id").notNull(), // References unified_credits_accounts.id
+    userId: varchar("user_id"), // Link to users.id (if user-initiated)
+    iotAccountId: varchar("iot_account_id"), // Link to iot_accounts.id (if IoT account linked)
+    linkType: varchar("link_type").notNull(), // 'primary' (owner) | 'linked' (additional access)
+    status: varchar("status").notNull().default("active"), // active, revoked
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (table) => [
+    index("IDX_unified_links_account").on(table.unifiedAccountId),
+    index("IDX_unified_links_user").on(table.userId),
+    index("IDX_unified_links_iot").on(table.iotAccountId),
+    uniqueIndex("IDX_unified_links_user_iot").on(table.userId, table.iotAccountId).where(sql`status = 'active'`),
+  ],
+);
+
+export const unifiedCreditsLinksInsertSchema = createInsertSchema(unifiedCreditsLinks).omit({
+  createdAt: true,
+  revokedAt: true,
+});
+export type UnifiedCreditsLink = typeof unifiedCreditsLinks.$inferSelect;
+export type InsertUnifiedCreditsLink = z.infer<typeof unifiedCreditsLinksInsertSchema>;
+

@@ -380,4 +380,101 @@ A "converted paying customer" is ANY of:
 
 ---
 
+## Appendix B: Competitive Landscape (from ChatGPT Research)
+
+### Direct Competitors
+
+| Company | What They Do | Relevance | Our Angle |
+|---------|--------------|-----------|-----------|
+| **Otonomo** | Vehicle telematics aggregation (40M+ cars, 4.3B data points/day) | Fleet vertical comp | We offer billing layer, they're aggregator |
+| **Wejo** | Connected car data platform | Fleet vertical comp | We're device-agnostic, they're automotive-only |
+| **Terbine** | IoT data marketplace (environmental) | Weather vertical comp | We add x402 payments, they're traditional marketplace |
+| **DIMO** | Crypto + connected car data rewards | Similar web3 + IoT model | We're B2B focused, they're consumer rewards |
+| **DataBroker DAO** | Blockchain-based sensor marketplace | Similar decentralized approach | We have working infrastructure, they pivoted |
+
+### Key Insight: Revenue Split Model
+Otonomo pays automakers via revenue-sharing agreements when their data is sold. Our **85/15 split** (85% to device owner, 15% platform fee) directly matches this proven model.
+
+---
+
+## Appendix C: Regulatory Tailwind - EU Data Act
+
+**Effective: September 2025** (already in effect as of January 2026)
+
+> "The new EU Data Act (2024) requires that IoT products sold in Europe must allow users to access the data they generate and share it with third parties of their choice."
+
+### What This Means for Coin Railz
+- Device owners in EU can now legally demand their data from manufacturers
+- Creates a regulatory push toward platforms that facilitate data sharing
+- Our A2D system is positioned to be the neutral billing/payment layer
+
+### Sales Angle
+> "The EU Data Act just forced device makers to enable data portability. We're the payment rails that make that data tradeable."
+
+---
+
+## Appendix D: Expanded Buyer Categories
+
+### Tier 1 Buyers (High Urgency, Already Paying)
+
+| Buyer Type | Data They Need | Typical Budget | Your Vertical |
+|------------|----------------|----------------|---------------|
+| **Insurance underwriters** | Telematics, driving behavior | $10K-100K/year | Fleet |
+| **Logistics companies** | GPS, route data, storage temps | $5K-50K/year | Fleet |
+| **Parametric insurance** | Weather, environmental sensors | $10K-200K/year | Weather |
+| **Agtech analytics** | Soil moisture, crop health, weather | $5K-100K/year | Weather |
+
+### Tier 2 Buyers (Growing Demand)
+
+| Buyer Type | Data They Need | Your Vertical |
+|------------|----------------|---------------|
+| Energy/Utilities | Smart meter, demand patterns | Weather/Energy |
+| Smart city departments | Traffic, air quality | Both |
+| Mapping/Navigation | Road conditions, hazards | Fleet |
+| Retailers | Foot traffic, cold chain | Both |
+
+### Tier 3 Buyers (Future Expansion)
+
+| Buyer Type | Data They Need | Notes |
+|------------|----------------|-------|
+| AI/ML companies | Training data | Large datasets |
+| Manufacturers | Product usage | Predictive maintenance |
+| Advertisers | Behavior patterns | Privacy-sensitive |
+
+---
+
+## Appendix E: Specific Companies to Target
+
+### Fleet/Automotive Prospects
+
+| Company Type | Examples | Approach |
+|--------------|----------|----------|
+| Regional ELD providers | SmallELD, BigRoad, KeepTruckin resellers | Billing backend offer |
+| GPS tracker vendors | Traccar resellers, fleet GPS dealers | Monetization layer |
+| Insurance telematics | Progressive Snapshot competitors | Data buyer |
+| Delivery fleet operators | Regional courier companies | Device owner |
+
+### Weather/Environmental Prospects
+
+| Company Type | Examples | Approach |
+|--------------|----------|----------|
+| Weather sensor networks | WeatherFlow competitors | Monetization layer |
+| Agtech analytics | Sentera, Prospera, Taranis | Data buyer |
+| Parametric insurance | Arbol, Descartes, Nephila | Data buyer |
+| Energy forecasting | AutoGrid, GridX, Drift | Data buyer |
+
+---
+
+## Appendix F: Monetization Models We Support
+
+The ChatGPT research identified 3 monetization models. We've built infrastructure for all:
+
+| Model | Description | Our Implementation | Status |
+|-------|-------------|-------------------|--------|
+| **Direct Data Sales** | Sell data through marketplaces | A2D catalog + x402 payments | ✅ Ready |
+| **Analytics Services** | Sell insights, not raw data | Can layer on top | Future |
+| **User-Centric Data** | Device owners opt-in for compensation | Device registration + 85/15 split | ✅ Ready |
+
+---
+
 *This plan preserves the platform vision while creating a focused revenue wedge. The agent economy infrastructure we built will be valuable when autonomous agents mature - but for now, IoT devices with human-approved budgets are the path to revenue.*

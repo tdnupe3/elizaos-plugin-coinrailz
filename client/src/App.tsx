@@ -160,6 +160,7 @@ const AutoJoinerPage = lazy(() => import("@/pages/AutoJoinerPage"));
 const CryptoJoinerPro = lazy(() => import("@/pages/CryptoJoinerPro"));
 const SubscriptionSuccess = lazy(() => import("@/pages/SubscriptionSuccess"));
 const FreelanceDeveloperServices = lazy(() => import("@/pages/FreelanceDeveloperServices"));
+const IoTPaymentsPage = lazy(() => import("@/pages/IoTPaymentsPage"));
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
@@ -348,6 +349,11 @@ function Router() {
       {/* Enterprise section - separate from consumer platform */}
       <Route path="/enterprise">
         {() => <LazyLoadWrapper><EnterprisePage /></LazyLoadWrapper>}
+      </Route>
+      
+      {/* IoT Payments - Fleet Telematics & Weather Data Monetization */}
+      <Route path="/iot">
+        {() => <LazyLoadWrapper><IoTPaymentsPage /></LazyLoadWrapper>}
       </Route>
       
       {/* SDK Enterprise Pages - $2K-$200K Market */}

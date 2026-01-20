@@ -169,9 +169,29 @@ export default function IoTPaymentsPage() {
           <p className="text-lg text-emerald-700 max-w-2xl mx-auto mb-8">
             Fleet telematics. Weather sensors. Industrial IoT. Get paid for your data.
           </p>
-          <div className="flex justify-center space-x-4">
-            <Button size="lg" className="bg-emerald-600 hover:bg-emerald-700">
-              Start 30-Day Pilot
+          <div className="flex justify-center space-x-4 flex-wrap gap-4">
+            <Button 
+              size="lg" 
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => setLocation("/fleet")}
+            >
+              <Truck className="w-4 h-4 mr-2" />
+              Fleet Telematics
+            </Button>
+            <Button 
+              size="lg" 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => setLocation("/weather")}
+            >
+              <CloudSun className="w-4 h-4 mr-2" />
+              Weather Data
+            </Button>
+            <Button 
+              size="lg" 
+              className="bg-emerald-600 hover:bg-emerald-700"
+              onClick={() => window.open('https://calendly.com', '_blank')}
+            >
+              Book Pilot
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <Button size="lg" variant="outline" onClick={() => setLocation("/developers")}>

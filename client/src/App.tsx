@@ -161,6 +161,11 @@ const CryptoJoinerPro = lazy(() => import("@/pages/CryptoJoinerPro"));
 const SubscriptionSuccess = lazy(() => import("@/pages/SubscriptionSuccess"));
 const FreelanceDeveloperServices = lazy(() => import("@/pages/FreelanceDeveloperServices"));
 const IoTPaymentsPage = lazy(() => import("@/pages/IoTPaymentsPage"));
+const FleetTelematicsPage = lazy(() => import("@/pages/FleetTelematicsPage"));
+const WeatherDataPage = lazy(() => import("@/pages/WeatherDataPage"));
+const FleetDemoPage = lazy(() => import("@/pages/FleetDemoPage"));
+const WeatherDemoPage = lazy(() => import("@/pages/WeatherDemoPage"));
+const IoTDashboardPage = lazy(() => import("@/pages/IoTDashboardPage"));
 const EmergencyConsulting = lazy(() => import("@/pages/EmergencyConsulting"));
 const Whitepaper = lazy(() => import("@/pages/Whitepaper"));
 const DevelopersPage = lazy(() => import("@/pages/DevelopersPage"));
@@ -354,6 +359,21 @@ function Router() {
       {/* IoT Payments - Fleet Telematics & Weather Data Monetization */}
       <Route path="/iot">
         {() => <LazyLoadWrapper><IoTPaymentsPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/iot/dashboard">
+        {() => <LazyLoadWrapper><IoTDashboardPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/fleet">
+        {() => <LazyLoadWrapper><FleetTelematicsPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/fleet/demo">
+        {() => <LazyLoadWrapper><FleetDemoPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/weather">
+        {() => <LazyLoadWrapper><WeatherDataPage /></LazyLoadWrapper>}
+      </Route>
+      <Route path="/weather/demo">
+        {() => <LazyLoadWrapper><WeatherDemoPage /></LazyLoadWrapper>}
       </Route>
       
       {/* SDK Enterprise Pages - $2K-$200K Market */}

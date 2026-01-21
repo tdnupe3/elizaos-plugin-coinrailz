@@ -60,6 +60,12 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
   - IoT Dashboard: `/iot/dashboard` (usage monitoring, CSV export, catalog view).
   - Credits Ledger Proof: `/credits/proof` (balance breakdown, transaction history, audit trail).
   - API Documentation: `docs/IOT_API_DOCUMENTATION.md`.
+- **IoT Partner & Sales Tools (January 2026)**:
+  - Partner Program: `/partners` (device owner signup, 85/15 revenue split, application form with backend API).
+  - Integration Guide: `/integrate` (step-by-step checklist, code examples, SDK samples, mark-complete).
+  - Pilot Tracking: `/admin/pilots` (CRM for pilot customers, status pipeline, CRUD API).
+  - Case Studies: `/case-studies` (customer success story templates, filtering by vertical).
+  - API Routes: `/api/iot/partners/*`, `/api/iot/pilots/*` for partner applications and pilot management.
 - **A2A Protocol Outreach System**: Production-grade autonomous outreach to AI agents using Google's A2A Protocol, featuring:
   - Registry sync from a2aregistry.org.
   - High-value agent prioritization and reachability verification.

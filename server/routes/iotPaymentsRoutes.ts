@@ -1431,4 +1431,176 @@ router.get('/packs', (req: Request, res: Response) => {
   });
 });
 
+const partnerApplications: Map<string, any> = new Map();
+const pilotCustomers: Map<string, any> = new Map();
+
+const PartnerApplicationSchema = z.object({
+  companyName: z.string().min(1),
+  contactName: z.string().min(1),
+  email: z.string().email(),
+  deviceType: z.string().optional(),
+  deviceCount: z.string().optional(),
+  dataDescription: z.string().min(1),
+  currentMonetization: z.string().optional(),
+});
+
+router.post('/partners/apply', async (req: Request, res: Response) => {
+  try {
+    const data = PartnerApplicationSchema.parse(req.body);
+    const applicationId = `partner_${nanoid(12)}`;
+    
+    const application = {
+      id: applicationId,
+      ...data,
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    
+    partnerApplications.set(applicationId, application);
+    
+    console.log(`✅ Partner application received: ${data.companyName} (${applicationId})`);
+    
+    res.json({
+      success: true,
+      applicationId,
+      message: 'Application received. We will review and contact you within 48 hours.',
+      application,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: error.errors,
+      });
+    } else {
+      console.error('❌ Partner application failed:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to submit application',
+      });
+    }
+  }
+});
+
+router.get('/partners/applications', async (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    applications: Array.from(partnerApplications.values()),
+    count: partnerApplications.size,
+  });
+});
+
+const PilotSchema = z.object({
+  companyName: z.string().min(1),
+  vertical: z.enum(['fleet', 'weather']),
+  status: z.enum(['prospect', 'discovery', 'pilot', 'converted', 'churned']),
+  deviceCount: z.number().min(0),
+  revenue: z.number().min(0),
+  startDate: z.string(),
+  notes: z.string().optional(),
+  contactEmail: z.string().email(),
+});
+
+router.post('/pilots', async (req: Request, res: Response) => {
+  try {
+    const data = PilotSchema.parse(req.body);
+    const pilotId = `pilot_${nanoid(12)}`;
+    
+    const pilot = {
+      id: pilotId,
+      ...data,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    pilotCustomers.set(pilotId, pilot);
+    
+    console.log(`✅ Pilot created: ${data.companyName} (${pilotId})`);
+    
+    res.json({
+      success: true,
+      pilotId,
+      pilot,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({
+        success: false,
+        error: 'Validation failed',
+        details: error.errors,
+      });
+    } else {
+      console.error('❌ Create pilot failed:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create pilot',
+      });
+    }
+  }
+});
+
+router.get('/pilots', async (req: Request, res: Response) => {
+  const pilots = Array.from(pilotCustomers.values());
+  
+  const stats = {
+    total: pilots.length,
+    fleet: pilots.filter(p => p.vertical === 'fleet').length,
+    weather: pilots.filter(p => p.vertical === 'weather').length,
+    converted: pilots.filter(p => p.status === 'converted').length,
+    totalDevices: pilots.reduce((sum, p) => sum + (p.deviceCount || 0), 0),
+    totalRevenue: pilots.reduce((sum, p) => sum + (p.revenue || 0), 0),
+  };
+  
+  res.json({
+    success: true,
+    pilots,
+    stats,
+  });
+});
+
+router.patch('/pilots/:pilotId', async (req: Request, res: Response) => {
+  const { pilotId } = req.params;
+  const updates = req.body;
+  
+  const pilot = pilotCustomers.get(pilotId);
+  if (!pilot) {
+    return res.status(404).json({
+      success: false,
+      error: 'Pilot not found',
+    });
+  }
+  
+  const updatedPilot = {
+    ...pilot,
+    ...updates,
+    updatedAt: new Date().toISOString(),
+  };
+  
+  pilotCustomers.set(pilotId, updatedPilot);
+  
+  res.json({
+    success: true,
+    pilot: updatedPilot,
+  });
+});
+
+router.delete('/pilots/:pilotId', async (req: Request, res: Response) => {
+  const { pilotId } = req.params;
+  
+  if (!pilotCustomers.has(pilotId)) {
+    return res.status(404).json({
+      success: false,
+      error: 'Pilot not found',
+    });
+  }
+  
+  pilotCustomers.delete(pilotId);
+  
+  res.json({
+    success: true,
+    message: 'Pilot deleted',
+  });
+});
+
 export default router;

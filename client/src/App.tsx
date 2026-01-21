@@ -385,6 +385,46 @@ function Router() {
           );
         }}
       </Route>
+      <Route path="/partners">
+        {() => {
+          const PartnerProgramPage = lazy(() => import("@/pages/PartnerProgramPage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <PartnerProgramPage />
+            </Suspense>
+          );
+        }}
+      </Route>
+      <Route path="/integrate">
+        {() => {
+          const IntegrationGuidePage = lazy(() => import("@/pages/IntegrationGuidePage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <IntegrationGuidePage />
+            </Suspense>
+          );
+        }}
+      </Route>
+      <Route path="/admin/pilots">
+        {() => {
+          const PilotTrackingPage = lazy(() => import("@/pages/PilotTrackingPage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <PilotTrackingPage />
+            </Suspense>
+          );
+        }}
+      </Route>
+      <Route path="/case-studies">
+        {() => {
+          const CaseStudiesPage = lazy(() => import("@/pages/CaseStudiesPage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <CaseStudiesPage />
+            </Suspense>
+          );
+        }}
+      </Route>
       
       {/* SDK Enterprise Pages - $2K-$200K Market */}
       <Route path="/sdk-landing">

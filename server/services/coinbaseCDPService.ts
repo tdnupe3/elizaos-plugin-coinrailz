@@ -404,6 +404,48 @@ export class CoinbaseCDPService {
   };
   
   /**
+   * USDT contract addresses by network (Tether USD)
+   * Note: USDT has 6 decimals like USDC
+   */
+  private static readonly USDT_CONTRACTS: Record<string, string> = {
+    'ethereum-mainnet': '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+    'base-mainnet': '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2',
+    'polygon-mainnet': '0xc2132D05D31c914a87C6611C10748AaCb8fE09',
+    'arbitrum-mainnet': '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+  };
+  
+  /**
+   * Token registry for multi-token support
+   */
+  static readonly TOKEN_REGISTRY: Record<string, Record<string, string>> = {
+    'USDC': CoinbaseCDPService.USDC_CONTRACTS,
+    'USDT': CoinbaseCDPService.USDT_CONTRACTS,
+  };
+  
+  /**
+   * Get token contract address for a given chain and token
+   */
+  static getTokenAddress(token: 'USDC' | 'USDT', chain: string): string | null {
+    const contracts = CoinbaseCDPService.TOKEN_REGISTRY[token];
+    return contracts?.[chain] || null;
+  }
+  
+  /**
+   * Check if a token is supported on a chain
+   */
+  static isTokenSupported(token: 'USDC' | 'USDT', chain: string): boolean {
+    return !!CoinbaseCDPService.getTokenAddress(token, chain);
+  }
+  
+  /**
+   * Get all supported chains for a token
+   */
+  static getSupportedChains(token: 'USDC' | 'USDT'): string[] {
+    const contracts = CoinbaseCDPService.TOKEN_REGISTRY[token];
+    return contracts ? Object.keys(contracts) : [];
+  }
+  
+  /**
    * RPC URLs by network
    */
   private static readonly RPC_URLS: Record<string, string> = {
@@ -520,6 +562,111 @@ export class CoinbaseCDPService {
       return ethers.formatUnits(balance, decimals);
     } catch (error: any) {
       console.error(`❌ Failed to get USDC balance for ${address}:`, error.message);
+      return '0';
+    }
+  }
+  
+  /**
+   * Send stablecoin (USDC or USDT) on-chain
+   * Unified method for multi-token support
+   */
+  async sendToken(params: {
+    toAddress: string;
+    amount: string; // In token units (not wei) e.g., "10.50"
+    token: 'USDC' | 'USDT';
+    chain: string;
+    memo?: string;
+  }): Promise<{ txHash: string; status: 'completed' | 'pending' | 'failed'; error?: string }> {
+    try {
+      console.log(`💵 Sending ${params.amount} ${params.token} to ${params.toAddress} on ${params.chain}`);
+      
+      const tokenAddress = CoinbaseCDPService.getTokenAddress(params.token, params.chain);
+      if (!tokenAddress) {
+        throw new Error(`${params.token} not supported on chain: ${params.chain}`);
+      }
+      
+      const rpcUrl = CoinbaseCDPService.RPC_URLS[params.chain];
+      if (!rpcUrl) {
+        throw new Error(`No RPC configured for chain: ${params.chain}`);
+      }
+      
+      // Get platform signer for the correct chain
+      const chainType = params.chain.includes('base') ? 'base' : 
+                       params.chain.includes('polygon') ? 'polygon' :
+                       params.chain.includes('arbitrum') ? 'arbitrum' : 'ethereum';
+      const wallet = await CoinbaseCDPService.getPlatformSigner(chainType);
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const signer = wallet.connect(provider);
+      
+      // Create token contract instance
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        CoinbaseCDPService.ERC20_TRANSFER_ABI,
+        signer
+      );
+      
+      // Get decimals (USDC/USDT are 6 decimals)
+      const decimals = await tokenContract.decimals();
+      const amountUnits = ethers.parseUnits(params.amount, decimals);
+      
+      // Check balance first
+      const balance = await tokenContract.balanceOf(wallet.address);
+      if (balance < amountUnits) {
+        console.log(`❌ Insufficient ${params.token} balance: ${ethers.formatUnits(balance, decimals)} < ${params.amount}`);
+        return { 
+          txHash: '', 
+          status: 'failed', 
+          error: `Insufficient ${params.token} balance. Have: ${ethers.formatUnits(balance, decimals)}, Need: ${params.amount}` 
+        };
+      }
+      
+      console.log(`💰 ${params.token} balance: ${ethers.formatUnits(balance, decimals)}, sending: ${params.amount}`);
+      
+      // Execute transfer
+      const tx = await tokenContract.transfer(params.toAddress, amountUnits);
+      console.log(`⏳ Transaction sent: ${tx.hash}`);
+      
+      // Wait for confirmation
+      const receipt = await tx.wait(1);
+      if (receipt?.status === 1) {
+        console.log(`✅ ${params.token} transfer confirmed: ${receipt.hash}`);
+        return { txHash: receipt.hash, status: 'completed' };
+      } else {
+        return { txHash: tx.hash, status: 'failed', error: 'Transaction reverted' };
+      }
+      
+    } catch (error: any) {
+      console.error(`❌ ${params.token} transfer failed:`, error);
+      return { txHash: '', status: 'failed', error: error.message };
+    }
+  }
+  
+  /**
+   * Get stablecoin balance for an address (USDC or USDT)
+   * Unified method for multi-token support
+   */
+  async getTokenBalance(address: string, token: 'USDC' | 'USDT', chain: string = 'base-mainnet'): Promise<string> {
+    try {
+      const tokenAddress = CoinbaseCDPService.getTokenAddress(token, chain);
+      const rpcUrl = CoinbaseCDPService.RPC_URLS[chain];
+      
+      if (!tokenAddress || !rpcUrl) {
+        return '0';
+      }
+      
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        CoinbaseCDPService.ERC20_TRANSFER_ABI,
+        provider
+      );
+      
+      const balance = await tokenContract.balanceOf(address);
+      const decimals = await tokenContract.decimals();
+      
+      return ethers.formatUnits(balance, decimals);
+    } catch (error: any) {
+      console.error(`❌ Failed to get ${token} balance for ${address}:`, error.message);
       return '0';
     }
   }

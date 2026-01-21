@@ -75,8 +75,8 @@ export default function WeatherDemoPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          name: stationName,
-          email: `demo-${Date.now()}@weather.test`
+          accountName: stationName,
+          tier: 'starter'
         })
       });
       
@@ -92,19 +92,20 @@ export default function WeatherDemoPage() {
       await new Promise(r => setTimeout(r, 500));
       
       updateStep(2, { status: 'running' });
+      const demoDeviceId = `demo_sensor_${Date.now()}`;
+      const apiKey = accountData.apiKey;
       const registerRes = await fetch('/api/iot/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey || ''
+        },
         body: JSON.stringify({
+          deviceId: demoDeviceId,
           accountId: accId,
-          deviceType: 'weather_station',
-          name: 'Demo Weather Station #1',
-          metadata: { 
-            lat: 40.7128, 
-            lng: -74.0060, 
-            location: 'New York, NY',
-            sensors: ['temperature', 'humidity', 'wind', 'pressure']
-          }
+          deviceName: 'Demo Weather Station #1',
+          deviceType: 'sensor',
+          spendingLimit: 50
         })
       });
       
@@ -130,12 +131,14 @@ export default function WeatherDemoPage() {
       for (const reading of readings) {
         const meterRes = await fetch('/api/iot/meter', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey || ''
+          },
           body: JSON.stringify({
-            accountId: accId,
-            deviceId: devId,
+            deviceId: deviceData.device?.deviceId || demoDeviceId,
             eventType: 'sensor_reading',
-            eventData: reading
+            units: 1
           })
         });
         
@@ -288,7 +291,7 @@ export default function WeatherDemoPage() {
             </Button>
             <Button 
               className="bg-green-600 hover:bg-green-700"
-              onClick={() => window.open('https://calendly.com', '_blank')}
+              onClick={() => setLocation('/pilot/onboard')}
             >
               Book Pilot
             </Button>
@@ -408,7 +411,7 @@ export default function WeatherDemoPage() {
             </Button>
             <Button 
               className="bg-green-600 hover:bg-green-700"
-              onClick={() => window.open('https://calendly.com', '_blank')}
+              onClick={() => setLocation('/pilot/onboard')}
             >
               Book Real Pilot
               <ArrowRight className="w-4 h-4 ml-2" />

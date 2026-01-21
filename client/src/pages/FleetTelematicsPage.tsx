@@ -156,7 +156,7 @@ export default function FleetTelematicsPage() {
               </Button>
               <Button 
                 className="bg-blue-600 hover:bg-blue-700"
-                onClick={() => window.open('https://calendly.com', '_blank')}
+                onClick={() => setLocation('/pilot/onboard')}
               >
                 Book Pilot
               </Button>
@@ -182,7 +182,7 @@ export default function FleetTelematicsPage() {
             <Button 
               size="lg" 
               className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => window.open('https://calendly.com', '_blank')}
+              onClick={() => setLocation('/pilot/onboard')}
             >
               Start 30-Day Pilot
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -247,7 +247,7 @@ export default function FleetTelematicsPage() {
                   <Button 
                     className={`w-full mt-6 ${tier.popular ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
                     variant={tier.popular ? 'default' : 'outline'}
-                    onClick={() => window.open('https://calendly.com', '_blank')}
+                    onClick={() => setLocation('/pilot/onboard')}
                   >
                     Start Pilot
                   </Button>
@@ -327,7 +327,7 @@ export default function FleetTelematicsPage() {
           <Button 
             size="lg" 
             className="bg-white text-blue-600 hover:bg-gray-100"
-            onClick={() => window.open('https://calendly.com', '_blank')}
+            onClick={() => setLocation('/pilot/onboard')}
           >
             Book Discovery Call
             <ArrowRight className="w-4 h-4 ml-2" />

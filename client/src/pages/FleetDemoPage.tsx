@@ -73,8 +73,8 @@ export default function FleetDemoPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          name: companyName,
-          email: `demo-${Date.now()}@fleet.test`
+          accountName: companyName,
+          tier: 'starter'
         })
       });
       
@@ -90,14 +90,20 @@ export default function FleetDemoPage() {
       await new Promise(r => setTimeout(r, 500));
       
       updateStep(2, { status: 'running' });
+      const demoDeviceId = `demo_truck_${Date.now()}`;
+      const apiKey = accountData.apiKey;
       const registerRes = await fetch('/api/iot/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey || ''
+        },
         body: JSON.stringify({
+          deviceId: demoDeviceId,
           accountId: accountData.account?.id || accountData.id,
-          deviceType: 'vehicle',
-          name: 'Demo Truck #1',
-          metadata: { vin: 'DEMO123456789', make: 'Ford', model: 'F-150' }
+          deviceName: 'Demo Truck #1',
+          deviceType: 'sensor',
+          spendingLimit: 100
         })
       });
       
@@ -120,15 +126,18 @@ export default function FleetDemoPage() {
       ];
       
       let meterResult = null;
+      const apiKey = accountData.apiKey;
       for (const event of events) {
         const meterRes = await fetch('/api/iot/meter', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey || ''
+          },
           body: JSON.stringify({
-            accountId: accountData.account?.id || accountData.id,
-            deviceId: deviceData.device?.id || deviceData.id,
+            deviceId: deviceData.device?.deviceId || demoDeviceId,
             eventType: 'gps_update',
-            eventData: event
+            units: 1
           })
         });
         
@@ -196,7 +205,7 @@ export default function FleetDemoPage() {
             </Button>
             <Button 
               className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => window.open('https://calendly.com', '_blank')}
+              onClick={() => setLocation('/pilot/onboard')}
             >
               Book Pilot
             </Button>
@@ -310,7 +319,7 @@ export default function FleetDemoPage() {
             </Button>
             <Button 
               className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => window.open('https://calendly.com', '_blank')}
+              onClick={() => setLocation('/pilot/onboard')}
             >
               Book Real Pilot
               <ArrowRight className="w-4 h-4 ml-2" />

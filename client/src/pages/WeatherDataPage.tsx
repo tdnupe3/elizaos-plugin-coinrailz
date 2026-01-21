@@ -165,7 +165,7 @@ export default function WeatherDataPage() {
               </Button>
               <Button 
                 className="bg-green-600 hover:bg-green-700"
-                onClick={() => window.open('https://calendly.com', '_blank')}
+                onClick={() => setLocation('/pilot/onboard')}
               >
                 Book Pilot
               </Button>
@@ -191,7 +191,7 @@ export default function WeatherDataPage() {
             <Button 
               size="lg" 
               className="bg-green-600 hover:bg-green-700"
-              onClick={() => window.open('https://calendly.com', '_blank')}
+              onClick={() => setLocation('/pilot/onboard')}
             >
               Start 30-Day Pilot
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -256,7 +256,7 @@ export default function WeatherDataPage() {
                   <Button 
                     className={`w-full mt-6 ${tier.popular ? 'bg-green-600 hover:bg-green-700' : ''}`}
                     variant={tier.popular ? 'default' : 'outline'}
-                    onClick={() => window.open('https://calendly.com', '_blank')}
+                    onClick={() => setLocation('/pilot/onboard')}
                   >
                     Start Pilot
                   </Button>
@@ -364,7 +364,7 @@ export default function WeatherDataPage() {
           <Button 
             size="lg" 
             className="bg-white text-green-600 hover:bg-gray-100"
-            onClick={() => window.open('https://calendly.com', '_blank')}
+            onClick={() => setLocation('/pilot/onboard')}
           >
             Book Discovery Call
             <ArrowRight className="w-4 h-4 ml-2" />

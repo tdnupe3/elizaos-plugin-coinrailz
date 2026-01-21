@@ -32,7 +32,7 @@ export class TopupConfirmationJob {
     'arbitrum-mainnet': 'https://arb1.arbitrum.io/rpc',
   };
 
-  static start(intervalMs: number = 60000) {
+  static start(intervalMs: number = 300000) { // 5 minutes default - conservative for platform stability
     if (this.intervalId) {
       console.log('⚠️ Topup confirmation job already running');
       return;

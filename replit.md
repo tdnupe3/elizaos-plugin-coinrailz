@@ -113,7 +113,7 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
   - Schema updates: Added `cdp_wallet_address`, `cdp_wallet_chain`, `cdp_wallet_status` to `iot_accounts`.
   - **Supported Chains**: base-mainnet, ethereum-mainnet, polygon-mainnet, arbitrum-mainnet.
 - **Atomic DB Transactions**: D2D on-chain transfers and withdrawals refactored to use `db.transaction()` with proper credit debit/rollback patterns; prevents race conditions and partial state under concurrent requests.
-- **Async Topup Confirmation Job**: Background job with exponential backoff (1min to 1hr), sender/amount validation, 24hr expiry, auto-crediting on confirmation. Runs every 60 seconds processing up to 50 pending topups. State machine: pending → confirming → completed/failed/amount_mismatch/expired.
+- **Async Topup Confirmation Job**: Background job with exponential backoff (1min to 1hr), sender/amount validation, 24hr expiry, auto-crediting on confirmation. Runs every 5 minutes (conservative for platform stability) processing up to 50 pending topups. State machine: pending → confirming → completed/failed/amount_mismatch/expired.
 - **Enhanced Validation & Security**:
   - Token support checks per chain via `isTokenSupported()` and `getSupportedChains()` methods.
   - Platform wallet validation before transfers.

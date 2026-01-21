@@ -3744,7 +3744,7 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
       
       // Start async topup confirmation job
       const { TopupConfirmationJob } = await import('./jobs/topupConfirmationJob');
-      TopupConfirmationJob.start(60000); // Run every minute
+      TopupConfirmationJob.start(300000); // Run every 5 minutes - conservative for platform stability
       console.log('✅ Topup confirmation job started');
     } catch (error) {
       console.error('❌ Route registration failed:', error);

@@ -843,10 +843,10 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
       });
     }
 
-    if (paymentMethod === 'usdc_onchain' && !toWallet && !toDeviceId) {
+    if ((paymentMethod === 'usdc_onchain' || paymentMethod === 'usdt_onchain') && !toWallet && !toDeviceId) {
       return res.status(400).json({
         success: false,
-        error: 'USDC on-chain transfers require toWallet or toDeviceId',
+        error: 'On-chain stablecoin transfers require toWallet or toDeviceId',
       });
     }
     
@@ -1024,9 +1024,10 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
         durationMs,
         timestamp: new Date().toISOString(),
       });
-    } else if (paymentMethod === 'usdc_onchain') {
+    } else if (paymentMethod === 'usdc_onchain' || paymentMethod === 'usdt_onchain') {
       const targetChain = chain || 'base-mainnet';
       const recipientAddress = toWallet || toDevice?.walletAddress;
+      const token = paymentMethod === 'usdt_onchain' ? 'USDT' : 'USDC';
       
       if (!recipientAddress) {
         return res.status(400).json({
@@ -1036,41 +1037,75 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
         });
       }
       
-      const cdpService = CoinbaseCDPService.getInstance();
-      const platformBalance = await cdpService.getUSDCBalance(process.env.PLATFORM_WALLET_ADDRESS || '', targetChain);
+      if (!CoinbaseCDPService.isTokenSupported(token, targetChain)) {
+        return res.status(400).json({
+          success: false,
+          error: `${token} not supported on ${targetChain}`,
+          supportedChains: CoinbaseCDPService.getSupportedChains(token),
+        });
+      }
       
-      if (parseFloat(platformBalance) < netAmount) {
-        console.log(`❌ Insufficient platform USDC for D2D: ${platformBalance} < ${netAmount} required`);
+      const cdpService = CoinbaseCDPService.getInstance();
+      const platformWallet = process.env.PLATFORM_WALLET_ADDRESS;
+      
+      if (!platformWallet) {
         return res.status(503).json({
           success: false,
-          error: 'Platform liquidity temporarily insufficient for on-chain transfer',
+          error: 'Platform wallet not configured for this chain',
+          hint: 'Contact support',
+        });
+      }
+      
+      const platformBalance = await cdpService.getTokenBalance(platformWallet, token, targetChain);
+      
+      if (parseFloat(platformBalance) < netAmount) {
+        console.log(`❌ Insufficient platform ${token} for D2D: ${platformBalance} < ${netAmount} required`);
+        return res.status(503).json({
+          success: false,
+          error: `Platform ${token} liquidity temporarily insufficient for on-chain transfer`,
           hint: 'Try credits payment method or contact support',
         });
       }
       
-      await db.insert(iotTransfers).values({
-        id: transferId,
-        fromDeviceId,
-        fromAccountId: fromDevice[0].accountId,
-        toDeviceId: toDeviceId || null,
-        toAccountId,
-        toWallet: recipientAddress,
-        amount: amount.toString(),
-        fee: fee.toString(),
-        netAmount: netAmount.toString(),
-        currency: 'USDC',
-        paymentMethod,
-        chain: targetChain,
-        purpose: purpose || null,
-        reference: reference || null,
-        status: 'processing',
-        idempotencyKey: idempotencyKey || null,
-      });
+      // Atomic transaction: create transfer record with pending status
+      // On-chain transfer happens outside transaction (can't rollback blockchain)
+      let transferRecord: any;
+      try {
+        transferRecord = await db.transaction(async (tx) => {
+          const [record] = await tx.insert(iotTransfers).values({
+            id: transferId,
+            fromDeviceId,
+            fromAccountId: fromDevice[0].accountId,
+            toDeviceId: toDeviceId || null,
+            toAccountId,
+            toWallet: recipientAddress,
+            amount: amount.toString(),
+            fee: fee.toString(),
+            netAmount: netAmount.toString(),
+            currency: token,
+            paymentMethod,
+            chain: targetChain,
+            purpose: purpose || null,
+            reference: reference || null,
+            status: 'processing',
+            idempotencyKey: idempotencyKey || null,
+          }).returning();
+          return record;
+        });
+      } catch (dbError: any) {
+        console.error(`❌ Failed to create transfer record:`, dbError);
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to create transfer record',
+          message: dbError.message,
+        });
+      }
 
       try {
-        const transferResult = await cdpService.sendUSDC({
+        const transferResult = await cdpService.sendToken({
           toAddress: recipientAddress,
           amount: netAmount.toString(),
+          token,
           chain: targetChain,
           memo: `IoT D2D Transfer: ${transferId}`,
         });
@@ -1085,7 +1120,7 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
             .where(eq(iotTransfers.id, transferId));
           
           const durationMs = Date.now() - startTime;
-          console.log(`✅ On-chain D2D transfer completed: ${transferId} -> ${transferResult.txHash}`);
+          console.log(`✅ On-chain D2D ${token} transfer completed: ${transferId} -> ${transferResult.txHash}`);
           
           res.status(201).json({
             success: true,
@@ -1095,7 +1130,7 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
               amount,
               fee,
               netAmount,
-              currency: 'USDC',
+              currency: token,
               chain: targetChain,
               txHash: transferResult.txHash,
             },
@@ -1118,7 +1153,7 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
           
           res.status(500).json({
             success: false,
-            error: 'On-chain transfer failed',
+            error: `On-chain ${token} transfer failed`,
             message: transferResult.error,
             transferId,
           });
@@ -1131,10 +1166,10 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
           })
           .where(eq(iotTransfers.id, transferId));
         
-        console.error(`❌ CDP on-chain transfer failed for ${transferId}:`, cdpError);
+        console.error(`❌ CDP on-chain ${token} transfer failed for ${transferId}:`, cdpError);
         res.status(500).json({
           success: false,
-          error: 'On-chain transfer execution failed',
+          error: `On-chain ${token} transfer execution failed`,
           message: cdpError.message,
           transferId,
           fallback: 'Transfer created but on-chain execution failed. Manual intervention may be required.',
@@ -2047,6 +2082,7 @@ const withdrawalSchema = z.object({
   amount: z.number().positive().min(1), // Minimum $1 withdrawal
   toWallet: z.string().min(1), // Recipient wallet address
   chain: z.string().default('base-mainnet'),
+  token: z.enum(['USDC', 'USDT']).default('USDC'), // Multi-token support
 });
 
 router.post('/withdraw', requiredAuth, async (req: Request, res: Response) => {
@@ -2060,13 +2096,30 @@ router.post('/withdraw', requiredAuth, async (req: Request, res: Response) => {
       });
     }
 
-    const { accountId, amount, toWallet, chain } = validation.data;
+    const { accountId, amount, toWallet, chain, token } = validation.data;
     const auth = (req as any).iotAuth as IoTAuthResult;
     
     if (!canAccessAccount(auth, accountId)) {
       return res.status(403).json({
         success: false,
         error: 'Access denied to this account',
+      });
+    }
+    
+    if (!CoinbaseCDPService.isTokenSupported(token, chain)) {
+      return res.status(400).json({
+        success: false,
+        error: `${token} not supported on ${chain}`,
+        supportedChains: CoinbaseCDPService.getSupportedChains(token),
+      });
+    }
+
+    const platformWallet = process.env.PLATFORM_WALLET_ADDRESS;
+    if (!platformWallet) {
+      return res.status(503).json({
+        success: false,
+        error: 'Platform wallet not configured',
+        hint: 'Contact support',
       });
     }
 
@@ -2104,50 +2157,79 @@ router.post('/withdraw', requiredAuth, async (req: Request, res: Response) => {
       });
     }
 
-    const withdrawalId = `iot_withdraw_${nanoid(16)}`;
-
     const cdpService = CoinbaseCDPService.getInstance();
-    const platformBalance = await cdpService.getUSDCBalance(process.env.PLATFORM_WALLET_ADDRESS || '', chain);
+    const platformBalance = await cdpService.getTokenBalance(platformWallet, token, chain);
     
     if (parseFloat(platformBalance) < netAmount) {
-      console.log(`❌ Insufficient platform USDC: ${platformBalance} < ${netAmount} required`);
+      console.log(`❌ Insufficient platform ${token}: ${platformBalance} < ${netAmount} required`);
       return res.status(503).json({
         success: false,
-        error: 'Platform liquidity temporarily insufficient',
+        error: `Platform ${token} liquidity temporarily insufficient`,
         message: 'Please try a smaller amount or wait for liquidity replenishment',
         hint: 'Contact support if this persists',
       });
     }
 
-    await db.update(iotAccounts)
-      .set({
-        creditsBalance: sql`${iotAccounts.creditsBalance} - ${amount}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(iotAccounts.id, accountId));
+    const withdrawalId = `iot_withdraw_${nanoid(16)}`;
+    const paymentMethod = token === 'USDT' ? 'usdt_onchain' : 'usdc_onchain';
 
-    await db.insert(iotTransfers).values({
-      id: withdrawalId,
-      fromDeviceId: 'ACCOUNT',
-      fromAccountId: accountId,
-      toDeviceId: null,
-      toAccountId: null,
-      toWallet,
-      amount: amount.toString(),
-      fee: withdrawalFee.toString(),
-      netAmount: netAmount.toString(),
-      currency: 'USDC',
-      paymentMethod: 'usdc_onchain',
-      chain,
-      purpose: 'withdrawal',
-      status: 'processing',
-    });
-
+    // Atomic transaction: debit credits and create withdrawal record together
+    let withdrawalRecord: any;
     try {
-      const cdpService = CoinbaseCDPService.getInstance();
-      const transferResult = await cdpService.sendUSDC({
+      withdrawalRecord = await db.transaction(async (tx) => {
+        // Verify balance with lock (FOR UPDATE would require raw SQL)
+        const currentAccount = await tx.select()
+          .from(iotAccounts)
+          .where(eq(iotAccounts.id, accountId))
+          .limit(1);
+        
+        if (!currentAccount.length || parseFloat(currentAccount[0].creditsBalance) < amount) {
+          throw new Error('Insufficient balance (race condition detected)');
+        }
+        
+        // Debit credits
+        await tx.update(iotAccounts)
+          .set({
+            creditsBalance: sql`${iotAccounts.creditsBalance} - ${amount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(iotAccounts.id, accountId));
+        
+        // Create withdrawal record
+        const [record] = await tx.insert(iotTransfers).values({
+          id: withdrawalId,
+          fromDeviceId: 'ACCOUNT',
+          fromAccountId: accountId,
+          toDeviceId: null,
+          toAccountId: null,
+          toWallet,
+          amount: amount.toString(),
+          fee: withdrawalFee.toString(),
+          netAmount: netAmount.toString(),
+          currency: token,
+          paymentMethod,
+          chain,
+          purpose: 'withdrawal',
+          status: 'processing',
+        }).returning();
+        
+        return record;
+      });
+    } catch (dbError: any) {
+      console.error(`❌ Withdrawal DB transaction failed:`, dbError);
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to process withdrawal',
+        message: dbError.message,
+      });
+    }
+
+    // On-chain transfer (outside transaction - blockchain can't rollback)
+    try {
+      const transferResult = await cdpService.sendToken({
         toAddress: toWallet,
         amount: netAmount.toString(),
+        token,
         chain,
         memo: `IoT Withdrawal: ${withdrawalId}`,
       });
@@ -2171,7 +2253,7 @@ router.post('/withdraw', requiredAuth, async (req: Request, res: Response) => {
             amount,
             fee: withdrawalFee,
             netAmount,
-            currency: 'USDC',
+            currency: token,
             chain,
             txHash: transferResult.txHash,
             toWallet,
@@ -2184,47 +2266,53 @@ router.post('/withdraw', requiredAuth, async (req: Request, res: Response) => {
           timestamp: new Date().toISOString(),
         });
       } else {
-        await db.update(iotAccounts)
-          .set({
-            creditsBalance: sql`${iotAccounts.creditsBalance} + ${amount}`,
-            updatedAt: new Date(),
-          })
-          .where(eq(iotAccounts.id, accountId));
-        
-        await db.update(iotTransfers)
-          .set({ 
-            status: 'failed', 
-            errorMessage: transferResult.error || 'Transfer failed',
-          })
-          .where(eq(iotTransfers.id, withdrawalId));
+        // Refund credits on failure
+        await db.transaction(async (tx) => {
+          await tx.update(iotAccounts)
+            .set({
+              creditsBalance: sql`${iotAccounts.creditsBalance} + ${amount}`,
+              updatedAt: new Date(),
+            })
+            .where(eq(iotAccounts.id, accountId));
+          
+          await tx.update(iotTransfers)
+            .set({ 
+              status: 'failed', 
+              errorMessage: transferResult.error || 'Transfer failed',
+            })
+            .where(eq(iotTransfers.id, withdrawalId));
+        });
         
         res.status(500).json({
           success: false,
-          error: 'Withdrawal transfer failed',
+          error: `Withdrawal ${token} transfer failed`,
           message: transferResult.error,
           withdrawalId,
           note: 'Credits have been refunded to your account.',
         });
       }
     } catch (cdpError: any) {
-      await db.update(iotAccounts)
-        .set({
-          creditsBalance: sql`${iotAccounts.creditsBalance} + ${amount}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(iotAccounts.id, accountId));
-      
-      await db.update(iotTransfers)
-        .set({ 
-          status: 'failed', 
-          errorMessage: cdpError.message,
-        })
-        .where(eq(iotTransfers.id, withdrawalId));
+      // Refund credits on CDP error
+      await db.transaction(async (tx) => {
+        await tx.update(iotAccounts)
+          .set({
+            creditsBalance: sql`${iotAccounts.creditsBalance} + ${amount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(iotAccounts.id, accountId));
+        
+        await tx.update(iotTransfers)
+          .set({ 
+            status: 'failed', 
+            errorMessage: cdpError.message,
+          })
+          .where(eq(iotTransfers.id, withdrawalId));
+      });
       
       console.error(`❌ Withdrawal failed for ${withdrawalId}:`, cdpError);
       res.status(500).json({
         success: false,
-        error: 'Withdrawal execution failed',
+        error: `Withdrawal ${token} execution failed`,
         message: cdpError.message,
         withdrawalId,
         note: 'Credits have been refunded to your account.',

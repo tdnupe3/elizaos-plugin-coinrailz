@@ -101,13 +101,15 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **Google's A2A Protocol:** For autonomous outreach to AI agents.
 
 ## Recent Changes (January 21, 2026)
-- **On-Chain USDC Payment Capabilities**: Full on-chain payment infrastructure for IoT accounts:
+- **On-Chain USDC Payment Capabilities v1.0.0**: Full on-chain payment infrastructure for IoT accounts:
   - CDP wallet provisioning: `provisionWallet: true` creates a Base mainnet CDP wallet for accounts.
   - USDC transfer execution: D2D transfers with `usdc_onchain` now execute real on-chain transfers via CDP.
   - Credits-to-wallet withdrawal: New `/api/iot/withdraw` endpoint with 1% + $0.50 fee structure.
   - On-chain topup: New `/api/iot/topup/onchain` endpoint to convert USDC deposits to credits.
   - Get topup wallet: New `/api/iot/topup/wallet/:accountId` returns deposit address for on-chain topups.
   - Schema updates: Added `cdp_wallet_address`, `cdp_wallet_chain`, `cdp_wallet_status` to `iot_accounts`.
+  - **Security Hardening**: Platform USDC balance pre-checks before D2D and withdrawal transfers; on-chain topup verification validates exact USDC token contract per chain, recipient address matching, and expectedAmount tolerance (0.01 USDC).
+  - **Supported Chains**: base-mainnet, ethereum-mainnet, polygon-mainnet, arbitrum-mainnet.
 - **Demo Data Isolation**: Added `isDemo` boolean flag to `iot_accounts` and `iot_device_registry` tables. FleetDemoPage and WeatherDemoPage now pass `isDemo: true` to API calls, preventing demo data from corrupting production metrics. Analytics endpoints should filter with `WHERE is_demo = false` for production metrics.
 - **CDP v1 to v2 Migration**: Migrated `x402PaymentService.ts` from deprecated `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2). Now uses shared `CoinbaseCDPService` for wallet operations. Migration plan documented in `docs/CDP_V1_TO_V2_MIGRATION_PLAN.md`. Deadline: Jan 31, 2026.
 - **CTA Updates**: All "Book Pilot"/"Start Pilot" buttons across Fleet/Weather landing and demo pages now route to `/pilot/onboard` (internal self-serve onboarding) instead of external Calendly links.

@@ -1816,9 +1816,11 @@ router.delete('/pilots/:pilotId', async (req: Request, res: Response) => {
 
 const onchainTopupSchema = z.object({
   accountId: z.string().min(1),
-  txHash: z.string().min(1), // The USDC transfer transaction hash
+  txHash: z.string().min(1), // The stablecoin transfer transaction hash
   chain: z.string().default('base-mainnet'),
-  expectedAmount: z.string().optional(), // Expected USDC amount for verification
+  token: z.enum(['USDC', 'USDT']).default('USDC'), // Multi-token support
+  expectedAmount: z.string().optional(), // Expected amount for verification
+  sender: z.string().optional(), // Optional: expected sender address for stricter validation
 });
 
 router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) => {
@@ -1832,13 +1834,22 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
       });
     }
 
-    const { accountId, txHash, chain, expectedAmount } = validation.data;
+    const { accountId, txHash, chain, token, expectedAmount, sender } = validation.data;
     const auth = (req as any).iotAuth as IoTAuthResult;
     
     if (!canAccessAccount(auth, accountId)) {
       return res.status(403).json({
         success: false,
         error: 'Access denied to this account',
+      });
+    }
+    
+    // Validate token support on chain
+    if (!CoinbaseCDPService.isTokenSupported(token, chain)) {
+      return res.status(400).json({
+        success: false,
+        error: `${token} not supported on ${chain}`,
+        supportedChains: CoinbaseCDPService.getSupportedChains(token),
       });
     }
 
@@ -1854,16 +1865,18 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
       });
     }
     
+    // Check for duplicate txHash (unique constraint)
     const existingTopup = await db.select()
       .from(iotTopups)
-      .where(sql`metadata->>'txHash' = ${txHash}`)
+      .where(eq(iotTopups.txHash, txHash))
       .limit(1);
     
     if (existingTopup.length > 0) {
       return res.status(409).json({
         success: false,
-        error: 'Transaction already processed',
+        error: 'Transaction already processed or pending',
         topupId: existingTopup[0].id,
+        status: existingTopup[0].status,
       });
     }
 
@@ -1878,25 +1891,22 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
       });
     }
     
-    const usdcContracts: Record<string, string> = {
-      'base-mainnet': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
-      'ethereum-mainnet': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-      'polygon-mainnet': '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-      'arbitrum-mainnet': '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-    };
-    
-    if (!usdcContracts[chain]) {
+    const tokenAddress = CoinbaseCDPService.getTokenAddress(token, chain);
+    if (!tokenAddress) {
       return res.status(400).json({
         success: false,
-        error: `Chain ${chain} not supported for on-chain topups`,
-        supportedChains: Object.keys(usdcContracts),
+        error: `${token} not available on ${chain}`,
       });
     }
+    
+    const paymentMethod = token === 'USDT' ? 'usdt_onchain' : 'usdc_onchain';
     
     let verifiedAmount = '0';
     let verificationStatus = 'pending';
     let verificationMessage = 'Transaction verification pending';
+    let actualSender: string | null = null;
     
+    // Try immediate verification
     try {
       const ethers = await import('ethers');
       const rpcUrls: Record<string, string> = {
@@ -1910,19 +1920,25 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
       const receipt = await provider.getTransactionReceipt(txHash);
       
       if (receipt && receipt.status === 1) {
-        const usdcAddress = usdcContracts[chain].toLowerCase();
         const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
         
         let totalVerifiedAmount = BigInt(0);
         let matchingTransfers = 0;
         
         for (const log of receipt.logs) {
-          if (log.address.toLowerCase() === usdcAddress && log.topics[0] === transferTopic) {
+          if (log.address.toLowerCase() === tokenAddress!.toLowerCase() && log.topics[0] === transferTopic) {
+            const fromAddress = '0x' + log.topics[1].slice(26).toLowerCase();
             const toAddress = '0x' + log.topics[2].slice(26).toLowerCase();
+            
             if (toAddress === platformWalletAddress.toLowerCase()) {
+              // Validate sender if expected
+              if (sender && fromAddress !== sender.toLowerCase()) {
+                continue; // Skip transfers from unexpected senders
+              }
               const transferAmount = BigInt(log.data);
               totalVerifiedAmount += transferAmount;
               matchingTransfers++;
+              actualSender = fromAddress;
             }
           }
         }
@@ -1937,53 +1953,65 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
             
             if (Math.abs(verifiedFloat - expectedFloat) > tolerance) {
               verificationStatus = 'amount_mismatch';
-              verificationMessage = `Expected ${expectedAmount} USDC but found ${verifiedAmount} USDC`;
+              verificationMessage = `Expected ${expectedAmount} ${token} but found ${verifiedAmount} ${token}`;
               console.warn(`⚠️ Topup amount mismatch: expected ${expectedAmount}, got ${verifiedAmount}`);
             } else {
               verificationStatus = 'completed';
-              verificationMessage = `Verified ${verifiedAmount} USDC transfer (${matchingTransfers} transfer(s))`;
-              console.log(`✅ On-chain topup verified: ${verifiedAmount} USDC from tx ${txHash}`);
+              verificationMessage = `Verified ${verifiedAmount} ${token} transfer (${matchingTransfers} transfer(s))`;
+              console.log(`✅ On-chain topup verified: ${verifiedAmount} ${token} from tx ${txHash}`);
             }
           } else {
             verificationStatus = 'completed';
-            verificationMessage = `Verified ${verifiedAmount} USDC transfer (${matchingTransfers} transfer(s))`;
-            console.log(`✅ On-chain topup verified: ${verifiedAmount} USDC from tx ${txHash}`);
+            verificationMessage = `Verified ${verifiedAmount} ${token} transfer (${matchingTransfers} transfer(s))`;
+            console.log(`✅ On-chain topup verified: ${verifiedAmount} ${token} from tx ${txHash}`);
           }
         } else {
-          verificationStatus = 'no_transfer_found';
-          verificationMessage = 'Transaction confirmed but no USDC transfer to platform wallet detected';
+          verificationStatus = 'failed';
+          verificationMessage = `No ${token} transfer to platform wallet detected in transaction`;
         }
       } else if (!receipt) {
-        verificationMessage = 'Transaction not yet confirmed on chain - submit again after confirmation';
+        // Transaction not yet confirmed - set up for async confirmation
+        verificationStatus = 'confirming';
+        verificationMessage = 'Transaction pending confirmation - will be auto-verified';
       } else {
         verificationMessage = 'Transaction failed on chain';
         verificationStatus = 'failed';
       }
     } catch (verifyError: any) {
       console.warn(`⚠️ On-chain verification failed: ${verifyError.message}`);
-      verificationMessage = `Verification error: ${verifyError.message}`;
+      // Set up for async retry
+      verificationStatus = 'confirming';
+      verificationMessage = 'Verification pending - will retry automatically';
     }
     
+    // Set expiry for pending topups (24 hours)
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // Set next check time for async confirmation job (1 minute)
+    const nextCheckAt = verificationStatus === 'confirming' ? new Date(Date.now() + 60000) : null;
+    
+    // Create topup record with proper async confirmation state
     await db.insert(iotTopups).values({
       id: topupId,
       accountId,
-      packId: 'onchain_usdc',
-      packName: 'On-Chain USDC Topup',
-      amountPaid: verifiedAmount || expectedAmount || '0',
-      creditsReceived: verificationStatus === 'completed' ? verifiedAmount : '0',
-      paymentMethod: 'usdc_onchain',
-      paymentId: txHash,
+      amount: verificationStatus === 'completed' ? verifiedAmount : (expectedAmount || '0'),
+      amountPaid: verificationStatus === 'completed' ? verifiedAmount : (expectedAmount || '0'),
+      packType: `onchain_${token.toLowerCase()}`,
+      paymentMethod,
+      txHash,
       status: verificationStatus,
-      metadata: { 
-        txHash, 
-        chain, 
-        expectedAmount,
-        verifiedAmount,
-        platformWallet: platformWalletAddress,
-        verificationMessage,
-      },
+      token,
+      chain,
+      expectedAmount: expectedAmount || null,
+      sender: sender || actualSender,
+      verificationAttempts: 1,
+      lastCheckedAt: new Date(),
+      nextCheckAt,
+      failureReason: verificationStatus === 'failed' || verificationStatus === 'amount_mismatch' ? verificationMessage : null,
+      expiresAt,
+      verifiedAmount: verificationStatus === 'completed' ? verifiedAmount : null,
     });
     
+    // Credit account immediately if verified
     if (verificationStatus === 'completed' && parseFloat(verifiedAmount) > 0) {
       await db.update(iotAccounts)
         .set({
@@ -1993,7 +2021,18 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
         })
         .where(eq(iotAccounts.id, accountId));
       
-      console.log(`💰 Credits added to ${accountId}: +${verifiedAmount} USDC`);
+      // Update topup with balance after
+      const updatedAccount = await db.select().from(iotAccounts).where(eq(iotAccounts.id, accountId)).limit(1);
+      if (updatedAccount.length) {
+        await db.update(iotTopups)
+          .set({ 
+            balanceAfter: updatedAccount[0].creditsBalance,
+            completedAt: new Date(),
+          })
+          .where(eq(iotTopups.id, topupId));
+      }
+      
+      console.log(`💰 Credits added to ${accountId}: +${verifiedAmount} ${token}`);
     }
 
     console.log(`🔍 On-chain topup ${verificationStatus}: ${topupId} with txHash ${txHash}`);
@@ -2005,12 +2044,20 @@ router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) 
         status: verificationStatus,
         txHash,
         chain,
-        expectedAmount,
+        token,
+        expectedAmount: expectedAmount || null,
         verifiedAmount: verificationStatus === 'completed' ? verifiedAmount : null,
         creditsAdded: verificationStatus === 'completed' ? parseFloat(verifiedAmount) : 0,
+        sender: sender || actualSender,
       },
       message: verificationMessage,
       platformWallet: platformWalletAddress,
+      asyncConfirmation: verificationStatus === 'confirming' ? {
+        enabled: true,
+        nextCheckAt: new Date(Date.now() + 60000).toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        note: 'Your topup will be automatically verified when the transaction confirms on-chain.',
+      } : null,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {

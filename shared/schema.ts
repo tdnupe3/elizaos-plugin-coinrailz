@@ -6030,20 +6030,33 @@ export const iotTopups = pgTable(
     amount: decimal("amount", { precision: 12, scale: 4 }).notNull(), // Credits added
     amountPaid: decimal("amount_paid", { precision: 12, scale: 4 }).notNull(), // Amount paid in USD
     packType: varchar("pack_type").notNull(), // starter_25, growth_100, enterprise_500, custom
-    paymentMethod: varchar("payment_method").notNull(), // stripe, paypal, usdc_onchain, credits_transfer
+    paymentMethod: varchar("payment_method").notNull(), // stripe, paypal, usdc_onchain, usdt_onchain, credits_transfer
     stripePaymentIntentId: varchar("stripe_payment_intent_id"),
     paypalOrderId: varchar("paypal_order_id"), // PayPal order ID for PayPal payments
-    txHash: varchar("tx_hash"), // On-chain transaction hash
-    status: varchar("status").notNull().default("pending"), // pending, completed, failed, refunded
+    txHash: varchar("tx_hash"), // On-chain transaction hash (unique per chain+token)
+    status: varchar("status").notNull().default("pending"), // pending, confirming, completed, failed, amount_mismatch, expired
     balanceAfter: decimal("balance_after", { precision: 12, scale: 4 }), // Account balance after topup
     createdAt: timestamp("created_at").defaultNow().notNull(),
     completedAt: timestamp("completed_at"),
+    // Async confirmation state machine fields (for on-chain topups)
+    token: varchar("token").default("USDC"), // USDC or USDT
+    chain: varchar("chain").default("base-mainnet"), // Network chain
+    expectedAmount: decimal("expected_amount", { precision: 12, scale: 4 }), // Expected amount for verification
+    sender: varchar("sender"), // Expected sender wallet address
+    verificationAttempts: integer("verification_attempts").default(0), // Retry count
+    lastCheckedAt: timestamp("last_checked_at"), // Last verification check
+    nextCheckAt: timestamp("next_check_at"), // Next scheduled verification (for job)
+    failureReason: varchar("failure_reason"), // Reason for failure/rejection
+    expiresAt: timestamp("expires_at"), // TTL for pending topups
+    verifiedAmount: decimal("verified_amount", { precision: 12, scale: 4 }), // Actual verified amount from chain
   },
   (table) => [
     index("IDX_iot_topups_account").on(table.accountId),
     index("IDX_iot_topups_status").on(table.status),
     index("IDX_iot_topups_created").on(table.createdAt),
     index("IDX_iot_topups_stripe").on(table.stripePaymentIntentId),
+    index("IDX_iot_topups_txhash").on(table.txHash),
+    index("IDX_iot_topups_nextcheck").on(table.nextCheckAt),
   ],
 );
 

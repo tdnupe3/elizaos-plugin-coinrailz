@@ -76,7 +76,8 @@ export default function WeatherDemoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           accountName: stationName,
-          tier: 'starter'
+          tier: 'starter',
+          isDemo: true
         })
       });
       
@@ -105,7 +106,8 @@ export default function WeatherDemoPage() {
           accountId: accId,
           deviceName: 'Demo Weather Station #1',
           deviceType: 'sensor',
-          spendingLimit: 50
+          spendingLimit: 50,
+          isDemo: true
         })
       });
       

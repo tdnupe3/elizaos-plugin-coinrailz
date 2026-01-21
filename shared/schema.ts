@@ -5868,6 +5868,7 @@ export const iotAccounts = pgTable(
     stripeCustomerId: varchar("stripe_customer_id"), // For recurring payments
     tier: varchar("tier").notNull().default("starter"), // starter, growth, enterprise
     status: varchar("status").notNull().default("active"), // active, suspended, closed
+    isDemo: boolean("is_demo").notNull().default(false), // Demo/test data flag - excluded from production metrics
     metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -5908,6 +5909,7 @@ export const iotDeviceRegistry = pgTable(
     canReceivePayments: boolean("can_receive_payments").notNull().default(true), // Can this device receive D2D payments?
     canSendPayments: boolean("can_send_payments").notNull().default(true), // Can this device send D2D payments?
     status: varchar("status").notNull().default("active"), // active, suspended, inactive
+    isDemo: boolean("is_demo").notNull().default(false), // Demo/test data flag - excluded from production metrics
     metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     lastActiveAt: timestamp("last_active_at"),

@@ -74,7 +74,8 @@ export default function FleetDemoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           accountName: companyName,
-          tier: 'starter'
+          tier: 'starter',
+          isDemo: true
         })
       });
       
@@ -103,7 +104,8 @@ export default function FleetDemoPage() {
           accountId: accountData.account?.id || accountData.id,
           deviceName: 'Demo Truck #1',
           deviceType: 'sensor',
-          spendingLimit: 100
+          spendingLimit: 100,
+          isDemo: true
         })
       });
       

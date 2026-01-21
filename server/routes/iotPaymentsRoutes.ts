@@ -180,6 +180,7 @@ const createAccountSchema = z.object({
   ownerId: z.string().optional(),
   ownerWallet: z.string().optional(),
   tier: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
+  isDemo: z.boolean().default(false), // Flag for demo/test data - excluded from production metrics
   metadata: z.record(z.any()).optional(),
 });
 
@@ -193,6 +194,7 @@ const registerDeviceSchema = z.object({
   spendingLimit: z.number().positive().optional(),
   canReceivePayments: z.boolean().default(true),
   canSendPayments: z.boolean().default(true),
+  isDemo: z.boolean().default(false), // Flag for demo/test data - excluded from production metrics
   metadata: z.record(z.any()).optional(),
 });
 
@@ -278,7 +280,7 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
       });
     }
 
-    const { accountName, ownerId, ownerWallet, tier, metadata } = validation.data;
+    const { accountName, ownerId, ownerWallet, tier, isDemo, metadata } = validation.data;
     const accountId = `iot_acc_${nanoid(12)}`;
     
     const { createHash, randomBytes } = await import('crypto');
@@ -292,10 +294,15 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
       apiKeyHash,
       accountName,
       tier,
+      isDemo: isDemo || false,
       metadata: metadata || {},
     });
-
-    console.log(`✅ IoT Account created: ${accountId} (${accountName})`);
+    
+    if (isDemo) {
+      console.log(`🧪 DEMO IoT Account created: ${accountId} (${accountName}) - excluded from production metrics`);
+    } else {
+      console.log(`✅ IoT Account created: ${accountId} (${accountName})`);
+    }
 
     res.status(201).json({
       success: true,
@@ -509,10 +516,15 @@ router.post('/register', requiredAuth, async (req: Request, res: Response) => {
       spendingLimit: data.spendingLimit?.toString(),
       canReceivePayments: data.canReceivePayments,
       canSendPayments: data.canSendPayments,
+      isDemo: data.isDemo || false,
       metadata: data.metadata || {},
     });
 
-    console.log(`✅ IoT Device registered: ${data.deviceId} → account ${data.accountId}`);
+    if (data.isDemo) {
+      console.log(`🧪 DEMO IoT Device registered: ${data.deviceId} → account ${data.accountId} - excluded from production metrics`);
+    } else {
+      console.log(`✅ IoT Device registered: ${data.deviceId} → account ${data.accountId}`);
+    }
 
     res.status(201).json({
       success: true,

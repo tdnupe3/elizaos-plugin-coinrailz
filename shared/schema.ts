@@ -5866,6 +5866,9 @@ export const iotAccounts = pgTable(
     autoTopupThreshold: decimal("auto_topup_threshold", { precision: 12, scale: 4 }), // Trigger topup when balance below
     autoTopupAmount: decimal("auto_topup_amount", { precision: 12, scale: 4 }), // Amount to topup
     stripeCustomerId: varchar("stripe_customer_id"), // For recurring payments
+    cdpWalletAddress: varchar("cdp_wallet_address"), // CDP-managed wallet address for on-chain payments
+    cdpWalletChain: varchar("cdp_wallet_chain").default("base-mainnet"), // Chain for CDP wallet (base-mainnet, ethereum-mainnet, etc.)
+    cdpWalletStatus: varchar("cdp_wallet_status").default("none"), // none, provisioning, active, suspended
     tier: varchar("tier").notNull().default("starter"), // starter, growth, enterprise
     status: varchar("status").notNull().default("active"), // active, suspended, closed
     isDemo: boolean("is_demo").notNull().default(false), // Demo/test data flag - excluded from production metrics
@@ -5879,6 +5882,7 @@ export const iotAccounts = pgTable(
     index("IDX_iot_accounts_api_key_hash").on(table.apiKeyHash),
     index("IDX_iot_accounts_status").on(table.status),
     index("IDX_iot_accounts_tier").on(table.tier),
+    index("IDX_iot_accounts_cdp_wallet").on(table.cdpWalletAddress),
   ],
 );
 

@@ -6055,7 +6055,7 @@ export const iotTopups = pgTable(
     index("IDX_iot_topups_status").on(table.status),
     index("IDX_iot_topups_created").on(table.createdAt),
     index("IDX_iot_topups_stripe").on(table.stripePaymentIntentId),
-    index("IDX_iot_topups_txhash").on(table.txHash),
+    uniqueIndex("UQ_iot_topups_txhash").on(table.txHash), // Unique constraint to prevent duplicate tx processing
     index("IDX_iot_topups_nextcheck").on(table.nextCheckAt),
   ],
 );

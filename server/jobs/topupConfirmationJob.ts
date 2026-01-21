@@ -4,7 +4,7 @@
  * Implements retry logic with exponential backoff
  */
 
-import { db } from '../../db';
+import { db } from '../db';
 import { iotTopups, iotAccounts } from '@shared/schema';
 import { eq, and, lte, isNotNull, sql, or } from 'drizzle-orm';
 import { CoinbaseCDPService } from '../services/coinbaseCDPService';

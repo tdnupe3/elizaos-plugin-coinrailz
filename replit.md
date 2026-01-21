@@ -101,20 +101,31 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **Google's A2A Protocol:** For autonomous outreach to AI agents.
 
 ## Recent Changes (January 21, 2026)
-- **On-Chain USDC Payment Capabilities v1.0.0**: Full on-chain payment infrastructure for IoT accounts:
+- **On-Chain Payment Infrastructure v1.1.0 (Multi-Token)**: Production-grade on-chain payment support:
+  - **USDT Support Added**: Token registry now supports both USDC and USDT with addresses for 4 mainnet chains.
+  - **Multi-token Methods**: New `sendToken()` and `getTokenBalance()` methods in CDP service handle both stablecoins.
+  - **Payment Methods**: `usdc_onchain` and `usdt_onchain` now supported in D2D transfers, withdrawals, and topups.
+  - **USDT Contract Addresses**: Ethereum, Base, Polygon, Arbitrum mainnet support.
   - CDP wallet provisioning: `provisionWallet: true` creates a Base mainnet CDP wallet for accounts.
-  - USDC transfer execution: D2D transfers with `usdc_onchain` now execute real on-chain transfers via CDP.
-  - Credits-to-wallet withdrawal: New `/api/iot/withdraw` endpoint with 1% + $0.50 fee structure.
-  - On-chain topup: New `/api/iot/topup/onchain` endpoint to convert USDC deposits to credits.
-  - Get topup wallet: New `/api/iot/topup/wallet/:accountId` returns deposit address for on-chain topups.
+  - Credits-to-wallet withdrawal: `/api/iot/withdraw` endpoint with 1% + $0.50 fee structure.
+  - On-chain topup: `/api/iot/topup/onchain` endpoint to convert USDC/USDT deposits to credits.
+  - Get topup wallet: `/api/iot/topup/wallet/:accountId` returns deposit address for on-chain topups.
   - Schema updates: Added `cdp_wallet_address`, `cdp_wallet_chain`, `cdp_wallet_status` to `iot_accounts`.
-  - **Security Hardening**: Platform USDC balance pre-checks before D2D and withdrawal transfers; on-chain topup verification validates exact USDC token contract per chain, recipient address matching, and expectedAmount tolerance (0.01 USDC).
   - **Supported Chains**: base-mainnet, ethereum-mainnet, polygon-mainnet, arbitrum-mainnet.
-- **Demo Data Isolation**: Added `isDemo` boolean flag to `iot_accounts` and `iot_device_registry` tables. FleetDemoPage and WeatherDemoPage now pass `isDemo: true` to API calls, preventing demo data from corrupting production metrics. Analytics endpoints should filter with `WHERE is_demo = false` for production metrics.
-- **CDP v1 to v2 Migration**: Migrated `x402PaymentService.ts` from deprecated `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2). Now uses shared `CoinbaseCDPService` for wallet operations. Migration plan documented in `docs/CDP_V1_TO_V2_MIGRATION_PLAN.md`. Deadline: Jan 31, 2026.
-- **CTA Updates**: All "Book Pilot"/"Start Pilot" buttons across Fleet/Weather landing and demo pages now route to `/pilot/onboard` (internal self-serve onboarding) instead of external Calendly links.
-- **Demo API Alignment**: Demo pages updated to use correct API contracts (accountName, tier for accounts; deviceId, accountId, deviceName, deviceType, spendingLimit for devices; x-api-key authentication headers).
-- **Production Hardening**: Verified STRIPE_WEBHOOK_SECRET configured, Stripe webhook handles IoT payment topups via checkout completion events.
+- **Atomic DB Transactions**: D2D on-chain transfers and withdrawals refactored to use `db.transaction()` with proper credit debit/rollback patterns; prevents race conditions and partial state under concurrent requests.
+- **Async Topup Confirmation Job**: Background job with exponential backoff (1min to 1hr), sender/amount validation, 24hr expiry, auto-crediting on confirmation. Runs every 60 seconds processing up to 50 pending topups. State machine: pending → confirming → completed/failed/amount_mismatch/expired.
+- **Enhanced Validation & Security**:
+  - Token support checks per chain via `isTokenSupported()` and `getSupportedChains()` methods.
+  - Platform wallet validation before transfers.
+  - **Unique txHash Constraint**: DB unique index `UQ_iot_topups_txhash` prevents duplicate transaction processing.
+  - Sender address filtering in ERC20 log parsing.
+  - Amount tolerance (0.01) enforcement for on-chain verification.
+  - On-chain topup verification validates exact token contract per chain, recipient address matching.
+- **Schema Extended for Async Confirmation**: Added 10 fields to `iot_topups`: token, chain, expectedAmount, sender, verificationAttempts, lastCheckedAt, nextCheckAt, failureReason, expiresAt, verifiedAmount.
+- **Demo Data Isolation**: Added `isDemo` boolean flag to `iot_accounts` and `iot_device_registry` tables. Demo pages pass `isDemo: true` to API calls, preventing demo data from corrupting production metrics.
+- **CDP v1 to v2 Migration**: Migrated `x402PaymentService.ts` from deprecated `@coinbase/coinbase-sdk` (v1) to `@coinbase/cdp-sdk` (v2). Now uses shared `CoinbaseCDPService` for wallet operations. Migration plan documented in `docs/CDP_V1_TO_V2_MIGRATION_PLAN.md`.
+- **CTA Updates**: All "Book Pilot"/"Start Pilot" buttons across Fleet/Weather landing and demo pages now route to `/pilot/onboard` (internal self-serve onboarding).
+- **Production Hardening**: Stripe webhook handles IoT payment topups via checkout completion events.
 
 ## Test Isolation Guidelines
 - **Demo Data**: Use `isDemo: true` when creating test accounts/devices. This tags records in the database for exclusion from production analytics.

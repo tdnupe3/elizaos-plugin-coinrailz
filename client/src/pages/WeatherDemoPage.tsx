@@ -16,7 +16,8 @@ import {
   RefreshCw,
   Loader2,
   DollarSign,
-  ShoppingCart
+  ShoppingCart,
+  CreditCard
 } from "lucide-react";
 
 interface DemoStep {
@@ -38,7 +39,8 @@ export default function WeatherDemoPage() {
     { id: 2, title: "Register Weather Sensor", description: "Add a weather station to the device registry", status: 'pending' },
     { id: 3, title: "Push Sensor Readings", description: "Send temperature, humidity, and wind data", status: 'pending' },
     { id: 4, title: "Create Data Product", description: "List sensor data for sale in the A2D catalog", status: 'pending' },
-    { id: 5, title: "Browse Catalog", description: "View available data products", status: 'pending' }
+    { id: 5, title: "Browse Catalog", description: "View available data products", status: 'pending' },
+    { id: 6, title: "Purchase Data (A2D)", description: "Simulate x402 payment and access data", status: 'pending' }
   ]);
 
   useSEO({
@@ -166,6 +168,7 @@ export default function WeatherDemoPage() {
         })
       });
       
+      let realProductId: string | null = null;
       if (!productRes.ok) {
         const productData = { 
           message: 'Product creation requires authentication',
@@ -178,6 +181,7 @@ export default function WeatherDemoPage() {
         updateStep(4, { status: 'completed', result: productData });
       } else {
         const productData = await productRes.json();
+        realProductId = productData.product?.id || productData.id || null;
         updateStep(4, { status: 'completed', result: productData });
       }
       
@@ -199,6 +203,48 @@ export default function WeatherDemoPage() {
       } else {
         const catalogData = await catalogRes.json();
         updateStep(5, { status: 'completed', result: catalogData });
+      }
+      
+      await new Promise(r => setTimeout(r, 500));
+      
+      updateStep(6, { status: 'running' });
+      const productId = realProductId || 'demo-product';
+      const purchaseRes = await fetch(`/api/iot/data/${productId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          x402PaymentId: `demo-payment-${Date.now()}`,
+          network: 'base'
+        })
+      });
+      
+      if (purchaseRes.status === 402) {
+        const paymentRequired = await purchaseRes.json();
+        updateStep(6, { 
+          status: 'completed', 
+          result: { 
+            message: 'Payment Required (HTTP 402)',
+            demo: true,
+            paymentInfo: {
+              status: 402,
+              priceRequired: paymentRequired.price || '$0.002 USDC',
+              network: paymentRequired.network || 'base',
+              address: paymentRequired.address || '0x...'
+            }
+          } 
+        });
+      } else if (!purchaseRes.ok) {
+        updateStep(6, { 
+          status: 'completed', 
+          result: { 
+            message: 'Data purchase requires x402 payment',
+            demo: true,
+            info: 'In production, agents pay USDC on-chain'
+          } 
+        });
+      } else {
+        const purchaseData = await purchaseRes.json();
+        updateStep(6, { status: 'completed', result: purchaseData });
       }
       
       toast({
@@ -321,6 +367,8 @@ export default function WeatherDemoPage() {
                       <CheckCircle className="w-5 h-5" />
                     ) : step.status === 'running' ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : step.id === 6 ? (
+                      <CreditCard className="w-5 h-5" />
                     ) : step.id === 4 ? (
                       <ShoppingCart className="w-5 h-5" />
                     ) : step.id === 3 ? (

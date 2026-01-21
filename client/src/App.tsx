@@ -375,6 +375,16 @@ function Router() {
       <Route path="/weather/demo">
         {() => <LazyLoadWrapper><WeatherDemoPage /></LazyLoadWrapper>}
       </Route>
+      <Route path="/credits/proof">
+        {() => {
+          const CreditsProofPage = lazy(() => import("@/pages/CreditsProofPage"));
+          return (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <CreditsProofPage />
+            </Suspense>
+          );
+        }}
+      </Route>
       
       {/* SDK Enterprise Pages - $2K-$200K Market */}
       <Route path="/sdk-landing">

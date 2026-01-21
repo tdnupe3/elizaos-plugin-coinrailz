@@ -7,13 +7,13 @@ import { useQuery } from "@tanstack/react-query";
 import { 
   Cpu, 
   DollarSign,
-  BarChart3,
   Activity,
   CreditCard,
   ArrowUpRight,
   ArrowDownRight,
   RefreshCw,
-  Loader2
+  Loader2,
+  Download
 } from "lucide-react";
 
 export default function IoTDashboardPage() {
@@ -109,6 +109,9 @@ export default function IoTDashboardPage() {
               <Button variant="ghost" onClick={() => setLocation("/weather")}>
                 Weather
               </Button>
+              <Button variant="ghost" onClick={() => setLocation("/credits/proof")}>
+                Audit Trail
+              </Button>
               <Button 
                 className="bg-emerald-600 hover:bg-emerald-700"
                 onClick={() => setLocation("/iot/topup")}
@@ -126,18 +129,39 @@ export default function IoTDashboardPage() {
             <h1 className="text-3xl font-bold text-gray-900">Usage Dashboard</h1>
             <p className="text-gray-500">Monitor devices, events, and credits</p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={() => refetchCatalog()}
-            disabled={catalogLoading}
-          >
-            {catalogLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
-            Refresh
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                const csvContent = [
+                  ['Type', 'Description', 'Device', 'Time', 'Amount'].join(','),
+                  ...recentActivity.map(a => [a.type, a.description, a.device, a.time, a.revenue || a.cost].join(','))
+                ].join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `iot-activity-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Export CSV
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => refetchCatalog()}
+              disabled={catalogLoading}
+            >
+              {catalogLoading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Refresh
+            </Button>
+          </div>
         </div>
 
         <div className="grid md:grid-cols-4 gap-6 mb-8">

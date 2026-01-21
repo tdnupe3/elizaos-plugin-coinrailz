@@ -389,6 +389,167 @@ export class CoinbaseCDPService {
   }
 
   // ========================================
+  // USDC Token Transfers - IoT/D2D Payments
+  // ========================================
+  
+  /**
+   * USDC contract addresses by network
+   */
+  private static readonly USDC_CONTRACTS: Record<string, string> = {
+    'base-mainnet': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    'ethereum-mainnet': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+    'polygon-mainnet': '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+    'arbitrum-mainnet': '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    'base-sepolia': '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Test USDC
+  };
+  
+  /**
+   * RPC URLs by network
+   */
+  private static readonly RPC_URLS: Record<string, string> = {
+    'base-mainnet': 'https://mainnet.base.org',
+    'ethereum-mainnet': process.env.ETHEREUM_RPC_URL || 'https://eth.llamarpc.com',
+    'polygon-mainnet': 'https://polygon-rpc.com',
+    'arbitrum-mainnet': 'https://arb1.arbitrum.io/rpc',
+    'base-sepolia': 'https://sepolia.base.org',
+  };
+  
+  /**
+   * ERC20 Transfer ABI fragment
+   */
+  private static readonly ERC20_TRANSFER_ABI = [
+    'function transfer(address to, uint256 amount) returns (bool)',
+    'function balanceOf(address account) view returns (uint256)',
+    'function decimals() view returns (uint8)',
+  ];
+
+  /**
+   * Send USDC transfer from a platform-managed wallet
+   * Used for D2D transfers and credits-to-wallet withdrawals
+   */
+  async sendUSDC(params: {
+    toAddress: string;
+    amount: string; // In USDC (not wei) e.g., "10.50"
+    chain: string;
+    memo?: string;
+  }): Promise<{ txHash: string; status: 'completed' | 'pending' | 'failed'; error?: string }> {
+    try {
+      console.log(`💵 Sending ${params.amount} USDC to ${params.toAddress} on ${params.chain}`);
+      
+      const usdcAddress = CoinbaseCDPService.USDC_CONTRACTS[params.chain];
+      if (!usdcAddress) {
+        throw new Error(`USDC not supported on chain: ${params.chain}`);
+      }
+      
+      const rpcUrl = CoinbaseCDPService.RPC_URLS[params.chain];
+      if (!rpcUrl) {
+        throw new Error(`No RPC configured for chain: ${params.chain}`);
+      }
+      
+      // Get platform signer for the correct chain
+      const chainType = params.chain.includes('base') ? 'base' : 'ethereum';
+      const wallet = await CoinbaseCDPService.getPlatformSigner(chainType);
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const signer = wallet.connect(provider);
+      
+      // Create USDC contract instance
+      const usdcContract = new ethers.Contract(
+        usdcAddress,
+        CoinbaseCDPService.ERC20_TRANSFER_ABI,
+        signer
+      );
+      
+      // Get decimals (USDC is 6 decimals)
+      const decimals = await usdcContract.decimals();
+      const amountUnits = ethers.parseUnits(params.amount, decimals);
+      
+      // Check balance first
+      const balance = await usdcContract.balanceOf(wallet.address);
+      if (balance < amountUnits) {
+        console.log(`❌ Insufficient USDC balance: ${ethers.formatUnits(balance, decimals)} < ${params.amount}`);
+        return { 
+          txHash: '', 
+          status: 'failed', 
+          error: `Insufficient USDC balance. Have: ${ethers.formatUnits(balance, decimals)}, Need: ${params.amount}` 
+        };
+      }
+      
+      console.log(`💰 USDC balance: ${ethers.formatUnits(balance, decimals)}, sending: ${params.amount}`);
+      
+      // Execute transfer
+      const tx = await usdcContract.transfer(params.toAddress, amountUnits);
+      console.log(`⏳ Transaction sent: ${tx.hash}`);
+      
+      // Wait for confirmation
+      const receipt = await tx.wait(1);
+      if (receipt?.status === 1) {
+        console.log(`✅ USDC transfer confirmed: ${receipt.hash}`);
+        return { txHash: receipt.hash, status: 'completed' };
+      } else {
+        return { txHash: tx.hash, status: 'failed', error: 'Transaction reverted' };
+      }
+      
+    } catch (error: any) {
+      console.error('❌ USDC transfer failed:', error);
+      return { txHash: '', status: 'failed', error: error.message };
+    }
+  }
+  
+  /**
+   * Get USDC balance for an address
+   */
+  async getUSDCBalance(address: string, chain: string = 'base-mainnet'): Promise<string> {
+    try {
+      const usdcAddress = CoinbaseCDPService.USDC_CONTRACTS[chain];
+      const rpcUrl = CoinbaseCDPService.RPC_URLS[chain];
+      
+      if (!usdcAddress || !rpcUrl) {
+        return '0';
+      }
+      
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const usdcContract = new ethers.Contract(
+        usdcAddress,
+        CoinbaseCDPService.ERC20_TRANSFER_ABI,
+        provider
+      );
+      
+      const balance = await usdcContract.balanceOf(address);
+      const decimals = await usdcContract.decimals();
+      
+      return ethers.formatUnits(balance, decimals);
+    } catch (error: any) {
+      console.error(`❌ Failed to get USDC balance for ${address}:`, error.message);
+      return '0';
+    }
+  }
+  
+  /**
+   * Create a new EVM wallet for an IoT account
+   * Returns the wallet address for on-chain payments
+   */
+  async createIoTWallet(accountId: string): Promise<{ address: string; chain: string }> {
+    this.ensureInitialized();
+    
+    if (!this.cdpClient) {
+      throw new Error('CDP Client not initialized');
+    }
+    
+    try {
+      const account = await this.cdpClient.evm.createAccount();
+      console.log(`✅ Created IoT CDP wallet for account ${accountId}: ${account.address}`);
+      
+      return {
+        address: account.address,
+        chain: 'base-mainnet'
+      };
+    } catch (error: any) {
+      console.error('❌ Failed to create IoT wallet:', error);
+      throw new Error(`Failed to create IoT wallet: ${error.message}`);
+    }
+  }
+
+  // ========================================
   // DEX Trading Methods - Revenue Generation
   // ========================================
 

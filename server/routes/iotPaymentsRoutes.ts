@@ -35,6 +35,7 @@ import { sql, eq, desc, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import rateLimit from 'express-rate-limit';
 import Stripe from 'stripe';
+import { CoinbaseCDPService } from '../services/coinbaseCDPService';
 import {
   iotAccounts,
   iotDeviceRegistry,
@@ -181,6 +182,8 @@ const createAccountSchema = z.object({
   ownerWallet: z.string().optional(),
   tier: z.enum(['starter', 'growth', 'enterprise']).default('starter'),
   isDemo: z.boolean().default(false), // Flag for demo/test data - excluded from production metrics
+  provisionWallet: z.boolean().default(false), // Provision CDP wallet for on-chain payments
+  walletChain: z.string().default('base-mainnet'), // Chain for CDP wallet
   metadata: z.record(z.any()).optional(),
 });
 
@@ -280,12 +283,30 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
       });
     }
 
-    const { accountName, ownerId, ownerWallet, tier, isDemo, metadata } = validation.data;
+    const { accountName, ownerId, ownerWallet, tier, isDemo, provisionWallet, walletChain, metadata } = validation.data;
     const accountId = `iot_acc_${nanoid(12)}`;
     
     const { createHash, randomBytes } = await import('crypto');
     const apiKey = `iot_${randomBytes(24).toString('hex')}`;
     const apiKeyHash = createHash('sha256').update(apiKey).digest('hex');
+
+    let cdpWalletAddress: string | null = null;
+    let cdpWalletChain: string = walletChain;
+    let cdpWalletStatus: string = 'none';
+
+    if (provisionWallet && !isDemo) {
+      try {
+        const cdpService = CoinbaseCDPService.getInstance();
+        const wallet = await cdpService.createIoTWallet(accountId);
+        cdpWalletAddress = wallet.address;
+        cdpWalletChain = wallet.chain;
+        cdpWalletStatus = 'active';
+        console.log(`💰 CDP wallet provisioned for IoT account ${accountId}: ${cdpWalletAddress}`);
+      } catch (walletError: any) {
+        console.warn(`⚠️ CDP wallet provisioning failed for ${accountId}: ${walletError.message}`);
+        cdpWalletStatus = 'failed';
+      }
+    }
 
     await db.insert(iotAccounts).values({
       id: accountId,
@@ -295,6 +316,9 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
       accountName,
       tier,
       isDemo: isDemo || false,
+      cdpWalletAddress,
+      cdpWalletChain,
+      cdpWalletStatus,
       metadata: metadata || {},
     });
     
@@ -312,6 +336,11 @@ router.post('/account', optionalAuth, async (req: Request, res: Response) => {
         tier,
         creditsBalance: 0,
         status: 'active',
+        cdpWallet: cdpWalletAddress ? {
+          address: cdpWalletAddress,
+          chain: cdpWalletChain,
+          status: cdpWalletStatus,
+        } : null,
       },
       apiKey,
       apiKeyWarning: 'Store this API key securely. It cannot be retrieved again.',
@@ -996,41 +1025,121 @@ router.post('/transfer', requiredAuth, async (req: Request, res: Response) => {
         timestamp: new Date().toISOString(),
       });
     } else if (paymentMethod === 'usdc_onchain') {
+      const targetChain = chain || 'base-mainnet';
+      const recipientAddress = toWallet || toDevice?.walletAddress;
+      
+      if (!recipientAddress) {
+        return res.status(400).json({
+          success: false,
+          error: 'No recipient wallet address available for on-chain transfer',
+          hint: 'Provide toWallet or ensure recipient device has a wallet address',
+        });
+      }
+      
+      const cdpService = CoinbaseCDPService.getInstance();
+      const platformBalance = await cdpService.getUSDCBalance(process.env.PLATFORM_WALLET_ADDRESS || '', targetChain);
+      
+      if (parseFloat(platformBalance) < netAmount) {
+        console.log(`❌ Insufficient platform USDC for D2D: ${platformBalance} < ${netAmount} required`);
+        return res.status(503).json({
+          success: false,
+          error: 'Platform liquidity temporarily insufficient for on-chain transfer',
+          hint: 'Try credits payment method or contact support',
+        });
+      }
+      
       await db.insert(iotTransfers).values({
         id: transferId,
         fromDeviceId,
         fromAccountId: fromDevice[0].accountId,
         toDeviceId: toDeviceId || null,
         toAccountId,
-        toWallet: toWallet || null,
+        toWallet: recipientAddress,
         amount: amount.toString(),
         fee: fee.toString(),
         netAmount: netAmount.toString(),
         currency: 'USDC',
         paymentMethod,
-        chain: chain || 'base-mainnet',
+        chain: targetChain,
         purpose: purpose || null,
         reference: reference || null,
-        status: 'pending',
+        status: 'processing',
         idempotencyKey: idempotencyKey || null,
       });
 
-      res.status(201).json({
-        success: true,
-        transfer: {
-          id: transferId,
-          status: 'pending',
-          amount,
-          fee,
-          netAmount,
-          currency: 'USDC',
-          chain: chain || 'base-mainnet',
-        },
-        action: 'on_chain_required',
-        message: 'On-chain USDC transfer required. Use wallet to complete.',
-        recipientWallet: toWallet || toDevice?.walletAddress,
-        timestamp: new Date().toISOString(),
-      });
+      try {
+        const transferResult = await cdpService.sendUSDC({
+          toAddress: recipientAddress,
+          amount: netAmount.toString(),
+          chain: targetChain,
+          memo: `IoT D2D Transfer: ${transferId}`,
+        });
+        
+        if (transferResult.status === 'completed') {
+          await db.update(iotTransfers)
+            .set({ 
+              status: 'completed', 
+              txHash: transferResult.txHash,
+              completedAt: new Date(),
+            })
+            .where(eq(iotTransfers.id, transferId));
+          
+          const durationMs = Date.now() - startTime;
+          console.log(`✅ On-chain D2D transfer completed: ${transferId} -> ${transferResult.txHash}`);
+          
+          res.status(201).json({
+            success: true,
+            transfer: {
+              id: transferId,
+              status: 'completed',
+              amount,
+              fee,
+              netAmount,
+              currency: 'USDC',
+              chain: targetChain,
+              txHash: transferResult.txHash,
+            },
+            feeBreakdown: {
+              percentage: `${IOT_TRANSFER_FEE.percentageFee * 100}%`,
+              flat: `$${IOT_TRANSFER_FEE.flatFee}`,
+              total: `$${fee.toFixed(4)}`,
+            },
+            recipientWallet: recipientAddress,
+            durationMs,
+            timestamp: new Date().toISOString(),
+          });
+        } else {
+          await db.update(iotTransfers)
+            .set({ 
+              status: 'failed', 
+              errorMessage: transferResult.error || 'Transfer failed',
+            })
+            .where(eq(iotTransfers.id, transferId));
+          
+          res.status(500).json({
+            success: false,
+            error: 'On-chain transfer failed',
+            message: transferResult.error,
+            transferId,
+          });
+        }
+      } catch (cdpError: any) {
+        await db.update(iotTransfers)
+          .set({ 
+            status: 'failed', 
+            errorMessage: cdpError.message,
+          })
+          .where(eq(iotTransfers.id, transferId));
+        
+        console.error(`❌ CDP on-chain transfer failed for ${transferId}:`, cdpError);
+        res.status(500).json({
+          success: false,
+          error: 'On-chain transfer execution failed',
+          message: cdpError.message,
+          transferId,
+          fallback: 'Transfer created but on-chain execution failed. Manual intervention may be required.',
+        });
+      }
     }
   } catch (error: any) {
     console.error('❌ IoT Transfer failed:', error);
@@ -1663,6 +1772,490 @@ router.delete('/pilots/:pilotId', async (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Pilot deleted',
+  });
+});
+
+// ========================================
+// On-Chain USDC Topup - Convert USDC to Credits
+// ========================================
+
+const onchainTopupSchema = z.object({
+  accountId: z.string().min(1),
+  txHash: z.string().min(1), // The USDC transfer transaction hash
+  chain: z.string().default('base-mainnet'),
+  expectedAmount: z.string().optional(), // Expected USDC amount for verification
+});
+
+router.post('/topup/onchain', requiredAuth, async (req: Request, res: Response) => {
+  try {
+    const validation = onchainTopupSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid input',
+        details: validation.error.errors,
+      });
+    }
+
+    const { accountId, txHash, chain, expectedAmount } = validation.data;
+    const auth = (req as any).iotAuth as IoTAuthResult;
+    
+    if (!canAccessAccount(auth, accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this account',
+      });
+    }
+
+    const account = await db.select()
+      .from(iotAccounts)
+      .where(eq(iotAccounts.id, accountId))
+      .limit(1);
+
+    if (!account.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+    
+    const existingTopup = await db.select()
+      .from(iotTopups)
+      .where(sql`metadata->>'txHash' = ${txHash}`)
+      .limit(1);
+    
+    if (existingTopup.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: 'Transaction already processed',
+        topupId: existingTopup[0].id,
+      });
+    }
+
+    const topupId = `iot_topup_${nanoid(16)}`;
+    const platformWalletAddress = account[0].cdpWalletAddress || process.env.PLATFORM_WALLET_ADDRESS;
+    
+    if (!platformWalletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'No platform wallet configured for this account',
+        hint: 'Create account with provisionWallet: true to enable on-chain topups',
+      });
+    }
+    
+    const usdcContracts: Record<string, string> = {
+      'base-mainnet': '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+      'ethereum-mainnet': '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      'polygon-mainnet': '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+      'arbitrum-mainnet': '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+    };
+    
+    if (!usdcContracts[chain]) {
+      return res.status(400).json({
+        success: false,
+        error: `Chain ${chain} not supported for on-chain topups`,
+        supportedChains: Object.keys(usdcContracts),
+      });
+    }
+    
+    let verifiedAmount = '0';
+    let verificationStatus = 'pending';
+    let verificationMessage = 'Transaction verification pending';
+    
+    try {
+      const ethers = await import('ethers');
+      const rpcUrls: Record<string, string> = {
+        'base-mainnet': 'https://mainnet.base.org',
+        'ethereum-mainnet': 'https://eth.llamarpc.com',
+        'polygon-mainnet': 'https://polygon-rpc.com',
+        'arbitrum-mainnet': 'https://arb1.arbitrum.io/rpc',
+      };
+      const rpcUrl = rpcUrls[chain] || 'https://mainnet.base.org';
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const receipt = await provider.getTransactionReceipt(txHash);
+      
+      if (receipt && receipt.status === 1) {
+        const usdcAddress = usdcContracts[chain].toLowerCase();
+        const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+        
+        let totalVerifiedAmount = BigInt(0);
+        let matchingTransfers = 0;
+        
+        for (const log of receipt.logs) {
+          if (log.address.toLowerCase() === usdcAddress && log.topics[0] === transferTopic) {
+            const toAddress = '0x' + log.topics[2].slice(26).toLowerCase();
+            if (toAddress === platformWalletAddress.toLowerCase()) {
+              const transferAmount = BigInt(log.data);
+              totalVerifiedAmount += transferAmount;
+              matchingTransfers++;
+            }
+          }
+        }
+        
+        if (matchingTransfers > 0) {
+          verifiedAmount = ethers.formatUnits(totalVerifiedAmount, 6);
+          
+          if (expectedAmount) {
+            const expectedFloat = parseFloat(expectedAmount);
+            const verifiedFloat = parseFloat(verifiedAmount);
+            const tolerance = 0.01;
+            
+            if (Math.abs(verifiedFloat - expectedFloat) > tolerance) {
+              verificationStatus = 'amount_mismatch';
+              verificationMessage = `Expected ${expectedAmount} USDC but found ${verifiedAmount} USDC`;
+              console.warn(`⚠️ Topup amount mismatch: expected ${expectedAmount}, got ${verifiedAmount}`);
+            } else {
+              verificationStatus = 'completed';
+              verificationMessage = `Verified ${verifiedAmount} USDC transfer (${matchingTransfers} transfer(s))`;
+              console.log(`✅ On-chain topup verified: ${verifiedAmount} USDC from tx ${txHash}`);
+            }
+          } else {
+            verificationStatus = 'completed';
+            verificationMessage = `Verified ${verifiedAmount} USDC transfer (${matchingTransfers} transfer(s))`;
+            console.log(`✅ On-chain topup verified: ${verifiedAmount} USDC from tx ${txHash}`);
+          }
+        } else {
+          verificationStatus = 'no_transfer_found';
+          verificationMessage = 'Transaction confirmed but no USDC transfer to platform wallet detected';
+        }
+      } else if (!receipt) {
+        verificationMessage = 'Transaction not yet confirmed on chain - submit again after confirmation';
+      } else {
+        verificationMessage = 'Transaction failed on chain';
+        verificationStatus = 'failed';
+      }
+    } catch (verifyError: any) {
+      console.warn(`⚠️ On-chain verification failed: ${verifyError.message}`);
+      verificationMessage = `Verification error: ${verifyError.message}`;
+    }
+    
+    await db.insert(iotTopups).values({
+      id: topupId,
+      accountId,
+      packId: 'onchain_usdc',
+      packName: 'On-Chain USDC Topup',
+      amountPaid: verifiedAmount || expectedAmount || '0',
+      creditsReceived: verificationStatus === 'completed' ? verifiedAmount : '0',
+      paymentMethod: 'usdc_onchain',
+      paymentId: txHash,
+      status: verificationStatus,
+      metadata: { 
+        txHash, 
+        chain, 
+        expectedAmount,
+        verifiedAmount,
+        platformWallet: platformWalletAddress,
+        verificationMessage,
+      },
+    });
+    
+    if (verificationStatus === 'completed' && parseFloat(verifiedAmount) > 0) {
+      await db.update(iotAccounts)
+        .set({
+          creditsBalance: sql`${iotAccounts.creditsBalance} + ${parseFloat(verifiedAmount)}`,
+          totalDeposited: sql`${iotAccounts.totalDeposited} + ${parseFloat(verifiedAmount)}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(iotAccounts.id, accountId));
+      
+      console.log(`💰 Credits added to ${accountId}: +${verifiedAmount} USDC`);
+    }
+
+    console.log(`🔍 On-chain topup ${verificationStatus}: ${topupId} with txHash ${txHash}`);
+
+    res.status(201).json({
+      success: true,
+      topup: {
+        id: topupId,
+        status: verificationStatus,
+        txHash,
+        chain,
+        expectedAmount,
+        verifiedAmount: verificationStatus === 'completed' ? verifiedAmount : null,
+        creditsAdded: verificationStatus === 'completed' ? parseFloat(verifiedAmount) : 0,
+      },
+      message: verificationMessage,
+      platformWallet: platformWalletAddress,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('❌ On-chain topup failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'On-chain topup failed',
+      message: error.message,
+    });
+  }
+});
+
+router.get('/topup/wallet/:accountId', requiredAuth, async (req: Request, res: Response) => {
+  try {
+    const { accountId } = req.params;
+    const auth = (req as any).iotAuth as IoTAuthResult;
+    
+    if (!canAccessAccount(auth, accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this account',
+      });
+    }
+
+    const account = await db.select()
+      .from(iotAccounts)
+      .where(eq(iotAccounts.id, accountId))
+      .limit(1);
+
+    if (!account.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    const platformWallet = account[0].cdpWalletAddress || process.env.PLATFORM_WALLET_ADDRESS;
+    const chain = account[0].cdpWalletChain || 'base-mainnet';
+
+    res.json({
+      success: true,
+      depositInfo: {
+        address: platformWallet,
+        chain,
+        currency: 'USDC',
+        rate: '1 USDC = 1 Credit (1:1)',
+        minimumDeposit: '1.00',
+        note: 'Send USDC to this address. Credits will be added after 3 confirmations.',
+      },
+      supportedChains: ['base-mainnet', 'ethereum-mainnet', 'polygon-mainnet', 'arbitrum-mainnet'],
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('❌ Get topup wallet failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get topup wallet',
+      message: error.message,
+    });
+  }
+});
+
+// ========================================
+// Credits-to-Wallet Withdrawal
+// ========================================
+
+const withdrawalSchema = z.object({
+  accountId: z.string().min(1),
+  amount: z.number().positive().min(1), // Minimum $1 withdrawal
+  toWallet: z.string().min(1), // Recipient wallet address
+  chain: z.string().default('base-mainnet'),
+});
+
+router.post('/withdraw', requiredAuth, async (req: Request, res: Response) => {
+  try {
+    const validation = withdrawalSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid input',
+        details: validation.error.errors,
+      });
+    }
+
+    const { accountId, amount, toWallet, chain } = validation.data;
+    const auth = (req as any).iotAuth as IoTAuthResult;
+    
+    if (!canAccessAccount(auth, accountId)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied to this account',
+      });
+    }
+
+    const account = await db.select()
+      .from(iotAccounts)
+      .where(eq(iotAccounts.id, accountId))
+      .limit(1);
+
+    if (!account.length) {
+      return res.status(404).json({
+        success: false,
+        error: 'Account not found',
+      });
+    }
+
+    const currentBalance = parseFloat(account[0].creditsBalance);
+    const withdrawalFee = amount * 0.01 + 0.50;
+    const netAmount = amount - withdrawalFee;
+    
+    if (currentBalance < amount) {
+      return res.status(402).json({
+        success: false,
+        error: 'Insufficient credits',
+        balance: currentBalance,
+        requested: amount,
+      });
+    }
+    
+    if (netAmount < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Withdrawal amount too small after fees',
+        fee: withdrawalFee,
+        minimumWithdrawal: 2.00,
+      });
+    }
+
+    const withdrawalId = `iot_withdraw_${nanoid(16)}`;
+
+    const cdpService = CoinbaseCDPService.getInstance();
+    const platformBalance = await cdpService.getUSDCBalance(process.env.PLATFORM_WALLET_ADDRESS || '', chain);
+    
+    if (parseFloat(platformBalance) < netAmount) {
+      console.log(`❌ Insufficient platform USDC: ${platformBalance} < ${netAmount} required`);
+      return res.status(503).json({
+        success: false,
+        error: 'Platform liquidity temporarily insufficient',
+        message: 'Please try a smaller amount or wait for liquidity replenishment',
+        hint: 'Contact support if this persists',
+      });
+    }
+
+    await db.update(iotAccounts)
+      .set({
+        creditsBalance: sql`${iotAccounts.creditsBalance} - ${amount}`,
+        updatedAt: new Date(),
+      })
+      .where(eq(iotAccounts.id, accountId));
+
+    await db.insert(iotTransfers).values({
+      id: withdrawalId,
+      fromDeviceId: 'ACCOUNT',
+      fromAccountId: accountId,
+      toDeviceId: null,
+      toAccountId: null,
+      toWallet,
+      amount: amount.toString(),
+      fee: withdrawalFee.toString(),
+      netAmount: netAmount.toString(),
+      currency: 'USDC',
+      paymentMethod: 'usdc_onchain',
+      chain,
+      purpose: 'withdrawal',
+      status: 'processing',
+    });
+
+    try {
+      const cdpService = CoinbaseCDPService.getInstance();
+      const transferResult = await cdpService.sendUSDC({
+        toAddress: toWallet,
+        amount: netAmount.toString(),
+        chain,
+        memo: `IoT Withdrawal: ${withdrawalId}`,
+      });
+      
+      if (transferResult.status === 'completed') {
+        await db.update(iotTransfers)
+          .set({ 
+            status: 'completed', 
+            txHash: transferResult.txHash,
+            completedAt: new Date(),
+          })
+          .where(eq(iotTransfers.id, withdrawalId));
+        
+        console.log(`✅ Withdrawal completed: ${withdrawalId} -> ${transferResult.txHash}`);
+        
+        res.status(201).json({
+          success: true,
+          withdrawal: {
+            id: withdrawalId,
+            status: 'completed',
+            amount,
+            fee: withdrawalFee,
+            netAmount,
+            currency: 'USDC',
+            chain,
+            txHash: transferResult.txHash,
+            toWallet,
+          },
+          feeBreakdown: {
+            percentage: '1%',
+            flat: '$0.50',
+            total: `$${withdrawalFee.toFixed(2)}`,
+          },
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        await db.update(iotAccounts)
+          .set({
+            creditsBalance: sql`${iotAccounts.creditsBalance} + ${amount}`,
+            updatedAt: new Date(),
+          })
+          .where(eq(iotAccounts.id, accountId));
+        
+        await db.update(iotTransfers)
+          .set({ 
+            status: 'failed', 
+            errorMessage: transferResult.error || 'Transfer failed',
+          })
+          .where(eq(iotTransfers.id, withdrawalId));
+        
+        res.status(500).json({
+          success: false,
+          error: 'Withdrawal transfer failed',
+          message: transferResult.error,
+          withdrawalId,
+          note: 'Credits have been refunded to your account.',
+        });
+      }
+    } catch (cdpError: any) {
+      await db.update(iotAccounts)
+        .set({
+          creditsBalance: sql`${iotAccounts.creditsBalance} + ${amount}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(iotAccounts.id, accountId));
+      
+      await db.update(iotTransfers)
+        .set({ 
+          status: 'failed', 
+          errorMessage: cdpError.message,
+        })
+        .where(eq(iotTransfers.id, withdrawalId));
+      
+      console.error(`❌ Withdrawal failed for ${withdrawalId}:`, cdpError);
+      res.status(500).json({
+        success: false,
+        error: 'Withdrawal execution failed',
+        message: cdpError.message,
+        withdrawalId,
+        note: 'Credits have been refunded to your account.',
+      });
+    }
+  } catch (error: any) {
+    console.error('❌ Withdrawal failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Withdrawal failed',
+      message: error.message,
+    });
+  }
+});
+
+router.get('/withdraw/limits', requiredAuth, async (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    limits: {
+      minimum: 2.00,
+      maximum: 10000.00,
+      dailyLimit: 50000.00,
+    },
+    fees: {
+      percentage: '1%',
+      flat: '$0.50',
+      example: 'Withdraw $100 → Fee $1.50 → Receive $98.50',
+    },
+    supportedChains: ['base-mainnet', 'ethereum-mainnet', 'polygon-mainnet', 'arbitrum-mainnet'],
+    processingTime: 'Usually within 5 minutes',
+    timestamp: new Date().toISOString(),
   });
 });
 

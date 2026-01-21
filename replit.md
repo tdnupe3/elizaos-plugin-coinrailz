@@ -99,3 +99,8 @@ The Coin Railz platform adopts a USDC-first strategy, utilizing Coinbase CDP for
 - **OpenAI GPT Store:** Monetized Coin Railz GPT with custom actions.
 - **Farcaster Frames:** For Farcaster Frame deployment.
 - **Google's A2A Protocol:** For autonomous outreach to AI agents.
+
+## Recent Changes (January 21, 2026)
+- **CTA Updates**: All "Book Pilot"/"Start Pilot" buttons across Fleet/Weather landing and demo pages now route to `/pilot/onboard` (internal self-serve onboarding) instead of external Calendly links.
+- **Demo API Alignment**: Demo pages updated to use correct API contracts (accountName, tier for accounts; deviceId, accountId, deviceName, deviceType, spendingLimit for devices; x-api-key authentication headers).
+- **Production Hardening**: Verified STRIPE_WEBHOOK_SECRET configured, Stripe webhook handles IoT payment topups via checkout completion events.

@@ -44,7 +44,6 @@ import sdkPaymentsRoutes from './routes/sdkPaymentsRoutes';
 import sdkSolanaRoutes from './routes/sdkSolanaRoutes';
 import x402Routes from './routes/x402Routes';
 import x402MicroserviceRoutes from './routes/x402MicroserviceRoutesV2';
-import x402FundsSweepRoutes from './routes/x402FundsSweepRoutes';
 import x402scanScraperRoutes from './routes/x402scanScraperRoutes';
 import x402AnalyticsRoutes from './routes/x402AnalyticsRoutes';
 import automatedCampaignRoutes from './routes/automatedCampaignRoutes';
@@ -877,7 +876,6 @@ import freeWalletRoutes from './routes/freeWalletRoutes';
 app.use('/x402/wallet', freeWalletRoutes); // Free wallet creation for agents
 console.log('✅ Free wallet routes registered at /x402/wallet/* - POST /x402/wallet/free');
 
-app.use('/api/x402-sweep', x402FundsSweepRoutes);
 app.use('/api/x402scan-scraper', x402scanScraperRoutes);
 app.use('/api/x402-analytics', x402AnalyticsRoutes);
 app.use('/api/automated-campaigns', automatedCampaignRoutes);
@@ -3813,22 +3811,6 @@ app.use('/api/ai-agents', aiMarketplaceSimpleRoutes);
     initializeBillingCronJobs();
   } catch (error) {
     console.error('❌ Failed to initialize billing automation:', error);
-  }
-
-  // Initialize x402 funds sweep scheduler
-  // DISABLED: Sweep scheduler disabled until revenue audit complete
-  // Re-enable by setting X402_SWEEP_ENABLED=true
-  if (process.env.X402_SWEEP_ENABLED === 'true') {
-    try {
-      console.log('💰 Initializing x402 funds sweep scheduler...');
-      const { x402SweepScheduler } = await import('./services/x402SweepScheduler');
-      x402SweepScheduler.start();
-      console.log('✅ x402 funds sweep scheduler started (runs every 30 minutes)');
-    } catch (error) {
-      console.error('❌ Failed to initialize x402 sweep scheduler:', error);
-    }
-  } else {
-    console.log('⏸️ x402 funds sweep scheduler DISABLED (set X402_SWEEP_ENABLED=true to enable)');
   }
 
   // Initialize x402 cleanup scheduler (daily at 3 AM)
